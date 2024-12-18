@@ -11,11 +11,11 @@ use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use typeshare::typeshare;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultPerformance {
     /// vault id
     pub id: String,
@@ -29,7 +29,7 @@ pub struct VaultPerformance {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DenominatedPerformance {
     /// The denomination token
     pub token: Erc20,
@@ -47,7 +47,7 @@ pub struct DenominatedPerformance {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderPerformance {
     /// Order subgraph id
     pub order_id: String,
@@ -58,15 +58,21 @@ pub struct OrderPerformance {
     /// Order's measured performance as a whole
     pub denominated_performance: Option<DenominatedPerformance>,
     /// Start timestamp of the performance measring timeframe
-    #[typeshare(typescript(type = "number"))]
     pub start_time: u64,
     /// End timestamp of the performance measuring timeframe
-    #[typeshare(typescript(type = "number"))]
     pub end_time: u64,
     /// Order's input vaults isolated performance
     pub inputs_vaults: Vec<VaultPerformance>,
     /// Order's output vaults isolated performance
     pub outputs_vaults: Vec<VaultPerformance>,
+}
+
+#[cfg(target_family = "wasm")]
+mod impls {
+    use super::*;
+    impl_all_wasm_traits!(OrderPerformance);
+    impl_all_wasm_traits!(DenominatedPerformance);
+    impl_all_wasm_traits!(VaultPerformance);
 }
 
 impl OrderPerformance {

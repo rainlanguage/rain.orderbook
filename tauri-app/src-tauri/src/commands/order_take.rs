@@ -4,7 +4,6 @@ use rain_orderbook_common::{
 };
 
 use rain_orderbook_subgraph_client::performance::vol::VaultVolume;
-use rain_orderbook_subgraph_client::performance::OrderPerformance;
 use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
@@ -80,17 +79,4 @@ pub async fn order_trades_count(
         .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?
         .len())
-}
-
-#[tauri::command]
-pub async fn order_performance(
-    order_id: String,
-    subgraph_args: SubgraphArgs,
-    start_timestamp: Option<u64>,
-    end_timestamp: Option<u64>,
-) -> CommandResult<OrderPerformance> {
-    let client = subgraph_args.to_subgraph_client().await?;
-    Ok(client
-        .order_performance(order_id.into(), start_timestamp, end_timestamp)
-        .await?)
 }

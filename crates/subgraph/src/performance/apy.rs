@@ -8,15 +8,13 @@ use chrono::TimeDelta;
 use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use typeshare::typeshare;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct APYDetails {
-    #[typeshare(typescript(type = "number"))]
     pub start_time: u64,
-    #[typeshare(typescript(type = "number"))]
     pub end_time: u64,
     pub net_vol: U256,
     pub capital: U256,
@@ -26,7 +24,7 @@ pub struct APYDetails {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultAPY {
     pub id: String,
     pub token: Erc20,
@@ -35,10 +33,18 @@ pub struct VaultAPY {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TokenPair {
     pub input: Erc20,
     pub output: Erc20,
+}
+
+#[cfg(target_family = "wasm")]
+mod impls {
+    use super::*;
+    impl_all_wasm_traits!(ToeknPair);
+    impl_all_wasm_traits!(VaultAPY);
+    impl_all_wasm_traits!(APYDetails);
 }
 
 /// Calculates each token vault apy at the given timeframe

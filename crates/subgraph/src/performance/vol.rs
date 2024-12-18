@@ -6,11 +6,11 @@ use alloy::primitives::{ruint::ParseError, U256};
 use rain_orderbook_math::BigUintMath;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, str::FromStr};
-use typeshare::typeshare;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VolumeDetails {
     pub total_in: U256,
     pub total_out: U256,
@@ -20,11 +20,18 @@ pub struct VolumeDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultVolume {
     pub id: String,
     pub token: Erc20,
     pub vol_details: VolumeDetails,
+}
+
+#[cfg(target_family = "wasm")]
+mod impls {
+    use super::*;
+    impl_all_wasm_traits!(VolumeDetails);
+    impl_all_wasm_traits!(VaultVolume);
 }
 
 /// Get the vaults volume from array of trades of an order

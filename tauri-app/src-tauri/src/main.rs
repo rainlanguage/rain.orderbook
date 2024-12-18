@@ -19,7 +19,7 @@ use commands::order::{
 };
 use commands::order_quote::{batch_order_quotes, debug_order_quote};
 use commands::order_take::{
-    order_performance, order_trades_count, order_trades_list, order_trades_list_write_csv,
+    order_trades_count, order_trades_list, order_trades_list_write_csv,
     order_vaults_volume,
 };
 use commands::trade_debug::debug_trade;
@@ -83,7 +83,6 @@ fn run_tauri_app() {
             validate_raindex_version,
             order_vaults_volume,
             order_trades_count,
-            order_performance,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

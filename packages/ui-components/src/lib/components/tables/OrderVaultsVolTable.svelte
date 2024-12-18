@@ -52,16 +52,17 @@
 			</div>
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32" data-testid="total-in">
-			{formatUnits(BigInt(item.totalIn), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalIn), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="total-out">
-			{formatUnits(BigInt(item.totalOut), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalOut), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="net-vol">
-			{formatUnits(BigInt(item.netVol), Number(item.token.decimals ?? 0))}
+			{(BigInt(item.volDetails.totalIn) >= BigInt(item.volDetails.totalOut) ? '' : '-') +
+				formatUnits(BigInt(item.volDetails.netVol), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="total-vol">
-			{formatUnits(BigInt(item.totalVol), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalVol), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 	</svelte:fragment>
 </TanstackAppTable>
