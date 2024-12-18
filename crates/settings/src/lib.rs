@@ -6,6 +6,7 @@ pub mod deployer;
 pub mod deployment;
 pub mod gui;
 pub mod merge;
+pub mod metaboard;
 pub mod network;
 pub mod order;
 pub mod orderbook;
