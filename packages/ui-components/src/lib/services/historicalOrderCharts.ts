@@ -1,4 +1,4 @@
-import type { Trade } from '../typeshare/subgraphTypes';
+import type { Trade } from '@rainlanguage/orderbook/js_api';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../utils/time';
 import { sortBy } from 'lodash';
