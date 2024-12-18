@@ -2,7 +2,7 @@
 	import { OrderDetail, PageHeader } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 
-	const { codeMirrorTheme, lightweightChartsTheme, colorTheme } = $page.data.stores;
+	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	const { id, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
