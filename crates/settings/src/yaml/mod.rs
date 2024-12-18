@@ -3,7 +3,7 @@ pub mod orderbook;
 
 use crate::{
     ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
-    ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
+    ParseOrderbookConfigSourceError, ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
@@ -94,6 +94,8 @@ pub enum YamlError {
     ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
     #[error(transparent)]
     ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    #[error(transparent)]
+    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
