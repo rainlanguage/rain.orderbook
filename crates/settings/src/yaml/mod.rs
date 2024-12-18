@@ -2,9 +2,10 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
+    ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
 };
+use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -65,6 +66,8 @@ pub enum YamlError {
     RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    RuintParseError(#[from] RuintParseError),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -89,6 +92,8 @@ pub enum YamlError {
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
     #[error(transparent)]
     ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    #[error(transparent)]
+    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {

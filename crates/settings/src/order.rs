@@ -1,9 +1,17 @@
 use crate::*;
 use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::{
+    optional_string, require_hash, require_string, require_vec, YamlError, YamlParsableHash,
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -27,10 +35,14 @@ pub struct OrderIO {
 impl_all_wasm_traits!(OrderIO);
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
+#[serde(default)]
 pub struct Order {
+    #[serde(skip)]
+    pub document: Arc<RwLock<StrictYaml>>,
+    pub key: String,
     #[typeshare(typescript(type = "OrderIO[]"))]
     #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
     pub inputs: Vec<OrderIO>,
@@ -46,6 +58,189 @@ pub struct Order {
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Order);
+
+impl Order {
+    pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
+        U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+    }
+}
+
+impl YamlParsableHash for Order {
+    fn parse_all_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<HashMap<String, Self>, YamlError> {
+        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+        let orders_hash = require_hash(
+            &document_read,
+            Some("orders"),
+            Some("missing field: orders".to_string()),
+        )?;
+
+        orders_hash
+            .into_iter()
+            .map(|(key_yaml, order_yaml)| {
+                let order_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                let mut network: Option<Arc<Network>> = None;
+
+                let deployer = match optional_string(order_yaml, "deployer") {
+                    Some(deployer_name) => {
+                        let deployer =
+                            Arc::new(Deployer::parse_from_yaml(document.clone(), &deployer_name)?);
+                        if let Some(n) = &network {
+                            if deployer.network != *n {
+                                return Err(YamlError::ParseOrderConfigSourceError(
+                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                ));
+                            }
+                        } else {
+                            network = Some(deployer.network.clone());
+                        }
+                        Some(deployer)
+                    }
+                    None => None,
+                };
+
+                let orderbook = match optional_string(order_yaml, "orderbook") {
+                    Some(orderbook_name) => {
+                        let orderbook = Arc::new(Orderbook::parse_from_yaml(
+                            document.clone(),
+                            &orderbook_name,
+                        )?);
+                        if let Some(n) = &network {
+                            if orderbook.network != *n {
+                                return Err(YamlError::ParseOrderConfigSourceError(
+                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                ));
+                            }
+                        } else {
+                            network = Some(orderbook.network.clone());
+                        }
+                        Some(orderbook)
+                    }
+                    None => None,
+                };
+
+                let inputs = require_vec(
+                    order_yaml,
+                    "inputs",
+                    Some(format!("inputs list missing in order: {order_key}")),
+                )?
+                .iter()
+                .enumerate()
+                .map(|(i, input)| {
+                    let token_name = require_string(
+                        input,
+                        Some("token"),
+                        Some(format!(
+                            "token string missing in input index: {i} in order: {order_key}"
+                        )),
+                    )?;
+                    let token = Token::parse_from_yaml(document.clone(), &token_name)?;
+
+                    if let Some(n) = &network {
+                        if token.network != *n {
+                            return Err(YamlError::ParseOrderConfigSourceError(
+                                ParseOrderConfigSourceError::NetworkNotMatch,
+                            ));
+                        }
+                    } else {
+                        network = Some(token.network.clone());
+                    }
+
+                    let vault_id = match optional_string(input, "vault-id") {
+                        Some(id) => Some(Order::validate_vault_id(&id)?),
+                        None => None,
+                    };
+
+                    Ok(OrderIO {
+                        token: Arc::new(token),
+                        vault_id,
+                    })
+                })
+                .collect::<Result<Vec<_>, YamlError>>()?;
+
+                let outputs = require_vec(
+                    order_yaml,
+                    "outputs",
+                    Some(format!("outputs list missing in order: {order_key}")),
+                )?
+                .iter()
+                .enumerate()
+                .map(|(i, output)| {
+                    let token_name = require_string(
+                        output,
+                        Some("token"),
+                        Some(format!(
+                            "token string missing in output index: {i} in order: {order_key}"
+                        )),
+                    )?;
+                    let token = Token::parse_from_yaml(document.clone(), &token_name)?;
+
+                    if let Some(n) = &network {
+                        if token.network != *n {
+                            return Err(YamlError::ParseOrderConfigSourceError(
+                                ParseOrderConfigSourceError::NetworkNotMatch,
+                            ));
+                        }
+                    } else {
+                        network = Some(token.network.clone());
+                    }
+
+                    let vault_id = match optional_string(output, "vault-id") {
+                        Some(id) => Some(Order::validate_vault_id(&id)?),
+                        None => None,
+                    };
+
+                    Ok(OrderIO {
+                        token: Arc::new(token),
+                        vault_id,
+                    })
+                })
+                .collect::<Result<Vec<_>, YamlError>>()?;
+
+                let order = Order {
+                    document: document.clone(),
+                    key: order_key.clone(),
+                    inputs,
+                    outputs,
+                    network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
+                        String::new(),
+                    ))?,
+                    deployer,
+                    orderbook,
+                };
+
+                Ok((order_key, order))
+            })
+            .collect()
+    }
+}
+
+impl Default for Order {
+    fn default() -> Self {
+        Self {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
+            inputs: vec![],
+            outputs: vec![],
+            network: Arc::new(Network::default()),
+            deployer: None,
+            orderbook: None,
+        }
+    }
+}
+
+impl PartialEq for Order {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+            && self.inputs == other.inputs
+            && self.outputs == other.outputs
+            && self.network == other.network
+            && self.deployer == other.deployer
+            && self.orderbook == other.orderbook
+    }
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseOrderConfigSourceError {
@@ -181,6 +376,8 @@ impl OrderConfigSource {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs,
             outputs,
             network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
@@ -194,6 +391,8 @@ impl OrderConfigSource {
 
 #[cfg(test)]
 mod tests {
+    use yaml::tests::get_document;
+
     use super::*;
     use crate::test::*;
 
@@ -326,5 +525,97 @@ mod tests {
             result,
             Err(ParseOrderConfigSourceError::TokenParseError(_))
         ));
+    }
+
+    #[test]
+    fn test_parse_orders_from_yaml() {
+        let yaml = r#"
+test: test
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("missing field: orders".to_string())
+        );
+
+        let yaml = r#"
+orders:
+    order1:
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("inputs list missing in order: order1".to_string())
+        );
+
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - test: test
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "token string missing in input index: 0 in order: order1".to_string()
+            )
+        );
+
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("missing field: tokens".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("outputs list missing in order: order1".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - test: test
+"#;
+        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "token string missing in output index: 0 in order: order1".to_string()
+            )
+        );
     }
 }
