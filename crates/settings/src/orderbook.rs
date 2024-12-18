@@ -9,14 +9,15 @@ use strict_yaml_rust::StrictYaml;
 use subgraph::YamlSubgraph;
 use thiserror::Error;
 use typeshare::typeshare;
-use yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Orderbook {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "string"))]
