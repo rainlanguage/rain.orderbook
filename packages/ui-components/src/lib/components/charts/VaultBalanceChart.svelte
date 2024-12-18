@@ -3,7 +3,13 @@
 	import { bigintToFloat } from '../../utils/number';
 	import type { Vault } from '../../typeshare/subgraphTypes';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
+	import {
+		getVaultBalanceChanges,
+		type ClearBounty,
+		type Deposit,
+		type TradeVaultBalanceChange,
+		type Withdrawal
+	} from '@rainlanguage/orderbook/js_api';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
@@ -21,10 +27,14 @@
 		},
 		enabled: !!subgraphUrl
 	});
+
+	const Chart = TanstackLightweightChartLine<
+		Withdrawal | Deposit | TradeVaultBalanceChange | ClearBounty
+	>;
 </script>
 
 {#if vault && $query.data}
-	<TanstackLightweightChartLine
+	<Chart
 		title="Balance history"
 		priceSymbol={vault.token.symbol}
 		{query}

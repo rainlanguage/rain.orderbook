@@ -3,7 +3,8 @@ import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
-import { writable } from 'svelte/store';
+import { readable } from 'svelte/store';
+import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 
 // Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -21,7 +22,7 @@ vi.mock('$lib/services/modal', () => ({
 	handleWithdrawModal: vi.fn()
 }));
 
-const mockSettings = writable({
+const mockSettings = readable({
 	subgraphs: {
 		mainnet: 'https://example.com'
 	}
@@ -36,7 +37,7 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
-			lightweightChartsTheme: writable({})
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -55,7 +56,7 @@ test('shows the correct empty message when the query returns no data', async () 
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
-			lightweightChartsTheme: writable({})
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -96,7 +97,7 @@ test('shows the correct data when the query returns data', async () => {
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
-			lightweightChartsTheme: writable({})
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});

@@ -2,7 +2,13 @@
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { formatUnits } from 'viem';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
+	import {
+		getVaultBalanceChanges,
+		type ClearBounty,
+		type Deposit,
+		type TradeVaultBalanceChange,
+		type Withdrawal
+	} from '@rainlanguage/orderbook/js_api';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
@@ -26,9 +32,11 @@
 		},
 		enabled: !!subgraphUrl
 	});
+
+	const AppTable = TanstackAppTable<Withdrawal | Deposit | TradeVaultBalanceChange | ClearBounty>;
 </script>
 
-<TanstackAppTable
+<AppTable
 	query={balanceChangesQuery}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
@@ -67,7 +75,7 @@
 			{item.vault.token.symbol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
-			{item.typename}
+			{item.__typename}
 		</TableBodyCell>
 	</svelte:fragment>
-</TanstackAppTable>
+</AppTable>

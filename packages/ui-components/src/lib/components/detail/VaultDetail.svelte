@@ -67,7 +67,7 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 			{data.token.name}
 		</div>
 		<div>
-			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank(data.owner)}
+			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
 				<Button
 					data-testid="vaultDetailDepositButton"
 					color="dark"
