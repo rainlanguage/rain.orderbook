@@ -1,7 +1,8 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::StrictYaml;
 use typeshare::typeshare;
 
 #[typeshare]
@@ -42,7 +43,8 @@ impl TestConfigSource {
         }
 
         let scenario = Arc::new(Scenario {
-            name: self.scenario_name.clone(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: self.scenario_name.clone(),
             bindings: bindings.clone(),
             runs: self.scenario.runs,
             blocks: self.scenario.blocks.clone(),

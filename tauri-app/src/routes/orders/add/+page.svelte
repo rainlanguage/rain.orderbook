@@ -273,7 +273,7 @@
         defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
-          <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
+          <TabItem bind:open={openTab[scenario.key]} title={scenario.key}>
             <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
           </TabItem>
         {/each}

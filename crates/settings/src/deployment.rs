@@ -73,7 +73,8 @@ mod tests {
         let order_name = "order1";
         let scenario_name = "scenario1";
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
@@ -104,7 +105,8 @@ mod tests {
         let scenario_name = "scenario1";
         let other_scenario_name = "scenario2";
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
