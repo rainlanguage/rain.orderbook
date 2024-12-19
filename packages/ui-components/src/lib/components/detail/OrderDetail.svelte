@@ -12,9 +12,6 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import CodeMirror from 'svelte-codemirror-editor';
-	import { RainlangLR } from 'codemirror-rainlang';
-
 	import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
@@ -156,26 +153,9 @@
 					<CodeMirrorRainlang
 						order={data}
 						codeMirrorTheme={$codeMirrorTheme}
-						disabled={codeMirrorDisabled}
-						styles={codeMirrorStyles}
-					>
-						<svelte:fragment slot="codemirror" let:value>
-							<CodeMirror
-								{value}
-								extensions={[RainlangLR]}
-								theme={codeMirrorTheme}
-								readonly={codeMirrorDisabled}
-								useTab={true}
-								tabSize={2}
-								styles={{
-									'&': {
-										width: '100%'
-									},
-									...codeMirrorStyles
-								}}
-							/>
-						</svelte:fragment>
-					</CodeMirrorRainlang>
+						{codeMirrorDisabled}
+						{codeMirrorStyles}
+					></CodeMirrorRainlang>
 				</div>
 			</TabItem>
 			<TabItem title="Trades">
