@@ -1,4 +1,5 @@
 use crate::schema;
+use alloy::primitives::{I256, U256};
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
@@ -193,6 +194,23 @@ pub struct Vault {
 pub struct VaultWithSubgraphName {
     pub vault: Vault,
     pub subgraph_name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+#[typeshare]
+pub struct VaultVolume {
+    id: String,
+    token: Erc20,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_in: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_out: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_vol: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    net_vol: I256,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
@@ -590,6 +608,7 @@ mod impls {
     impl_all_wasm_traits!(OrderAsIO);
     impl_all_wasm_traits!(VaultBalanceChangeVault);
     impl_all_wasm_traits!(VaultBalanceChange);
+    impl_all_wasm_traits!(VaultVolume);
     impl_all_wasm_traits!(Withdrawal);
     impl_all_wasm_traits!(TradeVaultBalanceChange);
     impl_all_wasm_traits!(Deposit);

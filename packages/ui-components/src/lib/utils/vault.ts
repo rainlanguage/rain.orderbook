@@ -25,7 +25,7 @@ if (import.meta.vitest) {
 			orderbook: {
 				id: '0x00'
 			}
-		} as Vault;
+		} as unknown as Vault;
 
 		expect(vaultBalanceDisplay(vault)).toEqual('1');
 
