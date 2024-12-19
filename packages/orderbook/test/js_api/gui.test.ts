@@ -592,7 +592,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNTQoCMQxGZ1REb-FaUJpMk7Y7j-AV0jaVQRhBZ-HxXdi6EObbvPzxcum-iUxoKQSJUbyFlEjFSPFZQrQumewZUYvmJMihOKABnLNUUJnVyap69s03Tnmcbifo68D0u1pdn_rS-QDHtnkDDpbY-WAkpqxlqf-XY9eyrgRj2sNt5fy46wS_y00lmTN_AHYyHjD9AAAA';
+			'H4sIAAAAAAAA_3WPTQoCMQyFZ1REb-FaUJq26TQ7j-AV0k4qg1BBZ-HxFUxdCL7Nlz_eI6fuI7DekQOkDHnIgdlxZBY_SikpcLFiLQsigCOIPpkEBYjIx1FCxLxQn60yTXWc6uUAvQ5Mv9HqfJeHzDvYt80TrPMYhkiGU34n_ut_zW3XtGxvGNMC18r5dpUK38uVEs0xvAARbQwj_QAAAA==';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
