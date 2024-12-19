@@ -94,7 +94,6 @@ mod tests {
                 scenario2:
                     bindings:
                         key2: value2
-                    deployer: deployer2
     "#;
 
     #[test]
