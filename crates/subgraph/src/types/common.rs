@@ -107,14 +107,6 @@ pub struct OrderWithSubgraphName {
     pub subgraph_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct OrderDetailExtended {
-    pub order: Order,
-    pub rainlang: Option<String>,
-}
-
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
