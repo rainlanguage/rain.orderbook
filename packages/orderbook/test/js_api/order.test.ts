@@ -170,7 +170,6 @@ const mockOrderTradesList: Trade[] = [
 				}
 			},
 			id: 'output-change-1',
-			// @ts-expect-error __typename is expected in rpc response
 			__typename: 'TradeVaultBalanceChange',
 			newVaultBalance: '900',
 			oldVaultBalance: '1000',
@@ -201,7 +200,6 @@ const mockOrderTradesList: Trade[] = [
 				}
 			},
 			id: 'input-change-1',
-			// @ts-expect-error __typename is expected in rpc response
 			__typename: 'TradeVaultBalanceChange',
 			newVaultBalance: '150',
 			oldVaultBalance: '100',
@@ -218,7 +216,7 @@ const mockOrderTradesList: Trade[] = [
 			id: 'orderbook-1'
 		}
 	}
-];
+] as unknown as Trade[];
 
 const mockTrade: Trade = {
 	id: 'trade1',
@@ -241,7 +239,6 @@ const mockTrade: Trade = {
 	},
 	outputVaultBalanceChange: {
 		id: '0x0000000000000000000000000000000000000000',
-		// @ts-expect-error __typename is expected in rpc response
 		__typename: 'TradeVaultBalanceChange',
 		amount: '-7',
 		newVaultBalance: '93',
@@ -296,7 +293,7 @@ const mockTrade: Trade = {
 			id: '0x0000000000000000000000000000000000000000'
 		}
 	}
-};
+} as unknown as Trade;
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function () {
 	const mockServer = getLocal();
