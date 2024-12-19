@@ -10,7 +10,7 @@
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type ConfigSource, type OrderbookConfigSource } from '../../typeshare/config';
-	import { type Vault } from '../../typeshare/subgraphTypes';
+	import { type Vault } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,

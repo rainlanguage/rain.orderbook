@@ -1,4 +1,5 @@
 use crate::schema;
+use alloy::primitives::{I256, U256};
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
@@ -107,6 +108,14 @@ pub struct OrderWithSubgraphName {
     pub subgraph_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[typeshare]
+pub struct OrderDetailExtended {
+    pub order: Order,
+    pub rainlang: Option<String>,
+}
+
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
@@ -187,6 +196,23 @@ pub struct VaultWithSubgraphName {
     pub subgraph_name: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+#[typeshare]
+pub struct VaultVolume {
+    id: String,
+    token: Erc20,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_in: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_out: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    total_vol: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    net_vol: I256,
+}
+
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Vault")]
@@ -203,6 +229,7 @@ pub struct VaultBalanceChangeVault {
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     pub amount: BigInt,
     pub new_vault_balance: BigInt,
@@ -233,6 +260,7 @@ pub enum VaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct Deposit {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -253,6 +281,7 @@ pub struct Deposit {
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -273,6 +302,7 @@ pub struct Withdrawal {
 #[serde(rename_all = "camelCase")]
 pub struct TradeVaultBalanceChange {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -293,6 +323,7 @@ pub struct TradeVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct ClearBounty {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -348,7 +379,7 @@ pub struct Erc20 {
     pub address: Bytes,
     pub name: Option<String>,
     pub symbol: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
     pub decimals: Option<BigInt>,
 }
 
@@ -577,6 +608,7 @@ mod impls {
     impl_all_wasm_traits!(OrderAsIO);
     impl_all_wasm_traits!(VaultBalanceChangeVault);
     impl_all_wasm_traits!(VaultBalanceChange);
+    impl_all_wasm_traits!(VaultVolume);
     impl_all_wasm_traits!(Withdrawal);
     impl_all_wasm_traits!(TradeVaultBalanceChange);
     impl_all_wasm_traits!(Deposit);

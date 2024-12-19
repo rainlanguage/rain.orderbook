@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import type { VaultVolume } from '$lib/typeshare/subgraphTypes';
+import type { VaultVolume } from '@rainlanguage/orderbook/js_api';
 import { formatUnits } from 'viem';
 import OrderVaultsVolTable from '../lib/components/tables/OrderVaultsVolTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
