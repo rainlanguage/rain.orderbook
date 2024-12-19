@@ -50,7 +50,6 @@ export { default as IconWarning } from './components/IconWarning.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
-export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
