@@ -328,35 +328,19 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
                                 && v.input_vault_balance_change.vault.token == output.token)
                     })
                     .and_then(|latest_trade| {
-                        // convert input and output amounts to 18 decimals point
-                        // and then calculate the pair ratio
-                        let ratio = match latest_trade.ratio() {
-                            Ok(v) => Some(v),
-                            Err(e) => {
-                                if let PerformanceError::DivByZero = e {
-                                    Some(U256::MAX)
+                        latest_trade
+                            .ratio()
+                            .ok()
+                            .zip(latest_trade.inverse_ratio().ok())
+                            .map(|(ratio, inverse_ratio)| {
+                                if latest_trade.input_vault_balance_change.vault.token
+                                    == input.token
+                                {
+                                    [ratio, inverse_ratio]
                                 } else {
-                                    None
+                                    [inverse_ratio, ratio]
                                 }
-                            }
-                        };
-                        let inverse_ratio = match latest_trade.inverse_ratio() {
-                            Ok(v) => Some(v),
-                            Err(e) => {
-                                if let PerformanceError::DivByZero = e {
-                                    Some(U256::MAX)
-                                } else {
-                                    None
-                                }
-                            }
-                        };
-                        ratio.zip(inverse_ratio).map(|(ratio, inverse_ratio)| {
-                            if latest_trade.input_vault_balance_change.vault.token == input.token {
-                                [ratio, inverse_ratio]
-                            } else {
-                                [inverse_ratio, ratio]
-                            }
-                        })
+                            })
                     });
 
                 // io
