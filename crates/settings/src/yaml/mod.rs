@@ -1,7 +1,8 @@
 pub mod orderbook;
 
 use crate::{
-    ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseTokenConfigSourceError,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -32,6 +33,10 @@ pub trait YamlParsableVector: Sized {
 
 pub trait YamlParsableString {
     fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+
+    fn parse_from_yaml_optional(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Option<String>, YamlError>;
 }
 
 #[derive(Debug, Error)]
@@ -60,12 +65,16 @@ pub enum YamlError {
     ReadLockError,
     #[error("Document write lock error")]
     WriteLockError,
+    #[error("Invalid trait function")]
+    InvalidTraitFunction,
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
     ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
     #[error(transparent)]
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    #[error(transparent)]
+    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
