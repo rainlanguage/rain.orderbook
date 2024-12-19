@@ -571,5 +571,40 @@ scenarios:
             )
             .to_string()
         );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+    testnet:
+        rpc: https://rpc.com
+        chain-id: 2
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+    testnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: testnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: some-value
+        scenarios:
+            scenario2:
+                bindings:
+                    key2: value
+                deployer: testnet
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            YamlError::ParseScenarioConfigSourceError(
+                ParseScenarioConfigSourceError::ParentDeployerShadowedError("testnet".to_string())
+            )
+            .to_string()
+        );
     }
 }
