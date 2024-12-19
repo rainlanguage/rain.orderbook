@@ -21,8 +21,8 @@
 		queryFn: async () => {
 			return [
 				(await getOrderPerformance(
-					id,
 					subgraphUrl || '',
+					id,
 					queryStartTime,
 					queryEndTime
 				)) as OrderPerformance
