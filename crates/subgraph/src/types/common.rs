@@ -229,7 +229,7 @@ pub struct VaultBalanceChangeVault {
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
-    #[serde(rename(serialize = "__typename"))]
+    #[serde(rename = "__typename")]
     pub __typename: String,
     pub amount: BigInt,
     pub new_vault_balance: BigInt,
@@ -260,7 +260,7 @@ pub enum VaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct Deposit {
     pub id: Bytes,
-    #[serde(rename(serialize = "__typename"))]
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -281,7 +281,7 @@ pub struct Deposit {
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
     pub id: Bytes,
-    #[serde(rename(serialize = "__typename"))]
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -302,7 +302,7 @@ pub struct Withdrawal {
 #[serde(rename_all = "camelCase")]
 pub struct TradeVaultBalanceChange {
     pub id: Bytes,
-    #[serde(rename(serialize = "__typename"))]
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -323,7 +323,7 @@ pub struct TradeVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct ClearBounty {
     pub id: Bytes,
-    #[serde(rename(serialize = "__typename"))]
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -377,7 +377,9 @@ pub struct OrderStructPartialTrade {
 pub struct Erc20 {
     pub id: Bytes,
     pub address: Bytes,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
     pub name: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
     pub symbol: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
     pub decimals: Option<BigInt>,
