@@ -2,13 +2,12 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
-	import { getOrderVaultsVolume } from '@rainlanguage/orderbook/js_api';
+	import { getOrderVaultsVolume, type VaultVolume } from '@rainlanguage/orderbook/js_api';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import { bigintStringToHex } from '../../utils/hex';
-	import type { VaultVolume } from '../../typeshare/subgraphTypes';
 
 	export let id: string;
 	export let subgraphUrl: string;
@@ -52,16 +51,17 @@
 			</div>
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32" data-testid="total-in">
-			{formatUnits(BigInt(item.totalIn), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalIn), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="total-out">
-			{formatUnits(BigInt(item.totalOut), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalOut), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="net-vol">
-			{formatUnits(BigInt(item.netVol), Number(item.token.decimals ?? 0))}
+			{(BigInt(item.volDetails.totalIn) >= BigInt(item.volDetails.totalOut) ? '' : '-') +
+				formatUnits(BigInt(item.volDetails.netVol), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="total-vol">
-			{formatUnits(BigInt(item.totalVol), Number(item.token.decimals ?? 0))}
+			{formatUnits(BigInt(item.volDetails.totalVol), Number(item.token.decimals ?? 0))}
 		</TableBodyCell>
 	</svelte:fragment>
 </TanstackAppTable>
