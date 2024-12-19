@@ -18,7 +18,7 @@
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import type { Vault } from '../../typeshare/subgraphTypes';
+	import type { Vault } from '@rainlanguage/orderbook/js_api';
 
 	export let id: string;
 	export let network: string;

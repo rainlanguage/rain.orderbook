@@ -2,7 +2,7 @@ import { render } from '@testing-library/svelte';
 import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChart from '../lib/components/charts/VaultBalanceChart.svelte';
-import type { Vault } from '../lib/typeshare/subgraphTypes';
+import type { Vault } from '@rainlanguage/orderbook/js_api';
 import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
 

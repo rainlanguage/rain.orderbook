@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
 	import { bigintToFloat } from '../../utils/number';
-	import type { Vault } from '../../typeshare/subgraphTypes';
+	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import {
 		getVaultBalanceChanges,
