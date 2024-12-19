@@ -192,6 +192,10 @@ pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array>
     value[field].as_vec()
 }
 
+pub fn default_document() -> Arc<RwLock<StrictYaml>> {
+    Arc::new(RwLock::new(StrictYaml::String("".to_string())))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
