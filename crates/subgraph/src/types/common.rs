@@ -1,5 +1,4 @@
 use crate::schema;
-use alloy::primitives::{I256, U256};
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
