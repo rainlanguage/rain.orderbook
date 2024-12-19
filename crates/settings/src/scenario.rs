@@ -109,7 +109,7 @@ impl Scenario {
             let current_deployer = Deployer::parse_from_yaml(document.clone(), &deployer_name)?;
 
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
-                if current_deployer.label != parent_deployer.label {
+                if current_deployer.key != parent_deployer.key {
                     return Err(YamlError::ParseScenarioConfigSourceError(
                         ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                             deployer_name.clone(),
@@ -270,7 +270,7 @@ impl ScenarioConfigSource {
 
         // Check for non-matching override: if both the current and parent deployers are present and different, it's an error.
         if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
-            if deployer.label != parent_deployer.label {
+            if deployer.key != parent_deployer.key {
                 return Err(ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                     resolved_name.clone(),
                 ));

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { debugOrderQuote } from '$lib/queries/orderQuote';
   import { queryClient } from '$lib/queries/queryClient';
-  import type { Order } from '$lib/typeshare/subgraphTypes';
+  import type { Order } from '@rainlanguage/orderbook/js_api';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
   import { type Hex } from 'viem';
