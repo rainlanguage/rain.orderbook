@@ -353,7 +353,7 @@ pub struct Erc20 {
     pub address: Bytes,
     pub name: Option<String>,
     pub symbol: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
     pub decimals: Option<BigInt>,
 }
 
