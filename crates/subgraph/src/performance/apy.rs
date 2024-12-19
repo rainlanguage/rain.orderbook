@@ -5,10 +5,11 @@ use crate::{
 };
 use alloy::primitives::U256;
 use chrono::TimeDelta;
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
@@ -16,8 +17,11 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 pub struct APYDetails {
     pub start_time: u64,
     pub end_time: u64,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub net_vol: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub capital: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub apy: U256,
     pub is_neg: bool,
 }
@@ -42,7 +46,7 @@ pub struct TokenPair {
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;
-    impl_all_wasm_traits!(ToeknPair);
+    impl_all_wasm_traits!(TokenPair);
     impl_all_wasm_traits!(VaultAPY);
     impl_all_wasm_traits!(APYDetails);
 }

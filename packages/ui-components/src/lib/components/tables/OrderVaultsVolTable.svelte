@@ -2,13 +2,12 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
-	import { getOrderVaultsVolume } from '@rainlanguage/orderbook/js_api';
+	import { getOrderVaultsVolume, type VaultVolume } from '@rainlanguage/orderbook/js_api';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import { bigintStringToHex } from '../../utils/hex';
-	import type { VaultVolume } from '$lib/typeshare/subgraphTypes';
 
 	export let id: string;
 	export let subgraphUrl: string;

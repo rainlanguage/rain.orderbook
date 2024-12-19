@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { TanstackAppTable, QKEY_ORDER_APY } from '@rainlanguage/ui-components';
-	import { getOrderApy } from '@rainlanguage/orderbook/js_api';
+	import TanstackAppTable from '../TanstackAppTable.svelte';
+	import { QKEY_ORDER_APY } from '../../queries/keys';
+	import { getOrderPerformance, type OrderPerformance } from '@rainlanguage/orderbook/js_api';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import ApyTimeFilters from '../charts/APYTimeFilters.svelte';
 	import { bigintStringToPercentage } from '$lib/utils/number';
@@ -12,16 +13,28 @@
 	let startTimestamp: number | undefined;
 	let endTimestamp: number | undefined;
 
-	$: orderApy = createInfiniteQuery({
+	$: queryStartTime = startTimestamp ? BigInt(startTimestamp) : undefined;
+	$: queryEndTime = endTimestamp ? BigInt(endTimestamp) : undefined;
+
+	$: orderPerformance = createInfiniteQuery({
 		queryKey: [id, QKEY_ORDER_APY + id],
-		queryFn: () => getOrderApy(id, subgraphUrl || '', startTimestamp, endTimestamp),
+		queryFn: async () => {
+			return [
+				(await getOrderPerformance(
+					id,
+					subgraphUrl || '',
+					queryStartTime,
+					queryEndTime
+				)) as OrderPerformance
+			];
+		},
 		initialPageParam: 0,
 		getNextPageParam: () => undefined,
 		enabled: !!subgraphUrl
 	});
 </script>
 
-<TanstackAppTable query={orderApy} emptyMessage="APY Unavailable" rowHoverable={false}>
+<TanstackAppTable query={orderPerformance} emptyMessage="APY Unavailable" rowHoverable={false}>
 	<svelte:fragment slot="timeFilter">
 		<ApyTimeFilters bind:startTimestamp bind:endTimestamp />
 	</svelte:fragment>

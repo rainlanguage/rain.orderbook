@@ -71,6 +71,31 @@ mod test {
     use alloy::primitives::Address;
 
     #[test]
+    fn test_token_get_decimals() {
+        // known decimals
+        let token = Erc20 {
+            id: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(BigInt(6.to_string())),
+        };
+        let result = token.get_decimals().unwrap();
+        assert_eq!(result, 6);
+
+        // unknown decimals, defaults to 18
+        let token = Erc20 {
+            id: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: None,
+        };
+        let result = token.get_decimals().unwrap();
+        assert_eq!(result, 18);
+    }
+
+    #[test]
     fn test_scale_18_io() {
         let (input, output) = get_trade().scale_18_io().unwrap();
         let expected_input = U256::from_str("3000000000000000000").unwrap();
@@ -94,7 +119,7 @@ mod test {
     }
 
     #[test]
-    fn test_inverse_ratio() {
+    fn test_inverse_ratio_happy() {
         let result = get_trade().inverse_ratio().unwrap();
         let expected = U256::from_str("2000000000000000000").unwrap();
         assert_eq!(result, expected);

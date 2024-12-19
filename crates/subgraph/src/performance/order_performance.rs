@@ -7,11 +7,12 @@ use crate::{
     types::common::{Erc20, Order, Trade},
 };
 use alloy::primitives::U256;
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
@@ -34,14 +35,17 @@ pub struct DenominatedPerformance {
     /// The denomination token
     pub token: Erc20,
     /// Order's APY raw value
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub apy: U256,
     /// Determines if apy is negative or not
     pub apy_is_neg: bool,
     /// Order's net vol raw value
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub net_vol: U256,
     /// Determines if net_vol is negative or not
     pub net_vol_is_neg: bool,
     /// Order's starting capital
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub starting_capital: U256,
 }
 
@@ -88,16 +92,7 @@ impl OrderPerformance {
     ) -> Result<OrderPerformance, PerformanceError> {
         // return early if there are no trades
         if trades.is_empty() {
-            return Ok(OrderPerformance {
-                order_id: order.id.0.clone(),
-                order_hash: order.order_hash.0.clone(),
-                orderbook: order.orderbook.id.0.clone(),
-                start_time: start_timestamp.unwrap_or(0),
-                end_time: end_timestamp.unwrap_or(chrono::Utc::now().timestamp() as u64),
-                inputs_vaults: vec![],
-                outputs_vaults: vec![],
-                denominated_performance: None,
-            });
+            return Err(PerformanceError::NoTrades);
         }
         let vaults_vol = get_vaults_vol(trades)?;
         let vaults_apy = get_vaults_apy(trades, &vaults_vol, start_timestamp, end_timestamp)?;
@@ -177,9 +172,9 @@ impl OrderPerformance {
             let mut noway = false;
             let mut net_vol_is_neg = false;
             let mut net_vol_rate_is_neg = false;
-            let mut combined_capital = U256::ZERO;
-            let mut combined_net_vol = U256::ZERO;
-            let mut combined_annual_rate_vol = U256::ZERO;
+            let mut acc_capital = U256::ZERO;
+            let mut acc_net_vol = U256::ZERO;
+            let mut acc_annual_rate_vol = U256::ZERO;
             let mut current_token_vol_list: Vec<TokenBasedVol> = vec![];
             for token_vault in &vaults_apy {
                 if let Some(apy_details) = token_vault.apy_details {
@@ -191,19 +186,19 @@ impl OrderPerformance {
 
                     // sum up all token vaults' capitals and vols by using the direct ratio between the tokens
                     if token_vault.token == token.token {
-                        combined_capital += apy_details.capital;
-                        (combined_net_vol, net_vol_is_neg) = combine(
+                        acc_capital += apy_details.capital;
+                        (acc_net_vol, net_vol_is_neg) = accumulate(
                             (apy_details.net_vol, apy_details.is_neg),
-                            (combined_net_vol, net_vol_is_neg),
+                            (acc_net_vol, net_vol_is_neg),
                         );
 
                         let annual_rate_vol = apy_details
                             .net_vol
                             .div_18(annual_rate)
                             .map_err(PerformanceError::from)?;
-                        (combined_annual_rate_vol, net_vol_rate_is_neg) = combine(
+                        (acc_annual_rate_vol, net_vol_rate_is_neg) = accumulate(
                             (annual_rate_vol, apy_details.is_neg),
-                            (combined_annual_rate_vol, net_vol_rate_is_neg),
+                            (acc_annual_rate_vol, net_vol_rate_is_neg),
                         );
 
                         current_token_vol_list.push(TokenBasedVol {
@@ -222,23 +217,23 @@ impl OrderPerformance {
                                 .capital
                                 .mul_18(*ratio)
                                 .map_err(PerformanceError::from)?;
-                            combined_capital += capital_converted;
+                            acc_capital += capital_converted;
 
                             let net_vol_converted = apy_details
                                 .net_vol
                                 .mul_18(*ratio)
                                 .map_err(PerformanceError::from)?;
-                            (combined_net_vol, net_vol_is_neg) = combine(
+                            (acc_net_vol, net_vol_is_neg) = accumulate(
                                 (net_vol_converted, apy_details.is_neg),
-                                (combined_net_vol, net_vol_is_neg),
+                                (acc_net_vol, net_vol_is_neg),
                             );
 
                             let annual_rate_vol_converted = net_vol_converted
                                 .div_18(annual_rate)
                                 .map_err(PerformanceError::from)?;
-                            (combined_annual_rate_vol, net_vol_rate_is_neg) = combine(
+                            (acc_annual_rate_vol, net_vol_rate_is_neg) = accumulate(
                                 (annual_rate_vol_converted, apy_details.is_neg),
-                                (combined_annual_rate_vol, net_vol_rate_is_neg),
+                                (acc_annual_rate_vol, net_vol_rate_is_neg),
                             );
 
                             current_token_vol_list.push(TokenBasedVol {
@@ -261,13 +256,13 @@ impl OrderPerformance {
             // the order's io tokens, and will pick the one that its token had the highest
             // net vol amon all other vaults
             if !noway {
-                if let Ok(apy) = combined_annual_rate_vol.div_18(combined_capital) {
+                if let Ok(apy) = acc_annual_rate_vol.div_18(acc_capital) {
                     token_denominated_performance.push(DenominatedPerformance {
                         apy,
                         apy_is_neg: net_vol_rate_is_neg,
                         token: token.token.clone(),
-                        starting_capital: combined_capital,
-                        net_vol: combined_net_vol,
+                        starting_capital: acc_capital,
+                        net_vol: acc_net_vol,
                         net_vol_is_neg,
                     });
                 }
@@ -375,7 +370,7 @@ pub fn get_order_pairs_ratio(order: &Order, trades: &[Trade]) -> HashMap<TokenPa
     pair_ratio_map
 }
 
-fn combine(new_val: (U256, bool), old_val: (U256, bool)) -> (U256, bool) {
+fn accumulate(new_val: (U256, bool), old_val: (U256, bool)) -> (U256, bool) {
     let mut acc = old_val.0;
     let mut sign = old_val.1;
     if new_val.1 == sign {
@@ -486,6 +481,183 @@ mod test {
     use std::str::FromStr;
 
     #[test]
+    fn test_token_based_vol_ord_parial_ord() {
+        let token_address = Address::random();
+        let token = Erc20 {
+            id: Bytes(token_address.to_string()),
+            address: Bytes(token_address.to_string()),
+            name: Some("Token".to_string()),
+            symbol: Some("Token".to_string()),
+            decimals: Some(BigInt(6.to_string())),
+        };
+
+        // positive == positive
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: false,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: false,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Equal));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Equal)));
+        assert_eq!(a.clone().min(b.clone()), a);
+        assert_eq!(a.clone().max(b.clone()), a);
+        assert!(!a.gt(&b));
+        assert!(a.ge(&b));
+        assert!(a.le(&b));
+        assert!(!a.lt(&b));
+
+        // negative == negative
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: true,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: true,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Equal));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Equal)));
+        assert_eq!(a.clone().min(b.clone()), a);
+        assert_eq!(a.clone().max(b.clone()), a);
+        assert!(!a.gt(&b));
+        assert!(a.ge(&b));
+        assert!(a.le(&b));
+        assert!(!a.lt(&b));
+
+        // positive > positive
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(2),
+            is_neg: false,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: false,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Greater));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Greater)));
+        assert_eq!(a.clone().min(b.clone()), b);
+        assert_eq!(a.clone().max(b.clone()), a);
+        assert!(a.gt(&b));
+        assert!(a.ge(&b));
+        assert!(!a.le(&b));
+        assert!(!a.lt(&b));
+
+        // positive < positive
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: false,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(2),
+            is_neg: false,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Less));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Less)));
+        assert_eq!(a.clone().min(b.clone()), a);
+        assert_eq!(a.clone().max(b.clone()), b);
+        assert!(!a.gt(&b));
+        assert!(!a.ge(&b));
+        assert!(a.le(&b));
+        assert!(a.lt(&b));
+
+        // negative > negative
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: true,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(2),
+            is_neg: true,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Greater));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Greater)));
+        assert_eq!(a.clone().min(b.clone()), b);
+        assert_eq!(a.clone().max(b.clone()), a);
+        assert!(a.gt(&b));
+        assert!(a.ge(&b));
+        assert!(!a.le(&b));
+        assert!(!a.lt(&b));
+
+        // negative < negative
+        let a = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(2),
+            is_neg: true,
+        };
+        let b = TokenBasedVol {
+            token: &token,
+            net_vol: U256::from(1),
+            is_neg: true,
+        };
+        assert!(matches!(a.cmp(&b), Ordering::Less));
+        assert!(matches!(a.partial_cmp(&b), Some(Ordering::Less)));
+        assert_eq!(a.clone().min(b.clone()), a);
+        assert_eq!(a.clone().max(b.clone()), b);
+        assert!(!a.gt(&b));
+        assert!(!a.ge(&b));
+        assert!(a.le(&b));
+        assert!(a.lt(&b));
+    }
+
+    #[test]
+    fn test_accumulate() {
+        // both positive
+        let new_val = (U256::from(1), false);
+        let old_val = (U256::from(2), false);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(3), false);
+        assert_eq!(result, expected);
+
+        // both negative
+        let new_val = (U256::from(1), true);
+        let old_val = (U256::from(2), true);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(3), true);
+        assert_eq!(result, expected);
+
+        // negative < positive
+        let new_val = (U256::from(1), true);
+        let old_val = (U256::from(2), false);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(1), false);
+        assert_eq!(result, expected);
+
+        // negative > positive
+        let new_val = (U256::from(2), true);
+        let old_val = (U256::from(1), false);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(1), true);
+        assert_eq!(result, expected);
+
+        // positive < negative
+        let new_val = (U256::from(1), false);
+        let old_val = (U256::from(2), true);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(1), true);
+        assert_eq!(result, expected);
+
+        // positive > negative
+        let new_val = (U256::from(2), false);
+        let old_val = (U256::from(1), true);
+        let result = accumulate(new_val, old_val);
+        let expected = (U256::from(1), false);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
     fn test_get_pairs_ratio() {
         let trades = get_trades();
         let [token1, token2] = get_tokens();
@@ -510,7 +682,33 @@ mod test {
     }
 
     #[test]
-    fn test_get_order_performance() {
+    fn test_get_pairs_ratio_unhappy() {
+        let mut trades = get_trades();
+        // set some corrupt value
+        trades[0].input_vault_balance_change.amount = BigInt("abcd".to_string());
+        let [token1, token2] = get_tokens();
+        let result = get_order_pairs_ratio(&get_order(), &trades);
+        let mut expected = HashMap::new();
+        expected.insert(
+            TokenPair {
+                input: token2.clone(),
+                output: token1.clone(),
+            },
+            None,
+        );
+        expected.insert(
+            TokenPair {
+                input: token1.clone(),
+                output: token2.clone(),
+            },
+            None,
+        );
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_measure_order_performance() {
         let order = get_order();
         let trades = get_trades();
         let [token1, token2] = get_tokens();

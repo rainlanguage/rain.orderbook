@@ -3,18 +3,23 @@ use crate::{
     types::common::{Erc20, Trade},
 };
 use alloy::primitives::{ruint::ParseError, U256};
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_math::BigUintMath;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, str::FromStr};
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VolumeDetails {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub total_in: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub total_out: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub total_vol: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub net_vol: U256,
 }
 
@@ -169,6 +174,57 @@ mod test {
         Transaction, VaultBalanceChangeVault,
     };
     use alloy::primitives::{Address, B256};
+
+    #[test]
+    fn test_is_net_vol_negative() {
+        let token_address = Address::random();
+        let token = Erc20 {
+            id: Bytes(token_address.to_string()),
+            address: Bytes(token_address.to_string()),
+            name: Some("Token".to_string()),
+            symbol: Some("Token".to_string()),
+            decimals: Some(BigInt(6.to_string())),
+        };
+
+        // negative vol
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::from(20_500_000),
+                total_out: U256::from(30_000_000),
+                total_vol: U256::from(50_500_000),
+                net_vol: U256::from(9_500_000),
+            },
+        };
+        assert!(vault_vol.is_net_vol_negative());
+
+        // positive vol
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::from(40_500_000),
+                total_out: U256::from(30_000_000),
+                total_vol: U256::from(50_500_000),
+                net_vol: U256::from(9_500_000),
+            },
+        };
+        assert!(!vault_vol.is_net_vol_negative());
+
+        // equal vol
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::from(30_000_000),
+                total_out: U256::from(30_000_000),
+                total_vol: U256::from(50_500_000),
+                net_vol: U256::from(9_500_000),
+            },
+        };
+        assert!(!vault_vol.is_net_vol_negative());
+    }
 
     #[test]
     fn test_vaults_vol() {

@@ -25,4 +25,6 @@ pub enum PerformanceError {
     ParseIntError(#[from] ParseIntError),
     #[error("divide by zero")]
     DivByZero,
+    #[error("Found no trades")]
+    NoTrades,
 }

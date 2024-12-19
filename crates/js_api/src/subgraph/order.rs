@@ -119,7 +119,7 @@ pub async fn order_vaults_volume(
 }
 
 /// Measures an order's performance (including vaults apy and vol and total apy and vol)
-#[wasm_bindgen(js_name = "getOrderApy")]
+#[wasm_bindgen(js_name = "getOrderPerformance")]
 pub async fn order_performance(
     url: &str,
     order_id: &str,
