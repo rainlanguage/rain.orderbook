@@ -1,8 +1,7 @@
 <script lang="ts">
   import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
-  import { ButtonLoading } from '@rainlanguage/ui-components';
-  import FileTextarea from '$lib/components/FileTextarea.svelte';
+  import { ButtonLoading, FileTextarea } from '@rainlanguage/ui-components';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
