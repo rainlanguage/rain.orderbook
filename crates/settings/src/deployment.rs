@@ -65,19 +65,24 @@ impl DeploymentConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
+    use std::sync::RwLock;
+    use strict_yaml_rust::StrictYaml;
 
     #[test]
     fn test_try_into_deployment_success() {
         let order_name = "order1";
         let scenario_name = "scenario1";
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
             blocks: None,
         };
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),
@@ -100,13 +105,16 @@ mod tests {
         let scenario_name = "scenario1";
         let other_scenario_name = "scenario2";
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
             blocks: None,
         };
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),

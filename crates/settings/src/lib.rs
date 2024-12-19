@@ -13,6 +13,7 @@ pub mod orderbook;
 pub mod plot_source;
 pub mod remote;
 pub mod scenario;
+pub mod sentry;
 pub mod subgraph;
 pub mod token;
 pub mod unit_test;

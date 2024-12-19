@@ -1,15 +1,16 @@
 use super::*;
-use crate::{metaboard::Metaboard, subgraph::Subgraph, Deployer, Network, Orderbook, Token};
+use crate::{
+    metaboard::Metaboard, sentry::Sentry, subgraph::Subgraph, Deployer, Network, Orderbook, Token,
+};
 use std::sync::{Arc, RwLock};
-use strict_yaml_rust::StrictYamlEmitter;
 
 #[derive(Debug, Clone)]
 pub struct OrderbookYaml {
     pub document: Arc<RwLock<StrictYaml>>,
 }
 
-impl OrderbookYaml {
-    pub fn new(source: String, validate: bool) -> Result<Self, YamlError> {
+impl YamlParsable for OrderbookYaml {
+    fn new(source: String, validate: bool) -> Result<Self, YamlError> {
         let docs = StrictYamlLoader::load_from_str(&source)?;
         if docs.is_empty() {
             return Err(YamlError::EmptyFile);
@@ -22,15 +23,9 @@ impl OrderbookYaml {
         }
         Ok(OrderbookYaml { document })
     }
+}
 
-    pub fn get_yaml_string(&self) -> Result<String, YamlError> {
-        let document = self.document.read().unwrap();
-        let mut out_str = String::new();
-        let mut emitter = StrictYamlEmitter::new(&mut out_str);
-        emitter.dump(&document)?;
-        Ok(out_str)
-    }
-
+impl OrderbookYaml {
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
         let networks = Network::parse_all_from_yaml(self.document.clone())?;
         Ok(networks.keys().cloned().collect())
@@ -77,6 +72,11 @@ impl OrderbookYaml {
     }
     pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
         Deployer::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_sentry(&self) -> Result<bool, YamlError> {
+        let value = Sentry::parse_from_yaml_optional(self.document.clone())?;
+        Ok(value.map_or(false, |v| v == "true"))
     }
 }
 
@@ -204,6 +204,8 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
         assert_eq!(deployer.network, network.into());
+
+        assert!(ob_yaml.get_sentry().unwrap());
     }
 
     #[test]
