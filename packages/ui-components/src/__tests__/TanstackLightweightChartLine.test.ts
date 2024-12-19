@@ -4,8 +4,7 @@ import TanstackLightweightChartLine from '../lib/components/charts/TanstackLight
 import { props } from '../lib/__mocks__/MockComponent';
 import { createResolvableQuery } from '../lib/__mocks__/queries';
 import type { UTCTimestamp } from 'lightweight-charts';
-import { get } from 'svelte/store';
-import { lightweightChartsTheme } from '../lib/stores/darkMode';
+import { get, readable } from 'svelte/store';
 
 // Mock the LightweightChart component
 vi.mock('../lib/components/charts/LightweightChart.svelte', async () => {
@@ -34,7 +33,7 @@ test('renders the loading state correctly', async () => {
 			timeTransform: (d: any) => d.time as UTCTimestamp,
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			valueTransform: (d: any) => d.value,
-			lightweightChartsTheme
+			lightweightChartsTheme: readable({ test: 'test' })
 		}
 	});
 
@@ -70,7 +69,7 @@ test('sorts the data correctly according to time', async () => {
 			timeTransform: (d: any) => d.time as UTCTimestamp,
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			valueTransform: (d: any) => d.value,
-			lightweightChartsTheme
+			lightweightChartsTheme: readable({ test: 'test' })
 		}
 	});
 
@@ -100,7 +99,7 @@ test('that a line series is added to the chart', async () => {
 			timeTransform: (d: any) => d.time as UTCTimestamp,
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			valueTransform: (d: any) => d.value,
-			lightweightChartsTheme
+			lightweightChartsTheme: readable({ test: 'test' })
 		}
 	});
 
