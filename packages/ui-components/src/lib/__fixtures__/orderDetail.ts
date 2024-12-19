@@ -63,7 +63,7 @@ export const mockOrderDetailsExtended: OrderDetailExtended = {
 		trades: []
 	},
 	rainlang: 'rainlang1'
-};
+} as unknown as OrderDetailExtended;
 
 export const mockOrder = {
 	id: '0x9229dadc45c673afcbc393231d5ab0e15bb65719daa5d58bd85adfca3fd60d48',
