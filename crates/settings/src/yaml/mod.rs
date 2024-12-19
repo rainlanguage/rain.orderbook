@@ -1,7 +1,8 @@
 pub mod orderbook;
 
 use crate::{
-    ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseTokenConfigSourceError,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -66,6 +67,8 @@ pub enum YamlError {
     ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
     #[error(transparent)]
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    #[error(transparent)]
+    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
