@@ -6,3 +6,4 @@ export const QKEY_ORDER = 'order';
 export const QKEY_ORDER_TRADES_LIST = 'orderTradesList';
 export const QKEY_ORDER_QUOTE = 'orderQuote';
 export const QKEY_VAULTS_VOL_LIST = 'orderVaultsVolumeList';
+export const QKEY_ORDER_APY = 'orderApy';
