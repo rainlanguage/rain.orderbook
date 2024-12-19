@@ -33,6 +33,10 @@ pub trait YamlParsableVector: Sized {
 
 pub trait YamlParsableString {
     fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+
+    fn parse_from_yaml_optional(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Option<String>, YamlError>;
 }
 
 #[derive(Debug, Error)]
@@ -61,6 +65,8 @@ pub enum YamlError {
     ReadLockError,
     #[error("Document write lock error")]
     WriteLockError,
+    #[error("Invalid trait function")]
+    InvalidTraitFunction,
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
