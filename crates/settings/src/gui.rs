@@ -226,12 +226,15 @@ impl_all_wasm_traits!(Gui);
 
 #[cfg(test)]
 mod tests {
+    use std::sync::RwLock;
+
     use super::*;
     use crate::{
         test::{mock_deployer, mock_network, mock_token},
         Order, Scenario,
     };
     use alloy::primitives::Address;
+    use strict_yaml_rust::StrictYaml;
 
     #[test]
     fn test_gui_creation_success() {
@@ -301,13 +304,16 @@ mod tests {
             }],
         };
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,
             blocks: None,
         };
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),
@@ -315,6 +321,8 @@ mod tests {
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-deployment".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };

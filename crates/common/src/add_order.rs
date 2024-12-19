@@ -446,7 +446,8 @@ price: 2e18;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -484,6 +485,8 @@ price: 2e18;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
@@ -503,6 +506,8 @@ price: 2e18;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -552,7 +557,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -589,6 +595,8 @@ _ _: 0 0;
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
@@ -608,6 +616,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -692,7 +702,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -730,6 +741,8 @@ _ _: 0 0;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
                     token: token1_arc.clone(),
@@ -749,6 +762,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };

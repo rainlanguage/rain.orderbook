@@ -48,6 +48,7 @@ export const config: Config = {
   tokens: {},
   orders: {
     buy: {
+      key: 'buy',
       inputs: [],
       outputs: [],
       network: {
@@ -57,6 +58,7 @@ export const config: Config = {
       },
     },
     sell: {
+      key: 'sell',
       inputs: [],
       outputs: [],
       network: {
@@ -68,7 +70,7 @@ export const config: Config = {
   },
   scenarios: {
     'network1.sell': {
-      name: 'network1.sell',
+      key: 'network1.sell',
       bindings: {},
       deployer: {
         key: 'network1',
@@ -81,7 +83,7 @@ export const config: Config = {
       },
     },
     network1: {
-      name: 'network1',
+      key: 'network1',
       bindings: {},
       deployer: {
         key: 'network1',
@@ -94,7 +96,7 @@ export const config: Config = {
       },
     },
     'network1.buy': {
-      name: 'network1.buy',
+      key: 'network1.buy',
       bindings: {},
       deployer: {
         key: 'network1',
@@ -110,8 +112,9 @@ export const config: Config = {
   charts: {},
   deployments: {
     sell: {
+      key: 'sell',
       scenario: {
-        name: 'network1.sell',
+        key: 'network1.sell',
         bindings: {},
         deployer: {
           key: 'network1',
@@ -124,6 +127,7 @@ export const config: Config = {
         },
       },
       order: {
+        key: 'sell',
         inputs: [],
         outputs: [],
         network: {
@@ -134,8 +138,9 @@ export const config: Config = {
       },
     },
     buy: {
+      key: 'buy',
       scenario: {
-        name: 'network1.buy',
+        key: 'network1.buy',
         bindings: {},
         deployer: {
           key: 'network1',
@@ -148,6 +153,7 @@ export const config: Config = {
         },
       },
       order: {
+        key: 'buy',
         inputs: [],
         outputs: [],
         network: {
@@ -261,7 +267,7 @@ test('pick scenarios', () => {
   const result = pickScenarios(config, activeNetwork);
   const expectedPickedScenarios: Dictionary<Scenario> = {
     'network1.sell': {
-      name: 'network1.sell',
+      key: 'network1.sell',
       bindings: {},
       deployer: {
         key: 'network1',
@@ -274,7 +280,7 @@ test('pick scenarios', () => {
       },
     },
     'network1.buy': {
-      name: 'network1.buy',
+      key: 'network1.buy',
       bindings: {},
       deployer: {
         key: 'network1',
@@ -287,7 +293,7 @@ test('pick scenarios', () => {
       },
     },
     network1: {
-      name: 'network1',
+      key: 'network1',
       bindings: {},
       deployer: {
         key: 'network1',
