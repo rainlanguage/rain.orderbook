@@ -9,7 +9,7 @@
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
-	import type { Trade } from '../../typeshare/subgraphTypes';
+	import type { Trade } from '@rainlanguage/orderbook/js_api';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
 	export let id: string;

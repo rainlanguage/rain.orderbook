@@ -117,3 +117,18 @@ pub async fn order_vaults_volume(
         .await?;
     Ok(to_value(&volumes)?)
 }
+
+/// Measures an order's performance (including vaults apy and vol and total apy and vol)
+#[wasm_bindgen(js_name = "getOrderPerformance")]
+pub async fn order_performance(
+    url: &str,
+    order_id: &str,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let performance = client
+        .order_performance(Id::new(order_id), start_timestamp, end_timestamp)
+        .await?;
+    Ok(to_value(&performance)?)
+}

@@ -17,6 +17,7 @@
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
+	import OrderApy from '../tables/OrderAPY.svelte';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -163,6 +164,9 @@
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable {id} {subgraphUrl} />
+			</TabItem>
+			<TabItem title="APY">
+				<OrderApy {id} {subgraphUrl} />
 			</TabItem>
 		</Tabs>
 	</svelte:fragment>
