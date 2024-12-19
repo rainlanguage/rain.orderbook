@@ -23,7 +23,7 @@ gui:
   name: Fixed limit
   description: Fixed limit order strategy
   deployments:
-    - deployment: some-deployment
+    some-deployment:
       name: Buy WETH with USDC on Base.
       description: Buy WETH with USDC for fixed price on Base network.
       deposits:
@@ -54,7 +54,7 @@ gui:
             - value: "99.2"
             - value: "582.1"
             - value: "648.239"
-    - deployment: other-deployment
+    other-deployment:
       name: Test test
       description: Test test test
       deposits:
@@ -81,7 +81,7 @@ gui:
   name: Test test
   description: Test test test
   deployments:
-    - deployment: other-deployment
+    other-deployment:
       name: Test test
       description: Test test test
       deposits:
@@ -105,7 +105,7 @@ gui:
   name: Test test
   description: Test test test
   deployments:
-    - deployment: other-deployment
+    other-deployment:
       name: Test test
       description: Test test test
       deposits:
@@ -285,8 +285,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const deployments: AvailableDeployments =
 			await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0].deployment_name, 'some-deployment');
-		assert.equal(deployments[1].deployment_name, 'other-deployment');
+		assert.equal(deployments[0].deployment_name, 'other-deployment');
+		assert.equal(deployments[1].deployment_name, 'some-deployment');
 	});
 
 	it('should return error if gui config is not found', async () => {
@@ -592,7 +592,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNTQoCMQyFZ1REb-FaUNJ00jY7j-AVmjbKIIygs_D4LkxdCL7Nl5_He6fuoyDZUcDKlRHLwOCh5KrKDFgwE6lWdCkFLxGTT0A5BQpSmKJIzAvL2RplnOo4XQ-utwP0G5vOD33qvHP79nk59AOFmBiylKqXf_tvOHZNS6MDaIVr43y_6eS-zpWR4Bjed60ppv0AAAA=';
+			'H4sIAAAAAAAA_3WNTQrCQAyFWxXRW7gWlGR-0pmdR_AKmTaRIlTQLjy-CzMuhL7Nl5_He5fmK6ZERZNK7IYi5DEBsPMYEFKKmYV6UBXxuY8amcGRZ6bMXkMnAVaWszeWcRrG6XbC1g7Q7my6PuUl8wGP9fNG50OkLmXg0g-iS_t_uGuq1kYEqIVb4_y4y4Q_58YY4UwfKIq5pf0AAAA=';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer

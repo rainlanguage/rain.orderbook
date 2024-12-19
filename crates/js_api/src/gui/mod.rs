@@ -49,7 +49,9 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let config = dotrain_order.config();
         let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
-        Ok(AvailableDeployments(gui_config.deployments))
+        Ok(AvailableDeployments(
+            gui_config.deployments.values().cloned().collect(),
+        ))
     }
 
     #[wasm_bindgen(js_name = "chooseDeployment")]
@@ -63,10 +65,10 @@ impl DotrainOrderGui {
         let config = dotrain_order.config();
         let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
 
-        let gui_deployment = gui_config
+        let (_, gui_deployment) = gui_config
             .deployments
-            .iter()
-            .find(|deployment| deployment.deployment_name == deployment_name)
+            .into_iter()
+            .find(|(name, _)| name == &deployment_name)
             .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
 
         let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
@@ -115,10 +117,10 @@ impl DotrainOrderGui {
     fn refresh_gui_deployment(&mut self) -> Result<(), GuiError> {
         let config = self.dotrain_order.config();
         let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
-        let gui_deployment = gui_config
+        let (_, gui_deployment) = gui_config
             .deployments
-            .iter()
-            .find(|deployment| deployment.deployment_name == self.deployment.deployment_name)
+            .into_iter()
+            .find(|(name, _)| name == &self.deployment.deployment_name)
             .ok_or(GuiError::DeploymentNotFound(
                 self.deployment.deployment_name.clone(),
             ))?;
