@@ -1,4 +1,4 @@
-use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
+use crate::commands::{Analytics, Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
@@ -30,6 +30,9 @@ pub enum Orderbook {
     Quote(Quoter),
 
     Words(Words),
+
+    #[command(subcommand)]
+    Analytics(Analytics),
 }
 
 impl Orderbook {
@@ -42,6 +45,7 @@ impl Orderbook {
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
+            Orderbook::Analytics(analytics) => analytics.execute().await,
         }
     }
 }
