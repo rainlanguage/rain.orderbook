@@ -1,3 +1,4 @@
+pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
@@ -7,12 +8,25 @@ use crate::{
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
 use url::ParseError as UrlParseError;
+
+pub trait YamlParsable: Sized {
+    fn new(source: String, validate: bool) -> Result<Self, YamlError>;
+
+    fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
+        let document = document.read().unwrap();
+        let mut out_str = String::new();
+        let mut emitter = StrictYamlEmitter::new(&mut out_str);
+        emitter.dump(&document)?;
+        Ok(out_str)
+    }
+}
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
