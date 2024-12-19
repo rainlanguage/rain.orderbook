@@ -1,4 +1,4 @@
-import type { Vault } from '../typeshare/subgraphTypes';
+import type { Vault } from '@rainlanguage/orderbook/js_api';
 import { formatUnits } from 'viem';
 
 export const vaultBalanceDisplay = (vault: Vault) => {

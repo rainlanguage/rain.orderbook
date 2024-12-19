@@ -1,4 +1,4 @@
-import type { OrderDetailExtended } from '../typeshare/subgraphTypes';
+import type { OrderDetailExtended } from '@rainlanguage/orderbook/js_api';
 
 export const mockOrderDetailsExtended: OrderDetailExtended = {
 	order: {

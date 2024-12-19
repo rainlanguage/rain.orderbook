@@ -8,7 +8,7 @@
 	import { formatUnits } from 'viem';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import { bigintStringToHex } from '../../utils/hex';
-	import type { VaultVolume } from '$lib/typeshare/subgraphTypes';
+	import type { VaultVolume } from '@rainlanguage/orderbook/js_api';
 
 	export let id: string;
 	export let subgraphUrl: string;
