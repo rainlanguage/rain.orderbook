@@ -1,11 +1,9 @@
-// @ts-nocheck
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 import * as navigation from '$app/navigation';
 import { userEvent } from '@testing-library/user-event';
 import type { Vault } from '@rainlanguage/orderbook/js_api';
-// TODO: Fox the inconsistent erc20 type for token
 // Mock the $app/navigation module
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
