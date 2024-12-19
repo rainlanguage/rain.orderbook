@@ -1,4 +1,21 @@
 import { ColorType } from 'lightweight-charts';
+export interface ChartTheme {
+	layout: {
+		textColor: string;
+		background: {
+			type: ColorType;
+			color: string;
+		};
+	};
+	grid: {
+		vertLines: {
+			color: string;
+		};
+		horzLines: {
+			color: string;
+		};
+	};
+}
 
 export const darkChartTheme = {
 	layout: {

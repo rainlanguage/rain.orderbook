@@ -203,6 +203,7 @@ pub struct VaultBalanceChangeVault {
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     pub amount: BigInt,
     pub new_vault_balance: BigInt,
@@ -233,6 +234,7 @@ pub enum VaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct Deposit {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -253,6 +255,7 @@ pub struct Deposit {
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -273,6 +276,7 @@ pub struct Withdrawal {
 #[serde(rename_all = "camelCase")]
 pub struct TradeVaultBalanceChange {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -293,6 +297,7 @@ pub struct TradeVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct ClearBounty {
     pub id: Bytes,
+    #[serde(rename(serialize = "__typename"))]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -348,7 +353,7 @@ pub struct Erc20 {
     pub address: Bytes,
     pub name: Option<String>,
     pub symbol: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
     pub decimals: Option<BigInt>,
 }
 

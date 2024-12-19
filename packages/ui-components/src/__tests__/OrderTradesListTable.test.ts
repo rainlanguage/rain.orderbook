@@ -34,7 +34,7 @@ const mockTradeOrdersList: Trade[] = [
 				}
 			},
 			id: '1',
-			typename: 'Withdraw',
+			__typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -64,7 +64,7 @@ const mockTradeOrdersList: Trade[] = [
 			},
 			amount: '50',
 			id: '1',
-			typename: 'Withdraw',
+			__typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -106,7 +106,7 @@ const mockTradeOrdersList: Trade[] = [
 				}
 			},
 			id: '1',
-			typename: 'Withdraw',
+			__typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -136,7 +136,7 @@ const mockTradeOrdersList: Trade[] = [
 			},
 			amount: '50',
 			id: '1',
-			typename: 'Withdraw',
+			__typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -152,7 +152,7 @@ const mockTradeOrdersList: Trade[] = [
 			id: '0x00'
 		}
 	}
-];
+] as unknown as Trade[];
 
 vi.mock('@tanstack/svelte-query');
 

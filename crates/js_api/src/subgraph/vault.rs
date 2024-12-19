@@ -28,3 +28,18 @@ pub async fn get_vault(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraph
     let vault = client.vault_detail(Id::new(id)).await?;
     Ok(to_value(&vault)?)
 }
+
+/// Fetch balance changes for a vault
+/// Returns a list of VaultBalanceChangeUnwrapped structs
+#[wasm_bindgen(js_name = "getVaultBalanceChanges")]
+pub async fn get_vault_balance_changes(
+    url: &str,
+    id: &str,
+    pagination_args: PaginationArgs,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let changes = client
+        .vault_balance_changes_list(Id::new(id), pagination_args)
+        .await?;
+    Ok(to_value(&changes)?)
+}

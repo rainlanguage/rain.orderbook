@@ -100,7 +100,7 @@ export const mockOrder = {
 					__typename: 'deposit',
 					data: {
 						id: '0x4085027ab87a1aa27267de3187559dcea51a49bc0dd3789ca65af38c2ba3728e',
-						typename: 'Deposit',
+						__typename: 'Deposit',
 						amount: '504119298720293716',
 						newVaultBalance: '504119298720293716',
 						oldVaultBalance: '0',
@@ -132,7 +132,7 @@ export const mockOrder = {
 					__typename: 'withdrawal',
 					data: {
 						id: '0x78cc1de97a4afeedb0b0b11f273b21bedf7642256893073b81b253d1845ac802',
-						typename: 'Withdrawal',
+						__typename: 'Withdrawal',
 						amount: '-504119298720293716',
 						newVaultBalance: '0',
 						oldVaultBalance: '504119298720293716',
