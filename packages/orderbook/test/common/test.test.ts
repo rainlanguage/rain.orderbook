@@ -1,14 +1,14 @@
-import assert from "assert";
-import { getLocal } from "mockttp";
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { getAddOrderCalldata, DotrainOrder } from "../../dist/cjs/common.js";
+import assert from 'assert';
+import { getLocal } from 'mockttp';
+import { describe, it, beforeEach, afterEach } from 'vitest';
+import { getAddOrderCalldata, DotrainOrder } from '../../dist/cjs/common.js';
 
-describe("Rain Orderbook Common Package Bindgen Tests", async function () {
-  const mockServer = getLocal();
-  beforeEach(() => mockServer.start(8080));
-  afterEach(() => mockServer.stop());
+describe('Rain Orderbook Common Package Bindgen Tests', async function () {
+	const mockServer = getLocal();
+	beforeEach(() => mockServer.start(8080));
+	afterEach(() => mockServer.stop());
 
-  const dotrain = `
+	const dotrain = `
 networks:
     some-network:
         rpc: http://localhost:8080/rpc-url
@@ -73,49 +73,49 @@ _ _: 0 0;
 :;
 `;
 
-  it("should get correct calldata", async () => {
-    // mock calls
-    // iInterpreter() call
-    await mockServer
-      .forPost("/rpc-url")
-      .withBodyIncluding("0xf0cfdd37")
-      .thenSendJsonRpcResult(`0x${"0".repeat(24) + "1".repeat(40)}`);
-    // iStore() call
-    await mockServer
-      .forPost("/rpc-url")
-      .withBodyIncluding("0xc19423bc")
-      .thenSendJsonRpcResult(`0x${"0".repeat(24) + "2".repeat(40)}`);
-    // iParser() call
-    await mockServer
-      .forPost("/rpc-url")
-      .withBodyIncluding("0x24376855")
-      .thenSendJsonRpcResult(`0x${"0".repeat(24) + "3".repeat(40)}`);
-    // parse2() call
-    await mockServer
-      .forPost("/rpc-url")
-      .withBodyIncluding("0xa3869e14")
-      // 0x1234 encoded bytes
-      .thenSendJsonRpcResult(
-        "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000"
-      );
+	it('should get correct calldata', async () => {
+		// mock calls
+		// iInterpreter() call
+		await mockServer
+			.forPost('/rpc-url')
+			.withBodyIncluding('0xf0cfdd37')
+			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+		// iStore() call
+		await mockServer
+			.forPost('/rpc-url')
+			.withBodyIncluding('0xc19423bc')
+			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+		// iParser() call
+		await mockServer
+			.forPost('/rpc-url')
+			.withBodyIncluding('0x24376855')
+			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+		// parse2() call
+		await mockServer
+			.forPost('/rpc-url')
+			.withBodyIncluding('0xa3869e14')
+			// 0x1234 encoded bytes
+			.thenSendJsonRpcResult(
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+			);
 
-    const result = await getAddOrderCalldata(dotrain, "some-deployment");
-    assert.equal(result.length, 1156);
-  });
+		const result = await getAddOrderCalldata(dotrain, 'some-deployment');
+		assert.equal(result.length, 1156);
+	});
 
-  it("should throw undefined deployment error", async () => {
-    try {
-      await getAddOrderCalldata(dotrain, "some-other-deployment");
-      assert.fail("expected to fail, but resolved");
-    } catch (error) {
-      assert.ok(error instanceof Error);
-      assert.equal(error.message, "undefined deployment");
-    }
-  });
+	it('should throw undefined deployment error', async () => {
+		try {
+			await getAddOrderCalldata(dotrain, 'some-other-deployment');
+			assert.fail('expected to fail, but resolved');
+		} catch (error) {
+			assert.ok(error instanceof Error);
+			assert.equal(error.message, 'undefined deployment');
+		}
+	});
 
-  it("should throw frontmatter missing field error", async () => {
-    try {
-      const dotrain = `
+	it('should throw frontmatter missing field error', async () => {
+		try {
+			const dotrain = `
 deployers:
     some-deployer:
         ---
@@ -126,46 +126,44 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
-      await getAddOrderCalldata(dotrain, "some-deployment");
-      assert.fail("expected to fail, but resolved");
-    } catch (error) {
-      assert.ok(error instanceof Error);
-      assert.equal(
-        error.message,
-        "deployers.some-deployer: missing field `address` at line 3 column 19"
-      );
-    }
-  });
+			await getAddOrderCalldata(dotrain, 'some-deployment');
+			assert.fail('expected to fail, but resolved');
+		} catch (error) {
+			assert.ok(error instanceof Error);
+			assert.equal(
+				error.message,
+				'deployers.some-deployer: missing field `address` at line 3 column 19'
+			);
+		}
+	});
 
-  it("should compose deployment to rainlang", async () => {
-    const dotrainOrder = await DotrainOrder.create(dotrain);
-    const result =
-      await dotrainOrder.composeDeploymentToRainlang("some-deployment");
-    const expected = `/* 0. calculate-io */ 
+	it('should compose deployment to rainlang', async () => {
+		const dotrainOrder = await DotrainOrder.create(dotrain);
+		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
+		const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
 /* 1. handle-io */ 
 :;`;
 
-    assert.equal(result, expected);
-  });
+		assert.equal(result, expected);
+	});
 
-  it("should compose scenario to rainlang with config", async () => {
-    const config = `
+	it('should compose scenario to rainlang with config', async () => {
+		const config = `
 scenarios:
     config-scenario:
         network: some-network
         deployer: some-deployer
 `;
-    const dotrainOrder = await DotrainOrder.create(dotrain, config);
-    const result =
-      await dotrainOrder.composeScenarioToRainlang("config-scenario");
-    const expected = `/* 0. calculate-io */ 
+		const dotrainOrder = await DotrainOrder.create(dotrain, config);
+		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
+		const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
 /* 1. handle-io */ 
 :;`;
 
-    assert.equal(result, expected);
-  });
+		assert.equal(result, expected);
+	});
 });

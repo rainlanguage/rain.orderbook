@@ -63,7 +63,7 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               
@@ -96,7 +96,7 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/appSettings.ts;
               
@@ -134,6 +134,7 @@
               sentry-cli releases set-commits --auto ''${COMMIT_SHA}
 
               # Overwrite env variables with release values
+              echo WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> .env
               echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
               echo SENTRY_ORG=''${SENTRY_ORG} >> .env
               echo SENTRY_PROJECT=''${SENTRY_PROJECT} >> .env
