@@ -1,7 +1,5 @@
 use super::*;
-use crate::{
-    metaboard::Metaboard, sentry::Sentry, subgraph::Subgraph, Deployer, Network, Orderbook, Token,
-};
+use crate::{Network, Orderbook, Subgraph, Token};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
 
@@ -64,35 +62,16 @@ impl OrderbookYaml {
     pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
         Orderbook::parse_from_yaml(self.document.clone(), key)
     }
-
-    pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = Metaboard::parse_all_from_yaml(self.document.clone())?;
-        Ok(metaboards.keys().cloned().collect())
-    }
-    pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
-        Metaboard::parse_from_yaml(self.document.clone(), key)
-    }
-
-    pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployers = Deployer::parse_all_from_yaml(self.document.clone())?;
-        Ok(deployers.keys().cloned().collect())
-    }
-    pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
-        Deployer::parse_from_yaml(self.document.clone(), key)
-    }
-
-    pub fn get_sentry(&self) -> Result<bool, YamlError> {
-        let value = Sentry::parse_from_yaml_optional(self.document.clone())?;
-        Ok(value.map_or(false, |v| v == "true"))
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use alloy::primitives::Address;
     use std::str::FromStr;
+
+    use alloy::primitives::Address;
     use url::Url;
+
+    use super::*;
 
     const FULL_YAML: &str = r#"
     networks:
@@ -123,8 +102,9 @@ mod tests {
             symbol: WETH
     deployers:
         deployer1:
-            address: 0x0000000000000000000000000000000000000002
+            address: 0x3456789012abcdef
             network: mainnet
+            label: Main Deployer
     accounts:
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
@@ -180,7 +160,7 @@ mod tests {
         assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
         let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
         assert_eq!(
-            subgraph.url,
+            subgraph,
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
@@ -190,29 +170,9 @@ mod tests {
             orderbook.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(orderbook.network, network.clone().into());
+        assert_eq!(orderbook.network, network.into());
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
-
-        assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
-        assert_eq!(
-            ob_yaml.get_metaboard("board1").unwrap().url,
-            Url::parse("https://meta.example.com/board1").unwrap()
-        );
-        assert_eq!(
-            ob_yaml.get_metaboard("board2").unwrap().url,
-            Url::parse("https://meta.example.com/board2").unwrap()
-        );
-
-        assert_eq!(ob_yaml.get_deployer_keys().unwrap().len(), 1);
-        let deployer = ob_yaml.get_deployer("deployer1").unwrap();
-        assert_eq!(
-            deployer.address,
-            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
-        );
-        assert_eq!(deployer.network, network.into());
-
-        assert!(ob_yaml.get_sentry().unwrap());
     }
 
     #[test]

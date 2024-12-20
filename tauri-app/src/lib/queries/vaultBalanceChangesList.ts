@@ -36,7 +36,7 @@ if (import.meta.vitest) {
   it('uses the vault_balance_changes_list command correctly', async () => {
     const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
       {
-        __typename: 'Withdrawal',
+        typename: 'Withdrawal',
         amount: '1000',
         oldVaultBalance: '5000',
         newVaultBalance: '4000',
@@ -63,7 +63,7 @@ if (import.meta.vitest) {
         },
       },
       {
-        __typename: 'TradeVaultBalanceChange',
+        typename: 'TradeVaultBalanceChange',
         amount: '1500',
         oldVaultBalance: '4000',
         newVaultBalance: '2500',
@@ -90,7 +90,7 @@ if (import.meta.vitest) {
         },
       },
       {
-        __typename: 'Deposit',
+        typename: 'Deposit',
         amount: '2000',
         oldVaultBalance: '2500',
         newVaultBalance: '4500',

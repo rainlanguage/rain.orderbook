@@ -2,7 +2,6 @@
 	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
-		"allowArbitraryExtensions": true,
 		"allowJs": true,
 		"checkJs": true,
 		"esModuleInterop": true,
@@ -13,6 +12,6 @@
 		"strict": true,
 		"module": "es2022",
 		"moduleResolution": "bundler",
-		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta", "codemirror-rainlang", "@rainlanguage/dotrain"]
+		"types": ["vitest/globals", "@testing-library/jest-dom", "vitest/importMeta"]
 	},
 }

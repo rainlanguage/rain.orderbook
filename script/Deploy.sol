@@ -74,10 +74,6 @@ contract Deploy is Script {
             raindex = address(deployRaindex());
         }
 
-        if (raindex == address(0)) {
-            raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
-        }
-
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
             deploySubParser(metaboard);
         }

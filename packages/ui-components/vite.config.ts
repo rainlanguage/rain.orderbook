@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
 	},
-
+	
 	test: {
 		// Jest like globals
 		includeSource: ['src/**/*.{js,ts}'],

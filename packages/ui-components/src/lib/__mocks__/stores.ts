@@ -13,15 +13,6 @@ const mockActiveNetworkRefWritable = writable<string>('');
 const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
-const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
-
-export const mockWalletAddressMatchesOrBlankStore = {
-	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
-	set: mockWalletAddressMatchesOrBlankWritable.set,
-	mockSetSubscribeValue: (value: () => boolean): void =>
-		mockWalletAddressMatchesOrBlankWritable.set(value)
-};
-
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
 	set: mockSettingsWritable.set,
