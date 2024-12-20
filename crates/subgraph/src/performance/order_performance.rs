@@ -705,7 +705,7 @@ mod test {
                 end_time: 10000001,
                 net_vol: U256::from_str("5000000000000000000").unwrap(),
                 capital: U256::from_str("5000000000000000000").unwrap(),
-                apy: U256::from_str("3153600000000000000").unwrap(),
+                apy: Some(U256::from_str("3153600000000000000").unwrap()),
                 is_neg: false,
             }),
             vol_details: VolumeDetails {
@@ -723,7 +723,7 @@ mod test {
                 end_time: 10000001,
                 net_vol: U256::from_str("3000000000000000000").unwrap(),
                 capital: U256::from_str("5000000000000000000").unwrap(),
-                apy: U256::from_str("1892160000000000000").unwrap(),
+                apy: Some(U256::from_str("1892160000000000000").unwrap()),
                 is_neg: false,
             }),
             vol_details: VolumeDetails {

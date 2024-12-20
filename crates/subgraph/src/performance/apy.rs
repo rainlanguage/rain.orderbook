@@ -21,8 +21,8 @@ pub struct APYDetails {
     pub net_vol: U256,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub capital: U256,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub apy: U256,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
+    pub apy: Option<U256>,
     pub is_neg: bool,
 }
 
@@ -144,26 +144,18 @@ pub fn get_vaults_apy(
         };
 
         // this token vault apy
-        if let Some(apy) = apy {
-            token_vaults_apy.push(VaultAPY {
-                id: vol.id.clone(),
-                token: vol.token.clone(),
-                apy_details: Some(APYDetails {
-                    start_time: start,
-                    end_time: end,
-                    apy,
-                    is_neg: vol.is_net_vol_negative(),
-                    net_vol: vol.vol_details.net_vol,
-                    capital: starting_capital,
-                }),
-            });
-        } else {
-            token_vaults_apy.push(VaultAPY {
-                id: vol.id.clone(),
-                token: vol.token.clone(),
-                apy_details: None,
-            });
-        }
+        token_vaults_apy.push(VaultAPY {
+            id: vol.id.clone(),
+            token: vol.token.clone(),
+            apy_details: Some(APYDetails {
+                start_time: start,
+                end_time: end,
+                apy,
+                is_neg: vol.is_net_vol_negative(),
+                net_vol: vol.vol_details.net_vol,
+                capital: starting_capital,
+            }),
+        });
     }
 
     Ok(token_vaults_apy)
@@ -218,7 +210,7 @@ mod test {
                     net_vol: U256::from_str("1000000000000000000").unwrap(),
                     capital: U256::from_str("5000000000000000000").unwrap(),
                     // (1/5) / (10000001_end - 1_start / 31_536_00_year)
-                    apy: U256::from_str("630720000000000000").unwrap(),
+                    apy: Some(U256::from_str("630720000000000000").unwrap()),
                     is_neg: false,
                 }),
             },
@@ -231,7 +223,7 @@ mod test {
                     net_vol: U256::from_str("2000000000000000000").unwrap(),
                     capital: U256::from_str("5000000000000000000").unwrap(),
                     // (2/5) / ((10000001_end - 1_start) / 31_536_00_year)
-                    apy: U256::from_str("1261440000000000000").unwrap(),
+                    apy: Some(U256::from_str("1261440000000000000").unwrap()),
                     is_neg: false,
                 }),
             },
