@@ -65,6 +65,8 @@
 
 	let currentStep = 0;
 
+	$: console.log(steps);
+
 	const nextStep = () => {
 		if (currentStep < totalSteps - 1) currentStep++;
 	};
@@ -74,9 +76,9 @@
 	};
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex h-[80vh] flex-col justify-between">
 	<!-- Show current progress -->
-	<div class="text-sm text-gray-600">
+	<div class="text- dark:text-gray-200 text-gray-800">
 		Step {currentStep + 1} of {totalSteps}
 	</div>
 
@@ -94,7 +96,7 @@
 	{/if}
 
 	<!-- Navigation buttons -->
-	<div class="mt-4 flex justify-between gap-4">
+	<div class="flex justify-between gap-4">
 		<Button class="flex-1" on:click={previousStep} disabled={currentStep === 0}>Previous</Button>
 
 		{#if currentStep === totalSteps - 1}

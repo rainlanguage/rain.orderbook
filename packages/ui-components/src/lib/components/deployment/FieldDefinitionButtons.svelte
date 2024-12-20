@@ -26,11 +26,11 @@
 	}
 </script>
 
-<div class="flex min-h-screen flex-col items-center bg-gray-50 p-8">
+<div class="flex flex-grow flex-col items-center p-8">
 	<!-- Header Section -->
 	<div class="mt-16 max-w-2xl text-center">
-		<h1 class="mb-4 text-4xl font-bold text-gray-900">{fieldDefinition.name}</h1>
-		<p class="mb-12 text-xl text-gray-600">
+		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">{fieldDefinition.name}</h1>
+		<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">
 			{fieldDefinition.description}
 		</p>
 	</div>
@@ -41,26 +41,29 @@
 			{#each fieldDefinition.presets as preset}
 				<Button
 					size="lg"
-					color={gui?.isFieldPreset(fieldDefinition.binding) &&
+					color="alternative"
+					class={gui?.isFieldPreset(fieldDefinition.binding) &&
 					gui?.getFieldValue(fieldDefinition.binding)?.value === preset.id
-						? 'blue'
-						: 'alternative'}
+						? 'border-2 border-gray-900 dark:border-white'
+						: 'border border-gray-200 dark:border-gray-700'}
 					on:click={() => handlePresetClick(preset.id)}
 				>
-					{preset.name}
+					{preset.name || preset.value}
 				</Button>
 			{/each}
+			<Button
+				size="lg"
+				color="alternative"
+				class={!gui?.isFieldPreset(fieldDefinition.binding)
+					? 'border-2 border-gray-900 dark:border-white'
+					: 'border border-gray-200 dark:border-gray-700'}
+				on:click={handleCustomClick}
+			>
+				Custom
+			</Button>
 		{/if}
-		<Button
-			size="lg"
-			color={!gui?.isFieldPreset(fieldDefinition.binding) ? 'blue' : 'alternative'}
-			on:click={handleCustomClick}
-		>
-			Custom
-		</Button>
 	</div>
 
-	<!-- Custom Input Section -->
 	{#if !gui?.isFieldPreset(fieldDefinition.binding)}
 		<div class="mt-8 w-full max-w-md">
 			<Input

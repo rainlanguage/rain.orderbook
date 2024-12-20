@@ -189,50 +189,54 @@
 	}
 </script>
 
-<div class="mb-4 flex items-center gap-2">
-	<Checkbox
-		bind:checked={isLimitStrat}
-		label="Is Limit Strategy"
-		on:change={() => {
-			gui = undefined;
-		}}
-	/>
+<div class="flex h-screen flex-col gap-4">
+	<div class="mb-4 flex items-center gap-2">
+		<Checkbox
+			bind:checked={isLimitStrat}
+			label="Is Limit Strategy"
+			on:change={() => {
+				gui = undefined;
+			}}
+		/>
+	</div>
+
+	<div class="mb-4">
+		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
+		<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
+			<svelte:fragment slot="content" let:selectedOption let:selectedRef>
+				{#if selectedRef === undefined}
+					<span>Select a deployment</span>
+				{:else if selectedOption?.label}
+					<span>{selectedOption.label}</span>
+				{:else}
+					<span>{selectedRef}</span>
+				{/if}
+			</svelte:fragment>
+
+			<svelte:fragment slot="option" let:option let:ref>
+				<div class="w-full overflow-hidden overflow-ellipsis">
+					<div class="text-md break-word">{option.label ? option.label : ref}</div>
+				</div>
+			</svelte:fragment>
+		</DropdownRadio>
+	</div>
+
+	<div class="flex-grow">
+		{#if gui}
+			<DeploymentSteps
+				{gui}
+				{isLimitStrat}
+				{useCustomVaultIds}
+				{inputVaultIds}
+				{outputVaultIds}
+				{handleAddOrder}
+				{tokenInfos}
+				{selectTokens}
+				{allFieldDefinitions}
+				{allTokenInputs}
+				{allTokenOutputs}
+				{allDeposits}
+			/>
+		{/if}
+	</div>
 </div>
-
-<div class="mb-4">
-	<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
-	<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-		<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-			{#if selectedRef === undefined}
-				<span>Select a deployment</span>
-			{:else if selectedOption?.label}
-				<span>{selectedOption.label}</span>
-			{:else}
-				<span>{selectedRef}</span>
-			{/if}
-		</svelte:fragment>
-
-		<svelte:fragment slot="option" let:option let:ref>
-			<div class="w-full overflow-hidden overflow-ellipsis">
-				<div class="text-md break-word">{option.label ? option.label : ref}</div>
-			</div>
-		</svelte:fragment>
-	</DropdownRadio>
-</div>
-
-{#if gui}
-	<DeploymentSteps
-		{gui}
-		{isLimitStrat}
-		{useCustomVaultIds}
-		{inputVaultIds}
-		{outputVaultIds}
-		{handleAddOrder}
-		{tokenInfos}
-		{selectTokens}
-		{allFieldDefinitions}
-		{allTokenInputs}
-		{allTokenOutputs}
-		{allDeposits}
-	/>
-{/if}

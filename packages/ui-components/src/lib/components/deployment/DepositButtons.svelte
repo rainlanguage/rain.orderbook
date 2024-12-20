@@ -25,39 +25,38 @@
 	}
 </script>
 
-<div class="flex min-h-screen flex-col items-center bg-gray-50 p-8">
-	<!-- Header Section -->
+<div class="flex flex-grow flex-col items-center">
 	<div class="mt-16 max-w-2xl text-center">
-		<h1 class="mb-4 text-4xl font-bold text-gray-900">
+		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
 			{tokenInfos.get(deposit.token.address)?.name}
 		</h1>
 		<p class="mb-12 text-xl text-gray-600">Select deposit amount</p>
 	</div>
 
-	<!-- Buttons Section -->
-	<div class="flex max-w-3xl flex-wrap justify-center gap-4">
-		{#each deposit.presets as preset}
+	{#if deposit.presets}
+		<div class="flex max-w-3xl flex-wrap justify-center gap-4">
+			{#each deposit.presets as preset}
+				<Button
+					size="lg"
+					color={gui?.isDepositPreset(deposit.token_name) &&
+					gui?.getDeposit(deposit.token_name) === preset
+						? 'blue'
+						: 'alternative'}
+					on:click={() => handlePresetClick(preset)}
+				>
+					{preset}
+				</Button>
+			{/each}
 			<Button
 				size="lg"
-				color={gui?.isDepositPreset(deposit.token_name) &&
-				gui?.getDeposit(deposit.token_name) === preset
-					? 'blue'
-					: 'alternative'}
-				on:click={() => handlePresetClick(preset)}
+				color={!gui?.isDepositPreset(deposit.token_name) ? 'blue' : 'alternative'}
+				on:click={handleCustomClick}
 			>
-				{preset}
+				Custom
 			</Button>
-		{/each}
-		<Button
-			size="lg"
-			color={!gui?.isDepositPreset(deposit.token_name) ? 'blue' : 'alternative'}
-			on:click={handleCustomClick}
-		>
-			Custom
-		</Button>
-	</div>
+		</div>
+	{/if}
 
-	<!-- Custom Input Section -->
 	{#if !gui?.isDepositPreset(deposit.token_name)}
 		<div class="mt-8 w-full max-w-md">
 			<Input
