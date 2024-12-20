@@ -51,20 +51,6 @@ pub async fn vaults_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn vault_balance_changes_list(
-    id: String,
-    subgraph_args: SubgraphArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<VaultBalanceChangeUnwrapped>> {
-    let data = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vault_balance_changes_list(id.into(), pagination_args)
-        .await?;
-    Ok(data)
-}
-
-#[tauri::command]
 pub async fn vault_balance_changes_list_write_csv(
     id: String,
     path: PathBuf,
