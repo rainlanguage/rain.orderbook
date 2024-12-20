@@ -50,7 +50,10 @@ export { default as FieldDefinitionDropdown } from './components/deployment/Fiel
 export { default as DepositDropdown } from './components/deployment/DepositDropdown.svelte';
 export { default as FieldDefinitionButtons } from './components/deployment/FieldDefinitionButtons.svelte';
 export { default as DepositButtons } from './components/deployment/DepositButtons.svelte';
-
+export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
+export { default as TokenInput } from './components/deployment/TokenInput.svelte';
+export { default as TokenOutput } from './components/deployment/TokenOutput.svelte';
+export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

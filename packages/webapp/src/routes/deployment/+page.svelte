@@ -3,7 +3,10 @@
 		DropdownRadio,
 		Checkbox,
 		FieldDefinitionDropdown,
-		DepositDropdown
+		DepositDropdown,
+		TokenInput,
+		TokenOutput,
+		SelectToken
 	} from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
@@ -17,7 +20,7 @@
 		type TokenInfos,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Label } from 'flowbite-svelte';
+	import { Button, Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 
@@ -231,21 +234,7 @@
 		<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
 		{#each selectTokens.entries() as [token]}
-			<div class="mb-4 flex flex-col gap-2">
-				<Label class="whitespace-nowrap text-xl">{token}</Label>
-
-				<Input
-					type="text"
-					on:change={async ({ currentTarget }) => {
-						if (currentTarget instanceof HTMLInputElement) {
-							if (!gui) return;
-							await gui.saveSelectTokenAddress(token, currentTarget.value);
-							selectTokens = gui.getSelectTokens();
-							gui = gui;
-						}
-					}}
-				/>
-			</div>
+			<SelectToken {token} {gui} {selectTokens} />
 		{/each}
 	{/if}
 
@@ -260,7 +249,6 @@
 
 	{#if allDeposits.length > 0}
 		<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
-
 		{#each allDeposits as deposit}
 			<DepositDropdown {deposit} {gui} {tokenInfos} />
 		{/each}
@@ -278,34 +266,14 @@
 				{#if allTokenInputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
 					{#each allTokenInputs as input, i}
-						<div class="flex items-center gap-2">
-							<Label class="whitespace-nowrap"
-								>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol})</Label
-							>
-							<Input
-								type="text"
-								placeholder="Enter vault ID"
-								bind:value={inputVaultIds[i]}
-								on:change={() => gui?.setVaultId(true, i, inputVaultIds[i])}
-							/>
-						</div>
+						<TokenInput {i} {input} {tokenInfos} {inputVaultIds} {gui} />
 					{/each}
 				{/if}
 
 				{#if allTokenOutputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
 					{#each allTokenOutputs as output, i}
-						<div class="flex items-center gap-2">
-							<Label class="whitespace-nowrap"
-								>Output {i + 1} ({tokenInfos.get(output.token.address)?.symbol})</Label
-							>
-							<Input
-								type="text"
-								placeholder="Enter vault ID"
-								bind:value={outputVaultIds[i]}
-								on:change={() => gui?.setVaultId(false, i, outputVaultIds[i])}
-							/>
-						</div>
+						<TokenOutput {i} {output} {tokenInfos} {outputVaultIds} {gui} />
 					{/each}
 				{/if}
 			{/if}

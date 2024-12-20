@@ -5,7 +5,7 @@
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
 
-	let showCustomInput: boolean = false;
+	let showCustomInput = false;
 
 	function handlePresetClick(presetId: string) {
 		gui?.saveFieldValue(fieldDefinition.binding, {
@@ -24,22 +24,27 @@
 		});
 		gui = gui;
 	}
-
-	console.log(fieldDefinition);
 </script>
 
-<div class="mb-4 flex flex-col gap-2">
-	<Label class="whitespace-nowrap text-xl">{fieldDefinition.name}</Label>
+<div class="flex min-h-screen flex-col items-center bg-gray-50 p-8">
+	<!-- Header Section -->
+	<div class="mt-16 max-w-2xl text-center">
+		<h1 class="mb-4 text-4xl font-bold text-gray-900">{fieldDefinition.name}</h1>
+		<p class="mb-12 text-xl text-gray-600">
+			{fieldDefinition.description}
+		</p>
+	</div>
 
-	<div class="flex flex-wrap gap-2">
+	<!-- Buttons Section -->
+	<div class="flex max-w-3xl flex-wrap justify-center gap-4">
 		{#if fieldDefinition.presets}
 			{#each fieldDefinition.presets as preset}
 				<Button
+					size="lg"
 					color={gui?.isFieldPreset(fieldDefinition.binding) &&
 					gui?.getFieldValue(fieldDefinition.binding)?.value === preset.id
 						? 'blue'
 						: 'alternative'}
-					size="sm"
 					on:click={() => handlePresetClick(preset.id)}
 				>
 					{preset.name}
@@ -47,25 +52,30 @@
 			{/each}
 		{/if}
 		<Button
+			size="lg"
 			color={!gui?.isFieldPreset(fieldDefinition.binding) ? 'blue' : 'alternative'}
-			size="sm"
 			on:click={handleCustomClick}
 		>
 			Custom
 		</Button>
 	</div>
 
+	<!-- Custom Input Section -->
 	{#if !gui?.isFieldPreset(fieldDefinition.binding)}
-		<Input
-			placeholder="Enter value"
-			on:change={({ currentTarget }) => {
-				if (currentTarget instanceof HTMLInputElement) {
-					gui?.saveFieldValue(fieldDefinition.binding, {
-						isPreset: false,
-						value: currentTarget.value
-					});
-				}
-			}}
-		/>
+		<div class="mt-8 w-full max-w-md">
+			<Input
+				class="text-center text-lg"
+				size="lg"
+				placeholder="Enter custom value"
+				on:change={({ currentTarget }) => {
+					if (currentTarget instanceof HTMLInputElement) {
+						gui?.saveFieldValue(fieldDefinition.binding, {
+							isPreset: false,
+							value: currentTarget.value
+						});
+					}
+				}}
+			/>
+		</div>
 	{/if}
 </div>

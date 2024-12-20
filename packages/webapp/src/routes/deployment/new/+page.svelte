@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		DropdownRadio,
-		Checkbox,
-		FieldDefinitionButtons,
-		DepositButtons
-	} from '@rainlanguage/ui-components';
+	import { DropdownRadio, Checkbox, DeploymentSteps } from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
 		type ApprovalCalldataResult,
@@ -13,9 +8,10 @@
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type SelectTokens,
-		type TokenInfos
+		type TokenInfos,
+		type Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Label } from 'flowbite-svelte';
+	import { Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 
@@ -114,11 +110,25 @@
 		allDeposits = gui.getCurrentDeployment().deposits;
 	}
 
+	let allTokenInputs: Vault[] = [];
+	function getAllTokenInputs() {
+		if (!gui) return;
+		allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
+	}
+
+	let allTokenOutputs: Vault[] = [];
+	function getAllTokenOutputs() {
+		if (!gui) return;
+		allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
+	}
+
 	$: if (gui) {
 		getTokenInfos();
 		if (isLimitStrat) getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
+		getAllTokenInputs();
+		getAllTokenOutputs();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -211,90 +221,18 @@
 </div>
 
 {#if gui}
-	{#if isLimitStrat && selectTokens.size > 0}
-		<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
-
-		{#each selectTokens.entries() as [token]}
-			<div class="mb-4 flex flex-col gap-2">
-				<Label class="whitespace-nowrap text-xl">{token}</Label>
-
-				<Input
-					type="text"
-					on:change={async ({ currentTarget }) => {
-						if (currentTarget instanceof HTMLInputElement) {
-							if (!gui) return;
-							await gui.saveSelectTokenAddress(token, currentTarget.value);
-							selectTokens = gui.getSelectTokens();
-							gui = gui;
-						}
-					}}
-				/>
-			</div>
-		{/each}
-	{/if}
-
-	{#if allFieldDefinitions.length > 0}
-		<Label class="my-4 whitespace-nowrap border-2 border-red-500 text-2xl underline"
-			>Field Values</Label
-		>
-		{#each allFieldDefinitions as fieldDefinition}
-			<FieldDefinitionButtons {fieldDefinition} {gui} />
-		{/each}
-	{/if}
-
-	<!-- {#if allDeposits.length > 0}
-		<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
-
-		{#each allDeposits as deposit}
-			<DepositButtons {deposit} {gui} {tokenInfos} />
-		{/each}
-	{/if} -->
-
-	{#if selectedDeployment}
-		<div class="my-4 flex flex-col gap-4">
-			<div class="flex items-center gap-2">
-				<Checkbox bind:checked={useCustomVaultIds} label="Set Custom Vault IDs" />
-			</div>
-
-			{#if useCustomVaultIds}
-				<Label class="whitespace-nowrap text-2xl underline">Vault IDs</Label>
-
-				{#if gui?.getCurrentDeployment().deployment.order.inputs.length > 0}
-					<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
-					{#each gui?.getCurrentDeployment().deployment.order.inputs as input, i}
-						<div class="flex items-center gap-2">
-							<Label class="whitespace-nowrap"
-								>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol})</Label
-							>
-							<Input
-								type="text"
-								placeholder="Enter vault ID"
-								bind:value={inputVaultIds[i]}
-								on:change={() => gui?.setVaultId(true, i, inputVaultIds[i])}
-							/>
-						</div>
-					{/each}
-				{/if}
-
-				{#if gui?.getCurrentDeployment().deployment.order.outputs.length > 0}
-					<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
-					{#each gui?.getCurrentDeployment().deployment.order.outputs as output, i}
-						<div class="flex items-center gap-2">
-							<Label class="whitespace-nowrap"
-								>Output {i + 1} ({tokenInfos.get(output.token.address)?.symbol})</Label
-							>
-							<Input
-								type="text"
-								placeholder="Enter vault ID"
-								bind:value={outputVaultIds[i]}
-								on:change={() => gui?.setVaultId(false, i, outputVaultIds[i])}
-							/>
-						</div>
-					{/each}
-				{/if}
-			{/if}
-		</div>
-
-		<Button class="flex w-full" on:click={handleAddOrder}>Add Order</Button>
-	{/if}
+	<DeploymentSteps
+		{gui}
+		{isLimitStrat}
+		{useCustomVaultIds}
+		{inputVaultIds}
+		{outputVaultIds}
+		{handleAddOrder}
+		{tokenInfos}
+		{selectTokens}
+		{allFieldDefinitions}
+		{allTokenInputs}
+		{allTokenOutputs}
+		{allDeposits}
+	/>
 {/if}
