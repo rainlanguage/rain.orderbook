@@ -52,7 +52,6 @@ export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
-export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -77,7 +76,8 @@ export {
 	QKEY_ORDER,
 	QKEY_ORDER_TRADES_LIST,
 	QKEY_ORDER_QUOTE,
-	QKEY_VAULTS_VOL_LIST
+	QKEY_VAULTS_VOL_LIST,
+	QKEY_ORDER_APY
 } from './queries/keys';
 export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes';
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
