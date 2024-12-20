@@ -2,8 +2,8 @@
 	import {
 		DropdownRadio,
 		Checkbox,
-		FieldDefinitionDropdown,
-		DepositDropdown
+		FieldDefinitionButtons,
+		DepositButtons
 	} from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
@@ -13,9 +13,7 @@
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type SelectTokens,
-		type Token,
-		type TokenInfos,
-		type Vault
+		type TokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button, Input, Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
@@ -116,25 +114,11 @@
 		allDeposits = gui.getCurrentDeployment().deposits;
 	}
 
-	let allTokenInputs: Vault[] = [];
-	function getAllTokenInputs() {
-		if (!gui) return;
-		allTokenInputs = gui?.getCurrentDeployment().deployment.order.inputs;
-	}
-
-	let allTokenOutputs: Vault[] = [];
-	function getAllTokenOutputs() {
-		if (!gui) return;
-		allTokenOutputs = gui?.getCurrentDeployment().deployment.order.outputs;
-	}
-
 	$: if (gui) {
 		getTokenInfos();
 		if (isLimitStrat) getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
-		getAllTokenInputs();
-		getAllTokenOutputs();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -254,17 +238,17 @@
 			>Field Values</Label
 		>
 		{#each allFieldDefinitions as fieldDefinition}
-			<FieldDefinitionDropdown {fieldDefinition} {gui} />
+			<FieldDefinitionButtons {fieldDefinition} {gui} />
 		{/each}
 	{/if}
 
-	{#if allDeposits.length > 0}
+	<!-- {#if allDeposits.length > 0}
 		<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
 
 		{#each allDeposits as deposit}
-			<DepositDropdown {deposit} {gui} {tokenInfos} />
+			<DepositButtons {deposit} {gui} {tokenInfos} />
 		{/each}
-	{/if}
+	{/if} -->
 
 	{#if selectedDeployment}
 		<div class="my-4 flex flex-col gap-4">
@@ -275,9 +259,9 @@
 			{#if useCustomVaultIds}
 				<Label class="whitespace-nowrap text-2xl underline">Vault IDs</Label>
 
-				{#if allTokenInputs.length > 0}
+				{#if gui?.getCurrentDeployment().deployment.order.inputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
-					{#each allTokenInputs as input, i}
+					{#each gui?.getCurrentDeployment().deployment.order.inputs as input, i}
 						<div class="flex items-center gap-2">
 							<Label class="whitespace-nowrap"
 								>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol})</Label
@@ -292,9 +276,9 @@
 					{/each}
 				{/if}
 
-				{#if allTokenOutputs.length > 0}
+				{#if gui?.getCurrentDeployment().deployment.order.outputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
-					{#each allTokenOutputs as output, i}
+					{#each gui?.getCurrentDeployment().deployment.order.outputs as output, i}
 						<div class="flex items-center gap-2">
 							<Label class="whitespace-nowrap"
 								>Output {i + 1} ({tokenInfos.get(output.token.address)?.symbol})</Label
