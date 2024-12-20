@@ -304,7 +304,8 @@ mod tests {
             }],
         };
         let scenario = Scenario {
-            name: "scenario1".into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
             runs: None,

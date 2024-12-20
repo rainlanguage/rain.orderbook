@@ -10,7 +10,7 @@
 {#if chartData}
   <div class="mt-8 flex flex-col items-center gap-y-6">
     {#each sortBy(Object.entries(chartData.charts), ['0']) as chart}
-      {@const data = transformDataForPlot(chartData.scenarios_data[chart[1].scenario.name])}
+      {@const data = transformDataForPlot(chartData.scenarios_data[chart[1].scenario.key])}
       <div class="w-full">
         <div class="flex flex-col justify-center gap-y-4">
           <h2 class="text-2xl font-bold">{chart[0]}</h2>

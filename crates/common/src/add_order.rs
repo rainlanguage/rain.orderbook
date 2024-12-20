@@ -446,7 +446,8 @@ price: 2e18;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -554,7 +555,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -696,7 +698,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
