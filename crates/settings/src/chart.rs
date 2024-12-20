@@ -79,17 +79,20 @@ impl ChartConfigSource {
 
 #[cfg(test)]
 mod tests {
+    use strict_yaml_rust::StrictYaml;
+
     use crate::test::mock_plot;
 
     use self::test::mock_deployer;
 
     use super::*;
     use std::collections::HashMap;
-    use std::sync::Arc;
+    use std::sync::{Arc, RwLock};
 
     fn create_scenario(name: &str, runs: Option<u64>) -> (String, Arc<Scenario>) {
         let scenario = Scenario {
-            name: name.into(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: name.into(),
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
             runs,
             blocks: None,

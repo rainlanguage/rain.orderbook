@@ -240,7 +240,7 @@ impl FuzzRunner {
         }
 
         Ok(FuzzResult {
-            scenario: scenario.name.clone(),
+            scenario: scenario.key.clone(),
             runs: runs.into(),
         })
     }
@@ -250,7 +250,7 @@ impl FuzzRunner {
         let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
 
         for (_, chart) in charts.clone() {
-            let scenario_name = chart.scenario.name.clone();
+            let scenario_name = chart.scenario.key.clone();
             let mut runner = self.clone();
             scenarios_data.entry(scenario_name.clone()).or_insert(
                 runner

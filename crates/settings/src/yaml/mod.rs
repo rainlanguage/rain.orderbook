@@ -1,18 +1,34 @@
+pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
+use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
 use url::ParseError as UrlParseError;
+
+pub trait YamlParsable: Sized {
+    fn new(source: String, validate: bool) -> Result<Self, YamlError>;
+
+    fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
+        let document = document.read().unwrap();
+        let mut out_str = String::new();
+        let mut emitter = StrictYamlEmitter::new(&mut out_str);
+        emitter.dump(&document)?;
+        Ok(out_str)
+    }
+}
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
@@ -51,6 +67,8 @@ pub enum YamlError {
     RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    RuintParseError(#[from] RuintParseError),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -75,6 +93,12 @@ pub enum YamlError {
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
     #[error(transparent)]
     ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    #[error(transparent)]
+    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    #[error(transparent)]
+    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
+    #[error(transparent)]
+    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -169,6 +193,10 @@ pub fn require_vec<'a>(
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {
     value[field].as_vec()
+}
+
+pub fn default_document() -> Arc<RwLock<StrictYaml>> {
+    Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
 
 #[cfg(test)]

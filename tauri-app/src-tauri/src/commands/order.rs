@@ -160,7 +160,7 @@ pub async fn compose_from_scenario(
     scenario: Scenario,
 ) -> CommandResult<String> {
     let order = DotrainOrder::new(dotrain.clone(), settings).await?;
-    Ok(order.compose_scenario_to_rainlang(scenario.name).await?)
+    Ok(order.compose_scenario_to_rainlang(scenario.key).await?)
 }
 
 #[tauri::command]

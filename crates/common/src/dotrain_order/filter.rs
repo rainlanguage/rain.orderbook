@@ -57,7 +57,7 @@ impl DotrainOrder {
             // find and insert the deployment scenario
             // make sure to get the root scenario key
             let scenario_ref = &deployment_ref.scenario;
-            let scenario_key = scenario_ref.name.split('.').nth(0).unwrap();
+            let scenario_key = scenario_ref.key.split('.').nth(0).unwrap();
             new_config_source.scenarios.insert(
                 scenario_key.to_string(),
                 config_source
@@ -385,7 +385,7 @@ impl DotrainOrder {
             // find and insert charts that reference the scenario or if they have
             // same scenario network name as any previously added network
             for (chart_key, chart) in &self.config.charts {
-                if chart.scenario.name.split('.').nth(0).unwrap() == scenario_key
+                if chart.scenario.key.split('.').nth(0).unwrap() == scenario_key
                     || all_network_keys.contains(&chart.scenario.deployer.network.key.as_str())
                 {
                     new_config_source.charts.insert(
