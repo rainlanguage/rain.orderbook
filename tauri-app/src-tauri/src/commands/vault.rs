@@ -19,17 +19,6 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 
 #[tauri::command]
-pub async fn vaults_list(
-    multi_subgraph_args: Vec<MultiSubgraphArgs>,
-    filter_args: VaultsListFilterArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<VaultWithSubgraphName>> {
-    let client = MultiOrderbookSubgraphClient::new(multi_subgraph_args);
-    let vaults = client.vaults_list(filter_args, pagination_args).await?;
-    Ok(vaults)
-}
-
-#[tauri::command]
 pub async fn vaults_list_write_csv(
     path: PathBuf,
     subgraph_args: SubgraphArgs,
@@ -69,17 +58,6 @@ pub async fn vault_balance_changes_list_write_csv(
     fs::write(path, csv_text)?;
 
     Ok(())
-}
-
-#[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<Vault> {
-    let vault = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vault_detail(id.into())
-        .await?;
-
-    Ok(vault)
 }
 
 #[tauri::command]
