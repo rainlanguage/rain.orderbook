@@ -48,7 +48,7 @@ vi.mock('lightweight-charts', async () => {
 
 const mockVaultBalanceChangeUnwrappeds: VaultBalanceChangeUnwrapped[] = [
   {
-    typename: 'Withdrawal',
+    __typename: 'Withdrawal',
     amount: '1000',
     oldVaultBalance: '5000',
     newVaultBalance: '4000',
@@ -75,7 +75,7 @@ const mockVaultBalanceChangeUnwrappeds: VaultBalanceChangeUnwrapped[] = [
     },
   },
   {
-    typename: 'TradeVaultBalanceChangeUnwrapped',
+    __typename: 'TradeVaultBalanceChangeUnwrapped',
     amount: '1500',
     oldVaultBalance: '4000',
     newVaultBalance: '2500',
@@ -102,7 +102,7 @@ const mockVaultBalanceChangeUnwrappeds: VaultBalanceChangeUnwrapped[] = [
     },
   },
   {
-    typename: 'Deposit',
+    __typename: 'Deposit',
     amount: '2000',
     oldVaultBalance: '2500',
     newVaultBalance: '4500',
