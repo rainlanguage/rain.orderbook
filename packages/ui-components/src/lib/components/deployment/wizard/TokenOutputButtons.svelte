@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Label, Input } from 'flowbite-svelte';
-	import type { TokenInfos, Vault } from '@rainlanguage/orderbook/js_api';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import type { TokenInfos, Vault, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 	export let i: number;
 	export let output: Vault;

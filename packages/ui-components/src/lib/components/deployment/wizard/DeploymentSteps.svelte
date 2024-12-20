@@ -4,6 +4,7 @@
 	import SelectToken from '../SelectToken.svelte';
 	import TokenInputButtons from './TokenInputButtons.svelte';
 	import TokenOutputButtons from './TokenOutputButtons.svelte';
+	import type { WizardStep } from '../../../types/wizardSteps';
 
 	import type {
 		DotrainOrderGui,
@@ -36,37 +37,117 @@
 	export let handleAddOrder: () => Promise<void>;
 	export let tokenInfos: TokenInfos;
 
-	$: steps = [
+	$: if (currentStep) {
+		const fieldValues = gui.getAllFieldValues();
+		console.log(fieldValues);
+	}
+
+	type TokenProps = {
+		token: string;
+		gui: DotrainOrderGui;
+		selectTokens: SelectTokens;
+	};
+
+	type FieldProps = {
+		fieldDefinition: GuiFieldDefinition;
+		gui: DotrainOrderGui;
+	};
+
+	type DepositProps = {
+		deposit: GuiDeposit;
+		gui: DotrainOrderGui;
+		tokenInfos: TokenInfos;
+	};
+
+	type TokenInputProps = {
+		i: number;
+		input: Vault;
+		tokenInfos: TokenInfos;
+		inputVaultIds: string[];
+		gui: DotrainOrderGui;
+	};
+
+	type TokenOutputProps = {
+		i: number;
+		output: Vault;
+		tokenInfos: TokenInfos;
+		outputVaultIds: string[];
+		gui: DotrainOrderGui;
+	};
+
+	type WizardStep<T> = {
+		type: 'tokens' | 'fields' | 'deposits' | 'tokenInput' | 'tokenOutput';
+		data: T;
+	};
+
+	let steps: (
+		| WizardStep<TokenProps>
+		| WizardStep<FieldProps>
+		| WizardStep<DepositProps>
+		| WizardStep<TokenInputProps>
+		| WizardStep<TokenOutputProps>
+	)[] = [
 		...(selectTokens.size > 0 && isLimitStrat
-			? Array.from(selectTokens.entries()).map(([token]) => ({
-					type: 'tokens' as const,
-					data: { token, gui, selectTokens }
-				}))
+			? Array.from(selectTokens.entries()).map(
+					([token]): WizardStep<TokenProps> => ({
+						type: 'tokens',
+						data: { token, gui, selectTokens } as {
+							token: string;
+							gui: DotrainOrderGui;
+							selectTokens: SelectTokens;
+						}
+					})
+				)
 			: []),
 
-		...allFieldDefinitions.map((fieldDefinition) => ({
-			type: 'fields' as const,
-			data: { fieldDefinition, gui }
-		})),
+		...allFieldDefinitions.map(
+			(fieldDefinition): WizardStep<FieldProps> => ({
+				type: 'fields',
+				data: { fieldDefinition, gui } as {
+					fieldDefinition: GuiFieldDefinition;
+					gui: DotrainOrderGui;
+				}
+			})
+		),
 
-		...allDeposits.map((deposit) => ({
-			type: 'deposits' as const,
-			data: { deposit, gui, tokenInfos }
-		})),
+		...allDeposits.map(
+			(deposit): WizardStep<DepositProps> => ({
+				type: 'deposits',
+				data: { deposit, gui, tokenInfos } as {
+					deposit: GuiDeposit;
+					gui: DotrainOrderGui;
+					tokenInfos: TokenInfos;
+				}
+			})
+		),
 
-		...allTokenInputs.map((input, i) => ({
-			type: 'tokenInput' as const,
-			data: { input, gui, tokenInfos, i, inputVaultIds }
-		})),
-		...allTokenOutputs.map((output, i) => ({
-			type: 'tokenOutput' as const,
-			data: { output, gui, tokenInfos, i, outputVaultIds }
-		}))
+		...allTokenInputs.map(
+			(input, i): WizardStep<TokenInputProps> => ({
+				type: 'tokenInput',
+				data: { input, gui, tokenInfos, i, inputVaultIds } as {
+					input: Vault;
+					gui: DotrainOrderGui;
+					tokenInfos: TokenInfos;
+					i: number;
+					inputVaultIds: string[];
+				}
+			})
+		),
+		...allTokenOutputs.map(
+			(output, i): WizardStep<TokenOutputProps> => ({
+				type: 'tokenOutput',
+				data: { output, gui, tokenInfos, i, outputVaultIds } as {
+					output: Vault;
+					gui: DotrainOrderGui;
+					tokenInfos: TokenInfos;
+					i: number;
+					outputVaultIds: string[];
+				}
+			})
+		)
 	];
 
 	let currentStep = 0;
-
-	$: console.log(steps);
 
 	const nextStep = () => {
 		if (currentStep < totalSteps - 1) currentStep++;
@@ -78,12 +159,10 @@
 </script>
 
 <div class="flex h-[80vh] flex-col justify-between">
-	<!-- Show current progress -->
-	<div class="text-lg dark:text-gray-200 text-gray-800">
+	<div class="text-lg text-gray-800 dark:text-gray-200">
 		Step {currentStep + 1} of {totalSteps}
 	</div>
 
-	<!-- Content sections -->
 	{#if steps[currentStep].type === 'tokens'}
 		<SelectToken {...steps[currentStep].data} />
 	{:else if steps[currentStep].type === 'fields'}

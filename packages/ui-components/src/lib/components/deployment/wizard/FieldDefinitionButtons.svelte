@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Label, Input, Button } from 'flowbite-svelte';
+	import { Input, Button } from 'flowbite-svelte';
 	import { DotrainOrderGui, type GuiFieldDefinition } from '@rainlanguage/orderbook/js_api';
 
 	export let fieldDefinition: GuiFieldDefinition;
@@ -44,8 +44,8 @@
 					color="alternative"
 					class={gui?.isFieldPreset(fieldDefinition.binding) &&
 					gui?.getFieldValue(fieldDefinition.binding)?.value === preset.id
-						? 'border-2 border-gray-900 dark:border-white'
-						: 'border border-gray-200 dark:border-gray-700'}
+						? 'border border-gray-200 dark:border-gray-700'
+						: 'border-2 border-gray-900 dark:border-white'}
 					on:click={() => handlePresetClick(preset.id)}
 				>
 					{preset.name || preset.value}

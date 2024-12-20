@@ -16,7 +16,6 @@
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type SelectTokens,
-		type Token,
 		type TokenInfos,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
