@@ -1,45 +1,26 @@
-use crate::{
-    performance::PerformanceError,
-    types::common::{Erc20, Trade},
-};
-use alloy::primitives::{ruint::ParseError, U256};
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-use rain_orderbook_math::BigUintMath;
+use crate::types::common::{Erc20, Trade};
+use alloy::primitives::{ruint::ParseError, I256, U256};
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, str::FromStr};
+use std::str::FromStr;
+use typeshare::typeshare;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct VolumeDetails {
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub total_in: U256,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub total_out: U256,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub total_vol: U256,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub net_vol: U256,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
-#[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[typeshare]
 pub struct VaultVolume {
-    pub id: String,
-    pub token: Erc20,
-    pub vol_details: VolumeDetails,
+    id: String,
+    token: Erc20,
+    #[typeshare(typescript(type = "string"))]
+    total_in: U256,
+    #[typeshare(typescript(type = "string"))]
+    total_out: U256,
+    #[typeshare(typescript(type = "string"))]
+    total_vol: U256,
+    #[typeshare(typescript(type = "string"))]
+    net_vol: I256,
 }
 
-#[cfg(target_family = "wasm")]
-mod impls {
-    use super::*;
-    impl_all_wasm_traits!(VolumeDetails);
-    impl_all_wasm_traits!(VaultVolume);
-}
-
-/// Get the vaults volume from array of trades of an order
+/// Get the vaults volume from array of trades
 pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> {
     let mut vaults_vol: Vec<VaultVolume> = vec![];
     for trade in trades {
@@ -49,45 +30,38 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
         }) {
             if trade.input_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
+                vault_vol.total_out += amount;
+                vault_vol.total_vol += amount;
+                vault_vol.net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
+                vault_vol.total_in += amount;
+                vault_vol.total_vol += amount;
+                vault_vol.net_vol += I256::from_raw(amount);
             }
-            vault_vol.vol_details.net_vol =
-                if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
-                } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
-                };
         } else {
             let mut total_in = U256::ZERO;
             let mut total_out = U256::ZERO;
             let mut total_vol = U256::ZERO;
+            let mut net_vol = I256::ZERO;
             if trade.input_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
                 total_out += amount;
                 total_vol += amount;
+                net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
                 total_in += amount;
                 total_vol += amount;
+                net_vol += I256::from_raw(amount);
             }
             vaults_vol.push(VaultVolume {
                 id: trade.input_vault_balance_change.vault.vault_id.0.clone(),
                 token: trade.input_vault_balance_change.vault.token.clone(),
-                vol_details: VolumeDetails {
-                    total_in,
-                    total_out,
-                    total_vol,
-                    net_vol: if total_in >= total_out {
-                        total_in - total_out
-                    } else {
-                        total_out - total_in
-                    },
-                },
+                total_in,
+                total_out,
+                total_vol,
+                net_vol,
             })
         }
         if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
@@ -96,74 +70,42 @@ pub fn get_vaults_vol(trades: &[Trade]) -> Result<Vec<VaultVolume>, ParseError> 
         }) {
             if trade.output_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
+                vault_vol.total_out += amount;
+                vault_vol.total_vol += amount;
+                vault_vol.net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
+                vault_vol.total_in += amount;
+                vault_vol.total_vol += amount;
+                vault_vol.net_vol += I256::from_raw(amount);
             }
-            vault_vol.vol_details.net_vol =
-                if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
-                } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
-                };
         } else {
             let mut total_in = U256::ZERO;
             let mut total_out = U256::ZERO;
             let mut total_vol = U256::ZERO;
+            let mut net_vol = I256::ZERO;
             if trade.output_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
                 total_out += amount;
                 total_vol += amount;
+                net_vol -= I256::from_raw(amount);
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
                 total_in += amount;
                 total_vol += amount;
+                net_vol += I256::from_raw(amount);
             }
             vaults_vol.push(VaultVolume {
                 id: trade.output_vault_balance_change.vault.vault_id.0.clone(),
                 token: trade.output_vault_balance_change.vault.token.clone(),
-                vol_details: VolumeDetails {
-                    total_in,
-                    total_out,
-                    total_vol,
-                    net_vol: if total_in >= total_out {
-                        total_in - total_out
-                    } else {
-                        total_out - total_in
-                    },
-                },
+                total_in,
+                total_out,
+                total_vol,
+                net_vol,
             })
         }
     }
     Ok(vaults_vol)
-}
-
-impl VaultVolume {
-    pub fn is_net_vol_negative(&self) -> bool {
-        match self.vol_details.total_in.cmp(&self.vol_details.total_out) {
-            Ordering::Greater => false,
-            Ordering::Less => true,
-            Ordering::Equal => false,
-        }
-    }
-
-    /// Creates a new instance of self with all volume values as 18 decimals point
-    pub fn scale_18(&self) -> Result<VaultVolume, PerformanceError> {
-        let token_decimals: u8 = self.token.get_decimals()?;
-        Ok(VaultVolume {
-            id: self.id.clone(),
-            token: self.token.clone(),
-            vol_details: VolumeDetails {
-                total_in: self.vol_details.total_in.scale_18(token_decimals)?,
-                total_out: self.vol_details.total_out.scale_18(token_decimals)?,
-                total_vol: self.vol_details.total_vol.scale_18(token_decimals)?,
-                net_vol: self.vol_details.net_vol.scale_18(token_decimals)?,
-            },
-        })
-    }
 }
 
 #[cfg(test)]
@@ -176,58 +118,7 @@ mod test {
     use alloy::primitives::{Address, B256};
 
     #[test]
-    fn test_is_net_vol_negative() {
-        let token_address = Address::random();
-        let token = Erc20 {
-            id: Bytes(token_address.to_string()),
-            address: Bytes(token_address.to_string()),
-            name: Some("Token".to_string()),
-            symbol: Some("Token".to_string()),
-            decimals: Some(BigInt(6.to_string())),
-        };
-
-        // negative vol
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(20_500_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-        assert!(vault_vol.is_net_vol_negative());
-
-        // positive vol
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(40_500_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-        assert!(!vault_vol.is_net_vol_negative());
-
-        // equal vol
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(30_000_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-        assert!(!vault_vol.is_net_vol_negative());
-    }
-
-    #[test]
-    fn test_vaults_vol() {
+    fn test_get_vaults_vol() {
         let bytes = Bytes("".to_string());
         let bigint = BigInt("".to_string());
         let token1_address = Address::random();
@@ -370,60 +261,20 @@ mod test {
             VaultVolume {
                 id: vault_id2.to_string(),
                 token: token2,
-                vol_details: VolumeDetails {
-                    total_in: U256::from(5),
-                    total_out: U256::from(7),
-                    total_vol: U256::from(12),
-                    net_vol: U256::from(2),
-                },
+                total_in: U256::from(5),
+                total_out: U256::from(7),
+                total_vol: U256::from(12),
+                net_vol: I256::from_str("-2").unwrap(),
             },
             VaultVolume {
                 id: vault_id1.to_string(),
                 token: token1,
-                vol_details: VolumeDetails {
-                    total_in: U256::from(3),
-                    total_out: U256::from(2),
-                    total_vol: U256::from(5),
-                    net_vol: U256::from(1),
-                },
+                total_in: U256::from(3),
+                total_out: U256::from(2),
+                total_vol: U256::from(5),
+                net_vol: I256::from_str("1").unwrap(),
             },
         ];
-
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_to_18_decimals() {
-        let token_address = Address::random();
-        let token = Erc20 {
-            id: Bytes(token_address.to_string()),
-            address: Bytes(token_address.to_string()),
-            name: Some("Token".to_string()),
-            symbol: Some("Token".to_string()),
-            decimals: Some(BigInt(6.to_string())),
-        };
-        let vault_vol = VaultVolume {
-            id: "vault-id".to_string(),
-            token: token.clone(),
-            vol_details: VolumeDetails {
-                total_in: U256::from(20_500_000),
-                total_out: U256::from(30_000_000),
-                total_vol: U256::from(50_500_000),
-                net_vol: U256::from(9_500_000),
-            },
-        };
-
-        let result = vault_vol.scale_18().unwrap();
-        let expected = VaultVolume {
-            id: "vault-id".to_string(),
-            token,
-            vol_details: VolumeDetails {
-                total_in: U256::from_str("20_500_000_000_000_000_000").unwrap(),
-                total_out: U256::from_str("30_000_000_000_000_000_000").unwrap(),
-                total_vol: U256::from_str("50_500_000_000_000_000_000").unwrap(),
-                net_vol: U256::from_str("9_500_000_000_000_000_000").unwrap(),
-            },
-        };
 
         assert_eq!(result, expected);
     }

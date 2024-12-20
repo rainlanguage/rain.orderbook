@@ -25,7 +25,7 @@
   } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { CodeMirrorRainlang } from '@rainlanguage/ui-components';
+  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
   import { promiseTimeout } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
@@ -40,7 +40,6 @@
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
-  import { codeMirrorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -275,7 +274,7 @@
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
           <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
-            <CodeMirrorRainlang {rainlangText} disabled={true} {codeMirrorTheme} />
+            <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
           </TabItem>
         {/each}
       </Tabs>

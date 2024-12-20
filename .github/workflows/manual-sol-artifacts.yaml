@@ -46,7 +46,6 @@ jobs:
           echo "verifier_url_secret_name=CI_DEPLOY_${network^^}_VERIFIER_URL" >> $GITHUB_ENV
           echo "metaboard_address_secret_name=CI_DEPLOY_${network^^}_METABOARD_ADDRESS" >> $GITHUB_ENV
           echo "route_processor_4_address_secret_name=CI_DEPLOY_${network^^}_ROUTE_PROCESSOR_4_ADDRESS" >> $GITHUB_ENV
-          echo "raindex_address_secret_name=CI_DEPLOY_${network^^}_RAINDEX_ADDRESS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
@@ -73,4 +72,3 @@ jobs:
           DEPLOY_VERIFIER_URL: ${{ secrets[env.verifier_url_secret_name] || vars[env.verifier_url_secret_name] || '' }}
           DEPLOY_METABOARD_ADDRESS: ${{ secrets[env.metaboard_address_secret_name] || vars[env.metaboard_address_secret_name] || '' }}
           DEPLOY_ROUTE_PROCESSOR_4_ADDRESS: ${{ secrets[env.route_processor_4_address_secret_name] || vars[env.route_processor_4_address_secret_name] || '' }}
-          DEPLOY_RAINDEX_ADDRESS: ${{ secrets[env.raindex_address_secret_name] || vars[env.raindex_address_secret_name] || '' }}
