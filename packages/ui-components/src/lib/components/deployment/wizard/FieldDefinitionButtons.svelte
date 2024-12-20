@@ -51,34 +51,37 @@
 					{preset.name || preset.value}
 				</Button>
 			{/each}
-			<Button
-				size="lg"
-				color="alternative"
-				class={!gui?.isFieldPreset(fieldDefinition.binding)
-					? 'border-2 border-gray-900 dark:border-white'
-					: 'border border-gray-200 dark:border-gray-700'}
-				on:click={handleCustomClick}
-			>
-				Custom
-			</Button>
+			{#if fieldDefinition.binding !== 'is-fast-exit'}
+				<Button
+					size="lg"
+					color="alternative"
+					class={!gui?.isFieldPreset(fieldDefinition.binding)
+						? 'border-2 border-gray-900 dark:border-white'
+						: 'border border-gray-200 dark:border-gray-700'}
+					on:click={handleCustomClick}
+				>
+					Custom
+				</Button>
+			{/if}
 		{/if}
 	</div>
-
-	{#if !gui?.isFieldPreset(fieldDefinition.binding)}
-		<div class="mt-8 w-full max-w-md">
-			<Input
-				class="text-center text-lg"
-				size="lg"
-				placeholder="Enter custom value"
-				on:change={({ currentTarget }) => {
-					if (currentTarget instanceof HTMLInputElement) {
-						gui?.saveFieldValue(fieldDefinition.binding, {
-							isPreset: false,
-							value: currentTarget.value
-						});
-					}
-				}}
-			/>
-		</div>
+	{#if fieldDefinition.binding !== 'is-fast-exit'}
+		{#if !gui?.isFieldPreset(fieldDefinition.binding)}
+			<div class="mt-8 w-full max-w-md">
+				<Input
+					class="text-center text-lg"
+					size="lg"
+					placeholder="Enter custom value"
+					on:change={({ currentTarget }) => {
+						if (currentTarget instanceof HTMLInputElement) {
+							gui?.saveFieldValue(fieldDefinition.binding, {
+								isPreset: false,
+								value: currentTarget.value
+							});
+						}
+					}}
+				/>
+			</div>
+		{/if}
 	{/if}
 </div>

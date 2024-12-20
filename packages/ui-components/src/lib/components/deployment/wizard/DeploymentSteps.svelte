@@ -1,9 +1,10 @@
 <script lang="ts">
 	import FieldDefinitionButtons from './FieldDefinitionButtons.svelte';
 	import DepositButtons from './DepositButtons.svelte';
-	import SelectToken from './SelectToken.svelte';
-	import TokenInput from './TokenInput.svelte';
-	import TokenOutput from './TokenOutput.svelte';
+	import SelectToken from '../SelectToken.svelte';
+	import TokenInputButtons from './TokenInputButtons.svelte';
+	import TokenOutputButtons from './TokenOutputButtons.svelte';
+
 	import type {
 		DotrainOrderGui,
 		GuiDeposit,
@@ -78,7 +79,7 @@
 
 <div class="flex h-[80vh] flex-col justify-between">
 	<!-- Show current progress -->
-	<div class="text- dark:text-gray-200 text-gray-800">
+	<div class="text-lg dark:text-gray-200 text-gray-800">
 		Step {currentStep + 1} of {totalSteps}
 	</div>
 
@@ -90,12 +91,11 @@
 	{:else if steps[currentStep].type === 'deposits'}
 		<DepositButtons {...steps[currentStep].data} />
 	{:else if steps[currentStep].type === 'tokenInput'}
-		<TokenInput {...steps[currentStep].data} />
+		<TokenInputButtons {...steps[currentStep].data} />
 	{:else if steps[currentStep].type === 'tokenOutput'}
-		<TokenOutput {...steps[currentStep].data} />
+		<TokenOutputButtons {...steps[currentStep].data} />
 	{/if}
 
-	<!-- Navigation buttons -->
 	<div class="flex justify-between gap-4">
 		<Button class="flex-1" on:click={previousStep} disabled={currentStep === 0}>Previous</Button>
 

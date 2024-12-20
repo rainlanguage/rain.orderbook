@@ -48,12 +48,14 @@ export { default as IconWalletConnect } from './components/IconWalletConnect.sve
 export { default as IconWarning } from './components/IconWarning.svelte';
 export { default as FieldDefinitionDropdown } from './components/deployment/FieldDefinitionDropdown.svelte';
 export { default as DepositDropdown } from './components/deployment/DepositDropdown.svelte';
-export { default as FieldDefinitionButtons } from './components/deployment/FieldDefinitionButtons.svelte';
-export { default as DepositButtons } from './components/deployment/DepositButtons.svelte';
-export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
+export { default as FieldDefinitionButtons } from './components/deployment/wizard/FieldDefinitionButtons.svelte';
+export { default as DepositButtons } from './components/deployment/wizard/DepositButtons.svelte';
+export { default as DeploymentSteps } from './components/deployment/wizard/DeploymentSteps.svelte';
 export { default as TokenInput } from './components/deployment/TokenInput.svelte';
-export { default as TokenOutput } from './components/deployment/TokenOutput.svelte';
+export { default as TokenOutput } from './components/deployment/wizard/TokenOutputButtons.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
+export { default as TokenInputButtons } from './components/deployment/wizard/TokenInputButtons.svelte';
+export { default as TokenOutputButtons } from './components/deployment/wizard/TokenOutputButtons.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
