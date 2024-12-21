@@ -11,8 +11,6 @@
 	export let codeMirrorStyles = {};
 
 	$: extendedOrder = order ? extendOrder(order) : undefined;
-
-	$: console.log('extended order', extendedOrder);
 </script>
 
 {#if extendedOrder?.rainlang}
