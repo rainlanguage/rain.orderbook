@@ -19,14 +19,12 @@ use commands::order::{
 };
 use commands::order_quote::{batch_order_quotes, debug_order_quote};
 use commands::order_take::{
-    order_trades_count, order_trades_list, order_trades_list_write_csv,
-    order_vaults_volume,
+    order_trades_count, order_trades_list, order_trades_list_write_csv, order_vaults_volume,
 };
 use commands::trade_debug::debug_trade;
 use commands::vault::{
-    vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
-    vault_deposit_approve_calldata, vault_deposit_calldata, vault_detail, vault_withdraw,
-    vault_withdraw_calldata, vaults_list, vaults_list_write_csv,
+    vault_balance_changes_list_write_csv, vault_deposit, vault_deposit_approve_calldata,
+    vault_deposit_calldata, vault_withdraw, vault_withdraw_calldata, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
 
@@ -45,11 +43,8 @@ fn main() {
 fn run_tauri_app() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            vaults_list,
             vaults_list_write_csv,
-            vault_balance_changes_list,
             vault_balance_changes_list_write_csv,
-            vault_detail,
             vault_deposit,
             vault_withdraw,
             orders_list_write_csv,

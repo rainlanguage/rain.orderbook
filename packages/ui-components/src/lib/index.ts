@@ -46,7 +46,9 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
-
+export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
+export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
+export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
@@ -61,6 +63,7 @@ export {
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
+export { bigintToFloat } from './utils/number';
 
 // Constants
 
