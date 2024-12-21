@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { Label, Input } from 'flowbite-svelte';
 	import type { TokenInfos, Vault, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import type { StepType } from '../../../types/wizardSteps';
 
 	export let i: number;
 	export let output: Vault;
 	export let tokenInfos: TokenInfos;
 	export let outputVaultIds: string[];
 	export let gui: DotrainOrderGui;
+	export let type: StepType;
 </script>
 
 <div class="flex items-center gap-2">

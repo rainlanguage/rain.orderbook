@@ -59,4 +59,13 @@
 			}}
 		/>
 	{/if}
+	<button
+		class="flex-1"
+		on:click={() => {
+			const deposits = gui.getDeposits();
+			console.log('deposits:', deposits);
+		}}
+	>
+		Get Deposits
+	</button>
 </div>

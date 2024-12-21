@@ -59,6 +59,7 @@ export { default as TokenOutputButtons } from './components/deployment/wizard/To
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
+export type { WizardStep, SelectTokenStep, FieldStep, DepositStep, TokenInputStep, TokenOutputStep } from './types/wizardSteps';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

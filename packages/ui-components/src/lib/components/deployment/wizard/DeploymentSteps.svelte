@@ -4,7 +4,14 @@
 	import SelectToken from '../SelectToken.svelte';
 	import TokenInputButtons from './TokenInputButtons.svelte';
 	import TokenOutputButtons from './TokenOutputButtons.svelte';
-	import type { WizardStep } from '../../../types/wizardSteps';
+	import type {
+		WizardStep,
+		SelectTokenStep,
+		FieldStep,
+		DepositStep,
+		TokenInputStep,
+		TokenOutputStep
+	} from '../../../types/wizardSteps';
 
 	import type {
 		DotrainOrderGui,
@@ -24,14 +31,6 @@
 	export let allDeposits: GuiDeposit[];
 	export let inputVaultIds: string[];
 	export let outputVaultIds: string[];
-
-	$: totalSteps =
-		(selectTokens?.size || 0) +
-		(allFieldDefinitions?.length || 0) +
-		(allFieldDefinitions?.length || 0) +
-		(allDeposits?.length || 0) +
-		(useCustomVaultIds && (allTokenInputs.length > 0 || allTokenOutputs.length > 0) ? 1 : 0);
-
 	export let isLimitStrat: boolean;
 	export let useCustomVaultIds: boolean;
 	export let handleAddOrder: () => Promise<void>;
@@ -42,146 +41,109 @@
 		console.log(fieldValues);
 	}
 
-	type TokenProps = {
-		token: string;
-		gui: DotrainOrderGui;
-		selectTokens: SelectTokens;
-	};
-
-	type FieldProps = {
-		fieldDefinition: GuiFieldDefinition;
-		gui: DotrainOrderGui;
-	};
-
-	type DepositProps = {
-		deposit: GuiDeposit;
-		gui: DotrainOrderGui;
-		tokenInfos: TokenInfos;
-	};
-
-	type TokenInputProps = {
-		i: number;
-		input: Vault;
-		tokenInfos: TokenInfos;
-		inputVaultIds: string[];
-		gui: DotrainOrderGui;
-	};
-
-	type TokenOutputProps = {
-		i: number;
-		output: Vault;
-		tokenInfos: TokenInfos;
-		outputVaultIds: string[];
-		gui: DotrainOrderGui;
-	};
-
-	type WizardStep<T> = {
-		type: 'tokens' | 'fields' | 'deposits' | 'tokenInput' | 'tokenOutput';
-		data: T;
-	};
-
-	let steps: (
-		| WizardStep<TokenProps>
-		| WizardStep<FieldProps>
-		| WizardStep<DepositProps>
-		| WizardStep<TokenInputProps>
-		| WizardStep<TokenOutputProps>
-	)[] = [
+	let deploymentSteps: WizardStep[] = [
 		...(selectTokens.size > 0 && isLimitStrat
 			? Array.from(selectTokens.entries()).map(
-					([token]): WizardStep<TokenProps> => ({
+					([token]): SelectTokenStep => ({
 						type: 'tokens',
-						data: { token, gui, selectTokens } as {
-							token: string;
-							gui: DotrainOrderGui;
-							selectTokens: SelectTokens;
-						}
+						token,
+						gui,
+						selectTokens
 					})
 				)
 			: []),
 
 		...allFieldDefinitions.map(
-			(fieldDefinition): WizardStep<FieldProps> => ({
+			(fieldDefinition): FieldStep => ({
 				type: 'fields',
-				data: { fieldDefinition, gui } as {
-					fieldDefinition: GuiFieldDefinition;
-					gui: DotrainOrderGui;
-				}
+				fieldDefinition,
+				gui
 			})
 		),
 
 		...allDeposits.map(
-			(deposit): WizardStep<DepositProps> => ({
+			(deposit): DepositStep => ({
 				type: 'deposits',
-				data: { deposit, gui, tokenInfos } as {
-					deposit: GuiDeposit;
-					gui: DotrainOrderGui;
-					tokenInfos: TokenInfos;
-				}
+				deposit,
+				gui,
+				tokenInfos
 			})
 		),
 
 		...allTokenInputs.map(
-			(input, i): WizardStep<TokenInputProps> => ({
+			(input, i): TokenInputStep => ({
 				type: 'tokenInput',
-				data: { input, gui, tokenInfos, i, inputVaultIds } as {
-					input: Vault;
-					gui: DotrainOrderGui;
-					tokenInfos: TokenInfos;
-					i: number;
-					inputVaultIds: string[];
-				}
+				input,
+				gui,
+				tokenInfos,
+				i,
+				inputVaultIds
 			})
 		),
 		...allTokenOutputs.map(
-			(output, i): WizardStep<TokenOutputProps> => ({
+			(output, i): TokenOutputStep => ({
 				type: 'tokenOutput',
-				data: { output, gui, tokenInfos, i, outputVaultIds } as {
-					output: Vault;
-					gui: DotrainOrderGui;
-					tokenInfos: TokenInfos;
-					i: number;
-					outputVaultIds: string[];
-				}
+				output,
+				gui,
+				tokenInfos,
+				i,
+				outputVaultIds
 			})
 		)
 	];
 
-	let currentStep = 0;
+	let currentStep = deploymentSteps[0];
+	$: console.log('current step in parent', currentStep);
+	$: console.log('all steps in parent', deploymentSteps);
 
 	const nextStep = () => {
-		if (currentStep < totalSteps - 1) currentStep++;
+		if (deploymentSteps.indexOf(currentStep) < deploymentSteps.length - 1)
+			currentStep = deploymentSteps[deploymentSteps.indexOf(currentStep) + 1];
 	};
 
 	const previousStep = () => {
-		if (currentStep > 0) currentStep--;
+		if (deploymentSteps.indexOf(currentStep) > 0)
+			currentStep = deploymentSteps[deploymentSteps.indexOf(currentStep) - 1];
 	};
 </script>
 
 <div class="flex h-[80vh] flex-col justify-between">
 	<div class="text-lg text-gray-800 dark:text-gray-200">
-		Step {currentStep + 1} of {steps.length}
+		Step {deploymentSteps.indexOf(currentStep) + 1} of {deploymentSteps.length}
 	</div>
 
-	{#if steps[currentStep].type === 'tokens'}
-		<SelectToken {...steps[currentStep].data} />
-	{:else if steps[currentStep].type === 'fields'}
-		<FieldDefinitionButtons {...steps[currentStep].data} />
-	{:else if steps[currentStep].type === 'deposits'}
-		<DepositButtons {...steps[currentStep].data} />
-	{:else if steps[currentStep].type === 'tokenInput'}
-		<TokenInputButtons {...steps[currentStep].data} />
-	{:else if steps[currentStep].type === 'tokenOutput'}
-		<TokenOutputButtons {...steps[currentStep].data} />
+	{#if currentStep.type === 'tokens'}
+		<SelectToken {...currentStep} />
+	{:else if currentStep.type === 'fields'}
+		<FieldDefinitionButtons {...currentStep} />
+	{:else if currentStep.type === 'deposits'}
+		<DepositButtons {...currentStep} />
+	{:else if currentStep.type === 'tokenInput'}
+		<TokenInputButtons {...currentStep} />
+	{:else if currentStep.type === 'tokenOutput'}
+		<TokenOutputButtons {...currentStep} />
 	{/if}
 
-	<div class="flex justify-between gap-4">
-		<Button class="flex-1" on:click={previousStep} disabled={currentStep === 0}>Previous</Button>
 
-		{#if currentStep === steps.length - 1}
+	<div class="flex justify-between gap-4">
+		<Button class="flex-1" on:click={() => {
+			const deposits = gui.getDeposits();
+			console.log('deposits:', deposits);
+		}}>
+			Get Deposits
+		</Button>
+		{#if deploymentSteps.indexOf(currentStep) > 0}
+			<Button class="flex-1" on:click={previousStep}>Previous</Button>
+		{/if}
+
+		{#if deploymentSteps.indexOf(currentStep) === deploymentSteps.length - 1}
 			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 		{:else}
-			<Button class="flex-1" on:click={nextStep} disabled={currentStep === totalSteps - 1}>
+			<Button
+				class="flex-1"
+				on:click={nextStep}
+				disabled={deploymentSteps.indexOf(currentStep) === deploymentSteps.length - 1}
+			>
 				Next
 			</Button>
 		{/if}

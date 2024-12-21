@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { Input, Button } from 'flowbite-svelte';
 	import { DotrainOrderGui, type GuiFieldDefinition } from '@rainlanguage/orderbook/js_api';
+	import type { StepType } from '../../../types/wizardSteps';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
+	export let type: StepType;
 
 	let showCustomInput = false;
 
@@ -14,6 +16,7 @@
 		});
 		showCustomInput = false;
 		gui = gui;
+		console.log('FIELD VALS', gui.getAllFieldValues());
 	}
 
 	function handleCustomClick() {

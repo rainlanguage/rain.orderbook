@@ -129,6 +129,8 @@
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
+		console.log('gui', gui.getAllFieldValues());
+		console.log('gui deposits', gui.getDeposits());
 	}
 
 	export function getChainById(chainId: number): Chain {

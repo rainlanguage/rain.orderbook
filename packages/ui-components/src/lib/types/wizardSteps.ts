@@ -1,8 +1,47 @@
-import type { DotrainOrderGui, GuiDeposit, GuiFieldDefinition, SelectTokens, TokenInfos, Vault } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui, SelectTokens, GuiFieldDefinition, GuiDeposit, TokenInfos, Vault } from "@rainlanguage/orderbook/js_api";
 
-export type WizardStep =
-    | { type: 'tokens'; data: { token: string; gui: DotrainOrderGui; selectTokens: SelectTokens } }
-    | { type: 'fields'; data: { fieldDefinition: GuiFieldDefinition; gui: DotrainOrderGui } }
-    | { type: 'deposits'; data: { deposit: GuiDeposit; gui: DotrainOrderGui; tokenInfos: TokenInfos } }
-    | { type: 'tokenInput'; data: { input: Vault; gui: DotrainOrderGui; tokenInfos: TokenInfos; i: number; inputVaultIds: string[] } }
-    | { type: 'tokenOutput'; data: { output: Vault; gui: DotrainOrderGui; tokenInfos: TokenInfos; i: number; outputVaultIds: string[] } };
+export type StepType = 'tokens' | 'fields' | 'deposits' | 'tokenInput' | 'tokenOutput';
+
+export interface BaseWizardStep {
+	type: StepType;
+}
+
+export interface SelectTokenStep extends BaseWizardStep {
+	type: 'tokens';
+	token: string;
+	gui: DotrainOrderGui;
+	selectTokens: SelectTokens;
+}
+
+export interface FieldStep extends BaseWizardStep {
+	type: 'fields';
+	fieldDefinition: GuiFieldDefinition;
+	gui: DotrainOrderGui;
+}
+
+export interface DepositStep extends BaseWizardStep {
+	type: 'deposits';
+	deposit: GuiDeposit;
+	gui: DotrainOrderGui;
+	tokenInfos: TokenInfos;
+}
+
+export interface TokenInputStep extends BaseWizardStep {
+	type: 'tokenInput';
+	input: Vault;
+	gui: DotrainOrderGui;
+	tokenInfos: TokenInfos;
+	i: number;
+	inputVaultIds: string[];
+}
+
+export interface TokenOutputStep extends BaseWizardStep {
+	type: 'tokenOutput';
+	output: Vault;
+	gui: DotrainOrderGui;
+	tokenInfos: TokenInfos;
+	i: number;
+	outputVaultIds: string[];
+}
+
+export type WizardStep = TokenStep | FieldStep | DepositStep | TokenInputStep | TokenOutputStep;

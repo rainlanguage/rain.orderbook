@@ -4,15 +4,20 @@
 		type GuiDeposit,
 		type TokenInfos
 	} from '@rainlanguage/orderbook/js_api';
-	import { Label, Input, Button } from 'flowbite-svelte';
+	import { Input, Button } from 'flowbite-svelte';
+	import type { StepType } from '../../../types/wizardSteps';
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 	export let tokenInfos: TokenInfos;
+	export let type: StepType;
 
 	let showCustomInput = false;
 
+	$: console.log('deposit', deposit);
+
 	function handlePresetClick(preset: string) {
+		console.log('PRESET CLICK');
 		gui?.saveDeposit(deposit.token_name, preset);
 		showCustomInput = false;
 		gui = gui;
@@ -38,10 +43,7 @@
 			{#each deposit.presets as preset}
 				<Button
 					size="lg"
-					color={gui?.isDepositPreset(deposit.token_name) &&
-					gui?.getDeposit(deposit.token_name) === preset
-						? 'blue'
-						: 'alternative'}
+					color={gui?.isDepositPreset(deposit.token_name) ? 'blue' : 'alternative'}
 					on:click={() => handlePresetClick(preset)}
 				>
 					{preset}
