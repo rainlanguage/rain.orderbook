@@ -286,6 +286,7 @@ pub struct TradeVaultBalanceChange {
     pub timestamp: BigInt,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
