@@ -14,7 +14,6 @@
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import { goto } from '$app/navigation';
 	import { Button } from 'flowbite-svelte';
-	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import { formatUnits } from 'viem';
 
 	const { settings } = $page.data.stores;

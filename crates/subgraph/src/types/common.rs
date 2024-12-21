@@ -256,13 +256,16 @@ pub struct Deposit {
 pub struct Withdrawal {
     pub id: Bytes,
     #[serde(rename = "__typename")]
+    pub __typename: String,
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub new_vault_balance: BigInt,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
+    pub vault: VaultBalanceChangeVault,
     pub transaction: Transaction,
     pub orderbook: Orderbook,
 }
@@ -284,6 +287,8 @@ pub struct TradeVaultBalanceChange {
     pub vault: VaultBalanceChangeVault,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
+    pub transaction: Transaction,
+    pub orderbook: Orderbook,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
