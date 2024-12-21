@@ -263,9 +263,9 @@ pub struct Withdrawal {
     pub new_vault_balance: BigInt,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub old_vault_balance: BigInt,
+    pub vault: VaultBalanceChangeVault,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
-    pub vault: VaultBalanceChangeVault,
     pub transaction: Transaction,
     pub orderbook: Orderbook,
 }
