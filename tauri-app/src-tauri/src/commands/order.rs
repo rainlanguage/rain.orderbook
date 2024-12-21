@@ -5,7 +5,7 @@ use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
-    types::FlattenError, types::OrderDetailExtended, types::OrderFlattened,
+    types::FlattenError, types::OrderFlattened,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -29,21 +29,6 @@ pub async fn orders_list_write_csv(
     fs::write(path, csv_text)?;
 
     Ok(())
-}
-
-#[tauri::command]
-pub async fn order_detail(
-    id: String,
-    subgraph_args: SubgraphArgs,
-) -> CommandResult<OrderDetailExtended> {
-    let order = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .order_detail(id.into())
-        .await?;
-    let order_extended: OrderDetailExtended = order.try_into()?;
-
-    Ok(order_extended)
 }
 
 #[tauri::command]
