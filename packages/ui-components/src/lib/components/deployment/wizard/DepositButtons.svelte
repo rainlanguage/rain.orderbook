@@ -56,7 +56,6 @@
 			</Button>
 		</div>
 	{/if}
-
 	{#if !gui?.isDepositPreset(deposit.token_name)}
 		<div class="mt-8 w-full max-w-md">
 			<Input

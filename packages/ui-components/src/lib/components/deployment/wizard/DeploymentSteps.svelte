@@ -160,7 +160,7 @@
 
 <div class="flex h-[80vh] flex-col justify-between">
 	<div class="text-lg text-gray-800 dark:text-gray-200">
-		Step {currentStep + 1} of {totalSteps}
+		Step {currentStep + 1} of {steps.length}
 	</div>
 
 	{#if steps[currentStep].type === 'tokens'}
@@ -178,7 +178,7 @@
 	<div class="flex justify-between gap-4">
 		<Button class="flex-1" on:click={previousStep} disabled={currentStep === 0}>Previous</Button>
 
-		{#if currentStep === totalSteps - 1}
+		{#if currentStep === steps.length - 1}
 			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 		{:else}
 			<Button class="flex-1" on:click={nextStep} disabled={currentStep === totalSteps - 1}>
