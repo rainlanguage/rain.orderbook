@@ -285,8 +285,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const deployments: AvailableDeployments =
 			await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0].deployment_name, 'other-deployment');
-		assert.equal(deployments[1].deployment_name, 'some-deployment');
+		assert.equal(deployments[0].key, 'other-deployment');
+		assert.equal(deployments[1].key, 'some-deployment');
 	});
 
 	it('should return error if gui config is not found', async () => {

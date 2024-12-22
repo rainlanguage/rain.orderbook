@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Deployment, Order, Scenario};
+use crate::{Deployment, Gui, Order, Scenario};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
@@ -47,6 +47,10 @@ impl DotrainYaml {
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
         Deployment::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
+        Gui::parse_from_yaml_optional(self.document.clone())
     }
 }
 
@@ -107,6 +111,25 @@ mod tests {
         deployment1:
             order: order1
             scenario: scenario1
+    gui:
+        name: Test gui
+        description: Test description
+        deployments:
+            deployment1:
+                name: Test deployment
+                description: Test description
+                deposits:
+                    - token: token1
+                      presets:
+                        - 100
+                        - 2000
+                fields:
+                    - binding: key1
+                      name: Binding test
+                      presets:
+                        - value: value2
+                select-tokens:
+                    - token2
     "#;
 
     #[test]
@@ -160,5 +183,31 @@ mod tests {
             deployment.scenario,
             dotrain_yaml.get_scenario("scenario1").unwrap().into()
         );
+
+        let gui = dotrain_yaml.get_gui().unwrap().unwrap();
+        assert_eq!(gui.name, "Test gui");
+        assert_eq!(gui.description, "Test description");
+        assert_eq!(gui.deployments.len(), 1);
+        let deployment = gui.deployments.get("deployment1").unwrap();
+        assert_eq!(deployment.name, "Test deployment");
+        assert_eq!(deployment.description, "Test description");
+        assert_eq!(deployment.deposits.len(), 1);
+        let deposit = &deployment.deposits[0];
+        assert_eq!(
+            *deposit.token.as_ref(),
+            ob_yaml.get_token("token1").unwrap()
+        );
+        assert_eq!(deposit.presets.len(), 2);
+        assert_eq!(deposit.presets[0], "100".to_string());
+        assert_eq!(deposit.presets[1], "2000".to_string());
+        assert_eq!(deployment.fields.len(), 1);
+        let field = &deployment.fields[0];
+        assert_eq!(field.binding, "key1");
+        assert_eq!(field.name, "Binding test");
+        let presets = field.presets.as_ref().unwrap();
+        assert_eq!(presets[0].value, "value2");
+        let select_tokens = deployment.select_tokens.as_ref().unwrap();
+        assert_eq!(select_tokens.len(), 1);
+        assert_eq!(select_tokens[0], "token2");
     }
 }
