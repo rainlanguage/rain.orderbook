@@ -158,7 +158,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testClear2ZeroRatioAlice(
+    function testClear2ZeroRatioAliceOnly(
         address alice,
         OrderConfigV3 memory aliceConfig,
         address bob,
@@ -193,12 +193,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 // Mock the interpreter.eval for Alice with zero ratio
                 uint256[] memory orderStackAlice = new uint256[](2);
                 orderStackAlice[0] = 0; // Zero orderIORatio
-                orderStackAlice[1] = 5e17; // orderOutputMax
+                orderStackAlice[1] = 0.5e18; // orderOutputMax
                 vm.mockCall(address(iInterpreter), call, abi.encode(orderStackAlice, new uint256[](0)));
 
                 uint256[] memory orderStackBob = new uint256[](2);
                 orderStackBob[0] = 1e18; // Nonzero orderIORatio
-                orderStackBob[1] = 5e17; // orderOutputMax
+                orderStackBob[1] = 0.5e18; // orderOutputMax
 
                 call = abi.encodeWithSelector(
                     IInterpreterV3.eval3.selector,
@@ -229,11 +229,96 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
-        // As both ratios are 0, there should be no token movements as no party
-        // is requesting anything from the other.
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
             aliceAmount - 0.5e18
+        );
+        assertEq(
+            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), bobAmount
+        );
+        assertEq(
+            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
+        );
+        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
+        assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), 0.5e18);
+        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClear2ZeroRatioBobOnly(
+        address alice,
+        OrderConfigV3 memory aliceConfig,
+        address bob,
+        OrderConfigV3 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        uint256 aliceBountyVaultId,
+        uint256 bobBountyVaultId
+    ) external {
+        // Different accounts
+        vm.assume(alice != bob);
+        vm.assume(alice != bountyBot);
+        vm.assume(bob != bountyBot);
+        vm.assume(aliceBountyVaultId != bobBountyVaultId);
+
+        conformBasicConfig(aliceConfig, bobConfig);
+        vm.assume(keccak256(aliceConfig.evaluable.bytecode) != keccak256(bobConfig.evaluable.bytecode));
+
+        uint256 aliceAmount = 2e18;
+        uint256 bobAmount = 3e18;
+
+        _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, aliceAmount);
+        _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, bobAmount);
+        {
+            {
+                bytes memory call = abi.encodeWithSelector(
+                    IInterpreterV3.eval3.selector,
+                    aliceConfig.evaluable.store,
+                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(alice))), address(iOrderbook))
+                );
+
+                // Mock the interpreter.eval for Alice with zero ratio
+                uint256[] memory orderStackAlice = new uint256[](2);
+                orderStackAlice[0] = 1e18; // Zero orderIORatio
+                orderStackAlice[1] = 0.5e18; // orderOutputMax
+                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackAlice, new uint256[](0)));
+
+                uint256[] memory orderStackBob = new uint256[](2);
+                orderStackBob[0] = 0; // Nonzero orderIORatio
+                orderStackBob[1] = 0.5e18; // orderOutputMax
+
+                call = abi.encodeWithSelector(
+                    IInterpreterV3.eval3.selector,
+                    bobConfig.evaluable.store,
+                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(bob))), address(iOrderbook))
+                );
+
+                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackBob, new uint256[](0)));
+            }
+
+            OrderV3 memory aliceOrder;
+            OrderV3 memory bobOrder;
+            {
+                (aliceOrder,) = addOrderWithChecks(alice, aliceConfig, expression);
+                (bobOrder,) = addOrderWithChecks(bob, bobConfig, expression);
+            }
+
+            ClearConfig memory configClear = ClearConfig({
+                aliceInputIOIndex: 0,
+                aliceOutputIOIndex: 0,
+                bobInputIOIndex: 0,
+                bobOutputIOIndex: 0,
+                aliceBountyVaultId: aliceBountyVaultId,
+                bobBountyVaultId: bobBountyVaultId
+            });
+
+            vm.prank(bountyBot);
+            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
+        }
+
+        assertEq(
+            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
+            aliceAmount
         );
         assertEq(
             iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId),
@@ -242,9 +327,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
         );
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0.5e18);
+        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
         assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0);
+        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0.5e18);
     }
 
     /// forge-config: default.fuzz.runs = 100
