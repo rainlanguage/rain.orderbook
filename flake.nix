@@ -134,7 +134,7 @@
               sentry-cli releases set-commits --auto ''${COMMIT_SHA}
 
               # Overwrite env variables with release values
-              echo WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> .env
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> .env
               echo SENTRY_AUTH_TOKEN=''${SENTRY_AUTH_TOKEN} >> .env
               echo SENTRY_ORG=''${SENTRY_ORG} >> .env
               echo SENTRY_PROJECT=''${SENTRY_PROJECT} >> .env
