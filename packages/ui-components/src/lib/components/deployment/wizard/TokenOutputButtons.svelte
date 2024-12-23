@@ -9,6 +9,7 @@
 	export let outputVaultIds: string[];
 	export let gui: DotrainOrderGui;
 	export let type: StepType;
+	export let useCustomVaultIds: boolean;
 </script>
 
 <div class="flex items-center gap-2">

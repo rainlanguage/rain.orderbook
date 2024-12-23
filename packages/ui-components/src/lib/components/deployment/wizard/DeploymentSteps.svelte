@@ -74,9 +74,9 @@
 	{:else if deploymentSteps[currentStep].type === 'deposits'}
 		<DepositButtons {...deploymentSteps[currentStep]} />
 	{:else if deploymentSteps[currentStep].type === 'tokenInput'}
-		<TokenInputButtons {...deploymentSteps[currentStep]} />
+		<TokenInputButtons {...deploymentSteps[currentStep]} {useCustomVaultIds} />
 	{:else if deploymentSteps[currentStep].type === 'tokenOutput'}
-		<TokenOutputButtons {...deploymentSteps[currentStep]} />
+		<TokenOutputButtons {...deploymentSteps[currentStep]} {useCustomVaultIds} />
 	{/if}
 
 	<div class="flex justify-between gap-4">
