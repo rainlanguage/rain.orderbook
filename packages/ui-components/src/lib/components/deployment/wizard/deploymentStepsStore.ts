@@ -1,24 +1,26 @@
 import { writable } from 'svelte/store';
 import type { WizardStep } from '../../../types/wizardSteps';
 
-const initialState: {
-	deploymentSteps: WizardStep[];
-} = {
-	deploymentSteps: [],
+const initialState: WizardStep[] = []
 
-};
-
-const deploymentStore = () => {
+const deploymentStepsStore = () => {
 	const { subscribe, set, update } = writable(initialState);
     const reset = () => set(initialState);
+
     // For getting an array of steps from the various input types (deposit, token, vault)
 	const populateDeploymentSteps = (steps: WizardStep[]) => {
-		set({ deploymentSteps: steps });
+		update(() => ( steps ));
 	};
+
     // For adding a property (binding) to the current step
-	const updateDeploymentStep = (step: WizardStep) => {
-		update((state) => ({ ...state, step }));
+	const updateDeploymentStep = (index: number, updatedStep: WizardStep) => {
+        update((state) => {
+            const newSteps = [...state];
+            newSteps[index] = updatedStep;
+            return newSteps
+        });
 	};
+
 	return {
 		subscribe,
 		reset,
@@ -27,4 +29,4 @@ const deploymentStore = () => {
 	};
 };
 
-export default deploymentStore();
+export default deploymentStepsStore();

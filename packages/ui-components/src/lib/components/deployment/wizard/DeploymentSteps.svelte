@@ -15,7 +15,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button } from 'flowbite-svelte';
 	import { getDeploymentSteps } from './getDeploymentSteps';
-	import deploymentStore from './deploymentStore';
+	import deploymentStepsStore from './deploymentStepsStore';
 	export let gui: DotrainOrderGui;
 
 	export let selectTokens: SelectTokens;
@@ -43,52 +43,54 @@
 		tokenInfos
 	);
 
-	deploymentStore.populateDeploymentSteps(deploymentSteps);
+	deploymentStepsStore.populateDeploymentSteps(deploymentSteps);
 
-	$: console.log('DEPLOYMENT STEPS', $deploymentStore.deploymentSteps);
+	$: console.log($deploymentStepsStore);
 
-	let currentStep = deploymentSteps[0];
+	$: currentStep = 0;
 
 	const nextStep = () => {
-		if (deploymentSteps.indexOf(currentStep) < deploymentSteps.length - 1)
-			currentStep = deploymentSteps[deploymentSteps.indexOf(currentStep) + 1];
+		if (currentStep < deploymentSteps.length - 1) {
+			currentStep++;
+		}
 	};
 
 	const previousStep = () => {
-		if (deploymentSteps.indexOf(currentStep) > 0)
-			currentStep = deploymentSteps[deploymentSteps.indexOf(currentStep) - 1];
+		if (currentStep > 0) {
+			currentStep--;
+		}
 	};
 </script>
 
 <div class="flex h-[80vh] flex-col justify-between">
 	<div class="text-lg text-gray-800 dark:text-gray-200">
-		Step {deploymentSteps.indexOf(currentStep) + 1} of {deploymentSteps.length}
+		Step {currentStep + 1} of {deploymentSteps.length}
 	</div>
 
-	{#if currentStep.type === 'tokens'}
-		<SelectToken {...currentStep} />
-	{:else if currentStep.type === 'fields'}
-		<FieldDefinitionButtons {...currentStep} />
-	{:else if currentStep.type === 'deposits'}
-		<DepositButtons {...currentStep} />
-	{:else if currentStep.type === 'tokenInput'}
-		<TokenInputButtons {...currentStep} />
-	{:else if currentStep.type === 'tokenOutput'}
-		<TokenOutputButtons {...currentStep} />
+	{#if deploymentSteps[currentStep].type === 'tokens'}
+		<SelectToken {...deploymentSteps[currentStep]} />
+	{:else if deploymentSteps[currentStep].type === 'fields'}
+		<FieldDefinitionButtons {...deploymentSteps[currentStep]} {currentStep} />
+	{:else if deploymentSteps[currentStep].type === 'deposits'}
+		<DepositButtons {...deploymentSteps[currentStep]} />
+	{:else if deploymentSteps[currentStep].type === 'tokenInput'}
+		<TokenInputButtons {...deploymentSteps[currentStep]} />
+	{:else if deploymentSteps[currentStep].type === 'tokenOutput'}
+		<TokenOutputButtons {...deploymentSteps[currentStep]} />
 	{/if}
 
 	<div class="flex justify-between gap-4">
-		{#if deploymentSteps.indexOf(currentStep) > 0}
+		{#if currentStep > 0}
 			<Button class="flex-1" on:click={previousStep}>Previous</Button>
 		{/if}
 
-		{#if deploymentSteps.indexOf(currentStep) === deploymentSteps.length - 1}
+		{#if currentStep === deploymentSteps.length - 1}
 			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 		{:else}
 			<Button
 				class="flex-1"
 				on:click={nextStep}
-				disabled={deploymentSteps.indexOf(currentStep) === deploymentSteps.length - 1}
+				disabled={currentStep === deploymentSteps.length - 1}
 			>
 				Next
 			</Button>

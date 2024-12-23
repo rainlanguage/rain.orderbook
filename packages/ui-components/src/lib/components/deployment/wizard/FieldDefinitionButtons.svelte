@@ -1,21 +1,12 @@
 <script lang="ts">
 	import { Input, Button } from 'flowbite-svelte';
 	import { DotrainOrderGui, type GuiFieldDefinition } from '@rainlanguage/orderbook/js_api';
-	import deploymentStore from './deploymentStore';
+	import deploymentStepsStore from './deploymentStepsStore';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-	export let step;
+	export let currentStep: number;
 
-	const fieldDefinitionSteps = $deploymentStore.deploymentSteps.filter(
-		(step) => step.type === 'fields'
-	);
-	const currentFieldDefinitionStep = fieldDefinitionSteps.find(
-		(step) => step.fieldDefinition.binding === fieldDefinition.binding
-	);
-
-	$: console.log('curent field def step', currentFieldDefinitionStep);
-	$: console.log('field def steps', fieldDefinitionSteps);
 	let showCustomInput = false;
 
 	function handlePresetClick(presetId: string) {
@@ -23,19 +14,28 @@
 			isPreset: true,
 			value: presetId
 		});
-		const fieldValues = gui.getAllFieldValues();
-		const thisFieldValue = fieldValues.find((val) => val.binding === fieldDefinition.binding);
-		deploymentStore.updateDeploymentStep({
-			...currentFieldDefinitionStep,
-			fieldDefinition: {
-				...currentFieldDefinitionStep.fieldDefinition,
-				value: thisFieldValue?.value
-			}
+		const thisFieldValue = gui.getFieldValue(fieldDefinition.binding);
+
+		deploymentStepsStore.updateDeploymentStep(currentStep, {
+			...$deploymentStepsStore[currentStep],
+			fieldValue: thisFieldValue
 		});
-		console.log('this field value', thisFieldValue);
 
 		showCustomInput = false;
 		gui = gui;
+	}
+
+	function handleCustomInputChange(value: string) {
+		gui?.saveFieldValue(fieldDefinition.binding, {
+			isPreset: false,
+			value: value
+		});
+		const thisFieldValue = gui.getFieldValue(fieldDefinition.binding);
+
+		deploymentStepsStore.updateDeploymentStep(currentStep, {
+			...$deploymentStepsStore[currentStep],
+			fieldValue: thisFieldValue
+		});
 	}
 
 	function handleCustomClick() {
@@ -88,18 +88,15 @@
 		{/if}
 	</div>
 	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		{#if !gui?.isFieldPreset(fieldDefinition.binding)}
+		{#if !gui?.isFieldPreset(fieldDefinition.binding) || showCustomInput}
 			<div class="mt-8 w-full max-w-md">
 				<Input
 					class="text-center text-lg"
 					size="lg"
 					placeholder="Enter custom value"
-					on:change={({ currentTarget }) => {
+					on:input={({ currentTarget }) => {
 						if (currentTarget instanceof HTMLInputElement) {
-							gui?.saveFieldValue(fieldDefinition.binding, {
-								isPreset: false,
-								value: currentTarget.value
-							});
+							handleCustomInputChange(currentTarget.value);
 						}
 					}}
 				/>
