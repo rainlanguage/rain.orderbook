@@ -1,4 +1,11 @@
-import type { DotrainOrderGui, SelectTokens, GuiFieldDefinition, GuiDeposit, TokenInfos, Vault } from "@rainlanguage/orderbook/js_api";
+import type {
+	DotrainOrderGui,
+	SelectTokens,
+	GuiFieldDefinition,
+	GuiDeposit,
+	TokenInfos,
+	Vault
+} from '@rainlanguage/orderbook/js_api';
 
 export type StepType = 'tokens' | 'fields' | 'deposits' | 'tokenInput' | 'tokenOutput';
 

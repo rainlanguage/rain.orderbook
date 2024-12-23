@@ -4,14 +4,6 @@
 	import SelectToken from '../SelectToken.svelte';
 	import TokenInputButtons from './TokenInputButtons.svelte';
 	import TokenOutputButtons from './TokenOutputButtons.svelte';
-	import type {
-		WizardStep,
-		SelectTokenStep,
-		FieldStep,
-		DepositStep,
-		TokenInputStep,
-		TokenOutputStep
-	} from '../../../types/wizardSteps';
 
 	import type {
 		DotrainOrderGui,
@@ -22,6 +14,8 @@
 		Vault
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button } from 'flowbite-svelte';
+	import { getDeploymentSteps } from './getDeploymentSteps';
+	import deploymentStore from './deploymentStore';
 	export let gui: DotrainOrderGui;
 
 	export let selectTokens: SelectTokens;
@@ -36,65 +30,24 @@
 	export let handleAddOrder: () => Promise<void>;
 	export let tokenInfos: TokenInfos;
 
-	$: if (currentStep) {
-		const fieldValues = gui.getAllFieldValues();
-		console.log(fieldValues);
-	}
+	let deploymentSteps = getDeploymentSteps(
+		selectTokens,
+		isLimitStrat,
+		allFieldDefinitions,
+		gui,
+		allDeposits,
+		allTokenInputs,
+		allTokenOutputs,
+		inputVaultIds,
+		outputVaultIds,
+		tokenInfos
+	);
 
-	let deploymentSteps: WizardStep[] = [
-		...(selectTokens.size > 0 && isLimitStrat
-			? Array.from(selectTokens.entries()).map(
-					([token]): SelectTokenStep => ({
-						type: 'tokens',
-						token,
-						gui,
-						selectTokens
-					})
-				)
-			: []),
+	deploymentStore.populateDeploymentSteps(deploymentSteps);
 
-		...allFieldDefinitions.map(
-			(fieldDefinition): FieldStep => ({
-				type: 'fields',
-				fieldDefinition,
-				gui
-			})
-		),
-
-		...allDeposits.map(
-			(deposit): DepositStep => ({
-				type: 'deposits',
-				deposit,
-				gui,
-				tokenInfos
-			})
-		),
-
-		...allTokenInputs.map(
-			(input, i): TokenInputStep => ({
-				type: 'tokenInput',
-				input,
-				gui,
-				tokenInfos,
-				i,
-				inputVaultIds
-			})
-		),
-		...allTokenOutputs.map(
-			(output, i): TokenOutputStep => ({
-				type: 'tokenOutput',
-				output,
-				gui,
-				tokenInfos,
-				i,
-				outputVaultIds
-			})
-		)
-	];
+	$: console.log('DEPLOYMENT STEPS', $deploymentStore.deploymentSteps);
 
 	let currentStep = deploymentSteps[0];
-	$: console.log('current step in parent', currentStep);
-	$: console.log('all steps in parent', deploymentSteps);
 
 	const nextStep = () => {
 		if (deploymentSteps.indexOf(currentStep) < deploymentSteps.length - 1)
@@ -124,14 +77,7 @@
 		<TokenOutputButtons {...currentStep} />
 	{/if}
 
-
 	<div class="flex justify-between gap-4">
-		<Button class="flex-1" on:click={() => {
-			const deposits = gui.getDeposits();
-			console.log('deposits:', deposits);
-		}}>
-			Get Deposits
-		</Button>
 		{#if deploymentSteps.indexOf(currentStep) > 0}
 			<Button class="flex-1" on:click={previousStep}>Previous</Button>
 		{/if}

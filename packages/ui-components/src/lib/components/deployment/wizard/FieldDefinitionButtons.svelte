@@ -1,12 +1,21 @@
 <script lang="ts">
 	import { Input, Button } from 'flowbite-svelte';
 	import { DotrainOrderGui, type GuiFieldDefinition } from '@rainlanguage/orderbook/js_api';
-	import type { StepType } from '../../../types/wizardSteps';
+	import deploymentStore from './deploymentStore';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-	export let type: StepType;
+	export let step;
 
+	const fieldDefinitionSteps = $deploymentStore.deploymentSteps.filter(
+		(step) => step.type === 'fields'
+	);
+	const currentFieldDefinitionStep = fieldDefinitionSteps.find(
+		(step) => step.fieldDefinition.binding === fieldDefinition.binding
+	);
+
+	$: console.log('curent field def step', currentFieldDefinitionStep);
+	$: console.log('field def steps', fieldDefinitionSteps);
 	let showCustomInput = false;
 
 	function handlePresetClick(presetId: string) {
@@ -14,9 +23,19 @@
 			isPreset: true,
 			value: presetId
 		});
+		const fieldValues = gui.getAllFieldValues();
+		const thisFieldValue = fieldValues.find((val) => val.binding === fieldDefinition.binding);
+		deploymentStore.updateDeploymentStep({
+			...currentFieldDefinitionStep,
+			fieldDefinition: {
+				...currentFieldDefinitionStep.fieldDefinition,
+				value: thisFieldValue?.value
+			}
+		});
+		console.log('this field value', thisFieldValue);
+
 		showCustomInput = false;
 		gui = gui;
-		console.log('FIELD VALS', gui.getAllFieldValues());
 	}
 
 	function handleCustomClick() {
