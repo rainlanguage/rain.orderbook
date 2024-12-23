@@ -21,6 +21,8 @@ use url::ParseError as UrlParseError;
 pub trait YamlParsable: Sized {
     fn new(source: String, validate: bool) -> Result<Self, YamlError>;
 
+    fn from_document(document: Arc<RwLock<StrictYaml>>) -> Self;
+
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();
         let mut out_str = String::new();

@@ -22,6 +22,10 @@ impl YamlParsable for DotrainYaml {
 
         Ok(DotrainYaml { document })
     }
+
+    fn from_document(document: Arc<RwLock<StrictYaml>>) -> Self {
+        DotrainYaml { document }
+    }
 }
 
 impl DotrainYaml {
@@ -110,6 +114,9 @@ mod tests {
     deployments:
         deployment1:
             order: order1
+            scenario: scenario1.scenario2
+        deployment2:
+            order: order1
             scenario: scenario1
     gui:
         name: Test gui
@@ -163,7 +170,7 @@ mod tests {
             *scenario1.deployer.as_ref(),
             ob_yaml.get_deployer("deployer1").unwrap()
         );
-        let scenario2 = dotrain_yaml.get_scenario("scenario2").unwrap();
+        let scenario2 = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
         assert_eq!(scenario2.bindings.len(), 2);
         assert_eq!(scenario2.bindings.get("key1").unwrap(), "value1");
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
@@ -173,8 +180,20 @@ mod tests {
         );
 
         let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();
-        assert_eq!(deployment_keys.len(), 1);
+        assert_eq!(deployment_keys.len(), 2);
         let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
+        assert_eq!(
+            deployment.order,
+            dotrain_yaml.get_order("order1").unwrap().into()
+        );
+        assert_eq!(
+            deployment.scenario,
+            dotrain_yaml
+                .get_scenario("scenario1.scenario2")
+                .unwrap()
+                .into()
+        );
+        let deployment = dotrain_yaml.get_deployment("deployment2").unwrap();
         assert_eq!(
             deployment.order,
             dotrain_yaml.get_order("order1").unwrap().into()
