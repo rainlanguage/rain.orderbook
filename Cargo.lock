@@ -6462,6 +6462,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "sha2",
+ "strict-yaml-rust",
  "thiserror",
  "tokio",
  "tsify",
