@@ -19,7 +19,8 @@ export default ts.config(
 		},
 		rules: {
 			'no-console': process.env.NODE_ENV === 'production' || process.env.CI ? 'error' : 'off',
-			'no-trailing-spaces': 'error'
+			'no-trailing-spaces': 'error',
+			'@typescript-eslint/ban-ts-comment': 'off'
 		}
 	},
 	{

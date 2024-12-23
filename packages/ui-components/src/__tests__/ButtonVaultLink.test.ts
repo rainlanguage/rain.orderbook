@@ -4,7 +4,6 @@ import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 import * as navigation from '$app/navigation';
 import { userEvent } from '@testing-library/user-event';
 import type { Vault } from '@rainlanguage/orderbook/js_api';
-
 // Mock the $app/navigation module
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
@@ -20,12 +19,12 @@ describe('ButtonVaultLink', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		}
-	};
+	} as unknown as Vault;
 
 	it('should navigate to vault details page when clicked', async () => {
 		render(ButtonVaultLink, {
 			props: {
-				tokenVault: mockVault as unknown as Vault
+				tokenVault: mockVault
 			}
 		});
 
