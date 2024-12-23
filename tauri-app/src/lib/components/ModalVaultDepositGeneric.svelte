@@ -6,7 +6,7 @@
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import InputToken from '$lib/components/InputToken.svelte';
+  import { InputToken } from '@rainlanguage/ui-components';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
