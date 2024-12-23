@@ -19,6 +19,7 @@
 	function handlePresetClick(preset: string) {
 		console.log('PRESET CLICK');
 		gui?.saveDeposit(deposit.token_name, preset);
+		console.log(gui?.getDeposits());
 		showCustomInput = false;
 		gui = gui;
 	}
@@ -30,12 +31,12 @@
 	}
 </script>
 
-<div class="flex flex-grow flex-col items-center">
+<div class="flex flex-grow flex-col items-center p-8">
 	<div class="mt-16 max-w-2xl text-center">
 		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
 			{tokenInfos.get(deposit.token.address)?.name}
 		</h1>
-		<p class="mb-12 text-xl text-gray-600">Select deposit amount</p>
+		<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">Select deposit amount</p>
 	</div>
 
 	{#if deposit.presets}
@@ -43,7 +44,10 @@
 			{#each deposit.presets as preset}
 				<Button
 					size="lg"
-					color={gui?.isDepositPreset(deposit.token_name) ? 'blue' : 'alternative'}
+					color="alternative"
+					class={gui?.isDepositPreset(deposit.token_name)
+						? 'border border-gray-200 dark:border-gray-700'
+						: 'border-2 border-gray-900 dark:border-white'}
 					on:click={() => handlePresetClick(preset)}
 				>
 					{preset}
@@ -51,7 +55,10 @@
 			{/each}
 			<Button
 				size="lg"
-				color={!gui?.isDepositPreset(deposit.token_name) ? 'blue' : 'alternative'}
+				color="alternative"
+				class={!gui?.isDepositPreset(deposit.token_name)
+					? 'border-2 border-gray-900 dark:border-white'
+					: 'border border-gray-200 dark:border-gray-700'}
 				on:click={handleCustomClick}
 			>
 				Custom
@@ -64,9 +71,10 @@
 				class="text-center text-lg"
 				size="lg"
 				placeholder="Enter deposit amount"
-				on:change={({ currentTarget }) => {
+				on:input={({ currentTarget }) => {
 					if (currentTarget instanceof HTMLInputElement) {
 						gui?.saveDeposit(deposit.token_name, currentTarget.value);
+						gui = gui;
 					}
 				}}
 			/>
