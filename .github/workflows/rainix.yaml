@@ -43,6 +43,7 @@ jobs:
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       CI_DEPLOY_FLARE_RPC_URL: ${{ secrets.CI_DEPLOY_FLARE_RPC_URL }}
       COMMIT_SHA: ${{ github.sha }}
+      ORDERBOOK_MAINNET_SUBGRAPH_URL: ${{ vars.ORDERBOOK_MAINNET_SUBGRAPH_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
