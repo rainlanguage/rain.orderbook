@@ -28,6 +28,7 @@ import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
+import {console2} from "forge-std/Test.sol";
 
 import {
     IOrderBookV4,
@@ -680,6 +681,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         );
         ClearStateChange memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
+
+        console2.log("clearStateChange.aliceOutput", clearStateChange.aliceOutput);
+        console2.log("clearStateChange.bobInput", clearStateChange.bobInput);
+        console2.log("clearStateChange.bobOutput", clearStateChange.bobOutput);
+        console2.log("clearStateChange.aliceInput", clearStateChange.aliceInput);
 
         recordVaultIO(clearStateChange.aliceInput, clearStateChange.aliceOutput, aliceOrderIOCalculation);
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);

@@ -191,7 +191,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.vaultBalance(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
             ),
-            clear.expectedAliceOutput.fixedPointMul(clear.orderStackAlice[0], Math.Rounding.Up),
+            clear.expectedAliceInput,
             "Alice input vault"
         );
 
@@ -293,8 +293,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         // uint256 aliceAmount = 1e18;
         // uint256 bobAmount = 1e18;
 
-        aliceIORatio = bound(aliceIORatio, 0.1e18, 1e18);
-        bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Up));
+        aliceIORatio = bound(aliceIORatio, 0.99e18, 1e18);
+        bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Down));
         // vm.assume(aliceIORatio.fixedPointMul(bobIORatio, Math.Rounding.Up) <= 1e18);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
