@@ -286,12 +286,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceIORatio,
         uint256 bobIORatio
     ) external {
-        // uint256 aliceAmount = 1e18;
-        // uint256 bobAmount = 1e18;
-
         aliceIORatio = bound(aliceIORatio, 0.99e18, 1e18);
         bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Down));
-        // vm.assume(aliceIORatio.fixedPointMul(bobIORatio, Math.Rounding.Up) <= 1e18);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
