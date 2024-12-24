@@ -22,7 +22,7 @@ import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {StateNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
-    import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
@@ -87,8 +87,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 expectedBobOutput;
         uint256 expectedAliceInput;
         uint256 expectedBobInput;
-        uint256 expectedAliceBounty;
-        uint256 expectedBobBounty;
     }
 
     function doClear(DoClear memory clear) internal {
@@ -206,14 +204,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.vaultBalance(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
             ),
-            clear.expectedAliceOutput,
+            clear.expectedBobInput,
             // clear.expectedBobOutput.fixedPointMul(clear.orderStackBob[0], Math.Rounding.Up),
             "Bob input vault"
         );
 
         assertEq(
             iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId),
-            0,
+            clear.expectedAliceOutput - clear.expectedBobInput,
             "Alice bounty"
         );
         assertEq(
@@ -223,7 +221,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         assertEq(
             iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId),
-            clear.expectedBobOutput - clear.expectedAliceOutput.fixedPointMul(clear.orderStackAlice[0], Math.Rounding.Up),
+            clear.expectedBobOutput - clear.expectedAliceInput,
             "Bob bounty"
         );
         assertEq(
@@ -270,9 +268,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0.495e18,
-                0.495e18,
-                0.005e18,
-                0.005e18
+                0.495e18
             )
         );
     }
@@ -325,14 +321,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 // Alice is outputting 1 so bob will output enough to match this
                 // according to his own IO ratio.
                 uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18),
+                // Expected input for Alice is aliceOutput * aliceIORatio
                 uint256(1e18).fixedPointMul(aliceIORatio, Math.Rounding.Up),
-                uint256(1e18).fixedPointMul(bobIORatio, Math.Rounding.Up),
-                5e17,
-                4e17
+                // Expected output for Bob is bob's output * bobIORatio
+                uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18).fixedPointMul(
+                    bobIORatio, Math.Rounding.Up
+                )
             )
         );
     }
-
 
     /// forge-config: default.fuzz.runs = 100
     function testClear2ZeroRatioAliceOnly(
@@ -371,8 +368,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 orderStackAlice,
                 orderStackBob,
                 0.5e18,
-                0.5e18,
-                0,
                 0.5e18,
                 0,
                 0.5e18
@@ -418,8 +413,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 orderStackBob,
                 0.5e18,
                 0.5e18,
-                0.5e18,
-                0,
                 0.5e18,
                 0
             )
@@ -467,9 +460,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0,
-                0,
-                0.5e18,
-                0.5e18
+                0
             )
         );
     }
