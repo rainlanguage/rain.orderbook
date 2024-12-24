@@ -64,6 +64,111 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bobConfig.meta = "";
     }
 
+    struct DoClear {
+        address alice;
+        OrderConfigV3 aliceConfig;
+        address bob;
+        OrderConfigV3 bobConfig;
+        address bountyBot;
+        uint256 aliceBountyVaultId;
+        uint256 bobBountyVaultId;
+        uint256 aliceAmount;
+        uint256 bobAmount;
+        bytes expression;
+        uint256[] orderStackAlice;
+        uint256[] orderStackBob;
+    }
+
+    function doClear(DoClear memory clear) internal {
+        vm.assume(clear.alice != clear.bob);
+        vm.assume(clear.alice != clear.bountyBot);
+        vm.assume(clear.bob != clear.bountyBot);
+        vm.assume(clear.aliceBountyVaultId != clear.bobBountyVaultId);
+
+        conformBasicConfig(clear.aliceConfig, clear.bobConfig);
+        vm.assume(keccak256(clear.aliceConfig.evaluable.bytecode) != keccak256(clear.bobConfig.evaluable.bytecode));
+
+        _depositInternal(
+            clear.alice,
+            clear.aliceConfig.validOutputs[0].token,
+            clear.aliceConfig.validOutputs[0].vaultId,
+            clear.aliceAmount
+        );
+        _depositInternal(
+            clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId, clear.bobAmount
+        );
+
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
+            ),
+            0
+        );
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+            ),
+            clear.aliceAmount
+        );
+
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
+            ),
+            0
+        );
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
+            ),
+            clear.bobAmount
+        );
+
+        assertEq(iOrderbook.vaultBalance(clear.bountyBot, address(iToken0), clear.aliceBountyVaultId), 0);
+        assertEq(iOrderbook.vaultBalance(clear.bountyBot, address(iToken1), clear.bobBountyVaultId), 0);
+
+        {
+            {
+                bytes memory call = abi.encodeWithSelector(
+                    IInterpreterV3.eval3.selector,
+                    clear.aliceConfig.evaluable.store,
+                    LibNamespace.qualifyNamespace(
+                        StateNamespace.wrap(uint256(uint160(clear.alice))), address(iOrderbook)
+                    )
+                );
+
+                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackAlice, new uint256[](0)));
+
+                call = abi.encodeWithSelector(
+                    IInterpreterV3.eval3.selector,
+                    clear.bobConfig.evaluable.store,
+                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(clear.bob))), address(iOrderbook))
+                );
+
+                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackBob, new uint256[](0)));
+            }
+
+            OrderV3 memory aliceOrder;
+            OrderV3 memory bobOrder;
+            {
+                (aliceOrder,) = addOrderWithChecks(clear.alice, clear.aliceConfig, clear.expression);
+                (bobOrder,) = addOrderWithChecks(clear.bob, clear.bobConfig, clear.expression);
+            }
+
+            ClearConfig memory configClear = ClearConfig({
+                aliceInputIOIndex: 0,
+                aliceOutputIOIndex: 0,
+                bobInputIOIndex: 0,
+                bobOutputIOIndex: 0,
+                aliceBountyVaultId: clear.aliceBountyVaultId,
+                bobBountyVaultId: clear.bobBountyVaultId
+            });
+
+            vm.prank(clear.bountyBot);
+            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
+        }
+    }
+
     /// forge-config: default.fuzz.runs = 100
     function testClearSimple(
         address alice,
@@ -75,65 +180,31 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceBountyVaultId,
         uint256 bobBountyVaultId
     ) external {
-        // Different accounts
-        vm.assume(alice != bob);
-        vm.assume(alice != bountyBot);
-        vm.assume(bob != bountyBot);
-        vm.assume(aliceBountyVaultId != bobBountyVaultId);
-        conformBasicConfig(aliceConfig, bobConfig);
-        uint256 amount = 2e18;
+        uint256 aliceAmount = 2e18;
+        uint256 bobAmount = 2e18;
 
-        _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, amount);
-        _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, amount);
+        // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
+        // Produce the stack output for OB
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = 0.99e18; // orderIORatio
+        orderStackAlice[1] = 0.5e18; // orderOutputMax
 
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                aliceAmount,
+                bobAmount,
+                expression,
+                orderStackAlice,
+                orderStackAlice
+            )
         );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            amount
-        );
-
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), amount
-        );
-
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId), 0);
-
-        {
-            (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, expression);
-            assertTrue(iOrderbook.orderExists(aliceOrderHash));
-
-            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, expression);
-            assertTrue(iOrderbook.orderExists(bobOrderHash));
-
-            ClearConfig memory configClear = ClearConfig({
-                aliceInputIOIndex: 0,
-                aliceOutputIOIndex: 0,
-                bobInputIOIndex: 0,
-                bobOutputIOIndex: 0,
-                aliceBountyVaultId: aliceBountyVaultId,
-                bobBountyVaultId: bobBountyVaultId
-            });
-
-            {
-                // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
-                // Produce the stack output for OB
-                uint256[] memory orderStackBob = new uint256[](2);
-                orderStackBob[0] = 0.99e18; // orderIORatio
-                orderStackBob[1] = 0.5e18; // orderOutputMax
-                vm.mockCall(
-                    address(iInterpreter),
-                    abi.encodeWithSelector(IInterpreterV3.eval3.selector),
-                    abi.encode(orderStackBob, new uint256[](0))
-                );
-            }
-
-            vm.prank(bountyBot);
-            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
-        }
 
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId),
@@ -168,66 +239,33 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceBountyVaultId,
         uint256 bobBountyVaultId
     ) external {
-        // Different accounts
-        vm.assume(alice != bob);
-        vm.assume(alice != bountyBot);
-        vm.assume(bob != bountyBot);
-        vm.assume(aliceBountyVaultId != bobBountyVaultId);
-
-        conformBasicConfig(aliceConfig, bobConfig);
-        vm.assume(keccak256(aliceConfig.evaluable.bytecode) != keccak256(bobConfig.evaluable.bytecode));
-
         uint256 aliceAmount = 2e18;
         uint256 bobAmount = 3e18;
 
-        _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, aliceAmount);
-        _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, bobAmount);
-        {
-            {
-                bytes memory call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
-                    aliceConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(alice))), address(iOrderbook))
-                );
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = 0; // Zero orderIORatio
+        orderStackAlice[1] = 0.5e18; // orderOutputMax
 
-                // Mock the interpreter.eval for Alice with zero ratio
-                uint256[] memory orderStackAlice = new uint256[](2);
-                orderStackAlice[0] = 0; // Zero orderIORatio
-                orderStackAlice[1] = 0.5e18; // orderOutputMax
-                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackAlice, new uint256[](0)));
+        uint256[] memory orderStackBob = new uint256[](2);
+        orderStackBob[0] = 1e18; // Nonzero orderIORatio
+        orderStackBob[1] = 0.5e18; // orderOutputMax
 
-                uint256[] memory orderStackBob = new uint256[](2);
-                orderStackBob[0] = 1e18; // Nonzero orderIORatio
-                orderStackBob[1] = 0.5e18; // orderOutputMax
-
-                call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
-                    bobConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(bob))), address(iOrderbook))
-                );
-
-                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackBob, new uint256[](0)));
-            }
-
-            OrderV3 memory aliceOrder;
-            OrderV3 memory bobOrder;
-            {
-                (aliceOrder,) = addOrderWithChecks(alice, aliceConfig, expression);
-                (bobOrder,) = addOrderWithChecks(bob, bobConfig, expression);
-            }
-
-            ClearConfig memory configClear = ClearConfig({
-                aliceInputIOIndex: 0,
-                aliceOutputIOIndex: 0,
-                bobInputIOIndex: 0,
-                bobOutputIOIndex: 0,
-                aliceBountyVaultId: aliceBountyVaultId,
-                bobBountyVaultId: bobBountyVaultId
-            });
-
-            vm.prank(bountyBot);
-            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
-        }
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                aliceAmount,
+                bobAmount,
+                expression,
+                orderStackAlice,
+                orderStackBob
+            )
+        );
 
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
@@ -256,66 +294,33 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceBountyVaultId,
         uint256 bobBountyVaultId
     ) external {
-        // Different accounts
-        vm.assume(alice != bob);
-        vm.assume(alice != bountyBot);
-        vm.assume(bob != bountyBot);
-        vm.assume(aliceBountyVaultId != bobBountyVaultId);
-
-        conformBasicConfig(aliceConfig, bobConfig);
-        vm.assume(keccak256(aliceConfig.evaluable.bytecode) != keccak256(bobConfig.evaluable.bytecode));
-
         uint256 aliceAmount = 2e18;
         uint256 bobAmount = 3e18;
 
-        _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, aliceAmount);
-        _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, bobAmount);
-        {
-            {
-                bytes memory call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
-                    aliceConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(alice))), address(iOrderbook))
-                );
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = 1e18; // Zero orderIORatio
+        orderStackAlice[1] = 0.5e18; // orderOutputMax
 
-                // Mock the interpreter.eval for Alice with zero ratio
-                uint256[] memory orderStackAlice = new uint256[](2);
-                orderStackAlice[0] = 1e18; // Zero orderIORatio
-                orderStackAlice[1] = 0.5e18; // orderOutputMax
-                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackAlice, new uint256[](0)));
+        uint256[] memory orderStackBob = new uint256[](2);
+        orderStackBob[0] = 0; // Nonzero orderIORatio
+        orderStackBob[1] = 0.5e18; // orderOutputMax
 
-                uint256[] memory orderStackBob = new uint256[](2);
-                orderStackBob[0] = 0; // Nonzero orderIORatio
-                orderStackBob[1] = 0.5e18; // orderOutputMax
-
-                call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
-                    bobConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(bob))), address(iOrderbook))
-                );
-
-                vm.mockCall(address(iInterpreter), call, abi.encode(orderStackBob, new uint256[](0)));
-            }
-
-            OrderV3 memory aliceOrder;
-            OrderV3 memory bobOrder;
-            {
-                (aliceOrder,) = addOrderWithChecks(alice, aliceConfig, expression);
-                (bobOrder,) = addOrderWithChecks(bob, bobConfig, expression);
-            }
-
-            ClearConfig memory configClear = ClearConfig({
-                aliceInputIOIndex: 0,
-                aliceOutputIOIndex: 0,
-                bobInputIOIndex: 0,
-                bobOutputIOIndex: 0,
-                aliceBountyVaultId: aliceBountyVaultId,
-                bobBountyVaultId: bobBountyVaultId
-            });
-
-            vm.prank(bountyBot);
-            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
-        }
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                aliceAmount,
+                bobAmount,
+                expression,
+                orderStackAlice,
+                orderStackBob
+            )
+        );
 
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
@@ -344,56 +349,35 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceBountyVaultId,
         uint256 bobBountyVaultId
     ) external {
-        // Different accounts
-        vm.assume(alice != bob);
-        vm.assume(alice != bountyBot);
-        vm.assume(bob != bountyBot);
-        vm.assume(aliceBountyVaultId != bobBountyVaultId);
-
-        conformBasicConfig(aliceConfig, bobConfig);
-
         uint256 aliceAmount = 2e18;
         uint256 bobAmount = 3e18;
 
-        _depositInternal(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId, aliceAmount);
-        _depositInternal(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId, bobAmount);
-        {
-            (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, expression);
-            (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, expression);
+        // Mock the interpreter.eval for Alice and Bob orders with zero ratio
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = 0; // Zero orderIORatio
+        orderStackAlice[1] = 5e17; // orderOutputMax
 
-            ClearConfig memory configClear = ClearConfig({
-                aliceInputIOIndex: 0,
-                aliceOutputIOIndex: 0,
-                bobInputIOIndex: 0,
-                bobOutputIOIndex: 0,
-                aliceBountyVaultId: aliceBountyVaultId,
-                bobBountyVaultId: bobBountyVaultId
-            });
+        uint256[] memory orderStackBob = new uint256[](2);
 
-            {
-                // Mock the interpreter.eval for Alice and Bob orders with zero ratio
-                uint256[] memory orderStackAlice = new uint256[](2);
-                orderStackAlice[0] = 0; // Zero orderIORatio
-                orderStackAlice[1] = 5e17; // orderOutputMax
-                vm.mockCall(
-                    address(iInterpreter),
-                    abi.encodeWithSelector(IInterpreterV3.eval3.selector),
-                    abi.encode(orderStackAlice, new uint256[](0))
-                );
-                uint256[] memory orderStackBob = new uint256[](2);
+        orderStackBob[0] = 0; // Zero orderIORatio
+        orderStackBob[1] = 5e17; // orderOutputMax
 
-                orderStackBob[0] = 0; // Zero orderIORatio
-                orderStackBob[1] = 5e17; // orderOutputMax
-                vm.mockCall(
-                    address(iInterpreter),
-                    abi.encodeWithSelector(IInterpreterV3.eval3.selector),
-                    abi.encode(orderStackBob, new uint256[](0))
-                );
-            }
-
-            vm.prank(bountyBot);
-            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
-        }
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                aliceAmount,
+                bobAmount,
+                expression,
+                orderStackAlice,
+                orderStackBob
+            )
+        );
 
         assertEq(
             iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
