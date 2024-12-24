@@ -77,6 +77,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes expression;
         uint256[] orderStackAlice;
         uint256[] orderStackBob;
+        uint256 expectedAliceOutput;
+        uint256 expectedBobOutput;
+        uint256 expectedAliceInput;
+        uint256 expectedBobInput;
+        uint256 expectedAliceBounty;
+        uint256 expectedBobBounty;
     }
 
     function doClear(DoClear memory clear) internal {
@@ -167,6 +173,41 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             vm.prank(clear.bountyBot);
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
+
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+            ),
+            clear.aliceAmount - clear.expectedAliceOutput
+        );
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
+            ),
+            clear.expectedAliceInput
+        );
+
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
+            ),
+            clear.bobAmount - clear.expectedBobOutput
+        );
+        assertEq(
+            iOrderbook.vaultBalance(
+                clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
+            ),
+            clear.expectedBobInput
+        );
+
+        assertEq(
+            iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId),
+            clear.expectedAliceBounty
+        );
+        assertEq(
+            iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId),
+            clear.expectedBobBounty
+        );
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -202,30 +243,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bobAmount,
                 expression,
                 orderStackAlice,
-                orderStackAlice
+                orderStackAlice,
+                0.5e18,
+                0.5e18,
+                0.495e18,
+                0.495e18,
+                0.005e18,
+                0.005e18
             )
         );
-
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId),
-            0.495e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            1.5e18
-        );
-
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0.495e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId), 1.5e18
-        );
-
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), aliceBountyVaultId), 0.005e18);
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken1), bobBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, address(iToken0), bobBountyVaultId), 0.005e18);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -263,24 +289,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bobAmount,
                 expression,
                 orderStackAlice,
-                orderStackBob
+                orderStackBob,
+                0.5e18,
+                0.5e18,
+                0,
+                0.5e18,
+                0,
+                0.5e18
             )
         );
-
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            aliceAmount - 0.5e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
-        );
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId),
-            bobAmount - 0.5e18
-        );
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0.5e18);
-        assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0.5e18);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -318,24 +335,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bobAmount,
                 expression,
                 orderStackAlice,
-                orderStackBob
+                orderStackBob,
+                0.5e18,
+                0.5e18,
+                0.5e18,
+                0,
+                0.5e18,
+                0
             )
         );
-
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            aliceAmount - 0.5e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId),
-            bobAmount - 0.5e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0.5e18
-        );
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), 0.5e18);
-        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -375,23 +383,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bobAmount,
                 expression,
                 orderStackAlice,
-                orderStackBob
+                orderStackBob,
+                0.5e18,
+                0.5e18,
+                0,
+                0,
+                0.5e18,
+                0.5e18
             )
         );
-
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validOutputs[0].token, aliceConfig.validOutputs[0].vaultId),
-            aliceAmount - 0.5e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(bob, bobConfig.validOutputs[0].token, bobConfig.validOutputs[0].vaultId),
-            bobAmount - 0.5e18
-        );
-        assertEq(
-            iOrderbook.vaultBalance(alice, aliceConfig.validInputs[0].token, aliceConfig.validInputs[0].vaultId), 0
-        );
-        assertEq(iOrderbook.vaultBalance(bob, bobConfig.validInputs[0].token, bobConfig.validInputs[0].vaultId), 0);
-        assertEq(iOrderbook.vaultBalance(bountyBot, aliceConfig.validOutputs[0].token, aliceBountyVaultId), 0.5e18);
-        assertEq(iOrderbook.vaultBalance(bountyBot, bobConfig.validOutputs[0].token, bobBountyVaultId), 0.5e18);
     }
 }
