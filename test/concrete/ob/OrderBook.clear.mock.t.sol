@@ -20,10 +20,16 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {StateNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {LibFixedPointDecimalArithmeticOpenZeppelin} from
+    "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+    import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
+    using LibFixedPointDecimalArithmeticOpenZeppelin for uint256;
+    using Math for uint256;
+
     /// Make a deposit to the OB mocking the internal transferFrom call.
     function _depositInternal(address depositor, address token, uint256 vaultId, uint256 amount) internal {
         vm.prank(depositor);
@@ -178,35 +184,52 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.vaultBalance(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
             ),
-            clear.aliceAmount - clear.expectedAliceOutput
+            clear.aliceAmount - clear.expectedAliceOutput,
+            "Alice output vault"
         );
         assertEq(
             iOrderbook.vaultBalance(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
             ),
-            clear.expectedAliceInput
+            clear.expectedAliceOutput.fixedPointMul(clear.orderStackAlice[0], Math.Rounding.Up),
+            "Alice input vault"
         );
 
         assertEq(
             iOrderbook.vaultBalance(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
             ),
-            clear.bobAmount - clear.expectedBobOutput
+            clear.bobAmount - clear.expectedBobOutput,
+            "Bob output vault"
         );
         assertEq(
             iOrderbook.vaultBalance(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
             ),
-            clear.expectedBobInput
+            clear.expectedAliceOutput,
+            // clear.expectedBobOutput.fixedPointMul(clear.orderStackBob[0], Math.Rounding.Up),
+            "Bob input vault"
         );
 
         assertEq(
             iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId),
-            clear.expectedAliceBounty
+            0,
+            "Alice bounty"
+        );
+        assertEq(
+            iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId),
+            0,
+            "Alice bounty input"
         );
         assertEq(
             iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId),
-            clear.expectedBobBounty
+            clear.expectedBobOutput - clear.expectedAliceOutput.fixedPointMul(clear.orderStackAlice[0], Math.Rounding.Up),
+            "Bob bounty"
+        );
+        assertEq(
+            iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId),
+            0,
+            "Bob bounty input"
         );
     }
 
@@ -253,6 +276,63 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             )
         );
     }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearFuzzIoRatio(
+        address alice,
+        OrderConfigV3 memory aliceConfig,
+        address bob,
+        OrderConfigV3 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        uint256 aliceBountyVaultId,
+        uint256 bobBountyVaultId,
+        uint256 aliceIORatio,
+        uint256 bobIORatio
+    ) external {
+        // uint256 aliceAmount = 1e18;
+        // uint256 bobAmount = 1e18;
+
+        aliceIORatio = bound(aliceIORatio, 0.1e18, 1e18);
+        bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Up));
+        // vm.assume(aliceIORatio.fixedPointMul(bobIORatio, Math.Rounding.Up) <= 1e18);
+
+        // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
+        // Produce the stack output for OB
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = aliceIORatio; // orderIORatio
+        orderStackAlice[1] = 1e18; // orderOutputMax
+
+        uint256[] memory orderStackBob = new uint256[](2);
+        orderStackBob[0] = bobIORatio; // orderIORatio
+        orderStackBob[1] = 1e18; // orderOutputMax
+
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                1e18,
+                1e18,
+                expression,
+                orderStackAlice,
+                orderStackBob,
+                1e18,
+                // Alice is outputting 1 so bob will output enough to match this
+                // according to his own IO ratio.
+                uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18),
+                uint256(1e18).fixedPointMul(aliceIORatio, Math.Rounding.Up),
+                uint256(1e18).fixedPointMul(bobIORatio, Math.Rounding.Up),
+                5e17,
+                4e17
+            )
+        );
+    }
+
 
     /// forge-config: default.fuzz.runs = 100
     function testClear2ZeroRatioAliceOnly(
