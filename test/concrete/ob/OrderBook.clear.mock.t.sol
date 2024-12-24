@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 thedavidmeister
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, stdError} from "forge-std/Test.sol";
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
@@ -87,6 +87,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 expectedBobOutput;
         uint256 expectedAliceInput;
         uint256 expectedBobInput;
+        bytes expectedError;
     }
 
     function doClear(DoClear memory clear) internal {
@@ -175,6 +176,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             });
 
             vm.prank(clear.bountyBot);
+            if (clear.expectedError.length > 0) {
+                vm.expectRevert(clear.expectedError);
+            }
             iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
@@ -268,7 +272,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0.495e18,
-                0.495e18
+                0.495e18,
+                ""
             )
         );
     }
@@ -324,7 +329,57 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 // As Bob's ratio is >= 1 he will have his input shrunk to match
                 // Alice's output. This means in this case Bob's input will be
                 // 1 always, as it either = 1 anyway or matches Alice's 1.
-                uint256(1e18)
+                uint256(1e18),
+                ""
+            )
+        );
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearFuzzIoRatioError(
+        address alice,
+        OrderConfigV3 memory aliceConfig,
+        address bob,
+        OrderConfigV3 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        uint256 aliceBountyVaultId,
+        uint256 bobBountyVaultId,
+        uint256 aliceIORatio,
+        uint256 bobIORatio
+    ) external {
+        aliceIORatio = bound(aliceIORatio, 1e18 + 1, 1.1e18);
+        bobIORatio = bound(bobIORatio, 1e18 + 1, 1.1e18);
+
+        // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
+        // Produce the stack output for OB
+        uint256[] memory orderStackAlice = new uint256[](2);
+        orderStackAlice[0] = aliceIORatio; // orderIORatio
+        orderStackAlice[1] = 1e18; // orderOutputMax
+
+        uint256[] memory orderStackBob = new uint256[](2);
+        orderStackBob[0] = bobIORatio; // orderIORatio
+        orderStackBob[1] = 1e18; // orderOutputMax
+
+        doClear(
+            DoClear(
+                alice,
+                aliceConfig,
+                bob,
+                bobConfig,
+                bountyBot,
+                aliceBountyVaultId,
+                bobBountyVaultId,
+                1e18,
+                1e18,
+                expression,
+                orderStackAlice,
+                orderStackBob,
+                0,
+                0,
+                0,
+                0,
+                stdError.arithmeticError
             )
         );
     }
@@ -368,7 +423,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0,
-                0.5e18
+                0.5e18,
+                ""
             )
         );
     }
@@ -412,7 +468,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0.5e18,
-                0
+                0,
+                ""
             )
         );
     }
@@ -458,7 +515,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 0.5e18,
                 0.5e18,
                 0,
-                0
+                0,
+                ""
             )
         );
     }
