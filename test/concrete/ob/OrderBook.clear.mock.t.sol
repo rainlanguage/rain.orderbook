@@ -286,7 +286,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceIORatio,
         uint256 bobIORatio
     ) external {
-        aliceIORatio = bound(aliceIORatio, 0.99e18, 1e18);
+        aliceIORatio = bound(aliceIORatio, 0.9e18, 1e18);
         bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Down));
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
@@ -319,10 +319,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18),
                 // Expected input for Alice is aliceOutput * aliceIORatio
                 uint256(1e18).fixedPointMul(aliceIORatio, Math.Rounding.Up),
-                // Expected output for Bob is bob's output * bobIORatio
-                uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18).fixedPointMul(
-                    bobIORatio, Math.Rounding.Up
-                )
+                // Expected input for Bob is Alice's output in entirety, because
+                // alice IO * bob IO <= 1 and Bob is the larger ratio.
+                // As Bob's ratio is >= 1 he will have his input shrunk to match
+                // Alice's output. This means in this case Bob's input will be
+                // 1 always, as it either = 1 anyway or matches Alice's 1.
+                uint256(1e18)
             )
         );
     }
