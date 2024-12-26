@@ -1,7 +1,6 @@
 <script lang="ts">
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
-
   import { page } from '$app/stores';
   import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 

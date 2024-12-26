@@ -192,7 +192,7 @@ impl NetworkConfigSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use strict_yaml_rust::StrictYamlLoader;
+    use crate::yaml::tests::get_document;
     use url::Url;
 
     #[test]
@@ -215,11 +215,6 @@ mod tests {
         assert_eq!(network.label, Some("Local Testnet".into()));
         assert_eq!(network.currency, Some("ETH".into()));
         assert_eq!(network.key, "local");
-    }
-
-    fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
-        let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
-        Arc::new(RwLock::new(document))
     }
 
     #[test]

@@ -273,11 +273,7 @@
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
           <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
-            <CodeMirrorRainlang
-              bind:value={rainlangText}
-              disabled={true}
-              codeMirrorTheme={$codeMirrorTheme}
-            />
+            <CodeMirrorRainlang {rainlangText} codeMirrorDisabled={true} {codeMirrorTheme} />
           </TabItem>
         {/each}
       </Tabs>
