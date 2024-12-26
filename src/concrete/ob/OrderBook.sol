@@ -786,14 +786,18 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 new uint256[](0)
             );
 
-            // This is redundant with the array index checks implied by solidity
-            // but it's a much clearer error message.
+            // This is a much error message and overall more efficient than
+            // solidity generic index out of bounds errors.
             if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
                 revert UnsupportedCalculateOutputs(calculateOrderStack.length);
             }
 
-            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
-            uint256 orderIORatio = calculateOrderStack[0];
+            uint256 orderIORatio;
+            Output18Amount orderOutputMax18;
+            assembly ("memory-safe") {
+                orderIORatio := mload(add(calculateOrderStack, 0x20))
+                orderOutputMax18 := mload(add(calculateOrderStack, 0x40))
+            }
 
             {
                 // The order owner can't send more than the smaller of their vault
