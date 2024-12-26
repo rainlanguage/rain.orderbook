@@ -70,7 +70,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bobConfig.meta = "";
     }
 
-    struct DoClear {
+    struct CheckClear {
         address alice;
         OrderConfigV3 aliceConfig;
         address bob;
@@ -90,7 +90,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes expectedError;
     }
 
-    function doClear(DoClear memory clear) internal {
+    function checkClear(CheckClear memory clear) internal {
         vm.assume(clear.alice != clear.bob);
         vm.assume(clear.alice != clear.bountyBot);
         vm.assume(clear.bob != clear.bountyBot);
@@ -255,8 +255,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackAlice[0] = 0.99e18; // orderIORatio
         orderStackAlice[1] = 0.5e18; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
@@ -291,7 +291,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         uint256 aliceIORatio,
         uint256 bobIORatio
     ) external {
-        aliceIORatio = bound(aliceIORatio, 0.9e18, 1e18);
+        // 0 tested separately.
+        aliceIORatio = bound(aliceIORatio, 1, 1e18);
         bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Down));
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
@@ -304,8 +305,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackBob[0] = bobIORatio; // orderIORatio
         orderStackBob[1] = 1e18; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
@@ -361,8 +362,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackBob[0] = bobIORatio; // orderIORatio
         orderStackBob[1] = 1e18; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
@@ -406,8 +407,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackBob[0] = 1e18; // Nonzero orderIORatio
         orderStackBob[1] = 0.5e18; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
@@ -451,8 +452,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackBob[0] = 0; // Nonzero orderIORatio
         orderStackBob[1] = 0.5e18; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
@@ -498,8 +499,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         orderStackBob[0] = 0; // Zero orderIORatio
         orderStackBob[1] = 5e17; // orderOutputMax
 
-        doClear(
-            DoClear(
+        checkClear(
+            CheckClear(
                 alice,
                 aliceConfig,
                 bob,
