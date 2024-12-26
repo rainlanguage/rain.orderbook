@@ -3,7 +3,7 @@
 	import { RawRainlangExtension } from 'codemirror-rainlang';
 	import { openLintPanel } from '@codemirror/lint';
 
-	export let value: string;
+	export let rainlangText: string | undefined = undefined;
 	export let disabled = false;
 	export let styles = {};
 	export let rainlangExtension: RawRainlangExtension;
@@ -11,7 +11,7 @@
 </script>
 
 <CodeMirror
-	bind:value
+	value={rainlangText || ''}
 	extensions={[rainlangExtension]}
 	theme={codeMirrorTheme}
 	readonly={disabled}

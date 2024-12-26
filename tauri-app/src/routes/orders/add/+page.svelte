@@ -219,7 +219,7 @@
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
       codeMirrorTheme={$codeMirrorTheme}
-      bind:value={$globalDotrainFile.text}
+      rainlangText={$globalDotrainFile.text}
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
