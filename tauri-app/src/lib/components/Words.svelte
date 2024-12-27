@@ -1,6 +1,6 @@
 <script lang="ts">
   import { P, TabItem, Tabs } from 'flowbite-svelte';
-  import WordTable from '$lib/components/WordTable.svelte';
+  import { WordTable } from '@rainlanguage/ui-components';
   import type { ScenarioWords } from '$lib/typeshare/authoringMeta';
 
   export let authoringMetas: ScenarioWords[] | undefined;
