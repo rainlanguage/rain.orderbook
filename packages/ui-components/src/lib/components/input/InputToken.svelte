@@ -36,8 +36,8 @@
 </script>
 
 <div class="flex w-full items-start justify-start space-x-2">
-	<div class="grow">
-		<div class="relative flex" data-testid="token-address-input">
+	<div class="grow" data-testid="token-address">
+		<div class="relative flex">
 			<Input label="Token Address" name="address" required bind:value={address} />
 		</div>
 
