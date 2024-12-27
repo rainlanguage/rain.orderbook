@@ -108,6 +108,7 @@ pub struct OrderWithSubgraphName {
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
 #[typeshare]
@@ -202,6 +203,7 @@ pub struct VaultBalanceChangeVault {
 #[typeshare]
 #[serde(rename_all = "camelCase")]
 pub struct VaultBalanceChangeUnwrapped {
+    #[serde(rename = "__typename")]
     pub __typename: String,
     pub amount: BigInt,
     pub new_vault_balance: BigInt,
@@ -232,6 +234,7 @@ pub enum VaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct Deposit {
     pub id: Bytes,
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -252,6 +255,7 @@ pub struct Deposit {
 #[serde(rename_all = "camelCase")]
 pub struct Withdrawal {
     pub id: Bytes,
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -272,6 +276,7 @@ pub struct Withdrawal {
 #[serde(rename_all = "camelCase")]
 pub struct TradeVaultBalanceChange {
     pub id: Bytes,
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -292,6 +297,7 @@ pub struct TradeVaultBalanceChange {
 #[serde(rename_all = "camelCase")]
 pub struct ClearBounty {
     pub id: Bytes,
+    #[serde(rename = "__typename")]
     pub __typename: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub amount: BigInt,
@@ -308,6 +314,7 @@ pub struct ClearBounty {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 pub struct TradeEvent {
     pub transaction: Transaction,
@@ -321,10 +328,8 @@ pub struct TradeEvent {
 pub struct Trade {
     pub id: Bytes,
     pub trade_event: TradeEvent,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub output_vault_balance_change: TradeVaultBalanceChange,
     pub order: TradeStructPartialOrder,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub input_vault_balance_change: TradeVaultBalanceChange,
     #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
     pub timestamp: BigInt,
@@ -339,16 +344,18 @@ pub struct OrderStructPartialTrade {
     pub id: Bytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq)]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "ERC20")]
 #[typeshare]
 pub struct Erc20 {
     pub id: Bytes,
     pub address: Bytes,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
     pub name: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
     pub symbol: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
     pub decimals: Option<BigInt>,
 }
 
@@ -372,12 +379,12 @@ pub struct AddOrder {
     pub transaction: Transaction,
 }
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify), serde(rename = "SgBigInt"))]
 #[typeshare]
 pub struct BigInt(pub String);
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq)]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 pub struct Bytes(pub String);
@@ -589,4 +596,6 @@ mod impls {
     impl_all_wasm_traits!(OrdersListFilterArgs);
     impl_all_wasm_traits!(VaultsListFilterArgs);
     impl_all_wasm_traits!(Trade);
+    impl_all_wasm_traits!(TradeStructPartialOrder);
+    impl_all_wasm_traits!(TradeEvent);
 }
