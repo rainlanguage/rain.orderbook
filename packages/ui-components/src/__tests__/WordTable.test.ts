@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
-import { test } from 'vitest';
+import { test, expect } from 'vitest';
 import WordTable from '$lib/components/WordTable.svelte';
-import { expect } from 'tauri-app/src/lib/test/matchers.ts';
 import userEvent from '@testing-library/user-event';
 
 const authoringMeta = {
