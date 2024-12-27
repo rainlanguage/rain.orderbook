@@ -7,7 +7,7 @@
 
 	import type {
 		DotrainOrderGui,
-		GuiDeposit,
+		TokenDeposit,
 		GuiFieldDefinition,
 		SelectTokens,
 		TokenInfos,
@@ -22,7 +22,7 @@
 	export let allFieldDefinitions: GuiFieldDefinition[];
 	export let allTokenInputs: Vault[];
 	export let allTokenOutputs: Vault[];
-	export let allDeposits: GuiDeposit[];
+	export let allDeposits: TokenDeposit[];
 	export let inputVaultIds: string[];
 	export let outputVaultIds: string[];
 	export let isLimitStrat: boolean;
