@@ -3,7 +3,7 @@
   import type { ChartData } from '$lib/typeshare/config';
   import { transformDataForPlot } from '$lib/utils/chartData';
   import { sortBy } from 'lodash';
-  import MetricChart from './MetricChart.svelte';
+  import { MetricChart } from '@rainlanguage/ui-components';
   export let chartData: ChartData;
 </script>
 
