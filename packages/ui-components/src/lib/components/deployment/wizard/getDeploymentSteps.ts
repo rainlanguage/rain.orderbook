@@ -4,7 +4,7 @@ import type { DepositStep, FieldStep, TokenInputStep } from "$lib/types/wizardSt
 
 import type { SelectTokenStep } from "$lib/types/wizardSteps";
 
-import type { DotrainOrderGui, GuiFieldDefinition, TokenInfos, Vault , GuiDeposit} from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui, GuiFieldDefinition, TokenInfos, Vault, TokenDeposit} from '@rainlanguage/orderbook/js_api';
 import type { WizardStep } from '../../../types/wizardSteps';
 
 export const getDeploymentSteps = (
@@ -12,7 +12,7 @@ export const getDeploymentSteps = (
 	isLimitStrat: boolean,
 	allFieldDefinitions: GuiFieldDefinition[],
 	gui: DotrainOrderGui,
-	allDeposits: GuiDeposit[],
+	allDeposits: TokenDeposit[],
 	allTokenInputs: Vault[],
 	allTokenOutputs: Vault[],
 	inputVaultIds: string[],
