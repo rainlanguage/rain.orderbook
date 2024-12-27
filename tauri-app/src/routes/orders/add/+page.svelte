@@ -38,7 +38,7 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
-  import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import { RaindexVersionValidator } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
 
