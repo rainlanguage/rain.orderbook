@@ -1,4 +1,4 @@
-import type { Vault } from '@rainlanguage/orderbook/js_api';
+import type { Vault } from '../typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
 
 export const vaultBalanceDisplay = (vault: Vault) => {
@@ -25,7 +25,7 @@ if (import.meta.vitest) {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as Vault;
+		} as Vault;
 
 		expect(vaultBalanceDisplay(vault)).toEqual('1');
 

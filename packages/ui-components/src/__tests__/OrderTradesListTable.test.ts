@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Trade } from '@rainlanguage/orderbook/js_api';
+import type { Trade } from '../lib/typeshare/subgraphTypes';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
@@ -34,7 +34,7 @@ const mockTradeOrdersList: Trade[] = [
 				}
 			},
 			id: '1',
-			__typename: 'Withdraw',
+			typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -64,7 +64,7 @@ const mockTradeOrdersList: Trade[] = [
 			},
 			amount: '50',
 			id: '1',
-			__typename: 'Withdraw',
+			typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -106,7 +106,7 @@ const mockTradeOrdersList: Trade[] = [
 				}
 			},
 			id: '1',
-			__typename: 'Withdraw',
+			typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',
@@ -136,7 +136,7 @@ const mockTradeOrdersList: Trade[] = [
 			},
 			amount: '50',
 			id: '1',
-			__typename: 'Withdraw',
+			typename: 'Withdraw',
 			newVaultBalance: '0',
 			oldVaultBalance: '0',
 			timestamp: '0',

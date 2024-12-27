@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Helper } from 'flowbite-svelte';
-  import InputHex from '$lib/components/InputHex.svelte';
+  import { InputHex } from '@rainlanguage/ui-components';
 
   export let value: bigint | undefined;
 </script>
