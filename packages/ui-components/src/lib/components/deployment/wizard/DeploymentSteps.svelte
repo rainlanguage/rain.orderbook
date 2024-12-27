@@ -45,8 +45,6 @@
 
 	deploymentStepsStore.populateDeploymentSteps(deploymentSteps);
 
-	$: console.log($deploymentStepsStore);
-
 	$: currentStep = 0;
 
 	const nextStep = () => {

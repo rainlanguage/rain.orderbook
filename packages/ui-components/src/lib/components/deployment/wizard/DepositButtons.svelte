@@ -5,21 +5,15 @@
 		type TokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { Input, Button } from 'flowbite-svelte';
-	import type { StepType } from '../../../types/wizardSteps';
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 	export let tokenInfos: TokenInfos;
-	export let type: StepType;
 
-	let showCustomInput = false;
-
-	$: console.log('deposit', deposit);
+	let showCustomInput = !gui?.isDepositPreset(deposit.token_name);
 
 	function handlePresetClick(preset: string) {
-		console.log('PRESET CLICK');
 		gui?.saveDeposit(deposit.token_name, preset);
-		console.log(gui?.getDeposits());
 		showCustomInput = false;
 		gui = gui;
 	}
@@ -65,7 +59,7 @@
 			</Button>
 		</div>
 	{/if}
-	{#if !gui?.isDepositPreset(deposit.token_name)}
+	{#if showCustomInput}
 		<div class="mt-8 w-full max-w-md">
 			<Input
 				class="text-center text-lg"
