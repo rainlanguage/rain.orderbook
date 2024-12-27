@@ -10,7 +10,6 @@
 	export let gui: DotrainOrderGui;
 	export let type: StepType;
 	export let useCustomVaultIds: boolean;
-
 </script>
 
 <div class="flex flex-grow flex-col items-center">

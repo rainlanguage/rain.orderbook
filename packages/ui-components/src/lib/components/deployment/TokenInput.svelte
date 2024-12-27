@@ -12,7 +12,7 @@
 
 <div class="flex items-center gap-2">
 	<Label class="whitespace-nowrap"
-		>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol})</Label
+		>Input {i + 1} ({tokenInfos.get(input.token.address)?.symbol || ''})</Label
 	>
 	<Input
 		type="text"

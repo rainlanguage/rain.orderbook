@@ -1,10 +1,16 @@
-import type { TokenOutputStep } from "$lib/types/wizardSteps";
+import type { TokenOutputStep } from '$lib/types/wizardSteps';
 
-import type { DepositStep, FieldStep, TokenInputStep } from "$lib/types/wizardSteps";
+import type { DepositStep, FieldStep, TokenInputStep } from '$lib/types/wizardSteps';
 
-import type { SelectTokenStep } from "$lib/types/wizardSteps";
+import type { SelectTokenStep } from '$lib/types/wizardSteps';
 
-import type { DotrainOrderGui, GuiFieldDefinition, TokenInfos, Vault, TokenDeposit} from '@rainlanguage/orderbook/js_api';
+import type {
+	DotrainOrderGui,
+	GuiFieldDefinition,
+	TokenInfos,
+	Vault,
+	TokenDeposit
+} from '@rainlanguage/orderbook/js_api';
 import type { WizardStep } from '../../../types/wizardSteps';
 
 export const getDeploymentSteps = (
@@ -64,13 +70,12 @@ export const getDeploymentSteps = (
 				type: 'tokenOutput',
 				output,
 				gui,
-					tokenInfos,
-					i,
-					outputVaultIds
+				tokenInfos,
+				i,
+				outputVaultIds
 			})
 		)
 	];
 
 	return deploymentSteps;
 };
-

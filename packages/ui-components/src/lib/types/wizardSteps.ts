@@ -51,4 +51,9 @@ export interface TokenOutputStep extends BaseWizardStep {
 	outputVaultIds: string[];
 }
 
-export type WizardStep = SelectTokenStep | FieldStep | DepositStep | TokenInputStep | TokenOutputStep;
+export type WizardStep =
+	| SelectTokenStep
+	| FieldStep
+	| DepositStep
+	| TokenInputStep
+	| TokenOutputStep;
