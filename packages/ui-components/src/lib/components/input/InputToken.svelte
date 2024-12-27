@@ -37,7 +37,7 @@
 
 <div class="flex w-full items-start justify-start space-x-2">
 	<div class="grow">
-		<div class="relative flex">
+		<div class="relative flex" data-testid="token-address-input">
 			<Input label="Token Address" name="address" required bind:value={address} />
 		</div>
 
@@ -47,7 +47,7 @@
 
 		<Helper class="mt-2 text-sm">Token Address</Helper>
 	</div>
-	<div class="w-32 grow-0 break-all">
+	<div class="w-32 grow-0 break-all" data-testid="token-decimals-input">
 		<input
 			type="text"
 			value={decimalsRaw}
