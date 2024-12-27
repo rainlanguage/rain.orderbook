@@ -1,7 +1,6 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import InputToken from '../lib/components/input/InputToken.svelte';
 
-
 describe('InputToken', () => {
 	it('renders with initial values', () => {
 		const address = '0xc0D477556c25C9d67E1f57245C7453DA776B51cf';
@@ -31,7 +30,9 @@ describe('InputToken', () => {
 		const { getByTestId, queryByText } = render(InputToken, { props: { address, decimals } });
 
 		const addressInput = getByTestId('token-address').querySelector('input') as HTMLInputElement;
-		await fireEvent.input(addressInput, { target: { value: '0xc0D477556c25C9d67E1f57245C7453DA776B51cf' } });
+		await fireEvent.input(addressInput, {
+			target: { value: '0xc0D477556c25C9d67E1f57245C7453DA776B51cf' }
+		});
 
 		expect(queryByText('Invalid Address')).toBeNull();
 	});
