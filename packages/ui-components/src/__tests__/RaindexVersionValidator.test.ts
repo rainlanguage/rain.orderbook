@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
-import RaindexVersionValidator from './RaindexVersionValidator.svelte';
+import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
 
 describe('RaindexVersionValidator Component', () => {
 	test('should show error message if error is a string that starts with "Raindex version"', () => {
