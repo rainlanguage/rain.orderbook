@@ -9,7 +9,7 @@
 	import deploymentStepsStore from './deploymentStepsStore';
 
 	export let deposit: GuiDeposit;
-	export let gui: Dotrai\nOrderGui;
+	export let gui: DotrainOrderGui;
 	export let tokenInfos: TokenInfos;
 	export let type: StepType;
 	export let currentStep: number;
@@ -21,7 +21,8 @@
 	function handlePresetClick(preset: string) {
 		console.log('PRESET CLICK');
 		gui?.saveDeposit(deposit.token_name, preset);
-		const thisDeposit = gui.getDeposits();
+		// TODO: Write getDeposit
+		const thisDeposit = gui.getDeposit();
 		deploymentStepsStore.updateDeploymentStep(currentStep, {
 			...$deploymentStepsStore[currentStep],
 			tokenDeposit: thisFieldValue
