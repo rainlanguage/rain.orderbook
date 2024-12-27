@@ -24,4 +24,15 @@ describe('InputToken', () => {
 
 		expect(getByText('Invalid Address')).toBeInTheDocument();
 	});
+
+	it('does not show error for valid address', async () => {
+		const address = '';
+		const decimals = 0;
+		const { getByTestId, queryByText } = render(InputToken, { props: { address, decimals } });
+
+		const addressInput = getByTestId('token-address').querySelector('input') as HTMLInputElement;
+		await fireEvent.input(addressInput, { target: { value: '0xc0D477556c25C9d67E1f57245C7453DA776B51cf' } });
+
+		expect(queryByText('Invalid Address')).toBeNull();
+	});
 });
