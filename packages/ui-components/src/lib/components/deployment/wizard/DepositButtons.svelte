@@ -6,11 +6,13 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { Input, Button } from 'flowbite-svelte';
 	import type { StepType } from '../../../types/wizardSteps';
+	import deploymentStepsStore from './deploymentStepsStore';
 
 	export let deposit: GuiDeposit;
-	export let gui: DotrainOrderGui;
+	export let gui: Dotrai\nOrderGui;
 	export let tokenInfos: TokenInfos;
 	export let type: StepType;
+	export let currentStep: number;
 
 	let showCustomInput = false;
 
@@ -19,7 +21,11 @@
 	function handlePresetClick(preset: string) {
 		console.log('PRESET CLICK');
 		gui?.saveDeposit(deposit.token_name, preset);
-		console.log(gui?.getDeposits());
+		const thisDeposit = gui.getDeposits();
+		deploymentStepsStore.updateDeploymentStep(currentStep, {
+			...$deploymentStepsStore[currentStep],
+			tokenDeposit: thisFieldValue
+		});
 		showCustomInput = false;
 		gui = gui;
 	}

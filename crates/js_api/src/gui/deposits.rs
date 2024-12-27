@@ -1,3 +1,6 @@
+use alloy::alloy_primitives::Address;
+use std::ops::Add;
+
 use super::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -11,6 +14,40 @@ impl_all_wasm_traits!(TokenDeposit);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
+    #[wasm_bindgen(js_name = "getDeposit")]
+    pub fn get_deposit(&self, address: Address) -> Result<TokenDeposit, GuiError> {
+        self.deposits
+            .iter()
+            .find_map(|(token, value)| {
+                let gui_deposit = self
+                    .deployment
+                    .deposits
+                    .iter()
+                    .find(|dg| dg.token_name == *token && dg.token.address == address)
+                    .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+
+                let amount: String = if value.is_preset {
+                    gui_deposit
+                        .presets
+                        .iter()
+                        .find(|preset| **preset == value.value)
+                        .ok_or(GuiError::InvalidPreset)?
+                        .clone()
+                } else {
+                    value.value.clone()
+                };
+
+                Some(Ok(TokenDeposit {
+                    token: gui_deposit.token_name.clone(),
+                    amount,
+                    address: gui_deposit.token.address,
+                }))
+            })
+            .unwrap_or(Err(GuiError::DepositTokenNotFound(
+                "No matching deposit".to_string(),
+            )))
+    }
+
     #[wasm_bindgen(js_name = "getDeposits")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
         self.deposits
