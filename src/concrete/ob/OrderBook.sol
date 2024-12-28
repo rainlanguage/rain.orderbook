@@ -786,8 +786,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 new uint256[](0)
             );
 
-            // This is a much error message and overall more efficient than
-            // solidity generic index out of bounds errors.
+            // This is a much clearer error message and overall is more efficient
+            // than solidity generic index out of bounds errors.
             if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
                 revert UnsupportedCalculateOutputs(calculateOrderStack.length);
             }
