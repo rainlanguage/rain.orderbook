@@ -1,5 +1,7 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
+use crate::performance::vol::{get_vaults_vol, VaultVolume};
+use crate::performance::OrderPerformance;
 use crate::types::common::*;
 use crate::types::order::{
     BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
@@ -8,11 +10,10 @@ use crate::types::order::{
 use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
-use crate::vol::{get_vaults_vol, VaultVolume};
 use cynic::Id;
 use reqwest::Url;
+use std::num::ParseIntError;
 use thiserror::Error;
-
 #[cfg(target_family = "wasm")]
 use wasm_bindgen::{JsError, JsValue};
 
@@ -30,9 +31,15 @@ pub enum OrderbookSubgraphClientError {
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
+    #[error(transparent)]
+    PerformanceError(#[from] crate::performance::PerformanceError),
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    #[error("Failed to extend the order detail")]
+    OrderDetailExtendError,
 }
 
 #[cfg(target_family = "wasm")]
@@ -229,6 +236,25 @@ impl OrderbookSubgraphClient {
             .order_trades_list_all(order_id, start_timestamp, end_timestamp)
             .await?;
         Ok(get_vaults_vol(&trades)?)
+    }
+
+    /// Fetches order data and measures an order's detailed performance (apy and vol)
+    pub async fn order_performance(
+        &self,
+        order_id: cynic::Id,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<OrderPerformance, OrderbookSubgraphClientError> {
+        let order = self.order_detail(order_id.clone()).await?;
+        let trades = self
+            .order_trades_list_all(order_id, start_timestamp, end_timestamp)
+            .await?;
+        Ok(OrderPerformance::measure(
+            &order,
+            &trades,
+            start_timestamp,
+            end_timestamp,
+        )?)
     }
 
     /// Fetch single vault

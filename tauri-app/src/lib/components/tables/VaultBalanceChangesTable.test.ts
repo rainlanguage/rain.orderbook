@@ -29,7 +29,7 @@ test('renders the vault list table with correct data', async () => {
 
   const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
     {
-      typename: 'Withdrawal',
+      __typename: 'Withdrawal',
       amount: '1000',
       oldVaultBalance: '5000',
       newVaultBalance: '4000',
@@ -56,7 +56,7 @@ test('renders the vault list table with correct data', async () => {
       },
     },
     {
-      typename: 'TradeVaultBalanceChange',
+      __typename: 'TradeVaultBalanceChange',
       amount: '1500',
       oldVaultBalance: '4000',
       newVaultBalance: '2500',
@@ -83,7 +83,7 @@ test('renders the vault list table with correct data', async () => {
       },
     },
     {
-      typename: 'Deposit',
+      __typename: 'Deposit',
       amount: '2000',
       oldVaultBalance: '2500',
       newVaultBalance: '4500',
@@ -133,7 +133,7 @@ test('it shows the correct data in the table', async () => {
 
   const mockVaultBalanceChanges: VaultBalanceChangeUnwrapped[] = [
     {
-      typename: 'Withdrawal',
+      __typename: 'Withdrawal',
       amount: '1000',
       oldVaultBalance: '5000',
       newVaultBalance: '4000',

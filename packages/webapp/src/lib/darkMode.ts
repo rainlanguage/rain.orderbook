@@ -1,5 +1,10 @@
-import { darkCodeMirrorTheme, lightCodeMirrorTheme } from '../utils/codeMirrorThemes';
-import { darkChartTheme, lightChartTheme } from '../utils/lightweightChartsThemes';
+import {
+	darkCodeMirrorTheme,
+	lightCodeMirrorTheme,
+	darkChartTheme,
+	lightChartTheme
+} from '@rainlanguage/ui-components';
+
 import { derived, writable } from 'svelte/store';
 
 function readColorTheme(): 'dark' | 'light' {

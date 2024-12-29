@@ -1,24 +1,43 @@
+pub mod dotrain;
 pub mod orderbook;
 
-use crate::{ParseNetworkConfigSourceError, ParseTokenConfigSourceError};
+use crate::{
+    ParseDeployerConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
+    ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
+};
+use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
     EmitError, ScanError, StrictYaml, StrictYamlLoader,
 };
 use thiserror::Error;
+use url::ParseError as UrlParseError;
+
+pub trait YamlParsable: Sized {
+    fn new(source: String, validate: bool) -> Result<Self, YamlError>;
+
+    fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
+        let document = document.read().unwrap();
+        let mut out_str = String::new();
+        let mut emitter = StrictYamlEmitter::new(&mut out_str);
+        emitter.dump(&document)?;
+        Ok(out_str)
+    }
+}
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: String) -> Result<Self, YamlError> {
+    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: &str) -> Result<Self, YamlError> {
         let all = Self::parse_all_from_yaml(document)?;
-        all.get(&key)
-            .ok_or_else(|| YamlError::KeyNotFound(key))
+        all.get(key)
+            .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
     }
 }
@@ -29,6 +48,10 @@ pub trait YamlParsableVector: Sized {
 
 pub trait YamlParsableString {
     fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+
+    fn parse_from_yaml_optional(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Option<String>, YamlError>;
 }
 
 #[derive(Debug, Error)]
@@ -41,6 +64,10 @@ pub enum YamlError {
     RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
     #[error(transparent)]
     RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
+    #[error(transparent)]
+    UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    RuintParseError(#[from] RuintParseError),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -55,10 +82,18 @@ pub enum YamlError {
     ReadLockError,
     #[error("Document write lock error")]
     WriteLockError,
+    #[error("Invalid trait function")]
+    InvalidTraitFunction,
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
     ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
+    #[error(transparent)]
+    ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    #[error(transparent)]
+    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    #[error(transparent)]
+    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -153,4 +188,18 @@ pub fn require_vec<'a>(
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {
     value[field].as_vec()
+}
+
+pub fn default_document() -> Arc<RwLock<StrictYaml>> {
+    Arc::new(RwLock::new(StrictYaml::String("".to_string())))
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
+        let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
+        Arc::new(RwLock::new(document))
+    }
 }

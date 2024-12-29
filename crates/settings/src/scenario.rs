@@ -74,7 +74,7 @@ impl ScenarioConfigSource {
 
         // Check for non-matching override: if both the current and parent deployers are present and different, it's an error.
         if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
-            if deployer.label != parent_deployer.label {
+            if deployer.key != parent_deployer.key {
                 return Err(ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                     resolved_name.clone(),
                 ));
