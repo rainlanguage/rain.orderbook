@@ -56,6 +56,8 @@ export { default as TokenOutput } from './components/deployment/wizard/TokenOutp
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as TokenInputButtons } from './components/deployment/wizard/TokenInputButtons.svelte';
 export { default as TokenOutputButtons } from './components/deployment/wizard/TokenOutputButtons.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';

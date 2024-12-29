@@ -15,6 +15,7 @@
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
+		type Network,
 		type SelectTokens,
 		type TokenInfos,
 		type Vault
@@ -155,7 +156,7 @@
 			await window.ethereum?.request({ method: 'eth_requestAccounts' });
 			const walletClient = createWalletClient({
 				chain: getChainById(
-					gui.getCurrentDeployment().deployment.order.network['chain-id'] as number
+					(gui.getCurrentDeployment().deployment.order.network as Network)['chain-id'] as number
 				),
 				// @ts-expect-error window.ethereum is not typed
 				transport: custom(window.ethereum!)
