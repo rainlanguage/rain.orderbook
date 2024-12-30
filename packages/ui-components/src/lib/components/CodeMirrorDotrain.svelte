@@ -11,7 +11,6 @@
 </script>
 
 <div data-testid="codemirror-dotrain">
-	{rainlangText}
 	<CodeMirror
 		value={rainlangText || ''}
 		extensions={[rainlangExtension]}
