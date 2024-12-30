@@ -65,6 +65,8 @@ impl DeploymentConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
+    use std::sync::RwLock;
+    use strict_yaml_rust::StrictYaml;
 
     #[test]
     fn test_try_into_deployment_success() {
@@ -78,6 +80,8 @@ mod tests {
             blocks: None,
         };
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),
@@ -107,6 +111,8 @@ mod tests {
             blocks: None,
         };
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),
