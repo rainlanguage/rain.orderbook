@@ -10,23 +10,26 @@
 	export let codeMirrorTheme;
 </script>
 
-<CodeMirror
-	value={rainlangText || ''}
-	extensions={[rainlangExtension]}
-	theme={codeMirrorTheme}
-	readonly={disabled}
-	useTab={true}
-	tabSize={2}
-	styles={{
-		'&': {
-			width: '100%'
-		},
-		...styles
-	}}
-	on:ready={(e) => {
-		openLintPanel(e.detail);
-	}}
-/>
+<div data-testid="codemirror-dotrain">
+	{rainlangText}
+	<CodeMirror
+		value={rainlangText || ''}
+		extensions={[rainlangExtension]}
+		theme={codeMirrorTheme}
+		readonly={disabled}
+		useTab={true}
+		tabSize={2}
+		styles={{
+			'&': {
+				width: '100%'
+			},
+			...styles
+		}}
+		on:ready={(e) => {
+			openLintPanel(e.detail);
+		}}
+	/>
+</div>
 
 <style global>
 	:global(.ͼ1 .cm-panel.cm-panel-lint ul [aria-selected]) {
