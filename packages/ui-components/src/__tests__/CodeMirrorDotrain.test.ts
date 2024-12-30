@@ -4,7 +4,6 @@ import { CodeMirrorDotrain } from '@rainlanguage/ui-components';
 import { RawRainlangExtension } from 'codemirror-rainlang'; // Direct import
 import { writable } from 'svelte/store';
 
-// Mock dependencies
 vi.mock('codemirror-rainlang', () => ({
 	RawRainlangExtension: vi.fn(() => ({
 		plugin: vi.fn(),
@@ -46,9 +45,28 @@ describe('CodeMirrorDotrain', () => {
 				codeMirrorTheme: writable({})
 			}
 		});
-
 		await waitFor(() => {
 			expect(screen.getByTestId('codemirror-dotrain')).toBeInTheDocument();
 		});
+	});
+
+	it('should render codemirror-dotrain component with correct initial value', async () => {
+		const testValue = 'initial dotrain value';
+		const rainlangExtensionMock = new RawRainlangExtension({
+			hover: async () => null,
+			completion: async () => null,
+			diagnostics: async () => []
+		});
+
+		const screen = render(CodeMirrorDotrain, {
+			props: {
+				rainlangText: testValue,
+				disabled: false,
+				styles: {},
+				rainlangExtension: rainlangExtensionMock,
+				codeMirrorTheme: writable({})
+			}
+		});
+		expect(screen.component.$$.ctx[0]).toBe(testValue);
 	});
 });
