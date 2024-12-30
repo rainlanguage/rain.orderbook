@@ -46,6 +46,7 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as MetricChart } from './components/charts/MetricChart.svelte';
 
 //Types
