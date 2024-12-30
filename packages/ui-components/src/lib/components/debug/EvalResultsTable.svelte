@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { RainEvalResultsTable } from '$lib/typeshare/config';
   import {
     Table,
     TableBody,
@@ -10,7 +9,7 @@
   } from 'flowbite-svelte';
   import { formatEther, hexToBigInt, isHex } from 'viem';
 
-  export let table: RainEvalResultsTable;
+  export let table;
 </script>
 
 <Table divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border">

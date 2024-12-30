@@ -3,7 +3,7 @@
   import { tradeDebug } from '$lib/queries/tradeDebug';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal, Spinner } from 'flowbite-svelte';
-  import EvalResultsTable from '../debug/EvalResultsTable.svelte';
+  import { EvalResultsTable } from '@rainlanguage/ui-components';
 
   export let open: boolean;
   export let txHash: string;

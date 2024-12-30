@@ -5,8 +5,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
   import { type Hex } from 'viem';
-  import { Refresh } from '@rainlanguage/ui-components';
-  import EvalResultsTable from '../debug/EvalResultsTable.svelte';
+  import { Refresh, EvalResultsTable } from '@rainlanguage/ui-components';
   import { fade } from 'svelte/transition';
 
   export let open: boolean;
