@@ -14,14 +14,11 @@ use commands::config::{convert_configstring_to_config, merge_configstrings, pars
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
-    compose_from_scenario, order_add, order_add_calldata, order_detail, order_remove,
-    order_remove_calldata, orders_list_write_csv, validate_raindex_version,
+    compose_from_scenario, order_add, order_add_calldata, order_remove, order_remove_calldata,
+    orders_list_write_csv, validate_raindex_version,
 };
 use commands::order_quote::{batch_order_quotes, debug_order_quote};
-use commands::order_take::{
-    order_trades_count, order_trades_list, order_trades_list_write_csv,
-    order_vaults_volume,
-};
+use commands::order_take::order_trades_list_write_csv;
 use commands::trade_debug::debug_trade;
 use commands::vault::{
     vault_balance_changes_list, vault_balance_changes_list_write_csv, vault_deposit,
@@ -53,10 +50,8 @@ fn run_tauri_app() {
             vault_deposit,
             vault_withdraw,
             orders_list_write_csv,
-            order_detail,
             order_add,
             order_remove,
-            order_trades_list,
             order_trades_list_write_csv,
             get_address_from_ledger,
             get_chainid,
@@ -80,9 +75,7 @@ fn run_tauri_app() {
             debug_order_quote,
             debug_trade,
             get_app_commit_sha,
-            validate_raindex_version,
-            order_vaults_volume,
-            order_trades_count,
+            validate_raindex_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
