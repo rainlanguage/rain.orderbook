@@ -46,11 +46,11 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
-export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -74,7 +74,8 @@ export {
 	QKEY_ORDER,
 	QKEY_ORDER_TRADES_LIST,
 	QKEY_ORDER_QUOTE,
-	QKEY_VAULTS_VOL_LIST
+	QKEY_VAULTS_VOL_LIST,
+	QKEY_ORDER_APY
 } from './queries/keys';
 export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes';
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
