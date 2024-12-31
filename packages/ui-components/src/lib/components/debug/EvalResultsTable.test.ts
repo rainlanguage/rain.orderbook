@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { test } from 'vitest';
-import { expect } from 'tauri-app/src/lib/test/matchers.ts';
+import { test, expect } from 'vitest';
 import EvalResultsTable from './EvalResultsTable.svelte';
 import { formatEther, hexToBigInt, isHex } from 'viem';
 
