@@ -1,6 +1,8 @@
 <script lang="ts">
-  export let metric;
-  export let data;
+  import type { Metric } from '$lib/typeshare/config';
+  import type { TransformedPlotData } from '$lib/utils/chartData';
+  export let metric: Metric;
+  export let data: TransformedPlotData[];
 
   $: metricData = metric?.precision
     ? parseFloat(data[0]?.[metric.value].toPrecision(metric.precision)).toString()
