@@ -19,12 +19,12 @@
     >
   </div>
   <div style="position: relative; padding-bottom: 64.63195691202873%; height: 0;" class="w-full">
-    <!--    <iframe-->
-    <!--      title="Raindex Demo"-->
-    <!--      src="https://www.loom.com/embed/fca750f31f0a43258891cea0ddacb588?sid=21583276-742b-49d5-a7db-b6e9e01ca418"-->
-    <!--      frameborder="0"-->
-    <!--      allowfullscreen-->
-    <!--      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"-->
-    <!--    ></iframe>-->
+    <iframe
+      title="Raindex Demo"
+      src="https://www.loom.com/embed/fca750f31f0a43258891cea0ddacb588?sid=21583276-742b-49d5-a7db-b6e9e01ca418"
+      frameborder="0"
+      allowfullscreen
+      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+    ></iframe>
   </div>
 </div>
