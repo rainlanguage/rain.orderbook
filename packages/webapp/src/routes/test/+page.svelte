@@ -10,22 +10,6 @@
 		IconExternalLink
 	} from '@rainlanguage/ui-components';
 	let isLoading: boolean = true;
-	// Mock data for `metric` prop
-	const metric = {
-		label: 'Test Metric',
-		description: 'This is a test metric.',
-		'unit-prefix': '$',
-		'unit-suffix': ' USD',
-		value: 'testValue',
-		precision: 2
-	};
-
-	// Mock data for `data` prop
-	const data = [
-		{
-			testValue: 1234.5678
-		}
-	];
 </script>
 
 <div>
