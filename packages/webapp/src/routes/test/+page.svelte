@@ -7,8 +7,7 @@
 		IconTelegram,
 		IconWalletConnect,
 		IconWarning,
-		IconExternalLink,
-		MetricChart
+		IconExternalLink
 	} from '@rainlanguage/ui-components';
 	let isLoading: boolean = true;
 	// Mock data for `metric` prop
@@ -41,5 +40,4 @@
 	<IconTelegram dark />
 	<IconWalletConnect />
 	<IconWarning />
-	<MetricChart {metric} {data} />
 </div>
