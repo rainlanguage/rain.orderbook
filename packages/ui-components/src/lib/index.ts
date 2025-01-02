@@ -46,11 +46,29 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as FieldDefinitionDropdown } from './components/deployment/FieldDefinitionDropdown.svelte';
+export { default as DepositDropdown } from './components/deployment/DepositDropdown.svelte';
+export { default as FieldDefinitionButtons } from './components/deployment/wizard/FieldDefinitionButtons.svelte';
+export { default as DepositButtons } from './components/deployment/wizard/DepositButtons.svelte';
+export { default as DeploymentSteps } from './components/deployment/wizard/DeploymentSteps.svelte';
+export { default as TokenInput } from './components/deployment/TokenInput.svelte';
+export { default as TokenOutput } from './components/deployment/TokenOutput.svelte';
+export { default as SelectToken } from './components/deployment/SelectToken.svelte';
+export { default as TokenInputButtons } from './components/deployment/wizard/TokenInputButtons.svelte';
+export { default as TokenOutputButtons } from './components/deployment/wizard/TokenOutputButtons.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
+export type {
+	WizardStep,
+	SelectTokenStep,
+	FieldStep,
+	DepositStep,
+	TokenInputStep,
+	TokenOutputStep
+} from './types/wizardSteps';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
