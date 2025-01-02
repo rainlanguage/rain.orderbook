@@ -10,7 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    optional_string, require_hash, require_string, require_vec, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, require_vec, YamlError,
+    YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -38,9 +39,8 @@ impl_all_wasm_traits!(OrderIO);
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Order {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "OrderIO[]"))]

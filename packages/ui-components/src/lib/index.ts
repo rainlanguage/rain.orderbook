@@ -46,11 +46,15 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
+export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
+export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
+export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
-export type { Vault } from './typeshare/subgraphTypes';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -62,6 +66,7 @@ export {
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
+export { bigintToFloat } from './utils/number';
 
 // Constants
 
@@ -74,7 +79,8 @@ export {
 	QKEY_ORDER,
 	QKEY_ORDER_TRADES_LIST,
 	QKEY_ORDER_QUOTE,
-	QKEY_VAULTS_VOL_LIST
+	QKEY_VAULTS_VOL_LIST,
+	QKEY_ORDER_APY
 } from './queries/keys';
 export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes';
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
