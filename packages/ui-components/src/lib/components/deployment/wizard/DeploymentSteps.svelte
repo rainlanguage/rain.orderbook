@@ -70,7 +70,7 @@
 	{#if currentStep.type === 'tokens'}
 		<SelectToken {...currentStep} />
 	{:else if currentStep.type === 'fields'}
-		<FieldDefinitionButtons {currentStep} {currentStepIndex} />
+		<FieldDefinitionButtons {...currentStep} {currentStepIndex} {currentStep} />
 	{:else if currentStep.type === 'deposits'}
 		<DepositButtons {...currentStep} />
 	{:else if currentStep.type === 'tokenInput'}

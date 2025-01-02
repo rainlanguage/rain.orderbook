@@ -4,8 +4,8 @@ import type {
 	GuiFieldDefinition,
 	TokenInfos,
 	Vault,
-	TokenDeposit,
-	GuiPreset
+	GuiPreset,
+	GuiDeposit
 } from '@rainlanguage/orderbook/js_api';
 
 export interface SelectTokenStep {
@@ -24,7 +24,7 @@ export interface FieldStep {
 
 export interface DepositStep {
 	type: 'deposits';
-	deposit: TokenDeposit;
+	deposit: GuiDeposit;
 	gui: DotrainOrderGui;
 	tokenInfos: TokenInfos;
 }

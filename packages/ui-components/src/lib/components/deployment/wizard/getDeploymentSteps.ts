@@ -9,7 +9,7 @@ import type {
 	GuiFieldDefinition,
 	TokenInfos,
 	Vault,
-	TokenDeposit
+	GuiDeposit
 } from '@rainlanguage/orderbook/js_api';
 import type { WizardStep } from '../../../types/wizardSteps';
 
@@ -18,7 +18,7 @@ export const getDeploymentSteps = (
 	isLimitStrat: boolean,
 	allFieldDefinitions: GuiFieldDefinition[],
 	gui: DotrainOrderGui,
-	allDeposits: TokenDeposit[],
+	allDeposits: GuiDeposit[],
 	allTokenInputs: Vault[],
 	allTokenOutputs: Vault[],
 	inputVaultIds: string[],
