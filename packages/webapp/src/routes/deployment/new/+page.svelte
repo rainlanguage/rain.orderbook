@@ -177,7 +177,6 @@
 		}
 	}
 
-	let useCustomVaultIds = false;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	function initializeVaultIdArrays() {
@@ -185,7 +184,6 @@
 		const deployment = gui.getCurrentDeployment();
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
-		useCustomVaultIds = false;
 	}
 </script>
 
@@ -226,7 +224,6 @@
 			<DeploymentSteps
 				{gui}
 				{isLimitStrat}
-				{useCustomVaultIds}
 				{inputVaultIds}
 				{outputVaultIds}
 				{handleAddOrder}

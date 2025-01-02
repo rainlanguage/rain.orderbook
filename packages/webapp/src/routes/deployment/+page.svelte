@@ -239,9 +239,7 @@
 	{/if}
 
 	{#if allFieldDefinitions.length > 0}
-		<Label class="my-4 whitespace-nowrap border-2 border-red-500 text-2xl underline"
-			>Field Values</Label
-		>
+		<Label class="my-4 whitespace-nowrap text-2xl underline">Field Values</Label>
 		{#each allFieldDefinitions as fieldDefinition}
 			<FieldDefinitionDropdown {fieldDefinition} {gui} />
 		{/each}

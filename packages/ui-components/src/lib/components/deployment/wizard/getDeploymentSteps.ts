@@ -13,6 +13,10 @@ import type {
 } from '@rainlanguage/orderbook/js_api';
 import type { WizardStep } from '../../../types/wizardSteps';
 
+// TODO: Add a check to see if the user has selected to use custom token input/outputs
+// If they have, then we need to add a step to the wizard to allow them to enter the vault ids
+// If they have not, then we can skip this step
+
 export const getDeploymentSteps = (
 	selectTokens: Map<string, string>,
 	isLimitStrat: boolean,

@@ -35,7 +35,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: mockFieldDefinition,
+					gui: mockGui
+				}
 			}
 		});
 
@@ -48,7 +53,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: mockFieldDefinition,
+					gui: mockGui
+				}
 			}
 		});
 
@@ -62,7 +72,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: mockFieldDefinition,
+					gui: mockGui
+				}
 			}
 		});
 
@@ -80,7 +95,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: mockFieldDefinition,
+					gui: mockGui
+				}
 			}
 		});
 
@@ -93,7 +113,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: mockFieldDefinition,
+					gui: mockGui
+				}
 			}
 		});
 
@@ -118,7 +143,12 @@ describe('FieldDefinitionButtons', () => {
 			props: {
 				fieldDefinition: fastExitFieldDef,
 				gui: mockGui,
-				currentStep: 0
+				currentStepIndex: 0,
+				currentStep: {
+					type: 'fields',
+					fieldDefinition: fastExitFieldDef,
+					gui: mockGui
+				}
 			}
 		});
 

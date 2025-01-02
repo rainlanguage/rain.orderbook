@@ -26,7 +26,6 @@
 	export let inputVaultIds: string[];
 	export let outputVaultIds: string[];
 	export let isLimitStrat: boolean;
-	export let useCustomVaultIds: boolean;
 	export let handleAddOrder: () => Promise<void>;
 	export let tokenInfos: TokenInfos;
 
@@ -74,9 +73,9 @@
 	{:else if currentStep.type === 'deposits'}
 		<DepositButtons {...currentStep} />
 	{:else if currentStep.type === 'tokenInput'}
-		<TokenInputButtons {...currentStep} {useCustomVaultIds} />
+		<TokenInputButtons {...currentStep} />
 	{:else if currentStep.type === 'tokenOutput'}
-		<TokenOutputButtons {...currentStep} {useCustomVaultIds} />
+		<TokenOutputButtons {...currentStep} />
 	{/if}
 
 	<div class="flex justify-between gap-4">
