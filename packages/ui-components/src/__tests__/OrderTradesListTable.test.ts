@@ -152,7 +152,7 @@ const mockTradeOrdersList: Trade[] = [
 			id: '0x00'
 		}
 	}
-];
+] as unknown as Trade[];
 
 vi.mock('@tanstack/svelte-query');
 
