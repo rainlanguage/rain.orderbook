@@ -7,7 +7,7 @@
 
 	import type {
 		DotrainOrderGui,
-		TokenDeposit,
+		GuiDeposit,
 		GuiFieldDefinition,
 		SelectTokens,
 		TokenInfos,
@@ -22,7 +22,7 @@
 	export let allFieldDefinitions: GuiFieldDefinition[];
 	export let allTokenInputs: Vault[];
 	export let allTokenOutputs: Vault[];
-	export let allDeposits: TokenDeposit[];
+	export let allDeposits: GuiDeposit[];
 	export let inputVaultIds: string[];
 	export let outputVaultIds: string[];
 	export let isLimitStrat: boolean;
@@ -45,50 +45,52 @@
 
 	deploymentStepsStore.populateDeploymentSteps(deploymentSteps);
 
-	$: currentStep = 0;
+	$: currentStepIndex = 0;
 
 	const nextStep = () => {
-		if (currentStep < deploymentSteps.length - 1) {
-			currentStep++;
+		if (currentStepIndex < deploymentSteps.length - 1) {
+			currentStepIndex++;
 		}
 	};
 
 	const previousStep = () => {
-		if (currentStep > 0) {
-			currentStep--;
+		if (currentStepIndex > 0) {
+			currentStepIndex--;
 		}
 	};
+
+	$: currentStep = deploymentSteps[currentStepIndex];
 </script>
 
 <div class="flex h-[80vh] flex-col justify-between">
 	<div class="text-lg text-gray-800 dark:text-gray-200">
-		Step {currentStep + 1} of {deploymentSteps.length}
+		Step {currentStepIndex + 1} of {deploymentSteps.length}
 	</div>
 
-	{#if deploymentSteps[currentStep].type === 'tokens'}
-		<SelectToken {...deploymentSteps[currentStep]} />
-	{:else if deploymentSteps[currentStep].type === 'fields'}
-		<FieldDefinitionButtons {...deploymentSteps[currentStep]} {currentStep} />
-	{:else if deploymentSteps[currentStep].type === 'deposits'}
-		<DepositButtons {...deploymentSteps[currentStep]} />
-	{:else if deploymentSteps[currentStep].type === 'tokenInput'}
-		<TokenInputButtons {...deploymentSteps[currentStep]} {useCustomVaultIds} />
-	{:else if deploymentSteps[currentStep].type === 'tokenOutput'}
-		<TokenOutputButtons {...deploymentSteps[currentStep]} {useCustomVaultIds} />
+	{#if currentStep.type === 'tokens'}
+		<SelectToken {...currentStep} />
+	{:else if currentStep.type === 'fields'}
+		<FieldDefinitionButtons {currentStep} {currentStepIndex} />
+	{:else if currentStep.type === 'deposits'}
+		<DepositButtons {...currentStep} />
+	{:else if currentStep.type === 'tokenInput'}
+		<TokenInputButtons {...currentStep} {useCustomVaultIds} />
+	{:else if currentStep.type === 'tokenOutput'}
+		<TokenOutputButtons {...currentStep} {useCustomVaultIds} />
 	{/if}
 
 	<div class="flex justify-between gap-4">
-		{#if currentStep > 0}
+		{#if currentStepIndex > 0}
 			<Button class="flex-1" on:click={previousStep}>Previous</Button>
 		{/if}
 
-		{#if currentStep === deploymentSteps.length - 1}
+		{#if currentStepIndex === deploymentSteps.length - 1}
 			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 		{:else}
 			<Button
 				class="flex-1"
 				on:click={nextStep}
-				disabled={currentStep === deploymentSteps.length - 1}
+				disabled={currentStepIndex === deploymentSteps.length - 1}
 			>
 				Next
 			</Button>
