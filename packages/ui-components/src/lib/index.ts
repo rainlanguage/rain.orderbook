@@ -50,6 +50,7 @@ export { default as VaultBalanceChangesTable } from './components/tables/VaultBa
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
+export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
