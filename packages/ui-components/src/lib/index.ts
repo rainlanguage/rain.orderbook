@@ -52,7 +52,7 @@ export { default as FieldDefinitionButtons } from './components/deployment/wizar
 export { default as DepositButtons } from './components/deployment/wizard/DepositButtons.svelte';
 export { default as DeploymentSteps } from './components/deployment/wizard/DeploymentSteps.svelte';
 export { default as TokenInput } from './components/deployment/TokenInput.svelte';
-export { default as TokenOutput } from './components/deployment/wizard/TokenOutputButtons.svelte';
+export { default as TokenOutput } from './components/deployment/TokenOutput.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as TokenInputButtons } from './components/deployment/wizard/TokenInputButtons.svelte';
 export { default as TokenOutputButtons } from './components/deployment/wizard/TokenOutputButtons.svelte';
