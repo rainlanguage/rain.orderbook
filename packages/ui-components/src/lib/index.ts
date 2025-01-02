@@ -49,6 +49,8 @@ export { default as IconWarning } from './components/IconWarning.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
