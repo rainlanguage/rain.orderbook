@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
         assert_eq!(
             *scenario2.deployer.as_ref(),
-            ob_yaml.get_deployer("deployer2").unwrap()
+            ob_yaml.get_deployer("deployer1").unwrap()
         );
     }
 }
