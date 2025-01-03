@@ -1,4 +1,6 @@
-use crate::yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use crate::*;
 use alloy::primitives::{hex::FromHexError, Address};
 use serde::{Deserialize, Serialize};
@@ -16,9 +18,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(default)]
 pub struct Token {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "Network"))]
