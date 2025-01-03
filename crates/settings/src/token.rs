@@ -1,4 +1,6 @@
-use crate::yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use crate::*;
 use alloy::primitives::{hex::FromHexError, Address};
 use serde::{Deserialize, Serialize};
@@ -16,9 +18,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(default)]
 pub struct Token {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "Network"))]
@@ -169,6 +170,7 @@ pub enum ParseTokenConfigSourceError {
 impl TokenConfigSource {
     pub fn try_into_token(
         self,
+        name: &str,
         networks: &HashMap<String, Arc<Network>>,
     ) -> Result<Token, ParseTokenConfigSourceError> {
         let network_ref = networks
@@ -180,7 +182,7 @@ impl TokenConfigSource {
 
         Ok(Token {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: self.network.clone(),
+            key: name.to_string(),
             network: network_ref,
             address: self.address,
             decimals: self.decimals,
@@ -215,7 +217,7 @@ mod tests {
             symbol: Some("TTK".to_string()),
         };
 
-        let token = token_string.try_into_token(&networks);
+        let token = token_string.try_into_token("TestNetwork", &networks);
 
         assert!(token.is_ok());
         let token = token.unwrap();
@@ -242,7 +244,7 @@ mod tests {
             symbol: None,
         };
 
-        let token = token_string.try_into_token(&networks);
+        let token = token_string.try_into_token("TestNetwork", &networks);
 
         assert!(token.is_ok());
         let token = token.unwrap();
@@ -269,7 +271,7 @@ mod tests {
             symbol: None,
         };
 
-        let token = token_string.try_into_token(&networks);
+        let token = token_string.try_into_token("TestNetwork", &networks);
 
         assert!(token.is_err());
         assert_eq!(

@@ -1,5 +1,7 @@
 use crate::config_source::*;
-use crate::yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{
@@ -18,9 +20,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Network {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "string"))]
@@ -61,6 +62,8 @@ impl Network {
     }
 
     pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
+        let new_rpc = Network::validate_rpc(rpc)?;
+
         let mut document = self
             .document
             .write()
@@ -75,7 +78,7 @@ impl Network {
                 {
                     network[&StrictYaml::String("rpc".to_string())] =
                         StrictYaml::String(rpc.to_string());
-                    self.rpc = Network::validate_rpc(rpc)?;
+                    self.rpc = new_rpc;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in networks",

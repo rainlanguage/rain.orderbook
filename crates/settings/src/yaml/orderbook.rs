@@ -23,6 +23,10 @@ impl YamlParsable for OrderbookYaml {
         }
         Ok(OrderbookYaml { document })
     }
+
+    fn from_document(document: Arc<RwLock<StrictYaml>>) -> Self {
+        OrderbookYaml { document }
+    }
 }
 
 impl OrderbookYaml {

@@ -1,5 +1,5 @@
 use crate::*;
-use alloy::primitives::U256;
+use alloy::primitives::{private::rand, U256};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -62,6 +62,165 @@ impl_all_wasm_traits!(Order);
 impl Order {
     pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
         U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+    }
+
+    pub fn update_vault_id(
+        &mut self,
+        is_input: bool,
+        index: u8,
+        vault_id: String,
+    ) -> Result<Self, YamlError> {
+        let new_vault_id = Order::validate_vault_id(&vault_id)?;
+
+        let mut document = self
+            .document
+            .write()
+            .map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if let Some(StrictYaml::Hash(ref mut orders)) =
+                document_hash.get_mut(&StrictYaml::String("orders".to_string()))
+            {
+                if let Some(StrictYaml::Hash(ref mut order)) =
+                    orders.get_mut(&StrictYaml::String(self.key.to_string()))
+                {
+                    let vec_key = if is_input { "inputs" } else { "outputs" };
+                    if let Some(StrictYaml::Array(ref mut vec)) =
+                        order.get_mut(&StrictYaml::String(vec_key.to_string()))
+                    {
+                        if let Some(item) = vec.get_mut(index as usize) {
+                            if let StrictYaml::Hash(ref mut item_hash) = item {
+                                item_hash.insert(
+                                    StrictYaml::String("vault-id".to_string()),
+                                    StrictYaml::String(vault_id.to_string()),
+                                );
+                                if is_input {
+                                    self.inputs[index as usize].vault_id = Some(new_vault_id);
+                                } else {
+                                    self.outputs[index as usize].vault_id = Some(new_vault_id);
+                                }
+                            } else {
+                                return Err(YamlError::ParseError(format!(
+                                    "vector item is not a hash: {index} for {vec_key} in order: {0}",
+                                    self.key
+                                )));
+                            }
+                        } else {
+                            return Err(YamlError::ParseError(format!(
+                                "index out of bounds: {index} for {vec_key} in order: {0}",
+                                self.key
+                            )));
+                        }
+                    } else {
+                        return Err(YamlError::ParseError(format!(
+                            "missing field: {vec_key} in order: {0}",
+                            self.key
+                        )));
+                    }
+                } else {
+                    return Err(YamlError::ParseError(format!(
+                        "missing field: {} in orders",
+                        self.key
+                    )));
+                }
+            } else {
+                return Err(YamlError::ParseError("missing field: orders".to_string()));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(self.clone())
+    }
+
+    pub fn populate_vault_ids(&mut self) -> Result<Self, YamlError> {
+        let vault_id: U256 = rand::random();
+
+        let mut document = self
+            .document
+            .write()
+            .map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if let Some(StrictYaml::Hash(ref mut orders)) =
+                document_hash.get_mut(&StrictYaml::String("orders".to_string()))
+            {
+                if let Some(StrictYaml::Hash(ref mut order)) =
+                    orders.get_mut(&StrictYaml::String(self.key.to_string()))
+                {
+                    if let Some(StrictYaml::Array(ref mut inputs)) =
+                        order.get_mut(&StrictYaml::String("inputs".to_string()))
+                    {
+                        for (index, input) in inputs.iter_mut().enumerate() {
+                            if let StrictYaml::Hash(ref mut input_hash) = input {
+                                if !input_hash
+                                    .contains_key(&StrictYaml::String("vault-id".to_string()))
+                                {
+                                    input_hash.insert(
+                                        StrictYaml::String("vault-id".to_string()),
+                                        StrictYaml::String(vault_id.to_string()),
+                                    );
+                                }
+                            } else {
+                                return Err(YamlError::ParseError(format!(
+                                    "vector item is not a hash: {index} for inputs in order: {0}",
+                                    self.key
+                                )));
+                            }
+                        }
+                    } else {
+                        return Err(YamlError::ParseError(format!(
+                            "missing field: inputs in order: {0}",
+                            self.key
+                        )));
+                    }
+                    if let Some(StrictYaml::Array(ref mut outputs)) =
+                        order.get_mut(&StrictYaml::String("outputs".to_string()))
+                    {
+                        for (index, output) in outputs.iter_mut().enumerate() {
+                            if let StrictYaml::Hash(ref mut output_hash) = output {
+                                if !output_hash
+                                    .contains_key(&StrictYaml::String("vault-id".to_string()))
+                                {
+                                    output_hash.insert(
+                                        StrictYaml::String("vault-id".to_string()),
+                                        StrictYaml::String(vault_id.to_string()),
+                                    );
+                                }
+                            } else {
+                                return Err(YamlError::ParseError(format!(
+                                    "vector item is not a hash: {index} for outputs in order: {0}",
+                                    self.key
+                                )));
+                            }
+                        }
+                    } else {
+                        return Err(YamlError::ParseError(format!(
+                            "missing field: outputs in order: {0}",
+                            self.key
+                        )));
+                    }
+
+                    self.inputs.iter_mut().for_each(|input| {
+                        input.vault_id = Some(input.vault_id.unwrap_or(vault_id));
+                    });
+                    self.outputs.iter_mut().for_each(|output| {
+                        output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
+                    });
+                } else {
+                    return Err(YamlError::ParseError(format!(
+                        "missing field: {} in orders",
+                        self.key
+                    )));
+                }
+            } else {
+                return Err(YamlError::ParseError("missing field: orders".to_string()));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(self.clone())
     }
 }
 

@@ -128,7 +128,12 @@ impl TryFrom<ConfigSource> for Config {
         let tokens = item
             .tokens
             .into_iter()
-            .map(|(name, token)| Ok((name, Arc::new(token.try_into_token(&networks)?))))
+            .map(|(name, token)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(token.try_into_token(&name, &networks)?),
+                ))
+            })
             .collect::<Result<HashMap<String, Arc<Token>>, ParseConfigSourceError>>()?;
 
         let deployers = item
@@ -314,7 +319,7 @@ mod tests {
         let gui = Some(GuiConfigSource {
             name: "Some name".to_string(),
             description: "Some description".to_string(),
-            deployments: vec![],
+            deployments: HashMap::new(),
         });
 
         let config_string = ConfigSource {

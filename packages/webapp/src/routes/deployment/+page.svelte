@@ -54,9 +54,9 @@
 				await DotrainOrderGui.getAvailableDeployments(dotrain);
 			availableDeployments = Object.fromEntries(
 				deployments.map((deployment) => [
-					deployment.deployment_name,
+					deployment.key,
 					{
-						label: deployment.deployment_name,
+						label: deployment.key,
 						deployment
 					}
 				])
@@ -314,7 +314,7 @@
 					}}
 					on:change={({ detail }) => {
 						gui?.saveDeposit(
-							deposit.token_name,
+							deposit.token.key,
 							detail.value === 'custom' ? '' : detail.value || ''
 						);
 						gui = gui;
@@ -337,12 +337,12 @@
 					</svelte:fragment>
 				</DropdownRadio>
 
-				{#if gui?.isDepositPreset(deposit.token_name) === false}
+				{#if gui?.isDepositPreset(deposit.token.key) === false}
 					<Input
 						placeholder="Enter deposit amount"
 						on:change={({ currentTarget }) => {
 							if (currentTarget instanceof HTMLInputElement) {
-								gui?.saveDeposit(deposit.token_name, currentTarget.value);
+								gui?.saveDeposit(deposit.token.key, currentTarget.value);
 							}
 						}}
 					/>

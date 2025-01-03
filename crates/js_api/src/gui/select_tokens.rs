@@ -37,6 +37,7 @@ impl DotrainOrderGui {
         token_name: String,
         address: String,
     ) -> Result<(), GuiError> {
+        let current_deployment = self.get_current_deployment()?;
         let mut select_tokens = self
             .select_tokens
             .clone()
@@ -45,12 +46,11 @@ impl DotrainOrderGui {
             return Err(GuiError::TokenNotFound(token_name.clone()));
         }
 
-        let address = Address::from_str(&address)?;
-        select_tokens.insert(token_name.clone(), address);
+        let addr = Address::from_str(&address)?;
+        select_tokens.insert(token_name.clone(), addr);
         self.select_tokens = Some(select_tokens);
 
-        let rpc_url = self
-            .deployment
+        let rpc_url = current_deployment
             .deployment
             .order
             .orderbook
@@ -59,13 +59,14 @@ impl DotrainOrderGui {
             .network
             .rpc
             .clone();
-        let erc20 = ERC20::new(rpc_url.clone(), address);
+        let erc20 = ERC20::new(rpc_url.clone(), addr);
         let token_info = erc20.token_info(None).await?;
-        self.onchain_token_info.insert(address, token_info);
+        self.onchain_token_info.insert(addr, token_info);
 
-        self.dotrain_order
-            .update_token_address(token_name, address)?;
-        self.refresh_gui_deployment()?;
+        OrderbookYaml::from_document(self.document.clone())
+            .get_token(&token_name)?
+            .update_address(&address)?;
+
         Ok(())
     }
 }

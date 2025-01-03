@@ -99,8 +99,8 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "getFieldDefinition")]
     pub fn get_field_definition(&self, binding: &str) -> Result<GuiFieldDefinition, GuiError> {
-        let field_definition = self
-            .deployment
+        let current_deployment = self.get_current_deployment()?;
+        let field_definition = current_deployment
             .fields
             .iter()
             .find(|field| field.binding == binding)
@@ -109,7 +109,8 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getAllFieldDefinitions")]
-    pub fn get_all_field_definitions(&self) -> Vec<GuiFieldDefinition> {
-        self.deployment.fields.clone()
+    pub fn get_all_field_definitions(&self) -> Result<Vec<GuiFieldDefinition>, GuiError> {
+        let current_deployment = self.get_current_deployment()?;
+        Ok(current_deployment.fields.clone())
     }
 }
