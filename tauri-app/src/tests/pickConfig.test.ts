@@ -112,6 +112,7 @@ export const config: Config = {
   charts: {},
   deployments: {
     sell: {
+      key: 'sell',
       scenario: {
         key: 'network1.sell',
         bindings: {},
@@ -137,6 +138,7 @@ export const config: Config = {
       },
     },
     buy: {
+      key: 'buy',
       scenario: {
         key: 'network1.buy',
         bindings: {},
