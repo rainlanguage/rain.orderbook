@@ -4,8 +4,7 @@
 		Checkbox,
 		FieldDefinitionDropdown,
 		DepositDropdown,
-		TokenInput,
-		TokenOutput,
+		TokenInputOrOutput,
 		SelectToken
 	} from '@rainlanguage/ui-components';
 	import {
@@ -264,14 +263,28 @@
 				{#if allTokenInputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
 					{#each allTokenInputs as input, i}
-						<TokenInput {i} {input} {tokenInfos} {inputVaultIds} {gui} />
+						<TokenInputOrOutput
+							label="Input"
+							{i}
+							vault={input}
+							{tokenInfos}
+							vaultIds={inputVaultIds}
+							{gui}
+						/>
 					{/each}
 				{/if}
 
 				{#if allTokenOutputs.length > 0}
 					<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
 					{#each allTokenOutputs as output, i}
-						<TokenOutput {i} {output} {tokenInfos} {outputVaultIds} {gui} />
+						<TokenInputOrOutput
+							label="Output"
+							{i}
+							vault={output}
+							{tokenInfos}
+							vaultIds={outputVaultIds}
+							{gui}
+						/>
 					{/each}
 				{/if}
 			{/if}

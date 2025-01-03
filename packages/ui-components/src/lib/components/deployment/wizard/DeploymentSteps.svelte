@@ -2,8 +2,7 @@
 	import FieldDefinitionButtons from './FieldDefinitionButtons.svelte';
 	import DepositButtons from './DepositButtons.svelte';
 	import SelectToken from '../SelectToken.svelte';
-	import TokenInputButtons from './TokenInputButtons.svelte';
-	import TokenOutputButtons from './TokenOutputButtons.svelte';
+	import TokenInputOrOutputWizard from './TokenInputOrOutputWizard.svelte';
 
 	import type {
 		DotrainOrderGui,
@@ -13,9 +12,7 @@
 		TokenInfos,
 		Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button } from 'flowbite-svelte';
-	import { getDeploymentSteps } from './getDeploymentSteps';
-	import deploymentStepsStore from './deploymentStepsStore';
+	import { Button, Label } from 'flowbite-svelte';
 	export let gui: DotrainOrderGui;
 
 	export let selectTokens: SelectTokens;
@@ -28,71 +25,57 @@
 	export let isLimitStrat: boolean;
 	export let handleAddOrder: () => Promise<void>;
 	export let tokenInfos: TokenInfos;
-
-	let deploymentSteps = getDeploymentSteps(
-		selectTokens,
-		isLimitStrat,
-		allFieldDefinitions,
-		gui,
-		allDeposits,
-		allTokenInputs,
-		allTokenOutputs,
-		inputVaultIds,
-		outputVaultIds,
-		tokenInfos
-	);
-
-	deploymentStepsStore.populateDeploymentSteps(deploymentSteps);
-
-	$: currentStepIndex = 0;
-
-	const nextStep = () => {
-		if (currentStepIndex < deploymentSteps.length - 1) {
-			currentStepIndex++;
-		}
-	};
-
-	const previousStep = () => {
-		if (currentStepIndex > 0) {
-			currentStepIndex--;
-		}
-	};
-
-	$: currentStep = deploymentSteps[currentStepIndex];
 </script>
 
 <div class="flex h-[80vh] flex-col justify-between">
-	<div class="text-lg text-gray-800 dark:text-gray-200">
-		Step {currentStepIndex + 1} of {deploymentSteps.length}
-	</div>
+	{#if isLimitStrat && selectTokens.size > 0}
+		<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
-	{#if currentStep.type === 'tokens'}
-		<SelectToken {...currentStep} />
-	{:else if currentStep.type === 'fields'}
-		<FieldDefinitionButtons {...currentStep} {currentStepIndex} {currentStep} />
-	{:else if currentStep.type === 'deposits'}
-		<DepositButtons {...currentStep} />
-	{:else if currentStep.type === 'tokenInput'}
-		<TokenInputButtons {...currentStep} />
-	{:else if currentStep.type === 'tokenOutput'}
-		<TokenOutputButtons {...currentStep} />
+		{#each selectTokens.entries() as [token]}
+			<SelectToken {token} {gui} {selectTokens} />
+		{/each}
 	{/if}
 
-	<div class="flex justify-between gap-4">
-		{#if currentStepIndex > 0}
-			<Button class="flex-1" on:click={previousStep}>Previous</Button>
-		{/if}
+	{#if allFieldDefinitions.length > 0}
+		<Label class="my-4 whitespace-nowrap text-2xl underline">Field Values</Label>
+		{#each allFieldDefinitions as fieldDefinition}
+			<FieldDefinitionButtons {fieldDefinition} {gui} />
+		{/each}
+	{/if}
 
-		{#if currentStepIndex === deploymentSteps.length - 1}
-			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
-		{:else}
-			<Button
-				class="flex-1"
-				on:click={nextStep}
-				disabled={currentStepIndex === deploymentSteps.length - 1}
-			>
-				Next
-			</Button>
-		{/if}
-	</div>
+	{#if allDeposits.length > 0}
+		<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
+		{#each allDeposits as deposit}
+			<DepositButtons {deposit} {gui} {tokenInfos} />
+		{/each}
+	{/if}
+
+	{#if allTokenInputs.length > 0}
+		<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
+		{#each allTokenInputs as input, i}
+			<TokenInputOrOutputWizard
+				{i}
+				label="Input"
+				vault={input}
+				{tokenInfos}
+				vaultIds={inputVaultIds}
+				{gui}
+			/>
+		{/each}
+	{/if}
+
+	{#if allTokenOutputs.length > 0}
+		<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
+		{#each allTokenOutputs as output, i}
+			<TokenInputOrOutputWizard
+				{i}
+				label="Output"
+				vault={output}
+				{tokenInfos}
+				vaultIds={outputVaultIds}
+				{gui}
+			/>
+		{/each}
+	{/if}
+	<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 </div>
