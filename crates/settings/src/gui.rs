@@ -321,6 +321,8 @@ mod tests {
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-deployment".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
