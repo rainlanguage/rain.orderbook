@@ -4,16 +4,21 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
     gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
+    yaml::{
+        default_document, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    },
     Config,
 };
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
+    dotrain::RainDocument,
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::{TokenInfo, ERC20},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::io::prelude::*;
+use std::{collections::BTreeMap, sync::RwLock};
+use std::{io::prelude::*, sync::Arc};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 
 mod deposits;
@@ -30,11 +35,14 @@ impl_all_wasm_traits!(AvailableDeployments);
 pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
 impl_all_wasm_traits!(TokenInfos);
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
-    deployment: GuiDeployment,
+    #[serde(skip, default = "default_document")]
+    document: Arc<RwLock<StrictYaml>>,
+    selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
     select_tokens: Option<BTreeMap<String, Address>>,
@@ -46,11 +54,16 @@ impl DotrainOrderGui {
     pub async fn get_available_deployments(
         dotrain: String,
     ) -> Result<AvailableDeployments, GuiError> {
-        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let config = dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        let gui = DotrainYaml::new(
+            RainDocument::get_front_matter(&dotrain)
+                .ok_or(GuiError::InvalidDotrain)?
+                .to_string(),
+            true,
+        )?
+        .get_gui()?
+        .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(AvailableDeployments(
-            gui_config.deployments.values().cloned().collect(),
+            gui.deployments.values().cloned().collect(),
         ))
     }
 
@@ -60,16 +73,19 @@ impl DotrainOrderGui {
         deployment_name: String,
         multicall_address: Option<String>,
     ) -> Result<DotrainOrderGui, GuiError> {
-        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let dotrain_yaml = DotrainYaml::new(
+            RainDocument::get_front_matter(&dotrain)
+                .ok_or(GuiError::InvalidDotrain)?
+                .to_string(),
+            true,
+        )?;
+        let gui = dotrain_yaml.get_gui()?.ok_or(GuiError::GuiConfigNotFound)?;
 
-        let config = dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
-
-        let (_, gui_deployment) = gui_config
+        let (_, gui_deployment) = gui
             .deployments
             .into_iter()
             .find(|(name, _)| name == &deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
+            .ok_or(GuiError::DeploymentNotFound(deployment_name.clone()))?;
 
         let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
             tokens
@@ -94,7 +110,7 @@ impl DotrainOrderGui {
             }
 
             if let Some(select_tokens) = &select_tokens {
-                if select_tokens.contains_key(&token.token_name) {
+                if select_tokens.contains_key(&token.token.key) {
                     continue;
                 }
             }
@@ -105,27 +121,14 @@ impl DotrainOrderGui {
         }
 
         Ok(Self {
-            dotrain_order,
-            deployment: gui_deployment.clone(),
+            dotrain_order: DotrainOrder::new(dotrain, None).await?,
+            document: dotrain_yaml.document,
+            selected_deployment: deployment_name,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens,
             onchain_token_info,
         })
-    }
-
-    fn refresh_gui_deployment(&mut self) -> Result<(), GuiError> {
-        let config = self.dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
-        let (_, gui_deployment) = gui_config
-            .deployments
-            .into_iter()
-            .find(|(name, _)| name == &self.deployment.deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(
-                self.deployment.deployment_name.clone(),
-            ))?;
-        self.deployment = gui_deployment.clone();
-        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getDotrainConfig")]
@@ -134,13 +137,24 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
-    pub fn get_gui_config(&self) -> Gui {
-        self.dotrain_order.config().gui.clone().unwrap()
+    pub fn get_gui_config(&self) -> Result<Gui, GuiError> {
+        let gui = DotrainYaml::from_document(self.document.clone())
+            .get_gui()?
+            .ok_or(GuiError::GuiConfigNotFound)?;
+        Ok(gui)
     }
 
     #[wasm_bindgen(js_name = "getCurrentDeployment")]
-    pub fn get_current_deployment(&self) -> GuiDeployment {
-        self.deployment.clone()
+    pub fn get_current_deployment(&self) -> Result<GuiDeployment, GuiError> {
+        let gui = self.get_gui_config()?;
+        let (_, gui_deployment) = gui
+            .deployments
+            .into_iter()
+            .find(|(name, _)| name == &self.selected_deployment)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.selected_deployment.clone(),
+            ))?;
+        Ok(gui_deployment.clone())
     }
 
     /// Get all token infos in input and output vaults
@@ -149,6 +163,29 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getTokenInfos")]
     pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
         Ok(TokenInfos(self.onchain_token_info.clone()))
+    }
+}
+impl PartialEq for DotrainOrderGui {
+    fn eq(&self, other: &Self) -> bool {
+        self.dotrain_order == other.dotrain_order
+            && self.selected_deployment == other.selected_deployment
+            && self.field_values == other.field_values
+            && self.deposits == other.deposits
+            && self.select_tokens == other.select_tokens
+            && self.onchain_token_info == other.onchain_token_info
+    }
+}
+impl Default for DotrainOrderGui {
+    fn default() -> Self {
+        Self {
+            dotrain_order: DotrainOrder::default(),
+            document: default_document(),
+            selected_deployment: "".to_string(),
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: None,
+            onchain_token_info: BTreeMap::new(),
+        }
     }
 }
 
@@ -180,6 +217,10 @@ pub enum GuiError {
     TokenMustBeSelected(String),
     #[error("Binding has no presets: {0}")]
     BindingHasNoPresets(String),
+    #[error("Invalid dotrain")]
+    InvalidDotrain,
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -218,6 +259,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }
 impl From<GuiError> for JsValue {
     fn from(value: GuiError) -> Self {

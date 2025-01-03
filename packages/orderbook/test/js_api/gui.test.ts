@@ -7,7 +7,6 @@ import {
 	AllowancesResult,
 	ApprovalCalldataResult,
 	AvailableDeployments,
-	Config,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Gui,
@@ -166,10 +165,13 @@ tokens:
 
 scenarios:
     some-scenario:
-        network: some-network
         deployer: some-deployer
         bindings:
-            test-binding: "5"
+            test-binding: 5
+        scenarios:
+            sub-scenario:
+                bindings:
+                    another-binding: 300
 
 orders:
     some-order:
@@ -187,10 +189,11 @@ deployments:
         scenario: some-scenario
         order: some-order
     other-deployment:
-        scenario: some-scenario
+        scenario: some-scenario.sub-scenario
         order: some-order
 ---
 #test-binding !
+#another-binding !
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -236,8 +239,9 @@ tokens:
 
 scenarios:
     some-scenario:
-        network: some-network
         deployer: some-deployer
+        bindings:
+            test-binding: 5
 
 orders:
     some-order:
@@ -285,8 +289,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const deployments: AvailableDeployments =
 			await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0].key, 'other-deployment');
-		assert.equal(deployments[1].key, 'some-deployment');
+		assert.equal(deployments[0].key, 'some-deployment');
+		assert.equal(deployments[1].key, 'other-deployment');
 	});
 
 	it('should return error if gui config is not found', async () => {
@@ -592,7 +596,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNTQrCQAyFWxXRW7gWlGR-0pmdR_AKmTaRIlTQLjy-CzMuhL7Nl5_He5fmK6ZERZNK7IYi5DEBsPMYEFKKmYV6UBXxuY8amcGRZ6bMXkMnAVaWszeWcRrG6XbC1g7Q7my6PuUl8wGP9fNG50OkLmXg0g-iS_t_uGuq1kYEqIVb4_y4y4Q_58YY4UwfKIq5pf0AAAA=';
+			'H4sIAAAAAAAA_3WNTQ5AMBCF_UW4hbWEzJQWt3AF1ZJGUgldOL6FqYXE23zz8_JeFDzKidJYZexaYUgHCDOaxkOf2hVY-s-FrGm56PoBJjkrvfzt33AWeMVEBPCFKdHtm7b4OhMih1rc8yX-NrUAAAA=';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
@@ -642,34 +646,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
 			assert.equal(deposits[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
-		});
-
-		it('should throw error during deserialize if config is different', async () => {
-			// token1 info
-			mockServer
-				.forPost('/rpc-url')
-				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
-				);
-			// token2 info
-			mockServer
-				.forPost('/rpc-url')
-				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
-				);
-
-			let dotrain2 = `
-${guiConfig2}
-
-${dotrain}
-`;
-			let gui2 = await DotrainOrderGui.chooseDeployment(dotrain2, 'other-deployment');
-			let serialized = gui2.serializeState();
-			expect(() => gui.deserializeState(serialized)).toThrow('Deserialized config mismatch');
 		});
 
 		it('should clear state', async () => {
@@ -840,7 +816,10 @@ ${dotrain}
 			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.deepEqual(
 				currentDeployment.deployment.scenario.bindings,
-				new Map([['test-binding', '10']])
+				new Map([
+					['test-binding', '10'],
+					['another-binding', '300']
+				])
 			);
 		});
 
@@ -882,7 +861,10 @@ ${dotrain}
 			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.deepEqual(
 				currentDeployment.deployment.scenario.bindings,
-				new Map([['test-binding', '0xbeef']])
+				new Map([
+					['test-binding', '0xbeef'],
+					['another-binding', '300']
+				])
 			);
 		});
 
@@ -935,8 +917,6 @@ ${dotrain}
 			gui.setVaultId(false, 0, '0x123123123456456456');
 
 			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
-			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
 			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123123123456456456');
 			assert.equal(
 				newCurrentDeployment.deployment.order.outputs[0].vaultId,
@@ -1029,16 +1009,6 @@ ${dotrain}
 			let initialTokenInfo: TokenInfos = await gui.getTokenInfos();
 			assert.equal(initialTokenInfo.size, 0);
 
-			let dotrainConfig: Config = gui.getDotrainConfig();
-			assert.equal(
-				dotrainConfig.tokens.get('token1')?.address,
-				'0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
-			);
-			assert.equal(
-				dotrainConfig.tokens.get('token2')?.address,
-				'0x8f3cf7ad23cd3cadbd9735aff958023239c6a063'
-			);
-
 			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(
 				currentDeployment.deployment.order.inputs[0].token.address,
@@ -1062,16 +1032,6 @@ ${dotrain}
 
 			let tokenInfo: TokenInfos = await gui.getTokenInfos();
 			assert.equal(tokenInfo.size, 2);
-
-			let newDotrainConfig: Config = gui.getDotrainConfig();
-			assert.equal(
-				newDotrainConfig.tokens.get('token1')?.address,
-				'0x6666666666666666666666666666666666666666'
-			);
-			assert.equal(
-				newDotrainConfig.tokens.get('token2')?.address,
-				'0x8888888888888888888888888888888888888888'
-			);
 
 			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(

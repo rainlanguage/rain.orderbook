@@ -386,7 +386,7 @@ impl YamlParseableValue for Gui {
                                 )?;
 
                                 let gui_preset = GuiPreset {
-                                    id: (preset_index as u8 + 1).to_string(),
+                                    id: preset_index.to_string(),
                                     name,
                                     value,
                                 };
