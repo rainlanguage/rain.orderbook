@@ -55,6 +55,14 @@ pub trait YamlParsableString {
     ) -> Result<Option<String>, YamlError>;
 }
 
+pub trait YamlParseableValue: Sized {
+    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<Self, YamlError>;
+
+    fn parse_from_yaml_optional(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Option<Self>, YamlError>;
+}
+
 #[derive(Debug, Error)]
 pub enum YamlError {
     #[error(transparent)]

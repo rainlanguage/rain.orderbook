@@ -285,8 +285,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const deployments: AvailableDeployments =
 			await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0].deployment_name, 'other-deployment');
-		assert.equal(deployments[1].deployment_name, 'some-deployment');
+		assert.equal(deployments[0].key, 'other-deployment');
+		assert.equal(deployments[1].key, 'some-deployment');
 	});
 
 	it('should return error if gui config is not found', async () => {
@@ -592,7 +592,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNTQrCQAyFWxXRW7gWlGTS-enOI3iFmUlGilBBu_D4KmZcCH1ZfPnjvVPzVUYj5AQNMjsAxi55-ZQtErlPb5jchRwpkrfkgxUOQJQSlVAIF-qzVaZh5GG8HLDVBbQb7c53eci0w329PNFQZ50PPcSUWcrc_G9umqqlEgFq4Fo53a4y4u9zpbRwdC829a_U_QAAAA==';
+			'H4sIAAAAAAAA_3WNSwoCMRBEZ1REb-FaULrz6-mdR_AKyaQjgxBBZ-HxFey4EKzNq_5Qdeo-kkxkTeRCo3MefYzENoBACVJ49FIgcWRHLhV624Gt-AHZoQSGYBaas1WmqeapXg7Y6wL6jbrzXR4y73DfLk801vlAA0NMY5byb_4NN13TUokArXCtnG9Xqfj9XCk9HMMLsIlnw_0AAAA=';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
