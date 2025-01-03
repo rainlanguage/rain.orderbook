@@ -165,7 +165,7 @@ impl DotrainOrderGui {
 
     fn update_config_source_bindings(&mut self) -> Result<(), GuiError> {
         self.dotrain_order.update_config_source_bindings(
-            &self.deployment.deployment.scenario.name,
+            &self.deployment.deployment.scenario.key,
             self.field_values
                 .iter()
                 .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))

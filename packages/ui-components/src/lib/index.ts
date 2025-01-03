@@ -56,6 +56,12 @@ export { default as TokenOutput } from './components/deployment/TokenInputOrOutp
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as TokenInputOrOutputWizard } from './components/deployment/wizard/TokenInputOrOutputWizard.svelte';
+export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
+export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
+export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
+export { default as InputToken } from './components/input/InputToken.svelte';
+export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
@@ -70,6 +76,7 @@ export {
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
+export { bigintToFloat } from './utils/number';
 
 // Constants
 

@@ -1,5 +1,5 @@
 use super::*;
-use crate::Order;
+use crate::{Order, Scenario};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
@@ -32,6 +32,14 @@ impl DotrainYaml {
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
         Order::parse_from_yaml(self.document.clone(), key)
     }
+
+    pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
+        let scenarios = Scenario::parse_all_from_yaml(self.document.clone())?;
+        Ok(scenarios.keys().cloned().collect())
+    }
+    pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
+        Scenario::parse_from_yaml(self.document.clone(), key)
+    }
 }
 
 #[cfg(test)]
@@ -46,6 +54,9 @@ mod tests {
         mainnet:
             rpc: https://mainnet.infura.io
             chain-id: 1
+        testnet:
+            rpc: https://testnet.infura.io
+            chain-id: 1337
     tokens:
         token1:
             network: mainnet
@@ -59,6 +70,13 @@ mod tests {
             decimals: 6
             label: USD Coin
             symbol: USDC
+    deployers:
+        deployer1:
+            address: 0x0000000000000000000000000000000000000002
+            network: mainnet
+        deployer2:
+            address: 0x0000000000000000000000000000000000000003
+            network: testnet
     orders:
         order1:
             inputs:
@@ -67,6 +85,15 @@ mod tests {
             outputs:
                 - token: token2
                   vault-id: 2
+    scenarios:
+        scenario1:
+            bindings:
+                key1: value1
+            deployer: deployer1
+            scenarios:
+                scenario2:
+                    bindings:
+                        key2: value2
     "#;
 
     #[test]
@@ -89,6 +116,24 @@ mod tests {
         assert_eq!(
             *order.network.as_ref(),
             ob_yaml.get_network("mainnet").unwrap()
+        );
+
+        let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
+        assert_eq!(scenario_keys.len(), 2);
+        let scenario1 = dotrain_yaml.get_scenario("scenario1").unwrap();
+        assert_eq!(scenario1.bindings.len(), 1);
+        assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
+        assert_eq!(
+            *scenario1.deployer.as_ref(),
+            ob_yaml.get_deployer("deployer1").unwrap()
+        );
+        let scenario2 = dotrain_yaml.get_scenario("scenario2").unwrap();
+        assert_eq!(scenario2.bindings.len(), 2);
+        assert_eq!(scenario2.bindings.get("key1").unwrap(), "value1");
+        assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
+        assert_eq!(
+            *scenario2.deployer.as_ref(),
+            ob_yaml.get_deployer("deployer1").unwrap()
         );
     }
 }
