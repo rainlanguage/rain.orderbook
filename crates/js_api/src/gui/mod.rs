@@ -94,7 +94,7 @@ impl DotrainOrderGui {
             }
 
             if let Some(select_tokens) = &select_tokens {
-                if select_tokens.contains_key(&token.token_name) {
+                if select_tokens.contains_key(&token.token.key) {
                     continue;
                 }
             }
@@ -120,10 +120,8 @@ impl DotrainOrderGui {
         let (_, gui_deployment) = gui_config
             .deployments
             .into_iter()
-            .find(|(name, _)| name == &self.deployment.deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(
-                self.deployment.deployment_name.clone(),
-            ))?;
+            .find(|(name, _)| name == &self.deployment.key)
+            .ok_or(GuiError::DeploymentNotFound(self.deployment.key.clone()))?;
         self.deployment = gui_deployment.clone();
         Ok(())
     }

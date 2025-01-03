@@ -147,18 +147,14 @@ impl DotrainOrderGui {
 
         let calldatas = self
             .dotrain_order
-            .generate_approval_calldatas(
-                &self.deployment.deployment_name,
-                &owner,
-                &self.get_deposits_as_map()?,
-            )
+            .generate_approval_calldatas(&self.deployment.key, &owner, &self.get_deposits_as_map()?)
             .await?;
         Ok(ApprovalCalldataResult(calldatas))
     }
 
     fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
         self.dotrain_order
-            .populate_vault_ids(&self.deployment.deployment_name, None)?;
+            .populate_vault_ids(&self.deployment.key, None)?;
         self.refresh_gui_deployment()?;
         Ok(())
     }
@@ -196,7 +192,7 @@ impl DotrainOrderGui {
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
         let calldatas = self
             .dotrain_order
-            .generate_deposit_calldatas(&self.deployment.deployment_name, &token_deposits)
+            .generate_deposit_calldatas(&self.deployment.key, &token_deposits)
             .await?;
         Ok(DepositCalldataResult(calldatas))
     }
@@ -211,7 +207,7 @@ impl DotrainOrderGui {
         self.update_config_source_bindings()?;
         let calldata = self
             .dotrain_order
-            .generate_add_order_calldata(&self.deployment.deployment_name)
+            .generate_add_order_calldata(&self.deployment.key)
             .await?;
         Ok(AddOrderCalldataResult(calldata))
     }
@@ -239,11 +235,11 @@ impl DotrainOrderGui {
         let mut calls = Vec::new();
         let deposit_calldatas = self
             .dotrain_order
-            .generate_deposit_calldatas(&self.deployment.deployment_name, &token_deposits)
+            .generate_deposit_calldatas(&self.deployment.key, &token_deposits)
             .await?;
         let add_order_calldata = self
             .dotrain_order
-            .generate_add_order_calldata(&self.deployment.deployment_name)
+            .generate_add_order_calldata(&self.deployment.key)
             .await?;
 
         calls.push(Bytes::copy_from_slice(&add_order_calldata));
@@ -264,7 +260,7 @@ impl DotrainOrderGui {
         vault_id: String,
     ) -> Result<(), GuiError> {
         self.dotrain_order.set_vault_id(
-            &self.deployment.deployment_name,
+            &self.deployment.key,
             is_input,
             index,
             U256::from_str(&vault_id)?,
