@@ -9,7 +9,9 @@ use std::{
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
-use yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -18,9 +20,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Deployer {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "string"))]
