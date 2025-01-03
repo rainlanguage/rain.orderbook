@@ -23,10 +23,13 @@ impl DotrainOrderGui {
                     .find(|dg| dg.token_name == *token)
                     .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
                 let amount: String = if value.is_preset {
+                    let index = value
+                        .value
+                        .parse::<usize>()
+                        .map_err(|_| GuiError::InvalidPreset)?;
                     gui_deposit
                         .presets
-                        .iter()
-                        .find(|preset| **preset == value.value)
+                        .get(index)
                         .ok_or(GuiError::InvalidPreset)?
                         .clone()
                 } else {

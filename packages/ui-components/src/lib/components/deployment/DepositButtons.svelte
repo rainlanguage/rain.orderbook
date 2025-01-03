@@ -10,17 +10,8 @@
 	export let gui: DotrainOrderGui;
 	export let tokenInfos: TokenInfos;
 
-	let showCustomInput = !gui?.isDepositPreset(deposit.token_name);
-
 	function handlePresetClick(preset: string) {
 		gui?.saveDeposit(deposit.token_name, preset);
-		showCustomInput = false;
-		gui = gui;
-	}
-
-	function handleCustomClick() {
-		showCustomInput = true;
-		gui?.saveDeposit(deposit.token_name, '');
 		gui = gui;
 	}
 </script>
@@ -47,31 +38,20 @@
 					{preset}
 				</Button>
 			{/each}
-			<Button
-				size="lg"
-				color="alternative"
-				class={!gui?.isDepositPreset(deposit.token_name)
-					? 'border-2 border-gray-900 dark:border-white'
-					: 'border border-gray-200 dark:border-gray-700'}
-				on:click={handleCustomClick}
-			>
-				Custom
-			</Button>
 		</div>
 	{/if}
-	{#if showCustomInput}
-		<div class="mt-8 w-full max-w-md">
-			<Input
-				class="text-center text-lg"
-				size="lg"
-				placeholder="Enter deposit amount"
-				on:input={({ currentTarget }) => {
-					if (currentTarget instanceof HTMLInputElement) {
-						gui?.saveDeposit(deposit.token_name, currentTarget.value);
-						gui = gui;
-					}
-				}}
-			/>
-		</div>
-	{/if}
+
+	<div class="mt-8 w-full max-w-md">
+		<Input
+			class="text-center text-lg"
+			size="lg"
+			placeholder="Enter deposit amount"
+			on:input={({ currentTarget }) => {
+				if (currentTarget instanceof HTMLInputElement) {
+					gui?.saveDeposit(deposit.token_name, currentTarget.value);
+					gui = gui;
+				}
+			}}
+		/>
+	</div>
 </div>

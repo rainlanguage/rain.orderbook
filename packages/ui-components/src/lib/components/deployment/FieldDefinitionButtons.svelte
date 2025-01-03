@@ -5,14 +5,12 @@
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-	let showCustomInput = false;
 
 	function handlePresetClick(presetId: string) {
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: true,
 			value: presetId
 		});
-		showCustomInput = false;
 		gui = gui;
 	}
 
@@ -20,14 +18,6 @@
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: false,
 			value: value
-		});
-	}
-
-	function handleCustomClick() {
-		showCustomInput = true;
-		gui?.saveFieldValue(fieldDefinition.binding, {
-			isPreset: false,
-			value: ''
 		});
 		gui = gui;
 	}
@@ -58,34 +48,20 @@
 					{preset.name || preset.value}
 				</Button>
 			{/each}
-			{#if fieldDefinition.binding !== 'is-fast-exit'}
-				<Button
-					size="lg"
-					color="alternative"
-					class={!gui?.isFieldPreset(fieldDefinition.binding)
-						? 'border-2 border-gray-900 dark:border-white'
-						: 'border border-gray-200 dark:border-gray-700'}
-					on:click={handleCustomClick}
-				>
-					Custom
-				</Button>
-			{/if}
 		{/if}
 	</div>
 	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		{#if !gui?.isFieldPreset(fieldDefinition.binding) || showCustomInput}
-			<div class="mt-8 w-full max-w-md">
-				<Input
-					class="text-center text-lg"
-					size="lg"
-					placeholder="Enter custom value"
-					on:input={({ currentTarget }) => {
-						if (currentTarget instanceof HTMLInputElement) {
-							handleCustomInputChange(currentTarget.value);
-						}
-					}}
-				/>
-			</div>
-		{/if}
+		<div class="mt-8 w-full max-w-md">
+			<Input
+				class="text-center text-lg"
+				size="lg"
+				placeholder="Enter custom value"
+				on:input={({ currentTarget }) => {
+					if (currentTarget instanceof HTMLInputElement) {
+						handleCustomInputChange(currentTarget.value);
+					}
+				}}
+			/>
+		</div>
 	{/if}
 </div>

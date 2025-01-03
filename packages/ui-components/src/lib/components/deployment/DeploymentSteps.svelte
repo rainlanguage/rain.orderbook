@@ -1,8 +1,8 @@
 <script lang="ts">
 	import FieldDefinitionButtons from './FieldDefinitionButtons.svelte';
 	import DepositButtons from './DepositButtons.svelte';
-	import SelectToken from '../SelectToken.svelte';
-	import TokenInputOrOutputWizard from './TokenInputOrOutputWizard.svelte';
+	import SelectToken from './SelectToken.svelte';
+	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 
 	import type {
 		DotrainOrderGui,
@@ -53,7 +53,7 @@
 	{#if allTokenInputs.length > 0}
 		<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
 		{#each allTokenInputs as input, i}
-			<TokenInputOrOutputWizard
+			<TokenInputOrOutput
 				{i}
 				label="Input"
 				vault={input}
@@ -67,7 +67,7 @@
 	{#if allTokenOutputs.length > 0}
 		<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
 		{#each allTokenOutputs as output, i}
-			<TokenInputOrOutputWizard
+			<TokenInputOrOutput
 				{i}
 				label="Output"
 				vault={output}
