@@ -1,19 +1,30 @@
 use crate::*;
 use blocks::Blocks;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, num::ParseIntError, sync::Arc};
+use std::{
+    collections::HashMap,
+    num::ParseIntError,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::{
+    default_document, optional_hash, optional_string, require_hash, require_string, YamlError,
+    YamlParsableHash,
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct Scenario {
-    pub name: String,
+    #[serde(skip, default = "default_document")]
+    pub document: Arc<RwLock<StrictYaml>>,
+    pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "Record<string, string>"))]
     pub bindings: HashMap<String, String>,
     #[typeshare(typescript(type = "number"))]
@@ -25,6 +36,189 @@ pub struct Scenario {
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Scenario);
+
+impl Scenario {
+    pub fn validate_runs(value: &str) -> Result<u64, ParseScenarioConfigSourceError> {
+        value
+            .parse::<u64>()
+            .map_err(ParseScenarioConfigSourceError::RunsParseError)
+    }
+
+    pub fn validate_blocks(value: &str) -> Result<Blocks, ParseScenarioConfigSourceError> {
+        match serde_yaml::from_str::<Blocks>(value) {
+            Ok(blocks) => Ok(blocks),
+            Err(_) => Err(ParseScenarioConfigSourceError::BlocksParseError(
+                value.to_string(),
+            )),
+        }
+    }
+
+    pub fn validate_scenario(
+        document: Arc<RwLock<StrictYaml>>,
+        deployer: &mut Option<Arc<Deployer>>,
+        scenarios: &mut HashMap<String, Scenario>,
+        parent_scenario: ScenarioParent,
+        scenario_key: String,
+        scenario_yaml: &StrictYaml,
+    ) -> Result<(), YamlError> {
+        let current_bindings = require_hash(
+            scenario_yaml,
+            Some("bindings"),
+            Some(format!("bindings map missing in scenario: {scenario_key}")),
+        )?
+        .iter()
+        .map(|(binding_key, binding_value)| {
+            let binding_key = binding_key.as_str().unwrap_or_default();
+            Ok((
+                binding_key.to_string(),
+                require_string(
+                    binding_value,
+                    None,
+                    Some(format!(
+                        "binding value must be a string for key: {binding_key} in scenario: {scenario_key}",
+                    )),
+                )?,
+            ))
+        })
+        .collect::<Result<HashMap<_, _>, YamlError>>()?;
+
+        let mut bindings = parent_scenario
+            .bindings
+            .as_ref()
+            .map_or_else(HashMap::new, |pb| pb.clone());
+        for (k, v) in current_bindings {
+            if let Some(parent_value) = parent_scenario.bindings.as_ref().and_then(|pb| pb.get(&k))
+            {
+                if *parent_value != v {
+                    return Err(YamlError::ParseScenarioConfigSourceError(
+                        ParseScenarioConfigSourceError::ParentBindingShadowedError(k.to_string()),
+                    ));
+                }
+            }
+            bindings.insert(k.to_string(), v.to_string());
+        }
+
+        let runs = optional_string(scenario_yaml, "runs")
+            .map(|runs| Scenario::validate_runs(&runs))
+            .transpose()?;
+        let blocks = optional_string(scenario_yaml, "blocks")
+            .map(|blocks| Scenario::validate_blocks(&blocks))
+            .transpose()?;
+
+        if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
+            let current_deployer = Deployer::parse_from_yaml(document.clone(), &deployer_name)?;
+
+            if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
+                if current_deployer.key != parent_deployer.key {
+                    return Err(YamlError::ParseScenarioConfigSourceError(
+                        ParseScenarioConfigSourceError::ParentDeployerShadowedError(
+                            deployer_name.clone(),
+                        ),
+                    ));
+                }
+            }
+
+            *deployer = Some(Arc::new(current_deployer));
+        }
+
+        scenarios.insert(
+            scenario_key.clone(),
+            Scenario {
+                document: document.clone(),
+                key: scenario_key.clone(),
+                bindings: bindings.clone(),
+                runs,
+                blocks,
+                deployer: deployer.clone().ok_or(
+                    ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                )?,
+            },
+        );
+
+        if let Some(scenarios_yaml) = optional_hash(scenario_yaml, "scenarios") {
+            for (child_key, child_scenario_yaml) in scenarios_yaml {
+                let child_key = child_key.as_str().unwrap_or_default().to_string();
+                Self::validate_scenario(
+                    document.clone(),
+                    deployer,
+                    scenarios,
+                    ScenarioParent {
+                        bindings: Some(bindings.clone()),
+                        deployer: deployer.clone(),
+                    },
+                    child_key,
+                    child_scenario_yaml,
+                )?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl YamlParsableHash for Scenario {
+    fn parse_all_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<HashMap<String, Self>, YamlError> {
+        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+        let scenarios_hash = require_hash(
+            &document_read,
+            Some("scenarios"),
+            Some("missing field: scenarios".to_string()),
+        )?;
+
+        let mut scenarios = HashMap::new();
+
+        for (key_yaml, scenario_yaml) in scenarios_hash {
+            let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+            let mut deployer: Option<Arc<Deployer>> = None;
+
+            Self::validate_scenario(
+                document.clone(),
+                &mut deployer,
+                &mut scenarios,
+                ScenarioParent {
+                    bindings: None,
+                    deployer: None,
+                },
+                scenario_key.clone(),
+                scenario_yaml,
+            )?;
+
+            if deployer.is_none() {
+                return Err(YamlError::ParseScenarioConfigSourceError(
+                    ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                ));
+            }
+        }
+
+        Ok(scenarios)
+    }
+}
+
+impl Default for Scenario {
+    fn default() -> Self {
+        Self {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: String::new(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: Arc::new(Deployer::default()),
+        }
+    }
+}
+
+impl PartialEq for Scenario {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+            && self.bindings == other.bindings
+            && self.runs == other.runs
+            && self.blocks == other.blocks
+            && self.deployer == other.deployer
+    }
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseScenarioConfigSourceError {
@@ -38,6 +232,8 @@ pub enum ParseScenarioConfigSourceError {
     DeployerNotFound(String),
     #[error("Parent orderbook shadowed by child: {0}")]
     ParentOrderbookShadowedError(String),
+    #[error("Failed to parse blocks: {0}")]
+    BlocksParseError(String),
 }
 
 #[derive(Default)]
@@ -99,7 +295,8 @@ impl ScenarioConfigSource {
 
         // Create and add the parent scenario for this level
         let parent_scenario = Arc::new(Scenario {
-            name: name.clone(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: name.clone(),
             bindings: bindings.clone(),
             runs: self.runs,
             blocks: self.blocks.clone(),
@@ -132,12 +329,12 @@ impl ScenarioConfigSource {
 #[cfg(test)]
 
 mod tests {
+    use super::*;
     use crate::test::mock_deployer;
     use alloy::primitives::Address;
-    use url::Url;
-
-    use super::*;
     use std::collections::HashMap;
+    use url::Url;
+    use yaml::tests::get_document;
 
     #[test]
     fn test_scenarios_conversion_with_nesting() {
@@ -293,5 +490,86 @@ mod tests {
             }
             _ => panic!("Expected ParentBindingShadowedError"),
         }
+    }
+
+    #[test]
+    fn test_parse_scenarios_from_yaml() {
+        let yaml = r#"
+test: test
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("missing field: scenarios".to_string())
+        );
+
+        let yaml = r#"
+scenarios:
+    scenario1:
+        test: test
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("bindings map missing in scenario: scenario1".to_string())
+        );
+
+        let yaml = r#"
+scenarios:
+    scenario1:
+        bindings:
+            key1:
+                - value1
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
+            )
+        );
+
+        let yaml = r#"
+scenarios:
+    scenario1:
+        bindings:
+            key1:
+                - value1: value2
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
+            )
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: some-value
+        scenarios:
+            scenario2:
+                bindings:
+                    key1: value
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            YamlError::ParseScenarioConfigSourceError(
+                ParseScenarioConfigSourceError::ParentBindingShadowedError("key1".to_string())
+            )
+            .to_string()
+        );
     }
 }
