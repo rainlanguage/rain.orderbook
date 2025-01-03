@@ -42,6 +42,8 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"dependencies": {
-		"flowbite-svelte": "^0.44.21"
+		"flowbite-svelte": "^0.44.21",
+		"@sveltejs/kit": "^2.0.0",
+		"svelte": "^4.2.7"
 	}
 }
