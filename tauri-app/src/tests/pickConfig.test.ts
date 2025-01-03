@@ -48,6 +48,7 @@ export const config: Config = {
   tokens: {},
   orders: {
     buy: {
+      key: 'buy',
       inputs: [],
       outputs: [],
       network: {
@@ -57,6 +58,7 @@ export const config: Config = {
       },
     },
     sell: {
+      key: 'sell',
       inputs: [],
       outputs: [],
       network: {
@@ -124,6 +126,7 @@ export const config: Config = {
         },
       },
       order: {
+        key: 'sell',
         inputs: [],
         outputs: [],
         network: {
@@ -148,6 +151,7 @@ export const config: Config = {
         },
       },
       order: {
+        key: 'buy',
         inputs: [],
         outputs: [],
         network: {
