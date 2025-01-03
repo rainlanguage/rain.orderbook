@@ -109,7 +109,7 @@ impl Scenario {
             let current_deployer = Deployer::parse_from_yaml(document.clone(), &deployer_name)?;
 
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
-                if current_deployer.label != parent_deployer.label {
+                if current_deployer.key != parent_deployer.key {
                     return Err(YamlError::ParseScenarioConfigSourceError(
                         ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                             deployer_name.clone(),
@@ -386,7 +386,7 @@ impl ScenarioConfigSource {
 
         // Check for non-matching override: if both the current and parent deployers are present and different, it's an error.
         if let (deployer, Some(parent_deployer)) = (deployer_ref, parent.deployer.as_ref()) {
-            if deployer.label != parent_deployer.label {
+            if deployer.key != parent_deployer.key {
                 return Err(ParseScenarioConfigSourceError::ParentDeployerShadowedError(
                     resolved_name.clone(),
                 ));
@@ -686,6 +686,41 @@ scenarios:
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
                 ParseScenarioConfigSourceError::ParentBindingShadowedError("key1".to_string())
+            )
+            .to_string()
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+    testnet:
+        rpc: https://rpc.com
+        chain-id: 2
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+    testnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: testnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: some-value
+        scenarios:
+            scenario2:
+                bindings:
+                    key2: value
+                deployer: testnet
+"#;
+        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            YamlError::ParseScenarioConfigSourceError(
+                ParseScenarioConfigSourceError::ParentDeployerShadowedError("testnet".to_string())
             )
             .to_string()
         );

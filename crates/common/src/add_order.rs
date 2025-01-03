@@ -443,7 +443,6 @@ price: 2e18;
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
-            label: None,
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
@@ -555,7 +554,6 @@ _ _: 0 0;
             key: "".to_string(),
             network: network_arc.clone(),
             address: *local_evm.deployer.address(),
-            label: None,
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
@@ -701,7 +699,6 @@ _ _: 0 0;
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
-            label: None,
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {

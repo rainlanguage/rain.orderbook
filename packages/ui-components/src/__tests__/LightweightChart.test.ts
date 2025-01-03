@@ -3,7 +3,7 @@ import { test, vi } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import LightweightChart from '../lib/components/charts/LightweightChart.svelte';
 import { type IChartApi, type UTCTimestamp } from 'lightweight-charts';
-import { lightweightChartsTheme } from '../lib/stores/darkMode';
+import { readable } from 'svelte/store';
 const setDataMock = vi.fn();
 const applyOptionsMock = vi.fn();
 const setVisibleRangeMock = vi.fn();
@@ -23,14 +23,6 @@ vi.mock('lightweight-charts', async (importOriginal) => ({
 	}))
 }));
 
-vi.mock('../lib/stores/darkMode', async (importOriginal) => {
-	const { readable } = await import('svelte/store');
-	return {
-		...((await importOriginal()) as object),
-		lightweightChartsTheme: readable({ test: 'test' })
-	};
-});
-
 test('renders without data correctly', async () => {
 	const title = 'test title';
 	const emptyMessage = 'empty message';
@@ -44,7 +36,7 @@ test('renders without data correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries,
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	await waitFor(() => {
@@ -91,7 +83,7 @@ test('renders with data correctly', async () => {
 		priceSymbol,
 		createSeries,
 		data,
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	await waitFor(() => {
@@ -128,7 +120,7 @@ test('updates data correctly when props change', async () => {
 		priceSymbol,
 		createSeries,
 		data: initialData,
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	await waitFor(() => {
@@ -155,7 +147,7 @@ test('setOptions is called correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	await waitFor(() => {
@@ -196,7 +188,7 @@ test('setTimeScale is called correctly', async () => {
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
 		data,
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	// Simulate clicking the "30 Days" button to change the timeDelta
@@ -245,7 +237,7 @@ test('setupChart is called correctly', async () => {
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
 		data,
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	await waitFor(() => {
@@ -266,7 +258,7 @@ test('destroyChart is called correctly', async () => {
 		loading,
 		priceSymbol,
 		createSeries: (chart: IChartApi) => chart.addLineSeries(),
-		lightweightChartsTheme
+		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
 	component.$destroy();

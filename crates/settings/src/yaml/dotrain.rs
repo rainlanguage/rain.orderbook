@@ -110,7 +110,6 @@ mod tests {
                 scenario2:
                     bindings:
                         key2: value2
-                    deployer: deployer2
     deployments:
         deployment1:
             order: order1
@@ -176,7 +175,7 @@ mod tests {
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
         assert_eq!(
             *scenario2.deployer.as_ref(),
-            ob_yaml.get_deployer("deployer2").unwrap()
+            ob_yaml.get_deployer("deployer1").unwrap()
         );
 
         let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();

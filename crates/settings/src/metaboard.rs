@@ -1,25 +1,34 @@
-use crate::config::Metaboard;
-use crate::yaml::{require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::StrictYaml;
+use typeshare::typeshare;
 use url::{ParseError, Url};
 
-#[derive(Clone, Debug)]
-pub struct YamlMetaboard(Metaboard);
+#[typeshare]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct Metaboard {
+    #[serde(skip, default = "default_document")]
+    pub document: Arc<RwLock<StrictYaml>>,
+    pub key: String,
+    #[typeshare(typescript(type = "string"))]
+    pub url: Url,
+}
 
-impl YamlMetaboard {
+impl Metaboard {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
 }
 
-impl YamlParsableHash for YamlMetaboard {
+impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, YamlMetaboard>, YamlError> {
+    ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let metaboards_hash = require_hash(
             &document_read,
@@ -32,7 +41,7 @@ impl YamlParsableHash for YamlMetaboard {
             .map(|(key_yaml, metaboard_yaml)| {
                 let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let url = YamlMetaboard::validate_url(&require_string(
+                let url = Metaboard::validate_url(&require_string(
                     metaboard_yaml,
                     None,
                     Some(format!(
@@ -40,21 +49,31 @@ impl YamlParsableHash for YamlMetaboard {
                     )),
                 )?)?;
 
-                Ok((metaboard_key, YamlMetaboard(url)))
+                let metaboard = Metaboard {
+                    document: document.clone(),
+                    key: metaboard_key.clone(),
+                    url,
+                };
+
+                Ok((metaboard_key, metaboard))
             })
             .collect()
     }
 }
 
-impl From<Metaboard> for YamlMetaboard {
-    fn from(value: Metaboard) -> Self {
-        YamlMetaboard(value)
+impl Default for Metaboard {
+    fn default() -> Self {
+        Self {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            url: Url::parse("https://metaboard.com").unwrap(),
+        }
     }
 }
 
-impl From<YamlMetaboard> for Metaboard {
-    fn from(value: YamlMetaboard) -> Self {
-        value.0
+impl PartialEq for Metaboard {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key && self.url == other.url
     }
 }
 
@@ -68,7 +87,7 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: metaboards".to_string())
@@ -79,7 +98,7 @@ metaboards:
     TestMetaboard:
         test: https://metaboard.com
 "#;
-        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -92,7 +111,7 @@ metaboards:
     TestMetaboard:
         - https://metaboard.com
 "#;
-        let error = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -102,10 +121,9 @@ metaboards:
 
         let yaml = r#"
 metaboards:
-    TestMetaboard: https://metaboard.com
+    TestMetaboard: invalid-url
 "#;
-        let result = YamlMetaboard::parse_all_from_yaml(get_document(yaml)).unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result.contains_key("TestMetaboard"));
+        let res = Metaboard::parse_all_from_yaml(get_document(yaml));
+        assert!(res.is_err());
     }
 }
