@@ -11,7 +11,7 @@
 	export let gui: DotrainOrderGui;
 </script>
 
-<div class="flex flex-col items-center gap-2">
+<div class="flex items-center gap-2">
 	<Label class="whitespace-nowrap"
 		>{label} {i + 1} ({tokenInfos.get(vault.token.address)?.symbol || ''})</Label
 	>
