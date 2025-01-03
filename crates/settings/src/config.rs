@@ -314,7 +314,7 @@ mod tests {
         let gui = Some(GuiConfigSource {
             name: "Some name".to_string(),
             description: "Some description".to_string(),
-            deployments: vec![],
+            deployments: HashMap::new(),
         });
 
         let config_string = ConfigSource {

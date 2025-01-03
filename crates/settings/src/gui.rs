@@ -1,4 +1,4 @@
-use crate::{Deployment, DeploymentRef, Token, TokenRef};
+use crate::{Deployment, Token, TokenRef};
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -43,7 +43,6 @@ pub struct GuiFieldDefinitionSource {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct GuiDeploymentSource {
-    pub deployment: DeploymentRef,
     pub name: String,
     pub description: String,
     pub deposits: Vec<GuiDepositSource>,
@@ -58,7 +57,7 @@ pub struct GuiDeploymentSource {
 pub struct GuiConfigSource {
     pub name: String,
     pub description: String,
-    pub deployments: Vec<GuiDeploymentSource>,
+    pub deployments: HashMap<String, GuiDeploymentSource>,
 }
 impl GuiConfigSource {
     pub fn try_into_gui(
@@ -69,11 +68,11 @@ impl GuiConfigSource {
         let gui_deployments = self
             .deployments
             .iter()
-            .map(|deployment_source| {
+            .map(|(deployment_name, deployment_source)| {
                 let deployment = deployments
-                    .get(&deployment_source.deployment)
+                    .get(deployment_name)
                     .ok_or(ParseGuiConfigSourceError::DeploymentNotFoundError(
-                        deployment_source.deployment.clone(),
+                        deployment_name.clone(),
                     ))
                     .map(Arc::clone)?;
 
@@ -125,17 +124,20 @@ impl GuiConfigSource {
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
 
-                Ok(GuiDeployment {
-                    deployment,
-                    deployment_name: deployment_source.deployment.clone(),
-                    name: deployment_source.name.clone(),
-                    description: deployment_source.description.clone(),
-                    deposits,
-                    fields,
-                    select_tokens: deployment_source.select_tokens.clone(),
-                })
+                Ok((
+                    deployment_name.clone(),
+                    GuiDeployment {
+                        deployment,
+                        deployment_name: deployment_name.to_string(),
+                        name: deployment_source.name.clone(),
+                        description: deployment_source.description.clone(),
+                        deposits,
+                        fields,
+                        select_tokens: deployment_source.select_tokens.clone(),
+                    },
+                ))
             })
-            .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
+            .collect::<Result<HashMap<_, _>, ParseGuiConfigSourceError>>()?;
 
         Ok(Gui {
             name: self.name,
@@ -219,7 +221,7 @@ impl_all_wasm_traits!(GuiFieldDefinition);
 pub struct Gui {
     pub name: String,
     pub description: String,
-    pub deployments: Vec<GuiDeployment>,
+    pub deployments: HashMap<String, GuiDeployment>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
@@ -241,67 +243,69 @@ mod tests {
         let gui_config_source = GuiConfigSource {
             name: "test-gui".to_string(),
             description: "test-gui-description".to_string(),
-            deployments: vec![GuiDeploymentSource {
-                deployment: "test-deployment".to_string(),
-                name: "test-deployment".to_string(),
-                description: "test-deployment-description".to_string(),
-                deposits: vec![GuiDepositSource {
-                    token: "test-token".to_string(),
-                    presets: vec!["1.3".to_string(), "2.7".to_string()],
-                }],
-                fields: vec![
-                    GuiFieldDefinitionSource {
-                        binding: "test-binding".to_string(),
-                        name: "test-name".to_string(),
-                        description: Some("test-description".to_string()),
-                        presets: Some(vec![
-                            GuiPresetSource {
-                                name: Some("test-preset".to_string()),
-                                value: "0.015".to_string(),
-                            },
-                            GuiPresetSource {
-                                name: Some("test-preset-2".to_string()),
-                                value: "0.3".to_string(),
-                            },
-                        ]),
-                    },
-                    GuiFieldDefinitionSource {
-                        binding: "test-binding-2".to_string(),
-                        name: "test-name-2".to_string(),
-                        description: Some("test-description-2".to_string()),
-                        presets: Some(vec![
-                            GuiPresetSource {
-                                name: None,
-                                value: "3.2".to_string(),
-                            },
-                            GuiPresetSource {
-                                name: None,
-                                value: "4.8".to_string(),
-                            },
-                        ]),
-                    },
-                    GuiFieldDefinitionSource {
-                        binding: "test-binding-3".to_string(),
-                        name: "test-name-3".to_string(),
-                        description: Some("test-description-3".to_string()),
-                        presets: Some(vec![
-                            GuiPresetSource {
-                                name: None,
-                                value: Address::default().to_string(),
-                            },
-                            GuiPresetSource {
-                                name: None,
-                                value: "some-value".to_string(),
-                            },
-                            GuiPresetSource {
-                                name: None,
-                                value: "true".to_string(),
-                            },
-                        ]),
-                    },
-                ],
-                select_tokens: Some(vec!["test-token".to_string()]),
-            }],
+            deployments: HashMap::from([(
+                "test-deployment".to_string(),
+                GuiDeploymentSource {
+                    name: "test-deployment".to_string(),
+                    description: "test-deployment-description".to_string(),
+                    deposits: vec![GuiDepositSource {
+                        token: "test-token".to_string(),
+                        presets: vec!["1.3".to_string(), "2.7".to_string()],
+                    }],
+                    fields: vec![
+                        GuiFieldDefinitionSource {
+                            binding: "test-binding".to_string(),
+                            name: "test-name".to_string(),
+                            description: Some("test-description".to_string()),
+                            presets: Some(vec![
+                                GuiPresetSource {
+                                    name: Some("test-preset".to_string()),
+                                    value: "0.015".to_string(),
+                                },
+                                GuiPresetSource {
+                                    name: Some("test-preset-2".to_string()),
+                                    value: "0.3".to_string(),
+                                },
+                            ]),
+                        },
+                        GuiFieldDefinitionSource {
+                            binding: "test-binding-2".to_string(),
+                            name: "test-name-2".to_string(),
+                            description: Some("test-description-2".to_string()),
+                            presets: Some(vec![
+                                GuiPresetSource {
+                                    name: None,
+                                    value: "3.2".to_string(),
+                                },
+                                GuiPresetSource {
+                                    name: None,
+                                    value: "4.8".to_string(),
+                                },
+                            ]),
+                        },
+                        GuiFieldDefinitionSource {
+                            binding: "test-binding-3".to_string(),
+                            name: "test-name-3".to_string(),
+                            description: Some("test-description-3".to_string()),
+                            presets: Some(vec![
+                                GuiPresetSource {
+                                    name: None,
+                                    value: Address::default().to_string(),
+                                },
+                                GuiPresetSource {
+                                    name: None,
+                                    value: "some-value".to_string(),
+                                },
+                                GuiPresetSource {
+                                    name: None,
+                                    value: "true".to_string(),
+                                },
+                            ]),
+                        },
+                    ],
+                    select_tokens: Some(vec!["test-token".to_string()]),
+                },
+            )]),
         };
         let scenario = Scenario {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -336,7 +340,7 @@ mod tests {
         assert_eq!(gui.name, "test-gui");
         assert_eq!(gui.description, "test-gui-description");
         assert_eq!(gui.deployments.len(), 1);
-        let deployment = &gui.deployments[0];
+        let deployment = &gui.deployments.get("test-deployment").unwrap();
         assert_eq!(deployment.name, "test-deployment");
         assert_eq!(deployment.description, "test-deployment-description");
         assert_eq!(deployment.deposits.len(), 1);
