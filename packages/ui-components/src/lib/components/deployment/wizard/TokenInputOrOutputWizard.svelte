@@ -12,11 +12,10 @@
 </script>
 
 <div class="flex flex-grow flex-col items-center p-8">
-	<!-- Header Section -->
 	<div class="mt-16 max-w-2xl text-center">
 		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
 			{label}
-			{i + 1} ({tokenInfos.get(vault.token.address)?.symbol || ''})
+			{i + 1} ({tokenInfos.get(vault.token.address)?.symbol || 'Unknown'})
 		</h1>
 	</div>
 	<div class="mt-8 w-full max-w-md">

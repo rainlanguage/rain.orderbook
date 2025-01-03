@@ -2,7 +2,6 @@ import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FieldDefinitionButtons from '../lib/components/deployment/wizard/FieldDefinitionButtons.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import deploymentStepsStore from '../lib/components/deployment/wizard/deploymentStepsStore';
 
 // Mock the DotrainOrderGui class
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -27,20 +26,13 @@ describe('FieldDefinitionButtons', () => {
 
 	beforeEach(() => {
 		mockGui = new DotrainOrderGui();
-		vi.spyOn(deploymentStepsStore, 'updateDeploymentStep');
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: mockFieldDefinition,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 
@@ -52,13 +44,7 @@ describe('FieldDefinitionButtons', () => {
 		const { getByText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: mockFieldDefinition,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 
@@ -71,13 +57,7 @@ describe('FieldDefinitionButtons', () => {
 		const { getByText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: mockFieldDefinition,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 
@@ -87,20 +67,13 @@ describe('FieldDefinitionButtons', () => {
 			isPreset: true,
 			value: 'preset1'
 		});
-		expect(deploymentStepsStore.updateDeploymentStep).toHaveBeenCalled();
 	});
 
 	it('shows custom input when Custom button is clicked', async () => {
 		const { getByText, getByPlaceholderText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: mockFieldDefinition,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 
@@ -112,13 +85,7 @@ describe('FieldDefinitionButtons', () => {
 		const { getByText, getByPlaceholderText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: mockFieldDefinition,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 
@@ -130,7 +97,6 @@ describe('FieldDefinitionButtons', () => {
 			isPreset: false,
 			value: 'custom value'
 		});
-		expect(deploymentStepsStore.updateDeploymentStep).toHaveBeenCalled();
 	});
 
 	it('does not show Custom button for is-fast-exit binding', () => {
@@ -142,13 +108,7 @@ describe('FieldDefinitionButtons', () => {
 		const { queryByText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
-				gui: mockGui,
-				currentStepIndex: 0,
-				currentStep: {
-					type: 'fields',
-					fieldDefinition: fastExitFieldDef,
-					gui: mockGui
-				}
+				gui: mockGui
 			}
 		});
 

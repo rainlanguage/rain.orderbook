@@ -1,9 +1,9 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TokenInput from '../lib/components/deployment/TokenInput.svelte';
+import TokenInputOrOutput from '../lib/components/deployment/TokenInputOrOutput.svelte';
 import type { ComponentProps } from 'svelte';
 
-export type TokenInputComponentProps = ComponentProps<TokenInput>;
+export type TokenInputOrOutputComponentProps = ComponentProps<TokenInputOrOutput>;
 
 describe('TokenInput', () => {
 	const mockTokenInfos = new Map([
@@ -21,36 +21,37 @@ describe('TokenInput', () => {
 		setVaultId: vi.fn()
 	};
 
-	const mockProps: TokenInputComponentProps = {
+	const mockProps: TokenInputOrOutputComponentProps = {
 		i: 0,
-		input: mockInput,
+		label: 'Input',
+		vault: mockInput,
 		tokenInfos: mockTokenInfos,
-		inputVaultIds: ['vault1'],
+		vaultIds: ['vault1'],
 		gui: mockGui
-	} as unknown as TokenInputComponentProps;
+	} as unknown as TokenInputOrOutputComponentProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
 	it('renders with correct label and token symbol', () => {
-		const { getByText } = render(TokenInput, mockProps);
+		const { getByText } = render(TokenInputOrOutput, mockProps);
 		expect(getByText('Input 1 (ETH)')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
-		const { getByPlaceholderText } = render(TokenInput, mockProps);
+		const { getByPlaceholderText } = render(TokenInputOrOutput, mockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 		expect(input).toBeInTheDocument();
 	});
 
 	it('displays the correct vault ID value', () => {
-		const { getByDisplayValue } = render(TokenInput, mockProps);
+		const { getByDisplayValue } = render(TokenInputOrOutput, mockProps);
 		expect(getByDisplayValue('vault1')).toBeInTheDocument();
 	});
 
 	it('calls setVaultId when input changes', async () => {
-		const { getByPlaceholderText } = render(TokenInput, mockProps);
+		const { getByPlaceholderText } = render(TokenInputOrOutput, mockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 
 		await fireEvent.change(input, { target: { value: 'vault1' } });
@@ -59,8 +60,11 @@ describe('TokenInput', () => {
 	});
 
 	it('does not call setVaultId when gui is undefined', async () => {
-		const propsWithoutGui = { ...mockProps, gui: undefined } as unknown as TokenInputComponentProps;
-		const { getByPlaceholderText } = render(TokenInput, propsWithoutGui);
+		const propsWithoutGui = {
+			...mockProps,
+			gui: undefined
+		} as unknown as TokenInputOrOutputComponentProps;
+		const { getByPlaceholderText } = render(TokenInputOrOutput, propsWithoutGui);
 		const input = getByPlaceholderText('Enter vault ID');
 
 		await fireEvent.change(input, { target: { value: 'newVault' } });
@@ -71,12 +75,12 @@ describe('TokenInput', () => {
 	it('handles missing token info gracefully', () => {
 		const propsWithUnknownToken = {
 			...mockProps,
-			input: { token: { address: '0x789' } }
+			vault: { token: { address: '0x789' } }
 		};
 		const { getByText } = render(
-			TokenInput,
-			propsWithUnknownToken as unknown as TokenInputComponentProps
+			TokenInputOrOutput,
+			propsWithUnknownToken as unknown as TokenInputOrOutputComponentProps
 		);
-		expect(getByText('Input 1 ()')).toBeInTheDocument();
+		expect(getByText('Input 1 (Unknown)')).toBeInTheDocument();
 	});
 });
