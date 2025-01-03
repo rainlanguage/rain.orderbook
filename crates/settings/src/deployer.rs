@@ -9,7 +9,9 @@ use std::{
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
-use yaml::{optional_string, require_hash, require_string, YamlError, YamlParsableHash};
+use yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -18,9 +20,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Deployer {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "string"))]
@@ -28,7 +29,6 @@ pub struct Deployer {
     pub address: Address,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
-    pub label: Option<String>,
 }
 impl Deployer {
     pub fn dummy() -> Self {
@@ -37,7 +37,6 @@ impl Deployer {
             key: "".to_string(),
             address: Address::default(),
             network: Arc::new(Network::dummy()),
-            label: None,
         }
     }
 
@@ -95,7 +94,6 @@ impl DeployerConfigSource {
             key: name,
             address: self.address,
             network: network_ref,
-            label: self.label,
         })
     }
 }
@@ -130,14 +128,11 @@ impl YamlParsableHash for Deployer {
                 };
                 let network = Network::parse_from_yaml(document.clone(), &network_name)?;
 
-                let label = optional_string(deployer_yaml, "label");
-
                 let deployer = Deployer {
                     document: document.clone(),
                     key: deployer_key.clone(),
                     address,
                     network: Arc::new(network),
-                    label,
                 };
 
                 Ok((deployer_key, deployer))
@@ -171,7 +166,6 @@ mod tests {
             deployer.network.as_ref().label,
             Some(network_name.to_string())
         );
-        assert_eq!(deployer.label, Some("Test Deployer".to_string()));
     }
 
     #[test]

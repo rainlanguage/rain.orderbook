@@ -2,8 +2,10 @@ use super::config_source::ConfigSourceError;
 use crate::*;
 use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
+use std::{collections::HashMap, sync::RwLock};
+use strict_yaml_rust::StrictYaml;
+use subgraph::Subgraph;
 use thiserror::Error;
 use typeshare::typeshare;
 use url::Url;
@@ -45,7 +47,6 @@ pub struct Config {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Config);
 
-pub type Subgraph = Url;
 pub type Metaboard = Url;
 pub type Vault = U256;
 
@@ -95,7 +96,16 @@ impl TryFrom<ConfigSource> for Config {
         let subgraphs = item
             .subgraphs
             .into_iter()
-            .map(|(name, subgraph)| Ok((name, Arc::new(subgraph))))
+            .map(|(name, subgraph)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(Subgraph {
+                        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                        key: name.clone(),
+                        url: subgraph.clone(),
+                    }),
+                ))
+            })
             .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigSourceError>>()?;
 
         let metaboards = item
@@ -343,7 +353,7 @@ mod tests {
         // Verify subgraphs
         assert_eq!(config.subgraphs.len(), 1);
         let mainnet_subgraph = config.subgraphs.get("mainnet").unwrap();
-        assert_eq!(mainnet_subgraph.as_str(), "https://mainnet.subgraph/");
+        assert_eq!(mainnet_subgraph.url.as_str(), "https://mainnet.subgraph/");
 
         // Verify orderbooks
         assert_eq!(config.orderbooks.len(), 1);
