@@ -9,7 +9,7 @@ describe('MetricChart Component', () => {
       'unit-prefix': '$',
       'unit-suffix': ' USD',
       value: 'testValue',
-      precision: 4
+      precision: 4,
     };
     const data = [{ testValue: 22 }];
 
@@ -24,7 +24,7 @@ describe('MetricChart Component', () => {
       'unit-prefix': '$',
       'unit-suffix': ' USD',
       value: 'testValue',
-      precision: 4
+      precision: 4,
     };
     const data = [{ testValue: 123.456 }];
 
@@ -38,7 +38,7 @@ describe('MetricChart Component', () => {
       label: 'Test Metric',
       'unit-prefix': '$',
       'unit-suffix': ' USD',
-      value: 'testValue'
+      value: 'testValue',
     };
     const data = [{ testValue: 123.456 }];
 
@@ -54,7 +54,7 @@ describe('MetricChart Component', () => {
       'unit-prefix': '$',
       'unit-suffix': ' USD',
       value: 'testValue',
-      precision: 2
+      precision: 2,
     };
     const data = [{ testValue: 123.456 }];
 
