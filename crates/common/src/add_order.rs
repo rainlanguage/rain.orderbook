@@ -506,6 +506,8 @@ price: 2e18;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -614,6 +616,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -758,6 +762,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };

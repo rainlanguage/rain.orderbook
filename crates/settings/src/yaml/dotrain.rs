@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Order, Scenario};
+use crate::{Deployment, Order, Scenario};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
@@ -39,6 +39,14 @@ impl DotrainYaml {
     }
     pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
         Scenario::parse_from_yaml(self.document.clone(), key)
+    }
+
+    pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
+        let deployments = Deployment::parse_all_from_yaml(self.document.clone())?;
+        Ok(deployments.keys().cloned().collect())
+    }
+    pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
+        Deployment::parse_from_yaml(self.document.clone(), key)
     }
 }
 
@@ -94,6 +102,10 @@ mod tests {
                 scenario2:
                     bindings:
                         key2: value2
+    deployments:
+        deployment1:
+            order: order1
+            scenario: scenario1
     "#;
 
     #[test]
@@ -134,6 +146,18 @@ mod tests {
         assert_eq!(
             *scenario2.deployer.as_ref(),
             ob_yaml.get_deployer("deployer1").unwrap()
+        );
+
+        let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();
+        assert_eq!(deployment_keys.len(), 1);
+        let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
+        assert_eq!(
+            deployment.order,
+            dotrain_yaml.get_order("order1").unwrap().into()
+        );
+        assert_eq!(
+            deployment.scenario,
+            dotrain_yaml.get_scenario("scenario1").unwrap().into()
         );
     }
 }
