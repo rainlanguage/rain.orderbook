@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DropdownRadio, Checkbox, DeploymentSteps } from '@rainlanguage/ui-components';
+	import { DropdownRadio, DeploymentSteps } from '@rainlanguage/ui-components';
 	import {
 		DotrainOrderGui,
 		type ApprovalCalldataResult,
@@ -11,7 +11,7 @@
 		type TokenInfos,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Label } from 'flowbite-svelte';
+	import { Button, Input, Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 
@@ -25,30 +25,24 @@
 		[linea.id]: linea
 	};
 
-	let isLimitStrat = false;
-	$: if (isLimitStrat) {
-		loadLimit();
-	} else {
-		loadDca();
-	}
+	let strategyUrl =
+		'https://raw.githubusercontent.com/rainlanguage/rain.webapp/refs/heads/main/public/_strategies/raindex/2-dynamic-spread/dynamic-spread.rain';
 
 	let dotrain = '';
-	async function loadDca() {
-		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.webapp/refs/heads/main/public/_strategies/raindex/2-dynamic-spread/dynamic-spread.rain'
-		);
-		dotrain = await response.text();
-	}
-	async function loadLimit() {
-		const response = await fetch(
-			'https://raw.githubusercontent.com/findolor/sample-dotrains/refs/heads/main/fixed-ratio-limit.rain'
-		);
+	let isLimitStrat = false;
+
+	async function loadStrategy() {
+		const response = await fetch(strategyUrl);
+		if (!response.ok) {
+			throw new Error('Failed to load strategy');
+		}
 		dotrain = await response.text();
 	}
 
 	let gui: DotrainOrderGui | undefined = undefined;
 	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
+		console.log('dotrain', dotrain);
 		try {
 			let deployments: AvailableDeployments =
 				await DotrainOrderGui.getAvailableDeployments(dotrain);
@@ -82,6 +76,7 @@
 			console.error('Failed to get gui:', error);
 		}
 	}
+
 	$: if (selectedDeployment) {
 		handleDeploymentChange(selectedDeployment as string);
 	}
@@ -188,16 +183,10 @@
 </script>
 
 <div class="flex h-screen flex-col gap-4">
-	<div class="mb-4 flex items-center gap-2">
-		<Checkbox
-			bind:checked={isLimitStrat}
-			label="Is Limit Strategy"
-			on:change={() => {
-				gui = undefined;
-			}}
-		/>
+	<div class="mb-4">
+		<Input type="text" bind:value={strategyUrl} />
+		<Button on:click={loadStrategy}>Load Strategy</Button>
 	</div>
-
 	<div class="mb-4">
 		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
 		<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
