@@ -142,6 +142,7 @@
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
               echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli
