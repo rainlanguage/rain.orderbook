@@ -49,7 +49,7 @@ impl DotrainOrderGui {
                 .deployment
                 .deposits
                 .iter()
-                .find(|dg| dg.token_name == *k)
+                .find(|dg| dg.token.key == *k)
                 .ok_or(GuiError::DepositTokenNotFound(k.clone()))?;
             let preset = if v.is_preset {
                 let id = gui_deposit

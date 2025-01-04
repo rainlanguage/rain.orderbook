@@ -20,7 +20,7 @@ impl DotrainOrderGui {
                     .deployment
                     .deposits
                     .iter()
-                    .find(|dg| dg.token_name == *token)
+                    .find(|dg| dg.token.key == *token)
                     .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
                 let amount: String = if value.is_preset {
                     let index = value
@@ -36,7 +36,7 @@ impl DotrainOrderGui {
                     value.value.clone()
                 };
                 Ok(TokenDeposit {
-                    token: gui_deposit.token_name.clone(),
+                    token: gui_deposit.token.key.clone(),
                     amount,
                     address: gui_deposit.token.address,
                 })
@@ -50,7 +50,7 @@ impl DotrainOrderGui {
             .deployment
             .deposits
             .iter()
-            .find(|dg| dg.token_name == token)
+            .find(|dg| dg.token.key == token)
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
         let value = if let Some(index) = gui_deposit.presets.iter().position(|p| **p == amount) {
@@ -80,7 +80,7 @@ impl DotrainOrderGui {
             .deployment
             .deposits
             .iter()
-            .find(|dg| dg.token_name == token)
+            .find(|dg| dg.token.key == token)
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
         Ok(gui_deposit.presets.clone())
     }

@@ -54,9 +54,9 @@
 				await DotrainOrderGui.getAvailableDeployments(dotrain);
 			availableDeployments = Object.fromEntries(
 				deployments.map((deployment) => [
-					deployment.deployment_name,
+					deployment.key,
 					{
-						label: deployment.deployment_name,
+						label: deployment.key,
 						deployment
 					}
 				])
