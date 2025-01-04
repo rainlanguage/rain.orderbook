@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
-import DepositButtons from '../lib/components/deployment/wizard/DepositButtons.svelte';
+import DepositButtons from '../lib/components/deployment/DepositButtons.svelte';
 import type { GuiDeposit } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 
@@ -37,7 +37,6 @@ describe('DepositButtons', () => {
 		expect(getByText('100')).toBeTruthy();
 		expect(getByText('200')).toBeTruthy();
 		expect(getByText('300')).toBeTruthy();
-		expect(getByText('Custom')).toBeTruthy();
 	});
 
 	it('handles preset button clicks', async () => {
@@ -51,20 +50,6 @@ describe('DepositButtons', () => {
 
 		await fireEvent.click(getByText('100'));
 		expect(mockGui.saveDeposit).toHaveBeenCalledWith('TEST', '100');
-	});
-
-	it('shows custom input when Custom button is clicked', async () => {
-		const { getByText, getByPlaceholderText } = render(DepositButtons, {
-			props: {
-				deposit: mockDeposit,
-				gui: mockGui,
-				tokenInfos: mockTokenInfos
-			} as unknown as DepositButtonsProps
-		});
-
-		await fireEvent.click(getByText('Custom'));
-		expect(getByPlaceholderText('Enter deposit amount')).toBeTruthy();
-		expect(mockGui.saveDeposit).toHaveBeenCalledWith('TEST', '');
 	});
 
 	it('handles custom input changes', async () => {

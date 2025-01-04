@@ -1,9 +1,8 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import FieldDefinitionButtons from '../lib/components/deployment/wizard/FieldDefinitionButtons.svelte';
+import FieldDefinitionButtons from '../lib/components/deployment/FieldDefinitionButtons.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
-// Mock the DotrainOrderGui class
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: vi.fn().mockImplementation(() => ({
 		saveFieldValue: vi.fn(),
@@ -50,7 +49,6 @@ describe('FieldDefinitionButtons', () => {
 
 		expect(getByText('Preset 1')).toBeTruthy();
 		expect(getByText('Preset 2')).toBeTruthy();
-		expect(getByText('Custom')).toBeTruthy();
 	});
 
 	it('handles preset button clicks', async () => {
@@ -69,27 +67,14 @@ describe('FieldDefinitionButtons', () => {
 		});
 	});
 
-	it('shows custom input when Custom button is clicked', async () => {
-		const { getByText, getByPlaceholderText } = render(FieldDefinitionButtons, {
-			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
-			}
-		});
-
-		await fireEvent.click(getByText('Custom'));
-		expect(getByPlaceholderText('Enter custom value')).toBeTruthy();
-	});
-
 	it('handles custom input changes', async () => {
-		const { getByText, getByPlaceholderText } = render(FieldDefinitionButtons, {
+		const { getByPlaceholderText } = render(FieldDefinitionButtons, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui
 			}
 		});
 
-		await fireEvent.click(getByText('Custom'));
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
