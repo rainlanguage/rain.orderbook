@@ -11,7 +11,7 @@
 	export let tokenInfos: TokenInfos;
 
 	function handlePresetClick(preset: string) {
-		gui?.saveDeposit(deposit.token_name, preset);
+		gui?.saveDeposit(deposit.token.key, preset);
 		gui = gui;
 	}
 </script>
@@ -30,7 +30,7 @@
 				<Button
 					size="lg"
 					color="alternative"
-					class={gui?.isDepositPreset(deposit.token_name)
+					class={gui?.isDepositPreset(deposit.token.key)
 						? 'border border-gray-200 dark:border-gray-700'
 						: 'border-2 border-gray-900 dark:border-white'}
 					on:click={() => handlePresetClick(preset)}
@@ -48,7 +48,7 @@
 			placeholder="Enter deposit amount"
 			on:input={({ currentTarget }) => {
 				if (currentTarget instanceof HTMLInputElement) {
-					gui?.saveDeposit(deposit.token_name, currentTarget.value);
+					gui?.saveDeposit(deposit.token.key, currentTarget.value);
 					gui = gui;
 				}
 			}}
