@@ -15,8 +15,7 @@ describe('DepositButtons', () => {
 	const mockTokenInfos = new Map([['0x123', { name: 'Test Token', symbol: 'TEST' }]]);
 
 	const mockDeposit: GuiDeposit = {
-		token: { address: '0x123' },
-		token_name: 'TEST',
+		token: { address: '0x123', key: 'TEST' },
 		presets: ['100', '200', '300']
 	} as unknown as GuiDeposit;
 
