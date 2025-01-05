@@ -14,6 +14,7 @@
 	import { Button, Input, Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
+	import testStrategy from './test-strategy.md?raw';
 
 	const chains: Record<number, Chain> = {
 		[base.id]: base,
@@ -25,18 +26,11 @@
 		[linea.id]: linea
 	};
 
-	let strategyUrl =
-		'https://raw.githubusercontent.com/rainlanguage/rain.webapp/refs/heads/main/public/_strategies/raindex/2-dynamic-spread/dynamic-spread.rain';
-
 	let dotrain = '';
 	let isLimitStrat = false;
 
 	async function loadStrategy() {
-		const response = await fetch(strategyUrl);
-		if (!response.ok) {
-			throw new Error('Failed to load strategy');
-		}
-		dotrain = await response.text();
+		dotrain = testStrategy;
 	}
 
 	let gui: DotrainOrderGui | undefined = undefined;
