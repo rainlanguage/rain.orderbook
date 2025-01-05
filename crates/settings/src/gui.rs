@@ -1097,9 +1097,10 @@ gui:
                     - value: "1"
 "#;
 
-        let gui = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
-            .unwrap()
-            .unwrap();
+        let gui =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap()
+                .unwrap();
 
         let deployment = gui.deployments.get("deployment1").unwrap();
         let field = &deployment.fields[0];
