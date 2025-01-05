@@ -1,3 +1,4 @@
+use crate::yaml::context::Context;
 use crate::*;
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::Address;
@@ -38,6 +39,7 @@ impl Orderbook {
 impl YamlParsableHash for Orderbook {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let orderbooks_hash = require_hash(
@@ -63,14 +65,17 @@ impl YamlParsableHash for Orderbook {
                     Some(network_name) => network_name,
                     None => orderbook_key.clone(),
                 };
-                let network = Network::parse_from_yaml(document.clone(), &network_name)?;
+                let network = Network::parse_from_yaml(document.clone(), None, &network_name)?;
 
                 let subgraph_name = match optional_string(orderbook_yaml, "subgraph") {
                     Some(subgraph_name) => subgraph_name,
                     None => orderbook_key.clone(),
                 };
-                let subgraph =
-                    Arc::new(Subgraph::parse_from_yaml(document.clone(), &subgraph_name)?);
+                let subgraph = Arc::new(Subgraph::parse_from_yaml(
+                    document.clone(),
+                    None,
+                    &subgraph_name,
+                )?);
 
                 let label = optional_string(orderbook_yaml, "label");
 
@@ -272,32 +277,47 @@ mod tests {
 
     #[test]
     fn test_parse_orderbooks_from_yaml() {
-        let yaml = r#"
+        let error = Orderbook::parse_all_from_yaml(
+            get_document(
+                r#"
 test: test
-"#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+"#,
+            ),
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: orderbooks".to_string())
         );
 
-        let yaml = r#"
+        let error = Orderbook::parse_all_from_yaml(
+            get_document(
+                r#"
 orderbooks:
     TestOrderbook:
-"#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+"#,
+            ),
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in orderbook: TestOrderbook".to_string())
         );
 
-        let yaml = r#"
+        let error = Orderbook::parse_all_from_yaml(
+            get_document(
+                r#"
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
-"#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+"#,
+            ),
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -313,7 +333,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("TestNetwork".to_string()));
 
         let yaml = r#"
@@ -326,7 +346,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: subgraphs".to_string())
@@ -345,7 +365,7 @@ orderbooks:
         network: TestNetwork
         subgraph: TestSubgraph
 "#;
-        let error = Orderbook::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("TestSubgraph".to_string()));
     }
 }

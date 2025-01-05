@@ -17,7 +17,7 @@ impl YamlParsable for DotrainYaml {
         let document = Arc::new(RwLock::new(doc));
 
         if validate {
-            Order::parse_all_from_yaml(document.clone())?;
+            Order::parse_all_from_yaml(document.clone(), None)?;
         }
 
         Ok(DotrainYaml { document })
@@ -26,31 +26,31 @@ impl YamlParsable for DotrainYaml {
 
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orders = Order::parse_all_from_yaml(self.document.clone())?;
+        let orders = Order::parse_all_from_yaml(self.document.clone(), None)?;
         Ok(orders.keys().cloned().collect())
     }
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
-        Order::parse_from_yaml(self.document.clone(), key)
+        Order::parse_from_yaml(self.document.clone(), None, key)
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
-        let scenarios = Scenario::parse_all_from_yaml(self.document.clone())?;
+        let scenarios = Scenario::parse_all_from_yaml(self.document.clone(), None)?;
         Ok(scenarios.keys().cloned().collect())
     }
     pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
-        Scenario::parse_from_yaml(self.document.clone(), key)
+        Scenario::parse_from_yaml(self.document.clone(), None, key)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployments = Deployment::parse_all_from_yaml(self.document.clone())?;
+        let deployments = Deployment::parse_all_from_yaml(self.document.clone(), None)?;
         Ok(deployments.keys().cloned().collect())
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
-        Deployment::parse_from_yaml(self.document.clone(), key)
+        Deployment::parse_from_yaml(self.document.clone(), None, key)
     }
 
     pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
-        Gui::parse_from_yaml_optional(self.document.clone())
+        Gui::parse_from_yaml_optional(self.document.clone(), "", None)
     }
 }
 

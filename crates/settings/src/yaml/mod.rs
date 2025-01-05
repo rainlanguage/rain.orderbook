@@ -1,3 +1,4 @@
+pub mod context;
 pub mod dotrain;
 pub mod orderbook;
 
@@ -7,6 +8,7 @@ use crate::{
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
+use context::Context;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -33,10 +35,15 @@ pub trait YamlParsable: Sized {
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: &str) -> Result<Self, YamlError> {
-        let all = Self::parse_all_from_yaml(document)?;
+    fn parse_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        context: Option<&Context>,
+        key: &str,
+    ) -> Result<Self, YamlError> {
+        let all = Self::parse_all_from_yaml(document, context)?;
         all.get(key)
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
@@ -56,10 +63,16 @@ pub trait YamlParsableString {
 }
 
 pub trait YamlParseableValue: Sized {
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<Self, YamlError>;
+    fn parse_from_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: &str,
+        context: Option<&Context>,
+    ) -> Result<Self, YamlError>;
 
     fn parse_from_yaml_optional(
         document: Arc<RwLock<StrictYaml>>,
+        key: &str,
+        context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
 }
 

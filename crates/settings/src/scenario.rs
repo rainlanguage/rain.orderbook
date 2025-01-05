@@ -1,3 +1,4 @@
+use crate::yaml::context::Context;
 use crate::*;
 use blocks::Blocks;
 use serde::{Deserialize, Serialize};
@@ -60,6 +61,7 @@ impl Scenario {
         parent_scenario: ScenarioParent,
         scenario_key: String,
         scenario_yaml: &StrictYaml,
+        context: Option<&Context>,
     ) -> Result<(), YamlError> {
         let current_bindings = require_hash(
             scenario_yaml,
@@ -69,16 +71,23 @@ impl Scenario {
         .iter()
         .map(|(binding_key, binding_value)| {
             let binding_key = binding_key.as_str().unwrap_or_default();
-            Ok((
-                binding_key.to_string(),
-                require_string(
-                    binding_value,
-                    None,
-                    Some(format!(
-                        "binding value must be a string for key: {binding_key} in scenario: {scenario_key}",
-                    )),
-                )?,
-            ))
+            let value = require_string(
+                binding_value,
+                None,
+                Some(format!(
+                    "binding value must be a string for key: {binding_key} in scenario: {scenario_key}",
+                )),
+            )?;
+
+            // Interpolate the value if we have a context
+            let final_value = if let Some(ctx) = context {
+                ctx.interpolate(&value)
+                    .map_err(|e| YamlError::ParseError(e.to_string()))?
+            } else {
+                value
+            };
+
+            Ok((binding_key.to_string(), final_value))
         })
         .collect::<Result<HashMap<_, _>, YamlError>>()?;
 
@@ -106,7 +115,8 @@ impl Scenario {
             .transpose()?;
 
         if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-            let current_deployer = Deployer::parse_from_yaml(document.clone(), &deployer_name)?;
+            let current_deployer =
+                Deployer::parse_from_yaml(document.clone(), None, &deployer_name)?;
 
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
                 if current_deployer.key != parent_deployer.key {
@@ -148,6 +158,7 @@ impl Scenario {
                     },
                     child_key,
                     child_scenario_yaml,
+                    context,
                 )?;
             }
         }
@@ -159,6 +170,7 @@ impl Scenario {
 impl YamlParsableHash for Scenario {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let scenarios_hash = require_hash(
@@ -184,6 +196,7 @@ impl YamlParsableHash for Scenario {
                 },
                 scenario_key.clone(),
                 scenario_yaml,
+                context,
             )?;
 
             if deployer.is_none() {
@@ -497,7 +510,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: scenarios".to_string())
@@ -508,7 +521,7 @@ scenarios:
     scenario1:
         test: test
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("bindings map missing in scenario: scenario1".to_string())
@@ -521,7 +534,7 @@ scenarios:
             key1:
                 - value1
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -536,7 +549,7 @@ scenarios:
             key1:
                 - value1: value2
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -563,7 +576,7 @@ scenarios:
                 bindings:
                     key1: value
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -598,7 +611,7 @@ scenarios:
                     key2: value
                 deployer: testnet
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(

@@ -10,7 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -101,6 +102,7 @@ impl DeployerConfigSource {
 impl YamlParsableHash for Deployer {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let deployers_hash = require_hash(
@@ -126,7 +128,7 @@ impl YamlParsableHash for Deployer {
                     Some(network_name) => network_name,
                     None => deployer_key.clone(),
                 };
-                let network = Network::parse_from_yaml(document.clone(), &network_name)?;
+                let network = Network::parse_from_yaml(document.clone(), None, &network_name)?;
 
                 let deployer = Deployer {
                     document: document.clone(),
@@ -212,7 +214,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Deployer::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Deployer::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: deployers".to_string())
@@ -222,7 +224,7 @@ test: test
 deployers:
     TestDeployer:
 "#;
-        let error = Deployer::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Deployer::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in deployer: TestDeployer".to_string())
@@ -233,11 +235,12 @@ deployers:
     TestDeployer:
         address: not_a_valid_address
 "#;
-        let error = Deployer::parse_all_from_yaml(get_document(yaml));
+        let error = Deployer::parse_all_from_yaml(get_document(yaml), None);
         assert!(error.is_err());
 
-        let error = Deployer::parse_all_from_yaml(get_document(
-            r#"
+        let error = Deployer::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     TestNetwork:
         rpc: https://rpc.com
@@ -247,7 +250,9 @@ deployers:
         address: "0x1234567890123456789012345678901234567890"
         network: SomeNetwork
 "#,
-        ))
+            ),
+            None,
+        )
         .unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("SomeNetwork".to_string()));
     }

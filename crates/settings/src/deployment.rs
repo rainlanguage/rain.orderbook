@@ -1,3 +1,4 @@
+use crate::yaml::context::Context;
 use crate::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -31,6 +32,7 @@ impl_all_wasm_traits!(Deployment);
 impl YamlParsableHash for Deployment {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let deployments_hash = require_hash(
@@ -44,23 +46,30 @@ impl YamlParsableHash for Deployment {
             .map(|(key_yaml, deployment_yaml)| {
                 let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let scenario = Scenario::parse_from_yaml(
-                    document.clone(),
-                    &require_string(
-                        deployment_yaml,
-                        Some("scenario"),
-                        Some(format!(
-                            "scenario string missing in deployment: {deployment_key}"
-                        )),
-                    )?,
-                )?;
+                // First parse the order
                 let order = Order::parse_from_yaml(
                     document.clone(),
+                    None,
                     &require_string(
                         deployment_yaml,
                         Some("order"),
                         Some(format!(
                             "order string missing in deployment: {deployment_key}"
+                        )),
+                    )?,
+                )?;
+
+                let context = Context::with_order(Arc::new(order.clone()));
+
+                // Parse scenario with context
+                let scenario = Scenario::parse_from_yaml(
+                    document.clone(),
+                    Some(&context),
+                    &require_string(
+                        deployment_yaml,
+                        Some("scenario"),
+                        Some(format!(
+                            "scenario string missing in deployment: {deployment_key}"
                         )),
                     )?,
                 )?;
@@ -226,46 +235,51 @@ mod tests {
 
     #[test]
     fn test_parse_deployments_from_yaml() {
-        let yaml = r#"
+        let error = Deployment::parse_all_from_yaml(
+            get_document(
+                r#"
 test: test
-"#;
-        let error = Deployment::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+"#,
+            ),
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: deployments".to_string())
         );
 
-        let yaml = r#"
+        let error = Deployment::parse_all_from_yaml(
+            get_document(
+                r#"
 deployments:
-    deployment1:
-        test: test
-        "#;
-        let error = Deployment::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+    test:
+"#,
+            ),
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("scenario string missing in deployment: deployment1".to_string())
+            YamlError::ParseError("order string missing in deployment: test".to_string())
         );
 
-        let yaml = r#"
-networks:
-    network1:
-        rpc: https://eth.llamarpc.com
-        chain-id: 1
-deployers:
-    deployer1:
-        address: 0x0000000000000000000000000000000000000000
-        network: network1
+        let error = Deployment::parse_all_from_yaml(
+            get_document(
+                r#"
 scenarios:
-    scenario1:
-        bindings:
-            test: test
-        deployer: deployer1
+    test:
+        order: test_order
 deployments:
     deployment1:
         scenario: scenario1
         test: test
-        "#;
-        let error = Deployment::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        "#,
+            ),
+            None,
+        )
+        .unwrap_err();
+
         assert_eq!(
             error,
             YamlError::ParseError("order string missing in deployment: deployment1".to_string())
@@ -307,7 +321,7 @@ deployments:
         scenario: scenario1
         order: order1
         "#;
-        let error = Deployment::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Deployment::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseDeploymentConfigSourceError(ParseDeploymentConfigSourceError::NoMatch)

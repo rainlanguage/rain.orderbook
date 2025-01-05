@@ -10,6 +10,7 @@ use std::{collections::HashMap, sync::Arc};
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::context::Context;
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -76,6 +77,7 @@ impl Token {
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let tokens_hash = require_hash(
@@ -91,6 +93,7 @@ impl YamlParsableHash for Token {
 
                 let network = Network::parse_from_yaml(
                     document.clone(),
+                    None,
                     &require_string(
                         token_yaml,
                         Some("network"),
@@ -281,20 +284,24 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_tokens_errors() {
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+    fn test_parse_tokens_from_yaml() {
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 test: test
 "#,
-        ))
+            ),
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: tokens".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -303,15 +310,18 @@ tokens:
     token1:
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+            ),
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("network string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -321,7 +331,9 @@ tokens:
         network: "nonexistent"
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+            ),
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
@@ -330,8 +342,9 @@ tokens:
             )
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -340,15 +353,18 @@ tokens:
     token1:
         network: "mainnet"
 "#,
-        ))
+            ),
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -358,11 +374,14 @@ tokens:
         network: "mainnet"
         address: "not_a_valid_address"
 "#,
-        ));
+            ),
+            None,
+        );
         assert!(error.is_err());
 
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -373,7 +392,9 @@ tokens:
         address: "0x1234567890123456789012345678901234567890"
         decimals: "not_a_number"
 "#,
-        ));
+            ),
+            None,
+        );
         assert!(error.is_err());
     }
 }

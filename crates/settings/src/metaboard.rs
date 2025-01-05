@@ -1,4 +1,6 @@
-use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -28,6 +30,7 @@ impl Metaboard {
 impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let metaboards_hash = require_hash(
@@ -87,7 +90,7 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: metaboards".to_string())
@@ -98,7 +101,7 @@ metaboards:
     TestMetaboard:
         test: https://metaboard.com
 "#;
-        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -111,7 +114,7 @@ metaboards:
     TestMetaboard:
         - https://metaboard.com
 "#;
-        let error = Metaboard::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -123,7 +126,7 @@ metaboards:
 metaboards:
     TestMetaboard: invalid-url
 "#;
-        let res = Metaboard::parse_all_from_yaml(get_document(yaml));
+        let res = Metaboard::parse_all_from_yaml(get_document(yaml), None);
         assert!(res.is_err());
     }
 }

@@ -1,3 +1,4 @@
+use crate::yaml::context::Context;
 use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,6 +29,7 @@ impl Subgraph {
 impl YamlParsableHash for Subgraph {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Subgraph>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let subgraphs_hash = require_hash(
@@ -87,7 +89,7 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: subgraphs".to_string())
@@ -98,7 +100,7 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -111,7 +113,7 @@ subgraphs:
     TestSubgraph:
         - https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -123,7 +125,7 @@ subgraphs:
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap();
+        let result = Subgraph::parse_all_from_yaml(get_document(yaml), None).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
     }

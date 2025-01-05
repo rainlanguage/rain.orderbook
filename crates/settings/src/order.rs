@@ -1,3 +1,4 @@
+use crate::yaml::context::Context;
 use crate::*;
 use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
@@ -68,6 +69,7 @@ impl Order {
 impl YamlParsableHash for Order {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let orders_hash = require_hash(
@@ -85,8 +87,11 @@ impl YamlParsableHash for Order {
 
                 let deployer = match optional_string(order_yaml, "deployer") {
                     Some(deployer_name) => {
-                        let deployer =
-                            Arc::new(Deployer::parse_from_yaml(document.clone(), &deployer_name)?);
+                        let deployer = Arc::new(Deployer::parse_from_yaml(
+                            document.clone(),
+                            None,
+                            &deployer_name,
+                        )?);
                         if let Some(n) = &network {
                             if deployer.network != *n {
                                 return Err(YamlError::ParseOrderConfigSourceError(
@@ -105,6 +110,7 @@ impl YamlParsableHash for Order {
                     Some(orderbook_name) => {
                         let orderbook = Arc::new(Orderbook::parse_from_yaml(
                             document.clone(),
+                            None,
                             &orderbook_name,
                         )?);
                         if let Some(n) = &network {
@@ -136,7 +142,7 @@ impl YamlParsableHash for Order {
                             "token string missing in input index: {i} in order: {order_key}"
                         )),
                     )?;
-                    let token = Token::parse_from_yaml(document.clone(), &token_name)?;
+                    let token = Token::parse_from_yaml(document.clone(), None, &token_name)?;
 
                     if let Some(n) = &network {
                         if token.network != *n {
@@ -175,7 +181,7 @@ impl YamlParsableHash for Order {
                             "token string missing in output index: {i} in order: {order_key}"
                         )),
                     )?;
-                    let token = Token::parse_from_yaml(document.clone(), &token_name)?;
+                    let token = Token::parse_from_yaml(document.clone(), None, &token_name)?;
 
                     if let Some(n) = &network {
                         if token.network != *n {
@@ -532,7 +538,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: orders".to_string())
@@ -542,7 +548,7 @@ test: test
 orders:
     order1:
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("inputs list missing in order: order1".to_string())
@@ -554,7 +560,7 @@ orders:
         inputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -568,7 +574,7 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: tokens".to_string())
@@ -588,7 +594,7 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("outputs list missing in order: order1".to_string())
@@ -610,7 +616,7 @@ orders:
         outputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Order::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(

@@ -1,7 +1,7 @@
 use crate::{
     yaml::{
-        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        context::Context, default_document, get_hash_value, optional_hash, optional_string,
+        optional_vec, require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -251,12 +251,18 @@ impl_all_wasm_traits!(Gui);
 impl Gui {}
 
 impl YamlParseableValue for Gui {
-    fn parse_from_yaml(_: Arc<RwLock<StrictYaml>>) -> Result<Self, YamlError> {
+    fn parse_from_yaml(
+        _: Arc<RwLock<StrictYaml>>,
+        _key: &str,
+        _context: Option<&Context>,
+    ) -> Result<Self, YamlError> {
         Err(YamlError::InvalidTraitFunction)
     }
 
     fn parse_from_yaml_optional(
         document: Arc<RwLock<StrictYaml>>,
+        _key: &str,
+        _context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -291,8 +297,9 @@ impl YamlParseableValue for Gui {
                 .map(|(deployment_name, deployment_yaml)| {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let deployment =
-                        Deployment::parse_from_yaml(document.clone(), &deployment_name)?;
+                    let deployment = Deployment::parse_from_yaml(document.clone(), None, &deployment_name)?;
+                    
+                    let context = Context::with_order(deployment.order.clone());
 
                     let name = require_string(
                         deployment_yaml,
@@ -317,13 +324,13 @@ impl YamlParseableValue for Gui {
                             "deposits list missing in gui deployment: {deployment_name}",
                         )),
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
-                        let token =  Token::parse_from_yaml(document.clone(), &require_string(
-                            deposit_value,
-                            Some("token"),
-                            Some(format!(
+                        let token = Token::parse_from_yaml(
+                            document.clone(),
+                            None,
+                            &require_string(deposit_value, Some("token"), Some(format!(
                                 "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                            )),
-                        )?)?;
+                            )))?,
+                        )?;
 
                         let presets = require_vec(
                             deposit_value,
@@ -372,7 +379,16 @@ impl YamlParseableValue for Gui {
                             )),
                         )?;
 
-                        let description = optional_string(field_yaml, "description");
+                        let name = context.interpolate(&name)
+                            .map_err(|e| YamlError::ParseError(e.to_string()))?;
+
+                        let description = match optional_string(field_yaml, "description") {
+                            Some(desc) => {
+                                Some(context.interpolate(&desc)
+                                    .map_err(|e| YamlError::ParseError(e.to_string()))?)
+                            }
+                            None => None,
+                        };
 
                         let presets = match optional_vec(field_yaml, "presets") {
                             Some(p) => Some(p.iter().enumerate().map(|(preset_index, preset_yaml)| {
@@ -608,20 +624,19 @@ mod tests {
     #[test]
     fn test_parse_gui_from_yaml() {
         let yaml = r#"
-gui:
-    test: test
+test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError("name field missing in gui".to_string())
-        );
+        let gui = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap();
+
+        // should be none
+        assert_eq!(gui, None);
+
         let yaml = r#"
 gui:
     name:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name field must be a string in gui".to_string())
@@ -631,7 +646,7 @@ gui:
     name:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name field must be a string in gui".to_string())
@@ -641,7 +656,7 @@ gui:
 gui:
     name: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field missing in gui".to_string())
@@ -652,7 +667,7 @@ gui:
     description:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field must be a string in gui".to_string())
@@ -663,7 +678,7 @@ gui:
     description:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field must be a string in gui".to_string())
@@ -674,7 +689,7 @@ gui:
     name: test
     description: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field missing in gui".to_string())
@@ -685,7 +700,7 @@ gui:
     description: test
     deployments: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field must be a map in gui".to_string())
@@ -697,7 +712,7 @@ gui:
     deployments:
         - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field must be a map in gui".to_string())
@@ -711,7 +726,7 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(get_document(yaml), "", None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: deployments".to_string())
@@ -759,8 +774,9 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name string missing in gui deployment: deployment1".to_string())
@@ -774,8 +790,9 @@ gui:
         deployment1:
             name: deployment1
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -792,8 +809,9 @@ gui:
             name: some name
             description: some description
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -812,8 +830,9 @@ gui:
             deposits:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -833,8 +852,9 @@ gui:
             deposits:
                 - token: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("test".to_string()));
 
         let yaml = r#"
@@ -848,8 +868,9 @@ gui:
             deposits:
                 - token: token1
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -871,8 +892,9 @@ gui:
                   presets:
                     - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -894,8 +916,9 @@ gui:
                   presets:
                     - "1"
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("fields list missing in gui deployment: deployment1".to_string())
@@ -916,8 +939,9 @@ gui:
             fields:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -941,8 +965,9 @@ gui:
             fields:
                 - binding: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -969,8 +994,9 @@ gui:
                     - value:
                         - test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -999,14 +1025,89 @@ gui:
             select-tokens:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")))
-            .unwrap_err();
+        let error =
+            Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+                .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
                 "select-token value must be a string for select-token index: 0 in gui deployment: deployment1"
                     .to_string()
             )
+        );
+    }
+
+    #[test]
+    fn test_field_interpolation() {
+        let yaml_prefix = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    input_token:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+        symbol: ETH
+        label: Ethereum
+    output_token:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+        symbol: DAI
+        label: Dai Stablecoin
+orders:
+    order1:
+        inputs:
+            - token: input_token
+        outputs:
+            - token: output_token
+        deployer: deployer1
+deployments:
+    deployment1:
+        scenario: scenario1
+        order: order1
+"#;
+
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: input_token
+                  presets:
+                    - "1"
+            fields:
+                - binding: amount
+                  name: "Amount of ${order.inputs.0.token.symbol}"
+                  description: "Enter amount of ${order.inputs.0.token.symbol} to swap for ${order.outputs.0.token.symbol}"
+                  presets:
+                    - value: "1"
+"#;
+
+        let gui = Gui::parse_from_yaml_optional(get_document(&format!("{yaml_prefix}{yaml}")), "", None)
+            .unwrap()
+            .unwrap();
+
+        let deployment = gui.deployments.get("deployment1").unwrap();
+        let field = &deployment.fields[0];
+
+        assert_eq!(field.name, "Amount of ETH");
+        assert_eq!(
+            field.description.as_ref().unwrap(),
+            "Enter amount of ETH to swap for DAI"
         );
     }
 }

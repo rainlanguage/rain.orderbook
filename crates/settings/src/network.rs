@@ -1,4 +1,5 @@
 use crate::config_source::*;
+use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
 };
@@ -99,6 +100,7 @@ impl_all_wasm_traits!(Network);
 impl YamlParsableHash for Network {
     fn parse_all_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
+        _context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         let networks_hash = require_hash(
@@ -223,7 +225,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -233,7 +235,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc string missing in network: mainnet".to_string())
@@ -244,7 +246,7 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(get_document(yaml), None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
