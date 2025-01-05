@@ -36,7 +36,6 @@
 	let gui: DotrainOrderGui | undefined = undefined;
 	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
-		console.log('dotrain', dotrain);
 		try {
 			let deployments: AvailableDeployments =
 				await DotrainOrderGui.getAvailableDeployments(dotrain);
@@ -178,45 +177,46 @@
 
 <div class="flex h-screen flex-col gap-4">
 	<div class="mb-4">
-		<Input type="text" bind:value={strategyUrl} />
 		<Button on:click={loadStrategy}>Load Strategy</Button>
 	</div>
-	<div class="mb-4">
-		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
-		<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-			<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-				{#if selectedRef === undefined}
-					<span>Select a deployment</span>
-				{:else if selectedOption?.label}
-					<span>{selectedOption.label}</span>
-				{:else}
-					<span>{selectedRef}</span>
-				{/if}
-			</svelte:fragment>
+	{#if dotrain}
+		<div class="mb-4">
+			<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
+			<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
+				<svelte:fragment slot="content" let:selectedOption let:selectedRef>
+					{#if selectedRef === undefined}
+						<span>Select a deployment</span>
+					{:else if selectedOption?.label}
+						<span>{selectedOption.label}</span>
+					{:else}
+						<span>{selectedRef}</span>
+					{/if}
+				</svelte:fragment>
 
-			<svelte:fragment slot="option" let:option let:ref>
-				<div class="w-full overflow-hidden overflow-ellipsis">
-					<div class="text-md break-word">{option.label ? option.label : ref}</div>
-				</div>
-			</svelte:fragment>
-		</DropdownRadio>
-	</div>
+				<svelte:fragment slot="option" let:option let:ref>
+					<div class="w-full overflow-hidden overflow-ellipsis">
+						<div class="text-md break-word">{option.label ? option.label : ref}</div>
+					</div>
+				</svelte:fragment>
+			</DropdownRadio>
+		</div>
 
-	<div class="flex-grow">
-		{#if gui}
-			<DeploymentSteps
-				{gui}
-				{isLimitStrat}
-				{inputVaultIds}
-				{outputVaultIds}
-				{handleAddOrder}
-				{tokenInfos}
-				{selectTokens}
-				{allFieldDefinitions}
-				{allTokenInputs}
-				{allTokenOutputs}
-				{allDeposits}
-			/>
-		{/if}
-	</div>
+		<div class="flex-grow">
+			{#if gui}
+				<DeploymentSteps
+					{gui}
+					{isLimitStrat}
+					{inputVaultIds}
+					{outputVaultIds}
+					{handleAddOrder}
+					{tokenInfos}
+					{selectTokens}
+					{allFieldDefinitions}
+					{allTokenInputs}
+					{allTokenOutputs}
+					{allDeposits}
+				/>
+			{/if}
+		</div>
+	{/if}
 </div>
