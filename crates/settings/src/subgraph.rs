@@ -1,4 +1,4 @@
-use crate::yaml::{require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -11,9 +11,8 @@ use url::{ParseError, Url};
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-#[serde(default)]
 pub struct Subgraph {
-    #[serde(skip)]
+    #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "string"))]
