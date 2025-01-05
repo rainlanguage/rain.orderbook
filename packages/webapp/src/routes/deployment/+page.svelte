@@ -11,7 +11,7 @@
 		type TokenInfos,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Label } from 'flowbite-svelte';
+	import { Button, Label } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import testStrategy from './test-strategy.md?raw';
