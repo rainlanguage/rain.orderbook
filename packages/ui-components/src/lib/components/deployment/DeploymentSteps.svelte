@@ -32,7 +32,6 @@
 	};
 
 	let dotrain = '';
-	let isLimitStrat = false;
 
 	async function loadStrategy() {
 		dotrain = testStrategy;
@@ -117,7 +116,7 @@
 
 	$: if (gui) {
 		getTokenInfos();
-		if (isLimitStrat) getSelectTokens();
+		getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
 		getAllTokenInputs();
