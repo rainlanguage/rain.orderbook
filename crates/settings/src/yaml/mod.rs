@@ -40,8 +40,8 @@ pub trait YamlParsableHash: Sized + Clone {
 
     fn parse_from_yaml(
         document: Arc<RwLock<StrictYaml>>,
-        context: Option<&Context>,
         key: &str,
+        context: Option<&Context>,
     ) -> Result<Self, YamlError> {
         let all = Self::parse_all_from_yaml(document, context)?;
         all.get(key)

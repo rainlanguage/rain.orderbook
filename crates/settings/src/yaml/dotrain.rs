@@ -30,7 +30,7 @@ impl DotrainYaml {
         Ok(orders.keys().cloned().collect())
     }
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
-        Order::parse_from_yaml(self.document.clone(), None, key)
+        Order::parse_from_yaml(self.document.clone(), key, None)
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -38,7 +38,7 @@ impl DotrainYaml {
         Ok(scenarios.keys().cloned().collect())
     }
     pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
-        Scenario::parse_from_yaml(self.document.clone(), None, key)
+        Scenario::parse_from_yaml(self.document.clone(), key, None)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -46,7 +46,7 @@ impl DotrainYaml {
         Ok(deployments.keys().cloned().collect())
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
-        Deployment::parse_from_yaml(self.document.clone(), None, key)
+        Deployment::parse_from_yaml(self.document.clone(), key, None)
     }
 
     pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {

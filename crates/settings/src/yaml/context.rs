@@ -2,7 +2,7 @@ use crate::{Order, OrderIO, Token};
 use std::sync::Arc;
 use thiserror::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<Order>>,
 }
@@ -31,7 +31,7 @@ impl Context {
     fn resolve_path(&self, path: &str) -> Result<String, ContextError> {
         let parts: Vec<&str> = path.split('.').collect();
 
-        match parts.get(0) {
+        match parts.first() {
             Some(&"order") => self.resolve_order_path(&parts[1..]),
             _ => Err(ContextError::InvalidPath(path.to_string())),
         }
@@ -39,7 +39,7 @@ impl Context {
 
     fn resolve_order_path(&self, parts: &[&str]) -> Result<String, ContextError> {
         let order = self.order.as_ref().ok_or(ContextError::NoOrder)?;
-        match parts.get(0) {
+        match parts.first() {
             Some(&"inputs") => self.resolve_io_path(&order.inputs, &parts[1..]),
             Some(&"outputs") => self.resolve_io_path(&order.outputs, &parts[1..]),
             _ => Err(ContextError::InvalidPath(parts.join("."))),
@@ -48,7 +48,7 @@ impl Context {
 
     fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError> {
         let index = parts
-            .get(0)
+            .first()
             .ok_or_else(|| ContextError::InvalidPath(parts.join(".")))?
             .parse::<usize>()
             .map_err(|_| ContextError::InvalidIndex(parts[0].to_string()))?;
@@ -68,7 +68,7 @@ impl Context {
     }
 
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError> {
-        match parts.get(0) {
+        match parts.first() {
             Some(&"address") => Ok(format!("{:?}", token.address)),
             Some(&"symbol") => Ok(token
                 .symbol

@@ -49,7 +49,6 @@ impl YamlParsableHash for Deployment {
                 // First parse the order
                 let order = Order::parse_from_yaml(
                     document.clone(),
-                    None,
                     &require_string(
                         deployment_yaml,
                         Some("order"),
@@ -57,6 +56,7 @@ impl YamlParsableHash for Deployment {
                             "order string missing in deployment: {deployment_key}"
                         )),
                     )?,
+                    None,
                 )?;
 
                 let context = Context::with_order(Arc::new(order.clone()));
@@ -64,7 +64,6 @@ impl YamlParsableHash for Deployment {
                 // Parse scenario with context
                 let scenario = Scenario::parse_from_yaml(
                     document.clone(),
-                    Some(&context),
                     &require_string(
                         deployment_yaml,
                         Some("scenario"),
@@ -72,6 +71,7 @@ impl YamlParsableHash for Deployment {
                             "scenario string missing in deployment: {deployment_key}"
                         )),
                     )?,
+                    Some(&context),
                 )?;
 
                 if let Some(deployer) = &order.deployer {

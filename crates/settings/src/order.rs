@@ -89,8 +89,8 @@ impl YamlParsableHash for Order {
                     Some(deployer_name) => {
                         let deployer = Arc::new(Deployer::parse_from_yaml(
                             document.clone(),
-                            None,
                             &deployer_name,
+                            None,
                         )?);
                         if let Some(n) = &network {
                             if deployer.network != *n {
@@ -110,8 +110,8 @@ impl YamlParsableHash for Order {
                     Some(orderbook_name) => {
                         let orderbook = Arc::new(Orderbook::parse_from_yaml(
                             document.clone(),
-                            None,
                             &orderbook_name,
+                            None,
                         )?);
                         if let Some(n) = &network {
                             if orderbook.network != *n {
@@ -142,7 +142,7 @@ impl YamlParsableHash for Order {
                             "token string missing in input index: {i} in order: {order_key}"
                         )),
                     )?;
-                    let token = Token::parse_from_yaml(document.clone(), None, &token_name)?;
+                    let token = Token::parse_from_yaml(document.clone(), &token_name, None)?;
 
                     if let Some(n) = &network {
                         if token.network != *n {
@@ -181,7 +181,7 @@ impl YamlParsableHash for Order {
                             "token string missing in output index: {i} in order: {order_key}"
                         )),
                     )?;
-                    let token = Token::parse_from_yaml(document.clone(), None, &token_name)?;
+                    let token = Token::parse_from_yaml(document.clone(), &token_name, None)?;
 
                     if let Some(n) = &network {
                         if token.network != *n {

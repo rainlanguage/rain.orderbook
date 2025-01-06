@@ -297,8 +297,8 @@ impl YamlParseableValue for Gui {
                 .map(|(deployment_name, deployment_yaml)| {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let deployment = Deployment::parse_from_yaml(document.clone(), None, &deployment_name)?;
-                    
+                    let deployment = Deployment::parse_from_yaml(document.clone(), &deployment_name, None)?;
+
                     let context = Context::with_order(deployment.order.clone());
 
                     let name = require_string(
@@ -326,10 +326,10 @@ impl YamlParseableValue for Gui {
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
                         let token = Token::parse_from_yaml(
                             document.clone(),
-                            None,
                             &require_string(deposit_value, Some("token"), Some(format!(
                                 "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
                             )))?,
+                            None,
                         )?;
 
                         let presets = require_vec(

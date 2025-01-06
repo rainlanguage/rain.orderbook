@@ -93,12 +93,12 @@ impl YamlParsableHash for Token {
 
                 let network = Network::parse_from_yaml(
                     document.clone(),
-                    None,
                     &require_string(
                         token_yaml,
                         Some("network"),
                         Some(format!("network string missing in token: {token_key}")),
                     )?,
+                    None,
                 )
                 .map_err(|_| {
                     ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())

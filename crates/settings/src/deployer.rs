@@ -128,7 +128,7 @@ impl YamlParsableHash for Deployer {
                     Some(network_name) => network_name,
                     None => deployer_key.clone(),
                 };
-                let network = Network::parse_from_yaml(document.clone(), None, &network_name)?;
+                let network = Network::parse_from_yaml(document.clone(), &network_name, None)?;
 
                 let deployer = Deployer {
                     document: document.clone(),

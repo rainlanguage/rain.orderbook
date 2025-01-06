@@ -116,7 +116,7 @@ impl Scenario {
 
         if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
             let current_deployer =
-                Deployer::parse_from_yaml(document.clone(), None, &deployer_name)?;
+                Deployer::parse_from_yaml(document.clone(), &deployer_name, None)?;
 
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
                 if current_deployer.key != parent_deployer.key {

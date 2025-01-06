@@ -65,7 +65,7 @@ impl YamlParsableHash for Orderbook {
                     Some(network_name) => network_name,
                     None => orderbook_key.clone(),
                 };
-                let network = Network::parse_from_yaml(document.clone(), None, &network_name)?;
+                let network = Network::parse_from_yaml(document.clone(), &network_name, None)?;
 
                 let subgraph_name = match optional_string(orderbook_yaml, "subgraph") {
                     Some(subgraph_name) => subgraph_name,
@@ -73,8 +73,8 @@ impl YamlParsableHash for Orderbook {
                 };
                 let subgraph = Arc::new(Subgraph::parse_from_yaml(
                     document.clone(),
-                    None,
                     &subgraph_name,
+                    None,
                 )?);
 
                 let label = optional_string(orderbook_yaml, "label");
