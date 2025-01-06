@@ -355,4 +355,55 @@ mod tests {
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
     }
+
+    #[test]
+    fn test_update_bindings() {
+        // Parent scenario
+        {
+            let dotrain_yaml = DotrainYaml::new(FULL_YAML.to_string(), false).unwrap();
+
+            let mut scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+
+            assert_eq!(scenario.bindings.len(), 1);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
+
+            let updated_scenario = scenario
+                .update_bindings(HashMap::from([("key1".to_string(), "value2".to_string())]))
+                .unwrap();
+
+            assert_eq!(updated_scenario.bindings.len(), 1);
+            assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value2");
+
+            let scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+            assert_eq!(scenario.bindings.len(), 1);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value2");
+        }
+
+        // Child scenario
+        {
+            let dotrain_yaml = DotrainYaml::new(FULL_YAML.to_string(), false).unwrap();
+
+            let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+
+            assert_eq!(scenario.bindings.len(), 2);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
+            assert_eq!(scenario.bindings.get("key2").unwrap(), "value2");
+
+            let updated_scenario = scenario
+                .update_bindings(HashMap::from([
+                    ("key1".to_string(), "value3".to_string()),
+                    ("key2".to_string(), "value4".to_string()),
+                ]))
+                .unwrap();
+
+            assert_eq!(updated_scenario.bindings.len(), 2);
+            assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value3");
+            assert_eq!(updated_scenario.bindings.get("key2").unwrap(), "value4");
+
+            let scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            assert_eq!(scenario.bindings.len(), 2);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value3");
+            assert_eq!(scenario.bindings.get("key2").unwrap(), "value4");
+        }
+    }
 }
