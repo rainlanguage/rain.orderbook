@@ -295,4 +295,64 @@ mod tests {
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
     }
+
+    #[test]
+    fn test_update_vault_id() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpc: https://mainnet.infura.io
+                chain-id: 1
+            testnet:
+                rpc: https://testnet.infura.io
+                chain-id: 1337
+        tokens:
+            token1:
+                network: mainnet
+                address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                decimals: 18
+                label: Wrapped Ether
+                symbol: WETH
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000002
+                decimals: 6
+                label: USD Coin
+                symbol: USDC
+        orders:
+            order1:
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+        let dotrain_yaml = DotrainYaml::new(yaml.to_string(), false).unwrap();
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+
+        assert!(order.inputs[0].vault_id.is_none());
+        assert!(order.outputs[0].vault_id.is_none());
+
+        let mut updated_order = order.update_vault_id(true, 0, "1".to_string()).unwrap();
+        let updated_order = updated_order
+            .update_vault_id(false, 0, "11".to_string())
+            .unwrap();
+
+        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(11)));
+
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
+
+        let mut updated_order = order.update_vault_id(true, 0, "3".to_string()).unwrap();
+        let updated_order = updated_order
+            .update_vault_id(false, 0, "33".to_string())
+            .unwrap();
+        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
+        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
+
+        let order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
+    }
 }
