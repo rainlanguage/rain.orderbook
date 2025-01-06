@@ -150,8 +150,8 @@ impl DotrainOrderGui {
         let current_deployment = self.get_current_deployment()?;
         self.check_token_addresses()?;
 
-        let calldatas = self
-            .dotrain_order
+        let dotrain_order = self.get_dotrain_order().await?;
+        let calldatas = dotrain_order
             .generate_approval_calldatas(
                 &current_deployment.key,
                 &owner,
@@ -203,8 +203,9 @@ impl DotrainOrderGui {
                 Ok(((vault_id, order_io.token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
-        let calldatas = self
-            .dotrain_order
+
+        let mut dotrain_order = self.get_dotrain_order().await?;
+        let calldatas = dotrain_order
             .generate_deposit_calldatas(&current_deployment.key, &token_deposits)
             .await?;
         Ok(DepositCalldataResult(calldatas))
@@ -219,8 +220,9 @@ impl DotrainOrderGui {
         self.check_token_addresses()?;
         self.populate_vault_ids(&current_deployment)?;
         self.update_config_source_bindings(&current_deployment)?;
-        let calldata = self
-            .dotrain_order
+
+        let mut dotrain_order = self.get_dotrain_order().await?;
+        let calldata = dotrain_order
             .generate_add_order_calldata(&current_deployment.key)
             .await?;
         Ok(AddOrderCalldataResult(calldata))
@@ -247,13 +249,12 @@ impl DotrainOrderGui {
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
 
+        let mut dotrain_order = self.get_dotrain_order().await?;
         let mut calls = Vec::new();
-        let deposit_calldatas = self
-            .dotrain_order
+        let deposit_calldatas = dotrain_order
             .generate_deposit_calldatas(&current_deployment.key, &token_deposits)
             .await?;
-        let add_order_calldata = self
-            .dotrain_order
+        let add_order_calldata = dotrain_order
             .generate_add_order_calldata(&current_deployment.key)
             .await?;
 

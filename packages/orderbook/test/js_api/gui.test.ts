@@ -137,6 +137,8 @@ networks:
 
 subgraphs:
     some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
 
 deployers:
     some-deployer:
@@ -211,6 +213,8 @@ networks:
 
 subgraphs:
     some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
 
 deployers:
     some-deployer:
