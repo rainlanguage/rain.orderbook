@@ -7,7 +7,10 @@ use std::{
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
-use yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use yaml::{
+    default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    YamlParsableMergableHash,
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -54,8 +57,8 @@ impl YamlParsableHash for Deployment {
                         )),
                     )?,
                 )?;
-                let order = Order::parse_from_yaml(
-                    document.clone(),
+                let order = Order::parse_from_yamls(
+                    vec![document.clone()],
                     &require_string(
                         deployment_yaml,
                         Some("order"),

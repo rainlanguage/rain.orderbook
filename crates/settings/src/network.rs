@@ -1,6 +1,7 @@
 use crate::config_source::*;
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableMergableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -96,57 +97,67 @@ impl Network {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
 
-impl YamlParsableHash for Network {
-    fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+impl YamlParsableMergableHash for Network {
+    fn parse_and_merge_all_from_yamls(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let networks_hash = require_hash(
-            &document_read,
-            Some("networks"),
-            Some("missing field: networks".to_string()),
-        )?;
+        let mut all_networks = HashMap::new();
 
-        networks_hash
-            .into_iter()
-            .map(|(key_yaml, network_yaml)| {
-                let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            if let Ok(networks_hash) = require_hash(
+                &document_read,
+                Some("networks"),
+                None, // Don't error if not found
+            ) {
+                for (key_yaml, network_yaml) in networks_hash {
+                    let network_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let rpc_url = Network::validate_rpc(&require_string(
-                    network_yaml,
-                    Some("rpc"),
-                    Some(format!("rpc string missing in network: {network_key}")),
-                )?)?;
+                    // Error on duplicates
+                    if all_networks.contains_key(&network_key) {
+                        return Err(YamlError::DuplicateKey(network_key));
+                    }
 
-                let chain_id = Network::validate_chain_id(&require_string(
-                    network_yaml,
-                    Some("chain-id"),
-                    Some(format!(
-                        "chain-id number as string missing in network: {network_key}"
-                    )),
-                )?)?;
+                    let rpc_url = Network::validate_rpc(&require_string(
+                        network_yaml,
+                        Some("rpc"),
+                        Some(format!("rpc string missing in network: {network_key}")),
+                    )?)?;
 
-                let label = optional_string(network_yaml, "label");
+                    let chain_id = Network::validate_chain_id(&require_string(
+                        network_yaml,
+                        Some("chain-id"),
+                        Some(format!(
+                            "chain-id number as string missing in network: {network_key}"
+                        )),
+                    )?)?;
 
-                let network_id = optional_string(network_yaml, "network-id")
-                    .map(|id| Network::validate_network_id(&id))
-                    .transpose()?;
+                    let label = optional_string(network_yaml, "label");
+                    let network_id = optional_string(network_yaml, "network-id")
+                        .map(|id| Network::validate_network_id(&id))
+                        .transpose()?;
+                    let currency = optional_string(network_yaml, "currency");
 
-                let currency = optional_string(network_yaml, "currency");
+                    let network = Network {
+                        document: document.clone(),
+                        key: network_key.clone(),
+                        rpc: rpc_url,
+                        chain_id,
+                        label,
+                        network_id,
+                        currency,
+                    };
 
-                let network = Network {
-                    document: document.clone(),
-                    key: network_key.clone(),
-                    rpc: rpc_url,
-                    chain_id,
-                    label,
-                    network_id,
-                    currency,
-                };
+                    all_networks.insert(network_key, network);
+                }
+            }
+        }
 
-                Ok((network_key, network))
-            })
-            .collect()
+        if all_networks.is_empty() {
+            return Err(YamlError::ParseError("missing field: networks".to_string()));
+        }
+
+        Ok(all_networks)
     }
 }
 
@@ -193,7 +204,7 @@ impl NetworkConfigSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::yaml::tests::get_document;
+    use crate::yaml::tests::{get_document, get_yaml_string};
     use url::Url;
 
     #[test]
@@ -223,7 +234,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -233,7 +244,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc string missing in network: mainnet".to_string())
@@ -244,12 +255,60 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
                 "chain-id number as string missing in network: mainnet".to_string()
             )
         );
+    }
+
+    #[test]
+    fn test_network_document_preservation() {
+        // Main document with one network
+        let main_yaml = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+        chain-id: 1
+"#;
+        let main_doc = get_document(main_yaml);
+
+        // Orderbook yaml with another network
+        let orderbook_yaml = r#"
+networks:
+    testnet:
+        rpc: https://testnet.infura.io
+        chain-id: 5
+"#;
+        let orderbook_doc = get_document(orderbook_yaml);
+
+        // Parse both documents
+        let networks =
+            Network::parse_and_merge_all_from_yamls(vec![main_doc.clone(), orderbook_doc.clone()])
+                .unwrap();
+
+        // Verify networks came from correct documents
+        let mainnet = networks.get("mainnet").unwrap();
+        let testnet = networks.get("testnet").unwrap();
+
+        // Check document preservation by comparing Arc pointers
+        assert!(Arc::ptr_eq(&mainnet.document, &main_doc));
+        assert!(Arc::ptr_eq(&testnet.document, &orderbook_doc));
+
+        // Verify we can update each network in its original document
+        let mut mainnet = mainnet.clone();
+        let mut testnet = testnet.clone();
+
+        mainnet.update_rpc("https://new-mainnet.infura.io").unwrap();
+        testnet.update_rpc("https://new-testnet.infura.io").unwrap();
+
+        // Verify the updates went to the correct documents
+        let main_yaml = get_yaml_string(main_doc).unwrap();
+        let orderbook_yaml = get_yaml_string(orderbook_doc).unwrap();
+
+        assert!(main_yaml.contains("https://new-mainnet.infura.io"));
+        assert!(orderbook_yaml.contains("https://new-testnet.infura.io"));
     }
 }

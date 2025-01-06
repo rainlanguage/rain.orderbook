@@ -1,5 +1,6 @@
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableMergableHash,
 };
 use crate::*;
 use alloy::primitives::{hex::FromHexError, Address};
@@ -73,60 +74,83 @@ impl Token {
         Ok(self.clone())
     }
 }
-impl YamlParsableHash for Token {
-    fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+
+impl YamlParsableMergableHash for Token {
+    fn parse_and_merge_all_from_yamls(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let tokens_hash = require_hash(
-            &document_read,
-            Some("tokens"),
-            Some("missing field: tokens".to_string()),
-        )?;
+        let mut all_tokens = HashMap::new();
 
-        tokens_hash
-            .into_iter()
-            .map(|(key_yaml, token_yaml)| {
-                let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+        // First get all networks from all documents
+        let all_networks = Network::parse_and_merge_all_from_yamls(documents.clone())?;
 
-                let network = Network::parse_from_yaml(
-                    document.clone(),
-                    &require_string(
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            if let Ok(tokens_hash) = require_hash(
+                &document_read,
+                Some("tokens"),
+                None, // Don't error if not found
+            ) {
+                for (key_yaml, token_yaml) in tokens_hash {
+                    let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    // Error on duplicates
+                    if all_tokens.contains_key(&token_key) {
+                        return Err(YamlError::DuplicateKey(token_key));
+                    }
+
+                    let address = Token::validate_address(&require_string(
                         token_yaml,
-                        Some("network"),
-                        Some(format!("network string missing in token: {token_key}")),
-                    )?,
-                )
-                .map_err(|_| {
-                    ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
-                })?;
+                        Some("address"),
+                        Some(format!("address string missing in token: {token_key}")),
+                    )?)?;
 
-                let address = Token::validate_address(&require_string(
-                    token_yaml,
-                    Some("address"),
-                    Some(format!("address string missing in token: {token_key}")),
-                )?)?;
+                    // Look up network in all_networks instead of just current document
+                    let network = all_networks
+                        .get(&require_string(
+                            token_yaml,
+                            Some("network"),
+                            Some(format!("network string missing in token: {token_key}")),
+                        )?)
+                        .ok_or_else(|| {
+                            YamlError::ParseError(format!(
+                                "network not found for token: {token_key}"
+                            ))
+                        })?
+                        .clone();
 
-                let decimals = optional_string(token_yaml, "decimals")
-                    .map(|d| Token::validate_decimals(&d))
-                    .transpose()?;
+                    let decimals = optional_string(token_yaml, "decimals")
+                        .map(|s| s.parse::<u8>())
+                        .transpose()
+                        .map_err(|_| {
+                            YamlError::ParseError(format!(
+                                "decimals must be a number for token: {token_key}"
+                            ))
+                        })?;
 
-                let label = optional_string(token_yaml, "label");
-                let symbol = optional_string(token_yaml, "symbol");
+                    let label = optional_string(token_yaml, "label");
+                    let symbol = optional_string(token_yaml, "symbol");
 
-                let token = Token {
-                    document: document.clone(),
-                    key: token_key.clone(),
-                    network: Arc::new(network),
-                    address,
-                    decimals,
-                    label,
-                    symbol,
-                };
+                    let token = Token {
+                        document: document.clone(),
+                        key: token_key.clone(),
+                        address,
+                        network: Arc::new(network),
+                        decimals,
+                        label,
+                        symbol,
+                    };
 
-                Ok((token_key, token))
-            })
-            .collect()
+                    all_tokens.insert(token_key, token);
+                }
+            }
+        }
+
+        if all_tokens.is_empty() {
+            return Err(YamlError::ParseError("missing field: tokens".to_string()));
+        }
+
+        Ok(all_tokens)
     }
 }
 
@@ -281,19 +305,17 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_tokens_errors() {
-        let error = Token::parse_all_from_yaml(get_document(
-            r#"
+    fn test_parse_tokens_from_yaml() {
+        let yaml = r#"
 test: test
-"#,
-        ))
-        .unwrap_err();
+"#;
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: tokens".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -303,14 +325,14 @@ tokens:
     token1:
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("network string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -321,7 +343,7 @@ tokens:
         network: "nonexistent"
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
@@ -330,7 +352,7 @@ tokens:
             )
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -340,14 +362,14 @@ tokens:
     token1:
         network: "mainnet"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -358,10 +380,10 @@ tokens:
         network: "mainnet"
         address: "not_a_valid_address"
 "#,
-        ));
+        )]);
         assert!(error.is_err());
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_and_merge_all_from_yamls(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -373,7 +395,11 @@ tokens:
         address: "0x1234567890123456789012345678901234567890"
         decimals: "not_a_number"
 "#,
-        ));
-        assert!(error.is_err());
+        )])
+        .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("decimals must be a number for token: token1".to_string())
+        );
     }
 }

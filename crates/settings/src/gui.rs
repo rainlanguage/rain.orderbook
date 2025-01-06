@@ -1,7 +1,8 @@
 use crate::{
     yaml::{
         default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        require_string, require_vec, YamlError, YamlParsableHash, YamlParsableMergableHash,
+        YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -317,7 +318,7 @@ impl YamlParseableValue for Gui {
                             "deposits list missing in gui deployment: {deployment_name}",
                         )),
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
-                        let token =  Token::parse_from_yaml(document.clone(), &require_string(
+                        let token =  Token::parse_from_yamls(vec![document.clone()], &require_string(
                             deposit_value,
                             Some("token"),
                             Some(format!(

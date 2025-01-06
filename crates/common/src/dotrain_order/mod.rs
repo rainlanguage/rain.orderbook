@@ -32,6 +32,15 @@ pub struct DotrainOrder {
     dotrain: String,
     config_source: ConfigSource,
 }
+impl Default for DotrainOrder {
+    fn default() -> Self {
+        Self {
+            config: Config::default(),
+            dotrain: "".to_string(),
+            config_source: ConfigSource::default(),
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {

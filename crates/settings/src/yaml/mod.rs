@@ -43,6 +43,24 @@ pub trait YamlParsableHash: Sized + Clone {
     }
 }
 
+// Used for orderbooks, deployers, etc.
+// For example in the app, we have a dotrain order and additional yaml config
+pub trait YamlParsableMergableHash: Sized + Clone {
+    fn parse_and_merge_all_from_yamls(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<HashMap<String, Self>, YamlError>;
+
+    fn parse_from_yamls(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        key: &str,
+    ) -> Result<Self, YamlError> {
+        let all = Self::parse_and_merge_all_from_yamls(documents.clone())?;
+        all.get(key)
+            .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
+            .cloned()
+    }
+}
+
 pub trait YamlParsableVector: Sized {
     fn parse_all_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<Vec<Self>, YamlError>;
 }
@@ -107,6 +125,8 @@ pub enum YamlError {
     ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error("Duplicate key found: {0}")]
+    DuplicateKey(String),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -214,5 +234,13 @@ pub mod tests {
     pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
         let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
         Arc::new(RwLock::new(document))
+    }
+
+    pub fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
+        let document = document.read().unwrap();
+        let mut out_str = String::new();
+        let mut emitter = StrictYamlEmitter::new(&mut out_str);
+        emitter.dump(&document)?;
+        Ok(out_str)
     }
 }

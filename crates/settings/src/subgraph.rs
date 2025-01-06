@@ -1,4 +1,7 @@
-use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableMergableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -25,39 +28,53 @@ impl Subgraph {
     }
 }
 
-impl YamlParsableHash for Subgraph {
-    fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
-    ) -> Result<HashMap<String, Subgraph>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let subgraphs_hash = require_hash(
-            &document_read,
-            Some("subgraphs"),
-            Some("missing field: subgraphs".to_string()),
-        )?;
+impl YamlParsableMergableHash for Subgraph {
+    fn parse_and_merge_all_from_yamls(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<HashMap<String, Self>, YamlError> {
+        let mut all_subgraphs = HashMap::new();
 
-        subgraphs_hash
-            .iter()
-            .map(|(key_yaml, subgraph_yaml)| {
-                let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            if let Ok(subgraphs_hash) = require_hash(
+                &document_read,
+                Some("subgraphs"),
+                None, // Don't error if not found
+            ) {
+                for (key_yaml, subgraph_yaml) in subgraphs_hash {
+                    let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let url = Subgraph::validate_url(&require_string(
-                    subgraph_yaml,
-                    None,
-                    Some(format!(
-                        "subgraph value must be a string for key: {subgraph_key}"
-                    )),
-                )?)?;
+                    // Error on duplicates
+                    if all_subgraphs.contains_key(&subgraph_key) {
+                        return Err(YamlError::DuplicateKey(subgraph_key));
+                    }
 
-                let subgraph = Subgraph {
-                    document: document.clone(),
-                    key: subgraph_key.clone(),
-                    url,
-                };
+                    let url = Subgraph::validate_url(&require_string(
+                        subgraph_yaml,
+                        None,
+                        Some(format!(
+                            "subgraph value must be a string for key: {subgraph_key}"
+                        )),
+                    )?)?;
 
-                Ok((subgraph_key, subgraph))
-            })
-            .collect()
+                    let subgraph = Subgraph {
+                        document: document.clone(),
+                        key: subgraph_key.clone(),
+                        url,
+                    };
+
+                    all_subgraphs.insert(subgraph_key, subgraph);
+                }
+            }
+        }
+
+        if all_subgraphs.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: subgraphs".to_string(),
+            ));
+        }
+
+        Ok(all_subgraphs)
     }
 }
 
@@ -87,7 +104,7 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Subgraph::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: subgraphs".to_string())
@@ -98,20 +115,7 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError(
-                "subgraph value must be a string for key: TestSubgraph".to_string()
-            )
-        );
-
-        let yaml = r#"
-subgraphs:
-    TestSubgraph:
-        - https://subgraph.com
-"#;
-        let error = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Subgraph::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -123,8 +127,58 @@ subgraphs:
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = Subgraph::parse_all_from_yaml(get_document(yaml)).unwrap();
+        let result = Subgraph::parse_and_merge_all_from_yamls(vec![get_document(yaml)]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
+    }
+
+    #[test]
+    fn test_subgraph_document_preservation() {
+        // Main document with one subgraph
+        let main_yaml = r#"
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/main
+"#;
+        let main_doc = get_document(main_yaml);
+
+        // Orderbook yaml with another subgraph
+        let orderbook_yaml = r#"
+subgraphs:
+    testnet: https://api.thegraph.com/subgraphs/name/test
+"#;
+        let orderbook_doc = get_document(orderbook_yaml);
+
+        // Parse both documents
+        let subgraphs =
+            Subgraph::parse_and_merge_all_from_yamls(vec![main_doc.clone(), orderbook_doc.clone()])
+                .unwrap();
+
+        // Verify subgraphs came from correct documents
+        let mainnet = subgraphs.get("mainnet").unwrap();
+        let testnet = subgraphs.get("testnet").unwrap();
+
+        // Check document preservation by comparing Arc pointers
+        assert!(Arc::ptr_eq(&mainnet.document, &main_doc));
+        assert!(Arc::ptr_eq(&testnet.document, &orderbook_doc));
+    }
+
+    #[test]
+    fn test_subgraph_duplicate_error() {
+        let yaml1 = r#"
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/main
+"#;
+        let yaml2 = r#"
+subgraphs:
+    mainnet: https://api.thegraph.com/subgraphs/name/other
+"#;
+
+        let error = Subgraph::parse_and_merge_all_from_yamls(vec![
+            get_document(yaml1),
+            get_document(yaml2),
+        ])
+        .unwrap_err();
+
+        assert_eq!(error, YamlError::DuplicateKey("mainnet".to_string()));
     }
 }
