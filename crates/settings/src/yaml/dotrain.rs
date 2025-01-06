@@ -228,4 +228,71 @@ mod tests {
         assert_eq!(select_tokens.len(), 1);
         assert_eq!(select_tokens[0], "token2");
     }
+
+    #[test]
+    fn test_update_vault_ids() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpc: https://mainnet.infura.io
+                chain-id: 1
+            testnet:
+                rpc: https://testnet.infura.io
+                chain-id: 1337
+        tokens:
+            token1:
+                network: mainnet
+                address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                decimals: 18
+                label: Wrapped Ether
+                symbol: WETH
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000002
+                decimals: 6
+                label: USD Coin
+                symbol: USDC
+        orders:
+            order1:
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+        let dotrain_yaml = DotrainYaml::new(yaml.to_string(), false).unwrap();
+
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+
+        assert!(order.inputs[0].vault_id.is_none());
+        assert!(order.outputs[0].vault_id.is_none());
+
+        let updated_order = order.populate_vault_ids().unwrap();
+
+        // After population, all vault IDs should be set and equal
+        assert!(updated_order.inputs[0].vault_id.is_some());
+        assert!(updated_order.outputs[0].vault_id.is_some());
+        assert_eq!(
+            updated_order.inputs[0].vault_id,
+            updated_order.outputs[0].vault_id
+        );
+
+        let order_after = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(
+            order_after.inputs[0].vault_id,
+            updated_order.inputs[0].vault_id
+        );
+        assert_eq!(
+            order_after.outputs[0].vault_id,
+            updated_order.outputs[0].vault_id
+        );
+
+        // Populate vault IDs should not change if the vault IDs are already set
+        let dotrain_yaml = DotrainYaml::new(FULL_YAML.to_string(), false).unwrap();
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+        order.populate_vault_ids().unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+    }
 }
