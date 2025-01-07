@@ -619,23 +619,6 @@ scenarios:
         );
     }
 
-    const PREFIX: &str = r#"
-    networks:
-        mainnet:
-            rpc: https://rpc.com
-            chain-id: 1
-        testnet:
-            rpc: https://rpc.com
-            chain-id: 2
-    deployers:
-        mainnet:
-            address: 0x1234567890123456789012345678901234567890
-            network: mainnet
-        testnet:
-            address: 0x1234567890123456789012345678901234567890
-            network: testnet
-    "#;
-
     #[test]
     fn test_parse_scenarios_from_yaml_multiple_files() {
         let yaml_one = r#"

@@ -5,7 +5,6 @@ use std::sync::{Arc, RwLock};
 #[derive(Debug, Clone)]
 pub struct DotrainYaml {
     pub document: Arc<RwLock<StrictYaml>>,
-    pub orderbook_yaml_documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
 
 impl YamlParsable for DotrainYaml {
@@ -21,33 +20,7 @@ impl YamlParsable for DotrainYaml {
             Order::parse_all_from_yaml(vec![document.clone()])?;
         }
 
-        Ok(DotrainYaml {
-            document,
-            orderbook_yaml_documents: vec![],
-        })
-    }
-}
-
-impl YamlParsableWithOrderbook for DotrainYaml {
-    fn new_with_orderbook(
-        source: String,
-        orderbook_sources: Vec<String>,
-        validate: bool,
-    ) -> Result<Self, YamlError> {
-        let mut dotrain_yaml = Self::new(source, validate)?;
-
-        for source in orderbook_sources {
-            let docs = StrictYamlLoader::load_from_str(&source)?;
-            if docs.is_empty() {
-                return Err(YamlError::EmptyFile);
-            }
-            let doc = docs[0].clone();
-            let document = Arc::new(RwLock::new(doc));
-
-            dotrain_yaml.orderbook_yaml_documents.push(document);
-        }
-
-        Ok(dotrain_yaml)
+        Ok(DotrainYaml { document })
     }
 }
 

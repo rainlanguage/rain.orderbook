@@ -30,14 +30,6 @@ pub trait YamlParsable: Sized {
     }
 }
 
-pub trait YamlParsableWithOrderbook: YamlParsable + Sized {
-    fn new_with_orderbook(
-        source: String,
-        orderbook_sources: Vec<String>,
-        validate: bool,
-    ) -> Result<Self, YamlError>;
-}
-
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
