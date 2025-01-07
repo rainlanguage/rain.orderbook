@@ -32,11 +32,14 @@ pub trait YamlParsable: Sized {
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: &str) -> Result<Self, YamlError> {
-        let all = Self::parse_all_from_yaml(document)?;
+    fn parse_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        key: &str,
+    ) -> Result<Self, YamlError> {
+        let all = Self::parse_all_from_yaml(documents)?;
         all.get(key)
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
@@ -93,6 +96,8 @@ pub enum YamlError {
     WriteLockError,
     #[error("Invalid trait function")]
     InvalidTraitFunction,
+    #[error("Key shadowing found: {0}")]
+    KeyShadowing(String),
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
