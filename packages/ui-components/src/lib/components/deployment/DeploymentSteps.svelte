@@ -16,10 +16,21 @@
 		type TokenInfos,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Label } from 'flowbite-svelte';
+	import { Button, Label, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import testStrategy from './test-strategy.rain?raw';
+	import testTokenSelectStrategy from './test-strategy-token-select.rain?raw';
+
+	enum DeploymentStepErrors {
+		NO_GUI = 'Error loading GUI',
+		NO_SELECT_TOKENS = 'Error loading tokens',
+		NO_TOKEN_INFO = 'Error loading token information',
+		NO_FIELD_DEFINITIONS = 'Error loading field definitions',
+		NO_DEPOSITS = 'Error loading deposits',
+		NO_TOKEN_INPUTS = 'Error loading token inputs',
+		NO_TOKEN_OUTPUTS = 'Error loading token outputs'
+	}
 
 	const chains: Record<number, Chain> = {
 		[base.id]: base,
@@ -32,12 +43,19 @@
 	};
 
 	let dotrain = '';
+	let isLoading = false;
+	let error: DeploymentStepErrors | null = null;
+	let errorDetails: string | null = null;
 
 	async function loadStrategy() {
 		dotrain = testStrategy;
 	}
 
-	let gui: DotrainOrderGui | undefined = undefined;
+	async function loadTokenSelectStrategy() {
+		dotrain = testTokenSelectStrategy;
+	}
+
+	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
 		try {
@@ -52,17 +70,27 @@
 					}
 				])
 			);
-		} catch (error) {
+		} catch (e: unknown) {
+			error = DeploymentStepErrors.NO_GUI;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 			// eslint-disable-next-line no-console
-			console.error('Failed to load deployments:', error);
+			console.error('Failed to load deployments:', e);
 		}
 	}
+
 	$: if (dotrain) {
+		isLoading = true;
+		error = null;
+		errorDetails = null;
+		gui = null;
 		initialize();
+		isLoading = false;
 	}
 
 	let selectedDeployment: string | undefined = undefined;
 	async function handleDeploymentChange(deployment: string) {
+		isLoading = true;
+		gui = null;
 		if (!deployment) return;
 
 		try {
@@ -72,6 +100,7 @@
 			// eslint-disable-next-line no-console
 			console.error('Failed to get gui:', error);
 		}
+		isLoading = false;
 	}
 
 	$: if (selectedDeployment) {
@@ -81,40 +110,69 @@
 	let tokenInfos: TokenInfos;
 	function getTokenInfos() {
 		if (!gui) return;
-		tokenInfos = gui.getTokenInfos();
+		try {
+			tokenInfos = gui.getTokenInfos();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_TOKEN_INFO;
+			console.error('Failed to get token infos:', e);
+		}
 	}
 
 	let selectTokens: SelectTokens = new Map();
 	function getSelectTokens() {
 		if (!gui) return;
-		selectTokens = gui.getSelectTokens();
+		try {
+			selectTokens = gui.getSelectTokens();
+		} catch (e: unknown) {
+			console.error('Failed to get select tokens:', e);
+		}
 	}
-
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	function getAllFieldDefinitions() {
 		if (!gui) return;
-		allFieldDefinitions = gui.getAllFieldDefinitions();
+		try {
+			allFieldDefinitions = gui.getAllFieldDefinitions();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
+			console.error('Failed to get field definitions:', e);
+		}
 	}
 
 	let allDeposits: GuiDeposit[] = [];
 	function getDeposits() {
 		if (!gui) return;
-		allDeposits = gui.getCurrentDeployment().deposits;
+		try {
+			allDeposits = gui.getCurrentDeployment().deposits;
+		} catch (e) {
+			error = DeploymentStepErrors.NO_DEPOSITS;
+			console.error('Failed to get deposits:', e);
+		}
 	}
 
 	let allTokenInputs: Vault[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
-		allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
+		try {
+			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
+		} catch (e) {
+			error = DeploymentStepErrors.NO_TOKEN_INPUTS;
+			console.error('Failed to get token inputs:', e);
+		}
 	}
 
 	let allTokenOutputs: Vault[] = [];
 	function getAllTokenOutputs() {
 		if (!gui) return;
-		allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
+		try {
+			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
+		} catch (e) {
+			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
+			console.error('Failed to get token outputs:', e);
+		}
 	}
 
 	$: if (gui) {
+		error = null;
 		getTokenInfos();
 		getSelectTokens();
 		getAllFieldDefinitions();
@@ -181,7 +239,15 @@
 
 <div class="mb-4">
 	<Button on:click={loadStrategy}>Load Strategy</Button>
+	<Button on:click={loadTokenSelectStrategy}>Load Token Select Strategy</Button>
 </div>
+
+{#if error}
+	<p class="text-red-500">{error}</p>
+{/if}
+{#if errorDetails}
+	<p class="text-red-500">{errorDetails}</p>
+{/if}
 {#if dotrain}
 	<div class="mb-4">
 		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
@@ -203,6 +269,9 @@
 			</svelte:fragment>
 		</DropdownRadio>
 	</div>
+	{#if isLoading}
+		<Spinner />
+	{/if}
 	{#if gui}
 		<div class="flex h-[80vh] flex-col justify-between">
 			{#if selectTokens.size > 0}
@@ -228,7 +297,7 @@
 			{/if}
 
 			{#if allTokenInputs.length > 0}
-				<Label class="whitespace-nowrap text-xl">Input Vault IDs</Label>
+				<Label class="my-4 whitespace-nowrap text-2xl underline">Input Vault IDs</Label>
 				{#each allTokenInputs as input, i}
 					<TokenInputOrOutput
 						{i}
@@ -242,7 +311,7 @@
 			{/if}
 
 			{#if allTokenOutputs.length > 0}
-				<Label class="whitespace-nowrap text-xl">Output Vault IDs</Label>
+				<Label class="my-4 whitespace-nowrap text-2xl underline">Output Vault IDs</Label>
 				{#each allTokenOutputs as output, i}
 					<TokenInputOrOutput
 						{i}
