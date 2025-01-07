@@ -98,18 +98,20 @@ impl_all_wasm_traits!(Network);
 
 impl YamlParsableHash for Network {
     fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let networks_hash = require_hash(
-            &document_read,
-            Some("networks"),
-            Some("missing field: networks".to_string()),
-        )?;
+        let mut networks = HashMap::new();
 
-        networks_hash
-            .into_iter()
-            .map(|(key_yaml, network_yaml)| {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            let networks_hash = require_hash(
+                &document_read,
+                Some("networks"),
+                Some("missing field: networks".to_string()),
+            )?;
+
+            for (key_yaml, network_yaml) in networks_hash {
                 let network_key = key_yaml.as_str().unwrap_or_default().to_string();
 
                 let rpc_url = Network::validate_rpc(&require_string(
@@ -144,9 +146,14 @@ impl YamlParsableHash for Network {
                     currency,
                 };
 
-                Ok((network_key, network))
-            })
-            .collect()
+                if networks.contains_key(&network_key) {
+                    return Err(YamlError::KeyShadowing(network_key));
+                }
+                networks.insert(network_key, network);
+            }
+        }
+
+        Ok(networks)
     }
 }
 
@@ -223,7 +230,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -233,7 +240,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc string missing in network: mainnet".to_string())
@@ -244,12 +251,71 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
                 "chain-id number as string missing in network: mainnet".to_string()
             )
         );
+    }
+
+    #[test]
+    fn test_parse_networks_from_yaml_multiple_files() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+    testnet:
+        rpc: https://testnet.infura.io
+"#;
+        let yaml_two = r#"
+networks:
+    network-one:
+        rpc: https://network-one.infura.io
+    network-two:
+        rpc: https://network-two.infura.io
+"#;
+        let networks =
+            Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap();
+
+        assert_eq!(networks.len(), 4);
+        assert_eq!(
+            networks.get("mainnet").unwrap().rpc,
+            Url::parse("https://mainnet.infura.io").unwrap()
+        );
+        assert_eq!(
+            networks.get("testnet").unwrap().rpc,
+            Url::parse("https://testnet.infura.io").unwrap()
+        );
+        assert_eq!(
+            networks.get("network-one").unwrap().rpc,
+            Url::parse("https://network-one.infura.io").unwrap()
+        );
+        assert_eq!(
+            networks.get("network-two").unwrap().rpc,
+            Url::parse("https://network-two.infura.io").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_parse_networks_from_yaml_duplicate_key() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+    testnet:
+        rpc: https://mainnet.infura.io
+"#;
+        let yaml_two = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+"#;
+        let error =
+            Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap_err();
+        assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
     }
 }
