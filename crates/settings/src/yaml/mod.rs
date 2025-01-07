@@ -19,7 +19,7 @@ use thiserror::Error;
 use url::ParseError as UrlParseError;
 
 pub trait YamlParsable: Sized {
-    fn new(source: String, validate: bool) -> Result<Self, YamlError>;
+    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();
@@ -59,10 +59,10 @@ pub trait YamlParsableString {
 }
 
 pub trait YamlParseableValue: Sized {
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<Self, YamlError>;
+    fn parse_from_yaml(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<Self, YamlError>;
 
     fn parse_from_yaml_optional(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<Option<Self>, YamlError>;
 }
 
