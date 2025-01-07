@@ -34,34 +34,36 @@ impl YamlParsableHash for Metaboard {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let metaboards_hash = require_hash(
-                &document_read,
-                Some("metaboards"),
-                Some("missing field: metaboards".to_string()),
-            )?;
+            if let Ok(metaboards_hash) = require_hash(&document_read, Some("metaboards"), None) {
+                for (key_yaml, metaboard_yaml) in metaboards_hash {
+                    let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            for (key_yaml, metaboard_yaml) in metaboards_hash {
-                let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let url = Metaboard::validate_url(&require_string(
+                        metaboard_yaml,
+                        None,
+                        Some(format!(
+                            "metaboard value must be a string for key: {metaboard_key}"
+                        )),
+                    )?)?;
 
-                let url = Metaboard::validate_url(&require_string(
-                    metaboard_yaml,
-                    None,
-                    Some(format!(
-                        "metaboard value must be a string for key: {metaboard_key}"
-                    )),
-                )?)?;
+                    let metaboard = Metaboard {
+                        document: document.clone(),
+                        key: metaboard_key.clone(),
+                        url,
+                    };
 
-                let metaboard = Metaboard {
-                    document: document.clone(),
-                    key: metaboard_key.clone(),
-                    url,
-                };
-
-                if metaboards.contains_key(&metaboard_key) {
-                    return Err(YamlError::KeyShadowing(metaboard_key));
+                    if metaboards.contains_key(&metaboard_key) {
+                        return Err(YamlError::KeyShadowing(metaboard_key));
+                    }
+                    metaboards.insert(metaboard_key, metaboard);
                 }
-                metaboards.insert(metaboard_key, metaboard);
             }
+        }
+
+        if metaboards.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: metaboards".to_string(),
+            ));
         }
 
         Ok(metaboards)
@@ -108,12 +110,12 @@ metaboards:
         assert!(metaboards.contains_key("MetaboardTwo"));
 
         assert_eq!(
-            metaboards.get("MetaboardOne").unwrap().url.as_str(),
-            "https://metaboard-one.com"
+            metaboards.get("MetaboardOne").unwrap().url,
+            Url::parse("https://metaboard-one.com").unwrap()
         );
         assert_eq!(
-            metaboards.get("MetaboardTwo").unwrap().url.as_str(),
-            "https://metaboard-two.com"
+            metaboards.get("MetaboardTwo").unwrap().url,
+            Url::parse("https://metaboard-two.com").unwrap()
         );
     }
 

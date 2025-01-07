@@ -82,55 +82,55 @@ impl YamlParsableHash for Token {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let tokens_hash = require_hash(
-                &document_read,
-                Some("tokens"),
-                Some("missing field: tokens".to_string()),
-            )?;
+            if let Ok(tokens_hash) = require_hash(&document_read, Some("tokens"), None) {
+                for (key_yaml, token_yaml) in tokens_hash {
+                    let token_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            for (key_yaml, token_yaml) in tokens_hash {
-                let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let network = Network::parse_from_yaml(
+                        documents.clone(),
+                        &require_string(
+                            token_yaml,
+                            Some("network"),
+                            Some(format!("network string missing in token: {token_key}")),
+                        )?,
+                    )
+                    .map_err(|_| {
+                        ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
+                    })?;
 
-                let network = Network::parse_from_yaml(
-                    documents.clone(),
-                    &require_string(
+                    let address = Token::validate_address(&require_string(
                         token_yaml,
-                        Some("network"),
-                        Some(format!("network string missing in token: {token_key}")),
-                    )?,
-                )
-                .map_err(|_| {
-                    ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
-                })?;
+                        Some("address"),
+                        Some(format!("address string missing in token: {token_key}")),
+                    )?)?;
 
-                let address = Token::validate_address(&require_string(
-                    token_yaml,
-                    Some("address"),
-                    Some(format!("address string missing in token: {token_key}")),
-                )?)?;
+                    let decimals = optional_string(token_yaml, "decimals")
+                        .map(|d| Token::validate_decimals(&d))
+                        .transpose()?;
 
-                let decimals = optional_string(token_yaml, "decimals")
-                    .map(|d| Token::validate_decimals(&d))
-                    .transpose()?;
+                    let label = optional_string(token_yaml, "label");
+                    let symbol = optional_string(token_yaml, "symbol");
 
-                let label = optional_string(token_yaml, "label");
-                let symbol = optional_string(token_yaml, "symbol");
+                    let token = Token {
+                        document: document.clone(),
+                        key: token_key.clone(),
+                        network: Arc::new(network),
+                        address,
+                        decimals,
+                        label,
+                        symbol,
+                    };
 
-                let token = Token {
-                    document: document.clone(),
-                    key: token_key.clone(),
-                    network: Arc::new(network),
-                    address,
-                    decimals,
-                    label,
-                    symbol,
-                };
-
-                if tokens.contains_key(&token_key) {
-                    return Err(YamlError::KeyShadowing(token_key));
+                    if tokens.contains_key(&token_key) {
+                        return Err(YamlError::KeyShadowing(token_key));
+                    }
+                    tokens.insert(token_key, token);
                 }
-                tokens.insert(token_key, token);
             }
+        }
+
+        if tokens.is_empty() {
+            return Err(YamlError::ParseError("missing field: tokens".to_string()));
         }
 
         Ok(tokens)
@@ -393,26 +393,22 @@ networks:
         chain-id: "1"
 tokens:
     dai:
-        network: "mainnet"
+        network: mainnet
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
         decimals: "18"
     usdc:
-        network: "mainnet"
+        network: mainnet
         address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
         decimals: "6"
 "#;
         let yaml_two = r#"
-networks:
-    mainnet:
-        rpc: "https://mainnet.infura.io"
-        chain-id: "1"
 tokens:
     weth:
-        network: "mainnet"
+        network: mainnet
         address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         decimals: "18"
     usdt:
-        network: "mainnet"
+        network: mainnet
         address: "0xdac17f958d2ee523a2206206994597c13d831ec7"
         decimals: "6"
 "#;
@@ -452,20 +448,16 @@ networks:
         chain-id: "1"
 tokens:
     dai:
-        network: "mainnet"
+        network: mainnet
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
     usdc:
-        network: "mainnet"
+        network: mainnet
         address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 "#;
         let yaml_two = r#"
-networks:
-    mainnet:
-        rpc: "https://mainnet.infura.io"
-        chain-id: "1"
 tokens:
     dai:
-        network: "mainnet"
+        network: mainnet
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
 "#;
         let error =

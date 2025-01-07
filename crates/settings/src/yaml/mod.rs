@@ -132,6 +132,7 @@ impl PartialEq for YamlError {
             (Self::ConvertError, Self::ConvertError) => true,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
+            (Self::KeyShadowing(a), Self::KeyShadowing(b)) => a == b,
             (Self::ParseNetworkConfigSourceError(a), Self::ParseNetworkConfigSourceError(b)) => {
                 a == b
             }

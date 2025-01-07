@@ -37,57 +37,59 @@ impl YamlParsableHash for Deployment {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let deployments_hash = require_hash(
-                &document_read,
-                Some("deployments"),
-                Some("missing field: deployments".to_string()),
-            )?;
+            if let Ok(deployments_hash) = require_hash(&document_read, Some("deployments"), None) {
+                for (key_yaml, deployment_yaml) in deployments_hash {
+                    let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            for (key_yaml, deployment_yaml) in deployments_hash {
-                let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let scenario = Scenario::parse_from_yaml(
+                        documents.clone(),
+                        &require_string(
+                            deployment_yaml,
+                            Some("scenario"),
+                            Some(format!(
+                                "scenario string missing in deployment: {deployment_key}"
+                            )),
+                        )?,
+                    )?;
 
-                let scenario = Scenario::parse_from_yaml(
-                    documents.clone(),
-                    &require_string(
-                        deployment_yaml,
-                        Some("scenario"),
-                        Some(format!(
-                            "scenario string missing in deployment: {deployment_key}"
-                        )),
-                    )?,
-                )?;
+                    let order = Order::parse_from_yaml(
+                        documents.clone(),
+                        &require_string(
+                            deployment_yaml,
+                            Some("order"),
+                            Some(format!(
+                                "order string missing in deployment: {deployment_key}"
+                            )),
+                        )?,
+                    )?;
 
-                let order = Order::parse_from_yaml(
-                    documents.clone(),
-                    &require_string(
-                        deployment_yaml,
-                        Some("order"),
-                        Some(format!(
-                            "order string missing in deployment: {deployment_key}"
-                        )),
-                    )?,
-                )?;
-
-                if let Some(deployer) = &order.deployer {
-                    if deployer != &scenario.deployer {
-                        return Err(YamlError::ParseDeploymentConfigSourceError(
-                            ParseDeploymentConfigSourceError::NoMatch,
-                        ));
+                    if let Some(deployer) = &order.deployer {
+                        if deployer != &scenario.deployer {
+                            return Err(YamlError::ParseDeploymentConfigSourceError(
+                                ParseDeploymentConfigSourceError::NoMatch,
+                            ));
+                        }
                     }
-                }
 
-                let deployment = Deployment {
-                    document: document.clone(),
-                    key: deployment_key.clone(),
-                    scenario: Arc::new(scenario),
-                    order: Arc::new(order),
-                };
+                    let deployment = Deployment {
+                        document: document.clone(),
+                        key: deployment_key.clone(),
+                        scenario: Arc::new(scenario),
+                        order: Arc::new(order),
+                    };
 
-                if deployments.contains_key(&deployment_key) {
-                    return Err(YamlError::KeyShadowing(deployment_key));
+                    if deployments.contains_key(&deployment_key) {
+                        return Err(YamlError::KeyShadowing(deployment_key));
+                    }
+                    deployments.insert(deployment_key, deployment);
                 }
-                deployments.insert(deployment_key, deployment);
             }
+        }
+
+        if deployments.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: deployments".to_string(),
+            ));
         }
 
         Ok(deployments)
@@ -322,23 +324,72 @@ deployments:
         );
     }
 
+    const PREFIX: &str = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+    network2:
+        rpc: https://test.com
+        chain-id: 2
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+    deployer2:
+        address: 0x0000000000000000000000000000000000000000
+        network: network2
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+    scenario2:
+        bindings:
+            test: test
+        deployer: deployer2
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000000
+        network: network2
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
+    order2:
+        inputs:
+            - token: token2
+        outputs:
+            - token: token2
+        deployer: deployer2
+"#;
+
     #[test]
     fn test_parse_deployments_from_yaml_multiple_files() {
         let yaml_one = r#"
 deployments:
     DeploymentOne:
-        scenario: ScenarioOne
-        order: OrderOne
+        scenario: scenario1
+        order: order1
 "#;
         let yaml_two = r#"
 deployments:
     DeploymentTwo:
-        scenario: ScenarioTwo
-        order: OrderTwo
+        scenario: scenario2
+        order: order2
 "#;
 
-        let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let deployments = Deployment::parse_all_from_yaml(documents).unwrap();
+        let deployments = Deployment::parse_all_from_yaml(vec![
+            get_document(&format!("{PREFIX}{yaml_one}")),
+            get_document(yaml_two),
+        ])
+        .unwrap();
 
         assert_eq!(deployments.len(), 2);
         assert!(deployments.contains_key("DeploymentOne"));
@@ -359,18 +410,21 @@ deployments:
         let yaml_one = r#"
 deployments:
     DuplicateDeployment:
-        scenario: ScenarioOne
-        order: OrderOne
+        scenario: scenario1
+        order: order1
 "#;
         let yaml_two = r#"
 deployments:
     DuplicateDeployment:
-        scenario: ScenarioTwo
-        order: OrderTwo
+        scenario: scenario2
+        order: order2
 "#;
 
-        let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Deployment::parse_all_from_yaml(documents).unwrap_err();
+        let error = Deployment::parse_all_from_yaml(vec![
+            get_document(&format!("{PREFIX}{yaml_one}")),
+            get_document(yaml_two),
+        ])
+        .unwrap_err();
 
         assert_eq!(
             error,

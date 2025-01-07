@@ -105,52 +105,52 @@ impl YamlParsableHash for Network {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let networks_hash = require_hash(
-                &document_read,
-                Some("networks"),
-                Some("missing field: networks".to_string()),
-            )?;
+            if let Ok(networks_hash) = require_hash(&document_read, Some("networks"), None) {
+                for (key_yaml, network_yaml) in networks_hash {
+                    let network_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            for (key_yaml, network_yaml) in networks_hash {
-                let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let rpc_url = Network::validate_rpc(&require_string(
+                        network_yaml,
+                        Some("rpc"),
+                        Some(format!("rpc string missing in network: {network_key}")),
+                    )?)?;
 
-                let rpc_url = Network::validate_rpc(&require_string(
-                    network_yaml,
-                    Some("rpc"),
-                    Some(format!("rpc string missing in network: {network_key}")),
-                )?)?;
+                    let chain_id = Network::validate_chain_id(&require_string(
+                        network_yaml,
+                        Some("chain-id"),
+                        Some(format!(
+                            "chain-id number as string missing in network: {network_key}"
+                        )),
+                    )?)?;
 
-                let chain_id = Network::validate_chain_id(&require_string(
-                    network_yaml,
-                    Some("chain-id"),
-                    Some(format!(
-                        "chain-id number as string missing in network: {network_key}"
-                    )),
-                )?)?;
+                    let label = optional_string(network_yaml, "label");
 
-                let label = optional_string(network_yaml, "label");
+                    let network_id = optional_string(network_yaml, "network-id")
+                        .map(|id| Network::validate_network_id(&id))
+                        .transpose()?;
 
-                let network_id = optional_string(network_yaml, "network-id")
-                    .map(|id| Network::validate_network_id(&id))
-                    .transpose()?;
+                    let currency = optional_string(network_yaml, "currency");
 
-                let currency = optional_string(network_yaml, "currency");
+                    let network = Network {
+                        document: document.clone(),
+                        key: network_key.clone(),
+                        rpc: rpc_url,
+                        chain_id,
+                        label,
+                        network_id,
+                        currency,
+                    };
 
-                let network = Network {
-                    document: document.clone(),
-                    key: network_key.clone(),
-                    rpc: rpc_url,
-                    chain_id,
-                    label,
-                    network_id,
-                    currency,
-                };
-
-                if networks.contains_key(&network_key) {
-                    return Err(YamlError::KeyShadowing(network_key));
+                    if networks.contains_key(&network_key) {
+                        return Err(YamlError::KeyShadowing(network_key));
+                    }
+                    networks.insert(network_key, network);
                 }
-                networks.insert(network_key, network);
             }
+        }
+
+        if networks.is_empty() {
+            return Err(YamlError::ParseError("missing field: networks".to_string()));
         }
 
         Ok(networks)
@@ -266,15 +266,19 @@ networks:
 networks:
     mainnet:
         rpc: https://mainnet.infura.io
+        chain-id: 1
     testnet:
         rpc: https://testnet.infura.io
+        chain-id: 2
 "#;
         let yaml_two = r#"
 networks:
     network-one:
         rpc: https://network-one.infura.io
+        chain-id: 3
     network-two:
         rpc: https://network-two.infura.io
+        chain-id: 4
 "#;
         let networks =
             Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
@@ -305,13 +309,16 @@ networks:
 networks:
     mainnet:
         rpc: https://mainnet.infura.io
+        chain-id: 1
     testnet:
         rpc: https://mainnet.infura.io
+        chain-id: 2
 "#;
         let yaml_two = r#"
 networks:
     mainnet:
         rpc: https://mainnet.infura.io
+        chain-id: 1
 "#;
         let error =
             Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])

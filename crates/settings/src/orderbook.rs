@@ -361,18 +361,24 @@ orderbooks:
     #[test]
     fn test_parse_orderbooks_from_yaml_multiple_files() {
         let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
 orderbooks:
     OrderbookOne:
         address: 0x1234567890123456789012345678901234567890
-        network: NetworkOne
-        subgraph: SubgraphOne
+        network: TestNetwork
+        subgraph: TestSubgraph
 "#;
         let yaml_two = r#"
 orderbooks:
     OrderbookTwo:
         address: 0x0987654321098765432109876543210987654321
-        network: NetworkTwo
-        subgraph: SubgraphTwo
+        network: TestNetwork
+        subgraph: TestSubgraph
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
@@ -395,18 +401,24 @@ orderbooks:
     #[test]
     fn test_parse_orderbooks_from_yaml_duplicate_key() {
         let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+subgraphs:
+    TestSubgraph: https://subgraph.com
 orderbooks:
     DuplicateOrderbook:
         address: 0x1234567890123456789012345678901234567890
-        network: NetworkOne
-        subgraph: SubgraphOne
+        network: TestNetwork
+        subgraph: TestSubgraph
 "#;
         let yaml_two = r#"
 orderbooks:
     DuplicateOrderbook:
         address: 0x0987654321098765432109876543210987654321
-        network: NetworkTwo
-        subgraph: SubgraphTwo
+        network: TestNetwork
+        subgraph: TestSubgraph
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];

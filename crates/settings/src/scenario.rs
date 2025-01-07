@@ -122,6 +122,9 @@ impl Scenario {
             *deployer = Some(Arc::new(current_deployer));
         }
 
+        if scenarios.contains_key(&scenario_key) {
+            return Err(YamlError::KeyShadowing(scenario_key));
+        }
         scenarios.insert(
             scenario_key.clone(),
             Scenario {
@@ -166,36 +169,39 @@ impl YamlParsableHash for Scenario {
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-            let scenarios_hash = require_hash(
-                &document_read,
-                Some("scenarios"),
-                Some("missing field: scenarios".to_string()),
-            )?;
 
-            for (key_yaml, scenario_yaml) in scenarios_hash {
-                let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
+            if let Ok(scenarios_hash) = require_hash(&document_read, Some("scenarios"), None) {
+                for (key_yaml, scenario_yaml) in scenarios_hash {
+                    let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let mut deployer: Option<Arc<Deployer>> = None;
+                    let mut deployer: Option<Arc<Deployer>> = None;
 
-                Self::validate_scenario(
-                    documents.clone(),
-                    document.clone(),
-                    &mut deployer,
-                    &mut scenarios,
-                    ScenarioParent {
-                        bindings: None,
-                        deployer: None,
-                    },
-                    scenario_key.clone(),
-                    scenario_yaml,
-                )?;
+                    Self::validate_scenario(
+                        documents.clone(),
+                        document.clone(),
+                        &mut deployer,
+                        &mut scenarios,
+                        ScenarioParent {
+                            bindings: None,
+                            deployer: None,
+                        },
+                        scenario_key.clone(),
+                        scenario_yaml,
+                    )?;
 
-                if deployer.is_none() {
-                    return Err(YamlError::ParseScenarioConfigSourceError(
-                        ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
-                    ));
+                    if deployer.is_none() {
+                        return Err(YamlError::ParseScenarioConfigSourceError(
+                            ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                        ));
+                    }
                 }
             }
+        }
+
+        if scenarios.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: scenarios".to_string(),
+            ));
         }
 
         Ok(scenarios)
@@ -633,6 +639,14 @@ scenarios:
     #[test]
     fn test_parse_scenarios_from_yaml_multiple_files() {
         let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
 scenarios:
     scenario1:
         deployer: mainnet
@@ -642,7 +656,6 @@ scenarios:
             scenario2:
                 bindings:
                     key2: binding2
-                deployer: testnet
 "#;
         let yaml_two = r#"
 scenarios:
@@ -654,20 +667,16 @@ scenarios:
             scenario4:
                 bindings:
                     key4: binding4
-                deployer: testnet
 "#;
-
-        let documents = vec![
-            get_document(&format!("{}{}", PREFIX, yaml_one)),
-            get_document(&format!("{}{}", PREFIX, yaml_two)),
-        ];
-        let scenarios = Scenario::parse_all_from_yaml(documents).unwrap();
+        let scenarios =
+            Scenario::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap();
 
         assert_eq!(scenarios.len(), 4);
         assert!(scenarios.contains_key("scenario1"));
-        assert!(scenarios.contains_key("scenario1.scenario2"));
+        assert!(scenarios.contains_key("scenario2"));
         assert!(scenarios.contains_key("scenario3"));
-        assert!(scenarios.contains_key("scenario3.scenario4"));
+        assert!(scenarios.contains_key("scenario4"));
 
         assert_eq!(
             scenarios
@@ -680,7 +689,7 @@ scenarios:
         );
         assert_eq!(
             scenarios
-                .get("scenario1.scenario2")
+                .get("scenario2")
                 .unwrap()
                 .bindings
                 .get("key2")
@@ -698,7 +707,7 @@ scenarios:
         );
         assert_eq!(
             scenarios
-                .get("scenario3.scenario4")
+                .get("scenario4")
                 .unwrap()
                 .bindings
                 .get("key4")
@@ -710,6 +719,14 @@ scenarios:
     #[test]
     fn test_parse_scenarios_from_yaml_duplicate_key() {
         let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
 scenarios:
     DuplicateScenario:
         deployer: mainnet
@@ -724,8 +741,9 @@ scenarios:
             key1: binding2
 "#;
 
-        let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Scenario::parse_all_from_yaml(documents).unwrap_err();
+        let error =
+            Scenario::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap_err();
 
         assert_eq!(
             error,

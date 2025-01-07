@@ -33,34 +33,37 @@ impl YamlParsableHash for Subgraph {
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-            let subgraphs_hash = require_hash(
-                &document_read,
-                Some("subgraphs"),
-                Some("missing field: subgraphs".to_string()),
-            )?;
 
-            for (key_yaml, subgraph_yaml) in subgraphs_hash {
-                let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
+            if let Ok(subgraphs_hash) = require_hash(&document_read, Some("subgraphs"), None) {
+                for (key_yaml, subgraph_yaml) in subgraphs_hash {
+                    let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                let url = Subgraph::validate_url(&require_string(
-                    subgraph_yaml,
-                    None,
-                    Some(format!(
-                        "subgraph value must be a string for key: {subgraph_key}"
-                    )),
-                )?)?;
+                    let url = Subgraph::validate_url(&require_string(
+                        subgraph_yaml,
+                        None,
+                        Some(format!(
+                            "subgraph value must be a string for key: {subgraph_key}"
+                        )),
+                    )?)?;
 
-                let subgraph = Subgraph {
-                    document: document.clone(),
-                    key: subgraph_key.clone(),
-                    url,
-                };
+                    let subgraph = Subgraph {
+                        document: document.clone(),
+                        key: subgraph_key.clone(),
+                        url,
+                    };
 
-                if subgraphs.contains_key(&subgraph_key) {
-                    return Err(YamlError::KeyShadowing(subgraph_key));
+                    if subgraphs.contains_key(&subgraph_key) {
+                        return Err(YamlError::KeyShadowing(subgraph_key));
+                    }
+                    subgraphs.insert(subgraph_key, subgraph);
                 }
-                subgraphs.insert(subgraph_key, subgraph);
             }
+        }
+
+        if subgraphs.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: subgraphs".to_string(),
+            ));
         }
 
         Ok(subgraphs)

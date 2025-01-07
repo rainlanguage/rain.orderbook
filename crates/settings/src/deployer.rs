@@ -107,41 +107,43 @@ impl YamlParsableHash for Deployer {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let deployers_hash = require_hash(
-                &document_read,
-                Some("deployers"),
-                Some("missing field: deployers".to_string()),
-            )?;
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                for (key_yaml, deployer_yaml) in deployers_hash {
+                    let deployer_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            for (key_yaml, deployer_yaml) in deployers_hash {
-                let deployer_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let address = Deployer::validate_address(&require_string(
+                        deployer_yaml,
+                        Some("address"),
+                        Some(format!(
+                            "address string missing in deployer: {deployer_key}"
+                        )),
+                    )?)?;
 
-                let address = Deployer::validate_address(&require_string(
-                    deployer_yaml,
-                    Some("address"),
-                    Some(format!(
-                        "address string missing in deployer: {deployer_key}"
-                    )),
-                )?)?;
+                    let network_name = match optional_string(deployer_yaml, "network") {
+                        Some(network_name) => network_name,
+                        None => deployer_key.clone(),
+                    };
+                    let network = Network::parse_from_yaml(documents.clone(), &network_name)?;
 
-                let network_name = match optional_string(deployer_yaml, "network") {
-                    Some(network_name) => network_name,
-                    None => deployer_key.clone(),
-                };
-                let network = Network::parse_from_yaml(documents.clone(), &network_name)?;
+                    let deployer = Deployer {
+                        document: document.clone(),
+                        key: deployer_key.clone(),
+                        address,
+                        network: Arc::new(network),
+                    };
 
-                let deployer = Deployer {
-                    document: document.clone(),
-                    key: deployer_key.clone(),
-                    address,
-                    network: Arc::new(network),
-                };
-
-                if deployers.contains_key(&deployer_key) {
-                    return Err(YamlError::KeyShadowing(deployer_key));
+                    if deployers.contains_key(&deployer_key) {
+                        return Err(YamlError::KeyShadowing(deployer_key));
+                    }
+                    deployers.insert(deployer_key, deployer);
                 }
-                deployers.insert(deployer_key, deployer);
             }
+        }
+
+        if deployers.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: deployers".to_string(),
+            ));
         }
 
         Ok(deployers)
@@ -217,16 +219,20 @@ mod tests {
     #[test]
     fn test_parse_deployers_from_yaml_multiple_files() {
         let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
 deployers:
     DeployerOne:
         address: 0x1234567890123456789012345678901234567890
-        network: NetworkOne
+        network: TestNetwork
 "#;
         let yaml_two = r#"
 deployers:
     DeployerTwo:
         address: 0x0987654321098765432109876543210987654321
-        network: NetworkTwo
+        network: TestNetwork
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
@@ -249,16 +255,20 @@ deployers:
     #[test]
     fn test_parse_deployers_from_yaml_duplicate_key() {
         let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
 deployers:
     DuplicateDeployer:
         address: 0x1234567890123456789012345678901234567890
-        network: NetworkOne
+        network: TestNetwork
 "#;
         let yaml_two = r#"
 deployers:
     DuplicateDeployer:
         address: 0x0987654321098765432109876543210987654321
-        network: NetworkTwo
+        network: TestNetwork
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
