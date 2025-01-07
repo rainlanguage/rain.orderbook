@@ -448,8 +448,8 @@ impl YamlParseableValue for Gui {
                     }
                     gui_deployments_res.insert(deployment_name, gui_deployment);
                 }
-                if gui_res.is_some() {
-                    gui_res.as_mut().unwrap().deployments = gui_deployments_res.clone();
+                if let Some(gui) = &mut gui_res {
+                    gui.deployments.clone_from(&gui_deployments_res);
                 }
             }
         }
