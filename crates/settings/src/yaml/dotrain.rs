@@ -5,6 +5,7 @@ use std::sync::{Arc, RwLock};
 #[derive(Debug, Clone)]
 pub struct DotrainYaml {
     pub document: Arc<RwLock<StrictYaml>>,
+    pub orderbook_yaml_documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
 
 impl YamlParsable for DotrainYaml {
@@ -17,36 +18,62 @@ impl YamlParsable for DotrainYaml {
         let document = Arc::new(RwLock::new(doc));
 
         if validate {
-            Order::parse_all_from_yaml(document.clone())?;
+            Order::parse_all_from_yaml(vec![document.clone()])?;
         }
 
-        Ok(DotrainYaml { document })
+        Ok(DotrainYaml {
+            document,
+            orderbook_yaml_documents: vec![],
+        })
+    }
+}
+
+impl YamlParsableWithOrderbook for DotrainYaml {
+    fn new_with_orderbook(
+        source: String,
+        orderbook_sources: Vec<String>,
+        validate: bool,
+    ) -> Result<Self, YamlError> {
+        let mut dotrain_yaml = Self::new(source, validate)?;
+
+        for source in orderbook_sources {
+            let docs = StrictYamlLoader::load_from_str(&source)?;
+            if docs.is_empty() {
+                return Err(YamlError::EmptyFile);
+            }
+            let doc = docs[0].clone();
+            let document = Arc::new(RwLock::new(doc));
+
+            dotrain_yaml.orderbook_yaml_documents.push(document);
+        }
+
+        Ok(dotrain_yaml)
     }
 }
 
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orders = Order::parse_all_from_yaml(self.document.clone())?;
+        let orders = Order::parse_all_from_yaml(vec![self.document.clone()])?;
         Ok(orders.keys().cloned().collect())
     }
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
-        Order::parse_from_yaml(self.document.clone(), key)
+        Order::parse_from_yaml(vec![self.document.clone()], key)
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
-        let scenarios = Scenario::parse_all_from_yaml(self.document.clone())?;
+        let scenarios = Scenario::parse_all_from_yaml(vec![self.document.clone()])?;
         Ok(scenarios.keys().cloned().collect())
     }
     pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
-        Scenario::parse_from_yaml(self.document.clone(), key)
+        Scenario::parse_from_yaml(vec![self.document.clone()], key)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployments = Deployment::parse_all_from_yaml(self.document.clone())?;
+        let deployments = Deployment::parse_all_from_yaml(vec![self.document.clone()])?;
         Ok(deployments.keys().cloned().collect())
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
-        Deployment::parse_from_yaml(self.document.clone(), key)
+        Deployment::parse_from_yaml(vec![self.document.clone()], key)
     }
 
     pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
