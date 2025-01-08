@@ -1,10 +1,17 @@
 <script lang="ts">
-	import { Input, Button } from 'flowbite-svelte';
+	import { Input } from 'flowbite-svelte';
 
-	import { DotrainOrderGui, type GuiFieldDefinition } from '@rainlanguage/orderbook/js_api';
+	import {
+		DotrainOrderGui,
+		type GuiFieldDefinition,
+		type GuiPreset
+	} from '@rainlanguage/orderbook/js_api';
+	import ButtonSelectOption from './ButtonSelectOption.svelte';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
+
+	let currentFieldDefinition: GuiPreset | undefined;
 
 	function handlePresetClick(presetId: string) {
 		gui?.saveFieldValue(fieldDefinition.binding, {
@@ -12,6 +19,7 @@
 			value: presetId
 		});
 		gui = gui;
+		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	function handleCustomInputChange(value: string) {
@@ -20,7 +28,10 @@
 			value: value
 		});
 		gui = gui;
+		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
+
+	$: console.log('current field definition', currentFieldDefinition);
 </script>
 
 <div class="flex flex-grow flex-col items-center p-8">
@@ -36,17 +47,11 @@
 	<div class="flex max-w-3xl flex-wrap justify-center gap-4">
 		{#if fieldDefinition.presets}
 			{#each fieldDefinition.presets as preset}
-				<Button
-					size="lg"
-					color="alternative"
-					class={gui?.isFieldPreset(fieldDefinition.binding) &&
-					gui?.getFieldValue(fieldDefinition.binding)?.value === preset.id
-						? 'border border-gray-200 dark:border-gray-700'
-						: 'border-2 border-gray-900 dark:border-white'}
-					on:click={() => handlePresetClick(preset.id)}
-				>
-					{preset.name || preset.value}
-				</Button>
+				<ButtonSelectOption
+					buttonText={preset.name || preset.value}
+					clickHandler={() => handlePresetClick(preset.id)}
+					active={currentFieldDefinition?.value === preset.value}
+				/>
 			{/each}
 		{/if}
 	</div>
