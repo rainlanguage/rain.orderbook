@@ -108,7 +108,7 @@ impl Execute for Words {
                         .orderbook_yaml
                         .get_metaboard(&deployer.network.key)
                         .ok()
-                        .map(|url| format!("{:?}", url))
+                        .map(|metaboard| metaboard.url.to_string())
                 })
                 .ok_or(anyhow!("undefined metaboard subgraph url"))?;
 
