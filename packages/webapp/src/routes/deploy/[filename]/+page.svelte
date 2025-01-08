@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { DeploymentSteps } from '@rainlanguage/ui-components';
 </script>
 
 <div class="flex h-screen flex-col gap-4">
-	<DeploymentSteps />
+	<DeploymentSteps filename={$page.data.filename} />
 </div>

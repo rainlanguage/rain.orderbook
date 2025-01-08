@@ -5,8 +5,6 @@
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
 
-	import { page } from '$app/stores';
-
 	import {
 		DotrainOrderGui,
 		type ApprovalCalldataResult,
@@ -21,11 +19,9 @@
 	import { Button, Label, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
-	import testStrategy from './test-strategy.rain?raw';
-	import testTokenSelectStrategy from './test-strategy-token-select.rain?raw';
 
 	import { page } from '$app/stores';
-	import { pushState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -47,18 +43,24 @@
 		[linea.id]: linea
 	};
 
+	export let filename: string | null = null;
+
 	let dotrain = '';
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let serializedGui: string | null = null;
 
-	async function loadStrategy() {
-		dotrain = testStrategy;
+	$: if (filename) {
+		loadStrategy(filename);
 	}
 
-	async function loadTokenSelectStrategy() {
-		dotrain = testTokenSelectStrategy;
+	async function loadStrategy(filename: string) {
+		try {
+			dotrain = (await import(`./${filename}.rain?raw`)).default;
+		} catch {
+			console.error('Deployment not found');
+			goto('/deploy');
+		}
 	}
 
 	let gui: DotrainOrderGui | null = null;
@@ -100,6 +102,7 @@
 		if (!deployment) return;
 
 		try {
+			console.log('DEPLOYMENT', deployment);
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 			initializeVaultIdArrays();
 		} catch (error) {
@@ -185,20 +188,8 @@
 
 	$: if (gui) {
 		try {
-			const deposits = gui.getCurrentDeployment().deposits;
-			const depositsFilled = gui.getDeposits();
-			const fieldValuesUnflled = gui.getAllFieldDefinitions();
-			const fieldValues = gui.getAllFieldValues();
-			console.log('FIELD VALUES', fieldValues);
-			console.log('TOKEN DEPOSITS', deposits);
-			console.log('TOKEN DEPOSITS FILLED', depositsFilled);
-			console.log('FIELD VALUES', fieldValues);
-			console.log('FIELD VALUES UNFILLED', fieldValuesUnflled);
 			const serializedState = gui.serializeState();
 			$page.url.searchParams.set('gui', serializedState);
-			console.log('URL', $page.url.searchParams.get('gui'));
-			pushState('', { state: serializedState });
-			window.history.pushState({}, '', serializedState);
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}
@@ -265,14 +256,7 @@
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
-
-	$: console.log('GUI:', gui);
 </script>
-
-<div class="mb-4">
-	<Button on:click={loadStrategy}>Load Strategy</Button>
-	<Button on:click={loadTokenSelectStrategy}>Load Token Select Strategy</Button>
-</div>
 
 {#if error}
 	<p class="text-red-500">{error}</p>
