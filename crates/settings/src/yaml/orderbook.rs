@@ -138,7 +138,7 @@ mod tests {
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
     sentry: true
-    raindex_version: 1.0.0
+    raindex-version: 1.0.0
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"

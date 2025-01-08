@@ -117,11 +117,15 @@ orders:
               vault-id: 0x01
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 deployments:
     polygon:
         scenario: polygon
         order: polygon
 ---
+#key1 !Test binding
 #calculate-io
 amount price: 2 1;
 #handle-add-order

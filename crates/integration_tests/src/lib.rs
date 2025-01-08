@@ -56,11 +56,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 using-words-from {orderbook_subparser}
 amount price: get("amount") 52;
@@ -158,11 +162,15 @@ orders:
             - token: dai
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 amount price: get("amount") 52;
 #handle-io

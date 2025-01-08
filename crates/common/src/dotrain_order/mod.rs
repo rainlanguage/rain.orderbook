@@ -373,7 +373,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -410,7 +414,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        bindings:
+            key1: 10
+        deployer: polygon
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -451,7 +459,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -538,7 +550,11 @@ deployers:
         address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
 scenarios:
     sepolia:
+        deployer: sepolia
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 using-words-from 0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382
 _: order-hash(),
@@ -573,9 +589,13 @@ _ _: 0 0;
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -615,9 +635,13 @@ _ _: 0 0;
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -661,6 +685,9 @@ _ _: 0 0;
             address: {deployer_address}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
@@ -708,9 +735,13 @@ _ _: 0 0;
             address: {deployer_address}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -914,6 +945,9 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 tokens:
     t1:
         network: polygon
@@ -938,6 +972,7 @@ deployments:
         scenario: polygon
         order: polygon
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io

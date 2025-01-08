@@ -15,7 +15,7 @@ impl YamlParsableString for RaindexVersion {
     ) -> Result<Option<String>, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-        if let Some(value) = optional_string(&document_read, "raindex_version") {
+        if let Some(value) = optional_string(&document_read, "raindex-version") {
             Ok(Some(value))
         } else {
             Ok(None)
