@@ -1,15 +1,19 @@
 use super::*;
 use crate::{Deployment, Gui, Order, Scenario};
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeSeq;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt;
-use std::sync::{Arc, RwLock};
+use serde::{
+    de::{self, SeqAccess, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::{
+    fmt,
+    sync::{Arc, RwLock},
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DotrainYaml {
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
@@ -34,9 +38,15 @@ impl YamlParsable for DotrainYaml {
 
         if validate {
             Order::parse_all_from_yaml(documents.clone())?;
+            Scenario::parse_all_from_yaml(documents.clone())?;
+            Deployment::parse_all_from_yaml(documents.clone())?;
         }
 
         Ok(DotrainYaml { documents })
+    }
+
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        DotrainYaml { documents }
     }
 }
 
@@ -177,6 +187,9 @@ mod tests {
     deployments:
         deployment1:
             order: order1
+            scenario: scenario1.scenario2
+        deployment2:
+            order: order1
             scenario: scenario1
     gui:
         name: Test gui
@@ -240,8 +253,20 @@ mod tests {
         );
 
         let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();
-        assert_eq!(deployment_keys.len(), 1);
+        assert_eq!(deployment_keys.len(), 2);
         let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
+        assert_eq!(
+            deployment.order,
+            dotrain_yaml.get_order("order1").unwrap().into()
+        );
+        assert_eq!(
+            deployment.scenario,
+            dotrain_yaml
+                .get_scenario("scenario1.scenario2")
+                .unwrap()
+                .into()
+        );
+        let deployment = dotrain_yaml.get_deployment("deployment2").unwrap();
         assert_eq!(
             deployment.order,
             dotrain_yaml.get_order("order1").unwrap().into()
@@ -276,5 +301,183 @@ mod tests {
         let select_tokens = deployment.select_tokens.as_ref().unwrap();
         assert_eq!(select_tokens.len(), 1);
         assert_eq!(select_tokens[0], "token2");
+    }
+
+    #[test]
+    fn test_update_vault_ids() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpc: https://mainnet.infura.io
+                chain-id: 1
+            testnet:
+                rpc: https://testnet.infura.io
+                chain-id: 1337
+        tokens:
+            token1:
+                network: mainnet
+                address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                decimals: 18
+                label: Wrapped Ether
+                symbol: WETH
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000002
+                decimals: 6
+                label: USD Coin
+                symbol: USDC
+        orders:
+            order1:
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
+
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+
+        assert!(order.inputs[0].vault_id.is_none());
+        assert!(order.outputs[0].vault_id.is_none());
+
+        let updated_order = order.populate_vault_ids().unwrap();
+
+        // After population, all vault IDs should be set and equal
+        assert!(updated_order.inputs[0].vault_id.is_some());
+        assert!(updated_order.outputs[0].vault_id.is_some());
+        assert_eq!(
+            updated_order.inputs[0].vault_id,
+            updated_order.outputs[0].vault_id
+        );
+
+        let order_after = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(
+            order_after.inputs[0].vault_id,
+            updated_order.inputs[0].vault_id
+        );
+        assert_eq!(
+            order_after.outputs[0].vault_id,
+            updated_order.outputs[0].vault_id
+        );
+
+        // Populate vault IDs should not change if the vault IDs are already set
+        let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+        order.populate_vault_ids().unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
+    }
+
+    #[test]
+    fn test_update_vault_id() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpc: https://mainnet.infura.io
+                chain-id: 1
+            testnet:
+                rpc: https://testnet.infura.io
+                chain-id: 1337
+        tokens:
+            token1:
+                network: mainnet
+                address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+                decimals: 18
+                label: Wrapped Ether
+                symbol: WETH
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000002
+                decimals: 6
+                label: USD Coin
+                symbol: USDC
+        orders:
+            order1:
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+
+        assert!(order.inputs[0].vault_id.is_none());
+        assert!(order.outputs[0].vault_id.is_none());
+
+        let mut updated_order = order.update_vault_id(true, 0, "1".to_string()).unwrap();
+        let updated_order = updated_order
+            .update_vault_id(false, 0, "11".to_string())
+            .unwrap();
+
+        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(11)));
+
+        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
+
+        let mut updated_order = order.update_vault_id(true, 0, "3".to_string()).unwrap();
+        let updated_order = updated_order
+            .update_vault_id(false, 0, "33".to_string())
+            .unwrap();
+        assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
+        assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
+
+        let order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
+        assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
+    }
+
+    #[test]
+    fn test_update_bindings() {
+        // Parent scenario
+        {
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+            let mut scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+
+            assert_eq!(scenario.bindings.len(), 1);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
+
+            let updated_scenario = scenario
+                .update_bindings(HashMap::from([("key1".to_string(), "value2".to_string())]))
+                .unwrap();
+
+            assert_eq!(updated_scenario.bindings.len(), 1);
+            assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value2");
+
+            let scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+            assert_eq!(scenario.bindings.len(), 1);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value2");
+        }
+
+        // Child scenario
+        {
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+            let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+
+            assert_eq!(scenario.bindings.len(), 2);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
+            assert_eq!(scenario.bindings.get("key2").unwrap(), "value2");
+
+            let updated_scenario = scenario
+                .update_bindings(HashMap::from([
+                    ("key1".to_string(), "value3".to_string()),
+                    ("key2".to_string(), "value4".to_string()),
+                ]))
+                .unwrap();
+
+            assert_eq!(updated_scenario.bindings.len(), 2);
+            assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value3");
+            assert_eq!(updated_scenario.bindings.get("key2").unwrap(), "value4");
+
+            let scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            assert_eq!(scenario.bindings.len(), 2);
+            assert_eq!(scenario.bindings.get("key1").unwrap(), "value3");
+            assert_eq!(scenario.bindings.get("key2").unwrap(), "value4");
+        }
     }
 }

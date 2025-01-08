@@ -20,7 +20,7 @@ use typeshare::typeshare;
 
 pub mod calldata;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct DotrainOrder {
     dotrain: String,

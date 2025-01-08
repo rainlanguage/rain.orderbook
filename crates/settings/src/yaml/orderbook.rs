@@ -3,16 +3,20 @@ use crate::{
     metaboard::Metaboard, raindex_version::RaindexVersion, sentry::Sentry, subgraph::Subgraph,
     Deployer, Network, Orderbook, Token,
 };
-use std::sync::{Arc, RwLock};
+use serde::{
+    de::{self, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
+    Deserialize,
+};
+use std::{
+    fmt,
+    sync::{Arc, RwLock},
+};
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-use serde::de::{self, Deserializer, SeqAccess, Visitor};
-use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde::Deserialize;
-use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookYaml {
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
@@ -37,9 +41,18 @@ impl YamlParsable for OrderbookYaml {
 
         if validate {
             Network::parse_all_from_yaml(documents.clone())?;
+            Token::parse_all_from_yaml(documents.clone())?;
+            Subgraph::parse_all_from_yaml(documents.clone())?;
+            Orderbook::parse_all_from_yaml(documents.clone())?;
+            Deployer::parse_all_from_yaml(documents.clone())?;
+            Metaboard::parse_all_from_yaml(documents.clone())?;
         }
 
         Ok(OrderbookYaml { documents })
+    }
+
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        OrderbookYaml { documents }
     }
 }
 

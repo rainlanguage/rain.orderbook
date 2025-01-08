@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use typeshare::typeshare;
 use url::{ParseError, Url};
 
@@ -35,11 +35,9 @@ impl Metaboard {
 
         if let StrictYaml::Hash(ref mut document_hash) = *document {
             if !document_hash.contains_key(&StrictYaml::String("metaboards".to_string())) {
-                let mut metaboards_hash = document_hash.clone();
-                metaboards_hash.clear();
                 document_hash.insert(
                     StrictYaml::String("metaboards".to_string()),
-                    StrictYaml::Hash(metaboards_hash),
+                    StrictYaml::Hash(Hash::new()),
                 );
             }
 
