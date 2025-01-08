@@ -5,6 +5,8 @@
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
 
+	import { page } from '$app/stores';
+
 	import {
 		DotrainOrderGui,
 		type ApprovalCalldataResult,
@@ -46,6 +48,7 @@
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let serializedGui: string | null = null;
 
 	async function loadStrategy() {
 		dotrain = testStrategy;
@@ -178,6 +181,8 @@
 	}
 
 	$: if (gui) {
+		console.log('GUI changed');
+		console.log(gui.serializeState());
 		error = null;
 		getTokenInfos();
 		getSelectTokens();
@@ -241,6 +246,8 @@
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
+
+	$: console.log('GUI:', gui);
 </script>
 
 <div class="mb-4">
@@ -284,21 +291,21 @@
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
 				{#each selectTokens.entries() as [token]}
-					<SelectToken {token} {gui} bind:selectTokens />
+					<SelectToken {token} bind:gui bind:selectTokens />
 				{/each}
 			{/if}
 
 			{#if allFieldDefinitions.length > 0}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Field Values</Label>
 				{#each allFieldDefinitions as fieldDefinition}
-					<FieldDefinitionButtons {fieldDefinition} {gui} />
+					<FieldDefinitionButtons {fieldDefinition} bind:gui />
 				{/each}
 			{/if}
 
 			{#if allDeposits.length > 0}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
 				{#each allDeposits as deposit}
-					<DepositButtons bind:deposit {gui} bind:tokenInfos />
+					<DepositButtons bind:deposit bind:gui bind:tokenInfos />
 				{/each}
 			{/if}
 
@@ -311,7 +318,7 @@
 						vault={input}
 						{tokenInfos}
 						vaultIds={inputVaultIds}
-						{gui}
+						bind:gui
 					/>
 				{/each}
 			{/if}
@@ -325,7 +332,7 @@
 						vault={output}
 						{tokenInfos}
 						vaultIds={outputVaultIds}
-						{gui}
+						bind:gui
 					/>
 				{/each}
 			{/if}
