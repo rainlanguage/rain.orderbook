@@ -5,10 +5,20 @@ use crate::{
 };
 use std::sync::{Arc, RwLock};
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use serde::de::{self, Deserializer, SeqAccess, Visitor};
+use serde::ser::{Serialize, SerializeSeq, Serializer};
+use serde::Deserialize;
+use std::fmt;
+
 #[derive(Debug, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookYaml {
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(OrderbookYaml);
 
 impl YamlParsable for OrderbookYaml {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
@@ -93,6 +103,58 @@ impl OrderbookYaml {
     pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {
         let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
         Ok(value)
+    }
+}
+
+impl Serialize for OrderbookYaml {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        for doc in &self.documents {
+            let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
+            seq.serialize_element(&yaml_str)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderbookYaml {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OrderbookYamlVisitor;
+
+        impl<'de> Visitor<'de> for OrderbookYamlVisitor {
+            type Value = OrderbookYaml;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut documents = Vec::new();
+
+                while let Some(doc_str) = seq.next_element::<String>()? {
+                    let docs =
+                        StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                    if docs.is_empty() {
+                        return Err(de::Error::custom("Empty YAML document"));
+                    }
+                    let doc = docs[0].clone();
+                    documents.push(Arc::new(RwLock::new(doc)));
+                }
+
+                Ok(OrderbookYaml { documents })
+            }
+        }
+
+        deserializer.deserialize_seq(OrderbookYamlVisitor)
     }
 }
 

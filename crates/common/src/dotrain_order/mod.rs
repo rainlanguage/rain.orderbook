@@ -20,12 +20,12 @@ use typeshare::typeshare;
 
 pub mod calldata;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct DotrainOrder {
     dotrain: String,
-    pub dotrain_yaml: DotrainYaml,
-    pub orderbook_yaml: OrderbookYaml,
+    dotrain_yaml: DotrainYaml,
+    orderbook_yaml: OrderbookYaml,
 }
 
 #[derive(Error, Debug)]
@@ -208,6 +208,22 @@ impl DotrainOrder {
     #[cfg(not(target_family = "wasm"))]
     pub fn dotrain(&self) -> &str {
         &self.dotrain
+    }
+
+    pub fn dotrain_yaml(&self) -> &DotrainYaml {
+        &self.dotrain_yaml
+    }
+
+    pub fn dotrain_yaml_mut(&mut self) -> &mut DotrainYaml {
+        &mut self.dotrain_yaml
+    }
+
+    pub fn orderbook_yaml(&self) -> &OrderbookYaml {
+        &self.orderbook_yaml
+    }
+
+    pub fn orderbook_yaml_mut(&mut self) -> &mut OrderbookYaml {
+        &mut self.orderbook_yaml
     }
 
     pub async fn get_pragmas_for_scenario(

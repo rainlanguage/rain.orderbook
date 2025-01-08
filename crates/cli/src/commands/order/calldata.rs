@@ -39,7 +39,7 @@ impl Execute for AddOrderCalldata {
         let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
         let dotrain_string = order.dotrain().to_string();
 
-        let config_deployment = order.dotrain_yaml.get_deployment(&self.deployment)?;
+        let config_deployment = order.dotrain_yaml().get_deployment(&self.deployment)?;
 
         let add_order_args =
             AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await;

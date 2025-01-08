@@ -1,11 +1,21 @@
 use super::*;
 use crate::{Deployment, Gui, Order, Scenario};
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeSeq;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
 use std::sync::{Arc, RwLock};
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[derive(Debug, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DotrainYaml {
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(DotrainYaml);
 
 impl YamlParsable for DotrainYaml {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
@@ -57,6 +67,58 @@ impl DotrainYaml {
 
     pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
         Gui::parse_from_yaml_optional(self.documents.clone())
+    }
+}
+
+impl Serialize for DotrainYaml {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        for doc in &self.documents {
+            let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
+            seq.serialize_element(&yaml_str)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for DotrainYaml {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct DotrainYamlVisitor;
+
+        impl<'de> Visitor<'de> for DotrainYamlVisitor {
+            type Value = DotrainYaml;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut documents = Vec::new();
+
+                while let Some(doc_str) = seq.next_element::<String>()? {
+                    let docs =
+                        StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                    if docs.is_empty() {
+                        return Err(de::Error::custom("Empty YAML document"));
+                    }
+                    let doc = docs[0].clone();
+                    documents.push(Arc::new(RwLock::new(doc)));
+                }
+
+                Ok(DotrainYaml { documents })
+            }
+        }
+
+        deserializer.deserialize_seq(DotrainYamlVisitor)
     }
 }
 

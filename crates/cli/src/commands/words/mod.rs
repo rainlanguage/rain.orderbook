@@ -96,7 +96,7 @@ impl Execute for Words {
 
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
-            let deployer = order.orderbook_yaml.get_deployer(deployer_key)?;
+            let deployer = order.orderbook_yaml().get_deployer(deployer_key)?;
 
             // get metaboard subgraph url
             let metaboard_url = self
@@ -105,7 +105,7 @@ impl Execute for Words {
                 .map(|v| v.to_string())
                 .or_else(|| {
                     order
-                        .orderbook_yaml
+                        .orderbook_yaml()
                         .get_metaboard(&deployer.network.key)
                         .ok()
                         .map(|metaboard| metaboard.url.to_string())
@@ -123,13 +123,13 @@ impl Execute for Words {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_name = &order
-                    .dotrain_yaml
+                    .dotrain_yaml()
                     .get_scenario(scenario)?
                     .deployer
                     .network
                     .key
                     .clone();
-                order.orderbook_yaml.add_metaboard(network_name, v)?;
+                order.orderbook_yaml().add_metaboard(network_name, v)?;
             }
             if self.deployer_only {
                 match order.get_deployer_words_for_scenario(scenario).await?.words {
@@ -162,13 +162,13 @@ impl Execute for Words {
                 words
             }
         } else if let Some(deployment) = &self.source.deployment {
-            let deployment = order.dotrain_yaml.get_deployment(deployment)?;
+            let deployment = order.dotrain_yaml().get_deployment(deployment)?;
             let scenario = &deployment.scenario.key;
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_key = deployment.scenario.deployer.network.key.clone();
-                order.orderbook_yaml.add_metaboard(&network_key, v)?;
+                order.orderbook_yaml().add_metaboard(&network_key, v)?;
             }
             let result = order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
