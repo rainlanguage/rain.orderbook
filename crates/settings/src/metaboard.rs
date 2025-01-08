@@ -23,6 +23,48 @@ impl Metaboard {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
+
+    pub fn add_record_to_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: &str,
+        value: &str,
+    ) -> Result<(), YamlError> {
+        Metaboard::validate_url(value)?;
+
+        let mut document = document.write().map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if !document_hash.contains_key(&StrictYaml::String("metaboards".to_string())) {
+                let mut metaboards_hash = document_hash.clone();
+                metaboards_hash.clear();
+                document_hash.insert(
+                    StrictYaml::String("metaboards".to_string()),
+                    StrictYaml::Hash(metaboards_hash),
+                );
+            }
+
+            if let Some(StrictYaml::Hash(ref mut metaboards)) =
+                document_hash.get_mut(&StrictYaml::String("metaboards".to_string()))
+            {
+                if metaboards.contains_key(&StrictYaml::String(key.to_string())) {
+                    return Err(YamlError::KeyShadowing(key.to_string()));
+                }
+
+                metaboards.insert(
+                    StrictYaml::String(key.to_string()),
+                    StrictYaml::String(value.to_string()),
+                );
+            } else {
+                return Err(YamlError::ParseError(
+                    "missing field: metaboards".to_string(),
+                ));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(())
+    }
 }
 
 impl YamlParsableHash for Metaboard {

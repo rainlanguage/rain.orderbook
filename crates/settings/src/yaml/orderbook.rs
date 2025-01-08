@@ -72,6 +72,9 @@ impl OrderbookYaml {
     pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
         Metaboard::parse_from_yaml(self.documents.clone(), key)
     }
+    pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
+        Metaboard::add_record_to_yaml(self.documents[0].clone(), key, value)
+    }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
         let deployers = Deployer::parse_all_from_yaml(self.documents.clone())?;
@@ -262,6 +265,27 @@ mod tests {
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_add_metaboard_to_yaml() {
+        let yaml = r#"
+test: test
+"#;
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+
+        ob_yaml
+            .add_metaboard("test-metaboard", "https://test-metaboard.com")
+            .unwrap();
+
+        assert_eq!(
+            ob_yaml.get_metaboard_keys().unwrap(),
+            vec!["test-metaboard".to_string()]
+        );
+        assert_eq!(
+            ob_yaml.get_metaboard("test-metaboard").unwrap().url,
+            Url::parse("https://test-metaboard.com").unwrap()
         );
     }
 }
