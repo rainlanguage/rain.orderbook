@@ -24,6 +24,9 @@
 	import testStrategy from './test-strategy.rain?raw';
 	import testTokenSelectStrategy from './test-strategy-token-select.rain?raw';
 
+	import { page } from '$app/stores';
+	import { pushState } from '$app/navigation';
+
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_SELECT_TOKENS = 'Error loading tokens',
@@ -181,8 +184,24 @@
 	}
 
 	$: if (gui) {
-		console.log('GUI changed');
-		console.log(gui.serializeState());
+		try {
+			const deposits = gui.getCurrentDeployment().deposits;
+			const depositsFilled = gui.getDeposits();
+			const fieldValuesUnflled = gui.getAllFieldDefinitions();
+			const fieldValues = gui.getAllFieldValues();
+			console.log('FIELD VALUES', fieldValues);
+			console.log('TOKEN DEPOSITS', deposits);
+			console.log('TOKEN DEPOSITS FILLED', depositsFilled);
+			console.log('FIELD VALUES', fieldValues);
+			console.log('FIELD VALUES UNFILLED', fieldValuesUnflled);
+			const serializedState = gui.serializeState();
+			$page.url.searchParams.set('gui', serializedState);
+			console.log('URL', $page.url.searchParams.get('gui'));
+			pushState('', { state: serializedState });
+			window.history.pushState({}, '', serializedState);
+		} catch (e) {
+			console.error('Failed to serialize GUI:', e);
+		}
 		error = null;
 		getTokenInfos();
 		getSelectTokens();

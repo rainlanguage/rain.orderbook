@@ -592,7 +592,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNSwoCMRBEZ1REb-FaULrz6-mdR_AKyaQjgxBBZ-HxFey4EKzNq_5Qdeo-kkxkTeRCo3MefYzENoBACVJ49FIgcWRHLhV624Gt-AHZoQSGYBaas1WmqeapXg7Y6wL6jbrzXR4y73DfLk801vlAA0NMY5byb_4NN13TUokArXCtnG9Xqfj9XCk9HMMLsIlnw_0AAAA=';
+			'H4sIAAAAAAAA_3WOTQoCMQyFZxREb-FaEJL-pdl5BK_Qn1QGoYLOwuMr2M5CmLf5XhLyksvwk2QirQIXSsZYtCEQawcCxUnhZKVA5MCGTCz0tZ61WI9sUByDU5uWc2iMU81TvZ1xbA0Y981dn_KS-YinPnmj0sY68gwhpixlrf4PV0PXthEB-sFd4_y4S13ewGXlA9KAR3n6AAAA';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
@@ -608,7 +608,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				value: gui.getFieldDefinition('binding-1').presets[0].id
 			});
 			gui.saveFieldValue('binding-2', { isPreset: false, value: '100' });
-			gui.saveDeposit('token1', '50.6');
+			gui.saveDeposit('token1', '10');
 		});
 
 		it('should serialize gui state', async () => {
@@ -640,7 +640,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const deposits: TokenDeposit[] = gui.getDeposits();
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].token, 'token1');
-			assert.equal(deposits[0].amount, '50.6');
+			assert.equal(deposits[0].amount, '10');
 			assert.equal(deposits[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
 		});
 

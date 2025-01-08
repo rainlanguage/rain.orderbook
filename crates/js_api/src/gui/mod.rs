@@ -23,6 +23,12 @@ mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct SomeDeposits(
+    #[tsify(type = "Map<string, any>")] BTreeMap<String, field_values::PairValue>,
+);
+impl_all_wasm_traits!(SomeDeposits);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AvailableDeployments(Vec<GuiDeployment>);
 impl_all_wasm_traits!(AvailableDeployments);
 
@@ -129,6 +135,11 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDotrainConfig")]
     pub fn get_dotrain_config(&self) -> Config {
         self.dotrain_order.config().clone()
+    }
+
+    #[wasm_bindgen(js_name = "getSomeDeposits")]
+    pub fn get_some_deposits(&self) -> SomeDeposits {
+        SomeDeposits(self.deposits.clone())
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]

@@ -45,21 +45,9 @@ impl DotrainOrderGui {
 
         let mut deposits = BTreeMap::new();
         for (k, v) in self.deposits.iter() {
-            let gui_deposit = self
-                .deployment
-                .deposits
-                .iter()
-                .find(|dg| dg.token.key == *k)
-                .ok_or(GuiError::DepositTokenNotFound(k.clone()))?;
             let preset = if v.is_preset {
-                let id = gui_deposit
-                    .presets
-                    .iter()
-                    .position(|preset| *preset == v.value)
-                    .ok_or(GuiError::InvalidPreset)?
-                    .to_string();
                 GuiPreset {
-                    id,
+                    id: v.value.clone(),
                     name: None,
                     value: String::default(),
                 }
