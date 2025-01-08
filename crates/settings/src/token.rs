@@ -75,58 +75,65 @@ impl Token {
 }
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let tokens_hash = require_hash(
-            &document_read,
-            Some("tokens"),
-            Some("missing field: tokens".to_string()),
-        )?;
+        let mut tokens = HashMap::new();
 
-        tokens_hash
-            .into_iter()
-            .map(|(key_yaml, token_yaml)| {
-                let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-                let network = Network::parse_from_yaml(
-                    document.clone(),
-                    &require_string(
+            if let Ok(tokens_hash) = require_hash(&document_read, Some("tokens"), None) {
+                for (key_yaml, token_yaml) in tokens_hash {
+                    let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    let network = Network::parse_from_yaml(
+                        documents.clone(),
+                        &require_string(
+                            token_yaml,
+                            Some("network"),
+                            Some(format!("network string missing in token: {token_key}")),
+                        )?,
+                    )
+                    .map_err(|_| {
+                        ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
+                    })?;
+
+                    let address = Token::validate_address(&require_string(
                         token_yaml,
-                        Some("network"),
-                        Some(format!("network string missing in token: {token_key}")),
-                    )?,
-                )
-                .map_err(|_| {
-                    ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
-                })?;
+                        Some("address"),
+                        Some(format!("address string missing in token: {token_key}")),
+                    )?)?;
 
-                let address = Token::validate_address(&require_string(
-                    token_yaml,
-                    Some("address"),
-                    Some(format!("address string missing in token: {token_key}")),
-                )?)?;
+                    let decimals = optional_string(token_yaml, "decimals")
+                        .map(|d| Token::validate_decimals(&d))
+                        .transpose()?;
 
-                let decimals = optional_string(token_yaml, "decimals")
-                    .map(|d| Token::validate_decimals(&d))
-                    .transpose()?;
+                    let label = optional_string(token_yaml, "label");
+                    let symbol = optional_string(token_yaml, "symbol");
 
-                let label = optional_string(token_yaml, "label");
-                let symbol = optional_string(token_yaml, "symbol");
+                    let token = Token {
+                        document: document.clone(),
+                        key: token_key.clone(),
+                        network: Arc::new(network),
+                        address,
+                        decimals,
+                        label,
+                        symbol,
+                    };
 
-                let token = Token {
-                    document: document.clone(),
-                    key: token_key.clone(),
-                    network: Arc::new(network),
-                    address,
-                    decimals,
-                    label,
-                    symbol,
-                };
+                    if tokens.contains_key(&token_key) {
+                        return Err(YamlError::KeyShadowing(token_key));
+                    }
+                    tokens.insert(token_key, token);
+                }
+            }
+        }
 
-                Ok((token_key, token))
-            })
-            .collect()
+        if tokens.is_empty() {
+            return Err(YamlError::ParseError("missing field: tokens".to_string()));
+        }
+
+        Ok(tokens)
     }
 }
 
@@ -282,18 +289,18 @@ mod tests {
 
     #[test]
     fn test_parse_tokens_errors() {
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 test: test
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: tokens".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -303,14 +310,14 @@ tokens:
     token1:
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("network string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -321,7 +328,7 @@ tokens:
         network: "nonexistent"
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
@@ -330,7 +337,7 @@ tokens:
             )
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -340,14 +347,14 @@ tokens:
     token1:
         network: "mainnet"
 "#,
-        ))
+        )])
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -358,10 +365,10 @@ tokens:
         network: "mainnet"
         address: "not_a_valid_address"
 "#,
-        ));
+        )]);
         assert!(error.is_err());
 
-        let error = Token::parse_all_from_yaml(get_document(
+        let error = Token::parse_all_from_yaml(vec![get_document(
             r#"
 networks:
     mainnet:
@@ -373,7 +380,89 @@ tokens:
         address: "0x1234567890123456789012345678901234567890"
         decimals: "not_a_number"
 "#,
-        ));
+        )]);
         assert!(error.is_err());
+    }
+
+    #[test]
+    fn test_parse_tokens_from_yaml_multiple_files() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    dai:
+        network: mainnet
+        address: "0x6b175474e89094c44da98b954eedeac495271d0f"
+        decimals: "18"
+    usdc:
+        network: mainnet
+        address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+        decimals: "6"
+"#;
+        let yaml_two = r#"
+tokens:
+    weth:
+        network: mainnet
+        address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+        decimals: "18"
+    usdt:
+        network: mainnet
+        address: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+        decimals: "6"
+"#;
+        let tokens =
+            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap();
+
+        assert_eq!(tokens.len(), 4);
+        assert_eq!(
+            tokens.get("dai").unwrap().address,
+            Address::from_str("0x6b175474e89094c44da98b954eedeac495271d0f").unwrap()
+        );
+        assert_eq!(tokens.get("dai").unwrap().decimals, Some(18));
+        assert_eq!(
+            tokens.get("usdc").unwrap().address,
+            Address::from_str("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").unwrap()
+        );
+        assert_eq!(tokens.get("usdc").unwrap().decimals, Some(6));
+        assert_eq!(
+            tokens.get("weth").unwrap().address,
+            Address::from_str("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").unwrap()
+        );
+        assert_eq!(tokens.get("weth").unwrap().decimals, Some(18));
+        assert_eq!(
+            tokens.get("usdt").unwrap().address,
+            Address::from_str("0xdac17f958d2ee523a2206206994597c13d831ec7").unwrap()
+        );
+        assert_eq!(tokens.get("usdt").unwrap().decimals, Some(6));
+    }
+
+    #[test]
+    fn test_parse_tokens_from_yaml_duplicate_key() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    dai:
+        network: mainnet
+        address: "0x6b175474e89094c44da98b954eedeac495271d0f"
+    usdc:
+        network: mainnet
+        address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+"#;
+        let yaml_two = r#"
+tokens:
+    dai:
+        network: mainnet
+        address: "0x6b175474e89094c44da98b954eedeac495271d0f"
+"#;
+        let error =
+            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap_err();
+        assert_eq!(error, YamlError::KeyShadowing("dai".to_string()));
     }
 }
