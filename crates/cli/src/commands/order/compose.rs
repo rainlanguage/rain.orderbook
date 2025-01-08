@@ -42,7 +42,7 @@ impl Execute for Compose {
             None => None,
         };
 
-        let order = DotrainOrder::new(dotrain, settings).await?;
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
 
         let rainlang = if self.post {
             order
@@ -133,7 +133,22 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key1: 10
+
+tokens:
+    token-one:
+        network: some-network
+        address: 0x1234567890123456789012345678901234567890
+
+orders:
+    some-order:
+        inputs:
+            - token: token-one
+        outputs:
+            - token: token-one
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io

@@ -26,10 +26,8 @@ impl DotrainOrder {
     fn get_deployment(
         &self,
         deployment_name: &str,
-    ) -> Result<Arc<Deployment>, DotrainOrderCalldataError> {
-        self.config.deployments.get(deployment_name).cloned().ok_or(
-            DotrainOrderCalldataError::DeploymentNotFound(deployment_name.to_string()),
-        )
+    ) -> Result<Deployment, DotrainOrderCalldataError> {
+        Ok(self.dotrain_yaml.get_deployment(deployment_name)?)
     }
 
     fn get_orderbook(
@@ -131,17 +129,14 @@ impl DotrainOrder {
         let deployment = self.get_deployment(deployment_name)?;
         let orderbook = self.get_orderbook(deployment_name)?;
 
-        let calldata = AddOrderArgs::new_from_deployment(
-            self.dotrain().to_string(),
-            deployment.as_ref().to_owned(),
-        )
-        .await?
-        .get_add_order_calldata(TransactionArgs {
-            orderbook_address: orderbook.address,
-            rpc_url: orderbook.network.rpc.to_string(),
-            ..Default::default()
-        })
-        .await?;
+        let calldata = AddOrderArgs::new_from_deployment(self.dotrain().to_string(), deployment)
+            .await?
+            .get_add_order_calldata(TransactionArgs {
+                orderbook_address: orderbook.address,
+                rpc_url: orderbook.network.rpc.to_string(),
+                ..Default::default()
+            })
+            .await?;
 
         Ok(Bytes::copy_from_slice(&calldata))
     }
@@ -172,4 +167,7 @@ pub enum DotrainOrderCalldataError {
 
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
+
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }

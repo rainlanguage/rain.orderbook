@@ -1,6 +1,7 @@
 use super::*;
 use crate::{
-    metaboard::Metaboard, sentry::Sentry, subgraph::Subgraph, Deployer, Network, Orderbook, Token,
+    metaboard::Metaboard, raindex_version::RaindexVersion, sentry::Sentry, subgraph::Subgraph,
+    Deployer, Network, Orderbook, Token,
 };
 use std::sync::{Arc, RwLock};
 
@@ -88,6 +89,11 @@ impl OrderbookYaml {
         let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
         Ok(value.map_or(false, |v| v == "true"))
     }
+
+    pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {
+        let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
+        Ok(value)
+    }
 }
 
 #[cfg(test)]
@@ -132,6 +138,7 @@ mod tests {
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
     sentry: true
+    raindex_version: 1.0.0
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -216,6 +223,11 @@ mod tests {
         assert_eq!(deployer.network, network.into());
 
         assert!(ob_yaml.get_sentry().unwrap());
+
+        assert_eq!(
+            ob_yaml.get_raindex_version().unwrap(),
+            Some("1.0.0".to_string())
+        );
     }
 
     #[test]

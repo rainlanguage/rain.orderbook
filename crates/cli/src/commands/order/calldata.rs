@@ -6,7 +6,6 @@ use clap::Parser;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
-use std::ops::Deref;
 use std::path::PathBuf;
 
 #[derive(Parser, Clone)]
@@ -37,18 +36,13 @@ impl Execute for AddOrderCalldata {
             }
             None => None,
         };
-        let order = DotrainOrder::new(dotrain, settings).await?;
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
         let dotrain_string = order.dotrain().to_string();
 
-        let config_deployment = order
-            .config()
-            .deployments
-            .get(&self.deployment)
-            .ok_or(anyhow!("specified deployment is undefined!"))?;
+        let config_deployment = order.dotrain_yaml.get_deployment(&self.deployment)?;
 
         let add_order_args =
-            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.deref().clone())
-                .await;
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await;
 
         let add_order_calldata = add_order_args?
             .try_into_call(config_deployment.scenario.deployer.network.rpc.to_string())
@@ -160,6 +154,8 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key: 10
 
 orders:
     some-order:
@@ -177,6 +173,7 @@ deployments:
         scenario: some-scenario
         order: some-order
 ---
+#key !Test binding key
 #calculate-io
 _ _: 0 0;
 #handle-io

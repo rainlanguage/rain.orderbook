@@ -150,7 +150,7 @@ amount price: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml.get_deployment("some-key").unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -269,7 +269,7 @@ _: 1;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml.get_deployment("some-key").unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()

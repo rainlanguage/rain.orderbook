@@ -2,7 +2,6 @@ mod add;
 mod calldata;
 mod compose;
 mod detail;
-mod filter;
 mod list;
 mod listorderfrontmatterkeys;
 mod orderbook_address;
@@ -15,7 +14,6 @@ use anyhow::Result;
 use calldata::AddOrderCalldata;
 use clap::Parser;
 use compose::Compose;
-use filter::Filter;
 use listorderfrontmatterkeys::ListOrderFrontmatterKeys;
 
 use detail::CliOrderDetailArgs;
@@ -53,8 +51,6 @@ pub enum Order {
 
     #[command(about = "Get frontmatter keys from a dotrain file", alias = "keys")]
     ListOrderFrontmatterKeys(ListOrderFrontmatterKeys),
-    #[command()]
-    Filter(Filter),
 }
 
 impl Execute for Order {
@@ -68,7 +64,6 @@ impl Execute for Order {
             Order::Calldata(calldata) => calldata.execute().await,
             Order::OrderbookAddress(orderbook_address) => orderbook_address.execute().await,
             Order::ListOrderFrontmatterKeys(keys) => keys.execute().await,
-            Order::Filter(filter) => filter.execute().await,
         }
     }
 }
