@@ -3,24 +3,14 @@ use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
-    config_hash: String,
     field_values: BTreeMap<String, GuiPreset>,
     deposits: BTreeMap<String, GuiPreset>,
 }
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    fn compute_config_hash(&self) -> String {
-        let config = self.get_gui_config();
-        let bytes = bincode::serialize(&config).expect("Failed to serialize config");
-        let hash = Sha256::digest(&bytes);
-        format!("{:x}", hash)
-    }
-
     #[wasm_bindgen(js_name = "serializeState")]
     pub fn serialize(&self) -> Result<String, GuiError> {
-        let config_hash = self.compute_config_hash();
-
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
@@ -74,7 +64,6 @@ impl DotrainOrderGui {
         }
 
         let state = SerializedGuiState {
-            config_hash,
             field_values: field_values.clone(),
             deposits: deposits.clone(),
         };
@@ -136,10 +125,6 @@ impl DotrainOrderGui {
 
         self.field_values = field_values;
         self.deposits = deposits;
-
-        if state.config_hash != self.compute_config_hash() {
-            return Err(GuiError::DeserializedConfigMismatch);
-        }
 
         Ok(())
     }

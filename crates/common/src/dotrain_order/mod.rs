@@ -28,6 +28,12 @@ pub struct DotrainOrder {
     orderbook_yaml: OrderbookYaml,
 }
 
+impl PartialEq for DotrainOrder {
+    fn eq(&self, other: &Self) -> bool {
+        self.dotrain == other.dotrain
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
     #[error(transparent)]

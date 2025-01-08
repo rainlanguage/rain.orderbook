@@ -153,21 +153,21 @@ impl DotrainOrderGui {
     }
 
     fn populate_vault_ids(&mut self) -> Result<(), GuiError> {
-        self.dotrain_order
-            .populate_vault_ids(&self.deployment.key, None)?;
-        self.refresh_gui_deployment()?;
+        // self.dotrain_order
+        //     .populate_vault_ids(&self.deployment.key, None)?;
+        // self.refresh_gui_deployment()?;
         Ok(())
     }
 
     fn update_config_source_bindings(&mut self) -> Result<(), GuiError> {
-        self.dotrain_order.update_config_source_bindings(
-            &self.deployment.deployment.scenario.key,
-            self.field_values
-                .iter()
-                .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
-                .collect::<Result<HashMap<String, String>, GuiError>>()?,
-        )?;
-        self.refresh_gui_deployment()?;
+        // self.dotrain_order.update_config_source_bindings(
+        //     &self.deployment.deployment.scenario.key,
+        //     self.field_values
+        //         .iter()
+        //         .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
+        //         .collect::<Result<HashMap<String, String>, GuiError>>()?,
+        // )?;
+        // self.refresh_gui_deployment()?;
         Ok(())
     }
 
@@ -259,12 +259,13 @@ impl DotrainOrderGui {
         index: u8,
         vault_id: String,
     ) -> Result<(), GuiError> {
-        self.dotrain_order.set_vault_id(
-            &self.deployment.key,
-            is_input,
-            index,
-            U256::from_str(&vault_id)?,
-        )?;
-        self.refresh_gui_deployment()
+        // self.dotrain_order.set_vault_id(
+        //     &self.deployment.key,
+        //     is_input,
+        //     index,
+        //     U256::from_str(&vault_id)?,
+        // )?;
+        // self.refresh_gui_deployment()
+        Ok(())
     }
 }

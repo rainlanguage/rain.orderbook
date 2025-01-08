@@ -63,9 +63,9 @@ impl DotrainOrderGui {
         let token_info = erc20.token_info(None).await?;
         self.onchain_token_info.insert(address, token_info);
 
-        self.dotrain_order
-            .update_token_address(token_name, address)?;
-        self.refresh_gui_deployment()?;
+        // self.dotrain_order
+        //     .update_token_address(token_name, address)?;
+        // self.refresh_gui_deployment()?;
         Ok(())
     }
 }
