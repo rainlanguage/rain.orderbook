@@ -9,7 +9,6 @@ use crate::{
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
@@ -72,10 +71,6 @@ pub enum YamlError {
     ScanError(#[from] ScanError),
     #[error(transparent)]
     EmitError(#[from] EmitError),
-    #[error(transparent)]
-    RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
-    #[error(transparent)]
-    RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
     #[error(transparent)]
