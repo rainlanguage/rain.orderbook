@@ -12,17 +12,20 @@
 	export let gui: DotrainOrderGui;
 
 	let currentFieldDefinition: GuiPreset | undefined;
+	let inputValue = '';
 
-	function handlePresetClick(presetId: string) {
+	function handlePresetClick(preset: GuiPreset) {
+		inputValue = preset.value;
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: true,
-			value: presetId
+			value: preset.id
 		});
 		gui = gui;
 		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	function handleCustomInputChange(value: string) {
+		inputValue = value;
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: false,
 			value: value
@@ -30,8 +33,6 @@
 		gui = gui;
 		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
-
-	$: console.log('current field definition', currentFieldDefinition);
 </script>
 
 <div class="flex flex-grow flex-col items-center p-8">
@@ -49,7 +50,7 @@
 			{#each fieldDefinition.presets as preset}
 				<ButtonSelectOption
 					buttonText={preset.name || preset.value}
-					clickHandler={() => handlePresetClick(preset.id)}
+					clickHandler={() => handlePresetClick(preset)}
 					active={currentFieldDefinition?.value === preset.value}
 				/>
 			{/each}
@@ -61,6 +62,7 @@
 				class="text-center text-lg"
 				size="lg"
 				placeholder="Enter custom value"
+				bind:value={inputValue}
 				on:input={({ currentTarget }) => {
 					if (currentTarget instanceof HTMLInputElement) {
 						handleCustomInputChange(currentTarget.value);

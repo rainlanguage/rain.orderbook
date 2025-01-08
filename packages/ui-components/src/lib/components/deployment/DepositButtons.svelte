@@ -15,8 +15,10 @@
 	let currentDeposit: TokenDeposit | undefined;
 
 	let tokenName = '';
+	let inputValue = '';
 
 	function handlePresetClick(preset: string) {
+		inputValue = preset;
 		gui?.saveDeposit(deposit.token.key, preset);
 		gui = gui;
 		currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token.key);
@@ -24,6 +26,7 @@
 
 	function handleInput(e: Event) {
 		if (e.currentTarget instanceof HTMLInputElement) {
+			inputValue = e.currentTarget.value;
 			gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
 			gui = gui;
 			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token.key);
@@ -60,6 +63,7 @@
 			class="text-center text-lg"
 			size="lg"
 			placeholder="Enter deposit amount"
+			bind:value={inputValue}
 			on:input={(e) => handleInput(e)}
 		/>
 	</div>
