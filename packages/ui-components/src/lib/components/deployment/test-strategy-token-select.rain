@@ -1,5 +1,3 @@
-# Edit this to work with FLR
-
 raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
 networks:
   flare:
@@ -21,8 +19,6 @@ deployers:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
     network: flare
 tokens:
-  # There needs to be tokens defined in the deployment,
-  # BUT select-tokens in GUI works as an override
   token1:
     network: flare
     address: "0x0000000000000000000000000000000000000000"
@@ -72,9 +68,6 @@ gui:
           description: How many inputs do you want to have per one output?
         
       select-tokens:
-        # This is a required field! It overrides the tokens defined in the deployment.
-        # It's a list of tokens that will be used in the order.
-        # The names need to match the tokens defined in the deployment.
         - token1
         - token2
 ---
