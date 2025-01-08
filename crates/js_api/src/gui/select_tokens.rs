@@ -37,6 +37,7 @@ impl DotrainOrderGui {
         token_name: String,
         address: String,
     ) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
         let mut select_tokens = self
             .select_tokens
             .clone()
@@ -49,8 +50,7 @@ impl DotrainOrderGui {
         select_tokens.insert(token_name.clone(), address);
         self.select_tokens = Some(select_tokens);
 
-        let rpc_url = self
-            .deployment
+        let rpc_url = deployment
             .deployment
             .order
             .orderbook
@@ -63,9 +63,10 @@ impl DotrainOrderGui {
         let token_info = erc20.token_info(None).await?;
         self.onchain_token_info.insert(address, token_info);
 
-        // self.dotrain_order
-        //     .update_token_address(token_name, address)?;
-        // self.refresh_gui_deployment()?;
+        self.dotrain_order
+            .orderbook_yaml()
+            .get_token(&token_name)?
+            .update_address(&address.to_string())?;
         Ok(())
     }
 }
