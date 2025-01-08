@@ -125,11 +125,16 @@ impl Scenario {
         if scenarios.contains_key(&scenario_key) {
             return Err(YamlError::KeyShadowing(scenario_key));
         }
+        let key = if parent_scenario.key.is_empty() {
+            scenario_key.clone()
+        } else {
+            format!("{}.{}", parent_scenario.key, scenario_key.clone())
+        };
         scenarios.insert(
-            scenario_key.clone(),
+            key.clone(),
             Scenario {
                 document: current_document.clone(),
-                key: scenario_key.clone(),
+                key: key.clone(),
                 bindings: bindings.clone(),
                 runs,
                 blocks,
@@ -148,6 +153,7 @@ impl Scenario {
                     deployer,
                     scenarios,
                     ScenarioParent {
+                        key: key.clone(),
                         bindings: Some(bindings.clone()),
                         deployer: deployer.clone(),
                     },
@@ -182,6 +188,7 @@ impl YamlParsableHash for Scenario {
                         &mut deployer,
                         &mut scenarios,
                         ScenarioParent {
+                            key: "".to_string(),
                             bindings: None,
                             deployer: None,
                         },
@@ -249,6 +256,7 @@ pub enum ParseScenarioConfigSourceError {
 
 #[derive(Default)]
 pub struct ScenarioParent {
+    key: String,
     bindings: Option<HashMap<String, String>>,
     deployer: Option<Arc<Deployer>>,
 }
@@ -323,6 +331,7 @@ impl ScenarioConfigSource {
                 let child_scenarios = child_scenario.try_into_scenarios(
                     format!("{}.{}", name, child_name),
                     &ScenarioParent {
+                        key: "".to_string(),
                         bindings: Some(bindings.clone()),
                         deployer: Some(deployer_ref.clone()),
                     },
@@ -471,6 +480,7 @@ mod tests {
             HashMap::from([("shared_key".to_string(), "parent_value".to_string())]);
 
         let parent_scenario = ScenarioParent {
+            key: "".to_string(),
             bindings: Some(parent_bindings),
             deployer: Some(mock_deployer()),
         };
@@ -657,9 +667,9 @@ scenarios:
 
         assert_eq!(scenarios.len(), 4);
         assert!(scenarios.contains_key("scenario1"));
-        assert!(scenarios.contains_key("scenario2"));
+        assert!(scenarios.contains_key("scenario1.scenario2"));
         assert!(scenarios.contains_key("scenario3"));
-        assert!(scenarios.contains_key("scenario4"));
+        assert!(scenarios.contains_key("scenario3.scenario4"));
 
         assert_eq!(
             scenarios
@@ -672,7 +682,7 @@ scenarios:
         );
         assert_eq!(
             scenarios
-                .get("scenario2")
+                .get("scenario1.scenario2")
                 .unwrap()
                 .bindings
                 .get("key2")
@@ -690,7 +700,7 @@ scenarios:
         );
         assert_eq!(
             scenarios
-                .get("scenario4")
+                .get("scenario3.scenario4")
                 .unwrap()
                 .bindings
                 .get("key4")

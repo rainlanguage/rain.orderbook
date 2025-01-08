@@ -168,7 +168,7 @@ mod tests {
             *scenario1.deployer.as_ref(),
             ob_yaml.get_deployer("deployer1").unwrap()
         );
-        let scenario2 = dotrain_yaml.get_scenario("scenario2").unwrap();
+        let scenario2 = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
         assert_eq!(scenario2.bindings.len(), 2);
         assert_eq!(scenario2.bindings.get("key1").unwrap(), "value1");
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
