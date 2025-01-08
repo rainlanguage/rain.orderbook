@@ -109,16 +109,18 @@
 
 	let tokenInfos: TokenInfos;
 	function getTokenInfos() {
+		console.log('getTokenInfos');
 		if (!gui) return;
 		try {
 			tokenInfos = gui.getTokenInfos();
+			console.log(tokenInfos);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_INFO;
 			console.error('Failed to get token infos:', e);
 		}
 	}
 
-	let selectTokens: SelectTokens = new Map();
+	let selectTokens: SelectTokens | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
@@ -127,6 +129,7 @@
 			console.error('Failed to get select tokens:', e);
 		}
 	}
+
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	function getAllFieldDefinitions() {
 		if (!gui) return;
@@ -170,6 +173,18 @@
 			console.error('Failed to get token outputs:', e);
 		}
 	}
+
+	$: if (selectTokens) {
+		getTokenInfos();
+		getDeposits();
+	}
+
+	$: if (gui) {
+		console.log('GUI CHANGED');
+		console.log(gui.getDeposits);
+	}
+
+	$: console.log('SELECT TOKENS!', selectTokens);
 
 	$: if (gui) {
 		error = null;
@@ -274,11 +289,11 @@
 	{/if}
 	{#if gui}
 		<div class="flex h-[80vh] flex-col justify-between">
-			{#if selectTokens.size > 0}
+			{#if selectTokens}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
 				{#each selectTokens.entries() as [token]}
-					<SelectToken {token} {gui} {selectTokens} />
+					<SelectToken {token} {gui} bind:selectTokens />
 				{/each}
 			{/if}
 
@@ -292,7 +307,7 @@
 			{#if allDeposits.length > 0}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
 				{#each allDeposits as deposit}
-					<DepositButtons {deposit} {gui} {tokenInfos} />
+					<DepositButtons bind:deposit {gui} bind:tokenInfos />
 				{/each}
 			{/if}
 

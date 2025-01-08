@@ -1,95 +1,87 @@
+# Edit this to work with FLR
+
 raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
+networks:
+  flare:
+    rpc: https://rpc.ankr.com/flare
+    chain-id: 14
+
+metaboards:
+  # What does metaboard do?
+  flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
+subgraphs:
+  flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn
+orderbooks:
+  flare:
+    address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
+    network: flare
+    subgraph: flare
+deployers:
+  flare:
+    address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
+    network: flare
+tokens:
+  # There needs to be tokens defined in the deployment,
+  # BUT select-tokens in GUI works as an override
+  token1:
+    network: flare
+    address: "0x0000000000000000000000000000000000000000"
+  token2:
+    network: flare
+    address: "0x0000000000000000000000000000000000000000"
+orders:
+  flare-token1-token2:
+    orderbook: flare
+    network: flare
+    inputs:
+      - token: token1
+    outputs:
+      - token: token2
+scenarios:
+  flare:
+    orderbook: flare
+    runs: 1
+    bindings:
+      io-ratio: 10
+deployments:
+  flare-token1-token2:
+    order: flare-token1-token2
+    scenario: flare
 
 gui:
-  name: Test test
-  description: Test test test
+  name: Fixed limit
+  description: >
+    Fixed limit order strategy
   deployments:
-    other-deployment:
-      name: Test test
-      description: Test test test
+    flare-token1-token2:
+      name: Buy token1 with token2 on flare.
+      description:
+        Buy token1 with token2 with a fixed ratio on flare network.
       deposits:
-        - token: token1
-          min: 0
-          presets:
-            - "0"
         - token: token2
           min: 0
           presets:
-            - "0"
+            - 0
+            - 10
+            - 100
+            - 1000
+            - 10000
       fields:
-        - binding: test-binding
-          name: Test binding
-          description: Test binding description
-          presets:
-            - value: "test-value"
+        - binding: io-ratio
+          name: token1 to token2 ratio
+          description: How many inputs do you want to have per one output?
+        
       select-tokens:
+        # This is a required field! It overrides the tokens defined in the deployment.
+        # It's a list of tokens that will be used in the order.
+        # The names need to match the tokens defined in the deployment.
         - token1
         - token2
-
-networks:
-    some-network:
-        rpc: http://localhost:8085/rpc-url
-        chain-id: 123
-        network-id: 123
-        currency: ETH
-
-subgraphs:
-    some-sg: https://www.some-sg.com
-
-deployers:
-    some-deployer:
-        network: some-network
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-
-orderbooks:
-    some-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-        network: some-network
-        subgraph: some-sg
-
-tokens:
-    token1:
-        network: some-network
-        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-        decimals: 6
-        label: Token 1
-        symbol: T1
-    token2:
-        network: some-network
-        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
-        decimals: 18
-        label: Token 2
-        symbol: T2
-
-scenarios:
-    some-scenario:
-        network: some-network
-        deployer: some-deployer
-        bindings:
-            test-binding: "5"
-
-orders:
-    some-order:
-      inputs:
-        - token: token1
-          vault-id: 1
-      outputs:
-        - token: token2
-          vault-id: 1
-      deployer: some-deployer
-      orderbook: some-orderbook
-
-deployments:
-    some-deployment:
-        scenario: some-scenario
-        order: some-order
-    other-deployment:
-        scenario: some-scenario
-        order: some-order
 ---
-#test-binding !
+#io-ratio !The io ratio for the limit order.
 #calculate-io
-_ _: 0 0;
+max-output: max-value(),
+io: io-ratio;
 #handle-io
 :;
 #handle-add-order

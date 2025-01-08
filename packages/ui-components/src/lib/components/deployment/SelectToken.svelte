@@ -5,19 +5,29 @@
 	export let token: string;
 	export let gui: DotrainOrderGui;
 	export let selectTokens: Map<string, string>;
+
+	let error = '';
 </script>
 
 <div class="mb-4 flex flex-col gap-2">
 	<Label class="whitespace-nowrap text-xl">{token}</Label>
 	<Input
 		type="text"
-		on:change={async ({ currentTarget }) => {
+		on:input={async ({ currentTarget }) => {
 			if (currentTarget instanceof HTMLInputElement) {
 				if (!gui) return;
-				await gui.saveSelectTokenAddress(token, currentTarget.value);
-				selectTokens = gui.getSelectTokens();
-				gui = gui;
+				try {
+					await gui.saveSelectTokenAddress(token, currentTarget.value);
+					error = '';
+					selectTokens = gui.getSelectTokens();
+					gui = gui;
+				} catch {
+					error = 'Invalid address';
+				}
 			}
 		}}
 	/>
+	{#if error}
+		<p class="text-red-500">{error}</p>
+	{/if}
 </div>
