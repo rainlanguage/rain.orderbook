@@ -109,11 +109,9 @@
 
 	let tokenInfos: TokenInfos;
 	function getTokenInfos() {
-		console.log('getTokenInfos');
 		if (!gui) return;
 		try {
 			tokenInfos = gui.getTokenInfos();
-			console.log(tokenInfos);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_INFO;
 			console.error('Failed to get token infos:', e);
@@ -178,13 +176,6 @@
 		getTokenInfos();
 		getDeposits();
 	}
-
-	$: if (gui) {
-		console.log('GUI CHANGED');
-		console.log(gui.getDeposits);
-	}
-
-	$: console.log('SELECT TOKENS!', selectTokens);
 
 	$: if (gui) {
 		error = null;
