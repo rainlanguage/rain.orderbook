@@ -10,8 +10,7 @@
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-
-	$: currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
+	let currentFieldDefinition: GuiPreset | undefined;
 	let inputValue: string | null = null;
 
 	function handlePresetClick(preset: GuiPreset) {
@@ -20,7 +19,9 @@
 			isPreset: true,
 			value: preset.id
 		});
+
 		gui = gui;
+		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	function handleCustomInputChange(value: string) {
@@ -30,6 +31,7 @@
 			value: value
 		});
 		gui = gui;
+		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	$: if (fieldDefinition && !inputValue && inputValue !== '') {
