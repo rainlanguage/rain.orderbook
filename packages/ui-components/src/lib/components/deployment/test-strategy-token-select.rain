@@ -21,10 +21,10 @@ deployers:
 tokens:
   token1:
     network: flare
-    address: "0x0000000000000000000000000000000000000000"
+    address: "0x12e605bc104e93B45e1aD99F9e555f659051c2BB"
   token2:
     network: flare
-    address: "0x0000000000000000000000000000000000000000"
+    address: "0x19831cfb53a0dbead9866c43557c1d48dff76567"
 orders:
   flare-token1-token2:
     orderbook: flare
