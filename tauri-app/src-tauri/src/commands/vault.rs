@@ -10,10 +10,6 @@ use rain_orderbook_common::{
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_client::PaginationArgs;
-use rain_orderbook_subgraph_client::{
-    types::common::*, MultiOrderbookSubgraphClient, MultiSubgraphArgs,
-};
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
