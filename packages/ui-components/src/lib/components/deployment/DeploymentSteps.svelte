@@ -64,12 +64,10 @@
 	let hasDeserialized = false;
 
 	$: if (filename) {
-		console.log('filename updated', filename);
 		loadStrategy(filename);
 	}
 
 	$: if (selectedDeployment) {
-		console.log('selectedDeployment updated', selectedDeployment);
 		handleDeploymentChange(selectedDeployment as string);
 	}
 
@@ -83,13 +81,11 @@
 	}
 
 	$: if (selectTokens) {
-		console.log('selectTokens updated', selectTokens);
 		getTokenInfos();
 		getDeposits();
 	}
 
 	$: if (gui) {
-		console.log('gui updated', gui);
 		try {
 			const serializedState = gui.serializeState();
 			$page.url.searchParams.set('gui', serializedState);
@@ -150,7 +146,6 @@
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 			if (stateFromUrl && !hasDeserialized) {
-				console.log('deserializing state');
 				gui.deserializeState(stateFromUrl);
 				hasDeserialized = true;
 			}
