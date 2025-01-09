@@ -93,11 +93,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key !Test binding
 #calculate-io
 amount price: 7 4;
 #handle-add-order

@@ -34,7 +34,7 @@ impl_all_wasm_traits!(TokenInfos);
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
-    deployment: GuiDeployment,
+    selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
     select_tokens: Option<BTreeMap<String, Address>>,
@@ -73,7 +73,7 @@ impl DotrainOrderGui {
             .deployments
             .into_iter()
             .find(|(name, _)| name == &deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
+            .ok_or(GuiError::DeploymentNotFound(deployment_name.clone()))?;
 
         let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
             tokens
@@ -110,27 +110,12 @@ impl DotrainOrderGui {
 
         Ok(Self {
             dotrain_order,
-            deployment: gui_deployment.clone(),
+            selected_deployment: deployment_name.clone(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens,
             onchain_token_info,
         })
-    }
-
-    fn refresh_gui_deployment(&mut self) -> Result<(), GuiError> {
-        let gui = self
-            .dotrain_order
-            .dotrain_yaml()
-            .get_gui()?
-            .ok_or(GuiError::GuiConfigNotFound)?;
-        let (_, gui_deployment) = gui
-            .deployments
-            .into_iter()
-            .find(|(name, _)| name == &self.deployment.key)
-            .ok_or(GuiError::DeploymentNotFound(self.deployment.key.clone()))?;
-        self.deployment = gui_deployment.clone();
-        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
@@ -144,8 +129,16 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getCurrentDeployment")]
-    pub fn get_current_deployment(&self) -> GuiDeployment {
-        self.deployment.clone()
+    pub fn get_current_deployment(&self) -> Result<GuiDeployment, GuiError> {
+        let gui = self.get_gui_config()?;
+        let (_, gui_deployment) = gui
+            .deployments
+            .into_iter()
+            .find(|(name, _)| name == &self.selected_deployment)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.selected_deployment.clone(),
+            ))?;
+        Ok(gui_deployment.clone())
     }
 
     /// Get all token infos in input and output vaults

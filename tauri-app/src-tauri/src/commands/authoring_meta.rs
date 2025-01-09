@@ -51,9 +51,13 @@ deployers:
         address: {deployer}
 scenarios:
     sepolia:
+        deployer: sepolia
+        bindings:
+            key: 10
 metaboards:
     sepolia: {metaboard_url}
 ---
+#key !Test binding
 #calculate-io
 using-words-from {pragma}
 _: order-hash(),
@@ -119,9 +123,13 @@ _ _: 0 0;
             address: {deployer}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key !Test binding
     #calculate-io
     using-words-from {pragma}
     _: order-hash(),
@@ -236,9 +244,13 @@ _ _: 0 0;
             address: {deployer}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key !Test binding
     #calculate-io
     using-words-from {pragma}
     _: order-hash(),
