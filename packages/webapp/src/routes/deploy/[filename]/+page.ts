@@ -1,7 +1,9 @@
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = ({ params }) => {
+export const load: PageLoad = ({ params, url }) => {
+	const state = url.searchParams.get('state');
 	return {
-		filename: params.filename
+		filename: params.filename,
+		state: state ?? null
 	};
 };

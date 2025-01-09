@@ -44,27 +44,55 @@
 	};
 
 	export let filename: string | null = null;
+	export let stateFromUrl: string | null = null;
 
 	let dotrain = '';
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let gui: DotrainOrderGui | null = null;
+	let availableDeployments: Record<string, { label: string }> = {};
+	let selectedDeployment: string | undefined = undefined;
 
 	$: if (filename) {
-		loadStrategy(filename);
+		loadStrategy(filename).then(() => {
+			if (stateFromUrl) {
+				try {
+					preFillForm(stateFromUrl, filename);
+				} catch (e) {
+					console.error('Failed to pre-fill form:', e);
+				}
+			}
+		});
+	}
+
+	async function preFillForm(serializedState: string, filename: string) {
+		console.log('preFillForm', serializedState);
+		// TODO: Move this into a container component that loads dotrain. The steps should be in a steps component
+		try {
+			gui = await DotrainOrderGui.chooseDeployment(dotrain, filename);
+			const deserialized = gui?.deserializeState(serializedState);
+			console.log('deserialized', deserialized);
+			if (deserialized) {
+				gui = deserialized;
+				initializeVaultIdArrays();
+			}
+		} catch (e) {
+			console.error('Failed to pre-fill form:', e);
+		}
 	}
 
 	async function loadStrategy(filename: string) {
 		try {
 			dotrain = (await import(`./${filename}.rain?raw`)).default;
+			// TODO: Remove this once we have a way to load a deployment
+			await handleDeploymentChange('flare-token1-token2');
 		} catch {
 			console.error('Deployment not found');
 			goto('/deploy');
 		}
 	}
 
-	let gui: DotrainOrderGui | null = null;
-	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
 		try {
 			let deployments: AvailableDeployments =
@@ -86,23 +114,12 @@
 		}
 	}
 
-	$: if (dotrain) {
-		isLoading = true;
-		error = null;
-		errorDetails = null;
-		gui = null;
-		initialize();
-		isLoading = false;
-	}
-
-	let selectedDeployment: string | undefined = undefined;
 	async function handleDeploymentChange(deployment: string) {
 		isLoading = true;
 		gui = null;
 		if (!deployment) return;
 
 		try {
-			console.log('DEPLOYMENT', deployment);
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 			initializeVaultIdArrays();
 		} catch (error) {
@@ -114,6 +131,15 @@
 
 	$: if (selectedDeployment) {
 		handleDeploymentChange(selectedDeployment as string);
+	}
+
+	$: if (dotrain) {
+		isLoading = true;
+		error = null;
+		errorDetails = null;
+		gui = null;
+		initialize();
+		isLoading = false;
 	}
 
 	let tokenInfos: TokenInfos;
@@ -190,6 +216,8 @@
 		try {
 			const serializedState = gui.serializeState();
 			$page.url.searchParams.set('gui', serializedState);
+			window.history.pushState({}, '', '?state=' + serializedState);
+			console.log('URL STATE', $page.url.searchParams.get('gui'));
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}
