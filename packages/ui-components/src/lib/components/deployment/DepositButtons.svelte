@@ -2,8 +2,7 @@
 	import {
 		DotrainOrderGui,
 		type GuiDeposit,
-		type TokenInfos,
-		type TokenDeposit
+		type TokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
@@ -12,29 +11,31 @@
 	export let gui: DotrainOrderGui;
 	export let tokenInfos: TokenInfos;
 
-	let currentDeposit: TokenDeposit | undefined;
+	$: currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token.key);
 
 	let tokenName = '';
-	let inputValue = '';
+	let inputValue: string | null = null;
 
 	function handlePresetClick(preset: string) {
 		inputValue = preset;
 		gui?.saveDeposit(deposit.token.key, preset);
 		gui = gui;
-		currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token.key);
 	}
 
 	function handleInput(e: Event) {
 		if (e.currentTarget instanceof HTMLInputElement) {
-			inputValue = e.currentTarget.value;
+			console.log(e.currentTarget.value);
 			gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
 			gui = gui;
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token.key);
 		}
 	}
 
 	$: if (tokenInfos) {
 		tokenName = tokenInfos.get(deposit.token.address)?.name || deposit.token.key;
+	}
+
+	$: if (deposit && !inputValue && inputValue !== '') {
+		inputValue = currentDeposit?.amount || '';
 	}
 </script>
 

@@ -53,32 +53,60 @@
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
 	let selectedDeployment: string | undefined = undefined;
+	let tokenInfos: TokenInfos;
+	let selectTokens: SelectTokens | null = null;
+	let allFieldDefinitions: GuiFieldDefinition[] = [];
+	let allDeposits: GuiDeposit[] = [];
+	let allTokenInputs: Vault[] = [];
+	let allTokenOutputs: Vault[] = [];
+	let inputVaultIds: string[] = [];
+	let outputVaultIds: string[] = [];
+	let hasDeserialized = false;
 
 	$: if (filename) {
-		loadStrategy(filename).then(() => {
-			if (stateFromUrl) {
-				try {
-					preFillForm(stateFromUrl, filename);
-				} catch (e) {
-					console.error('Failed to pre-fill form:', e);
-				}
-			}
-		});
+		console.log('filename updated', filename);
+		loadStrategy(filename);
 	}
 
-	async function preFillForm(serializedState: string, filename: string) {
-		console.log('preFillForm', serializedState);
-		// TODO: Move this into a container component that loads dotrain. The steps should be in a steps component
+	$: if (selectedDeployment) {
+		console.log('selectedDeployment updated', selectedDeployment);
+		handleDeploymentChange(selectedDeployment as string);
+	}
+
+	$: if (dotrain) {
+		isLoading = true;
+		error = null;
+		errorDetails = null;
+		gui = null;
+		initialize();
+		isLoading = false;
+	}
+
+	$: if (selectTokens) {
+		console.log('selectTokens updated', selectTokens);
+		getTokenInfos();
+		getDeposits();
+	}
+
+	$: if (gui) {
+		console.log('gui updated', gui);
 		try {
-			gui = await DotrainOrderGui.chooseDeployment(dotrain, filename);
-			const deserialized = gui?.deserializeState(serializedState);
-			console.log('deserialized', deserialized);
-			if (deserialized) {
-				gui = deserialized;
-				initializeVaultIdArrays();
-			}
+			const serializedState = gui.serializeState();
+			$page.url.searchParams.set('gui', serializedState);
+			window.history.pushState({}, '', '?state=' + serializedState);
 		} catch (e) {
-			console.error('Failed to pre-fill form:', e);
+			console.error('Failed to serialize GUI:', e);
+		}
+		error = null;
+	}
+
+	function getTokenInfos() {
+		if (!gui) return;
+		try {
+			tokenInfos = gui.getTokenInfos();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_TOKEN_INFO;
+			console.error('Failed to get token infos:', e);
 		}
 	}
 
@@ -121,6 +149,17 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			if (stateFromUrl && !hasDeserialized) {
+				console.log('deserializing state');
+				gui.deserializeState(stateFromUrl);
+				hasDeserialized = true;
+			}
+			getTokenInfos();
+			getSelectTokens();
+			getAllFieldDefinitions();
+			getDeposits();
+			getAllTokenInputs();
+			getAllTokenOutputs();
 			initializeVaultIdArrays();
 		} catch (error) {
 			// eslint-disable-next-line no-console
@@ -129,31 +168,6 @@
 		isLoading = false;
 	}
 
-	$: if (selectedDeployment) {
-		handleDeploymentChange(selectedDeployment as string);
-	}
-
-	$: if (dotrain) {
-		isLoading = true;
-		error = null;
-		errorDetails = null;
-		gui = null;
-		initialize();
-		isLoading = false;
-	}
-
-	let tokenInfos: TokenInfos;
-	function getTokenInfos() {
-		if (!gui) return;
-		try {
-			tokenInfos = gui.getTokenInfos();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_TOKEN_INFO;
-			console.error('Failed to get token infos:', e);
-		}
-	}
-
-	let selectTokens: SelectTokens | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
@@ -163,7 +177,6 @@
 		}
 	}
 
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	function getAllFieldDefinitions() {
 		if (!gui) return;
 		try {
@@ -174,7 +187,6 @@
 		}
 	}
 
-	let allDeposits: GuiDeposit[] = [];
 	function getDeposits() {
 		if (!gui) return;
 		try {
@@ -185,7 +197,6 @@
 		}
 	}
 
-	let allTokenInputs: Vault[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
 		try {
@@ -196,7 +207,6 @@
 		}
 	}
 
-	let allTokenOutputs: Vault[] = [];
 	function getAllTokenOutputs() {
 		if (!gui) return;
 		try {
@@ -205,29 +215,6 @@
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			console.error('Failed to get token outputs:', e);
 		}
-	}
-
-	$: if (selectTokens) {
-		getTokenInfos();
-		getDeposits();
-	}
-
-	$: if (gui) {
-		try {
-			const serializedState = gui.serializeState();
-			$page.url.searchParams.set('gui', serializedState);
-			window.history.pushState({}, '', '?state=' + serializedState);
-			console.log('URL STATE', $page.url.searchParams.get('gui'));
-		} catch (e) {
-			console.error('Failed to serialize GUI:', e);
-		}
-		error = null;
-		getTokenInfos();
-		getSelectTokens();
-		getAllFieldDefinitions();
-		getDeposits();
-		getAllTokenInputs();
-		getAllTokenOutputs();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -276,8 +263,6 @@
 		}
 	}
 
-	let inputVaultIds: string[] = [];
-	let outputVaultIds: string[] = [];
 	function initializeVaultIdArrays() {
 		if (!gui) return;
 		const deployment = gui.getCurrentDeployment();
@@ -316,12 +301,13 @@
 	{#if isLoading}
 		<Spinner />
 	{/if}
+
 	{#if gui}
 		<div class="flex h-[80vh] flex-col justify-between">
 			{#if selectTokens}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
-				{#each selectTokens.entries() as [token]}
+				{#each selectTokens.entries() as token}
 					<SelectToken {token} bind:gui bind:selectTokens />
 				{/each}
 			{/if}
