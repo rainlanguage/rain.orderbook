@@ -283,8 +283,8 @@
 			{#if selectTokens}
 				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
 
-				{#each selectTokens.entries() as [token]}
-					<SelectToken {token} {gui} bind:selectTokens />
+				{#each selectTokens.entries() as token}
+					<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
 				{/each}
 			{/if}
 

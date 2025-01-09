@@ -1,33 +1,64 @@
 <script lang="ts">
 	import { Label, Input } from 'flowbite-svelte';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, TokenInfo, TokenInfos } from '@rainlanguage/orderbook/js_api';
+	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
+	import { Spinner } from 'flowbite-svelte';
 
-	export let token: string;
+	export let token: [string, string];
 	export let gui: DotrainOrderGui;
 	export let selectTokens: Map<string, string>;
-
+	export let tokenInfos: TokenInfos;
+	let inputValue: string | null = null;
+	let tokenInfo: TokenInfo | null = null;
 	let error = '';
+	let checking = false;
+
+	async function handleInput(event: Event) {
+		checking = true;
+		tokenInfo = null;
+		const currentTarget = event.currentTarget;
+		if (currentTarget instanceof HTMLInputElement) {
+			inputValue = currentTarget.value;
+			if (!gui) return;
+			try {
+				await gui.saveSelectTokenAddress(token[0], currentTarget.value);
+				error = '';
+				selectTokens = gui.getSelectTokens();
+				gui = gui;
+				tokenInfos = await gui.getTokenInfos();
+				tokenInfo = tokenInfos.get(token[1]) || null;
+				checking = false;
+			} catch {
+				checking = false;
+				error = 'Invalid address';
+			}
+		}
+	}
+
+	$: if (token && !inputValue && inputValue !== '') {
+		inputValue = token[1] || '';
+	}
 </script>
 
-<div class="mb-4 flex flex-col gap-2">
-	<Label class="whitespace-nowrap text-xl">{token}</Label>
-	<Input
-		type="text"
-		on:input={async ({ currentTarget }) => {
-			if (currentTarget instanceof HTMLInputElement) {
-				if (!gui) return;
-				try {
-					await gui.saveSelectTokenAddress(token, currentTarget.value);
-					error = '';
-					selectTokens = gui.getSelectTokens();
-					gui = gui;
-				} catch {
-					error = 'Invalid address';
-				}
-			}
-		}}
-	/>
-	{#if error}
-		<p class="text-red-500">{error}</p>
+<div class="mb-4 flex flex-col gap-4">
+	<div class="flex flex-row gap-4">
+		<Label class="whitespace-nowrap text-xl">{token[0]}</Label>
+		<Input type="text" on:input={handleInput} bind:value={inputValue} />
+	</div>
+	{#if checking}
+		<div class="flex h-5 flex-row items-center gap-2">
+			<Spinner class="h-5 w-5" />
+			<span>Checking...</span>
+		</div>
+	{:else if tokenInfo}
+		<div class="flex h-5 flex-row items-center gap-2">
+			<CheckCircleSolid class="h-5 w-5" color="green" />
+			<span>{tokenInfo.name}</span>
+		</div>
+	{:else if error}
+		<div class="flex h-5 flex-row items-center gap-2">
+			<CloseCircleSolid class="h-5 w-5" color="red" />
+			<span>{error}</span>
+		</div>
 	{/if}
 </div>
