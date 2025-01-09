@@ -25,7 +25,6 @@ pub mod calldata;
 pub struct DotrainOrder {
     dotrain: String,
     dotrain_yaml: DotrainYaml,
-    orderbook_yaml: OrderbookYaml,
 }
 
 impl PartialEq for DotrainOrder {
@@ -140,13 +139,9 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
-        let orderbook_yaml = OrderbookYaml::new(sources, false)?;
-
         Ok(Self {
             dotrain,
-            dotrain_yaml,
-            orderbook_yaml,
+            dotrain_yaml: DotrainYaml::new(sources.clone(), false)?,
         })
     }
 
@@ -216,20 +211,12 @@ impl DotrainOrder {
         &self.dotrain
     }
 
-    pub fn dotrain_yaml(&self) -> &DotrainYaml {
-        &self.dotrain_yaml
+    pub fn dotrain_yaml(&self) -> DotrainYaml {
+        self.dotrain_yaml.clone()
     }
 
-    pub fn dotrain_yaml_mut(&mut self) -> &mut DotrainYaml {
-        &mut self.dotrain_yaml
-    }
-
-    pub fn orderbook_yaml(&self) -> &OrderbookYaml {
-        &self.orderbook_yaml
-    }
-
-    pub fn orderbook_yaml_mut(&mut self) -> &mut OrderbookYaml {
-        &mut self.orderbook_yaml
+    pub fn orderbook_yaml(&self) -> OrderbookYaml {
+        OrderbookYaml::from_documents(self.dotrain_yaml.documents.clone())
     }
 
     pub async fn get_pragmas_for_scenario(
@@ -255,7 +242,7 @@ impl DotrainOrder {
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
         let rpc = &network.rpc;
-        let metaboard = self.orderbook_yaml.get_metaboard(&network.key)?.url;
+        let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
         Ok(
             AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
                 .await?,
@@ -345,7 +332,7 @@ impl DotrainOrder {
     pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
         let app_sha = GH_COMMIT_SHA.to_string();
 
-        if let Some(raindex_version) = &self.orderbook_yaml.get_raindex_version()? {
+        if let Some(raindex_version) = &self.orderbook_yaml().get_raindex_version()? {
             if app_sha != *raindex_version {
                 return Err(DotrainOrderError::RaindexVersionMismatch(
                     app_sha,
@@ -411,7 +398,7 @@ _ _: 0 0;
 
         assert_eq!(
             dotrain_order
-                .orderbook_yaml
+                .orderbook_yaml()
                 .get_network("polygon")
                 .unwrap()
                 .rpc
@@ -548,7 +535,7 @@ networks:
 
         assert_eq!(
             merged_dotrain_order
-                .orderbook_yaml
+                .orderbook_yaml()
                 .get_network("mainnet")
                 .unwrap()
                 .rpc
