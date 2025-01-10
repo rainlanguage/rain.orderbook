@@ -18,6 +18,7 @@
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
+	import { page } from '$app/stores';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -65,6 +66,8 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
+
+	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -118,7 +121,7 @@
 					</div>
 					<div class="space-y-2">
 						{#each data.inputs || [] as t}
-							<ButtonVaultLink tokenVault={t} />
+							<ButtonVaultLink tokenVault={t} {subgraphName} />
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -132,7 +135,7 @@
 					</div>
 					<div class="space-y-2">
 						{#each data.outputs || [] as t}
-							<ButtonVaultLink tokenVault={t} />
+							<ButtonVaultLink tokenVault={t} {subgraphName} />
 						{/each}
 					</div>
 				</svelte:fragment>
