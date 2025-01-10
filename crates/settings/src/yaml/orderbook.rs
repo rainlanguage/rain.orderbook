@@ -1,13 +1,28 @@
 use super::*;
 use crate::{
-    metaboard::Metaboard, sentry::Sentry, subgraph::Subgraph, Deployer, Network, Orderbook, Token,
+    metaboard::Metaboard, raindex_version::RaindexVersion, sentry::Sentry, subgraph::Subgraph,
+    Deployer, Network, Orderbook, Token,
 };
-use std::sync::{Arc, RwLock};
+use serde::{
+    de::{self, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
+    Deserialize,
+};
+use std::{
+    fmt,
+    sync::{Arc, RwLock},
+};
 
-#[derive(Debug, Clone)]
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookYaml {
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(OrderbookYaml);
 
 impl YamlParsable for OrderbookYaml {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
@@ -26,9 +41,18 @@ impl YamlParsable for OrderbookYaml {
 
         if validate {
             Network::parse_all_from_yaml(documents.clone())?;
+            Token::parse_all_from_yaml(documents.clone())?;
+            Subgraph::parse_all_from_yaml(documents.clone())?;
+            Orderbook::parse_all_from_yaml(documents.clone())?;
+            Deployer::parse_all_from_yaml(documents.clone())?;
+            Metaboard::parse_all_from_yaml(documents.clone())?;
         }
 
         Ok(OrderbookYaml { documents })
+    }
+
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        OrderbookYaml { documents }
     }
 }
 
@@ -72,6 +96,9 @@ impl OrderbookYaml {
     pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
         Metaboard::parse_from_yaml(self.documents.clone(), key)
     }
+    pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
+        Metaboard::add_record_to_yaml(self.documents[0].clone(), key, value)
+    }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
         let deployers = Deployer::parse_all_from_yaml(self.documents.clone())?;
@@ -84,6 +111,63 @@ impl OrderbookYaml {
     pub fn get_sentry(&self) -> Result<bool, YamlError> {
         let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
         Ok(value.map_or(false, |v| v == "true"))
+    }
+
+    pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {
+        let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
+        Ok(value)
+    }
+}
+
+impl Serialize for OrderbookYaml {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        for doc in &self.documents {
+            let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
+            seq.serialize_element(&yaml_str)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderbookYaml {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OrderbookYamlVisitor;
+
+        impl<'de> Visitor<'de> for OrderbookYamlVisitor {
+            type Value = OrderbookYaml;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut documents = Vec::new();
+
+                while let Some(doc_str) = seq.next_element::<String>()? {
+                    let docs =
+                        StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                    if docs.is_empty() {
+                        return Err(de::Error::custom("Empty YAML document"));
+                    }
+                    let doc = docs[0].clone();
+                    documents.push(Arc::new(RwLock::new(doc)));
+                }
+
+                Ok(OrderbookYaml { documents })
+            }
+        }
+
+        deserializer.deserialize_seq(OrderbookYamlVisitor)
     }
 }
 
@@ -129,6 +213,7 @@ mod tests {
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
     sentry: true
+    raindex-version: 1.0.0
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -213,6 +298,11 @@ mod tests {
         assert_eq!(deployer.network, network.into());
 
         assert!(ob_yaml.get_sentry().unwrap());
+
+        assert_eq!(
+            ob_yaml.get_raindex_version().unwrap(),
+            Some("1.0.0".to_string())
+        );
     }
 
     #[test]
@@ -262,6 +352,27 @@ mod tests {
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_add_metaboard_to_yaml() {
+        let yaml = r#"
+test: test
+"#;
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+
+        ob_yaml
+            .add_metaboard("test-metaboard", "https://test-metaboard.com")
+            .unwrap();
+
+        assert_eq!(
+            ob_yaml.get_metaboard_keys().unwrap(),
+            vec!["test-metaboard".to_string()]
+        );
+        assert_eq!(
+            ob_yaml.get_metaboard("test-metaboard").unwrap().url,
+            Url::parse("https://test-metaboard.com").unwrap()
         );
     }
 }

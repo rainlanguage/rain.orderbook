@@ -9,7 +9,6 @@ use crate::{
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
@@ -21,11 +20,20 @@ use url::ParseError as UrlParseError;
 pub trait YamlParsable: Sized {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
+
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();
         let mut out_str = String::new();
         let mut emitter = StrictYamlEmitter::new(&mut out_str);
         emitter.dump(&document)?;
+
+        let out_str = if out_str.starts_with("---") {
+            out_str.trim_start_matches("---").trim_start().to_string()
+        } else {
+            out_str
+        };
+
         Ok(out_str)
     }
 }
@@ -72,10 +80,6 @@ pub enum YamlError {
     ScanError(#[from] ScanError),
     #[error(transparent)]
     EmitError(#[from] EmitError),
-    #[error(transparent)]
-    RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
-    #[error(transparent)]
-    RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
     #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
     #[error(transparent)]

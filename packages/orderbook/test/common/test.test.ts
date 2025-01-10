@@ -48,6 +48,8 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key: 10
 
 orders:
     some-order:
@@ -65,6 +67,7 @@ deployments:
         scenario: some-scenario
         order: some-order
 ---
+#key !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -155,8 +158,10 @@ scenarios:
     config-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key: 10
 `;
-		const dotrainOrder = await DotrainOrder.create(dotrain, config);
+		const dotrainOrder = await DotrainOrder.create(dotrain, [config]);
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
 		const expected = `/* 0. calculate-io */ 
 _ _: 0 0;

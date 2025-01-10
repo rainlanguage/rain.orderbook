@@ -62,6 +62,8 @@ impl Network {
     }
 
     pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
+        let rpc = Network::validate_rpc(rpc)?;
+
         let mut document = self
             .document
             .write()
@@ -76,7 +78,7 @@ impl Network {
                 {
                     network[&StrictYaml::String("rpc".to_string())] =
                         StrictYaml::String(rpc.to_string());
-                    self.rpc = Network::validate_rpc(rpc)?;
+                    self.rpc = rpc;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in networks",
