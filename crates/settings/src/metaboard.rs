@@ -1,4 +1,6 @@
-use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -68,6 +70,7 @@ impl Metaboard {
 impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<Context>,
     ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let mut metaboards = HashMap::new();
 
@@ -143,7 +146,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let metaboards = Metaboard::parse_all_from_yaml(documents).unwrap();
+        let metaboards = Metaboard::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(metaboards.len(), 2);
         assert!(metaboards.contains_key("MetaboardOne"));
@@ -171,7 +174,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Metaboard::parse_all_from_yaml(documents).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,
