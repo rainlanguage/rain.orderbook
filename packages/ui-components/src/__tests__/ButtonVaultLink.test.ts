@@ -24,13 +24,14 @@ describe('ButtonVaultLink', () => {
 	it('should navigate to vault details page when clicked', async () => {
 		render(ButtonVaultLink, {
 			props: {
-				tokenVault: mockVault
+				tokenVault: mockVault,
+				subgraphName: 'test'
 			}
 		});
 
 		const vaultLink = screen.getByTestId('vault-link');
 		expect(vaultLink).toBeTruthy();
 		await userEvent.click(vaultLink);
-		expect(navigation.goto).toHaveBeenCalledWith(`/vaults/${mockVault.id}`);
+		expect(navigation.goto).toHaveBeenCalledWith(`/vaults/test-${mockVault.id}`);
 	});
 });
