@@ -43,13 +43,13 @@ pub trait YamlParsable: Sized {
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        context: Option<Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
     fn parse_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         key: &str,
-        context: Option<Context>,
+        context: Option<&Context>,
     ) -> Result<Self, YamlError> {
         let all = Self::parse_all_from_yaml(documents, context)?;
         all.get(key)
@@ -73,12 +73,12 @@ pub trait YamlParsableString {
 pub trait YamlParseableValue: Sized {
     fn parse_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        context: Option<Context>,
+        context: Option<&Context>,
     ) -> Result<Self, YamlError>;
 
     fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        context: Option<Context>,
+        context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
 }
 

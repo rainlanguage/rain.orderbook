@@ -30,7 +30,7 @@ impl Subgraph {
 impl YamlParsableHash for Subgraph {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<Context>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Subgraph>, YamlError> {
         let mut subgraphs = HashMap::new();
 

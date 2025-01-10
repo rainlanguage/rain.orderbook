@@ -70,7 +70,7 @@ impl Metaboard {
 impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<Context>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let mut metaboards = HashMap::new();
 

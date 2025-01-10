@@ -227,7 +227,7 @@ impl Order {
 impl YamlParsableHash for Order {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<Context>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
