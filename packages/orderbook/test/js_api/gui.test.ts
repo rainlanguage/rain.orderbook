@@ -11,6 +11,7 @@ import {
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
+	GuiDetails,
 	SelectTokens,
 	TokenDeposit,
 	TokenInfos
@@ -313,9 +314,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			);
 
 		const gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
+
 		const guiConfig = gui.getGuiConfig() as Gui;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
+
+		const guiDetails: GuiDetails = gui.getGuiDetails();
+		assert.equal(guiDetails.name, 'Fixed limit');
+		assert.equal(guiDetails.description, 'Fixed limit order strategy');
 	});
 
 	it('should get token infos', async () => {
