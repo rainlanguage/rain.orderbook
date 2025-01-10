@@ -37,9 +37,9 @@ impl YamlParsable for DotrainYaml {
         }
 
         if validate {
-            Order::parse_all_from_yaml(documents.clone())?;
-            Scenario::parse_all_from_yaml(documents.clone())?;
-            Deployment::parse_all_from_yaml(documents.clone())?;
+            Order::parse_all_from_yaml(documents.clone(), None)?;
+            Scenario::parse_all_from_yaml(documents.clone(), None)?;
+            Deployment::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(DotrainYaml { documents })
@@ -52,31 +52,31 @@ impl YamlParsable for DotrainYaml {
 
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orders = Order::parse_all_from_yaml(self.documents.clone())?;
+        let orders = Order::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orders.keys().cloned().collect())
     }
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
-        Order::parse_from_yaml(self.documents.clone(), key)
+        Order::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
-        let scenarios = Scenario::parse_all_from_yaml(self.documents.clone())?;
+        let scenarios = Scenario::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(scenarios.keys().cloned().collect())
     }
     pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
-        Scenario::parse_from_yaml(self.documents.clone(), key)
+        Scenario::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployments = Deployment::parse_all_from_yaml(self.documents.clone())?;
+        let deployments = Deployment::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(deployments.keys().cloned().collect())
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
-        Deployment::parse_from_yaml(self.documents.clone(), key)
+        Deployment::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
-        Gui::parse_from_yaml_optional(self.documents.clone())
+        Gui::parse_from_yaml_optional(self.documents.clone(), None)
     }
 }
 
@@ -480,4 +480,7 @@ mod tests {
             assert_eq!(scenario.bindings.get("key2").unwrap(), "value4");
         }
     }
+
+    #[test]
+    fn test_handlebars() {}
 }
