@@ -21,20 +21,22 @@ impl DotrainOrderGui {
 
     /// Get all selected tokens and their addresses
     ///
-    /// Returns a map of token name to address
+    /// Returns a map of token key to address
     #[wasm_bindgen(js_name = "getSelectTokens")]
     pub fn get_select_tokens(&self) -> Result<SelectTokens, GuiError> {
-        let select_tokens = self
-            .select_tokens
-            .clone()
-            .ok_or(GuiError::SelectTokensNotSet)?;
-        Ok(SelectTokens(select_tokens))
+        let gui = self.get_current_deployment()?;
+
+        if gui.select_tokens.is_none() || self.select_tokens.is_none() {
+            return Ok(SelectTokens(BTreeMap::new()));
+        }
+
+        Ok(SelectTokens(self.select_tokens.clone().unwrap()))
     }
 
     #[wasm_bindgen(js_name = "saveSelectTokenAddress")]
     pub async fn save_select_token_address(
         &mut self,
-        token_name: String,
+        key: String,
         address: String,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -42,12 +44,12 @@ impl DotrainOrderGui {
             .select_tokens
             .clone()
             .ok_or(GuiError::SelectTokensNotSet)?;
-        if !select_tokens.contains_key(&token_name) {
-            return Err(GuiError::TokenNotFound(token_name.clone()));
+        if !select_tokens.contains_key(&key) {
+            return Err(GuiError::TokenNotFound(key.clone()));
         }
 
         let address = Address::from_str(&address)?;
-        select_tokens.insert(token_name.clone(), address);
+        select_tokens.insert(key.clone(), address);
         self.select_tokens = Some(select_tokens);
 
         let rpc_url = deployment
@@ -65,8 +67,19 @@ impl DotrainOrderGui {
 
         self.dotrain_order
             .orderbook_yaml()
-            .get_token(&token_name)?
+            .get_token(&key)?
             .update_address(&address.to_string())?;
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "clearSelectTokenAddress")]
+    pub fn clear_select_token_address(&mut self, key: String) -> Result<(), GuiError> {
+        let mut select_tokens = self
+            .select_tokens
+            .clone()
+            .ok_or(GuiError::SelectTokensNotSet)?;
+        select_tokens.insert(key.clone(), Address::ZERO);
+        self.select_tokens = Some(select_tokens);
         Ok(())
     }
 }
