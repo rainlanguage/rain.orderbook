@@ -8,7 +8,7 @@ use crate::{
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
-use context::Context;
+use context::{Context, ContextError};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -124,6 +124,8 @@ pub enum YamlError {
     ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ContextError(#[from] ContextError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {

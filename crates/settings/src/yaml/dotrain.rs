@@ -212,6 +212,69 @@ mod tests {
                     - token2
     "#;
 
+    const HANDLEBARS_YAML: &str = r#"
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+    tokens:
+        token1:
+            network: mainnet
+            address: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+            decimals: 18
+            label: Wrapped Ether
+            symbol: WETH
+        token2:
+            network: mainnet
+            address: 0x0000000000000000000000000000000000000002
+            decimals: 6
+            label: USD Coin
+            symbol: USDC
+    deployers:
+        deployer1:
+            address: 0x0000000000000000000000000000000000000002
+            network: mainnet
+    orders:
+        order1:
+            inputs:
+                - token: token1
+                  vault-id: 1
+            outputs:
+                - token: token2
+                  vault-id: 2
+    scenarios:
+        scenario1:
+            bindings:
+                key1: ${order.inputs.0.token.address}
+            deployer: deployer1
+            scenarios:
+                scenario2:
+                    bindings:
+                        key2: ${order.outputs.0.token.address}
+    deployments:
+        deployment1:
+            order: order1
+            scenario: scenario1.scenario2
+    gui:
+        name: Test gui
+        description: Test description
+        deployments:
+            deployment1:
+                name: Test deployment
+                description: Test description
+                deposits:
+                    - token: token1
+                      presets:
+                        - 100
+                        - 2000
+                fields:
+                    - binding: key1
+                      name: Binding for ${order.inputs.0.token.label}
+                      description: With token symbol ${order.inputs.0.token.symbol}
+                      presets:
+                        - value: value2
+    "#;
+
     #[test]
     fn test_full_yaml() {
         let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
@@ -482,5 +545,25 @@ mod tests {
     }
 
     #[test]
-    fn test_handlebars() {}
+    fn test_handlebars() {
+        let dotrain_yaml = DotrainYaml::new(vec![HANDLEBARS_YAML.to_string()], false).unwrap();
+
+        let gui = dotrain_yaml.get_gui().unwrap().unwrap();
+        let deployment = gui.deployments.get("deployment1").unwrap();
+
+        assert_eq!(
+            deployment.deployment.scenario.bindings.get("key1").unwrap(),
+            "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        );
+        assert_eq!(
+            deployment.deployment.scenario.bindings.get("key2").unwrap(),
+            "0x0000000000000000000000000000000000000002"
+        );
+
+        assert_eq!(deployment.fields[0].name, "Binding for Wrapped Ether");
+        assert_eq!(
+            deployment.fields[0].description,
+            Some("With token symbol WETH".to_string())
+        );
+    }
 }
