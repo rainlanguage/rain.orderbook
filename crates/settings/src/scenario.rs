@@ -6,7 +6,7 @@ use std::{
     num::ParseIntError,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
@@ -54,7 +54,8 @@ impl Scenario {
     }
 
     pub fn validate_scenario(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        current_document: Arc<RwLock<StrictYaml>>,
         deployer: &mut Option<Arc<Deployer>>,
         scenarios: &mut HashMap<String, Scenario>,
         parent_scenario: ScenarioParent,
@@ -106,7 +107,7 @@ impl Scenario {
             .transpose()?;
 
         if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-            let current_deployer = Deployer::parse_from_yaml(document.clone(), &deployer_name)?;
+            let current_deployer = Deployer::parse_from_yaml(documents.clone(), &deployer_name)?;
 
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
                 if current_deployer.key != parent_deployer.key {
@@ -121,11 +122,19 @@ impl Scenario {
             *deployer = Some(Arc::new(current_deployer));
         }
 
+        if scenarios.contains_key(&scenario_key) {
+            return Err(YamlError::KeyShadowing(scenario_key));
+        }
+        let key = if parent_scenario.key.is_empty() {
+            scenario_key.clone()
+        } else {
+            format!("{}.{}", parent_scenario.key, scenario_key.clone())
+        };
         scenarios.insert(
-            scenario_key.clone(),
+            key.clone(),
             Scenario {
-                document: document.clone(),
-                key: scenario_key.clone(),
+                document: current_document.clone(),
+                key: key.clone(),
                 bindings: bindings.clone(),
                 runs,
                 blocks,
@@ -139,10 +148,12 @@ impl Scenario {
             for (child_key, child_scenario_yaml) in scenarios_yaml {
                 let child_key = child_key.as_str().unwrap_or_default().to_string();
                 Self::validate_scenario(
-                    document.clone(),
+                    documents.clone(),
+                    current_document.clone(),
                     deployer,
                     scenarios,
                     ScenarioParent {
+                        key: key.clone(),
                         bindings: Some(bindings.clone()),
                         deployer: deployer.clone(),
                     },
@@ -154,43 +165,162 @@ impl Scenario {
 
         Ok(())
     }
+
+    pub fn update_bindings(
+        &mut self,
+        bindings: HashMap<String, String>,
+    ) -> Result<Self, YamlError> {
+        let scenario_parts = self.key.split('.').collect::<Vec<_>>();
+        let base_scenario = scenario_parts[0];
+
+        let mut new_bindings = Hash::new();
+        for (k, v) in bindings {
+            new_bindings.insert(StrictYaml::String(k), StrictYaml::String(v));
+        }
+
+        {
+            let mut document = self
+                .document
+                .write()
+                .map_err(|_| YamlError::WriteLockError)?;
+
+            if let StrictYaml::Hash(ref mut document_hash) = *document {
+                if let Some(StrictYaml::Hash(ref mut scenarios)) =
+                    document_hash.get_mut(&StrictYaml::String("scenarios".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(ref mut scenario)) =
+                        scenarios.get_mut(&StrictYaml::String(base_scenario.to_string()))
+                    {
+                        if let Some(StrictYaml::Hash(ref mut base_bindings)) =
+                            scenario.get_mut(&StrictYaml::String("bindings".to_string()))
+                        {
+                            let updates: Vec<_> = base_bindings
+                                .keys()
+                                .filter_map(|k| new_bindings.get(k).map(|v| (k.clone(), v.clone())))
+                                .collect();
+                            for (k, v) in updates {
+                                base_bindings.insert(k, v);
+                            }
+
+                            let scenario_parts_vec: Vec<_> =
+                                scenario_parts.iter().skip(1).collect();
+                            let mut current = scenario;
+
+                            for &part in scenario_parts_vec {
+                                let next_scenario =
+                                    if let Some(StrictYaml::Hash(ref mut sub_scenarios)) = current
+                                        .get_mut(&StrictYaml::String("scenarios".to_string()))
+                                    {
+                                        if let Some(StrictYaml::Hash(ref mut sub_scenario)) =
+                                            sub_scenarios
+                                                .get_mut(&StrictYaml::String(part.to_string()))
+                                        {
+                                            if let Some(StrictYaml::Hash(ref mut sub_bindings)) =
+                                                sub_scenario.get_mut(&StrictYaml::String(
+                                                    "bindings".to_string(),
+                                                ))
+                                            {
+                                                let sub_updates: Vec<_> = sub_bindings
+                                                    .keys()
+                                                    .filter_map(|k| {
+                                                        new_bindings
+                                                            .get(k)
+                                                            .map(|v| (k.clone(), v.clone()))
+                                                    })
+                                                    .collect();
+
+                                                for (k, v) in sub_updates {
+                                                    sub_bindings.insert(k, v);
+                                                }
+                                            } else {
+                                                return Err(YamlError::ParseError(format!(
+                                                    "bindings not found in scenario {}",
+                                                    part
+                                                )));
+                                            }
+                                            sub_scenario
+                                        } else {
+                                            return Err(YamlError::ParseError(format!(
+                                                "{} not found in sub scenarios",
+                                                part
+                                            )));
+                                        }
+                                    } else {
+                                        return Err(YamlError::ParseError(format!(
+                                            "scenarios not found for part {}",
+                                            part
+                                        )));
+                                    };
+                                current = next_scenario;
+                            }
+                        } else {
+                            return Err(YamlError::ParseError(format!(
+                                "bindings not found in scenario {}",
+                                base_scenario
+                            )));
+                        }
+                    } else {
+                        return Err(YamlError::ParseError(format!(
+                            "missing field: {} in scenarios",
+                            base_scenario
+                        )));
+                    }
+                } else {
+                    return Err(YamlError::ParseError(
+                        "missing field: scenarios".to_string(),
+                    ));
+                }
+            } else {
+                return Err(YamlError::ParseError("document parse error".to_string()));
+            }
+        }
+
+        Self::parse_from_yaml(vec![self.document.clone()], &self.key)
+    }
 }
 
 impl YamlParsableHash for Scenario {
     fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<HashMap<String, Self>, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let scenarios_hash = require_hash(
-            &document_read,
-            Some("scenarios"),
-            Some("missing field: scenarios".to_string()),
-        )?;
-
         let mut scenarios = HashMap::new();
 
-        for (key_yaml, scenario_yaml) in scenarios_hash {
-            let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let mut deployer: Option<Arc<Deployer>> = None;
+            if let Ok(scenarios_hash) = require_hash(&document_read, Some("scenarios"), None) {
+                for (key_yaml, scenario_yaml) in scenarios_hash {
+                    let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-            Self::validate_scenario(
-                document.clone(),
-                &mut deployer,
-                &mut scenarios,
-                ScenarioParent {
-                    bindings: None,
-                    deployer: None,
-                },
-                scenario_key.clone(),
-                scenario_yaml,
-            )?;
+                    let mut deployer: Option<Arc<Deployer>> = None;
 
-            if deployer.is_none() {
-                return Err(YamlError::ParseScenarioConfigSourceError(
-                    ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
-                ));
+                    Self::validate_scenario(
+                        documents.clone(),
+                        document.clone(),
+                        &mut deployer,
+                        &mut scenarios,
+                        ScenarioParent {
+                            key: "".to_string(),
+                            bindings: None,
+                            deployer: None,
+                        },
+                        scenario_key.clone(),
+                        scenario_yaml,
+                    )?;
+
+                    if deployer.is_none() {
+                        return Err(YamlError::ParseScenarioConfigSourceError(
+                            ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                        ));
+                    }
+                }
             }
+        }
+
+        if scenarios.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: scenarios".to_string(),
+            ));
         }
 
         Ok(scenarios)
@@ -238,6 +368,7 @@ pub enum ParseScenarioConfigSourceError {
 
 #[derive(Default)]
 pub struct ScenarioParent {
+    key: String,
     bindings: Option<HashMap<String, String>>,
     deployer: Option<Arc<Deployer>>,
 }
@@ -312,6 +443,7 @@ impl ScenarioConfigSource {
                 let child_scenarios = child_scenario.try_into_scenarios(
                     format!("{}.{}", name, child_name),
                     &ScenarioParent {
+                        key: "".to_string(),
                         bindings: Some(bindings.clone()),
                         deployer: Some(deployer_ref.clone()),
                     },
@@ -460,6 +592,7 @@ mod tests {
             HashMap::from([("shared_key".to_string(), "parent_value".to_string())]);
 
         let parent_scenario = ScenarioParent {
+            key: "".to_string(),
             bindings: Some(parent_bindings),
             deployer: Some(mock_deployer()),
         };
@@ -497,7 +630,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: scenarios".to_string())
@@ -508,7 +641,7 @@ scenarios:
     scenario1:
         test: test
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("bindings map missing in scenario: scenario1".to_string())
@@ -521,7 +654,7 @@ scenarios:
             key1:
                 - value1
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -536,7 +669,7 @@ scenarios:
             key1:
                 - value1: value2
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -563,7 +696,7 @@ scenarios:
                 bindings:
                     key1: value
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -598,13 +731,128 @@ scenarios:
                     key2: value
                 deployer: testnet
 "#;
-        let error = Scenario::parse_all_from_yaml(get_document(yaml)).unwrap_err();
+        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
                 ParseScenarioConfigSourceError::ParentDeployerShadowedError("testnet".to_string())
             )
             .to_string()
+        );
+    }
+
+    #[test]
+    fn test_parse_scenarios_from_yaml_multiple_files() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: binding1
+        scenarios:
+            scenario2:
+                bindings:
+                    key2: binding2
+"#;
+        let yaml_two = r#"
+scenarios:
+    scenario3:
+        deployer: mainnet
+        bindings:
+            key3: binding3
+        scenarios:
+            scenario4:
+                bindings:
+                    key4: binding4
+"#;
+        let scenarios =
+            Scenario::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap();
+
+        assert_eq!(scenarios.len(), 4);
+        assert!(scenarios.contains_key("scenario1"));
+        assert!(scenarios.contains_key("scenario1.scenario2"));
+        assert!(scenarios.contains_key("scenario3"));
+        assert!(scenarios.contains_key("scenario3.scenario4"));
+
+        assert_eq!(
+            scenarios
+                .get("scenario1")
+                .unwrap()
+                .bindings
+                .get("key1")
+                .unwrap(),
+            "binding1"
+        );
+        assert_eq!(
+            scenarios
+                .get("scenario1.scenario2")
+                .unwrap()
+                .bindings
+                .get("key2")
+                .unwrap(),
+            "binding2"
+        );
+        assert_eq!(
+            scenarios
+                .get("scenario3")
+                .unwrap()
+                .bindings
+                .get("key3")
+                .unwrap(),
+            "binding3"
+        );
+        assert_eq!(
+            scenarios
+                .get("scenario3.scenario4")
+                .unwrap()
+                .bindings
+                .get("key4")
+                .unwrap(),
+            "binding4"
+        );
+    }
+
+    #[test]
+    fn test_parse_scenarios_from_yaml_duplicate_key() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+scenarios:
+    DuplicateScenario:
+        deployer: mainnet
+        bindings:
+            key1: binding1
+"#;
+        let yaml_two = r#"
+scenarios:
+    DuplicateScenario:
+        deployer: mainnet
+        bindings:
+            key1: binding2
+"#;
+
+        let error =
+            Scenario::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+                .unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("DuplicateScenario".to_string())
         );
     }
 }
