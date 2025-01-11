@@ -1,15 +1,20 @@
 use super::*;
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
     field_values: BTreeMap<String, GuiPreset>,
     deposits: BTreeMap<String, GuiPreset>,
+    select_tokens: Option<BTreeMap<String, String>>,
+    vault_ids: BTreeMap<(bool, u8), Option<String>>,
 }
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "serializeState")]
     pub fn serialize(&self) -> Result<String, GuiError> {
+        let deployment = self.get_current_deployment()?;
+
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
@@ -50,9 +55,30 @@ impl DotrainOrderGui {
             deposits.insert(k.clone(), preset);
         }
 
+        let mut select_tokens: Option<BTreeMap<String, String>> = None;
+        if let Some(tokens) = &self.select_tokens {
+            select_tokens = Some(
+                tokens
+                    .clone()
+                    .into_iter()
+                    .map(|(k, v)| (k, v.to_string()))
+                    .collect(),
+            );
+        }
+
+        let mut vault_ids = BTreeMap::new();
+        for (i, input) in deployment.deployment.order.inputs.iter().enumerate() {
+            vault_ids.insert((true, i as u8), input.vault_id.map(|v| v.to_string()));
+        }
+        for (i, output) in deployment.deployment.order.outputs.iter().enumerate() {
+            vault_ids.insert((false, i as u8), output.vault_id.map(|v| v.to_string()));
+        }
+
         let state = SerializedGuiState {
             field_values: field_values.clone(),
             deposits: deposits.clone(),
+            select_tokens,
+            vault_ids,
         };
         let bytes = bincode::serialize(&state)?;
 
@@ -65,6 +91,7 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "deserializeState")]
     pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -91,6 +118,7 @@ impl DotrainOrderGui {
                 (k, pair_value)
             })
             .collect::<BTreeMap<_, _>>();
+
         let deposits = state
             .deposits
             .into_iter()
@@ -110,8 +138,27 @@ impl DotrainOrderGui {
             })
             .collect::<BTreeMap<_, _>>();
 
+        let select_tokens = if let Some(tokens) = state.select_tokens {
+            let mut result = BTreeMap::new();
+            for (k, v) in tokens {
+                result.insert(k, Address::from_str(&v)?);
+            }
+            Some(result)
+        } else {
+            None
+        };
+
         self.field_values = field_values;
         self.deposits = deposits;
+        self.select_tokens = select_tokens;
+        for ((is_input, index), vault_id) in state.vault_ids {
+            self.dotrain_order
+                .dotrain_yaml()
+                .get_order(&deployment.deployment.order.key)
+                .and_then(|mut order| {
+                    order.update_vault_id(is_input, index, vault_id.unwrap_or_default())
+                })?;
+        }
 
         Ok(())
     }
@@ -120,6 +167,7 @@ impl DotrainOrderGui {
     pub fn clear_state(&mut self) {
         self.field_values.clear();
         self.deposits.clear();
+        self.select_tokens = None;
     }
 
     #[wasm_bindgen(js_name = "isFieldPreset")]
