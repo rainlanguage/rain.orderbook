@@ -30,6 +30,13 @@ impl_all_wasm_traits!(AvailableDeployments);
 pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
 impl_all_wasm_traits!(TokenInfos);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct GuiDetails {
+    name: String,
+    description: String,
+}
+impl_all_wasm_traits!(GuiDetails);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -147,6 +154,15 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getTokenInfos")]
     pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
         Ok(TokenInfos(self.onchain_token_info.clone()))
+    }
+
+    #[wasm_bindgen(js_name = "getGuiDetails")]
+    pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
+        let gui = self.get_gui_config()?;
+        Ok(GuiDetails {
+            name: gui.name,
+            description: gui.description,
+        })
     }
 }
 
