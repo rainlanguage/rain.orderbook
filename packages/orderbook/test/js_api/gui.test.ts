@@ -683,8 +683,7 @@ ${dotrain}`;
 			const deposits: TokenDeposit[] = gui.getDeposits();
 			assert.equal(deposits.length, 0);
 
-			const selectTokens: SelectTokens = gui.getSelectTokens();
-			assert.equal(selectTokens.size, 0);
+			expect(() => gui.getSelectTokens()).toThrow('Select tokens not set');
 		});
 
 		it('should check if field is preset', async () => {
