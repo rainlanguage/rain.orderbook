@@ -51,6 +51,8 @@ export { default as VaultBalanceChart } from './components/charts/VaultBalanceCh
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+export { default as SidebarWebapp } from './components/SidebarWebapp.svelte';
+export { default as Homepage } from './components/Homepage.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -88,3 +90,7 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+
+// Assets
+export { default as LogoLight } from './assets/logo-light.svg';
+export { default as LogoDark } from './assets/logo-dark.svg';
