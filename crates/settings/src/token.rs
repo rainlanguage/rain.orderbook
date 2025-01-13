@@ -85,6 +85,10 @@ impl Token {
         label: Option<&str>,
         symbol: Option<&str>,
     ) -> Result<(), YamlError> {
+        if Token::parse_from_yaml(documents.clone(), key).is_ok() {
+            return Err(YamlError::KeyShadowing(key.to_string()));
+        }
+
         let address = Token::validate_address(address)?;
         let decimals = decimals.map(|d| Token::validate_decimals(d)).transpose()?;
         Network::parse_from_yaml(documents.clone(), network_key)?;
@@ -94,7 +98,11 @@ impl Token {
             .map_err(|_| YamlError::WriteLockError)?;
 
         if let StrictYaml::Hash(ref mut document_hash) = *document {
-            if !document_hash.contains_key(&StrictYaml::String("tokens".to_string())) {
+            if !document_hash.contains_key(&StrictYaml::String("tokens".to_string()))
+                || document_hash
+                    .get_mut(&StrictYaml::String("tokens".to_string()))
+                    .is_none()
+            {
                 document_hash.insert(
                     StrictYaml::String("tokens".to_string()),
                     StrictYaml::Hash(Hash::new()),
@@ -141,7 +149,7 @@ impl Token {
                     StrictYaml::Hash(token_hash),
                 );
             } else {
-                return Err(YamlError::ParseError("missing field: tokens".to_string()));
+                return Err(YamlError::ParseError("missing field: token".to_string()));
             }
         } else {
             return Err(YamlError::ParseError("document parse error".to_string()));

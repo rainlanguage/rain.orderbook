@@ -75,14 +75,21 @@ impl DotrainOrderGui {
             .outputs
             .clone()
             .into_iter()
-            .filter(|output| deposits_map.contains_key(&output.token.key))
-            .map(|output| {
-                (
-                    output.clone(),
-                    *deposits_map.get(&output.token.key).unwrap(),
-                )
+            .filter(|output| {
+                output
+                    .token
+                    .as_ref()
+                    .map_or(false, |token| deposits_map.contains_key(&token.key))
             })
-            .collect();
+            .map(|output| {
+                if output.token.is_none() {
+                    return Err(GuiError::SelectTokensNotSet);
+                }
+                let token = output.token.as_ref().unwrap();
+
+                Ok((output.clone(), *deposits_map.get(&token.key).unwrap()))
+            })
+            .collect::<Result<Vec<_>, GuiError>>()?;
         Ok(results)
     }
 
@@ -121,8 +128,13 @@ impl DotrainOrderGui {
 
         let mut results = Vec::new();
         for (order_io, amount) in vaults_and_deposits.iter() {
+            if order_io.token.is_none() {
+                return Err(GuiError::SelectTokensNotSet);
+            }
+            let token = order_io.token.as_ref().unwrap();
+
             let deposit_args = DepositArgs {
-                token: order_io.token.address,
+                token: token.address,
                 vault_id: rand::random(),
                 amount: *amount,
             };
@@ -199,7 +211,13 @@ impl DotrainOrderGui {
                 let vault_id = order_io
                     .vault_id
                     .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
-                Ok(((vault_id, order_io.token.address), *amount))
+
+                if order_io.token.is_none() {
+                    return Err(GuiError::SelectTokensNotSet);
+                }
+                let token = order_io.token.as_ref().unwrap();
+
+                Ok(((vault_id, token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
         let calldatas = self
@@ -244,7 +262,13 @@ impl DotrainOrderGui {
                 let vault_id = order_io
                     .vault_id
                     .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
-                Ok(((vault_id, order_io.token.address), *amount))
+
+                if order_io.token.is_none() {
+                    return Err(GuiError::SelectTokensNotSet);
+                }
+                let token = order_io.token.as_ref().unwrap();
+
+                Ok(((vault_id, token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
 
