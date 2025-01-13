@@ -5,6 +5,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
+	import HashActiveStatusIndicator from '../HashActiveStatusIndicator.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
@@ -165,22 +166,12 @@
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
 				{#if item.vault.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
-						{#each item.vault.ordersAsInput.slice(0, 3) as order}
-							<Button
-								class="mr-1 mt-1 px-1 py-0"
-								color={order.active ? 'green' : 'yellow'}
-								data-testid="vault-order-input"
-								data-order-id={order.id}
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(item.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
-							>
+					{#each item.vault.ordersAsInput.slice(0, 3) as order}
+							<HashActiveStatusIndicator
+								order={order}
+								subgraphName={item.subgraphName}
+								updateActiveNetworkAndOrderbook={updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 						{#if item.vault.ordersAsInput.length > 3}...{/if}
 					</div>
@@ -190,21 +181,11 @@
 				{#if item.vault.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
-							<Button
-								class="mr-1 mt-1 px-1 py-0"
-								color={order.active ? 'green' : 'yellow'}
-								data-order-id={order.id}
-								data-testid="vault-order-output"
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(item.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
-							>
+							<HashActiveStatusIndicator
+								order={order}
+								subgraphName={item.subgraphName}
+								updateActiveNetworkAndOrderbook={updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 						{#if item.vault.ordersAsOutput.length > 3}...{/if}
 					</div>

@@ -9,16 +9,16 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { goto } from '$app/navigation';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import HashActiveStatusIndicator from '../HashActiveStatusIndicator.svelte';
 
 	export let id: string;
 	export let network: string;
@@ -30,6 +30,8 @@
 		undefined;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let settings;
+	export let activeNetworkRef: Writable<string | undefined>;
+	export let activeOrderbookRef: Writable<string | undefined>;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
 	$: vaultDetailQuery = createQuery({
@@ -39,6 +41,11 @@
 		},
 		enabled: !!subgraphUrl
 	});
+
+	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+		activeNetworkRef.set(subgraphName);
+		activeOrderbookRef.set(subgraphName);
+	};
 
 	const interval = setInterval(async () => {
 		// This invalidate function invalidates
@@ -124,15 +131,11 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<Button
-								class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-								color={order.active ? 'green' : 'yellow'}
-								data-order={order.id}
-								data-testid={'vaultDetailOrderAsInputOrder' + order.id}
-								on:click={() => goto(`/orders/${order.id}`)}
-							>
-								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
-							</Button>
+							<HashActiveStatusIndicator
+								{order}
+								subgraphName={order.subgraphName}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None
@@ -147,15 +150,11 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<Button
-								class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-								color={order.active ? 'green' : 'yellow'}
-								data-order={order.id}
-								data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
-								on:click={() => goto(`/orders/${order.id}`)}
-							>
-								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
-							</Button>
+							<HashActiveStatusIndicator
+								{order}
+								subgraphName={order.subgraphName}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None
