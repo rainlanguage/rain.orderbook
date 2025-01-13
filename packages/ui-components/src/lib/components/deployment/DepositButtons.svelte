@@ -7,6 +7,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
@@ -39,13 +40,7 @@
 </script>
 
 <div class="flex flex-grow flex-col items-center p-8">
-	<div class="mt-16 max-w-2xl text-center">
-		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
-			{tokenName}
-		</h1>
-		<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">Select deposit amount</p>
-	</div>
-
+	<DeploymentSectionHeader title={tokenName} description="Select deposit amount" />
 	{#if deposit.presets}
 		<div class="flex max-w-3xl flex-wrap justify-center gap-4">
 			{#each deposit.presets as preset}

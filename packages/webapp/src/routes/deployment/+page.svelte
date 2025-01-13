@@ -2,6 +2,6 @@
 	import { DeploymentSteps } from '@rainlanguage/ui-components';
 </script>
 
-<div class="flex h-screen flex-col gap-4">
+<div class="flex flex-col gap-4 pb-12">
 	<DeploymentSteps />
 </div>

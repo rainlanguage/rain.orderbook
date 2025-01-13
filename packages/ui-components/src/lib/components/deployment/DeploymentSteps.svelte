@@ -4,6 +4,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 
 	import {
 		DotrainOrderGui,
@@ -14,7 +15,8 @@
 		type GuiFieldDefinition,
 		type SelectTokens,
 		type TokenInfos,
-		type Vault
+		type Vault,
+		type GuiDetails
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button, Label, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
@@ -29,7 +31,8 @@
 		NO_FIELD_DEFINITIONS = 'Error loading field definitions',
 		NO_DEPOSITS = 'Error loading deposits',
 		NO_TOKEN_INPUTS = 'Error loading token inputs',
-		NO_TOKEN_OUTPUTS = 'Error loading token outputs'
+		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
+		NO_GUI_DETAILS = 'Error getting GUI details'
 	}
 
 	const chains: Record<number, Chain> = {
@@ -107,6 +110,17 @@
 		handleDeploymentChange(selectedDeployment as string);
 	}
 
+	let guiDetails: GuiDetails;
+	function getGuiDetails() {
+		if (!gui) return;
+		try {
+			guiDetails = gui.getGuiDetails();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI_DETAILS;
+			console.error('Failed to get gui details:', e);
+		}
+	}
+
 	let tokenInfos: TokenInfos;
 	function getTokenInfos() {
 		if (!gui) return;
@@ -173,11 +187,11 @@
 	}
 
 	$: if (selectTokens) {
-		console.log(selectTokens);
 		getTokenInfos();
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
+		console.log(gui?.getCurrentDeployment());
 	}
 
 	$: if (gui) {
@@ -188,6 +202,7 @@
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
+		getGuiDetails();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -282,9 +297,23 @@
 		<Spinner />
 	{/if}
 	{#if gui}
-		<div class="flex h-[80vh] flex-col justify-between">
+		<div class="flex flex-col items-center gap-6">
+			{#if guiDetails}
+				<div class="mt-16 max-w-2xl text-center">
+					<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
+						{guiDetails.name}
+					</h1>
+					<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">
+						{guiDetails.description}
+					</p>
+				</div>
+			{/if}
+
 			{#if selectTokens}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
+				<DeploymentSectionHeader
+					title="Select Tokens"
+					description="Select the tokens that you want to use in your order."
+				/>
 
 				{#each selectTokens.entries() as token}
 					<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
@@ -292,47 +321,50 @@
 			{/if}
 
 			{#if allFieldDefinitions.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Field Values</Label>
 				{#each allFieldDefinitions as fieldDefinition}
 					<FieldDefinitionButtons {fieldDefinition} {gui} />
 				{/each}
 			{/if}
 
 			{#if allDeposits.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
 				{#each allDeposits as deposit}
 					<DepositButtons bind:deposit {gui} bind:tokenInfos />
 				{/each}
 			{/if}
+			{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+				<DeploymentSectionHeader
+					title={'Input/Output Vaults'}
+					description={'The vault addresses for the input and output tokens.'}
+				/>
+				{#if allTokenInputs.length > 0}
+					{#each allTokenInputs as input, i}
+						<TokenInputOrOutput
+							{i}
+							label="Input"
+							vault={input}
+							bind:tokenInfos
+							vaultIds={inputVaultIds}
+							{gui}
+						/>
+					{/each}
+				{/if}
 
-			{#if allTokenInputs.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Input Vault IDs</Label>
-				{#each allTokenInputs as input, i}
-					<TokenInputOrOutput
-						{i}
-						label="Input"
-						vault={input}
-						bind:tokenInfos
-						vaultIds={inputVaultIds}
-						{gui}
-					/>
-				{/each}
+				{#if allTokenOutputs.length > 0}
+					{#each allTokenOutputs as output, i}
+						<TokenInputOrOutput
+							{i}
+							label="Output"
+							vault={output}
+							bind:tokenInfos
+							vaultIds={outputVaultIds}
+							{gui}
+						/>
+					{/each}
+				{/if}
 			{/if}
-
-			{#if allTokenOutputs.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Output Vault IDs</Label>
-				{#each allTokenOutputs as output, i}
-					<TokenInputOrOutput
-						{i}
-						label="Output"
-						vault={output}
-						bind:tokenInfos
-						vaultIds={outputVaultIds}
-						{gui}
-					/>
-				{/each}
-			{/if}
-			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
+			<div class="w-2xl">
+				<Button class="w-full" size="lg" on:click={handleAddOrder}>Add Order</Button>
+			</div>
 		</div>
 	{/if}
 {/if}

@@ -42,25 +42,27 @@
 	}
 </script>
 
-<div class="mb-4 flex flex-col gap-4">
-	<div class="flex flex-row gap-4">
-		<Label class="whitespace-nowrap text-xl">{token[0]}</Label>
-		<Input type="text" on:input={handleInput} bind:value={inputValue} />
+<div class="mb-4 flex w-full max-w-2xl flex-col gap-4">
+	<div class="flex flex-col gap-4">
+		<div class="flex flex-row items-center gap-6">
+			<Label class="whitespace-nowrap text-xl">{token[0]}</Label>
+			{#if checking}
+				<div class="flex h-5 flex-row items-center gap-2">
+					<Spinner class="h-5 w-5" />
+					<span>Checking...</span>
+				</div>
+			{:else if tokenInfo}
+				<div class="flex h-5 flex-row items-center gap-2">
+					<CheckCircleSolid class="h-5 w-5" color="green" />
+					<span>{tokenInfo.name}</span>
+				</div>
+			{:else if error}
+				<div class="flex h-5 flex-row items-center gap-2">
+					<CloseCircleSolid class="h-5 w-5" color="red" />
+					<span>{error}</span>
+				</div>
+			{/if}
+		</div>
+		<Input type="text" class="text-lg" size="lg" on:input={handleInput} bind:value={inputValue} />
 	</div>
-	{#if checking}
-		<div class="flex h-5 flex-row items-center gap-2">
-			<Spinner class="h-5 w-5" />
-			<span>Checking...</span>
-		</div>
-	{:else if tokenInfo}
-		<div class="flex h-5 flex-row items-center gap-2">
-			<CheckCircleSolid class="h-5 w-5" color="green" />
-			<span>{tokenInfo.name}</span>
-		</div>
-	{:else if error}
-		<div class="flex h-5 flex-row items-center gap-2">
-			<CloseCircleSolid class="h-5 w-5" color="red" />
-			<span>{error}</span>
-		</div>
-	{/if}
 </div>

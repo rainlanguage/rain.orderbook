@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
+	import { Input, Label } from 'flowbite-svelte';
 	import type { TokenInfos, Vault } from '@rainlanguage/orderbook/js_api';
 	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
@@ -11,16 +11,16 @@
 	export let gui: DotrainOrderGui;
 </script>
 
-<div class="flex flex-grow flex-col items-center p-8">
-	<div class="mt-16 max-w-2xl text-center">
-		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
-			{label}
-			{i + 1} ({tokenInfos.get(vault.token.address)?.symbol || 'Unknown'})
-		</h1>
-	</div>
-	<div class="mt-8 w-full max-w-md">
+<div class="mb-4 flex w-full max-w-2xl flex-col gap-4">
+	<div class="flex flex-col gap-4">
+		<div class="flex flex-row items-center gap-6">
+			<Label class="whitespace-nowrap text-xl"
+				>{label}
+				{i + 1} ({tokenInfos.get(vault.token.address)?.symbol || 'Unknown'})</Label
+			>
+		</div>
 		<Input
-			class="text-center text-lg"
+			class="text-lg"
 			size="lg"
 			type="text"
 			placeholder="Enter vault ID"
