@@ -173,8 +173,11 @@
 	}
 
 	$: if (selectTokens) {
+		console.log(selectTokens);
 		getTokenInfos();
 		getDeposits();
+		getAllTokenInputs();
+		getAllTokenOutputs();
 	}
 
 	$: if (gui) {
@@ -309,7 +312,7 @@
 						{i}
 						label="Input"
 						vault={input}
-						{tokenInfos}
+						bind:tokenInfos
 						vaultIds={inputVaultIds}
 						{gui}
 					/>
@@ -323,7 +326,7 @@
 						{i}
 						label="Output"
 						vault={output}
-						{tokenInfos}
+						bind:tokenInfos
 						vaultIds={outputVaultIds}
 						{gui}
 					/>

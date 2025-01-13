@@ -8,6 +8,7 @@
 	export let gui: DotrainOrderGui;
 	export let selectTokens: Map<string, string>;
 	export let tokenInfos: TokenInfos;
+
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
@@ -31,6 +32,7 @@
 			} catch {
 				checking = false;
 				error = 'Invalid address';
+				selectTokens = gui.getSelectTokens();
 			}
 		}
 	}
