@@ -21,7 +21,6 @@
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import type { AppStoresInterface } from '../../types/appStores';
 
-
 	export let id: string;
 	export let network: string;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
