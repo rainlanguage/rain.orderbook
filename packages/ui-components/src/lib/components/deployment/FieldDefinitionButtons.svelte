@@ -34,15 +34,13 @@
 		gui = gui;
 		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
-
-	$: console.log(currentFieldDefinition);
 </script>
 
-<div class="flex flex-grow flex-col items-center p-8">
+<div class="flex w-full max-w-2xl flex-col gap-6">
 	<DeploymentSectionHeader title={fieldDefinition.name} description={fieldDefinition.description} />
 
-	<div class="flex max-w-3xl flex-wrap justify-center gap-4">
-		{#if fieldDefinition.presets}
+	{#if fieldDefinition.presets}
+		<div class="flex w-full flex-wrap justify-center gap-4">
 			{#each fieldDefinition.presets as preset}
 				<ButtonSelectOption
 					buttonText={preset.name || preset.value}
@@ -50,10 +48,10 @@
 					active={currentFieldDefinition?.value === preset.value}
 				/>
 			{/each}
-		{/if}
-	</div>
+		</div>
+	{/if}
 	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		<div class="mt-8 w-full max-w-md">
+		<div class="w-full">
 			<Input
 				class="text-center text-lg"
 				size="lg"

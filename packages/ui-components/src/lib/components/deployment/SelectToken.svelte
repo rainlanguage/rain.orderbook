@@ -42,7 +42,7 @@
 	}
 </script>
 
-<div class="mb-4 flex w-full max-w-2xl flex-col gap-4">
+<div class="mb-4 flex w-full max-w-2xl flex-col">
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-row items-center gap-6">
 			<Label class="whitespace-nowrap text-xl">{token[0]}</Label>

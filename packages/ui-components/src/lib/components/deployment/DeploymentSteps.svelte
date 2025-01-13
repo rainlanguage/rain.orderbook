@@ -297,7 +297,7 @@
 		<Spinner />
 	{/if}
 	{#if gui}
-		<div class="w-2xl flex flex-col items-center gap-12">
+		<div class="flex max-w-2xl flex-col items-center gap-24 self-center">
 			{#if guiDetails}
 				<div class="mt-16 max-w-2xl text-center">
 					<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
@@ -315,10 +315,11 @@
 						title="Select Tokens"
 						description="Select the tokens that you want to use in your order."
 					/>
-
-					{#each selectTokens.entries() as token}
-						<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
-					{/each}
+					<div class="flex w-full flex-col gap-4">
+						{#each selectTokens.entries() as token}
+							<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
+						{/each}
+					</div>
 				</div>
 			{/if}
 
@@ -331,7 +332,7 @@
 			{/if}
 
 			{#if allDeposits.length > 0}
-				<div class="w-2xl w-full flex-col items-center gap-6">
+				<div class="flex w-full flex-col items-center gap-6">
 					{#each allDeposits as deposit}
 						<DepositButtons bind:deposit {gui} bind:tokenInfos />
 					{/each}
@@ -371,7 +372,7 @@
 				</div>
 			{/if}
 			<div class="w-2xl">
-				<Button class="w-full" size="lg" on:click={handleAddOrder}>Add Order</Button>
+				<Button class="w-full text-2xl" size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 			</div>
 		</div>
 	{/if}

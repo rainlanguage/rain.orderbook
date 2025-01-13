@@ -39,7 +39,7 @@
 	}
 </script>
 
-<div class="mb-4 flex w-full max-w-2xl flex-col gap-4">
+<div class="flex w-full max-w-2xl flex-col gap-6">
 	<DeploymentSectionHeader
 		title={`${tokenName} deposit amount`}
 		description="The amount of tokens you want to deposit"
