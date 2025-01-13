@@ -39,10 +39,13 @@
 	}
 </script>
 
-<div class="flex flex-grow flex-col items-center p-8">
-	<DeploymentSectionHeader title={tokenName} description="Select deposit amount" />
+<div class="mb-4 flex w-full max-w-2xl flex-col gap-4">
+	<DeploymentSectionHeader
+		title={`${tokenName} deposit amount`}
+		description="The amount of tokens you want to deposit"
+	/>
 	{#if deposit.presets}
-		<div class="flex max-w-3xl flex-wrap justify-center gap-4">
+		<div class="flex w-full flex-wrap justify-center gap-4">
 			{#each deposit.presets as preset}
 				<ButtonSelectOption
 					active={currentDeposit?.amount === preset}
@@ -53,13 +56,11 @@
 		</div>
 	{/if}
 
-	<div class="mt-8 w-full max-w-md">
-		<Input
-			class="text-center text-lg"
-			size="lg"
-			placeholder="Enter deposit amount"
-			bind:value={inputValue}
-			on:input={(e) => handleInput(e)}
-		/>
-	</div>
+	<Input
+		class="text-center text-lg"
+		size="lg"
+		placeholder="Enter deposit amount"
+		bind:value={inputValue}
+		on:input={(e) => handleInput(e)}
+	/>
 </div>

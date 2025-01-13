@@ -297,7 +297,7 @@
 		<Spinner />
 	{/if}
 	{#if gui}
-		<div class="flex flex-col items-center gap-6">
+		<div class="w-2xl flex flex-col items-center gap-12">
 			{#if guiDetails}
 				<div class="mt-16 max-w-2xl text-center">
 					<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
@@ -310,57 +310,65 @@
 			{/if}
 
 			{#if selectTokens}
-				<DeploymentSectionHeader
-					title="Select Tokens"
-					description="Select the tokens that you want to use in your order."
-				/>
+				<div class="flex w-full flex-col items-center gap-6">
+					<DeploymentSectionHeader
+						title="Select Tokens"
+						description="Select the tokens that you want to use in your order."
+					/>
 
-				{#each selectTokens.entries() as token}
-					<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
-				{/each}
+					{#each selectTokens.entries() as token}
+						<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
+					{/each}
+				</div>
 			{/if}
 
 			{#if allFieldDefinitions.length > 0}
-				{#each allFieldDefinitions as fieldDefinition}
-					<FieldDefinitionButtons {fieldDefinition} {gui} />
-				{/each}
+				<div class="flex w-full flex-col items-center gap-6">
+					{#each allFieldDefinitions as fieldDefinition}
+						<FieldDefinitionButtons {fieldDefinition} {gui} />
+					{/each}
+				</div>
 			{/if}
 
 			{#if allDeposits.length > 0}
-				{#each allDeposits as deposit}
-					<DepositButtons bind:deposit {gui} bind:tokenInfos />
-				{/each}
+				<div class="w-2xl w-full flex-col items-center gap-6">
+					{#each allDeposits as deposit}
+						<DepositButtons bind:deposit {gui} bind:tokenInfos />
+					{/each}
+				</div>
 			{/if}
 			{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-				<DeploymentSectionHeader
-					title={'Input/Output Vaults'}
-					description={'The vault addresses for the input and output tokens.'}
-				/>
-				{#if allTokenInputs.length > 0}
-					{#each allTokenInputs as input, i}
-						<TokenInputOrOutput
-							{i}
-							label="Input"
-							vault={input}
-							bind:tokenInfos
-							vaultIds={inputVaultIds}
-							{gui}
-						/>
-					{/each}
-				{/if}
+				<div class="flex w-full flex-col items-center gap-6">
+					<DeploymentSectionHeader
+						title={'Input/Output Vaults'}
+						description={'The vault addresses for the input and output tokens.'}
+					/>
+					{#if allTokenInputs.length > 0}
+						{#each allTokenInputs as input, i}
+							<TokenInputOrOutput
+								{i}
+								label="Input"
+								vault={input}
+								bind:tokenInfos
+								vaultIds={inputVaultIds}
+								{gui}
+							/>
+						{/each}
+					{/if}
 
-				{#if allTokenOutputs.length > 0}
-					{#each allTokenOutputs as output, i}
-						<TokenInputOrOutput
-							{i}
-							label="Output"
-							vault={output}
-							bind:tokenInfos
-							vaultIds={outputVaultIds}
-							{gui}
-						/>
-					{/each}
-				{/if}
+					{#if allTokenOutputs.length > 0}
+						{#each allTokenOutputs as output, i}
+							<TokenInputOrOutput
+								{i}
+								label="Output"
+								vault={output}
+								bind:tokenInfos
+								vaultIds={outputVaultIds}
+								{gui}
+							/>
+						{/each}
+					{/if}
+				</div>
 			{/if}
 			<div class="w-2xl">
 				<Button class="w-full" size="lg" on:click={handleAddOrder}>Add Order</Button>
