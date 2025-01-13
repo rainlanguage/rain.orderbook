@@ -9,7 +9,7 @@ use rain_orderbook_app_settings::{
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
-    erc20::{TokenInfo, ERC20},
+    erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -25,6 +25,15 @@ mod state_management;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AvailableDeployments(Vec<GuiDeployment>);
 impl_all_wasm_traits!(AvailableDeployments);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct TokenInfo {
+    pub address: Address,
+    pub decimals: u8,
+    pub name: String,
+    pub symbol: String,
+}
+impl_all_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -107,6 +116,7 @@ impl DotrainOrderGui {
         let token_info =
             if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
                 TokenInfo {
+                    address: token.address,
                     decimals: token.decimals.unwrap(),
                     name: token.label.unwrap(),
                     symbol: token.symbol.unwrap(),
@@ -125,6 +135,7 @@ impl DotrainOrderGui {
                 let onchain_info = erc20.token_info(None).await?;
 
                 TokenInfo {
+                    address: token.address,
                     decimals: token.decimals.unwrap_or(onchain_info.decimals),
                     name: token.label.unwrap_or(onchain_info.name),
                     symbol: token.symbol.unwrap_or(onchain_info.symbol),

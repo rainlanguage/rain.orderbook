@@ -21,10 +21,9 @@ impl DotrainOrderGui {
 
         if let Some(select_tokens) = deployment.select_tokens {
             for key in select_tokens {
-                self.dotrain_order
-                    .orderbook_yaml()
-                    .get_token(&key)
-                    .map_err(|_| GuiError::SelectTokensNotSet)?;
+                if self.dotrain_order.orderbook_yaml().get_token(&key).is_err() {
+                    return Err(GuiError::TokenMustBeSelected(key.clone()));
+                }
             }
         }
 
