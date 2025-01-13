@@ -10,9 +10,9 @@ describe('SelectToken', () => {
 	const mockGui: DotrainOrderGui = {
 		saveSelectTokenAddress: vi.fn().mockResolvedValue(undefined),
 		getSelectTokens: vi.fn().mockReturnValue(new Map([['TOKEN1', '0x123']])),
-		getTokenInfos: vi.fn().mockResolvedValue(new Map([
-			['0x123', { name: 'Test Token', symbol: 'TEST', decimals: 18 }]
-		]))
+		getTokenInfos: vi
+			.fn()
+			.mockResolvedValue(new Map([['0x123', { name: 'Test Token', symbol: 'TEST', decimals: 18 }]]))
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
