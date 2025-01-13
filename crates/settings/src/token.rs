@@ -90,7 +90,7 @@ impl Token {
         }
 
         let address = Token::validate_address(address)?;
-        let decimals = decimals.map(|d| Token::validate_decimals(d)).transpose()?;
+        let decimals = decimals.map(Token::validate_decimals).transpose()?;
         Network::parse_from_yaml(documents.clone(), network_key)?;
 
         let mut document = documents[0]
