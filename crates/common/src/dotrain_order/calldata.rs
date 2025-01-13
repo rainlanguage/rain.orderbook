@@ -45,7 +45,7 @@ impl DotrainOrder {
         &self,
         deployment_name: &str,
         owner: &str,
-        token_deposits: &HashMap<Address, U256>,
+        token_deposits: &HashMap<String, U256>,
     ) -> Result<Vec<ApprovalCalldata>, DotrainOrderCalldataError> {
         let deployment = self.get_deployment(deployment_name)?;
         let orderbook = self.get_orderbook(deployment_name)?;
@@ -53,7 +53,7 @@ impl DotrainOrder {
         let mut calldatas = Vec::new();
 
         for output in &deployment.order.outputs {
-            if let Some(deposit_amount) = token_deposits.get(&output.token.address) {
+            if let Some(deposit_amount) = token_deposits.get(&output.token.key) {
                 let deposit_amount = deposit_amount.to_owned();
                 let deposit_args = DepositArgs {
                     token: output.token.address,
