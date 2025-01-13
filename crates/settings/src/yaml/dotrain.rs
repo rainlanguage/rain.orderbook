@@ -222,12 +222,15 @@ mod tests {
         assert_eq!(order.inputs.len(), 1);
         let input = order.inputs.first().unwrap();
         assert_eq!(
-            *input.token.clone().as_ref(),
-            ob_yaml.get_token("token1").unwrap()
+            *input.token.clone().as_ref().unwrap(),
+            ob_yaml.get_token("token1").unwrap().into()
         );
         assert_eq!(input.vault_id, Some(U256::from(1)));
         let output = order.outputs.first().unwrap();
-        assert_eq!(*output.token.as_ref(), ob_yaml.get_token("token2").unwrap());
+        assert_eq!(
+            *output.token.as_ref().unwrap(),
+            ob_yaml.get_token("token2").unwrap().into()
+        );
         assert_eq!(output.vault_id, Some(U256::from(2)));
         assert_eq!(
             *order.network.as_ref(),
@@ -286,8 +289,8 @@ mod tests {
         assert_eq!(deployment.deposits.len(), 1);
         let deposit = &deployment.deposits[0];
         assert_eq!(
-            *deposit.token.as_ref(),
-            ob_yaml.get_token("token1").unwrap()
+            *deposit.token.as_ref().unwrap(),
+            ob_yaml.get_token("token1").unwrap().into()
         );
         assert_eq!(deposit.presets.len(), 2);
         assert_eq!(deposit.presets[0], "100".to_string());
