@@ -11,9 +11,8 @@ import {
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
-	SelectTokens,
 	TokenDeposit,
-	TokenInfos
+	TokenInfo
 } from '../../dist/types/js_api.js';
 import { getLocal } from 'mockttp';
 
@@ -271,6 +270,60 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
+const dotrainWithoutTokens = `
+networks:
+    some-network:
+        rpc: http://localhost:8085/rpc-url
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+scenarios:
+    some-scenario:
+        deployer: some-deployer
+        bindings:
+            test-binding: 5
+
+orders:
+    some-order:
+      inputs:
+        - token: token1
+      outputs:
+        - token: token2
+      deployer: some-deployer
+      orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+`;
 const dotrainWithGui = `
 ${guiConfig}
 
@@ -340,15 +393,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
     `;
 		const gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'other-deployment');
 
-		const tokenInfos: TokenInfos = gui.getTokenInfos();
-		const token1Address = '0xc2132d05d31c914a87c6611c10748aeb04b58e8f';
-		const token2Address = '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063';
-		assert.equal(tokenInfos.get(token1Address)?.decimals, 6);
-		assert.equal(tokenInfos.get(token1Address)?.name, 'Token 1');
-		assert.equal(tokenInfos.get(token1Address)?.symbol, 'T1');
-		assert.equal(tokenInfos.get(token2Address)?.decimals, 18);
-		assert.equal(tokenInfos.get(token2Address)?.name, 'Token 2');
-		assert.equal(tokenInfos.get(token2Address)?.symbol, 'T2');
+		let token1TokenInfo = await gui.getTokenInfo('token1');
+		let token2TokenInfo = await gui.getTokenInfo('token2');
+		assert.equal(token1TokenInfo.address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+		assert.equal(token1TokenInfo.decimals, 6);
+		assert.equal(token1TokenInfo.name, 'Token 1');
+		assert.equal(token1TokenInfo.symbol, 'T1');
+		assert.equal(token2TokenInfo.address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+		assert.equal(token2TokenInfo.decimals, 18);
+		assert.equal(token2TokenInfo.name, 'Token 2');
+		assert.equal(token2TokenInfo.symbol, 'T2');
 	});
 
 	describe('deposit tests', async () => {
@@ -876,7 +930,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			let testDotrain = `
       ${guiConfig3}
 
-      ${dotrain}
+      ${dotrainWithoutTokens}
       `;
 			let testGui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
 
@@ -961,16 +1015,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			let dotrain3 = `
       ${guiConfig3}
 
-      ${dotrain}
+      ${dotrainWithoutTokens}
       `;
 			gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'other-deployment');
 		});
 
 		it('should get select tokens', async () => {
-			const selectTokens: SelectTokens = gui.getSelectTokens();
-			assert.equal(selectTokens.size, 2);
-			assert.equal(selectTokens.get('token1'), '0x0000000000000000000000000000000000000000');
-			assert.equal(selectTokens.get('token2'), '0x0000000000000000000000000000000000000000');
+			const selectTokens: string[] = gui.getSelectTokens();
+			assert.equal(selectTokens.length, 2);
+			assert.equal(selectTokens[0], 'token1');
+			assert.equal(selectTokens[1], 'token2');
 		});
 
 		it('should throw error if select tokens not set', async () => {
@@ -983,14 +1037,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				);
 			let testGui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
 
-			assert.equal(testGui.getSelectTokens().size, 0);
-			await expect(
-				async () => await testGui.saveSelectTokenAddress('token1', '0x1')
-			).rejects.toThrow('Select tokens not set');
+			assert.equal(testGui.getSelectTokens().length, 0);
+			await expect(async () => await testGui.saveSelectToken('token1', '0x1')).rejects.toThrow(
+				'Select tokens not set'
+			);
 		});
 
 		it('should throw error if token not found', async () => {
-			await expect(async () => await gui.saveSelectTokenAddress('token3', '0x1')).rejects.toThrow(
+			await expect(async () => await gui.saveSelectToken('token3', '0x1')).rejects.toThrow(
 				'Token not found'
 			);
 		});
@@ -1012,45 +1066,41 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			let initialTokenInfo: TokenInfos = await gui.getTokenInfos();
-			assert.equal(initialTokenInfo.size, 0);
+			assert.equal(gui.isSelectTokenSet('token1'), false);
+			assert.equal(gui.isSelectTokenSet('token2'), false);
 
-			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.equal(
-				currentDeployment.deployment.order.inputs[0].token.address,
-				'0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
+			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
+				'Yaml parse error: missing field: token'
 			);
-			assert.equal(
-				currentDeployment.deployment.order.outputs[0].token.address,
-				'0x8f3cf7ad23cd3cadbd9735aff958023239c6a063'
+			await expect(async () => await gui.getTokenInfo('token2')).rejects.toThrow(
+				'Yaml parse error: missing field: token'
 			);
 
-			await gui.saveSelectTokenAddress('token1', '0x6666666666666666666666666666666666666666');
-			await gui.saveSelectTokenAddress('token2', '0x8888888888888888888888888888888888888888');
-			assert.equal(
-				gui.getSelectTokens().get('token1'),
-				'0x6666666666666666666666666666666666666666'
-			);
-			assert.equal(
-				gui.getSelectTokens().get('token2'),
-				'0x8888888888888888888888888888888888888888'
-			);
+			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			await gui.saveSelectToken('token2', '0x8888888888888888888888888888888888888888');
 
-			let tokenInfo: TokenInfos = await gui.getTokenInfos();
-			assert.equal(tokenInfo.size, 2);
+			assert.equal(gui.isSelectTokenSet('token1'), true);
+			assert.equal(gui.isSelectTokenSet('token2'), true);
 
-			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.equal(
-				newCurrentDeployment.deployment.order.inputs[0].token.address,
-				'0x6666666666666666666666666666666666666666'
-			);
-			assert.equal(
-				newCurrentDeployment.deployment.order.outputs[0].token.address,
-				'0x8888888888888888888888888888888888888888'
-			);
+			let tokenInfo: TokenInfo = await gui.getTokenInfo('token1');
+			assert.equal(tokenInfo.name, 'Token 1');
+			assert.equal(tokenInfo.symbol, 'T1');
+			assert.equal(tokenInfo.decimals, 6);
+
+			tokenInfo = await gui.getTokenInfo('token2');
+			assert.equal(tokenInfo.name, 'Teken 2');
+			assert.equal(tokenInfo.symbol, 'T2');
+			assert.equal(tokenInfo.decimals, 18);
 		});
 
-		it('should clear select token address to fallback value', async () => {
+		it('should remove select token', async () => {
+			let dotrain3 = `
+      ${guiConfig3}
+
+      ${dotrainWithoutTokens}
+      `;
+			gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'other-deployment');
+
 			mockServer
 				.forPost('/rpc-url')
 				.once()
@@ -1058,7 +1108,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			// token2 info
 			mockServer
 				.forPost('/rpc-url')
 				.once()
@@ -1067,16 +1116,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			await gui.saveSelectTokenAddress('token1', '0x6666666666666666666666666666666666666666');
-			assert.equal(
-				gui.getSelectTokens().get('token1'),
-				'0x6666666666666666666666666666666666666666'
-			);
+			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
+			assert.equal(gui.isSelectTokenSet('token1'), true);
+			let tokenInfo = await gui.getTokenInfo('token1');
+			assert.equal(tokenInfo.name, 'Token 1');
+			assert.equal(tokenInfo.symbol, 'T1');
+			assert.equal(tokenInfo.decimals, 6);
 
-			gui.clearSelectTokenAddress('token1');
-			assert.equal(
-				gui.getSelectTokens().get('token1'),
-				'0x0000000000000000000000000000000000000000'
+			gui.removeSelectToken('token1');
+			assert.equal(gui.isSelectTokenSet('token1'), false);
+			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
+				'Yaml parse error: missing field: token'
 			);
 		});
 	});
