@@ -26,10 +26,6 @@ mod state_management;
 pub struct AvailableDeployments(Vec<GuiDeployment>);
 impl_all_wasm_traits!(AvailableDeployments);
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
-impl_all_wasm_traits!(TokenInfos);
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -37,8 +33,6 @@ pub struct DotrainOrderGui {
     selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
-    select_tokens: Option<BTreeMap<String, Address>>,
-    onchain_token_info: BTreeMap<Address, TokenInfo>,
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -60,7 +54,6 @@ impl DotrainOrderGui {
     pub async fn choose_deployment(
         dotrain: String,
         deployment_name: String,
-        multicall_address: Option<String>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
@@ -68,44 +61,8 @@ impl DotrainOrderGui {
             .dotrain_yaml()
             .get_gui()?
             .ok_or(GuiError::GuiConfigNotFound)?;
-
-        let (_, gui_deployment) = gui
-            .deployments
-            .into_iter()
-            .find(|(name, _)| name == &deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(deployment_name.clone()))?;
-
-        let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
-            tokens
-                .iter()
-                .map(|token: &String| (token.clone(), Address::ZERO))
-                .collect::<BTreeMap<String, Address>>()
-        });
-
-        let rpc_url = gui_deployment
-            .deployment
-            .order
-            .orderbook
-            .clone()
-            .ok_or(GuiError::OrderbookNotFound)?
-            .network
-            .rpc
-            .clone();
-        let mut onchain_token_info: BTreeMap<Address, TokenInfo> = BTreeMap::new();
-        for token in gui_deployment.deposits.iter() {
-            if onchain_token_info.contains_key(&token.token.address) {
-                continue;
-            }
-
-            if let Some(select_tokens) = &select_tokens {
-                if select_tokens.contains_key(&token.token.key) {
-                    continue;
-                }
-            }
-
-            let erc20 = ERC20::new(rpc_url.clone(), token.token.address);
-            let token_info = erc20.token_info(multicall_address.clone()).await?;
-            onchain_token_info.insert(token.token.address, token_info);
+        if !gui.deployments.contains_key(&deployment_name) {
+            return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
 
         Ok(Self {
@@ -113,8 +70,6 @@ impl DotrainOrderGui {
             selected_deployment: deployment_name.clone(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
-            select_tokens,
-            onchain_token_info,
         })
     }
 
@@ -141,12 +96,42 @@ impl DotrainOrderGui {
         Ok(gui_deployment.clone())
     }
 
-    /// Get all token infos in input and output vaults
+    /// Get token info for a given key
     ///
-    /// Returns a map of token address to [`TokenInfo`]
-    #[wasm_bindgen(js_name = "getTokenInfos")]
-    pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
-        Ok(TokenInfos(self.onchain_token_info.clone()))
+    /// Returns a [`TokenInfo`]
+    #[wasm_bindgen(js_name = "getTokenInfo")]
+    pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
+
+        let token_info =
+            if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
+                TokenInfo {
+                    decimals: token.decimals.unwrap(),
+                    name: token.label.unwrap(),
+                    symbol: token.symbol.unwrap(),
+                }
+            } else {
+                let rpc_url = deployment
+                    .deployment
+                    .order
+                    .orderbook
+                    .clone()
+                    .ok_or(GuiError::OrderbookNotFound)?
+                    .network
+                    .rpc
+                    .clone();
+                let erc20 = ERC20::new(rpc_url, token.address);
+                let onchain_info = erc20.token_info(None).await?;
+
+                TokenInfo {
+                    decimals: token.decimals.unwrap_or(onchain_info.decimals),
+                    name: token.label.unwrap_or(onchain_info.name),
+                    symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                }
+            };
+
+        Ok(token_info)
     }
 }
 
