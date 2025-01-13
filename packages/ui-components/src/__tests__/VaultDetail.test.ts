@@ -3,7 +3,7 @@ import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
-import { readable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 
 // Mock the js_api getVault function
@@ -34,6 +34,8 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 
 	render(VaultDetail, {
 		props: {
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
@@ -55,6 +57,8 @@ test('shows the correct empty message when the query returns no data', async () 
 		props: {
 			id: '100',
 			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme)
 		},
@@ -96,6 +100,8 @@ test('shows the correct data when the query returns data', async () => {
 		props: {
 			id: '100',
 			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme)
 		},
