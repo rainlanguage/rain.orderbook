@@ -35,6 +35,7 @@ orders:
       - token: token2
 scenarios:
   flare:
+    deployer: flare
     orderbook: flare
     runs: 1
     bindings:
