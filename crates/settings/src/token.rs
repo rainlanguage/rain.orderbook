@@ -42,6 +42,8 @@ impl Token {
     }
 
     pub fn update_address(&mut self, address: &str) -> Result<Self, YamlError> {
+        let address = Token::validate_address(address)?;
+
         let mut document = self
             .document
             .write()
@@ -56,7 +58,7 @@ impl Token {
                 {
                     token[&StrictYaml::String("address".to_string())] =
                         StrictYaml::String(address.to_string());
-                    self.address = Token::validate_address(address)?;
+                    self.address = address;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in tokens",

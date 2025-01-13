@@ -13,11 +13,11 @@ impl_all_wasm_traits!(TokenDeposit);
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeposits")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
+        let deployment = self.get_current_deployment()?;
         self.deposits
             .iter()
             .map(|(token, value)| {
-                let gui_deposit = self
-                    .deployment
+                let gui_deposit = deployment
                     .deposits
                     .iter()
                     .find(|dg| dg.token.key == *token)
@@ -46,8 +46,8 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "saveDeposit")]
     pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
-        let gui_deposit = self
-            .deployment
+        let deployment = self.get_current_deployment()?;
+        let gui_deposit = deployment
             .deposits
             .iter()
             .find(|dg| dg.token.key == token)
@@ -76,8 +76,8 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "getDepositPresets")]
     pub fn get_deposit_presets(&self, token: String) -> Result<Vec<String>, GuiError> {
-        let gui_deposit = self
-            .deployment
+        let deployment = self.get_current_deployment()?;
+        let gui_deposit = deployment
             .deposits
             .iter()
             .find(|dg| dg.token.key == token)

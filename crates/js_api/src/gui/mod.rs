@@ -4,7 +4,7 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
     gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
-    Config,
+    yaml::YamlError,
 };
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
@@ -30,11 +30,18 @@ impl_all_wasm_traits!(AvailableDeployments);
 pub struct TokenInfos(#[tsify(type = "Map<string, TokenInfo>")] BTreeMap<Address, TokenInfo>);
 impl_all_wasm_traits!(TokenInfos);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct GuiDetails {
+    name: String,
+    description: String,
+}
+impl_all_wasm_traits!(GuiDetails);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
-    deployment: GuiDeployment,
+    selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
     select_tokens: Option<BTreeMap<String, Address>>,
@@ -47,10 +54,12 @@ impl DotrainOrderGui {
         dotrain: String,
     ) -> Result<AvailableDeployments, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let config = dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        let gui = dotrain_order
+            .dotrain_yaml()
+            .get_gui()?
+            .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(AvailableDeployments(
-            gui_config.deployments.values().cloned().collect(),
+            gui.deployments.values().cloned().collect(),
         ))
     }
 
@@ -62,14 +71,16 @@ impl DotrainOrderGui {
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
-        let config = dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
+        let gui = dotrain_order
+            .dotrain_yaml()
+            .get_gui()?
+            .ok_or(GuiError::GuiConfigNotFound)?;
 
-        let (_, gui_deployment) = gui_config
+        let (_, gui_deployment) = gui
             .deployments
             .into_iter()
             .find(|(name, _)| name == &deployment_name)
-            .ok_or(GuiError::DeploymentNotFound(deployment_name))?;
+            .ok_or(GuiError::DeploymentNotFound(deployment_name.clone()))?;
 
         let select_tokens = gui_deployment.select_tokens.clone().map(|tokens| {
             tokens
@@ -106,7 +117,7 @@ impl DotrainOrderGui {
 
         Ok(Self {
             dotrain_order,
-            deployment: gui_deployment.clone(),
+            selected_deployment: deployment_name.clone(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens,
@@ -114,31 +125,27 @@ impl DotrainOrderGui {
         })
     }
 
-    fn refresh_gui_deployment(&mut self) -> Result<(), GuiError> {
-        let config = self.dotrain_order.config();
-        let gui_config = config.gui.clone().ok_or(GuiError::GuiConfigNotFound)?;
-        let (_, gui_deployment) = gui_config
-            .deployments
-            .into_iter()
-            .find(|(name, _)| name == &self.deployment.key)
-            .ok_or(GuiError::DeploymentNotFound(self.deployment.key.clone()))?;
-        self.deployment = gui_deployment.clone();
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "getDotrainConfig")]
-    pub fn get_dotrain_config(&self) -> Config {
-        self.dotrain_order.config().clone()
-    }
-
     #[wasm_bindgen(js_name = "getGuiConfig")]
-    pub fn get_gui_config(&self) -> Gui {
-        self.dotrain_order.config().gui.clone().unwrap()
+    pub fn get_gui_config(&self) -> Result<Gui, GuiError> {
+        let gui = self
+            .dotrain_order
+            .dotrain_yaml()
+            .get_gui()?
+            .ok_or(GuiError::GuiConfigNotFound)?;
+        Ok(gui)
     }
 
     #[wasm_bindgen(js_name = "getCurrentDeployment")]
-    pub fn get_current_deployment(&self) -> GuiDeployment {
-        self.deployment.clone()
+    pub fn get_current_deployment(&self) -> Result<GuiDeployment, GuiError> {
+        let gui = self.get_gui_config()?;
+        let (_, gui_deployment) = gui
+            .deployments
+            .into_iter()
+            .find(|(name, _)| name == &self.selected_deployment)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.selected_deployment.clone(),
+            ))?;
+        Ok(gui_deployment.clone())
     }
 
     /// Get all token infos in input and output vaults
@@ -147,6 +154,15 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getTokenInfos")]
     pub fn get_token_infos(&self) -> Result<TokenInfos, GuiError> {
         Ok(TokenInfos(self.onchain_token_info.clone()))
+    }
+
+    #[wasm_bindgen(js_name = "getGuiDetails")]
+    pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
+        let gui = self.get_gui_config()?;
+        Ok(GuiDetails {
+            name: gui.name,
+            description: gui.description,
+        })
     }
 }
 
@@ -216,6 +232,8 @@ pub enum GuiError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }
 impl From<GuiError> for JsValue {
     fn from(value: GuiError) -> Self {

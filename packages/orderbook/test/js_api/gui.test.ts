@@ -7,11 +7,11 @@ import {
 	AllowancesResult,
 	ApprovalCalldataResult,
 	AvailableDeployments,
-	Config,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
+	GuiDetails,
 	SelectTokens,
 	TokenDeposit,
 	TokenInfos
@@ -138,6 +138,8 @@ networks:
 
 subgraphs:
     some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
 
 deployers:
     some-deployer:
@@ -166,10 +168,13 @@ tokens:
 
 scenarios:
     some-scenario:
-        network: some-network
         deployer: some-deployer
         bindings:
-            test-binding: "5"
+            test-binding: 5
+        scenarios:
+            sub-scenario:
+                bindings:
+                    another-binding: 300
 
 orders:
     some-order:
@@ -187,10 +192,11 @@ deployments:
         scenario: some-scenario
         order: some-order
     other-deployment:
-        scenario: some-scenario
+        scenario: some-scenario.sub-scenario
         order: some-order
 ---
 #test-binding !
+#another-binding !
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -208,6 +214,8 @@ networks:
 
 subgraphs:
     some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
 
 deployers:
     some-deployer:
@@ -236,8 +244,9 @@ tokens:
 
 scenarios:
     some-scenario:
-        network: some-network
         deployer: some-deployer
+        bindings:
+            test-binding: 5
 
 orders:
     some-order:
@@ -305,9 +314,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			);
 
 		const gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
+
 		const guiConfig = gui.getGuiConfig() as Gui;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
+
+		const guiDetails: GuiDetails = gui.getGuiDetails();
+		assert.equal(guiDetails.name, 'Fixed limit');
+		assert.equal(guiDetails.description, 'Fixed limit order strategy');
 	});
 
 	it('should get token infos', async () => {
@@ -592,7 +606,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_3WNSwoCMRBEZ1REb-FaULrz6-mdR_AKyaQjgxBBZ-HxFey4EKzNq_5Qdeo-kkxkTeRCo3MefYzENoBACVJ49FIgcWRHLhV624Gt-AHZoQSGYBaas1WmqeapXg7Y6wL6jbrzXR4y73DfLk801vlAA0NMY5byb_4NN13TUokArXCtnG9Xqfj9XCk9HMMLsIlnw_0AAAA=';
+			'H4sIAAAAAAAA_3WNTQ5AMBCF_UW4hbWEzJQWt3AF1ZJGUgldOL6FqYXE23zz8_JeFDzKidJYZexaYUgHCDOaxkOf2hVY-s-FrGm56PoBJjkrvfzt33AWeMVEBPCFKdHtm7b4OhMih1rc8yX-NrUAAAA=';
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
@@ -642,34 +656,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
 			assert.equal(deposits[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
-		});
-
-		it('should throw error during deserialize if config is different', async () => {
-			// token1 info
-			mockServer
-				.forPost('/rpc-url')
-				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
-				);
-			// token2 info
-			mockServer
-				.forPost('/rpc-url')
-				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
-				);
-
-			let dotrain2 = `
-${guiConfig2}
-
-${dotrain}
-`;
-			let gui2 = await DotrainOrderGui.chooseDeployment(dotrain2, 'other-deployment');
-			let serialized = gui2.serializeState();
-			expect(() => gui.deserializeState(serialized)).toThrow('Deserialized config mismatch');
 		});
 
 		it('should clear state', async () => {
@@ -840,7 +826,10 @@ ${dotrain}
 			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.deepEqual(
 				currentDeployment.deployment.scenario.bindings,
-				new Map([['test-binding', '10']])
+				new Map([
+					['test-binding', '10'],
+					['another-binding', '300']
+				])
 			);
 		});
 
@@ -882,7 +871,10 @@ ${dotrain}
 			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.deepEqual(
 				currentDeployment.deployment.scenario.bindings,
-				new Map([['test-binding', '0xbeef']])
+				new Map([
+					['test-binding', '0xbeef'],
+					['another-binding', '300']
+				])
 			);
 		});
 
@@ -1029,16 +1021,6 @@ ${dotrain}
 			let initialTokenInfo: TokenInfos = await gui.getTokenInfos();
 			assert.equal(initialTokenInfo.size, 0);
 
-			let dotrainConfig: Config = gui.getDotrainConfig();
-			assert.equal(
-				dotrainConfig.tokens.get('token1')?.address,
-				'0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
-			);
-			assert.equal(
-				dotrainConfig.tokens.get('token2')?.address,
-				'0x8f3cf7ad23cd3cadbd9735aff958023239c6a063'
-			);
-
 			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(
 				currentDeployment.deployment.order.inputs[0].token.address,
@@ -1062,16 +1044,6 @@ ${dotrain}
 
 			let tokenInfo: TokenInfos = await gui.getTokenInfos();
 			assert.equal(tokenInfo.size, 2);
-
-			let newDotrainConfig: Config = gui.getDotrainConfig();
-			assert.equal(
-				newDotrainConfig.tokens.get('token1')?.address,
-				'0x6666666666666666666666666666666666666666'
-			);
-			assert.equal(
-				newDotrainConfig.tokens.get('token2')?.address,
-				'0x8888888888888888888888888888888888888888'
-			);
 
 			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(

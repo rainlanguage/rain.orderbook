@@ -130,11 +130,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 amount price: 16 52;
 #handle-add-order
@@ -150,7 +154,7 @@ amount price: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -244,11 +248,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 amount price: 16 52,
 current-time: call<'some-source>(),
@@ -269,7 +277,7 @@ _: 1;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
