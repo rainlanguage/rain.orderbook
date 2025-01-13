@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import type { Order, OrderAsIO } from '@rainlanguage/orderbook/js_api';
 
-	export let order: Order | OrderAsIO
+	export let order: Order | OrderAsIO;
 	export let subgraphName: string;
 	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 </script>

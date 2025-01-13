@@ -166,11 +166,11 @@
 			<TableBodyCell tdClass="break-all p-2 min-w-48">
 				{#if item.vault.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
-					{#each item.vault.ordersAsInput.slice(0, 3) as order}
+						{#each item.vault.ordersAsInput.slice(0, 3) as order}
 							<HashActiveStatusIndicator
-								order={order}
+								{order}
 								subgraphName={item.subgraphName}
-								updateActiveNetworkAndOrderbook={updateActiveNetworkAndOrderbook}
+								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}
 						{#if item.vault.ordersAsInput.length > 3}...{/if}
@@ -182,9 +182,9 @@
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
 							<HashActiveStatusIndicator
-								order={order}
+								{order}
 								subgraphName={item.subgraphName}
-								updateActiveNetworkAndOrderbook={updateActiveNetworkAndOrderbook}
+								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}
 						{#if item.vault.ordersAsOutput.length > 3}...{/if}
