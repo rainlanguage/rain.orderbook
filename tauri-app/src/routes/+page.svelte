@@ -11,7 +11,7 @@
   </div>
   <div class="flex items-center gap-x-2">
     <Button target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
-      <IconTelegram dark />
+      <IconTelegram />
       <span class="ml-2">Join the community</span>
     </Button>
     <Button target="_blank" href="https://docs.rainlang.xyz/raindex/getting-started"
