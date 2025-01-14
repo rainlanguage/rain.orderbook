@@ -3,6 +3,26 @@
 	import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
 	import { SidebarWebapp } from '@rainlanguage/ui-components';
 	import { colorTheme } from '$lib/darkMode';
+	import { defaultConfig } from 'svelte-wagmi';
+	import { injected, walletConnect } from '@wagmi/connectors';
+	import { flare } from '@wagmi/core/chains';
+	import { browser } from '$app/environment';
+
+	const initWallet = async () => {
+		const erckit = defaultConfig({
+			autoConnect: true,
+			appName: 'cyclo',
+			walletConnectProjectId: 'a68d9b4020ecec5fd5d32dcd4008e7f4',
+			chains: [flare],
+			connectors: [injected(), walletConnect({ projectId: 'a68d9b4020ecec5fd5d32dcd4008e7f4' })]
+		});
+		await erckit.init();
+	};
+
+	$: if (browser && window.navigator) {
+		initWallet();
+	}
+
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {

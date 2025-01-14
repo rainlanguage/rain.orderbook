@@ -4,9 +4,9 @@
 		SidebarGroup,
 		SidebarItem,
 		SidebarWrapper,
-		SidebarBrand,
-		Button
+		SidebarBrand
 	} from 'flowbite-svelte';
+	import WalletConnect from './WalletConnect.svelte';
 	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
 	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
 	import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
@@ -68,7 +68,7 @@
 			</SidebarItem>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<Button>Connect Wallet</Button>
+			<WalletConnect />
 		</SidebarGroup>
 		<SidebarGroup border>
 			<SidebarItem label="Settings" href="/settings">

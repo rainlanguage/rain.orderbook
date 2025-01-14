@@ -2,6 +2,10 @@ import type { ConfigSource } from '$lib/typeshare/config';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
+import { type Config } from '@wagmi/core';
+import { mockWeb3Config } from '../mockWeb3Config';
+
+
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
@@ -14,6 +18,10 @@ const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
 const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
+const mockSignerAddressWritable = writable<string>('');
+const mockChainIdWritable = writable<number>(0);
+const mockConnectedWritable = writable<boolean>(false);
+const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 
 export const mockWalletAddressMatchesOrBlankStore = {
 	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
@@ -88,4 +96,29 @@ export const mockSubgraphUrlStore = {
 	subscribe: mockSubgraphUrlWritable.subscribe,
 	set: mockSubgraphUrlWritable.set,
 	mockSetSubscribeValue: (value: string): void => mockSubgraphUrlWritable.set(value)
+};
+
+export const mockSignerAddressStore = {
+	subscribe: mockSignerAddressWritable.subscribe,
+	set: mockSignerAddressWritable.set,
+	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value)
+};
+
+export const mockChainIdStore = {
+	subscribe: mockChainIdWritable.subscribe,
+	set: mockChainIdWritable.set,
+	mockSetSubscribeValue: (value: number): void => mockChainIdWritable.set(value)
+};
+
+
+export const mockConnectedStore = {
+	subscribe: mockConnectedWritable.subscribe,
+	set: mockConnectedWritable.set,
+	mockSetSubscribeValue: (value: boolean): void => mockConnectedWritable.set(value)
+};
+
+export const mockWagmiConfigStore = {
+	subscribe: mockWagmiConfigWritable.subscribe,
+	set: mockWagmiConfigWritable.set,
+	mockSetSubscribeValue: (value: Config): void => mockWagmiConfigWritable.set(value)
 };
