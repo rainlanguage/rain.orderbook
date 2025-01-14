@@ -39,7 +39,9 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme)
+			lightweightChartsTheme: readable(darkChartTheme),
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00')
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -60,7 +62,9 @@ test('shows the correct empty message when the query returns no data', async () 
 			activeNetworkRef: writable('mainnet'),
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme)
+			lightweightChartsTheme: readable(darkChartTheme),
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00')
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -103,7 +107,9 @@ test('shows the correct data when the query returns data', async () => {
 			activeNetworkRef: writable('mainnet'),
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme)
+			lightweightChartsTheme: readable(darkChartTheme),
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00')
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});

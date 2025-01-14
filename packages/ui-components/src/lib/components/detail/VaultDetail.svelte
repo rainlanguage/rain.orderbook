@@ -13,12 +13,13 @@
 	import { createQuery } from '@tanstack/svelte-query';
 
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
+	import type { AppStoresInterface } from '../../types/appStores';
 
 	export let id: string;
 	export let network: string;
@@ -29,9 +30,10 @@
 	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
 		undefined;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
+	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let activeNetworkRef: Writable<string | undefined>;
-	export let activeOrderbookRef: Writable<string | undefined>;
+
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
 	$: vaultDetailQuery = createQuery({

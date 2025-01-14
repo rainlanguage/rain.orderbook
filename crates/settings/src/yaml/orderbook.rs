@@ -40,12 +40,12 @@ impl YamlParsable for OrderbookYaml {
         }
 
         if validate {
-            Network::parse_all_from_yaml(documents.clone())?;
-            Token::parse_all_from_yaml(documents.clone())?;
-            Subgraph::parse_all_from_yaml(documents.clone())?;
-            Orderbook::parse_all_from_yaml(documents.clone())?;
-            Deployer::parse_all_from_yaml(documents.clone())?;
-            Metaboard::parse_all_from_yaml(documents.clone())?;
+            Network::parse_all_from_yaml(documents.clone(), None)?;
+            Token::parse_all_from_yaml(documents.clone(), None)?;
+            Subgraph::parse_all_from_yaml(documents.clone(), None)?;
+            Orderbook::parse_all_from_yaml(documents.clone(), None)?;
+            Deployer::parse_all_from_yaml(documents.clone(), None)?;
+            Metaboard::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(OrderbookYaml { documents })
@@ -58,54 +58,54 @@ impl YamlParsable for OrderbookYaml {
 
 impl OrderbookYaml {
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let networks = Network::parse_all_from_yaml(self.documents.clone())?;
+        let networks = Network::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network(&self, key: &str) -> Result<Network, YamlError> {
-        Network::parse_from_yaml(self.documents.clone(), key)
+        Network::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let tokens = Token::parse_all_from_yaml(self.documents.clone())?;
+        let tokens = Token::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(tokens.keys().cloned().collect())
     }
     pub fn get_token(&self, key: &str) -> Result<Token, YamlError> {
-        Token::parse_from_yaml(self.documents.clone(), key)
+        Token::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = Subgraph::parse_all_from_yaml(self.documents.clone())?;
+        let subgraphs = Subgraph::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(subgraphs.keys().cloned().collect())
     }
     pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
-        Subgraph::parse_from_yaml(self.documents.clone(), key)
+        Subgraph::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orderbooks = Orderbook::parse_all_from_yaml(self.documents.clone())?;
+        let orderbooks = Orderbook::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orderbooks.keys().cloned().collect())
     }
     pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
-        Orderbook::parse_from_yaml(self.documents.clone(), key)
+        Orderbook::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = Metaboard::parse_all_from_yaml(self.documents.clone())?;
+        let metaboards = Metaboard::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(metaboards.keys().cloned().collect())
     }
     pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
-        Metaboard::parse_from_yaml(self.documents.clone(), key)
+        Metaboard::parse_from_yaml(self.documents.clone(), key, None)
     }
     pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
         Metaboard::add_record_to_yaml(self.documents[0].clone(), key, value)
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployers = Deployer::parse_all_from_yaml(self.documents.clone())?;
+        let deployers = Deployer::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(deployers.keys().cloned().collect())
     }
     pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
-        Deployer::parse_from_yaml(self.documents.clone(), key)
+        Deployer::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_sentry(&self) -> Result<bool, YamlError> {
