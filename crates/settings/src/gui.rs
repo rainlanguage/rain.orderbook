@@ -306,10 +306,32 @@ impl YamlParseableValue for Gui {
                 for (deployment_name, deployment_yaml) in deployments {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let deployment =
-                        Deployment::parse_from_yaml(documents.clone(), &deployment_name, None)?;
+                    let mut context = Context::new();
 
-                    let context = Context::with_order(deployment.order.clone());
+                    let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
+                            Some(tokens) => Some(
+                                tokens
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(select_token_index, select_token_value)| {
+                                        Ok(select_token_value.as_str().ok_or(YamlError::ParseError(format!(
+                                            "select-token value must be a string for select-token index: {select_token_index} in gui deployment: {deployment_name}",
+                                        )))?.to_string())
+                                    })
+                                    .collect::<Result<Vec<_>, YamlError>>()?,
+                            ),
+                            None => None,
+                        };
+                    if let Some(ref select_tokens) = select_tokens {
+                        context.add_select_tokens(select_tokens.clone());
+                    }
+
+                    let deployment = Deployment::parse_from_yaml(
+                        documents.clone(),
+                        &deployment_name,
+                        Some(&context),
+                    )?;
+                    context.add_order(deployment.order.clone());
 
                     let name = require_string(
                         deployment_yaml,
@@ -424,21 +446,6 @@ impl YamlParseableValue for Gui {
                         Ok(gui_field_definition)
                     })
                     .collect::<Result<Vec<_>, YamlError>>()?;
-
-                    let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
-                        Some(tokens) => Some(
-                            tokens
-                                .iter()
-                                .enumerate()
-                                .map(|(select_token_index, select_token_value)| {
-                                    Ok(select_token_value.as_str().ok_or(YamlError::ParseError(format!(
-                                        "select-token value must be a string for select-token index: {select_token_index} in gui deployment: {deployment_name}",
-                                    )))?.to_string())
-                                })
-                                .collect::<Result<Vec<_>, YamlError>>()?,
-                        ),
-                        None => None,
-                    };
 
                     let gui_deployment = GuiDeployment {
                         document: document.clone(),

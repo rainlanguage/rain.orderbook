@@ -569,4 +569,94 @@ mod tests {
             Some("With token symbol WETH".to_string())
         );
     }
+
+    #[test]
+    fn test_parse_orders_missing_token() {
+        let yaml_prefix = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: value1
+deployments:
+    deployment1:
+        order: order1
+        scenario: scenario1
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token-one
+                  presets:
+                    - 1
+                - token: token-two
+                  presets:
+                    - 1
+                - token: token-three
+                  presets:
+                    - 1
+            fields:
+                - binding: key1
+                  name: test
+                  presets:
+                    - value: 1
+            select-tokens:
+                - token-one
+                - token-two
+"#;
+        let missing_input_token_yaml = format!(
+            "{yaml_prefix}
+orders:
+    order1:
+        inputs:
+            - token: token-three
+        outputs:
+            - token: token-two
+            - token: token-three
+        "
+        );
+        let missing_output_token_yaml = format!(
+            "{yaml_prefix}
+orders:
+    order1:
+        inputs:
+            - token: token-one
+            - token: token-two
+        outputs:
+            - token: token-three
+        "
+        );
+
+        let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false).unwrap();
+        let error = dotrain_yaml.get_gui().unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "yaml data for token: token-three not found in input index: 0 in order: order1"
+                    .to_string()
+            )
+        );
+
+        let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
+        let error = dotrain_yaml.get_gui().unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "yaml data for token: token-three not found in output index: 0 in order: order1"
+                    .to_string()
+            )
+        );
+    }
 }
