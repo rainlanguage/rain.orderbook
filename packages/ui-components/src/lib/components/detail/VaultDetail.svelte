@@ -18,7 +18,7 @@
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
-	import HashActiveStatusIndicator from '../HashActiveStatusIndicator.svelte';
+	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 
 	export let id: string;
 	export let network: string;
@@ -131,7 +131,8 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<HashActiveStatusIndicator
+							<OrderOrVaultHash
+								type="orders"
 								{order}
 								subgraphName={order.subgraphName}
 								{updateActiveNetworkAndOrderbook}
@@ -150,7 +151,8 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<HashActiveStatusIndicator
+							<OrderOrVaultHash
+								type="orders"
 								{order}
 								subgraphName={order.subgraphName}
 								{updateActiveNetworkAndOrderbook}

@@ -5,7 +5,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
-	import HashActiveStatusIndicator from '../HashActiveStatusIndicator.svelte';
+	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
@@ -167,7 +167,8 @@
 				{#if item.vault.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsInput.slice(0, 3) as order}
-							<HashActiveStatusIndicator
+							<OrderOrVaultHash
+								type="orders"
 								{order}
 								subgraphName={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}
@@ -181,7 +182,8 @@
 				{#if item.vault.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
-							<HashActiveStatusIndicator
+							<OrderOrVaultHash
+								type="orders"
 								{order}
 								subgraphName={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}

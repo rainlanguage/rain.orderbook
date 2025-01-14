@@ -1,13 +1,13 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
-import HashActiveStatusIndicator from '../lib/components/HashActiveStatusIndicator.svelte';
+import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
 import { goto } from '$app/navigation';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-describe('HashActiveStatusIndicator', () => {
+describe('OrderOrVaultHash', () => {
 	const mockOrder = {
 		id: '123',
 		orderHash: '0x123abc',
@@ -23,7 +23,7 @@ describe('HashActiveStatusIndicator', () => {
 	const mockUpdateFn = vi.fn();
 
 	it('renders with active order', () => {
-		const { getByTestId } = render(HashActiveStatusIndicator, {
+		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				order: mockOrder,
 				subgraphName: mockSubgraphName,
@@ -38,7 +38,7 @@ describe('HashActiveStatusIndicator', () => {
 	});
 
 	it('renders with inactive order', () => {
-		const { getByTestId } = render(HashActiveStatusIndicator, {
+		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				order: mockInactiveOrder,
 				subgraphName: mockSubgraphName,
@@ -51,7 +51,7 @@ describe('HashActiveStatusIndicator', () => {
 	});
 
 	it('handles click event correctly', async () => {
-		const { getByTestId } = render(HashActiveStatusIndicator, {
+		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				order: mockOrder,
 				subgraphName: mockSubgraphName,
