@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::RwLock;
 use std::{collections::HashMap, sync::Arc};
+use strict_yaml_rust::strict_yaml::Hash;
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
@@ -74,6 +75,110 @@ impl Token {
         }
 
         Ok(self.clone())
+    }
+
+    pub fn add_record_to_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        key: &str,
+        network_key: &str,
+        address: &str,
+        decimals: Option<&str>,
+        label: Option<&str>,
+        symbol: Option<&str>,
+    ) -> Result<(), YamlError> {
+        if Token::parse_from_yaml(documents.clone(), key, None).is_ok() {
+            return Err(YamlError::KeyShadowing(key.to_string()));
+        }
+
+        let address = Token::validate_address(address)?;
+        let decimals = decimals.map(Token::validate_decimals).transpose()?;
+        Network::parse_from_yaml(documents.clone(), network_key, None)?;
+
+        let mut document = documents[0]
+            .write()
+            .map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if !document_hash.contains_key(&StrictYaml::String("tokens".to_string()))
+                || document_hash
+                    .get_mut(&StrictYaml::String("tokens".to_string()))
+                    .is_none()
+            {
+                document_hash.insert(
+                    StrictYaml::String("tokens".to_string()),
+                    StrictYaml::Hash(Hash::new()),
+                );
+            }
+
+            if let Some(StrictYaml::Hash(ref mut tokens)) =
+                document_hash.get_mut(&StrictYaml::String("tokens".to_string()))
+            {
+                if tokens.contains_key(&StrictYaml::String(key.to_string())) {
+                    return Err(YamlError::KeyShadowing(key.to_string()));
+                }
+
+                let mut token_hash = Hash::new();
+                token_hash.insert(
+                    StrictYaml::String("network".to_string()),
+                    StrictYaml::String(network_key.to_string()),
+                );
+                token_hash.insert(
+                    StrictYaml::String("address".to_string()),
+                    StrictYaml::String(address.to_string()),
+                );
+                if let Some(decimals) = decimals {
+                    token_hash.insert(
+                        StrictYaml::String("decimals".to_string()),
+                        StrictYaml::String(decimals.to_string()),
+                    );
+                }
+                if let Some(label) = label {
+                    token_hash.insert(
+                        StrictYaml::String("label".to_string()),
+                        StrictYaml::String(label.to_string()),
+                    );
+                }
+                if let Some(symbol) = symbol {
+                    token_hash.insert(
+                        StrictYaml::String("symbol".to_string()),
+                        StrictYaml::String(symbol.to_string()),
+                    );
+                }
+
+                tokens.insert(
+                    StrictYaml::String(key.to_string()),
+                    StrictYaml::Hash(token_hash),
+                );
+            } else {
+                return Err(YamlError::ParseError("missing field: token".to_string()));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(())
+    }
+
+    pub fn remove_record_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        key: &str,
+    ) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+
+            if let StrictYaml::Hash(ref mut document_hash) = *document_write {
+                if let Some(StrictYaml::Hash(ref mut tokens)) =
+                    document_hash.get_mut(&StrictYaml::String("tokens".to_string()))
+                {
+                    if tokens.contains_key(&StrictYaml::String(key.to_string())) {
+                        tokens.remove(&StrictYaml::String(key.to_string()));
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        Err(YamlError::KeyNotFound(key.to_string()))
     }
 }
 impl YamlParsableHash for Token {
