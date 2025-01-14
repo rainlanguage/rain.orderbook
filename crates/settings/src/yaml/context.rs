@@ -5,6 +5,7 @@ use thiserror::Error;
 #[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<Order>>,
+    pub select_tokens: Option<Vec<String>>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -35,6 +36,22 @@ pub trait OrderContext {
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
 }
 
+pub trait SelectTokensContext {
+    fn select_tokens(&self) -> Option<&Vec<String>>;
+
+    fn is_select_token(&self, key: &str) -> bool {
+        self.select_tokens()
+            .map(|tokens| tokens.iter().any(|t| t == key))
+            .unwrap_or(false)
+    }
+}
+
+impl SelectTokensContext for Context {
+    fn select_tokens(&self) -> Option<&Vec<String>> {
+        self.select_tokens.as_ref()
+    }
+}
+
 impl OrderContext for Context {
     fn order(&self) -> Option<&Arc<Order>> {
         self.order.as_ref()
@@ -53,7 +70,7 @@ impl OrderContext for Context {
 
         match parts.get(1) {
             Some(&"token") => match &io.token {
-                Some(token) => self.resolve_token_path(&token, &parts[2..]),
+                Some(token) => self.resolve_token_path(token, &parts[2..]),
                 None => Err(ContextError::PropertyNotFound("token".to_string())),
             },
             Some(&"vault-id") => match &io.vault_id {
@@ -86,11 +103,20 @@ impl OrderContext for Context {
 
 impl Context {
     pub fn new() -> Self {
-        Self { order: None }
+        Self {
+            order: None,
+            select_tokens: None,
+        }
     }
 
-    pub fn with_order(order: Arc<Order>) -> Self {
-        Self { order: Some(order) }
+    pub fn add_order(&mut self, order: Arc<Order>) -> &mut Self {
+        self.order = Some(order);
+        self
+    }
+
+    pub fn add_select_tokens(&mut self, select_tokens: Vec<String>) -> &mut Self {
+        self.select_tokens = Some(select_tokens);
+        self
     }
 
     fn resolve_path(&self, path: &str) -> Result<String, ContextError> {
@@ -163,7 +189,8 @@ mod tests {
     #[test]
     fn test_context_interpolation() {
         let order = setup_test_order_with_vault_id();
-        let context = Context::with_order(order.clone());
+        let mut context = Context::new();
+        context.add_order(order.clone());
 
         // Test basic interpolation
         assert_eq!(

@@ -33,7 +33,7 @@ impl_all_wasm_traits!(Deployment);
 impl YamlParsableHash for Deployment {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployments = HashMap::new();
 
@@ -53,10 +53,11 @@ impl YamlParsableHash for Deployment {
                                 "order string missing in deployment: {deployment_key}"
                             )),
                         )?,
-                        None,
+                        context,
                     )?;
 
-                    let context = Context::with_order(Arc::new(order.clone()));
+                    let mut context = Context::new();
+                    context.add_order(Arc::new(order.clone()));
 
                     let scenario = Scenario::parse_from_yaml(
                         documents.clone(),

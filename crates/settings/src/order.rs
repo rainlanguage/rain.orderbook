@@ -10,8 +10,9 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::Context, default_document, optional_string, require_hash, require_string, require_vec,
-    YamlError, YamlParsableHash,
+    context::{Context, SelectTokensContext},
+    default_document, optional_string, require_hash, require_string, require_vec, YamlError,
+    YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -44,10 +45,10 @@ pub struct Order {
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
     #[typeshare(typescript(type = "OrderIO[]"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderIO[]"))]
     pub inputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "OrderIO[]"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "Vault[]"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderIO[]"))]
     pub outputs: Vec<OrderIO>,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
@@ -227,7 +228,7 @@ impl Order {
 impl YamlParsableHash for Order {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
@@ -309,6 +310,12 @@ impl YamlParsableHash for Order {
                             } else {
                                 network = Some(token.network.clone());
                             }
+                        } else if let Some(context) = context {
+                            if !context.is_select_token(&token_name) {
+                                return Err(YamlError::ParseError(format!(
+                                    "yaml data for token: {token_name} not found in input index: {i} in order: {order_key}"
+                                )));
+                            }
                         }
 
                         let vault_id = match optional_string(input, "vault-id") {
@@ -349,6 +356,12 @@ impl YamlParsableHash for Order {
                                 }
                             } else {
                                 network = Some(token.network.clone());
+                            }
+                        } else if let Some(context) = context {
+                            if !context.is_select_token(&token_name) {
+                                return Err(YamlError::ParseError(format!(
+                                    "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
+                                )));
                             }
                         }
 
