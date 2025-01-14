@@ -18,13 +18,6 @@ deployers:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
     network: flare
-tokens:
-  input:
-    network: flare
-    address: "0x0000000000000000000000000000000000000000"
-  output:
-    network: flare
-    address: "0x0000000000000000000000000000000000000000"
 orders:
   flare-input-output:
     orderbook: flare
@@ -66,7 +59,7 @@ gui:
       fields:
         - binding: io-ratio
           name: Input to output ratio
-          description: How many ${order.inputs.0.token.address} do you want to have per one ${order.outputs.0.token.address} output?
+          description: How many do you want to have per one output?
         
       select-tokens:
         - input

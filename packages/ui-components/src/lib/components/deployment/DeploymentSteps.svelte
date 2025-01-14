@@ -186,25 +186,29 @@
 		}
 	}
 
-	$: if (selectTokens) {
-		// getTokenInfos();
-		getDeposits();
-		getAllTokenInputs();
-		getAllTokenOutputs();
-		getAllFieldDefinitions();
+	let allTokensSelected: boolean = false;
+	function checkTokensAreSelected() {
+		console.log('checking the tokens');
+		if (selectTokens.every((t) => gui.isSelectTokenSet(t))) {
+			allTokensSelected = true;
+		} else {
+			allTokensSelected = false;
+		}
+	}
 
-		console.log('select tokens', selectTokens);
+	$: if (selectTokens) {
+		checkTokensAreSelected();
 	}
 
 	$: if (gui) {
 		error = null;
-		// getTokenInfos();
 		getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
 		getGuiDetails();
+		checkTokensAreSelected();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -319,63 +323,66 @@
 					/>
 					<div class="flex w-full flex-col gap-4">
 						{#each selectTokens as tokenKey}
-							<SelectToken {tokenKey} {gui} bind:selectTokens bind:tokenInfos />
+							<SelectToken {tokenKey} {gui} bind:selectTokens />
 						{/each}
 					</div>
 				</div>
 			{/if}
-
-			{#if allFieldDefinitions.length > 0}
-				<div class="flex w-full flex-col items-center gap-6">
-					{#each allFieldDefinitions as fieldDefinition}
-						<FieldDefinitionButtons {fieldDefinition} {gui} />
-					{/each}
-				</div>
-			{/if}
-
-			{#if allDeposits.length > 0}
-				<div class="flex w-full flex-col items-center gap-6">
-					{#each allDeposits as deposit}
-						<DepositButtons bind:deposit {gui} bind:tokenInfos />
-					{/each}
-				</div>
-			{/if}
-			{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-				<div class="flex w-full flex-col items-center gap-6">
-					<DeploymentSectionHeader
-						title={'Input/Output Vaults'}
-						description={'The vault addresses for the input and output tokens.'}
-					/>
-					{#if allTokenInputs.length > 0}
-						{#each allTokenInputs as input, i}
-							<TokenInputOrOutput
-								{i}
-								label="Input"
-								vault={input}
-								bind:tokenInfos
-								vaultIds={inputVaultIds}
-								{gui}
-							/>
+			{#if allTokensSelected}
+				{#if allFieldDefinitions.length > 0}
+					<div class="flex w-full flex-col items-center gap-6">
+						{#each allFieldDefinitions as fieldDefinition}
+							<FieldDefinitionButtons {fieldDefinition} {gui} />
 						{/each}
-					{/if}
+					</div>
+				{/if}
 
-					{#if allTokenOutputs.length > 0}
-						{#each allTokenOutputs as output, i}
-							<TokenInputOrOutput
-								{i}
-								label="Output"
-								vault={output}
-								bind:tokenInfos
-								vaultIds={outputVaultIds}
-								{gui}
-							/>
+				{#if allDeposits.length > 0}
+					<div class="flex w-full flex-col items-center gap-6">
+						{#each allDeposits as deposit}
+							<DepositButtons bind:deposit {gui} bind:tokenInfos />
 						{/each}
-					{/if}
+					</div>
+				{/if}
+				{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+					<div class="flex w-full flex-col items-center gap-6">
+						<DeploymentSectionHeader
+							title={'Input/Output Vaults'}
+							description={'The vault addresses for the input and output tokens.'}
+						/>
+						{#if allTokenInputs.length > 0}
+							{#each allTokenInputs as input, i}
+								<TokenInputOrOutput
+									{i}
+									label="Input"
+									vault={input}
+									bind:tokenInfos
+									vaultIds={inputVaultIds}
+									{gui}
+								/>
+							{/each}
+						{/if}
+
+						{#if allTokenOutputs.length > 0}
+							{#each allTokenOutputs as output, i}
+								<TokenInputOrOutput
+									{i}
+									label="Output"
+									vault={output}
+									bind:tokenInfos
+									vaultIds={outputVaultIds}
+									{gui}
+								/>
+							{/each}
+						{/if}
+					</div>
+				{/if}
+				<div class="w-2xl">
+					<Button class="w-full text-2xl" size="lg" on:click={handleAddOrder}
+						>Deploy Strategy</Button
+					>
 				</div>
 			{/if}
-			<div class="w-2xl">
-				<Button class="w-full text-2xl" size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-			</div>
 		</div>
 	{/if}
 {/if}

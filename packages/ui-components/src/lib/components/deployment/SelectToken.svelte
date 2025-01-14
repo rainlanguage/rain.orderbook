@@ -29,14 +29,14 @@
 				error = '';
 				selectTokens = gui.getSelectTokens();
 				gui = gui;
-				tokenInfo = gui.getTokenInfo(tokenKey);
+				tokenInfo = await gui.getTokenInfo(tokenKey);
 				console.log('INFO!', tokenInfo);
 				checking = false;
 			} catch (e) {
-				// gui.removeSelectToken(token[1]);
 				console.error(e);
 				checking = false;
 				error = 'Invalid address';
+				gui.removeSelectToken(tokenKey);
 				selectTokens = gui.getSelectTokens();
 			}
 		}
@@ -50,7 +50,7 @@
 <div class="mb-4 flex w-full max-w-2xl flex-col">
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-row items-center gap-6">
-			<Label class="whitespace-nowrap text-xl">{tokenKey}, {tokenKey}</Label>
+			<Label class="whitespace-nowrap text-xl">{tokenKey}</Label>
 			{#if checking}
 				<div class="flex h-5 flex-row items-center gap-2">
 					<Spinner class="h-5 w-5" />
