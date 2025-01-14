@@ -1,4 +1,6 @@
-use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -28,6 +30,7 @@ impl Subgraph {
 impl YamlParsableHash for Subgraph {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Subgraph>, YamlError> {
         let mut subgraphs = HashMap::new();
 
@@ -96,7 +99,7 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: subgraphs".to_string())
@@ -107,7 +110,7 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -120,7 +123,7 @@ subgraphs:
     TestSubgraph:
         - https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -132,7 +135,7 @@ subgraphs:
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = Subgraph::parse_all_from_yaml(vec![get_document(yaml)]).unwrap();
+        let result = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
     }
@@ -149,9 +152,11 @@ subgraphs:
     subgraph-one: https://api.thegraph.com/subgraphs/name/one
     subgraph-two: https://api.thegraph.com/subgraphs/name/two
 "#;
-        let subgraphs =
-            Subgraph::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap();
+        let subgraphs = Subgraph::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap();
 
         assert_eq!(subgraphs.len(), 4);
         assert_eq!(
@@ -183,9 +188,11 @@ subgraphs:
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/mainnet
 "#;
-        let error =
-            Subgraph::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap_err();
+        let error = Subgraph::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
     }
 }
