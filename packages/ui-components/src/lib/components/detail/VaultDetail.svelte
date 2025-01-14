@@ -20,7 +20,6 @@
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import { page } from '$app/stores';
 
 	export let id: string;
 	export let network: string;
