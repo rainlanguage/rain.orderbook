@@ -340,7 +340,7 @@ impl YamlParseableValue for Gui {
                             Some(format!(
                                 "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
                             )),
-                        )?, None)?;
+                        )?, None);
 
                         let presets = require_vec(
                             deposit_value,

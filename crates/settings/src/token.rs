@@ -86,13 +86,13 @@ impl Token {
         label: Option<&str>,
         symbol: Option<&str>,
     ) -> Result<(), YamlError> {
-        if Token::parse_from_yaml(documents.clone(), key).is_ok() {
+        if Token::parse_from_yaml(documents.clone(), key, None).is_ok() {
             return Err(YamlError::KeyShadowing(key.to_string()));
         }
 
         let address = Token::validate_address(address)?;
         let decimals = decimals.map(Token::validate_decimals).transpose()?;
-        Network::parse_from_yaml(documents.clone(), network_key)?;
+        Network::parse_from_yaml(documents.clone(), network_key, None)?;
 
         let mut document = documents[0]
             .write()
