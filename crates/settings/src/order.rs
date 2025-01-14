@@ -10,8 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    default_document, optional_string, require_hash, require_string, require_vec, YamlError,
-    YamlParsableHash,
+    context::Context, default_document, optional_string, require_hash, require_string, require_vec,
+    YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -227,6 +227,7 @@ impl Order {
 impl YamlParsableHash for Order {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
@@ -244,6 +245,7 @@ impl YamlParsableHash for Order {
                             let deployer = Arc::new(Deployer::parse_from_yaml(
                                 documents.clone(),
                                 &deployer_name,
+                                None,
                             )?);
                             if let Some(n) = &network {
                                 if deployer.network != *n {
@@ -264,6 +266,7 @@ impl YamlParsableHash for Order {
                             let orderbook = Arc::new(Orderbook::parse_from_yaml(
                                 documents.clone(),
                                 &orderbook_name,
+                                None,
                             )?);
                             if let Some(n) = &network {
                                 if orderbook.network != *n {
@@ -294,7 +297,7 @@ impl YamlParsableHash for Order {
                                 "token string missing in input index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name);
+                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
                         if let Ok(ref token) = token {
                             if let Some(n) = &network {
@@ -335,7 +338,7 @@ impl YamlParsableHash for Order {
                                 "token string missing in output index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name);
+                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
                         if let Ok(ref token) = token {
                             if let Some(n) = &network {
@@ -704,7 +707,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: orders".to_string())
@@ -714,7 +717,7 @@ test: test
 orders:
     order1:
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("inputs list missing in order: order1".to_string())
@@ -726,7 +729,7 @@ orders:
         inputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -748,7 +751,7 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("outputs list missing in order: order1".to_string())
@@ -770,7 +773,7 @@ orders:
         outputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -816,7 +819,7 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let orders = Order::parse_all_from_yaml(documents).unwrap();
+        let orders = Order::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(orders.len(), 2);
         assert!(orders.contains_key("OrderOne"));
@@ -863,7 +866,7 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Order::parse_all_from_yaml(documents).unwrap_err();
+        let error = Order::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
     }

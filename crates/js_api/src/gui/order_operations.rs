@@ -201,6 +201,7 @@ impl DotrainOrderGui {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
         self.populate_vault_ids(&deployment)?;
+        let deployment = self.get_current_deployment()?;
 
         let token_deposits = self
             .get_vaults_and_deposits(&deployment)
@@ -236,6 +237,7 @@ impl DotrainOrderGui {
         self.check_select_tokens()?;
         self.populate_vault_ids(&deployment)?;
         self.update_config_source_bindings(&deployment)?;
+        let deployment = self.get_current_deployment()?;
 
         let calldata = self
             .dotrain_order
@@ -252,6 +254,7 @@ impl DotrainOrderGui {
         self.check_select_tokens()?;
         self.populate_vault_ids(&deployment)?;
         self.update_config_source_bindings(&deployment)?;
+        let deployment = self.get_current_deployment()?;
 
         let token_deposits = self
             .get_vaults_and_deposits(&deployment)

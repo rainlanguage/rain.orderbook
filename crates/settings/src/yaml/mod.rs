@@ -1,3 +1,4 @@
+pub mod context;
 pub mod dotrain;
 pub mod orderbook;
 
@@ -7,6 +8,7 @@ use crate::{
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
+use context::{Context, ContextError};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -41,13 +43,15 @@ pub trait YamlParsable: Sized {
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
     fn parse_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         key: &str,
+        context: Option<&Context>,
     ) -> Result<Self, YamlError> {
-        let all = Self::parse_all_from_yaml(documents)?;
+        let all = Self::parse_all_from_yaml(documents, context)?;
         all.get(key)
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
@@ -67,10 +71,14 @@ pub trait YamlParsableString {
 }
 
 pub trait YamlParseableValue: Sized {
-    fn parse_from_yaml(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<Self, YamlError>;
+    fn parse_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
+    ) -> Result<Self, YamlError>;
 
     fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
 }
 
@@ -116,6 +124,8 @@ pub enum YamlError {
     ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ContextError(#[from] ContextError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {

@@ -11,6 +11,7 @@ use strict_yaml_rust::strict_yaml::Hash;
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::context::Context;
 
 #[cfg(target_family = "wasm")]
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -183,6 +184,7 @@ impl Token {
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
 
@@ -200,6 +202,7 @@ impl YamlParsableHash for Token {
                             Some("network"),
                             Some(format!("network string missing in token: {token_key}")),
                         )?,
+                        None,
                     )
                     .map_err(|_| {
                         ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
@@ -396,19 +399,23 @@ mod tests {
 
     #[test]
     fn test_parse_tokens_errors() {
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 test: test
 "#,
-        )])
+            )],
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: tokens".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -417,15 +424,18 @@ tokens:
     token1:
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        )])
+            )],
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("network string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -435,7 +445,9 @@ tokens:
         network: "nonexistent"
         address: "0x1234567890123456789012345678901234567890"
 "#,
-        )])
+            )],
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
@@ -444,8 +456,9 @@ tokens:
             )
         );
 
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -454,15 +467,18 @@ tokens:
     token1:
         network: "mainnet"
 "#,
-        )])
+            )],
+            None,
+        )
         .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in token: token1".to_string())
         );
 
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -472,11 +488,14 @@ tokens:
         network: "mainnet"
         address: "not_a_valid_address"
 "#,
-        )]);
+            )],
+            None,
+        );
         assert!(error.is_err());
 
-        let error = Token::parse_all_from_yaml(vec![get_document(
-            r#"
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -487,7 +506,9 @@ tokens:
         address: "0x1234567890123456789012345678901234567890"
         decimals: "not_a_number"
 "#,
-        )]);
+            )],
+            None,
+        );
         assert!(error.is_err());
     }
 
@@ -520,7 +541,7 @@ tokens:
         decimals: "6"
 "#;
         let tokens =
-            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)], None)
                 .unwrap();
 
         assert_eq!(tokens.len(), 4);
@@ -568,7 +589,7 @@ tokens:
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
 "#;
         let error =
-            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
+            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)], None)
                 .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("dai".to_string()));
     }
