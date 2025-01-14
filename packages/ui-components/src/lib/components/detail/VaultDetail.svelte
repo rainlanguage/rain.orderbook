@@ -20,6 +20,7 @@
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
+	import { page } from '$app/stores';
 
 	export let id: string;
 	export let network: string;
@@ -44,6 +45,8 @@
 		enabled: !!subgraphUrl
 	});
 
+	$: console.log($vaultDetailQuery);
+
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);
@@ -64,10 +67,7 @@
 	});
 </script>
 
-tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
-	query={vaultDetailQuery}
-	emptyMessage="Vault not found"
->
+<TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
 	<svelte:fragment slot="top" let:data>
 		<div
 			data-testid="vaultDetailTokenName"
@@ -133,12 +133,7 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<OrderOrVaultHash
-								type="orders"
-								{order}
-								subgraphName={order.subgraphName}
-								{updateActiveNetworkAndOrderbook}
-							/>
+							<OrderOrVaultHash type="orders" {order} {network} {updateActiveNetworkAndOrderbook} />
 						{/each}
 					{:else}
 						None
@@ -153,12 +148,7 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<OrderOrVaultHash
-								type="orders"
-								{order}
-								subgraphName={order.subgraphName}
-								{updateActiveNetworkAndOrderbook}
-							/>
+							<OrderOrVaultHash type="orders" {order} {network} {updateActiveNetworkAndOrderbook} />
 						{/each}
 					{:else}
 						None

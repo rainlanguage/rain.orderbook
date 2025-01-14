@@ -170,7 +170,7 @@
 							<OrderOrVaultHash
 								type="orders"
 								{order}
-								subgraphName={item.subgraphName}
+								network={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}
@@ -185,7 +185,7 @@
 							<OrderOrVaultHash
 								type="orders"
 								{order}
-								subgraphName={item.subgraphName}
+								network={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}
 							/>
 						{/each}
