@@ -300,10 +300,10 @@
 		<div class="flex max-w-2xl flex-col items-center gap-24 self-center">
 			{#if guiDetails}
 				<div class="mt-16 max-w-2xl text-center">
-					<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
+					<h1 class="mb-6 text-4xl font-bold text-gray-900 dark:text-white">
 						{guiDetails.name}
 					</h1>
-					<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">
+					<p class="text-xl text-gray-600 dark:text-gray-400">
 						{guiDetails.description}
 					</p>
 				</div>
