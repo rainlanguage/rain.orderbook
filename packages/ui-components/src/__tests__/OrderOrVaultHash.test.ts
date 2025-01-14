@@ -27,7 +27,7 @@ describe('OrderOrVaultHash', () => {
 			props: {
 				type: 'orders',
 				order: mockOrder,
-				subgraphName: mockSubgraphName,
+				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}
 		});
@@ -43,7 +43,7 @@ describe('OrderOrVaultHash', () => {
 			props: {
 				type: 'orders',
 				order: mockInactiveOrder,
-				subgraphName: mockSubgraphName,
+				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}
 		});
@@ -57,7 +57,7 @@ describe('OrderOrVaultHash', () => {
 			props: {
 				type: 'orders',
 				order: mockOrder,
-				subgraphName: mockSubgraphName,
+				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}
 		});
