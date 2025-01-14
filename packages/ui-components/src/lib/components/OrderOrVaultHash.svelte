@@ -6,7 +6,7 @@
 
 	export let order: Order | OrderAsIO | undefined = undefined;
 	export let vault: Vault | undefined = undefined;
-	export let type: string;
+	export let type: 'orders' | 'vaults';
 	export let subgraphName: string;
 	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 

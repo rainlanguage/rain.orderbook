@@ -25,6 +25,7 @@ describe('OrderOrVaultHash', () => {
 	it('renders with active order', () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
+				type: 'orders',
 				order: mockOrder,
 				subgraphName: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
@@ -40,6 +41,7 @@ describe('OrderOrVaultHash', () => {
 	it('renders with inactive order', () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
+				type: 'orders',
 				order: mockInactiveOrder,
 				subgraphName: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
@@ -53,6 +55,7 @@ describe('OrderOrVaultHash', () => {
 	it('handles click event correctly', async () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
+				type: 'orders',
 				order: mockOrder,
 				subgraphName: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
