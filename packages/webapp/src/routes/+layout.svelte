@@ -15,7 +15,7 @@
 <QueryClientProvider client={queryClient}>
 	<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400">
 		<SidebarWebapp {colorTheme} />
-		<main class="ml-128 h-full w-full grow overflow-x-auto p-8">
+		<main class="ml-64 h-full w-full grow overflow-x-auto p-8">
 			<slot />
 		</main>
 	</div>
