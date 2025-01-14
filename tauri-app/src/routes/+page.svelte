@@ -1,10 +1,15 @@
 <script lang="ts">
   import { IconTelegram } from '@rainlanguage/ui-components';
   import { Button } from 'flowbite-svelte';
+  import { colorTheme } from '$lib/stores/darkMode';
 </script>
 
 <div class="mx-auto flex max-w-prose flex-col items-center gap-y-8 pt-12">
-  <img alt="Raindex logo" class="w-[400px]" src="/logo-light.svg" />
+  <img
+    alt="Raindex logo"
+    class="w-[400px]"
+    src={$colorTheme === 'dark' ? '/logo-dark.svg' : '/logo-light.svg'}
+  />
   <div class="mt-4 text-center text-2xl">
     Raindex allows anyone to write, deploy and manage token trading strategies, written in Rainlang,
     on any EVM network.
