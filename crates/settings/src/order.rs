@@ -22,8 +22,8 @@ use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIO {
-    #[typeshare(typescript(type = "Token"))]
-    pub token: Arc<Token>,
+    #[typeshare(typescript(type = "Token | undefined"))]
+    pub token: Option<Arc<Token>>,
     #[typeshare(typescript(type = "string"))]
     #[cfg_attr(
         target_family = "wasm",
@@ -297,16 +297,18 @@ impl YamlParsableHash for Order {
                                 "token string missing in input index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None)?;
+                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
-                        if let Some(n) = &network {
-                            if token.network != *n {
-                                return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::NetworkNotMatch,
-                                ));
+                        if let Ok(ref token) = token {
+                            if let Some(n) = &network {
+                                if token.network != *n {
+                                    return Err(YamlError::ParseOrderConfigSourceError(
+                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ));
+                                }
+                            } else {
+                                network = Some(token.network.clone());
                             }
-                        } else {
-                            network = Some(token.network.clone());
                         }
 
                         let vault_id = match optional_string(input, "vault-id") {
@@ -315,7 +317,7 @@ impl YamlParsableHash for Order {
                         };
 
                         Ok(OrderIO {
-                            token: Arc::new(token),
+                            token: token.ok().map(Arc::new),
                             vault_id,
                         })
                     })
@@ -336,16 +338,18 @@ impl YamlParsableHash for Order {
                                 "token string missing in output index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None)?;
+                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
-                        if let Some(n) = &network {
-                            if token.network != *n {
-                                return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::NetworkNotMatch,
-                                ));
+                        if let Ok(ref token) = token {
+                            if let Some(n) = &network {
+                                if token.network != *n {
+                                    return Err(YamlError::ParseOrderConfigSourceError(
+                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ));
+                                }
+                            } else {
+                                network = Some(token.network.clone());
                             }
-                        } else {
-                            network = Some(token.network.clone());
                         }
 
                         let vault_id = match optional_string(output, "vault-id") {
@@ -354,7 +358,7 @@ impl YamlParsableHash for Order {
                         };
 
                         Ok(OrderIO {
-                            token: Arc::new(token),
+                            token: token.ok().map(Arc::new),
                             vault_id,
                         })
                     })
@@ -499,7 +503,7 @@ impl OrderConfigSource {
                         if let Some(n) = &network {
                             if v.network == *n {
                                 Ok(OrderIO {
-                                    token: v.clone(),
+                                    token: Some(v.clone()),
                                     vault_id: input.vault_id,
                                 })
                             } else {
@@ -508,7 +512,7 @@ impl OrderConfigSource {
                         } else {
                             network = Some(v.network.clone());
                             Ok(OrderIO {
-                                token: v.clone(),
+                                token: Some(v.clone()),
                                 vault_id: input.vault_id,
                             })
                         }
@@ -529,7 +533,7 @@ impl OrderConfigSource {
                         if let Some(n) = &network {
                             if v.network == *n {
                                 Ok(OrderIO {
-                                    token: v.clone(),
+                                    token: Some(v.clone()),
                                     vault_id: output.vault_id,
                                 })
                             } else {
@@ -538,7 +542,7 @@ impl OrderConfigSource {
                         } else {
                             network = Some(v.network.clone());
                             Ok(OrderIO {
-                                token: v.clone(),
+                                token: Some(v.clone()),
                                 vault_id: output.vault_id,
                             })
                         }
@@ -611,7 +615,7 @@ mod tests {
             order
                 .inputs
                 .iter()
-                .map(|v| v.token.clone())
+                .map(|v| v.token.clone().unwrap())
                 .collect::<Vec<_>>(),
             vec![token_input]
         );
@@ -619,7 +623,7 @@ mod tests {
             order
                 .outputs
                 .iter()
-                .map(|v| v.token.clone())
+                .map(|v| v.token.clone().unwrap())
                 .collect::<Vec<_>>(),
             vec![token_output]
         );
@@ -734,18 +738,6 @@ orders:
         );
 
         let yaml = r#"
-orders:
-    order1:
-        inputs:
-            - token: eth
-"#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError("missing field: tokens".to_string())
-        );
-
-        let yaml = r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
@@ -797,6 +789,10 @@ networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
         chain-id: "1"
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
 tokens:
     token-one:
         network: mainnet
@@ -806,6 +802,7 @@ tokens:
         address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 orders:
     OrderOne:
+        deployer: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -814,6 +811,7 @@ orders:
         let yaml_two = r#"
 orders:
     OrderTwo:
+        deployer: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -838,6 +836,10 @@ networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
         chain-id: "1"
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
 tokens:
     token-one:
         network: mainnet
@@ -847,6 +849,7 @@ tokens:
         address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 orders:
     DuplicateOrder:
+        deployer: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -855,6 +858,7 @@ orders:
         let yaml_two = r#"
 orders:
     DuplicateOrder:
+        deployer: mainnet
         inputs:
             - token: token-one
         outputs:

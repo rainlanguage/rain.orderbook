@@ -52,7 +52,10 @@ impl OrderContext for Context {
             .ok_or_else(|| ContextError::InvalidIndex(index.to_string()))?;
 
         match parts.get(1) {
-            Some(&"token") => self.resolve_token_path(&io.token, &parts[2..]),
+            Some(&"token") => match &io.token {
+                Some(token) => self.resolve_token_path(&token, &parts[2..]),
+                None => Err(ContextError::PropertyNotFound("token".to_string())),
+            },
             Some(&"vault-id") => match &io.vault_id {
                 Some(vault_id) => Ok(vault_id.to_string()),
                 None => Err(ContextError::PropertyNotFound("vault-id".to_string())),
@@ -144,11 +147,11 @@ mod tests {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_order".to_string(),
             inputs: vec![OrderIO {
-                token: Arc::new(token.clone()),
+                token: Some(Arc::new(token.clone())),
                 vault_id: Some(U256::from(42)),
             }],
             outputs: vec![OrderIO {
-                token: Arc::new(token),
+                token: Some(Arc::new(token.clone())),
                 vault_id: None,
             }],
             network: mock_network(),

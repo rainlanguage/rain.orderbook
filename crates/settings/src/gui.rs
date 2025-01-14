@@ -98,7 +98,7 @@ impl GuiConfigSource {
                             .map(Arc::clone)?;
 
                         Ok(GuiDeposit {
-                            token: token.clone(),
+                            token: Some(token.clone()),
                             presets: deposit_source.presets.clone(),
                         })
                     })
@@ -187,8 +187,8 @@ impl_all_wasm_traits!(GuiPreset);
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiDeposit {
-    #[typeshare(typescript(type = "Token"))]
-    pub token: Arc<Token>,
+    #[typeshare(typescript(type = "Token | undefined"))]
+    pub token: Option<Arc<Token>>,
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub presets: Vec<String>,
 }
@@ -340,7 +340,7 @@ impl YamlParseableValue for Gui {
                             Some(format!(
                                 "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
                             )),
-                        )?, None)?;
+                        )?, None);
 
                         let presets = require_vec(
                             deposit_value,
@@ -359,7 +359,7 @@ impl YamlParseableValue for Gui {
                         .collect::<Result<Vec<_>, YamlError>>()?;
 
                         let gui_deposit = GuiDeposit {
-                            token: Arc::new(token),
+                            token: token.ok().map(Arc::new),
                             presets,
                         };
                         Ok(gui_deposit)
@@ -585,7 +585,10 @@ mod tests {
         assert_eq!(deployment.description, "test-deployment-description");
         assert_eq!(deployment.deposits.len(), 1);
         let deposit = &deployment.deposits[0];
-        assert_eq!(deposit.token.label, Some("test-token".to_string()));
+        assert_eq!(
+            deposit.token.as_ref().unwrap().label,
+            Some("test-token".to_string())
+        );
         assert_eq!(deposit.presets.len(), 2);
         assert_eq!(deposit.presets[0], "1.3".to_string());
         assert_eq!(deposit.presets[1], "2.7".to_string());
@@ -852,24 +855,6 @@ gui:
                     .to_string()
             )
         );
-
-        let yaml = r#"
-gui:
-    name: test
-    description: test
-    deployments:
-        deployment1:
-            name: test
-            description: test
-            deposits:
-                - token: test
-"#;
-        let error = Gui::parse_from_yaml_optional(
-            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
-            None,
-        )
-        .unwrap_err();
-        assert_eq!(error, YamlError::KeyNotFound("test".to_string()));
 
         let yaml = r#"
 gui:
@@ -1149,12 +1134,12 @@ gui:
         let deployment = gui.deployments.get("deployment1").unwrap();
         assert_eq!(deployment.name, "test");
         assert_eq!(deployment.description, "test");
-        assert_eq!(deployment.deposits[0].token.key, "token1");
+        assert_eq!(deployment.deposits[0].token.as_ref().unwrap().key, "token1");
 
         let deployment = gui.deployments.get("deployment2").unwrap();
         assert_eq!(deployment.name, "test another");
         assert_eq!(deployment.description, "test another");
-        assert_eq!(deployment.deposits[0].token.key, "token2");
+        assert_eq!(deployment.deposits[0].token.as_ref().unwrap().key, "token2");
     }
 
     #[test]
