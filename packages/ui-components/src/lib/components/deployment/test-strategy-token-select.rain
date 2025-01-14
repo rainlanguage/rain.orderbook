@@ -66,7 +66,7 @@ gui:
       fields:
         - binding: io-ratio
           name: Input to output ratio
-          description: How many inputs do you want to have per one output?
+          description: How many ${order.inputs.0.token.address} do you want to have per one ${order.outputs.0.token.address} output?
         
       select-tokens:
         - input

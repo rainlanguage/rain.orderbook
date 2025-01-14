@@ -191,7 +191,9 @@
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
-		console.log(gui?.getCurrentDeployment());
+		getAllFieldDefinitions();
+		console.log(tokenInfos)
+		console.log(selectTokens)
 	}
 
 	$: if (gui) {
