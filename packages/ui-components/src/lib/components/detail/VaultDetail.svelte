@@ -44,8 +44,6 @@
 		enabled: !!subgraphUrl
 	});
 
-	$: console.log($vaultDetailQuery);
-
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);

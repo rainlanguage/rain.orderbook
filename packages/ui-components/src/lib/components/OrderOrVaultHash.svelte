@@ -11,22 +11,16 @@
 	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 
 	$: id = order?.id || vault?.id;
-	$: hash = order?.orderHash || vault?.id;
-
-	$: console.log(id, hash, network);
-
-	$: console.log(order);
+	$: hash = order?.orderHash || vault?.id || '';
 </script>
 
-{#if hash && id && network}
-	<Button
-		class="mr-1 mt-1 px-2 py-1 text-sm"
-		color={order?.active ? 'green' : 'yellow'}
-		data-testid="vault-order-input"
-		data-id={id}
-		on:click={() => {
-			updateActiveNetworkAndOrderbook(network);
-			goto(`/${type}/${network}-${id}`);
-		}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
-	>
-{/if}
+<Button
+	class="mr-1 mt-1 px-2 py-1 text-sm"
+	color={order?.active ? 'green' : 'yellow'}
+	data-testid="vault-order-input"
+	data-id={id}
+	on:click={() => {
+		updateActiveNetworkAndOrderbook(network);
+		goto(`/${type}/${network}-${id}`);
+	}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
+>
