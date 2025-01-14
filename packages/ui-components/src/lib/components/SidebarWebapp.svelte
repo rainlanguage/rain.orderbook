@@ -48,12 +48,6 @@
 			</div>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<SidebarItem label="New Order" href={'/orders/add'}>
-				<svelte:fragment slot="icon">
-					<PlusSolid class="h-5 w-5" />
-					<span data-testid="sidebar-new-order"></span>
-				</svelte:fragment>
-			</SidebarItem>
 			<SidebarItem label="Orders" href="/orders">
 				<svelte:fragment slot="icon">
 					<ReceiptSolid class="h-5 w-5" />
@@ -68,15 +62,6 @@
 			</SidebarItem>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<Button>Connect Wallet</Button>
-		</SidebarGroup>
-		<SidebarGroup border>
-			<SidebarItem label="Settings" href="/settings">
-				<svelte:fragment slot="icon">
-					<GearSolid class="h-5 w-5" />
-					<span data-testid="sidebar-settings"></span>
-				</svelte:fragment>
-			</SidebarItem>
 			<SidebarItem
 				label="Documentation"
 				target="_blank"

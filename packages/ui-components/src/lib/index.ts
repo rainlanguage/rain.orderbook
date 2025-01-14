@@ -53,6 +53,7 @@ export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
 export { default as SidebarWebapp } from './components/SidebarWebapp.svelte';
 export { default as Homepage } from './components/Homepage.svelte';
+export { default as License } from "./components/License.svelte"
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
