@@ -10,7 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -101,6 +102,7 @@ impl DeployerConfigSource {
 impl YamlParsableHash for Deployer {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
@@ -123,7 +125,7 @@ impl YamlParsableHash for Deployer {
                         Some(network_name) => network_name,
                         None => deployer_key.clone(),
                     };
-                    let network = Network::parse_from_yaml(documents.clone(), &network_name)?;
+                    let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
 
                     let deployer = Deployer {
                         document: document.clone(),
@@ -236,7 +238,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let deployers = Deployer::parse_all_from_yaml(documents).unwrap();
+        let deployers = Deployer::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(deployers.len(), 2);
         assert!(deployers.contains_key("DeployerOne"));
@@ -272,7 +274,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Deployer::parse_all_from_yaml(documents).unwrap_err();
+        let error = Deployer::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,
