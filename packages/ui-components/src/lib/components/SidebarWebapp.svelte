@@ -4,17 +4,15 @@
 		SidebarGroup,
 		SidebarItem,
 		SidebarWrapper,
-		SidebarBrand,
-		Button
+		SidebarBrand
 	} from 'flowbite-svelte';
 	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
 	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
-	import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
 	import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
-	import { IconExternalLink, IconTelegram } from '@rainlanguage/ui-components';
+	import IconTelegram from './IconTelegram.svelte';
+	import IconExternalLink from './IconExternalLink.svelte';
 	import { page } from '$app/stores';
 	import ButtonDarkMode from './ButtonDarkMode.svelte';
-	import { PlusSolid } from 'flowbite-svelte-icons';
 
 	export let colorTheme;
 </script>
