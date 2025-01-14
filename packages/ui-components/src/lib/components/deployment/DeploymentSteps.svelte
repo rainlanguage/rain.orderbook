@@ -122,17 +122,17 @@
 	}
 
 	let tokenInfos: TokenInfos;
-	function getTokenInfos() {
+	function getTokenInfo() {
 		if (!gui) return;
 		try {
-			tokenInfos = gui.getTokenInfos();
+			tokenInfos = gui.getTokenInfo();
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_INFO;
 			console.error('Failed to get token infos:', e);
 		}
 	}
 
-	let selectTokens: SelectTokens | null = null;
+	let selectTokens: string[] | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
@@ -187,18 +187,18 @@
 	}
 
 	$: if (selectTokens) {
-		getTokenInfos();
+		// getTokenInfos();
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
 		getAllFieldDefinitions();
-		console.log(tokenInfos)
-		console.log(selectTokens)
+
+		console.log('select tokens', selectTokens);
 	}
 
 	$: if (gui) {
 		error = null;
-		getTokenInfos();
+		// getTokenInfos();
 		getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
@@ -318,8 +318,8 @@
 						description="Select the tokens that you want to use in your order."
 					/>
 					<div class="flex w-full flex-col gap-4">
-						{#each selectTokens.entries() as token}
-							<SelectToken {token} {gui} bind:selectTokens bind:tokenInfos />
+						{#each selectTokens as tokenKey}
+							<SelectToken {tokenKey} {gui} bind:selectTokens bind:tokenInfos />
 						{/each}
 					</div>
 				</div>

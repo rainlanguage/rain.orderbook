@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { Label, Input } from 'flowbite-svelte';
-	import type { DotrainOrderGui, TokenInfo, TokenInfos } from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 
-	export let token: [string, string];
+	export let tokenKey: string;
 	export let gui: DotrainOrderGui;
-	export let selectTokens: Map<string, string>;
-	export let tokenInfos: TokenInfos;
+	export let selectTokens: string[];
+	// export let tokenInfos: TokenInfos;
+	console.log(tokenKey);
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
@@ -22,14 +23,18 @@
 			inputValue = currentTarget.value;
 			if (!gui) return;
 			try {
-				await gui.saveSelectTokenAddress(token[0], currentTarget.value);
+				console.log('saving', tokenKey, currentTarget.value);
+				await gui.saveSelectToken(tokenKey, currentTarget.value);
+				console.log('saved');
 				error = '';
 				selectTokens = gui.getSelectTokens();
 				gui = gui;
-				tokenInfos = await gui.getTokenInfos();
-				tokenInfo = tokenInfos.get(token[1]) || null;
+				tokenInfo = gui.getTokenInfo(tokenKey);
+				console.log('INFO!', tokenInfo);
 				checking = false;
-			} catch {
+			} catch (e) {
+				// gui.removeSelectToken(token[1]);
+				console.error(e);
 				checking = false;
 				error = 'Invalid address';
 				selectTokens = gui.getSelectTokens();
@@ -37,15 +42,15 @@
 		}
 	}
 
-	$: if (token && !inputValue && inputValue !== '') {
-		inputValue = token[1] || '';
+	$: if (tokenKey && !inputValue && inputValue !== '') {
+		inputValue = '';
 	}
 </script>
 
 <div class="mb-4 flex w-full max-w-2xl flex-col">
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-row items-center gap-6">
-			<Label class="whitespace-nowrap text-xl">{token[0]}</Label>
+			<Label class="whitespace-nowrap text-xl">{tokenKey}, {tokenKey}</Label>
 			{#if checking}
 				<div class="flex h-5 flex-row items-center gap-2">
 					<Spinner class="h-5 w-5" />
