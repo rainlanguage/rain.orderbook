@@ -11,6 +11,7 @@ import {
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
+	GuiDetails,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
