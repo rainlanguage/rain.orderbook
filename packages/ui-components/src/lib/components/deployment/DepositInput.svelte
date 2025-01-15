@@ -11,10 +11,23 @@
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 
+	console.log('deposit', deposit);
+
 	let currentDeposit: TokenDeposit | undefined;
 
-	let tokenName: string = 'Deposit amount';
+	let tokenName: string = '';
 	let inputValue: string = '';
+
+	const getTokenSymbol = async () => {
+		try {
+			if (!deposit.token?.key) return (tokenName = '');
+			const tokenInfo = await gui.getTokenInfo(deposit.token?.key);
+			tokenName = tokenInfo.symbol;
+		} catch (e) {
+			console.error('Failed to get token info:', e);
+			tokenName = '';
+		}
+	};
 
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
@@ -40,14 +53,14 @@
 		if (deposit.token?.symbol) {
 			tokenName = deposit.token?.symbol;
 		} else {
-			tokenName = '';
+			getTokenSymbol();
 		}
 	}
 </script>
 
 <div class="flex w-full max-w-2xl flex-col gap-6">
 	<DeploymentSectionHeader
-		title={`Deposit amount (${tokenName})`}
+		title={tokenName ? `Deposit amount (${tokenName})` : 'Deposit amount'}
 		description="The amount of tokens you want to deposit"
 	/>
 	{#if deposit.presets}

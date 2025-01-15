@@ -17,14 +17,13 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Label, Spinner } from 'flowbite-svelte';
+	import { Button, Input, Label, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
-	import testStrategy from './test-strategy.rain?raw';
-	import testTokenSelectStrategy from './test-strategy-token-select.rain?raw';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
+		NO_STRATEGY = 'No valid strategy exists at this URL',
 		NO_SELECT_TOKENS = 'Error loading tokens',
 		NO_TOKEN_INFO = 'Error loading token information',
 		NO_FIELD_DEFINITIONS = 'Error loading field definitions',
@@ -58,11 +57,11 @@
 		try {
 			const response = await fetch(strategyUrl);
 			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				throw new Error(`HTTP error - status: ${response.status}`);
 			}
 			dotrain = await response.text();
 		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
+			error = DeploymentStepErrors.NO_STRATEGY;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 			console.error('Failed to load strategy:', e);
 		} finally {
@@ -138,6 +137,7 @@
 		if (!gui) return;
 		try {
 			selectTokens = gui.getSelectTokens();
+			console.log('selectTokens', selectTokens);
 		} catch (e: unknown) {
 			console.error('Failed to get select tokens:', e);
 		}
@@ -155,11 +155,12 @@
 	}
 
 	let allDepositFields: GuiDeposit[] = [];
-	function getAllDepositFields() {
+	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
 			let dep: GuiDeployment = gui.getCurrentDeployment();
-			allDepositFields = dep.deposits;
+			let depositFields: GuiDeposit[] = dep.deposits;
+			allDepositFields = depositFields;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_DEPOSITS;
 			console.error('Failed to get deposits:', e);
@@ -267,15 +268,15 @@
 <div class="mb-4">
 	<div class="flex items-end gap-2">
 		<div class="flex-1">
-			<input
+			<Input
 				id="strategy-url"
 				type="url"
-				class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
 				placeholder="Enter URL to .rain file"
 				bind:value={strategyUrl}
+				size="lg"
 			/>
 		</div>
-		<Button on:click={loadStrategyFromUrl}>Load Strategy</Button>
+		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
 	</div>
 </div>
 
@@ -322,7 +323,7 @@
 				</div>
 			{/if}
 
-			{#if selectTokens}
+			{#if selectTokens && selectTokens.length > 0}
 				<div class="flex w-full flex-col items-center gap-6">
 					<DeploymentSectionHeader
 						title="Select Tokens"
@@ -337,7 +338,7 @@
 			{/if}
 			{#if allTokensSelected}
 				{#if allFieldDefinitions.length > 0}
-					<div class="flex w-full flex-col items-center gap-6">
+					<div class="flex w-full flex-col items-center gap-24">
 						{#each allFieldDefinitions as fieldDefinition}
 							<FieldDefinitionInput {fieldDefinition} {gui} />
 						{/each}
@@ -345,10 +346,8 @@
 				{/if}
 
 				{#if allDepositFields.length > 0}
-					<div class="flex w-full flex-col items-center gap-6">
-						DEPOSITS
+					<div class="flex w-full flex-col items-center gap-24">
 						{#each allDepositFields as deposit}
-							DEPOSIT
 							<DepositInput bind:deposit {gui} />
 						{/each}
 					</div>
