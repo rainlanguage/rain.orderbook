@@ -1,6 +1,6 @@
 <script lang="ts">
-	import FieldDefinitionButtons from './FieldDefinitionButtons.svelte';
-	import DepositButtons from './DepositButtons.svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
@@ -337,7 +337,7 @@
 				{#if allFieldDefinitions.length > 0}
 					<div class="flex w-full flex-col items-center gap-6">
 						{#each allFieldDefinitions as fieldDefinition}
-							<FieldDefinitionButtons {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} {gui} />
 						{/each}
 					</div>
 				{/if}
@@ -347,7 +347,7 @@
 						DEPOSITS
 						{#each allDepositFields as deposit}
 							DEPOSIT
-							<DepositButtons bind:deposit {gui} />
+							<DepositInput bind:deposit {gui} />
 						{/each}
 					</div>
 				{/if}

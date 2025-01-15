@@ -1,21 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
-import DepositButtons from '../lib/components/deployment/DepositButtons.svelte';
+import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import type { GuiDeposit } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 
-type DepositButtonsProps = ComponentProps<DepositButtons>;
+type DepositInputProps = ComponentProps<DepositInput>;
 
-describe('DepositButtons', () => {
+describe('DepositInput', () => {
 	const mockGui = {
 		isDepositPreset: vi.fn(),
-		saveDeposit: vi.fn()
+		saveDeposit: vi.fn(),
+		getDeposits: vi.fn().mockReturnValue([{token: 'output', amount: '10', address: '0x1234'}]),
 	};
 
-	const mockTokenInfos = new Map([['0x123', { name: 'Test Token', symbol: 'TEST' }]]);
-
 	const mockDeposit: GuiDeposit = {
-		token: { address: '0x123', key: 'TEST' },
+		token: { address: '0x123', key: 'TEST', symbol: 'Test Token'},
 		presets: ['100', '200', '300']
 	} as unknown as GuiDeposit;
 
@@ -24,27 +23,25 @@ describe('DepositButtons', () => {
 	});
 
 	it('renders token name and presets', () => {
-		const { getByText } = render(DepositButtons, {
+		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
 				gui: mockGui,
-				tokenInfos: mockTokenInfos
-			} as unknown as DepositButtonsProps
+			} as unknown as DepositInputProps
 		});
 
-		expect(getByText('Test Token')).toBeTruthy();
+		expect(getByText(`Deposit amount (${mockDeposit.token?.symbol})`)).toBeTruthy();
 		expect(getByText('100')).toBeTruthy();
 		expect(getByText('200')).toBeTruthy();
 		expect(getByText('300')).toBeTruthy();
 	});
 
 	it('handles preset button clicks', async () => {
-		const { getByText } = render(DepositButtons, {
+		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
 				gui: mockGui,
-				tokenInfos: mockTokenInfos
-			} as unknown as DepositButtonsProps
+			} as unknown as DepositInputProps
 		});
 
 		await fireEvent.click(getByText('100'));
@@ -54,12 +51,11 @@ describe('DepositButtons', () => {
 	it('handles custom input changes', async () => {
 		mockGui.isDepositPreset.mockReturnValue(false);
 
-		const { getByPlaceholderText } = render(DepositButtons, {
+		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
 				gui: mockGui,
-				tokenInfos: mockTokenInfos
-			} as unknown as DepositButtonsProps
+			} as unknown as DepositInputProps
 		});
 
 		const input = getByPlaceholderText('Enter deposit amount');

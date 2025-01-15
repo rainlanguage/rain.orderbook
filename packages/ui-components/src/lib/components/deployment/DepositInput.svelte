@@ -10,12 +10,13 @@
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
-	$: console.log(deposit);
 
 	let currentDeposit: TokenDeposit | undefined;
 
 	let tokenName: string = 'Deposit amount';
 	let inputValue: string = '';
+
+	$: console.log('curr deposit', currentDeposit);
 
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
