@@ -48,13 +48,26 @@
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let strategyUrl = '';
 
-	async function loadStrategy() {
-		dotrain = testStrategy;
-	}
+	async function loadStrategyFromUrl() {
+		isLoading = true;
+		error = null;
+		errorDetails = null;
 
-	async function loadTokenSelectStrategy() {
-		dotrain = testTokenSelectStrategy;
+		try {
+			const response = await fetch(strategyUrl);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			dotrain = await response.text();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			console.error('Failed to load strategy:', e);
+		} finally {
+			isLoading = false;
+		}
 	}
 
 	let gui: DotrainOrderGui | null = null;
@@ -252,8 +265,18 @@
 </script>
 
 <div class="mb-4">
-	<Button on:click={loadStrategy}>Load Strategy</Button>
-	<Button on:click={loadTokenSelectStrategy}>Load Token Select Strategy</Button>
+	<div class="flex items-end gap-2">
+		<div class="flex-1">
+			<input
+				id="strategy-url"
+				type="url"
+				class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+				placeholder="Enter URL to .rain file"
+				bind:value={strategyUrl}
+			/>
+		</div>
+		<Button on:click={loadStrategyFromUrl}>Load Strategy</Button>
+	</div>
 </div>
 
 {#if error}
