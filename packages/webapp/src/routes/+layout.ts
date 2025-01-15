@@ -5,14 +5,17 @@ import type {
 	OrderbookRef
 } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
-import settingsJson from '$lib/settings-12-11-24.json';
 import pkg from 'lodash';
 const { pickBy } = pkg;
 export interface LayoutData {
 	stores: AppStoresInterface;
 }
 
-export const load = () => {
+export const load = async () => {
+	const response = await fetch(
+		'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
+	);
+	const settingsJson = await response.json();
 	const activeNetworkRef = writable<string>('');
 	const settings = writable<ConfigSource | undefined>(settingsJson);
 	const activeOrderbookRef = writable<string>('');
