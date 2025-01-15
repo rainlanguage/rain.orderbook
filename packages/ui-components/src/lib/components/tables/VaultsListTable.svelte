@@ -139,7 +139,6 @@
 			<TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4">Input For</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4">Output For</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4"></TableHeadCell>
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
