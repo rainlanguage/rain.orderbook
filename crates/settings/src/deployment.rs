@@ -47,7 +47,7 @@ impl Deployment {
             }
         }
         Err(YamlError::ParseError(format!(
-            "order key for deployment: {deployment_key}"
+            "order key not found for deployment: {deployment_key}"
         )))
     }
 }
