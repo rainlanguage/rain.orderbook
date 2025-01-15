@@ -56,7 +56,7 @@ impl Deployer {
                 if let Some(deployer_yaml) =
                     deployers_hash.get(&StrictYaml::String(deployer_key.to_string()))
                 {
-                    return Ok(require_string(deployer_yaml, Some("network"), None)?);
+                    return require_string(deployer_yaml, Some("network"), None);
                 }
             }
         }

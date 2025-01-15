@@ -46,7 +46,7 @@ impl Orderbook {
                 if let Some(orderbook_yaml) =
                     orderbooks_hash.get(&StrictYaml::String(orderbook_key.to_string()))
                 {
-                    return Ok(require_string(orderbook_yaml, Some("network"), None)?);
+                    return require_string(orderbook_yaml, Some("network"), None);
                 }
             }
         }

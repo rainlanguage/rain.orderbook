@@ -192,7 +192,7 @@ impl Token {
                 if let Some(token_yaml) =
                     tokens_hash.get(&StrictYaml::String(token_key.to_string()))
                 {
-                    return Ok(require_string(token_yaml, Some("network"), None)?);
+                    return require_string(token_yaml, Some("network"), None);
                 }
             }
         }

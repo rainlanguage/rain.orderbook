@@ -42,7 +42,7 @@ impl Deployment {
                 if let Some(deployment_yaml) =
                     deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
                 {
-                    return Ok(require_string(deployment_yaml, Some("order"), None)?);
+                    return require_string(deployment_yaml, Some("order"), None);
                 }
             }
         }

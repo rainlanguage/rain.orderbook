@@ -285,26 +285,22 @@ impl Gui {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Some(gui) = optional_hash(&document_read, "gui") {
-                if let Some(deployments) = gui.get(&StrictYaml::String("deployments".to_string())) {
-                    if let StrictYaml::Hash(deployments_hash) = deployments {
-                        if let Some(deployment) =
-                            deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                if let Some(StrictYaml::Hash(deployments_hash)) =
+                    gui.get(&StrictYaml::String("deployments".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(deployment_hash)) =
+                        deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                    {
+                        if let Some(StrictYaml::Array(tokens)) =
+                            deployment_hash.get(&StrictYaml::String("select-tokens".to_string()))
                         {
-                            if let StrictYaml::Hash(deployment_hash) = deployment {
-                                if let Some(select_tokens) = deployment_hash
-                                    .get(&StrictYaml::String("select-tokens".to_string()))
-                                {
-                                    if let StrictYaml::Array(tokens) = select_tokens {
-                                        let mut result = Vec::new();
-                                        for token in tokens {
-                                            if let StrictYaml::String(token_str) = token {
-                                                result.push(token_str.clone());
-                                            }
-                                        }
-                                        return Ok(Some(result));
-                                    }
+                            let mut result = Vec::new();
+                            for token in tokens {
+                                if let StrictYaml::String(token_str) = token {
+                                    result.push(token_str.clone());
                                 }
                             }
+                            return Ok(Some(result));
                         }
                     }
                 }
