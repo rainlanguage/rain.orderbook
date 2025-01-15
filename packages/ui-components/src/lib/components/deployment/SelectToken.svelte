@@ -21,7 +21,6 @@
 			inputValue = currentTarget.value;
 			if (!gui) return;
 			try {
-				console.log('saving', tokenKey, currentTarget.value);
 				await gui.saveSelectToken(tokenKey, currentTarget.value);
 				error = '';
 				selectTokens = gui.getSelectTokens();

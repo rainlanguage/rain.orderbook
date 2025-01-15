@@ -10,13 +10,13 @@ describe('SelectToken', () => {
 	const mockGui: DotrainOrderGui = {
 		saveSelectToken: vi.fn().mockResolvedValue(undefined),
 		getSelectTokens: vi.fn().mockReturnValue(['input', 'output']),
-		removeSelectToken: vi.fn().mockResolvedValue(undefined),
+		removeSelectToken: vi.fn().mockResolvedValue(undefined)
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
 		tokenKey: 'input',
 		gui: mockGui,
-		selectTokens: ['input', 'output'],
+		selectTokens: ['input', 'output']
 	};
 
 	beforeEach(() => {
@@ -44,7 +44,6 @@ describe('SelectToken', () => {
 		await waitFor(() => {
 			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
 			expect(mockGui.getSelectTokens).toHaveBeenCalled();
-
 		});
 	});
 

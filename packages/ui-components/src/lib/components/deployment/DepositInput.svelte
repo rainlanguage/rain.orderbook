@@ -16,8 +16,6 @@
 	let tokenName: string = 'Deposit amount';
 	let inputValue: string = '';
 
-	$: console.log('curr deposit', currentDeposit);
-
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;

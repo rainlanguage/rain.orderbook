@@ -13,8 +13,6 @@
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type TokenDeposit,
-		type Vault,
 		type GuiDetails,
 		type GuiDeployment,
 		type OrderIO
@@ -116,21 +114,17 @@
 		if (!gui) return;
 		try {
 			guiDetails = gui.getGuiDetails();
-			console.log(guiDetails);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI_DETAILS;
 			console.error('Failed to get gui details:', e);
 		}
 	}
 
-	let tokenInfos: TokenInfos;
-
 	let selectTokens: string[] | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
 			selectTokens = gui.getSelectTokens();
-			console.log('SELECT TOKENS', selectTokens);
 		} catch (e: unknown) {
 			console.error('Failed to get select tokens:', e);
 		}
@@ -141,22 +135,9 @@
 		if (!gui) return;
 		try {
 			allFieldDefinitions = gui.getAllFieldDefinitions();
-			console.log('allfield defs', allFieldDefinitions);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
 			console.error('Failed to get field definitions:', e);
-		}
-	}
-
-	let allDeposits: TokenDeposit[] = [];
-	function getDeposits() {
-		if (!gui) return;
-		try {
-			const deposits = gui.getDeposits();
-			console.log('gui deposits', deposits);
-		} catch (e) {
-			error = DeploymentStepErrors.NO_DEPOSITS;
-			console.error('Failed to get deposits:', e);
 		}
 	}
 
@@ -188,7 +169,6 @@
 		if (!gui) return;
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
-			console.log(allTokenInputs, allTokenOutputs);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			console.error('Failed to get token outputs:', e);
@@ -210,7 +190,6 @@
 		getGuiDetails();
 		getSelectTokens();
 		getAllFieldDefinitions();
-		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
 		checkTokensAreSelected();

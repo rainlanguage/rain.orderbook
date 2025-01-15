@@ -10,11 +10,11 @@ describe('DepositInput', () => {
 	const mockGui = {
 		isDepositPreset: vi.fn(),
 		saveDeposit: vi.fn(),
-		getDeposits: vi.fn().mockReturnValue([{token: 'output', amount: '10', address: '0x1234'}]),
+		getDeposits: vi.fn().mockReturnValue([{ token: 'output', amount: '10', address: '0x1234' }])
 	};
 
 	const mockDeposit: GuiDeposit = {
-		token: { address: '0x123', key: 'TEST', symbol: 'Test Token'},
+		token: { address: '0x123', key: 'TEST', symbol: 'Test Token' },
 		presets: ['100', '200', '300']
 	} as unknown as GuiDeposit;
 
@@ -26,7 +26,7 @@ describe('DepositInput', () => {
 		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: mockGui,
+				gui: mockGui
 			} as unknown as DepositInputProps
 		});
 
@@ -40,7 +40,7 @@ describe('DepositInput', () => {
 		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: mockGui,
+				gui: mockGui
 			} as unknown as DepositInputProps
 		});
 
@@ -54,7 +54,7 @@ describe('DepositInput', () => {
 		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: mockGui,
+				gui: mockGui
 			} as unknown as DepositInputProps
 		});
 
