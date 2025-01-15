@@ -119,7 +119,6 @@ describe('DeploymentSteps', () => {
 			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
 		});
 
-
 		const dropdownButton = screen.getByTestId('dropdown-button');
 		await userEvent.click(dropdownButton);
 		const dropdown = screen.getByTestId('dropdown');

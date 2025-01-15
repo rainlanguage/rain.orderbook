@@ -9,12 +9,18 @@ describe('TokenInput', () => {
 	const mockInput = {
 		token: {
 			address: '0x123',
-			symbol: 'ETH'
 		}
 	};
 
 	const mockGui = {
-		setVaultId: vi.fn()
+		setVaultId: vi.fn(),
+		getTokenInfo: vi.fn()
+	};
+
+	const mockTokenInfo = {
+		symbol: 'MOCK',
+		name: 'Mock Token',
+		decimals: 18
 	};
 
 	const mockProps: TokenInputOrOutputComponentProps = {
@@ -27,11 +33,12 @@ describe('TokenInput', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockGui.getTokenInfo = vi.fn().mockResolvedValue(mockTokenInfo);
 	});
 
-	it('renders with correct label and token symbol', () => {
+	it('renders with correct label and no token symbol', () => {
 		const { getByText } = render(TokenInputOrOutput, mockProps);
-		expect(getByText('Input 1 (ETH)')).toBeInTheDocument();
+		expect(getByText('Input 1')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
@@ -76,6 +83,23 @@ describe('TokenInput', () => {
 			TokenInputOrOutput,
 			propsWithUnknownToken as unknown as TokenInputOrOutputComponentProps
 		);
-		expect(getByText('Input 1 (Unknown)')).toBeInTheDocument();
+		expect(getByText('Input 1')).toBeInTheDocument();
+	});
+
+	it('fetches and displays token symbol when token key is present', async () => {
+		const propsWithTokenKey = {
+			...mockProps,
+			vault: {
+				token: {
+					key: '0x456',
+				}
+			}
+		} as unknown as TokenInputOrOutputComponentProps;
+
+		const { findByText } = render(TokenInputOrOutput, propsWithTokenKey);
+
+		const labelWithSymbol = await findByText('Input 1 (MOCK)');
+		expect(labelWithSymbol).toBeInTheDocument();
+		expect(mockGui.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});
 });
