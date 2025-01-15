@@ -190,6 +190,8 @@ pub enum GuiError {
     TokenMustBeSelected(String),
     #[error("Binding has no presets: {0}")]
     BindingHasNoPresets(String),
+    #[error("Token not in select tokens: {0}")]
+    TokenNotInSelectTokens(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
