@@ -8,7 +8,7 @@ export type TokenInputOrOutputComponentProps = ComponentProps<TokenInputOrOutput
 describe('TokenInput', () => {
 	const mockInput = {
 		token: {
-			address: '0x123',
+			address: '0x123'
 		}
 	};
 
@@ -91,7 +91,7 @@ describe('TokenInput', () => {
 			...mockProps,
 			vault: {
 				token: {
-					key: '0x456',
+					key: '0x456'
 				}
 			}
 		} as unknown as TokenInputOrOutputComponentProps;
