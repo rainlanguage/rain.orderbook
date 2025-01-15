@@ -25,6 +25,7 @@
 <Button
 	color="alternative"
 	class="flex w-full justify-between overflow-hidden overflow-ellipsis pl-2 pr-0 text-left"
+	data-testid="dropdown-button"
 >
 	<div class="flex-grow overflow-hidden">
 		<slot

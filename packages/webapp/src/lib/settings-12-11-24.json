@@ -15,12 +15,6 @@
 			"network-id": 8453,
 			"currency": "ETH"
 		},
-		"sepolia": {
-			"rpc": "https://1rpc.io/sepolia",
-			"chain-id": 11155111,
-			"network-id": 11155111,
-			"currency": "ETH"
-		},
 		"polygon": {
 			"rpc": "https://rpc.ankr.com/polygon",
 			"chain-id": 137,
@@ -53,19 +47,17 @@
 		}
 	},
 	"subgraphs": {
-		"flare": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/0.8/gn",
-		"base": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn",
-		"sepolia": "http://replaceme.com",
-		"polygon": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-polygon/0.6/gn",
-		"arbitrum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-arbitrum/0.2/gn",
-		"bsc": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-bsc/2024-10-14-63f4/gn",
-		"linea": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-linea/2024-10-14-12fc/gn",
-		"ethereum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn"
+		"flare": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/2024-12-13-9dc7/gn",
+		"base": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/2024-12-13-9c39/gn",
+		"polygon": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-matic/2024-12-13-d2b4/gn",
+		"arbitrum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-arbitrum-one/2024-12-13-7435/gn",
+		"bsc": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-bsc/2024-12-13-2244/gn",
+		"linea": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-linea/2024-12-13-09c7/gn",
+		"ethereum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-12-13-7f22/gn"
 	},
 	"metaboards": {
 		"flare": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn",
 		"base": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn",
-		"sepolia": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-sepolia-0x77991674/0.1/gn",
 		"polygon": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-polygon/0.1/gn",
 		"arbitrum": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-arbitrum/0.1/gn",
 		"bsc": "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-bsc/0.1/gn",
@@ -82,11 +74,6 @@
 			"address": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
 			"network": "base",
 			"subgraph": "base"
-		},
-		"sepolia": {
-			"address": "0x0bB72B4C7c0d47b2CaED07c804D9243C1B8a0728",
-			"network": "sepolia",
-			"subgraph": "sepolia"
 		},
 		"polygon": {
 			"address": "0x7D2f700b1f6FD75734824EA4578960747bdF269A",
@@ -127,10 +114,6 @@
 		"base": {
 			"address": "0xC1A14cE2fd58A3A2f99deCb8eDd866204eE07f8D",
 			"network": "base"
-		},
-		"sepolia": {
-			"address": "0x7692BA8446Bb8B3140A2c02df073080BeD0a7F8E",
-			"network": "sepolia"
 		},
 		"polygon": {
 			"address": "0xE7116BC05C8afe25e5B54b813A74F916B5D42aB1",

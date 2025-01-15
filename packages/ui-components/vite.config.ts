@@ -3,6 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => ({
+	assetsInclude: ['**/*.rain'],
 	plugins: [sveltekit()],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []

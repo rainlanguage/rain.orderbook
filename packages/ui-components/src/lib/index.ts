@@ -46,6 +46,13 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as FieldDefinitionInput } from './components/deployment/FieldDefinitionInput.svelte';
+export { default as DepositInput } from './components/deployment/DepositInput.svelte';
+export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
+export { default as TokenOutput } from './components/deployment/TokenInputOrOutput.svelte';
+export { default as SelectToken } from './components/deployment/SelectToken.svelte';
+
+export { default as TokenInputOrOutput } from './components/deployment/TokenInputOrOutput.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
