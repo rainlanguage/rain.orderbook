@@ -1,5 +1,5 @@
 <script>
-  import License from './License.svelte';
+  import { License } from '@rainlanguage/ui-components';
 </script>
 
 <License />

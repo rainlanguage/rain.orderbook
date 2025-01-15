@@ -9,6 +9,8 @@ export default {
 		'../ui-components/**/*.{html,js,svelte,ts}'
 	],
 
+	darkMode: 'class',
+
 	theme: {
 		extend: {
 			fontFamily: {
