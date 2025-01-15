@@ -59,7 +59,7 @@ gui:
       fields:
         - binding: io-ratio
           name: Input to output ratio
-          description: How many do you want to have per one output?
+          description: How many [add handlebars] do you want to have per one [add handlebars]?
         
       select-tokens:
         - input

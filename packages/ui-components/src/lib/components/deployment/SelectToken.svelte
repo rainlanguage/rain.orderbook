@@ -7,8 +7,6 @@
 	export let tokenKey: string;
 	export let gui: DotrainOrderGui;
 	export let selectTokens: string[];
-	// export let tokenInfos: TokenInfos;
-	console.log(tokenKey);
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
@@ -25,12 +23,10 @@
 			try {
 				console.log('saving', tokenKey, currentTarget.value);
 				await gui.saveSelectToken(tokenKey, currentTarget.value);
-				console.log('saved');
 				error = '';
 				selectTokens = gui.getSelectTokens();
 				gui = gui;
 				tokenInfo = await gui.getTokenInfo(tokenKey);
-				console.log('INFO!', tokenInfo);
 				checking = false;
 			} catch (e) {
 				console.error(e);

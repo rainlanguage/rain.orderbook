@@ -13,10 +13,11 @@
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type SelectTokens,
-		type TokenInfos,
+		type TokenDeposit,
 		type Vault,
-		type GuiDetails
+		type GuiDetails,
+		type GuiDeployment,
+		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button, Label, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
@@ -115,6 +116,7 @@
 		if (!gui) return;
 		try {
 			guiDetails = gui.getGuiDetails();
+			console.log(guiDetails);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI_DETAILS;
 			console.error('Failed to get gui details:', e);
@@ -122,21 +124,13 @@
 	}
 
 	let tokenInfos: TokenInfos;
-	function getTokenInfo() {
-		if (!gui) return;
-		try {
-			tokenInfos = gui.getTokenInfo();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_TOKEN_INFO;
-			console.error('Failed to get token infos:', e);
-		}
-	}
 
 	let selectTokens: string[] | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
 			selectTokens = gui.getSelectTokens();
+			console.log('SELECT TOKENS', selectTokens);
 		} catch (e: unknown) {
 			console.error('Failed to get select tokens:', e);
 		}
@@ -147,24 +141,38 @@
 		if (!gui) return;
 		try {
 			allFieldDefinitions = gui.getAllFieldDefinitions();
+			console.log('allfield defs', allFieldDefinitions);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
 			console.error('Failed to get field definitions:', e);
 		}
 	}
 
-	let allDeposits: GuiDeposit[] = [];
+	let allDeposits: TokenDeposit[] = [];
 	function getDeposits() {
 		if (!gui) return;
 		try {
-			allDeposits = gui.getCurrentDeployment().deposits;
+			const deposits = gui.getDeposits();
+			console.log('gui deposits', deposits);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_DEPOSITS;
 			console.error('Failed to get deposits:', e);
 		}
 	}
 
-	let allTokenInputs: Vault[] = [];
+	let allDepositFields: GuiDeposit[] = [];
+	function getAllDepositFields() {
+		if (!gui) return;
+		try {
+			let dep: GuiDeployment = gui.getCurrentDeployment();
+			allDepositFields = dep.deposits;
+		} catch (e) {
+			error = DeploymentStepErrors.NO_DEPOSITS;
+			console.error('Failed to get deposits:', e);
+		}
+	}
+
+	let allTokenInputs: OrderIO[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
 		try {
@@ -175,11 +183,12 @@
 		}
 	}
 
-	let allTokenOutputs: Vault[] = [];
+	let allTokenOutputs: OrderIO[] = [];
 	function getAllTokenOutputs() {
 		if (!gui) return;
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
+			console.log(allTokenInputs, allTokenOutputs);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			console.error('Failed to get token outputs:', e);
@@ -188,26 +197,22 @@
 
 	let allTokensSelected: boolean = false;
 	function checkTokensAreSelected() {
-		console.log('checking the tokens');
-		if (selectTokens.every((t) => gui.isSelectTokenSet(t))) {
+		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 			allTokensSelected = true;
 		} else {
 			allTokensSelected = false;
 		}
 	}
 
-	$: if (selectTokens) {
-		checkTokensAreSelected();
-	}
-
-	$: if (gui) {
+	$: if (gui || selectTokens) {
 		error = null;
+		getAllDepositFields();
+		getGuiDetails();
 		getSelectTokens();
 		getAllFieldDefinitions();
 		getDeposits();
 		getAllTokenInputs();
 		getAllTokenOutputs();
-		getGuiDetails();
 		checkTokensAreSelected();
 	}
 
@@ -337,10 +342,12 @@
 					</div>
 				{/if}
 
-				{#if allDeposits.length > 0}
+				{#if allDepositFields.length > 0}
 					<div class="flex w-full flex-col items-center gap-6">
-						{#each allDeposits as deposit}
-							<DepositButtons bind:deposit {gui} bind:tokenInfos />
+						DEPOSITS
+						{#each allDepositFields as deposit}
+							DEPOSIT
+							<DepositButtons bind:deposit {gui} />
 						{/each}
 					</div>
 				{/if}
@@ -356,7 +363,6 @@
 									{i}
 									label="Input"
 									vault={input}
-									bind:tokenInfos
 									vaultIds={inputVaultIds}
 									{gui}
 								/>
@@ -369,7 +375,6 @@
 									{i}
 									label="Output"
 									vault={output}
-									bind:tokenInfos
 									vaultIds={outputVaultIds}
 									{gui}
 								/>
