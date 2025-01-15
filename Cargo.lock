@@ -4491,6 +4491,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
 name = "hyper"
 version = "0.14.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6326,6 +6332,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_analytics"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "rain_orderbook_subgraph_client",
+ "reqwest 0.12.5",
+ "tokio",
+]
+
+[[package]]
 name = "rain_orderbook_app_settings"
 version = "0.0.0-alpha.0"
 dependencies = [
@@ -6367,12 +6384,15 @@ dependencies = [
  "alloy",
  "alloy-ethers-typecast",
  "anyhow",
+ "async-trait",
  "chrono",
  "clap",
  "comfy-table",
  "csv",
  "httpmock",
+ "humantime",
  "rain-metadata 0.0.2-alpha.6",
+ "rain_orderbook_analytics",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
