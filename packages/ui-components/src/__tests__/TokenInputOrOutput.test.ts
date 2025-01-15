@@ -6,14 +6,10 @@ import type { ComponentProps } from 'svelte';
 export type TokenInputOrOutputComponentProps = ComponentProps<TokenInputOrOutput>;
 
 describe('TokenInput', () => {
-	const mockTokenInfos = new Map([
-		['0x123', { symbol: 'ETH' }],
-		['0x456', { symbol: 'USDC' }]
-	]);
-
 	const mockInput = {
 		token: {
-			address: '0x123'
+			address: '0x123',
+			symbol: 'ETH'
 		}
 	};
 
@@ -25,7 +21,6 @@ describe('TokenInput', () => {
 		i: 0,
 		label: 'Input',
 		vault: mockInput,
-		tokenInfos: mockTokenInfos,
 		vaultIds: ['vault1'],
 		gui: mockGui
 	} as unknown as TokenInputOrOutputComponentProps;
