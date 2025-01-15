@@ -71,7 +71,7 @@ impl OrderContext for Context {
         match parts.get(1) {
             Some(&"token") => match &io.token {
                 Some(token) => self.resolve_token_path(token, &parts[2..]),
-                None => Err(ContextError::PropertyNotFound("token".to_string())),
+                None => Ok(format!("UNKNOWN_TOKEN_{}", index)),
             },
             Some(&"vault-id") => match &io.vault_id {
                 Some(vault_id) => Ok(vault_id.to_string()),
@@ -233,5 +233,25 @@ mod tests {
             context.interpolate("${order.outputs.0.vault-id}"),
             Err(ContextError::PropertyNotFound(_))
         ));
+    }
+
+    #[test]
+    fn test_missing_token_interpolation() {
+        let mut order = setup_test_order_with_vault_id();
+        let no_token_io = OrderIO {
+            token: None,
+            vault_id: Some(U256::from(42)),
+        };
+        Arc::make_mut(&mut order).inputs.push(no_token_io);
+
+        let mut context = Context::new();
+        context.add_order(order);
+
+        assert_eq!(
+            context
+                .interpolate("Token: ${order.inputs.1.token.symbol}")
+                .unwrap(),
+            "Token: UNKNOWN_TOKEN_1"
+        );
     }
 }
