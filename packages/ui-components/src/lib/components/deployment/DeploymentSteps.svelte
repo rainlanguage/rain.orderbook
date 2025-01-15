@@ -137,7 +137,6 @@
 		if (!gui) return;
 		try {
 			selectTokens = gui.getSelectTokens();
-			console.log('selectTokens', selectTokens);
 		} catch (e: unknown) {
 			console.error('Failed to get select tokens:', e);
 		}
