@@ -51,9 +51,7 @@
 		</div>
 	{/if}
 	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		<div class="w-full">
 			<Input
-				class="text-center text-lg"
 				size="lg"
 				placeholder="Enter custom value"
 				bind:value={inputValue}
@@ -63,6 +61,5 @@
 					}
 				}}
 			/>
-		</div>
 	{/if}
 </div>

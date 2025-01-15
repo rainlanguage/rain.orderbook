@@ -63,6 +63,6 @@
 				</div>
 			{/if}
 		</div>
-		<Input type="text" class="text-lg" size="lg" on:input={handleInput} bind:value={inputValue} />
+		<Input type="text" size="lg" on:input={handleInput} bind:value={inputValue} />
 	</div>
 </div>

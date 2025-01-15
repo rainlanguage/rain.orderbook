@@ -76,7 +76,6 @@
 	{/if}
 
 	<Input
-		class="text-center text-lg"
 		size="lg"
 		placeholder="Enter deposit amount"
 		bind:value={inputValue}

@@ -19,7 +19,6 @@
 			>
 		</div>
 		<Input
-			class="text-lg"
 			size="lg"
 			type="text"
 			placeholder="Enter vault ID"
