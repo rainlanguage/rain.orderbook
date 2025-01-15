@@ -310,10 +310,10 @@
 		<Spinner />
 	{/if}
 	{#if gui}
-		<div class="flex max-w-2xl flex-col items-center gap-24 self-center">
+		<div class="flex max-w-2xl flex-col gap-24">
 			{#if guiDetails}
-				<div class="mt-16 max-w-2xl text-center">
-					<h1 class="mb-6 text-4xl font-bold text-gray-900 dark:text-white">
+				<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
+					<h1 class="mb-6 text-8xl font-semibold text-gray-900 dark:text-white">
 						{guiDetails.name}
 					</h1>
 					<p class="text-xl text-gray-600 dark:text-gray-400">
@@ -352,7 +352,7 @@
 					</div>
 				{/if}
 				{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-					<div class="flex w-full flex-col items-center gap-6">
+					<div class="flex w-full flex-col gap-6">
 						<DeploymentSectionHeader
 							title={'Input/Output Vaults'}
 							description={'The vault addresses for the input and output tokens.'}
@@ -382,11 +382,7 @@
 						{/if}
 					</div>
 				{/if}
-				<div class="w-2xl">
-					<Button class="w-full text-2xl" size="lg" on:click={handleAddOrder}
-						>Deploy Strategy</Button
-					>
-				</div>
+				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 			{/if}
 		</div>
 	{/if}

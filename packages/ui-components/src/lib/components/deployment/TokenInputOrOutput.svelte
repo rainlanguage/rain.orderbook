@@ -12,7 +12,7 @@
 
 <div class="flex w-full max-w-2xl flex-col gap-6">
 	<div class="flex flex-col gap-4">
-		<div class="flex flex-row items-center gap-6">
+		<div class="flex flex-row gap-6">
 			<Label class="whitespace-nowrap text-xl"
 				>{label}
 				{i + 1} ({vault.token?.symbol || 'Unknown'})</Label
