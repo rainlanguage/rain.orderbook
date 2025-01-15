@@ -248,7 +248,35 @@ pub struct Gui {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
 
-impl Gui {}
+impl Gui {
+    pub fn parse_deployment_keys(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<Vec<String>, YamlError> {
+        let mut deployment_keys = Vec::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let deployments = gui
+                    .get(&StrictYaml::String("deployments".to_string()))
+                    .ok_or(YamlError::ParseError(
+                        "deployments field missing in gui".to_string(),
+                    ))?;
+
+                if let StrictYaml::Hash(deployments_hash) = deployments {
+                    for (key, _) in deployments_hash {
+                        if let StrictYaml::String(key) = key {
+                            deployment_keys.push(key.clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(deployment_keys)
+    }
+}
 
 impl YamlParseableValue for Gui {
     fn parse_from_yaml(

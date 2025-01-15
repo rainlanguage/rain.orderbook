@@ -23,8 +23,8 @@ mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AvailableDeployments(Vec<GuiDeployment>);
-impl_all_wasm_traits!(AvailableDeployments);
+pub struct DeploymentKeys(Vec<String>);
+impl_all_wasm_traits!(DeploymentKeys);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
@@ -52,18 +52,11 @@ pub struct DotrainOrderGui {
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    #[wasm_bindgen(js_name = "getAvailableDeployments")]
-    pub async fn get_available_deployments(
-        dotrain: String,
-    ) -> Result<AvailableDeployments, GuiError> {
+    #[wasm_bindgen(js_name = "getDeploymentKeys")]
+    pub async fn get_deployment_keys(dotrain: String) -> Result<DeploymentKeys, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let gui = dotrain_order
-            .dotrain_yaml()
-            .get_gui()?
-            .ok_or(GuiError::GuiConfigNotFound)?;
-        Ok(AvailableDeployments(
-            gui.deployments.values().cloned().collect(),
-        ))
+        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(DeploymentKeys(keys))
     }
 
     #[wasm_bindgen(js_name = "chooseDeployment")]
@@ -73,11 +66,8 @@ impl DotrainOrderGui {
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
-        let gui = dotrain_order
-            .dotrain_yaml()
-            .get_gui()?
-            .ok_or(GuiError::GuiConfigNotFound)?;
-        if !gui.deployments.contains_key(&deployment_name) {
+        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        if !keys.contains(&deployment_name) {
             return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
 
