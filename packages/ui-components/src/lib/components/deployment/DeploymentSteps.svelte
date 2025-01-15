@@ -60,6 +60,7 @@
 				throw new Error(`HTTP error - status: ${response.status}`);
 			}
 			dotrain = await response.text();
+			console.log('GOT THE DOTRAIN');
 		} catch (e) {
 			error = DeploymentStepErrors.NO_STRATEGY;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -159,6 +160,7 @@
 		try {
 			let dep: GuiDeployment = gui.getCurrentDeployment();
 			let depositFields: GuiDeposit[] = dep.deposits;
+
 			allDepositFields = depositFields;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_DEPOSITS;
@@ -347,7 +349,7 @@
 				{#if allDepositFields.length > 0}
 					<div class="flex w-full flex-col items-center gap-24">
 						{#each allDepositFields as deposit}
-							<DepositInput bind:deposit {gui} />
+							<DepositInput bind:deposit bind:gui />
 						{/each}
 					</div>
 				{/if}

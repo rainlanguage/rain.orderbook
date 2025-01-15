@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
+import dotrain from '../lib/__fixtures__/dotrain-for-testing.rain';
+import userEvent from '@testing-library/user-event';
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		getAvailableDeployments: vi.fn(),
@@ -15,30 +16,48 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-	it('renders load strategy button', () => {
+	it('renders strategy URL input and load button initially', () => {
 		render(DeploymentSteps);
-		expect(screen.getByText('Load Strategy')).toBeInTheDocument();
+		expect(screen.getByPlaceholderText('Enter URL to .rain file')).toBeInTheDocument();
+		const loadButton = screen.getByText('Load Strategy');
+		expect(loadButton).toBeInTheDocument();
+		expect(loadButton).toBeDisabled();
 	});
 
-	it('loads strategy when button is clicked', async () => {
+	it('enables load button when URL is entered', async () => {
 		render(DeploymentSteps);
+		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
 		const loadButton = screen.getByText('Load Strategy');
 
-		const mockDeployments = [
-			{ key: 'deployment1', label: 'Deployment 1' },
-			{ key: 'deployment2', label: 'Deployment 2' }
-		];
+		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
+		await waitFor(() => {
+			expect(loadButton).not.toBeDisabled();
+		});
+	});
 
-		(DotrainOrderGui.getAvailableDeployments as Mock).mockResolvedValue(mockDeployments);
+	it('loads strategy from URL when button is clicked', async () => {
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve(JSON.stringify(dotrain))
+		});
 
-		await fireEvent.click(loadButton);
+		render(DeploymentSteps);
+		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
+		const loadButton = screen.getByText('Load Strategy');
+		await userEvent.clear(urlInput);
+		await fireEvent.input(urlInput, { target: { value: 'https://example.com/strategy.rain' } });
+		await userEvent.click(loadButton);
 
-		expect(DotrainOrderGui.getAvailableDeployments).toHaveBeenCalled();
+		await waitFor(() => {
+			expect(global.fetch).toHaveBeenCalledWith('https://example.com/strategy.rain');
+		});
 	});
 
 	it('shows deployments dropdown after strategy is loaded', async () => {
-		render(DeploymentSteps);
-		const loadButton = screen.getByText('Load Strategy');
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve(JSON.stringify(dotrain))
+		});
 
 		const mockDeployments = [
 			{ key: 'deployment1', label: 'Deployment 1' },
@@ -47,66 +66,69 @@ describe('DeploymentSteps', () => {
 
 		(DotrainOrderGui.getAvailableDeployments as Mock).mockResolvedValue(mockDeployments);
 
-		await fireEvent.click(loadButton);
+		render(DeploymentSteps);
+		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
+		const loadButton = screen.getByText('Load Strategy');
 
-		expect(screen.getByText('Deployments')).toBeInTheDocument();
-		expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
+		await userEvent.click(loadButton);
+
+		await waitFor(() => {
+			expect(screen.getByText('Deployments')).toBeInTheDocument();
+			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+		});
+	});
+
+	it('handles URL fetch errors', async () => {
+		global.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
+
+		render(DeploymentSteps);
+		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
+		const loadButton = screen.getByText('Load Strategy');
+
+		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
+		await userEvent.click(loadButton);
+
+		await waitFor(() => {
+			expect(screen.getByText('No valid strategy exists at this URL')).toBeInTheDocument();
+		});
 	});
 
 	it('initializes GUI when deployment is selected', async () => {
-		render(DeploymentSteps);
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			text: () => Promise.resolve(JSON.stringify(dotrain))
+		});
 
 		const mockDeployments = [
 			{ key: 'deployment1', label: 'Deployment 1' },
 			{ key: 'deployment2', label: 'Deployment 2' }
 		];
 
-		const mockGui = {
-			getTokenInfos: vi.fn().mockReturnValue({}),
-			getCurrentDeployment: vi.fn().mockReturnValue({
-				deposits: [],
-				deployment: {
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				}
-			}),
-			getAllFieldDefinitions: vi.fn().mockReturnValue([])
-		};
-		const loadButton = screen.getByText('Load Strategy');
-
 		(DotrainOrderGui.getAvailableDeployments as Mock).mockResolvedValue(mockDeployments);
 
-		await fireEvent.click(loadButton);
+		render(DeploymentSteps);
+		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
+		const loadButton = screen.getByText('Load Strategy');
 
-		expect(screen.getByText('Deployments')).toBeInTheDocument();
-		expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
+		await userEvent.click(loadButton);
 
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue(mockGui);
+		await waitFor(() => {
+			expect(screen.getByText('Deployments')).toBeInTheDocument();
+			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+		});
+
 
 		const dropdownButton = screen.getByTestId('dropdown-button');
-		await fireEvent.click(dropdownButton);
+		await userEvent.click(dropdownButton);
 		const dropdown = screen.getByTestId('dropdown');
-		await fireEvent.click(dropdown);
+		await userEvent.click(dropdown);
 		const deploymentOption = screen.getByText('deployment1');
-		await fireEvent.click(deploymentOption);
+		await userEvent.click(deploymentOption);
 
-		expect(DotrainOrderGui.chooseDeployment).toHaveBeenCalled();
-	});
-
-	it('handles errors during deployment initialization', async () => {
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-		(DotrainOrderGui.getAvailableDeployments as Mock).mockRejectedValue(
-			new Error('Failed to load')
-		);
-
-		render(DeploymentSteps);
-		const loadButton = screen.getByText('Load Strategy');
-		await fireEvent.click(loadButton);
-
-		expect(consoleSpy).toHaveBeenCalledWith('Failed to load deployments:', expect.any(Error));
-		consoleSpy.mockRestore();
+		await waitFor(() => {
+			expect(DotrainOrderGui.chooseDeployment).toHaveBeenCalled();
+		});
 	});
 });

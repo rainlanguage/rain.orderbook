@@ -51,15 +51,15 @@
 		</div>
 	{/if}
 	{#if fieldDefinition.binding !== 'is-fast-exit'}
-			<Input
-				size="lg"
-				placeholder="Enter custom value"
-				bind:value={inputValue}
-				on:input={({ currentTarget }) => {
-					if (currentTarget instanceof HTMLInputElement) {
-						handleCustomInputChange(currentTarget.value);
-					}
-				}}
-			/>
+		<Input
+			size="lg"
+			placeholder="Enter custom value"
+			bind:value={inputValue}
+			on:input={({ currentTarget }) => {
+				if (currentTarget instanceof HTMLInputElement) {
+					handleCustomInputChange(currentTarget.value);
+				}
+			}}
+		/>
 	{/if}
 </div>

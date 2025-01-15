@@ -8,6 +8,22 @@
 	export let vault: OrderIO;
 	export let vaultIds: string[];
 	export let gui: DotrainOrderGui;
+	let tokenSymbol = '';
+
+	const getTokenSymbol = async () => {
+		try {
+			if (vault.token?.key) {
+				const token = await gui.getTokenInfo(vault.token.key);
+				tokenSymbol = token.symbol;
+			}
+		} catch (e) {
+			console.error(e);
+		}
+	};
+
+	$: if (!vault.token?.symbol) {
+		getTokenSymbol();
+	}
 </script>
 
 <div class="flex w-full max-w-2xl flex-col gap-6">
@@ -15,7 +31,8 @@
 		<div class="flex flex-row gap-6">
 			<Label class="whitespace-nowrap text-xl"
 				>{label}
-				{i + 1} ({vault.token?.symbol || 'Unknown'})</Label
+				{i + 1}
+				{tokenSymbol ? `(${tokenSymbol})` : ''}</Label
 			>
 		</div>
 		<Input
