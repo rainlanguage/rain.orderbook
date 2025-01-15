@@ -371,6 +371,15 @@ mod tests {
         let deployment_keys = Gui::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(deployment_keys.len(), 1);
         assert_eq!(deployment_keys[0], "deployment1");
+
+        let select_tokens =
+            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment1").unwrap();
+        assert_eq!(select_tokens.is_some(), true);
+        assert_eq!(select_tokens.unwrap()[0], "token2");
+
+        let select_tokens =
+            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
+        assert!(select_tokens.is_none());
     }
 
     #[test]

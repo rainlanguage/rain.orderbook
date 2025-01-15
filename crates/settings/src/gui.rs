@@ -276,6 +276,42 @@ impl Gui {
 
         Ok(deployment_keys)
     }
+
+    pub fn parse_select_tokens(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+    ) -> Result<Option<Vec<String>>, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(deployments) = gui.get(&StrictYaml::String("deployments".to_string())) {
+                    if let StrictYaml::Hash(deployments_hash) = deployments {
+                        if let Some(deployment) =
+                            deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                        {
+                            if let StrictYaml::Hash(deployment_hash) = deployment {
+                                if let Some(select_tokens) = deployment_hash
+                                    .get(&StrictYaml::String("select-tokens".to_string()))
+                                {
+                                    if let StrictYaml::Array(tokens) = select_tokens {
+                                        let mut result = Vec::new();
+                                        for token in tokens {
+                                            if let StrictYaml::String(token_str) = token {
+                                                result.push(token_str.clone());
+                                            }
+                                        }
+                                        return Ok(Some(result));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
 }
 
 impl YamlParseableValue for Gui {
