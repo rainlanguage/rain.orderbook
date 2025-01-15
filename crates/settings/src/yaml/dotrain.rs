@@ -285,12 +285,15 @@ mod tests {
         assert_eq!(order.inputs.len(), 1);
         let input = order.inputs.first().unwrap();
         assert_eq!(
-            *input.token.clone().as_ref(),
-            ob_yaml.get_token("token1").unwrap()
+            *input.token.clone().as_ref().unwrap(),
+            ob_yaml.get_token("token1").unwrap().into()
         );
         assert_eq!(input.vault_id, Some(U256::from(1)));
         let output = order.outputs.first().unwrap();
-        assert_eq!(*output.token.as_ref(), ob_yaml.get_token("token2").unwrap());
+        assert_eq!(
+            *output.token.as_ref().unwrap(),
+            ob_yaml.get_token("token2").unwrap().into()
+        );
         assert_eq!(output.vault_id, Some(U256::from(2)));
         assert_eq!(
             *order.network.as_ref(),
@@ -349,8 +352,8 @@ mod tests {
         assert_eq!(deployment.deposits.len(), 1);
         let deposit = &deployment.deposits[0];
         assert_eq!(
-            *deposit.token.as_ref(),
-            ob_yaml.get_token("token1").unwrap()
+            *deposit.token.as_ref().unwrap(),
+            ob_yaml.get_token("token1").unwrap().into()
         );
         assert_eq!(deposit.presets.len(), 2);
         assert_eq!(deposit.presets[0], "100".to_string());
@@ -564,6 +567,96 @@ mod tests {
         assert_eq!(
             deployment.fields[0].description,
             Some("With token symbol WETH".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_orders_missing_token() {
+        let yaml_prefix = r#"
+networks:
+    mainnet:
+        rpc: https://mainnet.infura.io
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: value1
+deployments:
+    deployment1:
+        order: order1
+        scenario: scenario1
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token-one
+                  presets:
+                    - 1
+                - token: token-two
+                  presets:
+                    - 1
+                - token: token-three
+                  presets:
+                    - 1
+            fields:
+                - binding: key1
+                  name: test
+                  presets:
+                    - value: 1
+            select-tokens:
+                - token-one
+                - token-two
+"#;
+        let missing_input_token_yaml = format!(
+            "{yaml_prefix}
+orders:
+    order1:
+        inputs:
+            - token: token-three
+        outputs:
+            - token: token-two
+            - token: token-three
+        "
+        );
+        let missing_output_token_yaml = format!(
+            "{yaml_prefix}
+orders:
+    order1:
+        inputs:
+            - token: token-one
+            - token: token-two
+        outputs:
+            - token: token-three
+        "
+        );
+
+        let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false).unwrap();
+        let error = dotrain_yaml.get_gui().unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "yaml data for token: token-three not found in input index: 0 in order: order1"
+                    .to_string()
+            )
+        );
+
+        let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
+        let error = dotrain_yaml.get_gui().unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError(
+                "yaml data for token: token-three not found in output index: 0 in order: order1"
+                    .to_string()
+            )
         );
     }
 }

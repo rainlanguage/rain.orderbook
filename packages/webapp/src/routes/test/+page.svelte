@@ -30,7 +30,7 @@
 	<IconInfo />
 	<IconLedger />
 	<IconSuccess />
-	<IconTelegram dark />
+	<IconTelegram />
 	<IconWalletConnect />
 	<IconWarning />
 	<CodeMirrorDotrain
