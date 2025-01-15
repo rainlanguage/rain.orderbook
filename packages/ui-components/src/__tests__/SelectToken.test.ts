@@ -8,18 +8,15 @@ import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 export type SelectTokenComponentProps = ComponentProps<SelectToken>;
 describe('SelectToken', () => {
 	const mockGui: DotrainOrderGui = {
-		saveSelectTokenAddress: vi.fn().mockResolvedValue(undefined),
-		getSelectTokens: vi.fn().mockReturnValue(new Map([['TOKEN1', '0x123']])),
-		getTokenInfos: vi
-			.fn()
-			.mockResolvedValue(new Map([['0x123', { name: 'Test Token', symbol: 'TEST', decimals: 18 }]]))
+		saveSelectToken: vi.fn().mockResolvedValue(undefined),
+		getSelectTokens: vi.fn().mockReturnValue(['input', 'output']),
+		removeSelectToken: vi.fn().mockResolvedValue(undefined),
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
-		token: ['TOKEN1', '0x123'],
+		tokenKey: 'input',
 		gui: mockGui,
-		selectTokens: new Map([['TOKEN1', '0x123']]),
-		tokenInfos: new Map([['0x123', { name: 'Test Token', symbol: 'TEST', decimals: 18 }]])
+		selectTokens: ['input', 'output'],
 	};
 
 	beforeEach(() => {
@@ -28,7 +25,7 @@ describe('SelectToken', () => {
 
 	it('renders token label correctly', () => {
 		const { getByText } = render(SelectToken, mockProps);
-		expect(getByText('TOKEN1')).toBeInTheDocument();
+		expect(getByText('input')).toBeInTheDocument();
 	});
 
 	it('renders input field', () => {
@@ -45,13 +42,13 @@ describe('SelectToken', () => {
 		await user.type(input, '0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectTokenAddress).toHaveBeenCalledWith('TOKEN1', '0x456');
+			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
 			expect(mockGui.getSelectTokens).toHaveBeenCalled();
-			expect(mockGui.getTokenInfos).toHaveBeenCalled();
+
 		});
 	});
 
-	it('shows error message for invalid address', async () => {
+	it('shows error message for invalid address, and removes the selectToken', async () => {
 		const user = userEvent.setup();
 		const mockGuiWithError = {
 			...mockGui,
@@ -68,6 +65,7 @@ describe('SelectToken', () => {
 
 		await waitFor(() => {
 			expect(findByText('Invalid address')).resolves.toBeInTheDocument();
+			expect(mockGui.removeSelectToken).toHaveBeenCalled();
 		});
 	});
 
@@ -82,7 +80,7 @@ describe('SelectToken', () => {
 		await user.type(input, '0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectTokenAddress).not.toHaveBeenCalled();
+			expect(mockGui.saveSelectToken).not.toHaveBeenCalled();
 			expect(mockGui.getSelectTokens).not.toHaveBeenCalled();
 		});
 	});
