@@ -26,13 +26,18 @@ pub trait OrderContext {
     fn resolve_order_path(&self, parts: &[&str]) -> Result<String, ContextError> {
         let order = self.order().ok_or(ContextError::NoOrder)?;
         match parts.first() {
-            Some(&"inputs") => self.resolve_io_path(&order.inputs, &parts[1..]),
-            Some(&"outputs") => self.resolve_io_path(&order.outputs, &parts[1..]),
+            Some(&"inputs") => self.resolve_io_path(true, &order.inputs, &parts[1..]),
+            Some(&"outputs") => self.resolve_io_path(false, &order.outputs, &parts[1..]),
             _ => Err(ContextError::InvalidPath(parts.join("."))),
         }
     }
 
-    fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError>;
+    fn resolve_io_path(
+        &self,
+        is_input: bool,
+        ios: &[OrderIO],
+        parts: &[&str],
+    ) -> Result<String, ContextError>;
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
 }
 
@@ -57,7 +62,12 @@ impl OrderContext for Context {
         self.order.as_ref()
     }
 
-    fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError> {
+    fn resolve_io_path(
+        &self,
+        is_input: bool,
+        ios: &[OrderIO],
+        parts: &[&str],
+    ) -> Result<String, ContextError> {
         let index = parts
             .first()
             .ok_or_else(|| ContextError::InvalidPath(parts.join(".")))?
@@ -71,7 +81,7 @@ impl OrderContext for Context {
         match parts.get(1) {
             Some(&"token") => match &io.token {
                 Some(token) => self.resolve_token_path(token, &parts[2..]),
-                None => Ok(format!("UNKNOWN_TOKEN_{}", index)),
+                None => Ok(format!("UNKNOWN_TOKEN.{}.{}", is_input, index)),
             },
             Some(&"vault-id") => match &io.vault_id {
                 Some(vault_id) => Ok(vault_id.to_string()),
@@ -242,7 +252,8 @@ mod tests {
             token: None,
             vault_id: Some(U256::from(42)),
         };
-        Arc::make_mut(&mut order).inputs.push(no_token_io);
+        Arc::make_mut(&mut order).inputs.push(no_token_io.clone());
+        Arc::make_mut(&mut order).outputs.push(no_token_io);
 
         let mut context = Context::new();
         context.add_order(order);
@@ -251,7 +262,13 @@ mod tests {
             context
                 .interpolate("Token: ${order.inputs.1.token.symbol}")
                 .unwrap(),
-            "Token: UNKNOWN_TOKEN_1"
+            "Token: UNKNOWN_TOKEN.true.1"
+        );
+        assert_eq!(
+            context
+                .interpolate("Token: ${order.outputs.1.token.symbol}")
+                .unwrap(),
+            "Token: UNKNOWN_TOKEN.false.1"
         );
     }
 }
