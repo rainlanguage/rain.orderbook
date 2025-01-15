@@ -12,10 +12,8 @@ export interface LayoutData {
 }
 
 export const load = async () => {
-	// Fetch settings from external URL
 	const response = await fetch('https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json');
 	const settingsJson = await response.json();
-
 	const activeNetworkRef = writable<string>('');
 	const settings = writable<ConfigSource | undefined>(settingsJson);
 	const activeOrderbookRef = writable<string>('');
