@@ -44,6 +44,26 @@ impl Deployer {
     pub fn validate_address(value: &str) -> Result<Address, ParseDeployerConfigSourceError> {
         Address::from_str(value).map_err(ParseDeployerConfigSourceError::AddressParseError)
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployer_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                if let Some(deployer_yaml) =
+                    deployers_hash.get(&StrictYaml::String(deployer_key.to_string()))
+                {
+                    return Ok(require_string(deployer_yaml, Some("network"), None)?);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for deployer: {deployer_key}"
+        )))
+    }
 }
 
 #[cfg(target_family = "wasm")]

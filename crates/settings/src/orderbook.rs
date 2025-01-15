@@ -34,6 +34,26 @@ impl Orderbook {
     pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookConfigSourceError> {
         Address::from_str(address).map_err(ParseOrderbookConfigSourceError::AddressParseError)
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        orderbook_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orderbooks_hash) = require_hash(&document_read, Some("orderbooks"), None) {
+                if let Some(orderbook_yaml) =
+                    orderbooks_hash.get(&StrictYaml::String(orderbook_key.to_string()))
+                {
+                    return Ok(require_string(orderbook_yaml, Some("network"), None)?);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for orderbook: {orderbook_key}"
+        )))
+    }
 }
 
 impl YamlParsableHash for Orderbook {

@@ -180,6 +180,26 @@ impl Token {
 
         Err(YamlError::KeyNotFound(key.to_string()))
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        token_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(tokens_hash) = require_hash(&document_read, Some("tokens"), None) {
+                if let Some(token_yaml) =
+                    tokens_hash.get(&StrictYaml::String(token_key.to_string()))
+                {
+                    return Ok(require_string(token_yaml, Some("network"), None)?);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for token: {token_key}"
+        )))
+    }
 }
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(

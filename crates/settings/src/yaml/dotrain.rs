@@ -341,6 +341,14 @@ mod tests {
             deployment.scenario,
             dotrain_yaml.get_scenario("scenario1").unwrap().into()
         );
+        assert_eq!(
+            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment1").unwrap(),
+            "order1"
+        );
+        assert_eq!(
+            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment2").unwrap(),
+            "order1"
+        );
 
         let gui = dotrain_yaml.get_gui().unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
