@@ -40,7 +40,7 @@
 	<DeploymentSectionHeader title={fieldDefinition.name} description={fieldDefinition.description} />
 
 	{#if fieldDefinition.presets}
-		<div class="flex w-full flex-wrap justify-center gap-4">
+		<div class="flex w-full flex-wrap gap-4">
 			{#each fieldDefinition.presets as preset}
 				<ButtonSelectOption
 					buttonText={preset.name || preset.value}

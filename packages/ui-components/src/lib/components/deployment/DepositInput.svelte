@@ -64,7 +64,7 @@
 		description="The amount of tokens you want to deposit"
 	/>
 	{#if deposit.presets}
-		<div class="flex w-full flex-wrap justify-center gap-4">
+		<div class="flex w-full flex-wrap gap-4">
 			{#each deposit.presets as preset}
 				<ButtonSelectOption
 					active={currentDeposit?.amount === preset}
