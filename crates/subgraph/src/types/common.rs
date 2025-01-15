@@ -81,6 +81,7 @@ pub type RainMetaV1 = Bytes;
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[typeshare]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "OrderSubgraph")]
 pub struct Order {
     pub id: Bytes,
     pub order_bytes: Bytes,
