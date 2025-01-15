@@ -356,6 +356,48 @@ mod tests {
     }
 
     #[test]
+    fn test_add_token_to_yaml() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+"#;
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+
+        Token::add_record_to_yaml(
+            ob_yaml.documents.clone(),
+            "test-token",
+            "mainnet",
+            "0x0000000000000000000000000000000000000001",
+            Some("18"),
+            Some("Test Token"),
+            Some("TTK"),
+        )
+        .unwrap();
+
+        let token = ob_yaml.get_token("test-token").unwrap();
+        assert_eq!(token.key, "test-token");
+        assert_eq!(token.network.key, "mainnet");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        assert_eq!(token.decimals, Some(18));
+        assert_eq!(token.label, Some("Test Token".to_string()));
+        assert_eq!(token.symbol, Some("TTK".to_string()));
+    }
+
+    #[test]
+    fn test_remove_token_from_yaml() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+        assert!(ob_yaml.get_token("token1").is_ok());
+        Token::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
+        assert!(ob_yaml.get_token("token1").is_err());
+    }
+
+    #[test]
     fn test_add_metaboard_to_yaml() {
         let yaml = r#"
 test: test
