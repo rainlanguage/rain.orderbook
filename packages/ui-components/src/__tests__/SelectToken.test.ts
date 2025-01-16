@@ -8,12 +8,14 @@ import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 export type SelectTokenComponentProps = ComponentProps<SelectToken>;
 describe('SelectToken', () => {
 	const mockGui: DotrainOrderGui = {
-		saveSelectToken: vi.fn().mockResolvedValue(undefined),
-		getSelectTokens: vi.fn().mockReturnValue(['input', 'output']),
-		removeSelectToken: vi.fn().mockResolvedValue(undefined)
+		saveSelectToken: vi.fn(),
+		replaceSelectToken: vi.fn(),
+		isSelectTokenSet: vi.fn(),
+		getTokenInfo: vi.fn()
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
+		allTokensSelected: false,
 		tokenKey: 'input',
 		gui: mockGui,
 		selectTokens: ['input', 'output']
@@ -33,7 +35,7 @@ describe('SelectToken', () => {
 		expect(getByRole('textbox')).toBeInTheDocument();
 	});
 
-	it('calls saveSelectTokenAddress and updates token info when input changes', async () => {
+	it('calls saveSelectToken and updates token info when input changes', async () => {
 		const user = userEvent.setup();
 		const { getByRole } = render(SelectToken, mockProps);
 		const input = getByRole('textbox');
@@ -43,7 +45,6 @@ describe('SelectToken', () => {
 
 		await waitFor(() => {
 			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
-			expect(mockGui.getSelectTokens).toHaveBeenCalled();
 		});
 	});
 
@@ -51,7 +52,7 @@ describe('SelectToken', () => {
 		const user = userEvent.setup();
 		const mockGuiWithError = {
 			...mockGui,
-			saveSelectTokenAddress: vi.fn().mockRejectedValue(new Error('Invalid address'))
+			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
 		} as unknown as DotrainOrderGui;
 
 		const { getByRole, findByText } = render(SelectToken, {
@@ -61,10 +62,8 @@ describe('SelectToken', () => {
 
 		const input = getByRole('textbox');
 		await user.type(input, 'invalid');
-
 		await waitFor(() => {
-			expect(findByText('Invalid address')).resolves.toBeInTheDocument();
-			expect(mockGui.removeSelectToken).toHaveBeenCalled();
+			expect(findByText('Invalid token address.')).resolves.toBeInTheDocument();
 		});
 	});
 
@@ -80,7 +79,26 @@ describe('SelectToken', () => {
 
 		await waitFor(() => {
 			expect(mockGui.saveSelectToken).not.toHaveBeenCalled();
-			expect(mockGui.getSelectTokens).not.toHaveBeenCalled();
+		});
+	});
+
+	it('replaces the token if the token is already set', async () => {
+		const mockGuiWithTokenSet = {
+			...mockGui,
+			isSelectTokenSet: vi.fn().mockResolvedValue(true)
+		} as unknown as DotrainOrderGui;
+
+		const user = userEvent.setup();
+
+		const { getByRole } = render(SelectToken, {
+			...mockProps,
+			gui: mockGuiWithTokenSet
+		});
+
+		const input = getByRole('textbox');
+		await user.type(input, 'invalid');
+		await waitFor(() => {
+			expect(mockGui.replaceSelectToken).toHaveBeenCalled();
 		});
 	});
 });
