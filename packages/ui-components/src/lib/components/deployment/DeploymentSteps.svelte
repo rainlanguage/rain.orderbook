@@ -153,15 +153,6 @@
 		}
 	}
 
-	function getSelectTokens() {
-		if (!gui) return;
-		try {
-			selectTokens = gui.getSelectTokens();
-		} catch (e: unknown) {
-			console.error('Failed to get select tokens:', e);
-		}
-	}
-
 	function getAllFieldDefinitions() {
 		if (!gui) return;
 		try {
@@ -217,7 +208,7 @@
 
 	$: console.log('SELECT TOKENS', selectTokens);
 
-	$: if (selectTokens != null) {
+	$: if (selectTokens != null && allTokensSelected) {
 		error = null;
 		getAllDepositFields();
 		getGuiDetails();

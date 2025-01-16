@@ -21,6 +21,8 @@
 			inputValue = currentTarget.value;
 			if (!gui) return;
 			try {
+				// If token is isSelectTokenSet(tokenKey) {
+				// replaceSelectToken(tokenKey, currentTarget.value);
 				await gui.saveSelectToken(tokenKey, currentTarget.value);
 				error = '';
 				console.log('getting select tokens');
