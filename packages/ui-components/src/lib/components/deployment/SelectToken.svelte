@@ -23,15 +23,17 @@
 	}
 
 	async function getInfoForSelectedToken() {
+		error = '';
 		try {
 			checking = true;
 			tokenInfo = await gui.getTokenInfo(tokenKey);
+			error = '';
+			checking = false;
 			checkIfAllTokensAreSelected();
 		} catch (e) {
-			error = 'Invalid address';
 			console.error(e);
+			error = 'No token exists at this address.';
 			checking = false;
-			await gui.removeSelectToken(tokenKey);
 		}
 	}
 
@@ -41,19 +43,16 @@
 		if (currentTarget instanceof HTMLInputElement) {
 			inputValue = currentTarget.value;
 			if (!gui) return;
-			if (gui.isSelectTokenSet(tokenKey)) {
-				console.log('replacing');
-				await gui.replaceSelectToken(tokenKey, currentTarget.value);
-				return await getInfoForSelectedToken();
-			} else {
-				console.log('saving!');
-				try {
-					console.log('[key]', tokenKey, '[value]', currentTarget.value);
+			try {
+				if (gui.isSelectTokenSet(tokenKey)) {
+					console.log('Replacing token');
+					await gui.replaceSelectToken(tokenKey, currentTarget.value);
+				} else {
 					await gui.saveSelectToken(tokenKey, currentTarget.value);
-					return await getInfoForSelectedToken();
-				} catch (error) {
-					console.error('ERROR in token selection', error);
 				}
+				return await getInfoForSelectedToken();
+			} catch {
+				error = 'Invalid token address.';
 			}
 		}
 	}
@@ -68,15 +67,15 @@
 		<div class="flex flex-row items-center gap-6">
 			{gui.isSelectTokenSet(tokenKey)}
 			<Label class="whitespace-nowrap text-xl">{tokenKey}</Label>
-			{#if checking}
-				<div class="flex h-5 flex-row items-center gap-2">
-					<Spinner class="h-5 w-5" />
-					<span>Checking...</span>
-				</div>
-			{:else if tokenInfo}
+			{#if tokenInfo}
 				<div class="flex h-5 flex-row items-center gap-2">
 					<CheckCircleSolid class="h-5 w-5" color="green" />
 					<span>{tokenInfo.name}</span>
+				</div>
+			{:else if checking}
+				<div class="flex h-5 flex-row items-center gap-2">
+					<Spinner class="h-5 w-5" />
+					<span>Checking...</span>
 				</div>
 			{:else if error}
 				<div class="flex h-5 flex-row items-center gap-2">

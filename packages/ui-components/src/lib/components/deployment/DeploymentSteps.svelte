@@ -52,6 +52,7 @@
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allTokensSelected: boolean = false;
+	let guiDetails: GuiDetails;
 
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
@@ -62,7 +63,9 @@
 		errorDetails = null;
 
 		try {
-			const response = await fetch(strategyUrl);
+			const response = await fetch(
+				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/tokens-removed-keys-shadowed/strategies/test-strategy-token-select.rain'
+			);
 			if (!response.ok) {
 				throw new Error(`HTTP error - status: ${response.status}`);
 			}
@@ -115,14 +118,9 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-			console.log(dotrain);
-			// get the strat string
-			//  get all the select tokens
-			//  check if the token is set
-			//  if they are not set, then you need to do them manually.
-			//  if isSelectTokenSet(true) then you need to remove the token before you can add a new one.
 			try {
 				selectTokens = gui.getSelectTokens();
+				getGuiDetails();
 				console.log('SELECT TOKENS in handle dep change', selectTokens);
 			} catch (e) {
 				console.error('ERROR GETTING TOKENS', e);
@@ -138,7 +136,6 @@
 		handleDeploymentChange(selectedDeployment as string);
 	}
 
-	let guiDetails: GuiDetails;
 	function getGuiDetails() {
 		if (!gui) return;
 		try {
@@ -198,7 +195,6 @@
 		error = null;
 		initializeVaultIdArrays();
 		getAllDepositFields();
-		getGuiDetails();
 		getAllFieldDefinitions();
 		getAllTokenInputs();
 		getAllTokenOutputs();
@@ -269,7 +265,7 @@
 				size="lg"
 			/>
 		</div>
-		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
+		<Button on:click={loadStrategyFromUrl} size="lg">Load Strategy</Button>
 	</div>
 </div>
 
@@ -329,7 +325,7 @@
 					</div>
 				</div>
 			{/if}
-			<!-- {#if allTokensSelected}
+			{#if allTokensSelected}
 				{#if allFieldDefinitions.length > 0}
 					<div class="flex w-full flex-col items-center gap-24">
 						{#each allFieldDefinitions as fieldDefinition}
@@ -377,7 +373,7 @@
 					</div>
 				{/if}
 				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-			{/if} -->
+			{/if}
 		</div>
 	{/if}
 {/if}
