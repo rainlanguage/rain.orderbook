@@ -559,7 +559,7 @@ min-trade-amount: mul(min-amount 0.9),
     if(call<'amount-is-output>() output-vault-decrease() input-vault-increase())
     min-trade-amount)
   "Min trade amount."),
-:call<'set-cost-basis-io-ratio>();`
+:call<'set-cost-basis-io-ratio>();`;
 
 describe('DeploymentSteps', () => {
 	beforeEach(() => {

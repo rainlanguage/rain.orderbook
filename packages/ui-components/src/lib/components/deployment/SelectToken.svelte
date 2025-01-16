@@ -17,9 +17,7 @@
 	function checkIfAllTokensAreSelected() {
 		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 			allTokensSelected = true;
-			console.log('all tokens are selected');
 		} else {
-			console.log('TOKENS NOT SELECTED');
 			allTokensSelected = false;
 		}
 	}
@@ -36,7 +34,6 @@
 	}
 
 	async function handleInput(event: Event) {
-		console.log('INPUT');
 		tokenInfo = null;
 		const currentTarget = event.currentTarget;
 		if (currentTarget instanceof HTMLInputElement) {
@@ -48,7 +45,6 @@
 			checking = true;
 			try {
 				if (gui.isSelectTokenSet(tokenKey)) {
-					console.log('Replacing token');
 					await gui.replaceSelectToken(tokenKey, currentTarget.value);
 				} else {
 					await gui.saveSelectToken(tokenKey, currentTarget.value);
