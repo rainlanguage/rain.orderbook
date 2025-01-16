@@ -118,7 +118,6 @@
 			try {
 				selectTokens = gui.getSelectTokens();
 				getGuiDetails();
-				console.log('SELECT TOKENS in handle dep change', selectTokens);
 			} catch (e) {
 				console.error('ERROR GETTING TOKENS', e);
 			}
