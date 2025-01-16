@@ -68,7 +68,6 @@
 				throw new Error(`HTTP error - status: ${response.status}`);
 			}
 			dotrain = await response.text();
-			console.log('GOT THE DOTRAIN');
 		} catch (e) {
 			error = DeploymentStepErrors.NO_STRATEGY;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -189,7 +188,7 @@
 		}
 	}
 
-	$: if (selectTokens != null && allTokensSelected) {
+	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		error = null;
 		initializeVaultIdArrays();
 		getAllDepositFields();
@@ -318,12 +317,13 @@
 					/>
 					<div class="flex w-full flex-col gap-4">
 						{#each selectTokens as tokenKey}
-							<SelectToken {tokenKey} {gui} bind:selectTokens bind:allTokensSelected />
+							<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
 						{/each}
 					</div>
 				</div>
 			{/if}
-			{#if allTokensSelected}
+
+			{#if allTokensSelected || selectTokens?.length === 0}
 				{#if allFieldDefinitions.length > 0}
 					<div class="flex w-full flex-col items-center gap-24">
 						{#each allFieldDefinitions as fieldDefinition}

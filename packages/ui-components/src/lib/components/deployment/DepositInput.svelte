@@ -2,7 +2,8 @@
 	import {
 		DotrainOrderGui,
 		type GuiDeposit,
-		type TokenDeposit
+		type TokenDeposit,
+		type TokenInfo
 	} from '@rainlanguage/orderbook/js_api';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
@@ -11,21 +12,16 @@
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 
-	console.log('deposit', deposit);
-
 	let currentDeposit: TokenDeposit | undefined;
-
-	let tokenName: string = '';
 	let inputValue: string = '';
+	let tokenInfo: TokenInfo | null = null;
 
 	const getTokenSymbol = async () => {
+		if (!deposit.token?.key) return;
 		try {
-			if (!deposit.token?.key) return (tokenName = '');
-			const tokenInfo = await gui.getTokenInfo(deposit.token?.key);
-			tokenName = tokenInfo.symbol;
+			tokenInfo = await gui.getTokenInfo(deposit.token?.key);
 		} catch (e) {
 			console.error('Failed to get token info:', e);
-			tokenName = '';
 		}
 	};
 
@@ -49,19 +45,17 @@
 		}
 	}
 
-	$: if (deposit) {
-		if (deposit.token?.symbol) {
-			tokenName = deposit.token?.symbol;
-		} else {
-			getTokenSymbol();
-		}
+	$: if (deposit.token?.key) {
+		getTokenSymbol();
 	}
 </script>
 
 <div class="flex w-full max-w-2xl flex-col gap-6">
 	<DeploymentSectionHeader
-		title={tokenName ? `Deposit amount (${tokenName})` : 'Deposit amount'}
-		description="The amount of tokens you want to deposit"
+		title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
+		description={tokenInfo?.symbol
+			? `The amount of ${tokenInfo?.symbol} that you want to deposit`
+			: 'The amount that you want to deposit'}
 	/>
 	{#if deposit.presets}
 		<div class="flex w-full flex-wrap gap-4">

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input, Label } from 'flowbite-svelte';
-	import type { OrderIO } from '@rainlanguage/orderbook/js_api';
+	import type { OrderIO, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 	export let i: number;
@@ -8,21 +8,19 @@
 	export let vault: OrderIO;
 	export let vaultIds: string[];
 	export let gui: DotrainOrderGui;
-	let tokenSymbol = '';
+	let tokenInfo: TokenInfo | null = null;
 
-	const getTokenSymbol = async () => {
+	const handleGetTokenInfo = async () => {
+		if (!vault.token?.key) return;
 		try {
-			if (vault.token?.key) {
-				const token = await gui.getTokenInfo(vault.token.key);
-				tokenSymbol = token.symbol;
-			}
+			tokenInfo = await gui.getTokenInfo(vault.token?.key);
 		} catch (e) {
-			console.error(e);
+			console.error('ERROR getting token info', e);
 		}
 	};
 
-	$: if (!vault.token?.symbol) {
-		getTokenSymbol();
+	$: if (vault.token?.key) {
+		handleGetTokenInfo();
 	}
 </script>
 
@@ -32,7 +30,7 @@
 			<Label class="whitespace-nowrap text-xl"
 				>{label}
 				{i + 1}
-				{tokenSymbol ? `(${tokenSymbol})` : ''}</Label
+				{tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}</Label
 			>
 		</div>
 		<Input
