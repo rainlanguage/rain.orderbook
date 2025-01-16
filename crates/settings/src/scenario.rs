@@ -125,14 +125,12 @@ impl Scenario {
 
         if let Ok(dep) = Deployer::parse_from_yaml(documents.clone(), &scenario_key, None) {
             current_deployer = Some(dep);
-        } else {
-            if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-                current_deployer = Some(Deployer::parse_from_yaml(
-                    documents.clone(),
-                    &deployer_name,
-                    None,
-                )?);
-            }
+        } else if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
+            current_deployer = Some(Deployer::parse_from_yaml(
+                documents.clone(),
+                &deployer_name,
+                None,
+            )?);
         }
 
         if let Some(current_deployer) = current_deployer {
