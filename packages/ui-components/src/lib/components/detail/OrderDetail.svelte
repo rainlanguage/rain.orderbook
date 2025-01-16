@@ -12,7 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -22,12 +22,13 @@
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal: ((order: Order, refetch: () => void) => void) | undefined =
-		undefined;
+	export let handleOrderRemoveModal:
+		| ((order: OrderSubgraph, refetch: () => void) => void)
+		| undefined = undefined;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: Order,
+				order: OrderSubgraph,
 				rpcUrl: string,
 				orderbook: string,
 				inputIOIndex: number,
@@ -47,7 +48,7 @@
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
-	$: orderDetailQuery = createQuery<Order>({
+	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl
