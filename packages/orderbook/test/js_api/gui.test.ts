@@ -6,7 +6,7 @@ import {
 	AllFieldValuesResult,
 	AllowancesResult,
 	ApprovalCalldataResult,
-	AvailableDeployments,
+	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Gui,
@@ -345,17 +345,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should return available deployments', async () => {
-		const deployments: AvailableDeployments =
-			await DotrainOrderGui.getAvailableDeployments(dotrainWithGui);
+		const deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0].key, 'other-deployment');
-		assert.equal(deployments[1].key, 'some-deployment');
-	});
-
-	it('should return error if gui config is not found', async () => {
-		await expect(DotrainOrderGui.chooseDeployment(dotrain, 'some-deployment')).rejects.toEqual(
-			new Error('Gui config not found')
-		);
+		assert.equal(deployments[0], 'some-deployment');
+		assert.equal(deployments[1], 'other-deployment');
 	});
 
 	it('should initialize gui object', async () => {

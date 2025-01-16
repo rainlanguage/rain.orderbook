@@ -341,6 +341,14 @@ mod tests {
             deployment.scenario,
             dotrain_yaml.get_scenario("scenario1").unwrap().into()
         );
+        assert_eq!(
+            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment1").unwrap(),
+            "order1"
+        );
+        assert_eq!(
+            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment2").unwrap(),
+            "order1"
+        );
 
         let gui = dotrain_yaml.get_gui().unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
@@ -367,6 +375,19 @@ mod tests {
         let select_tokens = deployment.select_tokens.as_ref().unwrap();
         assert_eq!(select_tokens.len(), 1);
         assert_eq!(select_tokens[0], "token2");
+
+        let deployment_keys = Gui::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
+        assert_eq!(deployment_keys.len(), 1);
+        assert_eq!(deployment_keys[0], "deployment1");
+
+        let select_tokens =
+            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment1").unwrap();
+        assert!(select_tokens.is_some());
+        assert_eq!(select_tokens.unwrap()[0], "token2");
+
+        let select_tokens =
+            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
+        assert!(select_tokens.is_none());
     }
 
     #[test]

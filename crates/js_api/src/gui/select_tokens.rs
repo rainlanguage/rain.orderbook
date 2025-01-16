@@ -1,5 +1,7 @@
 use super::*;
-use rain_orderbook_app_settings::token::Token;
+use rain_orderbook_app_settings::{
+    deployment::Deployment, network::Network, order::Order, token::Token,
+};
 use std::str::FromStr;
 
 #[wasm_bindgen]
@@ -17,9 +19,12 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "checkSelectTokens")]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
-        let deployment = self.get_current_deployment()?;
+        let select_tokens = Gui::parse_select_tokens(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
 
-        if let Some(select_tokens) = deployment.select_tokens {
+        if let Some(select_tokens) = select_tokens {
             for key in select_tokens {
                 if self.dotrain_order.orderbook_yaml().get_token(&key).is_err() {
                     return Err(GuiError::TokenMustBeSelected(key.clone()));
@@ -36,33 +41,33 @@ impl DotrainOrderGui {
         key: String,
         address: String,
     ) -> Result<(), GuiError> {
-        let deployment = self.get_current_deployment()?;
-        if deployment.select_tokens.is_none() {
-            return Err(GuiError::SelectTokensNotSet);
-        }
-        let select_tokens = deployment.select_tokens.unwrap();
+        let select_tokens = Gui::parse_select_tokens(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?
+        .ok_or(GuiError::SelectTokensNotSet)?;
         if !select_tokens.contains(&key) {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
 
         let address = Address::from_str(&address)?;
 
-        let rpc_url = deployment
-            .deployment
-            .order
-            .orderbook
-            .clone()
-            .ok_or(GuiError::OrderbookNotFound)?
-            .network
-            .rpc
-            .clone();
+        let order_key = Deployment::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+        let rpc_url =
+            Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+
         let erc20 = ERC20::new(rpc_url.clone(), address);
         let token_info = erc20.token_info(None).await?;
 
         Token::add_record_to_yaml(
             self.dotrain_order.orderbook_yaml().documents,
             &key,
-            &deployment.deployment.scenario.deployer.network.key,
+            &network_key,
             &address.to_string(),
             Some(&token_info.decimals.to_string()),
             Some(&token_info.name),
@@ -73,11 +78,11 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "removeSelectToken")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
-        let deployment = self.get_current_deployment()?;
-        if deployment.select_tokens.is_none() {
-            return Err(GuiError::SelectTokensNotSet);
-        }
-        let select_tokens = deployment.select_tokens.unwrap();
+        let select_tokens = Gui::parse_select_tokens(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?
+        .ok_or(GuiError::SelectTokensNotSet)?;
         if !select_tokens.contains(&key) {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
