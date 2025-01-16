@@ -79,6 +79,17 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = "replaceSelectToken")]
+    pub async fn replace_select_token(
+        &mut self,
+        key: String,
+        address: String,
+    ) -> Result<(), GuiError> {
+        self.remove_select_token(key.clone())?;
+        self.save_select_token(key, address).await?;
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = "removeSelectToken")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
         let select_tokens = Gui::parse_select_tokens(
