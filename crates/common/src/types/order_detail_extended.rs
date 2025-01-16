@@ -10,6 +10,8 @@ use typeshare::typeshare;
 #[serde(rename_all = "camelCase")]
 #[typeshare]
 pub struct OrderDetailExtended {
+    #[typeshare(typescript(type = "OrderSubgraph"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
     pub order: Order,
     pub rainlang: Option<String>,
 }
