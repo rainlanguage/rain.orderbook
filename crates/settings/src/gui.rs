@@ -308,6 +308,35 @@ impl Gui {
         }
         Ok(None)
     }
+
+    pub fn parse_gui_details(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<(String, String), YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let name = require_string(
+                    get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
+                    None,
+                    Some("name field must be a string in gui".to_string()),
+                )?;
+
+                let description = require_string(
+                    get_hash_value(
+                        gui,
+                        "description",
+                        Some("description field missing in gui".to_string()),
+                    )?,
+                    None,
+                    Some("description field must be a string in gui".to_string()),
+                )?;
+
+                return Ok((name, description));
+            }
+        }
+        Err(YamlError::ParseError("gui details not found".to_string()))
+    }
 }
 
 impl YamlParseableValue for Gui {

@@ -148,11 +148,9 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "getGuiDetails")]
     pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
-        let gui = self.get_gui_config()?;
-        Ok(GuiDetails {
-            name: gui.name,
-            description: gui.description,
-        })
+        let (name, description) =
+            Gui::parse_gui_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(GuiDetails { name, description })
     }
 }
 
