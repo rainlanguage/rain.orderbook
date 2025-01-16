@@ -22,6 +22,7 @@ pub struct OrderIdList {
 #[cynic(graphql_type = "Query", variables = "BatchOrderDetailQueryVariables")]
 #[typeshare]
 pub struct BatchOrderDetailQuery {
+    #[typeshare(typescript(type = "OrderSubgraph[]"))]
     #[arguments(where: $id_list)]
     pub orders: Vec<Order>,
 }
@@ -30,6 +31,7 @@ pub struct BatchOrderDetailQuery {
 #[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
 #[typeshare]
 pub struct OrdersListQuery {
+    #[typeshare(typescript(type = "OrderSubgraph[]"))]
     #[arguments(orderBy: "timestampAdded", orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
     pub orders: Vec<Order>,
 }
@@ -39,5 +41,6 @@ pub struct OrdersListQuery {
 #[typeshare]
 pub struct OrderDetailQuery {
     #[arguments(id: $id)]
+    #[typeshare(typescript(type = "OrderSubgraph"))]
     pub order: Option<Order>,
 }
