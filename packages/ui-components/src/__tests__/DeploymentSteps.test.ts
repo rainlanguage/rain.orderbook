@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import dotrain from '../lib/__fixtures__/dotrain_for_testing.rain';
+import dotrain from '../lib/__fixtures__/dotrain_for_testing.rain?raw';
 import userEvent from '@testing-library/user-event';
+
+
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		getAvailableDeployments: vi.fn(),
