@@ -24,7 +24,7 @@ path = [
     "tauri-app/.env.example",
     "prep-all.sh",
 ]
-SPDX-FileCopyrightText = "Copyright (c) 2020 thedavidmeister"
+SPDX-FileCopyrightText = "Copyright (c) 2020 Rain Open Source Software Ltd"
 SPDX-License-Identifier = "LicenseRef-DCL-1.0"
 
 [[annotations]]
