@@ -248,7 +248,96 @@ pub struct Gui {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
 
-impl Gui {}
+impl Gui {
+    pub fn parse_deployment_keys(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<Vec<String>, YamlError> {
+        let mut deployment_keys = Vec::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let deployments = gui
+                    .get(&StrictYaml::String("deployments".to_string()))
+                    .ok_or(YamlError::ParseError(
+                        "deployments field missing in gui".to_string(),
+                    ))?;
+
+                if let StrictYaml::Hash(deployments_hash) = deployments {
+                    for (key, _) in deployments_hash {
+                        if let StrictYaml::String(key) = key {
+                            deployment_keys.push(key.clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(deployment_keys)
+    }
+
+    pub fn parse_select_tokens(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+    ) -> Result<Option<Vec<String>>, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(StrictYaml::Hash(deployments_hash)) =
+                    gui.get(&StrictYaml::String("deployments".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(deployment_hash)) =
+                        deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                    {
+                        if let Some(StrictYaml::Array(tokens)) =
+                            deployment_hash.get(&StrictYaml::String("select-tokens".to_string()))
+                        {
+                            let mut result = Vec::new();
+                            for token in tokens {
+                                if let StrictYaml::String(token_str) = token {
+                                    result.push(token_str.clone());
+                                }
+                            }
+                            return Ok(Some(result));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn parse_gui_details(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<(String, String), YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let name = require_string(
+                    get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
+                    None,
+                    Some("name field must be a string in gui".to_string()),
+                )?;
+
+                let description = require_string(
+                    get_hash_value(
+                        gui,
+                        "description",
+                        Some("description field missing in gui".to_string()),
+                    )?,
+                    None,
+                    Some("description field must be a string in gui".to_string()),
+                )?;
+
+                return Ok((name, description));
+            }
+        }
+        Err(YamlError::ParseError("gui details not found".to_string()))
+    }
+}
 
 impl YamlParseableValue for Gui {
     fn parse_from_yaml(

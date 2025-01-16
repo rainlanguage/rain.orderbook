@@ -223,6 +223,87 @@ impl Order {
 
         Ok(self.clone())
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+    ) -> Result<String, YamlError> {
+        let mut network_key = None;
+
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
+                if let Some(order_yaml) =
+                    orders_hash.get(&StrictYaml::String(order_key.to_string()))
+                {
+                    if let Some(deployer_key) = optional_string(order_yaml, "deployer") {
+                        let key = Deployer::parse_network_key(documents.clone(), &deployer_key)?;
+
+                        if let Some(ref existing_key) = network_key {
+                            if *existing_key != key {
+                                return Err(YamlError::ParseOrderConfigSourceError(
+                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                ));
+                            }
+                        } else {
+                            network_key = Some(key);
+                        }
+                    }
+
+                    if let Some(orderbook_key) = optional_string(order_yaml, "orderbook") {
+                        let key = Orderbook::parse_network_key(documents.clone(), &orderbook_key)?;
+
+                        if let Some(ref existing_key) = network_key {
+                            if *existing_key != key {
+                                return Err(YamlError::ParseOrderConfigSourceError(
+                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                ));
+                            }
+                        } else {
+                            network_key = Some(key);
+                        }
+                    }
+
+                    for input in require_vec(order_yaml, "inputs", None)? {
+                        let token_key = require_string(input, Some("token"), None)?;
+                        let res = Token::parse_network_key(documents.clone(), &token_key);
+                        if let Ok(key) = res {
+                            if let Some(ref existing_key) = network_key {
+                                if *existing_key != key {
+                                    return Err(YamlError::ParseOrderConfigSourceError(
+                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ));
+                                }
+                            } else {
+                                network_key = Some(key);
+                            }
+                        }
+                    }
+
+                    for output in require_vec(order_yaml, "outputs", None)? {
+                        let token_key = require_string(output, Some("token"), None)?;
+                        let res = Token::parse_network_key(documents.clone(), &token_key);
+                        if let Ok(key) = res {
+                            if let Some(ref existing_key) = network_key {
+                                if *existing_key != key {
+                                    return Err(YamlError::ParseOrderConfigSourceError(
+                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(
+            network_key.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
+                String::new(),
+            ))?,
+        )
+    }
 }
 
 impl YamlParsableHash for Order {
