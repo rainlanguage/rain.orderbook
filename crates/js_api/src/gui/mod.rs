@@ -3,7 +3,10 @@ use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
+    deployment::Deployment,
     gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
+    network::Network,
+    order::Order,
     yaml::YamlError,
 };
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
@@ -107,37 +110,38 @@ impl DotrainOrderGui {
     /// Returns a [`TokenInfo`]
     #[wasm_bindgen(js_name = "getTokenInfo")]
     pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
-        let deployment = self.get_current_deployment()?;
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
-        let token_info =
-            if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
-                TokenInfo {
-                    address: token.address,
-                    decimals: token.decimals.unwrap(),
-                    name: token.label.unwrap(),
-                    symbol: token.symbol.unwrap(),
-                }
-            } else {
-                let rpc_url = deployment
-                    .deployment
-                    .order
-                    .orderbook
-                    .clone()
-                    .ok_or(GuiError::OrderbookNotFound)?
-                    .network
-                    .rpc
-                    .clone();
-                let erc20 = ERC20::new(rpc_url, token.address);
-                let onchain_info = erc20.token_info(None).await?;
+        let token_info = if token.decimals.is_some()
+            && token.label.is_some()
+            && token.symbol.is_some()
+        {
+            TokenInfo {
+                address: token.address,
+                decimals: token.decimals.unwrap(),
+                name: token.label.unwrap(),
+                symbol: token.symbol.unwrap(),
+            }
+        } else {
+            let order_key = Deployment::parse_order_key(
+                self.dotrain_order.dotrain_yaml().documents,
+                &self.selected_deployment,
+            )?;
+            let network_key =
+                Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+            let rpc_url =
+                Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-                TokenInfo {
-                    address: token.address,
-                    decimals: token.decimals.unwrap_or(onchain_info.decimals),
-                    name: token.label.unwrap_or(onchain_info.name),
-                    symbol: token.symbol.unwrap_or(onchain_info.symbol),
-                }
-            };
+            let erc20 = ERC20::new(rpc_url, token.address);
+            let onchain_info = erc20.token_info(None).await?;
+
+            TokenInfo {
+                address: token.address,
+                decimals: token.decimals.unwrap_or(onchain_info.decimals),
+                name: token.label.unwrap_or(onchain_info.name),
+                symbol: token.symbol.unwrap_or(onchain_info.symbol),
+            }
+        };
 
         Ok(token_info)
     }
