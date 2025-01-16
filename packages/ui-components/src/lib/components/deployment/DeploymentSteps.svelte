@@ -63,9 +63,7 @@
 		errorDetails = null;
 
 		try {
-			const response = await fetch(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/tokens-removed-keys-shadowed/strategies/test-strategy-token-select.rain'
-			);
+			const response = await fetch(strategyUrl);
 			if (!response.ok) {
 				throw new Error(`HTTP error - status: ${response.status}`);
 			}
@@ -265,7 +263,7 @@
 				size="lg"
 			/>
 		</div>
-		<Button on:click={loadStrategyFromUrl} size="lg">Load Strategy</Button>
+		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
 	</div>
 </div>
 
