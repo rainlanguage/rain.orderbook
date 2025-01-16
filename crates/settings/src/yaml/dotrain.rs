@@ -161,7 +161,7 @@ mod tests {
             label: USD Coin
             symbol: USDC
     deployers:
-        deployer1:
+        scenario1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
         deployer2:
@@ -179,7 +179,6 @@ mod tests {
         scenario1:
             bindings:
                 key1: value1
-            deployer: deployer1
             scenarios:
                 scenario2:
                     bindings:
@@ -307,7 +306,7 @@ mod tests {
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
         assert_eq!(
             *scenario1.deployer.as_ref(),
-            ob_yaml.get_deployer("deployer1").unwrap()
+            ob_yaml.get_deployer("scenario1").unwrap()
         );
         let scenario2 = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
         assert_eq!(scenario2.bindings.len(), 2);
@@ -315,7 +314,7 @@ mod tests {
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
         assert_eq!(
             *scenario2.deployer.as_ref(),
-            ob_yaml.get_deployer("deployer1").unwrap()
+            ob_yaml.get_deployer("scenario1").unwrap()
         );
 
         let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();
