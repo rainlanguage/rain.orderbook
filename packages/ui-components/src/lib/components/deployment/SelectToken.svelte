@@ -7,36 +7,53 @@
 	export let tokenKey: string;
 	export let gui: DotrainOrderGui;
 	export let selectTokens: string[];
+	export let allTokensSelected: boolean;
 
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 
+	function checkIfAllTokensAreSelected() {
+		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
+			allTokensSelected = true;
+		} else {
+			allTokensSelected = false;
+		}
+	}
+
+	async function getInfoForSelectedToken() {
+		try {
+			checking = true;
+			tokenInfo = await gui.getTokenInfo(tokenKey);
+			checkIfAllTokensAreSelected();
+		} catch (e) {
+			error = 'Invalid address';
+			console.error(e);
+			checking = false;
+			await gui.removeSelectToken(tokenKey);
+		}
+	}
+
 	async function handleInput(event: Event) {
-		checking = true;
 		tokenInfo = null;
 		const currentTarget = event.currentTarget;
 		if (currentTarget instanceof HTMLInputElement) {
 			inputValue = currentTarget.value;
 			if (!gui) return;
-			try {
-				// If token is isSelectTokenSet(tokenKey) {
-				// replaceSelectToken(tokenKey, currentTarget.value);
-				await gui.saveSelectToken(tokenKey, currentTarget.value);
-				error = '';
-				console.log('getting select tokens');
-				selectTokens = gui.getSelectTokens();
-				gui = gui;
-				console.log('getting token info');
-				tokenInfo = await gui.getTokenInfo(tokenKey);
-				checking = false;
-			} catch (e) {
-				console.error(e);
-				checking = false;
-				error = 'Invalid address';
-				gui.removeSelectToken(tokenKey);
-				selectTokens = gui.getSelectTokens();
+			if (gui.isSelectTokenSet(tokenKey)) {
+				console.log('replacing');
+				await gui.replaceSelectToken(tokenKey, currentTarget.value);
+				return await getInfoForSelectedToken();
+			} else {
+				console.log('saving!');
+				try {
+					console.log('[key]', tokenKey, '[value]', currentTarget.value);
+					await gui.saveSelectToken(tokenKey, currentTarget.value);
+					return await getInfoForSelectedToken();
+				} catch (error) {
+					console.error('ERROR in token selection', error);
+				}
 			}
 		}
 	}

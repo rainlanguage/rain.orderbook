@@ -116,8 +116,6 @@
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 			console.log(dotrain);
-			// await gui.saveSelectToken('input', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-			// await gui.saveSelectToken('output', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 			// get the strat string
 			//  get all the select tokens
 			//  check if the token is set
@@ -125,9 +123,7 @@
 			//  if isSelectTokenSet(true) then you need to remove the token before you can add a new one.
 			try {
 				selectTokens = gui.getSelectTokens();
-				console.log('SELECT TOKENS', selectTokens);
-
-				initializeVaultIdArrays();
+				console.log('SELECT TOKENS in handle dep change', selectTokens);
 			} catch (e) {
 				console.error('ERROR GETTING TOKENS', e);
 			}
@@ -198,24 +194,14 @@
 		}
 	}
 
-	function checkTokensAreSelected() {
-		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
-			allTokensSelected = true;
-		} else {
-			allTokensSelected = false;
-		}
-	}
-
-	$: console.log('SELECT TOKENS', selectTokens);
-
 	$: if (selectTokens != null && allTokensSelected) {
 		error = null;
+		initializeVaultIdArrays();
 		getAllDepositFields();
 		getGuiDetails();
 		getAllFieldDefinitions();
 		getAllTokenInputs();
 		getAllTokenOutputs();
-		checkTokensAreSelected();
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -338,12 +324,12 @@
 					/>
 					<div class="flex w-full flex-col gap-4">
 						{#each selectTokens as tokenKey}
-							<SelectToken {tokenKey} {gui} bind:selectTokens />
+							<SelectToken {tokenKey} {gui} bind:selectTokens bind:allTokensSelected />
 						{/each}
 					</div>
 				</div>
 			{/if}
-			{#if allTokensSelected}
+			<!-- {#if allTokensSelected}
 				{#if allFieldDefinitions.length > 0}
 					<div class="flex w-full flex-col items-center gap-24">
 						{#each allFieldDefinitions as fieldDefinition}
@@ -391,7 +377,7 @@
 					</div>
 				{/if}
 				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-			{/if}
+			{/if} -->
 		</div>
 	{/if}
 {/if}
