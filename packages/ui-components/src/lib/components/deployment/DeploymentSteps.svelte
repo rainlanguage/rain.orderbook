@@ -5,11 +5,10 @@
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
-
 	import {
 		DotrainOrderGui,
+		type DeploymentKeys,
 		type ApprovalCalldataResult,
-		type AvailableDeployments,
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
@@ -48,6 +47,14 @@
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let strategyUrl = '';
+	let selectTokens: string[] | null = null;
+	let allFieldDefinitions: GuiFieldDefinition[] = [];
+	let allDepositFields: GuiDeposit[] = [];
+	let allTokenOutputs: OrderIO[] = [];
+	let allTokensSelected: boolean = false;
+
+	let inputVaultIds: string[] = [];
+	let outputVaultIds: string[] = [];
 
 	async function loadStrategyFromUrl() {
 		isLoading = true;
@@ -74,14 +81,12 @@
 	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
 		try {
-			let deployments: AvailableDeployments =
-				await DotrainOrderGui.getAvailableDeployments(dotrain);
+			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
 			availableDeployments = Object.fromEntries(
 				deployments.map((deployment) => [
-					deployment.key,
+					deployment,
 					{
-						label: deployment.key,
-						deployment
+						label: deployment
 					}
 				])
 			);
@@ -110,7 +115,22 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-			initializeVaultIdArrays();
+			console.log(dotrain);
+			// await gui.saveSelectToken('input', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+			// await gui.saveSelectToken('output', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+			// get the strat string
+			//  get all the select tokens
+			//  check if the token is set
+			//  if they are not set, then you need to do them manually.
+			//  if isSelectTokenSet(true) then you need to remove the token before you can add a new one.
+			try {
+				selectTokens = gui.getSelectTokens();
+				console.log('SELECT TOKENS', selectTokens);
+
+				initializeVaultIdArrays();
+			} catch (e) {
+				console.error('ERROR GETTING TOKENS', e);
+			}
 		} catch (error) {
 			// eslint-disable-next-line no-console
 			console.error('Failed to get gui:', error);
@@ -133,7 +153,6 @@
 		}
 	}
 
-	let selectTokens: string[] | null = null;
 	function getSelectTokens() {
 		if (!gui) return;
 		try {
@@ -143,7 +162,6 @@
 		}
 	}
 
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	function getAllFieldDefinitions() {
 		if (!gui) return;
 		try {
@@ -154,7 +172,6 @@
 		}
 	}
 
-	let allDepositFields: GuiDeposit[] = [];
 	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
@@ -171,6 +188,7 @@
 	let allTokenInputs: OrderIO[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
+
 		try {
 			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
 		} catch (e) {
@@ -179,7 +197,6 @@
 		}
 	}
 
-	let allTokenOutputs: OrderIO[] = [];
 	function getAllTokenOutputs() {
 		if (!gui) return;
 		try {
@@ -190,7 +207,6 @@
 		}
 	}
 
-	let allTokensSelected: boolean = false;
 	function checkTokensAreSelected() {
 		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 			allTokensSelected = true;
@@ -199,11 +215,12 @@
 		}
 	}
 
-	$: if (gui || selectTokens) {
+	$: console.log('SELECT TOKENS', selectTokens);
+
+	$: if (selectTokens != null) {
 		error = null;
 		getAllDepositFields();
 		getGuiDetails();
-		getSelectTokens();
 		getAllFieldDefinitions();
 		getAllTokenInputs();
 		getAllTokenOutputs();
@@ -256,8 +273,6 @@
 		}
 	}
 
-	let inputVaultIds: string[] = [];
-	let outputVaultIds: string[] = [];
 	function initializeVaultIdArrays() {
 		if (!gui) return;
 		const deployment = gui.getCurrentDeployment();

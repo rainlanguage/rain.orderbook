@@ -23,8 +23,10 @@
 			try {
 				await gui.saveSelectToken(tokenKey, currentTarget.value);
 				error = '';
+				console.log('getting select tokens');
 				selectTokens = gui.getSelectTokens();
 				gui = gui;
+				console.log('getting token info');
 				tokenInfo = await gui.getTokenInfo(tokenKey);
 				checking = false;
 			} catch (e) {
@@ -45,6 +47,7 @@
 <div class="mb-4 flex w-full max-w-2xl flex-col">
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-row items-center gap-6">
+			{gui.isSelectTokenSet(tokenKey)}
 			<Label class="whitespace-nowrap text-xl">{tokenKey}</Label>
 			{#if checking}
 				<div class="flex h-5 flex-row items-center gap-2">

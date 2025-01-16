@@ -5,7 +5,6 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import dotrain from '../lib/__fixtures__/dotrain_for_testing.rain?raw';
 import userEvent from '@testing-library/user-event';
 
-
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		getAvailableDeployments: vi.fn(),
