@@ -8,8 +8,11 @@ use std::str::FromStr;
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getSelectTokens")]
     pub fn get_select_tokens(&self) -> Result<Vec<String>, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        Ok(deployment.select_tokens.unwrap_or(vec![]))
+        let select_tokens = Gui::parse_select_tokens(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        Ok(select_tokens.unwrap_or(vec![]))
     }
 
     #[wasm_bindgen(js_name = "isSelectTokenSet")]
