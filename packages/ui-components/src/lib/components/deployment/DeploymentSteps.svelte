@@ -58,8 +58,6 @@
 	export let dotrain: string = '';
 	let dropdownOpen = false;
 
-	$: console.log('DOTRAIN FOUND!');
-
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
 	async function initialize() {
