@@ -184,6 +184,8 @@ mod tests {
                 scenario2:
                     bindings:
                         key2: value2
+                    scenarios:
+                        runs: 10
     deployments:
         deployment1:
             order: order1
@@ -301,7 +303,7 @@ mod tests {
         );
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
-        assert_eq!(scenario_keys.len(), 2);
+        assert_eq!(scenario_keys.len(), 3);
         let scenario1 = dotrain_yaml.get_scenario("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
