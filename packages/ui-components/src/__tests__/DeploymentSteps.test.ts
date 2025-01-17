@@ -624,7 +624,7 @@ describe('DeploymentSteps', () => {
 		await userEvent.click(loadButton);
 
 		await waitFor(() => {
-			expect(screen.getByText('Deployments')).toBeInTheDocument();
+			expect(screen.getByText('Select Deployment')).toBeInTheDocument();
 			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
 		});
 	});
@@ -662,7 +662,7 @@ describe('DeploymentSteps', () => {
 		await userEvent.click(loadButton);
 
 		await waitFor(() => {
-			expect(screen.getByText('Deployments')).toBeInTheDocument();
+			expect(screen.getByText('Select Deployment')).toBeInTheDocument();
 			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
 		});
 

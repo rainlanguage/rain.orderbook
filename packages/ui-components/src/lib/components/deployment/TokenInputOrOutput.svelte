@@ -2,20 +2,22 @@
 	import { Input, Label } from 'flowbite-svelte';
 	import type { OrderIO, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIO;
 	export let vaultIds: string[];
 	export let gui: DotrainOrderGui;
+	let error: string = '';
 	let tokenInfo: TokenInfo | null = null;
 
 	const handleGetTokenInfo = async () => {
 		if (!vault.token?.key) return;
 		try {
 			tokenInfo = await gui.getTokenInfo(vault.token?.key);
-		} catch (e) {
-			console.error('ERROR getting token info', e);
+		} catch {
+			error = 'Error getting token info';
 		}
 	};
 
@@ -41,4 +43,10 @@
 			on:change={() => gui?.setVaultId(true, i, vaultIds[i])}
 		/>
 	</div>
+	{#if error}
+		<div class="flex h-5 flex-row items-center gap-2">
+			<CloseCircleSolid class="h-5 w-5" color="red" />
+			<span>{error}</span>
+		</div>
+	{/if}
 </div>

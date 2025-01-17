@@ -8,7 +8,9 @@
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 
+	let error: string = '';
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 
@@ -20,8 +22,8 @@
 		if (!deposit.token?.key) return;
 		try {
 			tokenInfo = await gui.getTokenInfo(deposit.token?.key);
-		} catch (e) {
-			console.error('Failed to get token info:', e);
+		} catch {
+			error = 'Error getting token details';
 		}
 	};
 
@@ -75,4 +77,11 @@
 		bind:value={inputValue}
 		on:input={(e) => handleInput(e)}
 	/>
+
+	{#if error}
+		<div class="flex h-5 flex-row items-center gap-2">
+			<CloseCircleSolid class="h-5 w-5" color="red" />
+			<span>{error}</span>
+		</div>
+	{/if}
 </div>
