@@ -3,7 +3,6 @@
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
-	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import {
 		DotrainOrderGui,
@@ -16,9 +15,10 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Spinner } from 'flowbite-svelte';
+	import { Button, Input, Spinner, Dropdown, DropdownItem } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
+	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -42,11 +42,9 @@
 		[linea.id]: linea
 	};
 
-	let dotrain = '';
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let strategyUrl = '';
 	let selectTokens: string[] | null = null;
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allDepositFields: GuiDeposit[] = [];
@@ -55,26 +53,10 @@
 	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
+	export let dotrain: string = '';
+	let dropdownOpen = false;
 
-	async function loadStrategyFromUrl() {
-		isLoading = true;
-		error = null;
-		errorDetails = null;
-
-		try {
-			const response = await fetch(strategyUrl);
-			if (!response.ok) {
-				throw new Error(`HTTP error - status: ${response.status}`);
-			}
-			dotrain = await response.text();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_STRATEGY;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-			console.error('Failed to load strategy:', e);
-		} finally {
-			isLoading = false;
-		}
-	}
+	$: console.log('DOTRAIN FOUND!');
 
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
@@ -249,126 +231,113 @@
 	}
 </script>
 
-<div class="mb-4">
-	<div class="flex flex-col gap-4 md:flex-row">
-		<div class="flex-1">
-			<Input
-				id="strategy-url"
-				type="url"
-				placeholder="Enter URL to .rain file"
-				bind:value={strategyUrl}
-				size="lg"
-			/>
-		</div>
-		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
-	</div>
-</div>
-
-{#if error}
-	<p class="text-red-500">{error}</p>
-{/if}
-{#if errorDetails}
-	<p class="text-red-500">{errorDetails}</p>
-{/if}
-{#if dotrain}
-	<DeploymentSectionHeader title="Select Deployment" />
-	<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-		<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-			{#if selectedRef === undefined}
-				<span>Select a deployment</span>
-			{:else if selectedOption?.label}
-				<span>{selectedOption.label}</span>
-			{:else}
-				<span>{selectedRef}</span>
-			{/if}
-		</svelte:fragment>
-
-		<svelte:fragment slot="option" let:option let:ref>
-			<div class="w-full overflow-hidden overflow-ellipsis">
-				<div class="text-md break-word">{option.label ? option.label : ref}</div>
-			</div>
-		</svelte:fragment>
-	</DropdownRadio>
-
-	{#if isLoading}
-		<Spinner />
+<div>
+	{#if error}
+		<p class="text-red-500">{error}</p>
 	{/if}
-	{#if gui}
-		<div class="flex max-w-2xl flex-col gap-24">
-			{#if guiDetails}
-				<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-					<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
-						{guiDetails.name}
-					</h1>
-					<p class="text-xl text-gray-600 dark:text-gray-400">
-						{guiDetails.description}
-					</p>
-				</div>
-			{/if}
+	{#if errorDetails}
+		<p class="text-red-500">{errorDetails}</p>
+	{/if}
+	{#if dotrain}
+		<DeploymentSectionHeader title="Select Deployment" />
+		<Button size="lg"
+			>Select a deployment<ChevronDownOutline
+				class="ms-2 flex h-3 w-3  text-white dark:text-white"
+			/></Button
+		>
+		<Dropdown class="w-full" bind:open={dropdownOpen}>
+			{#each Object.entries(availableDeployments) as [deployment, { label }]}
+				<DropdownItem
+					on:click={() => {
+						selectedDeployment = deployment;
+						dropdownOpen = false;
+					}}
+				>
+					{label || deployment}
+				</DropdownItem>
+			{/each}
+		</Dropdown>
 
-			{#if selectTokens && selectTokens.length > 0}
-				<div class="flex w-full flex-col gap-6">
-					<DeploymentSectionHeader
-						title="Select Tokens"
-						description="Select the tokens that you want to use in your order."
-					/>
-					<div class="flex w-full flex-col gap-4">
-						{#each selectTokens as tokenKey}
-							<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			{#if allTokensSelected || selectTokens?.length === 0}
-				{#if allFieldDefinitions.length > 0}
-					<div class="flex w-full flex-col items-center gap-24">
-						{#each allFieldDefinitions as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
-						{/each}
-					</div>
-				{/if}
-
-				{#if allDepositFields.length > 0}
-					<div class="flex w-full flex-col items-center gap-24">
-						{#each allDepositFields as deposit}
-							<DepositInput bind:deposit bind:gui />
-						{/each}
+		{#if isLoading}
+			<Spinner />
+		{/if}
+		{#if gui}
+			<div class="flex max-w-2xl flex-col gap-24">
+				{#if guiDetails}
+					<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
+						<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+							{guiDetails.name}
+						</h1>
+						<p class="text-xl text-gray-600 dark:text-gray-400">
+							{guiDetails.description}
+						</p>
 					</div>
 				{/if}
-				{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+
+				{#if selectTokens && selectTokens.length > 0}
 					<div class="flex w-full flex-col gap-6">
 						<DeploymentSectionHeader
-							title={'Input/Output Vaults'}
-							description={'The vault addresses for the input and output tokens.'}
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
 						/>
-						{#if allTokenInputs.length > 0}
-							{#each allTokenInputs as input, i}
-								<TokenInputOrOutput
-									{i}
-									label="Input"
-									vault={input}
-									vaultIds={inputVaultIds}
-									{gui}
-								/>
+						<div class="flex w-full flex-col gap-4">
+							{#each selectTokens as tokenKey}
+								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
 							{/each}
-						{/if}
-
-						{#if allTokenOutputs.length > 0}
-							{#each allTokenOutputs as output, i}
-								<TokenInputOrOutput
-									{i}
-									label="Output"
-									vault={output}
-									vaultIds={outputVaultIds}
-									{gui}
-								/>
-							{/each}
-						{/if}
+						</div>
 					</div>
 				{/if}
-				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-			{/if}
-		</div>
+
+				{#if allTokensSelected || selectTokens?.length === 0}
+					{#if allFieldDefinitions.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allFieldDefinitions as fieldDefinition}
+								<FieldDefinitionInput {fieldDefinition} {gui} />
+							{/each}
+						</div>
+					{/if}
+
+					{#if allDepositFields.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allDepositFields as deposit}
+								<DepositInput bind:deposit bind:gui />
+							{/each}
+						</div>
+					{/if}
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+						<div class="flex w-full flex-col gap-6">
+							<DeploymentSectionHeader
+								title={'Input/Output Vaults'}
+								description={'The vault addresses for the input and output tokens.'}
+							/>
+							{#if allTokenInputs.length > 0}
+								{#each allTokenInputs as input, i}
+									<TokenInputOrOutput
+										{i}
+										label="Input"
+										vault={input}
+										vaultIds={inputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+
+							{#if allTokenOutputs.length > 0}
+								{#each allTokenOutputs as output, i}
+									<TokenInputOrOutput
+										{i}
+										label="Output"
+										vault={output}
+										vaultIds={outputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+						</div>
+					{/if}
+					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+				{/if}
+			</div>
+		{/if}
 	{/if}
-{/if}
+</div>
