@@ -53,7 +53,6 @@
 	let allTokenOutputs: OrderIO[] = [];
 	let allTokensSelected: boolean = false;
 	let guiDetails: GuiDetails;
-
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 
