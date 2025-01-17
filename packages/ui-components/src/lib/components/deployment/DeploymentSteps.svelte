@@ -251,7 +251,7 @@
 </script>
 
 <div class="mb-4">
-	<div class="flex items-end gap-2">
+	<div class="flex flex-col gap-4 md:flex-row">
 		<div class="flex-1">
 			<Input
 				id="strategy-url"
@@ -272,26 +272,25 @@
 	<p class="text-red-500">{errorDetails}</p>
 {/if}
 {#if dotrain}
-	<div class="mb-4">
-		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
-		<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-			<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-				{#if selectedRef === undefined}
-					<span>Select a deployment</span>
-				{:else if selectedOption?.label}
-					<span>{selectedOption.label}</span>
-				{:else}
-					<span>{selectedRef}</span>
-				{/if}
-			</svelte:fragment>
+	<DeploymentSectionHeader title="Select Deployment" />
+	<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
+		<svelte:fragment slot="content" let:selectedOption let:selectedRef>
+			{#if selectedRef === undefined}
+				<span>Select a deployment</span>
+			{:else if selectedOption?.label}
+				<span>{selectedOption.label}</span>
+			{:else}
+				<span>{selectedRef}</span>
+			{/if}
+		</svelte:fragment>
 
-			<svelte:fragment slot="option" let:option let:ref>
-				<div class="w-full overflow-hidden overflow-ellipsis">
-					<div class="text-md break-word">{option.label ? option.label : ref}</div>
-				</div>
-			</svelte:fragment>
-		</DropdownRadio>
-	</div>
+		<svelte:fragment slot="option" let:option let:ref>
+			<div class="w-full overflow-hidden overflow-ellipsis">
+				<div class="text-md break-word">{option.label ? option.label : ref}</div>
+			</div>
+		</svelte:fragment>
+	</DropdownRadio>
+
 	{#if isLoading}
 		<Spinner />
 	{/if}
@@ -299,7 +298,7 @@
 		<div class="flex max-w-2xl flex-col gap-24">
 			{#if guiDetails}
 				<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-					<h1 class="mb-6 text-8xl font-semibold text-gray-900 dark:text-white">
+					<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
 						{guiDetails.name}
 					</h1>
 					<p class="text-xl text-gray-600 dark:text-gray-400">
