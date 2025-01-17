@@ -64,15 +64,12 @@ impl Scenario {
         scenario_yaml: &StrictYaml,
         context: Option<&Context>,
     ) -> Result<(), YamlError> {
-        let current_bindings = require_hash(
-            scenario_yaml,
-            Some("bindings"),
-            Some(format!("bindings map missing in scenario: {scenario_key}")),
-        )?
-        .iter()
-        .map(|(binding_key, binding_value)| {
-            let binding_key = binding_key.as_str().unwrap_or_default();
-            let binding_value = require_string(
+        let mut current_bindings = HashMap::new();
+
+        if let Some(bindings) = optional_hash(scenario_yaml, "bindings") {
+            for (binding_key, binding_value) in bindings {
+                let binding_key = binding_key.as_str().unwrap_or_default();
+                let binding_value = require_string(
                 binding_value,
                 None,
                 Some(format!(
@@ -80,17 +77,14 @@ impl Scenario {
                 )),
             )?;
 
-            let interpolated_value = match context {
-                Some(context) => context.interpolate(&binding_value)?,
-                None => binding_value.to_string(),
-            };
+                let interpolated_value = match context {
+                    Some(context) => context.interpolate(&binding_value)?,
+                    None => binding_value.to_string(),
+                };
 
-            Ok((
-                binding_key.to_string(),
-                interpolated_value,
-            ))
-        })
-        .collect::<Result<HashMap<_, _>, YamlError>>()?;
+                current_bindings.insert(binding_key.to_string(), interpolated_value);
+            }
+        }
 
         let mut bindings = parent_scenario
             .bindings
@@ -661,17 +655,6 @@ test: test
         assert_eq!(
             error,
             YamlError::ParseError("missing field: scenarios".to_string())
-        );
-
-        let yaml = r#"
-scenarios:
-    scenario1:
-        test: test
-"#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError("bindings map missing in scenario: scenario1".to_string())
         );
 
         let yaml = r#"

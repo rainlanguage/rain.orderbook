@@ -95,6 +95,30 @@ impl Network {
 
         Ok(self.clone())
     }
+
+    pub fn parse_rpc(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        network_key: &str,
+    ) -> Result<Url, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(networks_hash) = require_hash(&document_read, Some("networks"), None) {
+                if let Some(network_yaml) =
+                    networks_hash.get(&StrictYaml::String(network_key.to_string()))
+                {
+                    return Ok(Network::validate_rpc(&require_string(
+                        network_yaml,
+                        Some("rpc"),
+                        None,
+                    )?)?);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "rpc not found for network: {network_key}"
+        )))
+    }
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);

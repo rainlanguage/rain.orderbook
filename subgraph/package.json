@@ -3,7 +3,7 @@
     "description": "Subgraph setup",
     "version": "1.0.0",
     "license": "LicenseRef-DCL-1.0",
-    "author": "Rain Open Source LLC",
+    "author": "Rain Open Source Software Ltd",
     "scripts": {
         "test": "graph test -d"
     },
