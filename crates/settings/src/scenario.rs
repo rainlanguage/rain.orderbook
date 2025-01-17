@@ -115,20 +115,28 @@ impl Scenario {
             .map(|blocks| Scenario::validate_blocks(&blocks))
             .transpose()?;
 
-        if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-            let current_deployer =
-                Deployer::parse_from_yaml(documents.clone(), &deployer_name, None)?;
+        let mut current_deployer: Option<Deployer> = None;
 
+        if let Ok(dep) = Deployer::parse_from_yaml(documents.clone(), &scenario_key, None) {
+            current_deployer = Some(dep);
+        } else if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
+            current_deployer = Some(Deployer::parse_from_yaml(
+                documents.clone(),
+                &deployer_name,
+                None,
+            )?);
+        }
+
+        if let Some(current_deployer) = current_deployer {
             if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
                 if current_deployer.key != parent_deployer.key {
                     return Err(YamlError::ParseScenarioConfigSourceError(
                         ParseScenarioConfigSourceError::ParentDeployerShadowedError(
-                            deployer_name.clone(),
+                            current_deployer.key.clone(),
                         ),
                     ));
                 }
             }
-
             *deployer = Some(Arc::new(current_deployer));
         }
 
