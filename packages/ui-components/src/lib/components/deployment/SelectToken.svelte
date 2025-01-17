@@ -27,8 +27,7 @@
 		try {
 			tokenInfo = await gui.getTokenInfo(tokenKey);
 			error = '';
-		} catch (e) {
-			console.error(e);
+		} catch {
 			return (error = 'No token exists at this address.');
 		}
 	}
@@ -50,8 +49,7 @@
 					await gui.saveSelectToken(tokenKey, currentTarget.value);
 				}
 				await getInfoForSelectedToken();
-			} catch (e) {
-				console.error(e);
+			} catch {
 				error = 'Invalid token address.';
 			}
 		}

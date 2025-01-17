@@ -29,7 +29,9 @@
 		NO_DEPOSITS = 'Error loading deposits',
 		NO_TOKEN_INPUTS = 'Error loading token inputs',
 		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
-		NO_GUI_DETAILS = 'Error getting GUI details'
+		NO_GUI_DETAILS = 'Error getting GUI details',
+		NO_CHAIN = 'Unsupported chain ID',
+		ADD_ORDER_FAILED = 'Failed to add order'
 	}
 
 	const chains: Record<number, Chain> = {
@@ -74,8 +76,6 @@
 		} catch (e: unknown) {
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-			// eslint-disable-next-line no-console
-			console.error('Failed to load deployments:', e);
 		}
 	}
 
@@ -100,11 +100,12 @@
 				selectTokens = gui.getSelectTokens();
 				getGuiDetails();
 			} catch (e) {
-				console.error('ERROR GETTING TOKENS', e);
+				error = DeploymentStepErrors.NO_SELECT_TOKENS;
+				errorDetails = e instanceof Error ? e.message : 'Unknown error';
 			}
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to get gui:', error);
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 		isLoading = false;
 	}
@@ -119,7 +120,7 @@
 			guiDetails = gui.getGuiDetails();
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI_DETAILS;
-			console.error('Failed to get gui details:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -129,7 +130,7 @@
 			allFieldDefinitions = gui.getAllFieldDefinitions();
 		} catch (e) {
 			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
-			console.error('Failed to get field definitions:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -142,7 +143,7 @@
 			allDepositFields = depositFields;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_DEPOSITS;
-			console.error('Failed to get deposits:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -154,7 +155,7 @@
 			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_INPUTS;
-			console.error('Failed to get token inputs:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -164,7 +165,7 @@
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
-			console.error('Failed to get token outputs:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -180,7 +181,8 @@
 	export function getChainById(chainId: number): Chain {
 		const chain = chains[chainId];
 		if (!chain) {
-			throw new Error(`Unsupported chain ID: ${chainId}`);
+			error = DeploymentStepErrors.NO_CHAIN;
+			errorDetails = `Unsupported chain ID: ${chainId}`;
 		}
 		return chain;
 	}
@@ -217,9 +219,9 @@
 				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
 				data: calldata as `0x${string}`
 			});
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to add order:', error);
+		} catch (e) {
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
