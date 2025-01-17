@@ -13,37 +13,31 @@
 	import IconExternalLink from './IconExternalLink.svelte';
 	import { page } from '$app/stores';
 	import ButtonDarkMode from './ButtonDarkMode.svelte';
-
+	import logoDark from '../assets/logo-dark.svg';
+	import logoLight from '../assets/logo-light.svg';
+	import { PlusOutline } from 'flowbite-svelte-icons';
 	export let colorTheme;
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
 	<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
 		<SidebarGroup ulClass="">
-			<div class="block dark:hidden">
-				<SidebarBrand
-					site={{
-						name: '',
-						href: '/',
-						img: '/logo-light.svg'
-					}}
-					imgClass="w-2/3 m-auto"
-					aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-					spanClass="hidden"
-				></SidebarBrand>
-			</div>
-			<div class="hidden dark:block">
-				<SidebarBrand
-					site={{
-						name: '',
-						href: '/',
-						img: '/logo-dark.svg'
-					}}
-					imgClass="w-2/3 m-auto"
-					aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-					spanClass="hidden"
-				></SidebarBrand>
-			</div>
+			<SidebarBrand
+				site={{
+					name: '',
+					href: '/',
+					img: colorTheme == 'light' ? logoDark : logoLight
+				}}
+				imgClass="m-auto"
+			></SidebarBrand>
+		</SidebarGroup>
+		<SidebarGroup border>
+			<SidebarItem label="Deploy" href="/deploy">
+				<svelte:fragment slot="icon">
+					<PlusOutline class="h-5 w-5" />
+					<span data-testid="sidebar-deploy"></span>
+				</svelte:fragment>
+			</SidebarItem>
 		</SidebarGroup>
 		<SidebarGroup border>
 			<SidebarItem label="Orders" href="/orders">
