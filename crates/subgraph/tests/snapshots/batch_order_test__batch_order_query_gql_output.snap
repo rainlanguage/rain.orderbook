@@ -23,12 +23,12 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
       orderbook {
         id
       }
-      ordersAsOutput {
+      ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
       }
-      ordersAsInput {
+      ordersAsInput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
@@ -43,6 +43,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -70,6 +71,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -97,6 +99,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -115,6 +118,35 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           orderbook {
             id
           }
+        }
+        ... on ClearBounty {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            vaultId
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+          sender
         }
       }
     }
@@ -133,12 +165,12 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
       orderbook {
         id
       }
-      ordersAsOutput {
+      ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
       }
-      ordersAsInput {
+      ordersAsInput(orderBy: timestampAdded, orderDirection: desc) {
         id
         orderHash
         active
@@ -153,6 +185,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -180,6 +213,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -207,6 +241,7 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           oldVaultBalance
           vault {
             id
+            vaultId
             token {
               id
               address
@@ -225,6 +260,35 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
           orderbook {
             id
           }
+        }
+        ... on ClearBounty {
+          id
+          __typename
+          amount
+          newVaultBalance
+          oldVaultBalance
+          vault {
+            id
+            vaultId
+            token {
+              id
+              address
+              name
+              symbol
+              decimals
+            }
+          }
+          timestamp
+          transaction {
+            id
+            from
+            blockNumber
+            timestamp
+          }
+          orderbook {
+            id
+          }
+          sender
         }
       }
     }

@@ -2,12 +2,9 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import { Withdraw } from "../generated/OrderBook/OrderBook";
 import { Withdrawal } from "../generated/schema";
 import { eventId } from "./interfaces/event";
-import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
-import { createOrderbookEntity } from "./orderbook";
 
 export function handleWithdraw(event: Withdraw): void {
-  createOrderbookEntity(event);
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
     event.address,
     event.params.vaultId,
@@ -33,7 +30,7 @@ export function createWithdrawalEntity(
     event.params.vaultId,
     event.params.token
   );
-  withdraw.transaction = createTransactionEntity(event);
+  withdraw.transaction = event.transaction.hash;
   withdraw.oldVaultBalance = oldVaultBalance;
   withdraw.newVaultBalance = oldVaultBalance.minus(event.params.amount);
   withdraw.timestamp = event.block.timestamp;

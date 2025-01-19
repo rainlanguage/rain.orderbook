@@ -1,24 +1,25 @@
 use crate::{error::Error, BatchQuoteSpec as MainBatchQuoteSpec, QuoteSpec as MainQuoteSpec};
-use crate::{BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget};
+use crate::{
+    get_order_quotes, BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget,
+};
 use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
 use rain_orderbook_bindings::js_api::{Quote, SignedContextV1};
-use rain_orderbook_subgraph_client::utils::make_order_id;
+use rain_orderbook_bindings::{
+    impl_all_wasm_traits,
+    wasm_traits::{prelude::*, TryIntoU256},
+};
+use rain_orderbook_subgraph_client::{types::common::Order, utils::make_order_id};
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::to_value;
 use std::str::FromStr;
-use tsify::Tsify;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::{convert::*, describe::WasmDescribe, JsValue, UnwrapThrowExt};
 
 mod impls;
 
 /// Holds quoted order max output and ratio
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct OrderQuoteValue {
     pub max_output: String,
     pub ratio: String,
@@ -27,7 +28,6 @@ pub struct OrderQuoteValue {
 /// A quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct QuoteTarget {
     pub quote_config: Quote,
     pub orderbook: String,
@@ -36,13 +36,11 @@ pub struct QuoteTarget {
 /// Batch quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
 
 /// A quote target specifier, where the order details need to be fetched from a
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct QuoteSpec {
     pub order_hash: String,
@@ -57,11 +55,9 @@ pub struct QuoteSpec {
 /// Batch quote spec
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(untagged)]
 pub enum QuoteResult {
     Ok(OrderQuoteValue),
@@ -89,6 +85,7 @@ pub async fn do_quote_targets(
     quote_targets: &BatchQuoteTarget,
     rpc_url: &str,
     block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
     let mut multicall_address_error = "multicall address, ".to_string();
@@ -97,6 +94,12 @@ pub async fn do_quote_targets(
             .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
             .expect_throw(&multicall_address_error)
     });
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        v.try_into_u256()
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
     let quote_targets: Vec<MainQuoteTarget> = quote_targets
         .0
         .iter()
@@ -104,7 +107,7 @@ pub async fn do_quote_targets(
         .collect();
     let batch_quote_target = MainBatchQuoteTarget(quote_targets);
     match batch_quote_target
-        .do_quote(rpc_url, block_number, multicall_address)
+        .do_quote(rpc_url, block_number, gas_value, multicall_address)
         .await
     {
         Err(e) => Err(e),
@@ -123,6 +126,7 @@ pub async fn do_quote_specs(
     subgraph_url: &str,
     rpc_url: &str,
     block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
     multicall_address: Option<String>,
 ) -> Result<JsValue, Error> {
     let mut multicall_address_error = "multicall address, ".to_string();
@@ -131,6 +135,12 @@ pub async fn do_quote_specs(
             .inspect_err(|e| multicall_address_error.push_str(&e.to_string()))
             .expect_throw(&multicall_address_error)
     });
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        v.try_into_u256()
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
     let quote_specs: Vec<MainQuoteSpec> = quote_specs
         .0
         .iter()
@@ -138,7 +148,13 @@ pub async fn do_quote_specs(
         .collect();
     let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
     match batch_quote_spec
-        .do_quote(subgraph_url, rpc_url, block_number, multicall_address)
+        .do_quote(
+            subgraph_url,
+            rpc_url,
+            block_number,
+            gas_value,
+            multicall_address,
+        )
         .await
     {
         Err(e) => Err(e),
@@ -174,4 +190,48 @@ pub async fn get_batch_quote_target_from_subgraph(
                 .collect::<Vec<_>>(),
         )?),
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct Pair {
+    pub pair_name: String,
+    pub input_index: u32,
+    pub output_index: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchOrderQuotesResponse {
+    pub pair: Pair,
+    pub block_number: u64,
+    pub data: Option<OrderQuoteValue>,
+    pub success: bool,
+    pub error: Option<String>,
+}
+
+/// Get the quote for an order
+/// Resolves with a BatchOrderQuotesResponse object
+#[wasm_bindgen(js_name = "getOrderQuote")]
+pub async fn get_order_quote(
+    order: Vec<Order>,
+    rpc_url: &str,
+    block_number: Option<u64>,
+    gas: Option<js_sys::BigInt>,
+) -> Result<JsValue, Error> {
+    let mut gas_error = "gas, ".to_string();
+    let gas_value = gas.map(|v| {
+        v.try_into_u256()
+            .inspect_err(|e| gas_error.push_str(&e.to_string()))
+            .expect_throw(&gas_error)
+    });
+    Ok(to_value(
+        &get_order_quotes(order, block_number, rpc_url.to_string(), gas_value)
+            .await
+            .map(|v| {
+                v.into_iter()
+                    .map(BatchOrderQuotesResponse::from)
+                    .collect::<Vec<_>>()
+            })?,
+    )?)
 }

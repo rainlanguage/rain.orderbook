@@ -20,7 +20,7 @@
 
 <QueryClientProvider client={queryClient}>
   <div
-    class="mb-10 flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+    class="mb-10 flex h-[calc(100vh-2.5rem)] w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
   >
     <Sidebar />
 
@@ -38,8 +38,8 @@
         </div>
       {/each}
     </div>
-  </div>
-  <div class="fixed bottom-0 left-64 right-0 bg-primary-400 p-2 text-center text-white">
-    The Raindex app is still early alpha - have fun but use at your own risk!
+    <div class="fixed bottom-0 left-64 right-0 h-10 bg-primary-400 p-2 text-center text-white">
+      The Raindex app is still early alpha - have fun but use at your own risk!
+    </div>
   </div>
 </QueryClientProvider>

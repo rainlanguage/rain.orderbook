@@ -1,9 +1,7 @@
 <script lang="ts">
-  import IconWarning from '$lib/components/IconWarning.svelte';
   import { Alert } from 'flowbite-svelte';
-  import ButtonLoading from './ButtonLoading.svelte';
-  import Hash from '$lib/components/Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { ButtonLoading, IconWarning } from '@rainlanguage/ui-components';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
   import {
     walletconnectConnect,
     walletconnectAccount,
@@ -11,6 +9,9 @@
     walletconnectIsConnecting,
     walletconnectIsDisconnecting,
   } from '$lib/stores/walletconnect';
+
+  export let priorityChainIds: number[] | undefined = undefined;
+  export let onConnect: () => void = () => {};
 </script>
 
 <div>
@@ -26,7 +27,9 @@
       size="lg"
       pill
       loading={$walletconnectIsDisconnecting || $walletconnectIsConnecting}
-      on:click={walletconnectConnect}
+      on:click={() => {
+        walletconnectConnect(priorityChainIds ?? []).then(onConnect);
+      }}
     >
       {#if $walletconnectAccount}
         <Hash type={HashType.Wallet} value={$walletconnectAccount} />

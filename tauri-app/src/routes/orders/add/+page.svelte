@@ -1,7 +1,5 @@
 <script lang="ts">
-  import PageHeader from '$lib/components/PageHeader.svelte';
-  import CodeMirrorDotrain from '$lib/components/CodeMirrorDotrain.svelte';
-  import ButtonLoading from '$lib/components/ButtonLoading.svelte';
+  import { PageHeader, CodeMirrorDotrain, ButtonLoading } from '@rainlanguage/ui-components';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
@@ -13,7 +11,7 @@
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
   import type { Config } from '$lib/typeshare/config';
-  import DropdownRadio from '$lib/components/DropdownRadio.svelte';
+  import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '$lib/typeshare/config';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
@@ -25,8 +23,7 @@
   } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import CodeMirrorRainlang from '$lib/components/CodeMirrorRainlang.svelte';
-  import { promiseTimeout } from '$lib/utils/time';
+  import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
   import {
@@ -39,6 +36,8 @@
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import { page } from '$app/stores';
+  import { codeMirrorTheme } from '$lib/stores/darkMode';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -61,7 +60,7 @@
   }
 
   $: bindings = deployment ? deployment.scenario.bindings : {};
-  $: $globalDotrainFile.text, updateMergedConfig();
+  $: if ($globalDotrainFile.text) updateMergedConfig();
 
   $: scenarios = pickScenarios(mergedConfig, $activeNetworkRef);
 
@@ -210,16 +209,17 @@
   $: debounceValidateRaindexVersion($globalDotrainFile.text, $settingsText);
 </script>
 
-<PageHeader title="Add Order" />
+<PageHeader title="Add Order" pathname={$page.url.pathname} />
 
-<FileTextarea textFile={globalDotrainFile} title="New Order">
+<FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">
     <RaindexVersionValidator error={$raindexVersionError} />
   </svelte:fragment>
 
   <svelte:fragment slot="textarea">
     <CodeMirrorDotrain
-      bind:value={$globalDotrainFile.text}
+      codeMirrorTheme={$codeMirrorTheme}
+      rainlangText={$globalDotrainFile.text}
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
@@ -272,8 +272,8 @@
         defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
-          <TabItem bind:open={openTab[scenario.name]} title={scenario.name}>
-            <CodeMirrorRainlang bind:value={rainlangText} disabled={true} />
+          <TabItem bind:open={openTab[scenario.key]} title={scenario.key}>
+            <CodeMirrorRainlang {rainlangText} codeMirrorDisabled={true} {codeMirrorTheme} />
           </TabItem>
         {/each}
       </Tabs>

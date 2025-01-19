@@ -2,15 +2,21 @@ use super::config_source::ConfigSourceError;
 use crate::*;
 use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
+use std::{collections::HashMap, sync::RwLock};
+use strict_yaml_rust::StrictYaml;
+use subgraph::Subgraph;
 use thiserror::Error;
 use typeshare::typeshare;
 use url::Url;
 
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+
 #[typeshare]
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Config {
     #[typeshare(typescript(type = "Record<string, Network>"))]
     pub networks: HashMap<String, Arc<Network>>,
@@ -36,9 +42,11 @@ pub struct Config {
     pub raindex_version: Option<String>,
     #[typeshare(typescript(type = "Record<string, string>"))]
     pub accounts: Option<HashMap<String, Arc<String>>>,
+    pub gui: Option<Gui>,
 }
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Config);
 
-pub type Subgraph = Url;
 pub type Metaboard = Url;
 pub type Vault = U256;
 
@@ -60,6 +68,8 @@ pub enum ParseConfigSourceError {
     ParseChartConfigSourceError(#[from] ParseChartConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
     #[error("Failed to parse subgraph {}", 0)]
     SubgraphParseError(url::ParseError),
     #[error(transparent)]
@@ -86,7 +96,16 @@ impl TryFrom<ConfigSource> for Config {
         let subgraphs = item
             .subgraphs
             .into_iter()
-            .map(|(name, subgraph)| Ok((name, Arc::new(subgraph))))
+            .map(|(name, subgraph)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(Subgraph {
+                        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                        key: name.clone(),
+                        url: subgraph.clone(),
+                    }),
+                ))
+            })
             .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigSourceError>>()?;
 
         let metaboards = item
@@ -109,7 +128,12 @@ impl TryFrom<ConfigSource> for Config {
         let tokens = item
             .tokens
             .into_iter()
-            .map(|(name, token)| Ok((name, Arc::new(token.try_into_token(&networks)?))))
+            .map(|(name, token)| {
+                Ok((
+                    name.clone(),
+                    Arc::new(token.try_into_token(&name, &networks)?),
+                ))
+            })
             .collect::<Result<HashMap<String, Arc<Token>>, ParseConfigSourceError>>()?;
 
         let deployers = item
@@ -177,6 +201,11 @@ impl TryFrom<ConfigSource> for Config {
                 .collect::<HashMap<String, Arc<String>>>()
         });
 
+        let gui = match item.gui {
+            Some(g) => Some(g.try_into_gui(&deployments, &tokens)?),
+            None => None,
+        };
+
         let config = Config {
             raindex_version: item.raindex_version,
             networks,
@@ -191,6 +220,7 @@ impl TryFrom<ConfigSource> for Config {
             deployments,
             sentry: item.sentry,
             accounts,
+            gui,
         };
 
         Ok(config)
@@ -199,7 +229,7 @@ impl TryFrom<ConfigSource> for Config {
 
 impl Config {
     pub async fn try_from_string(val: String) -> Result<Config, ParseConfigSourceError> {
-        let config_source = ConfigSource::try_from_string(val).await?;
+        let config_source = ConfigSource::try_from_string(val, None).await?.0;
         std::convert::TryInto::<Config>::try_into(config_source)
     }
 }
@@ -286,6 +316,11 @@ mod tests {
             "name-one".to_string(),
             "address-one".to_string(),
         )]));
+        let gui = Some(GuiConfigSource {
+            name: "Some name".to_string(),
+            description: "Some description".to_string(),
+            deployments: HashMap::new(),
+        });
 
         let config_string = ConfigSource {
             raindex_version: Some("0x123".to_string()),
@@ -302,6 +337,7 @@ mod tests {
             deployments,
             sentry,
             accounts,
+            gui,
         };
 
         let config_result = Config::try_from(config_string);
@@ -317,12 +353,12 @@ mod tests {
             Url::parse("https://mainnet.node").unwrap()
         );
         assert_eq!(mainnet_network.chain_id, 1);
-        assert_eq!(mainnet_network.name, "mainnet".to_string());
+        assert_eq!(mainnet_network.key, "mainnet".to_string());
 
         // Verify subgraphs
         assert_eq!(config.subgraphs.len(), 1);
         let mainnet_subgraph = config.subgraphs.get("mainnet").unwrap();
-        assert_eq!(mainnet_subgraph.as_str(), "https://mainnet.subgraph/");
+        assert_eq!(mainnet_subgraph.url.as_str(), "https://mainnet.subgraph/");
 
         // Verify orderbooks
         assert_eq!(config.orderbooks.len(), 1);
@@ -368,5 +404,11 @@ mod tests {
         let (name, address) = accounts.iter().next().unwrap();
         assert_eq!(name, "name-one");
         assert_eq!(address.as_str(), "address-one");
+
+        // Verify gui
+        assert!(config.gui.is_some());
+        let gui = config.gui.as_ref().unwrap();
+        assert_eq!(gui.name, "Some name");
+        assert_eq!(gui.description, "Some description");
     }
 }

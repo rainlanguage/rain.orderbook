@@ -1,18 +1,84 @@
 use crate::*;
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::{
+    context::Context, default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableHash,
+};
+
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 
 #[typeshare]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case")]
 pub struct Deployer {
+    #[serde(skip, default = "default_document")]
+    pub document: Arc<RwLock<StrictYaml>>,
+    pub key: String,
     #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[typeshare(typescript(type = "Network"))]
     pub network: Arc<Network>,
-    pub label: Option<String>,
+}
+impl Deployer {
+    pub fn dummy() -> Self {
+        Deployer {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: Arc::new(Network::dummy()),
+        }
+    }
+
+    pub fn validate_address(value: &str) -> Result<Address, ParseDeployerConfigSourceError> {
+        Address::from_str(value).map_err(ParseDeployerConfigSourceError::AddressParseError)
+    }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployer_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                if let Some(deployer_yaml) =
+                    deployers_hash.get(&StrictYaml::String(deployer_key.to_string()))
+                {
+                    return require_string(deployer_yaml, Some("network"), None);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for deployer: {deployer_key}"
+        )))
+    }
+}
+
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(Deployer);
+
+impl Default for Deployer {
+    fn default() -> Self {
+        Deployer::dummy()
+    }
+}
+
+impl PartialEq for Deployer {
+    fn eq(&self, other: &Self) -> bool {
+        self.address == other.address && self.network == other.network
+    }
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -45,10 +111,64 @@ impl DeployerConfigSource {
         };
 
         Ok(Deployer {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: name,
             address: self.address,
             network: network_ref,
-            label: self.label,
         })
+    }
+}
+
+impl YamlParsableHash for Deployer {
+    fn parse_all_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
+    ) -> Result<HashMap<String, Self>, YamlError> {
+        let mut deployers = HashMap::new();
+
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                for (key_yaml, deployer_yaml) in deployers_hash {
+                    let deployer_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    let address = Deployer::validate_address(&require_string(
+                        deployer_yaml,
+                        Some("address"),
+                        Some(format!(
+                            "address string missing in deployer: {deployer_key}"
+                        )),
+                    )?)?;
+
+                    let network_name = match optional_string(deployer_yaml, "network") {
+                        Some(network_name) => network_name,
+                        None => deployer_key.clone(),
+                    };
+                    let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
+
+                    let deployer = Deployer {
+                        document: document.clone(),
+                        key: deployer_key.clone(),
+                        address,
+                        network: Arc::new(network),
+                    };
+
+                    if deployers.contains_key(&deployer_key) {
+                        return Err(YamlError::KeyShadowing(deployer_key));
+                    }
+                    deployers.insert(deployer_key, deployer);
+                }
+            }
+        }
+
+        if deployers.is_empty() {
+            return Err(YamlError::ParseError(
+                "missing field: deployers".to_string(),
+            ));
+        }
+
+        Ok(deployers)
     }
 }
 
@@ -56,6 +176,7 @@ impl DeployerConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
+    use crate::yaml::tests::get_document;
 
     #[test]
     fn test_try_into_deployer_success() {
@@ -76,7 +197,6 @@ mod tests {
             deployer.network.as_ref().label,
             Some(network_name.to_string())
         );
-        assert_eq!(deployer.label, Some("Test Deployer".to_string()));
     }
 
     #[test]
@@ -115,6 +235,70 @@ mod tests {
         assert_eq!(
             deployer.network.as_ref().label,
             Some(network_name.to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_deployers_from_yaml_multiple_files() {
+        let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    DeployerOne:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+"#;
+        let yaml_two = r#"
+deployers:
+    DeployerTwo:
+        address: 0x0987654321098765432109876543210987654321
+        network: TestNetwork
+"#;
+
+        let documents = vec![get_document(yaml_one), get_document(yaml_two)];
+        let deployers = Deployer::parse_all_from_yaml(documents, None).unwrap();
+
+        assert_eq!(deployers.len(), 2);
+        assert!(deployers.contains_key("DeployerOne"));
+        assert!(deployers.contains_key("DeployerTwo"));
+
+        assert_eq!(
+            deployers.get("DeployerOne").unwrap().address.to_string(),
+            "0x1234567890123456789012345678901234567890"
+        );
+        assert_eq!(
+            deployers.get("DeployerTwo").unwrap().address.to_string(),
+            "0x0987654321098765432109876543210987654321"
+        );
+    }
+
+    #[test]
+    fn test_parse_deployers_from_yaml_duplicate_key() {
+        let yaml_one = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    DuplicateDeployer:
+        address: 0x1234567890123456789012345678901234567890
+        network: TestNetwork
+"#;
+        let yaml_two = r#"
+deployers:
+    DuplicateDeployer:
+        address: 0x0987654321098765432109876543210987654321
+        network: TestNetwork
+"#;
+
+        let documents = vec![get_document(yaml_one), get_document(yaml_two)];
+        let error = Deployer::parse_all_from_yaml(documents, None).unwrap_err();
+
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("DuplicateDeployer".to_string())
         );
     }
 }

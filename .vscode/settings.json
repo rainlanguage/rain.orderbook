@@ -3,7 +3,6 @@
   "svelte.enable-ts-plugin": true,
    
   "rust-analyzer.linkedProjects": ["./Cargo.toml", "tauri-app/src-tauri/Cargo.toml"],
-
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true,
@@ -47,5 +46,5 @@
     "CI_FORK_SEPOLIA_DEPLOYER_ADDRESS": "",
     "CI_FORK_SEPOLIA_BLOCK_NUMBER": "",
     "COMMIT_SHA": ""
-  }
+  },
 }

@@ -177,6 +177,7 @@ mod tests {
                     "oldVaultBalance": "0",
                     "vault": {
                         "id": encode_prefixed(B256::random()),
+                        "vaultId": encode_prefixed(B256::random()),
                         "token": {
                             "name": "T1",
                             "symbol": "T1",

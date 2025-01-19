@@ -12,11 +12,6 @@ keep=(
   -k COMMIT_SHA
 )
 
-# Run commands in the current working directory
-nix develop -i ${keep[@]} -c rainix-sol-prelude
-nix develop -i ${keep[@]} -c rainix-rs-prelude
-nix develop -i ${keep[@]} -c raindex-prelude
-
 # Run commands in lib/rain.interpreter
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prelude)'
@@ -25,8 +20,15 @@ nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-rs-prel
 # Run commands in lib/rain.metadata
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-sol-prelude)'
 
+# Run commands in the current working directory
+nix develop -i ${keep[@]} -c rainix-sol-prelude
+nix develop -i ${keep[@]} -c rainix-rs-prelude
+nix develop -i ${keep[@]} -c raindex-prelude
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-prelude
+nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
+nix develop -i ${keep[@]} -c npm run build
 nix develop -i ${keep[@]} .#tauri-shell -c ob-tauri-unit-test
+
 
 # Run commands in tauri-app
 nix develop -i ${keep[@]} .#tauri-shell -c bash -c '(cd tauri-app && cargo build --verbose)'

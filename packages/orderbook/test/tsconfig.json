@@ -1,0 +1,16 @@
+{
+	"include": ["./**/*.ts"],
+	"compilerOptions": {
+		"target": "es2018",
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"noUnusedLocals": true,
+		"strict": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"skipLibCheck": true,
+		"allowJs": true,
+		"outDir": "./dist"
+	}
+}

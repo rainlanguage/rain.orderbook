@@ -1,0 +1,27 @@
+name: Test ui-components
+on: [push]
+
+concurrency:
+  group: ${{ github.ref }}-ui-components
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - run: ./prep-all.sh
+
+      - run: nix develop -c npm run svelte-lint-format-check
+        working-directory: packages/ui-components
+      - run: nix develop -c npm run test
+        working-directory: packages/ui-components

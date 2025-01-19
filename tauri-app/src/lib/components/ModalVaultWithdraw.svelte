@@ -3,7 +3,7 @@
   import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
   import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
@@ -14,6 +14,7 @@
 
   export let open = false;
   export let vault: TokenVaultDetail;
+  export let onWithdraw: () => void;
   let amount: bigint = 0n;
   let amountGTBalance: boolean;
   let isSubmitting = false;
@@ -33,6 +34,7 @@
     isSubmitting = true;
     try {
       await vaultWithdraw(BigInt(vault.vaultId), vault.token.id, amount);
+      onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -51,6 +53,7 @@
       const tx = await ethersExecute(calldata, $orderbookAddress!);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
+      onWithdraw();
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));

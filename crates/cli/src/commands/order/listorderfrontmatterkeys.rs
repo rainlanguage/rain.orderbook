@@ -41,19 +41,21 @@ impl Execute for ListOrderFrontmatterKeys {
             None => None,
         };
 
-        let order = DotrainOrder::new(dotrain, settings).await?;
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
 
         let keys_string = match self.key_type {
             KeyType::Deployment => {
-                let deployment_keys = order.config().deployments.keys();
+                let deployment_keys = order.dotrain_yaml().get_deployment_keys()?;
                 deployment_keys
+                    .iter()
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")
             }
             KeyType::Scenario => {
-                let scenario_keys = order.config().scenarios.keys();
+                let scenario_keys = order.dotrain_yaml().get_scenario_keys()?;
                 scenario_keys
+                    .iter()
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")
@@ -198,7 +200,7 @@ _ _: 0 0;
     async fn test_execute_deployment_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_dotrain2.rain";
+        let dotrain_path = "./test_execute_deployment_key.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {
@@ -218,7 +220,7 @@ _ _: 0 0;
     async fn test_execute_scenario_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_dotrain3.rain";
+        let dotrain_path = "./test_execute_scenario_key.rain";
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {

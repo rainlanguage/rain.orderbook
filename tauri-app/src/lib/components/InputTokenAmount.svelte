@@ -1,41 +1,26 @@
 <script lang="ts">
   import { InputAddon, Button, Alert } from 'flowbite-svelte';
   import { InfoCircleSolid } from 'flowbite-svelte-icons';
-  import { formatUnits, parseUnits } from 'viem';
-  import type { InputMask } from 'imask';
-  import { imask } from '@imask/svelte';
+  import { parseUnits } from 'viem';
 
   export let symbol: string | undefined = undefined;
   export let decimals: number = 0;
   export let maxValue: bigint | undefined = undefined;
-  let valueRaw: string = '';
-  export let value: bigint | undefined;
+  let inputValue: string = '';
+  export let value: bigint = 0n;
 
-  $: maskOptions = {
-    mask: Number,
-    min: 0,
-    lazy: false,
-    scale: decimals,
-    thousandsSeparator: '',
-    radix: '.',
-  };
+  function handleInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    inputValue = input.value;
 
-  $: {
-    if (value !== undefined) {
-      valueRaw = formatUnits(value, decimals);
-    }
-  }
-
-  function complete({ detail }: { detail: InputMask }) {
-    valueRaw = detail.value;
-
-    if (detail.unmaskedValue.length === 0) {
+    if (inputValue === '') {
       value = 0n;
     } else {
       try {
-        value = parseUnits(detail.unmaskedValue, decimals);
-        // eslint-disable-next-line no-empty
-      } catch (e) {}
+        value = parseUnits(inputValue, decimals);
+      } catch (_e) {
+        value = 0n;
+      }
     }
   }
 
@@ -43,7 +28,9 @@
     if (!maxValue) return;
 
     value = maxValue;
-    valueRaw = formatUnits(maxValue, decimals);
+    inputValue = maxValue.toString().padStart(decimals + 1, '0');
+    inputValue = inputValue.slice(0, -decimals) + '.' + inputValue.slice(-decimals);
+    inputValue = inputValue.replace(/\.?0+$/, '');
   }
 </script>
 
@@ -53,9 +40,8 @@
       <input
         type="text"
         class={`block w-full rounded-lg border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-500 dark:bg-gray-600 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right ${symbol && '!rounded-none !rounded-l-lg'}`}
-        value={valueRaw}
-        use:imask={maskOptions}
-        on:complete={complete}
+        bind:value={inputValue}
+        on:input={handleInput}
       />
 
       {#if maxValue}

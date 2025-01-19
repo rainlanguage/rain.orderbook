@@ -1,13 +1,10 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import { Deposit as DepositEntity } from "../generated/schema";
 import { eventId } from "./interfaces/event";
-import { createTransactionEntity } from "./transaction";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
 import { Deposit } from "../generated/OrderBook/OrderBook";
-import { createOrderbookEntity } from "./orderbook";
 
 export function handleDeposit(event: Deposit): void {
-  createOrderbookEntity(event);
   let oldVaultBalance: BigInt = handleVaultBalanceChange(
     event.address,
     event.params.vaultId,
@@ -31,7 +28,7 @@ export function createDepositEntity(
     event.params.vaultId,
     event.params.token
   );
-  deposit.transaction = createTransactionEntity(event);
+  deposit.transaction = event.transaction.hash;
   deposit.oldVaultBalance = oldVaultBalance;
   deposit.newVaultBalance = oldVaultBalance.plus(event.params.amount);
   deposit.timestamp = event.block.timestamp;

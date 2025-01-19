@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: CAL
+// SPDX-License-Identifier: LicenseRef-DCL-1.0
+// SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -798,14 +799,18 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 new uint256[](0)
             );
 
-            // This is redundant with the array index checks implied by solidity
-            // but it's a much clearer error message.
+            // This is a much clearer error message and overall is more efficient
+            // than solidity generic index out of bounds errors.
             if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
                 revert UnsupportedCalculateOutputs(calculateOrderStack.length);
             }
 
-            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
-            uint256 orderIORatio = calculateOrderStack[0];
+            uint256 orderIORatio;
+            Output18Amount orderOutputMax18;
+            assembly ("memory-safe") {
+                orderIORatio := mload(add(calculateOrderStack, 0x20))
+                orderOutputMax18 := mload(add(calculateOrderStack, 0x40))
+            }
 
             {
                 // The order owner can't send more than the smaller of their vault
@@ -989,37 +994,37 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     function calculateClearStateAlice(
         OrderIOCalculationV2 memory aliceOrderIOCalculation,
         OrderIOCalculationV2 memory bobOrderIOCalculation
-    )
-        internal
-        pure
-        returns (
-            int256 aliceInputSignedCoefficient,
-            int256 aliceInputExponent,
-            int256 aliceOutputMaxSignedCoefficient,
-            int256 aliceOutputMaxExponent
-        )
-    {
-        (int256 bobInputMaxSignedCoefficient, int256 bobInputMaxExponent) = LibDecimalFloat.mul(
-            bobOrderIOCalculation.outputMaxSignedCoefficient,
-            bobOrderIOCalculation.outputMaxExponent,
-            bobOrderIOCalculation.IORatioSignedCoefficient,
-            bobOrderIOCalculation.IORatioExponent
-        );
-
-        (aliceOutputMaxSignedCoefficient, aliceOutputMaxExponent) = LibDecimalFloat.min(
+    ) internal pure returns returns (
+        int256 aliceInputSignedCoefficient,
+        int256 aliceInputExponent,
+        int256 aliceOutputMaxSignedCoefficient,
+        int256 aliceOutputMaxExponent
+    ) {
+        // Alice's input is her output * her IO ratio.
+        (aliceInputSignedCoefficient, aliceInputExponent) = LibDecimalFloat.mul(
             aliceOrderIOCalculation.outputMaxSignedCoefficient,
             aliceOrderIOCalculation.outputMaxExponent,
-            bobInputMaxSignedCoefficient,
-            bobInputMaxExponent
-        );
-
-        // Alice's input is her bob-capped output * her IO ratio, rounded up.
-        (aliceInputSignedCoefficient, aliceInputExponent) = LibDecimalFloat.mul(
-            aliceOutputMaxSignedCoefficient,
-            aliceOutputMaxExponent,
             aliceOrderIOCalculation.IORatioSignedCoefficient,
             aliceOrderIOCalculation.IORatioExponent
         );
+
+        aliceOutputMaxSignedCoefficient = aliceOrderIOCalculation.outputMaxSignedCoefficient;
+        aliceOutputMaxExponent = aliceOrderIOCalculation.outputMaxExponent;
+
+        // If Alice's input is greater than Bob's max output, Alice's input is
+        // capped at Bob's max output.
+        if (LibDecimalFloat.gt(aliceInputSignedCoefficient, aliceInputExponent, bobOrderIOCalculation.outputMaxSignedCoefficient, bobOrderIOCalculation.outputMaxExponent)) {
+            aliceInputSignedCoefficient = bobOrderIOCalculation.outputMaxSignedCoefficient;
+            aliceInputExponent = bobOrderIOCalculation.outputMaxExponent;
+
+            // Alice's output is capped at her input / her IO ratio.
+            (aliceOutputMaxSignedCoefficient, aliceOutputMaxExponent) = LibDecimalFloat.div(
+                aliceInputSignedCoefficient,
+                aliceInputExponent,
+                aliceOrderIOCalculation.IORatioSignedCoefficient,
+                aliceOrderIOCalculation.IORatioExponent
+            );
+        }
     }
 
     function pullTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent) internal {

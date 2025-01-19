@@ -1,0 +1,82 @@
+---
+source: crates/subgraph/tests/order_trade_test.rs
+expression: request_body.query
+---
+query OrderTradeDetailQuery($id: ID!) {
+  trade(id: $id) {
+    id
+    tradeEvent {
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      sender
+    }
+    outputVaultBalanceChange {
+      id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
+        id
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+    }
+    order {
+      id
+      orderHash
+    }
+    inputVaultBalanceChange {
+      id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
+        id
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+    }
+    timestamp
+    orderbook {
+      id
+    }
+  }
+}

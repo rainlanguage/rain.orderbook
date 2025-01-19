@@ -9,29 +9,32 @@ use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::{
-    config_source::{ConfigSource, ConfigSourceError},
-    merge::MergeError,
-    Config, ParseConfigSourceError,
-};
-use serde::Serialize;
+use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::OrderbookYaml};
+use rain_orderbook_app_settings::yaml::{YamlError, YamlParsable};
+use rain_orderbook_app_settings::ParseConfigSourceError;
+#[cfg(target_family = "wasm")]
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use typeshare::typeshare;
 
-pub mod filter;
+pub mod calldata;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct DotrainOrder {
-    config: Config,
     dotrain: String,
-    config_source: ConfigSource,
+    dotrain_yaml: DotrainYaml,
+}
+
+impl PartialEq for DotrainOrder {
+    fn eq(&self, other: &Self) -> bool {
+        self.dotrain == other.dotrain
+    }
 }
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
-    #[error(transparent)]
-    ConfigSourceError(#[from] ConfigSourceError),
-
     #[error(transparent)]
     ParseConfigSourceError(#[from] ParseConfigSourceError),
 
@@ -43,9 +46,6 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-
-    #[error(transparent)]
-    MergeConfigError(#[from] MergeError),
 
     #[error(transparent)]
     AuthoringMetaV2Error(#[from] AuthoringMetaV2Error),
@@ -67,6 +67,28 @@ pub enum DotrainOrderError {
 
     #[error("Raindex version missing: should be {0}")]
     MissingRaindexVersion(String),
+
+    #[error("Deployment {0} not found")]
+    DeploymentNotFound(String),
+
+    #[error("Order {0} not found")]
+    OrderNotFound(String),
+
+    #[error("Token {0} not found")]
+    TokenNotFound(String),
+
+    #[error("Invalid index for vault ID")]
+    InvalidVaultIdIndex,
+
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
+}
+
+#[cfg(target_family = "wasm")]
+impl From<DotrainOrderError> for JsValue {
+    fn from(value: DotrainOrderError) -> Self {
+        JsError::new(&value.to_string()).into()
+    }
 }
 
 #[typeshare]
@@ -101,67 +123,44 @@ pub struct ScenarioWords {
     pub deployer_words: ContractWords,
 }
 
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl DotrainOrder {
-    pub async fn new(dotrain: String, config: Option<String>) -> Result<Self, DotrainOrderError> {
-        match config {
-            Some(config) => {
-                let config_string = ConfigSource::try_from_string(config.clone()).await?;
-                let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let mut frontmatter_config =
-                    ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                frontmatter_config.merge(config_string)?;
-                Ok(Self {
-                    dotrain,
-                    config_source: frontmatter_config.clone(),
-                    config: frontmatter_config.try_into()?,
-                })
-            }
-            None => {
-                let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-                let config_source = ConfigSource::try_from_string(frontmatter.to_string()).await?;
-                Ok(Self {
-                    dotrain,
-                    config_source: config_source.clone(),
-                    config: config_source.try_into()?,
-                })
-            }
+    #[cfg_attr(target_family = "wasm", wasm_bindgen(js_name = "create"))]
+    pub async fn new(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+
+        let mut sources = vec![frontmatter.clone()];
+        if let Some(settings) = settings {
+            sources.extend(settings);
         }
-    }
 
-    // get this instance's config
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    // get this instance's config source
-    pub fn config_source(&self) -> &ConfigSource {
-        &self.config_source
+        Ok(Self {
+            dotrain,
+            dotrain_yaml: DotrainYaml::new(sources.clone(), false)?,
+        })
     }
 
     // get this instance's dotrain string
-    pub fn dotrain(&self) -> &str {
-        &self.dotrain
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen(getter, js_name = "dotrain")]
+    pub fn dotrain(&self) -> String {
+        self.dotrain.clone()
     }
 
-    // get this instance's config mut
-    pub fn config_mut(&mut self) -> &mut Config {
-        &mut self.config
-    }
-
-    // get this instance's config source mut
-    pub fn config_source_mut(&mut self) -> &mut ConfigSource {
-        &mut self.config_source
-    }
-
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "composeScenarioToRainlang")
+    )]
     pub async fn compose_scenario_to_rainlang(
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        let scenario = self
-            .config
-            .scenarios
-            .get(&scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+        let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
@@ -170,15 +169,15 @@ impl DotrainOrder {
         )?)
     }
 
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "composeScenarioToPostTaskRainlang")
+    )]
     pub async fn compose_scenario_to_post_task_rainlang(
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        let scenario = self
-            .config
-            .scenarios
-            .get(&scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario))?;
+        let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
@@ -187,16 +186,44 @@ impl DotrainOrder {
         )?)
     }
 
+    #[cfg_attr(
+        target_family = "wasm",
+        wasm_bindgen(js_name = "composeDeploymentToRainlang")
+    )]
+    pub async fn compose_deployment_to_rainlang(
+        &self,
+        deployment: String,
+    ) -> Result<String, DotrainOrderError> {
+        let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
+
+        Ok(compose_to_rainlang(
+            self.dotrain.clone(),
+            scenario.bindings.clone(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )?)
+    }
+}
+
+impl DotrainOrder {
+    /// get this instance's dotrain string
+    #[cfg(not(target_family = "wasm"))]
+    pub fn dotrain(&self) -> &str {
+        &self.dotrain
+    }
+
+    pub fn dotrain_yaml(&self) -> DotrainYaml {
+        self.dotrain_yaml.clone()
+    }
+
+    pub fn orderbook_yaml(&self) -> OrderbookYaml {
+        OrderbookYaml::from_documents(self.dotrain_yaml.documents.clone())
+    }
+
     pub async fn get_pragmas_for_scenario(
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        let deployer = &self
-            .config
-            .scenarios
-            .get(scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.to_string()))?
-            .deployer;
+        let deployer = self.dotrain_yaml.get_scenario(scenario)?.deployer;
         let parser: ParserV2 = deployer.address.into();
         let rainlang = self
             .compose_scenario_to_rainlang(scenario.to_string())
@@ -212,21 +239,10 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        let network = &self
-            .config
-            .scenarios
-            .get(scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.to_string()))?
-            .deployer
-            .network;
+        let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
         let rpc = &network.rpc;
-        let metaboard = self
-            .config
-            .metaboards
-            .get(&network.name)
-            .ok_or_else(|| DotrainOrderError::MetaboardNotFound(network.name.clone()))?
-            .clone();
+        let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
         Ok(
             AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
                 .await?,
@@ -237,13 +253,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
-        let deployer = &self
-            .config
-            .scenarios
-            .get(scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.to_string()))?
-            .deployer
-            .address;
+        let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
 
         Ok(ContractWords {
             address: *deployer,
@@ -279,13 +289,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
-        let deployer = &self
-            .config
-            .scenarios
-            .get(scenario)
-            .ok_or_else(|| DotrainOrderError::ScenarioNotFound(scenario.to_string()))?
-            .deployer
-            .address;
+        let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
         let mut addresses = vec![*deployer];
         addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
 
@@ -319,8 +323,8 @@ impl DotrainOrder {
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
         let mut scenarios = vec![];
-        for scenario in self.config.scenarios.keys() {
-            scenarios.push(self.get_all_words_for_scenario(scenario).await?);
+        for scenario in self.dotrain_yaml.get_scenario_keys()? {
+            scenarios.push(self.get_all_words_for_scenario(&scenario).await?);
         }
         Ok(scenarios)
     }
@@ -328,7 +332,7 @@ impl DotrainOrder {
     pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
         let app_sha = GH_COMMIT_SHA.to_string();
 
-        if let Some(raindex_version) = &self.config.raindex_version {
+        if let Some(raindex_version) = &self.orderbook_yaml().get_raindex_version()? {
             if app_sha != *raindex_version {
                 return Err(DotrainOrderError::RaindexVersionMismatch(
                     app_sha,
@@ -378,7 +382,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -390,9 +398,8 @@ _ _: 0 0;
 
         assert_eq!(
             dotrain_order
-                .config
-                .networks
-                .get("polygon")
+                .orderbook_yaml()
+                .get_network("polygon")
                 .unwrap()
                 .rpc
                 .to_string(),
@@ -416,7 +423,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        bindings:
+            key1: 10
+        deployer: polygon
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -457,7 +468,11 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -514,15 +529,14 @@ networks:
         );
 
         let merged_dotrain_order =
-            DotrainOrder::new(dotrain.to_string(), Some(settings.to_string()))
+            DotrainOrder::new(dotrain.to_string(), Some(vec![settings.to_string()]))
                 .await
                 .unwrap();
 
         assert_eq!(
             merged_dotrain_order
-                .config
-                .networks
-                .get("mainnet")
+                .orderbook_yaml()
+                .get_network("mainnet")
                 .unwrap()
                 .rpc
                 .to_string(),
@@ -545,7 +559,11 @@ deployers:
         address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
 scenarios:
     sepolia:
+        deployer: sepolia
+        bindings:
+            key1: 10
 ---
+#key1 !Test binding
 #calculate-io
 using-words-from 0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382
 _: order-hash(),
@@ -580,9 +598,13 @@ _ _: 0 0;
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -622,9 +644,13 @@ _ _: 0 0;
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -668,6 +694,9 @@ _ _: 0 0;
             address: {deployer_address}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
@@ -715,9 +744,13 @@ _ _: 0 0;
             address: {deployer_address}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key1 !Test binding
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
     _: order-hash(),
@@ -903,5 +936,73 @@ _ _: 0 0;
         let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
 
         assert!(dotrain_order.validate_raindex_version().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_rainlang_from_deployment() {
+        let server = mock_server(vec![]);
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
+tokens:
+    t1:
+        network: polygon
+        address: 0x1111111111111111111111111111111111111111
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: polygon
+        address: 0x2222222222222222222222222222222222222222
+        decimals: 18
+        label: Token2
+        symbol: token2
+orders:
+    polygon:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t2
+deployments:
+    polygon:
+        scenario: polygon
+        order: polygon
+---
+#key1 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            rpc_url = server.url("/rpc"),
+        );
+
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+
+        let rainlang = dotrain_order
+            .compose_deployment_to_rainlang("polygon".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            rainlang,
+            r#"/* 0. calculate-io */ 
+_ _: 0 0;
+
+/* 1. handle-io */ 
+:;"#
+        );
     }
 }

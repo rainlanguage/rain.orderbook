@@ -3,8 +3,7 @@
   import InputLedgerWallet from '$lib/components/InputLedgerWallet.svelte';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
   import InputWalletConnect from '$lib/components/InputWalletConnect.svelte';
-  import IconLedger from '$lib/components/IconLedger.svelte';
-  import IconWalletConnect from '$lib/components/IconWalletConnect.svelte';
+  import { IconLedger, IconWalletConnect } from '@rainlanguage/ui-components';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   let open = false;
@@ -45,14 +44,14 @@
       </Button>
     </div>
   {:else if selectedLedger || $ledgerWalletAddress}
-    <InputLedgerWallet />
+    <InputLedgerWallet onConnect={reset} />
     {#if !$ledgerWalletAddress}
       <div class="flex justify-between space-x-4">
         <Button color="alternative" on:click={() => (selectedLedger = false)}>Back</Button>
       </div>
     {/if}
   {:else if selectedWalletconnect || $walletconnectAccount}
-    <InputWalletConnect />
+    <InputWalletConnect onConnect={reset} />
     {#if !$walletconnectAccount}
       <div class="flex justify-between space-x-4">
         <Button color="alternative" on:click={() => (selectedWalletconnect = false)}>Back</Button>

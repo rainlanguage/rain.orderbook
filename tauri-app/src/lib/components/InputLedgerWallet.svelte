@@ -5,11 +5,9 @@
   import { toasts } from '$lib/stores/toasts';
   import { getAddressFromLedger } from '$lib/services/wallet';
   import { reportErrorToSentry } from '$lib/services/sentry';
-  import IconWarning from '$lib/components/IconWarning.svelte';
+  import { IconWarning, ButtonLoading } from '@rainlanguage/ui-components';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-  import ButtonLoading from './ButtonLoading.svelte';
-  import Hash from './Hash.svelte';
-  import { HashType } from '$lib/types/hash';
+  import { Hash, HashType } from '@rainlanguage/ui-components';
 
   const maskOptions = {
     mask: Number,
@@ -20,6 +18,7 @@
     radix: '.',
   };
 
+  export let onConnect: () => void = () => {};
   let derivationIndex: number = 0;
   let isConnecting: boolean;
   let isDisconnecting = false;
@@ -35,6 +34,7 @@
       try {
         const res: string = await getAddressFromLedger(derivationIndex);
         ledgerWalletAddress.set(res);
+        onConnect();
       } catch (e) {
         reportErrorToSentry(e);
         toasts.error(`Ledger error: ${e as string}`);

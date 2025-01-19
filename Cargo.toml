@@ -5,14 +5,15 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-license = "CAL-1.0"
+license = "LicenseRef-DCL-1.0"
+author = "Rain Open Source Software Ltd"
 version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
 alloy = { version = "0.1.4" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "0881930a22e84db49ba955c5b88e790e1266ac66" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "65a68f207287d024cba934bf1e3c8b3f63d2834a" }
 anyhow = "1.0.70"
 async-trait = "0.1.77"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
@@ -51,7 +52,7 @@ derive_builder = "0.20.0"
 thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
-rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "80bb411b161c1ee992a7974d325a783214046d5b" }
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 
 [workspace.dependencies.rain_orderbook_bindings]
@@ -74,3 +75,6 @@ path = "crates/quote"
 
 [workspace.dependencies.rain_orderbook_test_fixtures]
 path = "crates/test_fixtures"
+
+[workspace.dependencies.rain_orderbook_math]
+path = "crates/math"

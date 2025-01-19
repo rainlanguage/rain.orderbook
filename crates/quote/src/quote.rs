@@ -65,15 +65,20 @@ impl QuoteTarget {
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
+        gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
-        Ok(
-            batch_quote(&[self.clone()], rpc_url, block_number, multicall_address)
-                .await?
-                .into_iter()
-                .next()
-                .unwrap(),
+        Ok(batch_quote(
+            &[self.clone()],
+            rpc_url,
+            block_number,
+            gas,
+            multicall_address,
         )
+        .await?
+        .into_iter()
+        .next()
+        .unwrap())
     }
 
     /// Validate the quote target
@@ -102,9 +107,10 @@ impl BatchQuoteTarget {
         &self,
         rpc_url: &str,
         block_number: Option<u64>,
+        gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
-        batch_quote(&self.0, rpc_url, block_number, multicall_address).await
+        batch_quote(&self.0, rpc_url, block_number, gas, multicall_address).await
     }
 }
 
@@ -160,11 +166,18 @@ impl QuoteSpec {
         subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
+        gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;
-        let quote_result =
-            batch_quote(&[quote_target], rpc_url, block_number, multicall_address).await?;
+        let quote_result = batch_quote(
+            &[quote_target],
+            rpc_url,
+            block_number,
+            gas,
+            multicall_address,
+        )
+        .await?;
 
         Ok(quote_result.into_iter().next().unwrap())
     }
@@ -231,6 +244,7 @@ impl BatchQuoteSpec {
         subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
+        gas: Option<U256>,
         multicall_address: Option<Address>,
     ) -> Result<Vec<QuoteResult>, Error> {
         let opts_quote_targets = self
@@ -243,7 +257,14 @@ impl BatchQuoteSpec {
             .filter_map(|v| v.clone())
             .collect();
         let mut quote_results = VecDeque::from(
-            batch_quote(&quote_targets, rpc_url, block_number, multicall_address).await?,
+            batch_quote(
+                &quote_targets,
+                rpc_url,
+                block_number,
+                gas,
+                multicall_address,
+            )
+            .await?,
         );
 
         // fill the array with quote results and invalid quote targets following
@@ -329,6 +350,7 @@ mod tests {
                     "oldVaultBalance": "0",
                     "vault": {
                         "id": encode_prefixed(B256::random()),
+                        "vaultId": encode_prefixed(B256::random()),
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -378,6 +400,7 @@ mod tests {
                     "oldVaultBalance": "0",
                     "vault": {
                         "id": encode_prefixed(B256::random()),
+                        "vaultId": encode_prefixed(B256::random()),
                         "token": {
                             "id": encode_prefixed(order.validOutputs[0].token.0.0),
                             "address": encode_prefixed(order.validOutputs[0].token.0.0),
@@ -546,6 +569,7 @@ mod tests {
                 rpc_server.url("/rpc").as_str(),
                 None,
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -610,6 +634,7 @@ mod tests {
                 rpc_server.url("/rpc").as_str(),
                 None,
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -665,7 +690,7 @@ mod tests {
         });
 
         let result = quote_target
-            .do_quote(rpc_server.url("/rpc").as_str(), None, None)
+            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
             .await
             .unwrap();
 
@@ -712,7 +737,7 @@ mod tests {
         });
 
         let result = quote_targets
-            .do_quote(rpc_server.url("/rpc").as_str(), None, None)
+            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
             .await
             .unwrap();
         let mut iter_result = result.into_iter();

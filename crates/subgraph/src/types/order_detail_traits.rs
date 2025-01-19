@@ -1,13 +1,12 @@
 use super::common::*;
-use crate::utils::base10_str_to_u256;
 use alloy::primitives::{
     hex::{decode, FromHexError},
     ruint::ParseError,
-    Address,
+    Address, U256,
 };
 use alloy::sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, IO};
-use std::num::TryFromIntError;
+use std::{num::TryFromIntError, str::FromStr};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -38,10 +37,7 @@ impl TryInto<IO> for Vault {
                 .unwrap_or(BigInt("0".into()))
                 .0
                 .parse::<u8>()?,
-
-            // Vault ID returned from the subgraph is the base-10 value in a string *without* a "0x" prefix
-            // See https://github.com/rainlanguage/rain.orderbook/issues/315
-            vaultId: base10_str_to_u256(self.vault_id.0.as_str())?,
+            vaultId: U256::from_str(self.vault_id.0.as_str())?,
         })
     }
 }

@@ -10,25 +10,9 @@ use rain_orderbook_common::{
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
     withdraw::WithdrawArgs,
 };
-use rain_orderbook_subgraph_client::types::common::*;
-use rain_orderbook_subgraph_client::PaginationArgs;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
-
-#[tauri::command]
-pub async fn vaults_list(
-    subgraph_args: SubgraphArgs,
-    filter_args: VaultsListFilterArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<Vault>> {
-    let vaults = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vaults_list(filter_args, pagination_args)
-        .await?;
-    Ok(vaults)
-}
 
 #[tauri::command]
 pub async fn vaults_list_write_csv(
@@ -52,20 +36,6 @@ pub async fn vaults_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn vault_balance_changes_list(
-    id: String,
-    subgraph_args: SubgraphArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<VaultBalanceChangeUnwrapped>> {
-    let data = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vault_balance_changes_list(id.into(), pagination_args)
-        .await?;
-    Ok(data)
-}
-
-#[tauri::command]
 pub async fn vault_balance_changes_list_write_csv(
     id: String,
     path: PathBuf,
@@ -84,17 +54,6 @@ pub async fn vault_balance_changes_list_write_csv(
     fs::write(path, csv_text)?;
 
     Ok(())
-}
-
-#[tauri::command]
-pub async fn vault_detail(id: String, subgraph_args: SubgraphArgs) -> CommandResult<Vault> {
-    let vault = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .vault_detail(id.into())
-        .await?;
-
-    Ok(vault)
 }
 
 #[tauri::command]

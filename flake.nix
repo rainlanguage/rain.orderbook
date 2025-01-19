@@ -63,18 +63,52 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_take.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
-              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
+              
+              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs crates/settings/src/gui.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/config.ts;
 
               typeshare crates/common/src/dotrain_order/mod.rs lib/rain.interpreter/lib/rain.metadata/crates/cli/src/meta/types/authoring/v2.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/authoringMeta.ts;
-              typeshare tauri-app/src-tauri/src/commands/order_quote.rs crates/quote/src/quote.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderQuote.ts;
+              typeshare crates/quote/src/order_quotes.rs crates/quote/src/quote.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/orderQuote.ts;
               typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/toast.ts;
               typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/transactionStatus.ts;
 
               # Fix linting of generated types
               cd tauri-app && npm i && npm run lint
+            '';
+            additionalBuildInputs = [
+              pkgs.wasm-bindgen-cli
+              rainix.rust-toolchain.${system}
+              rainix.rust-build-inputs.${system}
+            ];
+          };
+
+          ob-ui-components-prelude = rainix.mkTask.${system} {
+            name = "ob-ui-components-prelude";
+            body = ''
+              set -euxo pipefail
+
+              # Generate Typescript types from rust types
+              mkdir -p packages/ui-components/src/lib/typeshare
+
+              export CARGO_HOME=$(mktemp -d)
+              cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
+              export PATH=$PATH:$CARGO_HOME/bin
+
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/subgraphTypes.ts;
+
+              typeshare crates/settings/src/parse.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/appSettings.ts;
+              
+              typeshare lib/rain.interpreter/crates/eval/src/trace.rs crates/common/src/fuzz/mod.rs crates/settings/src/config_source.rs crates/settings/src/config.rs crates/settings/src/plot_source.rs crates/settings/src/chart.rs crates/settings/src/deployer.rs crates/settings/src/network.rs crates/settings/src/order.rs crates/settings/src/orderbook.rs crates/settings/src/scenario.rs crates/settings/src/blocks.rs crates/settings/src/token.rs crates/settings/src/deployment.rs crates/settings/src/gui.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/config.ts;
+
+              typeshare crates/common/src/dotrain_order/mod.rs lib/rain.interpreter/lib/rain.metadata/crates/cli/src/meta/types/authoring/v2.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/authoringMeta.ts;
+              typeshare crates/quote/src/order_quotes.rs crates/quote/src/quote.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/orderQuote.ts;
+              typeshare tauri-app/src-tauri/src/toast.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/toast.ts;
+              typeshare tauri-app/src-tauri/src/transaction_status.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/transactionStatus.ts;
+
+              # Fix linting of generated types
+              cd packages/ui-components && npm i && npm run lint
             '';
             additionalBuildInputs = [
               pkgs.wasm-bindgen-cli
@@ -108,6 +142,7 @@
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
               echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli
@@ -120,10 +155,10 @@
               # Create env file with working defaults
               ENV_FILE=".env"
               ENV_EXAMPLE_FILE=".env.example"
-              cp $ENV_EXAMPLE_FILE $ENV_FILE
+              cp $ENV_EXAMPLE_FILE $ENV_FILE  
 
-              # Add walletconnect project id from github action env to .env file
-              echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> $ENV_FILE
+              # Update the existing WALLETCONNECT_PROJECT_ID line
+              sed -i "s/^VITE_WALLETCONNECT_PROJECT_ID=.*/VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID}/" $ENV_FILE
             '';
           };
 
@@ -212,7 +247,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain-orderbook-env --exclude rain_orderbook_integration_tests
+              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
             '';
           };
 
@@ -229,6 +264,7 @@
             name = "js-install";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
             '';
           };
@@ -237,6 +273,7 @@
             name = "build-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm run build
             '';
           };
@@ -245,6 +282,7 @@
             name = "test-js-bindings";
             body = ''
               set -euxo pipefail
+              cd packages/orderbook
               npm install --no-check
               npm run build
               npm test
@@ -263,6 +301,7 @@
             packages.build-js-bindings
             packages.test-js-bindings
             rain.defaultPackage.${system}
+            packages.ob-ui-components-prelude
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
@@ -273,6 +312,7 @@
           packages = [
             packages.raindex-prelude
             packages.ob-tauri-prelude
+            packages.ob-ui-components-prelude
             packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
             packages.ob-tauri-before-build
@@ -283,6 +323,11 @@
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
+        };
+        devShells.webapp-shell = pkgs.mkShell {
+          packages = with pkgs; [
+              nodejs_20
+          ];
         };
 
       }

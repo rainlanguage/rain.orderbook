@@ -2,34 +2,21 @@ use crate::error::CommandResult;
 use rain_orderbook_common::{
     csv::TryIntoCsv, subgraph::SubgraphArgs, types::FlattenError, types::OrderTakeFlattened,
 };
-use rain_orderbook_subgraph_client::{types::common::*, PaginationArgs};
 use std::fs;
 use std::path::PathBuf;
 
 #[tauri::command]
-pub async fn order_takes_list(
-    order_id: String,
-    subgraph_args: SubgraphArgs,
-    pagination_args: PaginationArgs,
-) -> CommandResult<Vec<Trade>> {
-    let order_takes = subgraph_args
-        .to_subgraph_client()
-        .await?
-        .order_takes_list(order_id.clone().into(), pagination_args)
-        .await?;
-    Ok(order_takes)
-}
-
-#[tauri::command]
-pub async fn order_takes_list_write_csv(
+pub async fn order_trades_list_write_csv(
     path: PathBuf,
     order_id: String,
     subgraph_args: SubgraphArgs,
+    start_timestamp: Option<u64>,
+    end_timestamp: Option<u64>,
 ) -> CommandResult<()> {
     let order_takes = subgraph_args
         .to_subgraph_client()
         .await?
-        .order_takes_list_all(order_id.clone().into())
+        .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?;
     let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes
         .into_iter()

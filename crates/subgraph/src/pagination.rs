@@ -2,11 +2,25 @@ use crate::{cynic_client::CynicClientError, utils::slice_list};
 use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use thiserror::Error;
+#[cfg(target_family = "wasm")]
+use tsify::Tsify;
+use typeshare::typeshare;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[typeshare]
+#[serde(rename_all = "camelCase")]
 pub struct PaginationArgs {
     pub page: u16,
     pub page_size: u16,
+}
+
+#[cfg(target_family = "wasm")]
+mod wasm_impls {
+    use super::*;
+    use rain_orderbook_bindings::impl_all_wasm_traits;
+
+    impl_all_wasm_traits!(PaginationArgs);
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

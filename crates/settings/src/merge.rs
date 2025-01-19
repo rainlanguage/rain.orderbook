@@ -313,6 +313,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let other = ConfigSource {
@@ -330,6 +331,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         assert_eq!(config.merge(other), Ok(()));
@@ -352,6 +354,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let mut other = ConfigSource {
@@ -369,6 +372,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         // Add a collision to cause an unsuccessful merge
@@ -405,6 +409,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         let mut other = ConfigSource {
@@ -422,6 +427,7 @@ mod tests {
             deployments: HashMap::new(),
             sentry: None,
             accounts: None,
+            gui: None,
         };
 
         other.metaboards.insert(

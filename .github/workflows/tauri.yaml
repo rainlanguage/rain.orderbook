@@ -8,7 +8,7 @@ concurrency:
 jobs:
   build-tauri:
     strategy:
-      fail-fast: true
+      fail-fast: ${{ github.ref != 'refs/heads/main' }}
       matrix:
         os: [macos-13, macos-14, ubuntu-22.04]
 
@@ -57,7 +57,9 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v4
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - run: ./prep-tauri.sh
+      - run: ./prep-all.sh
+
+      - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
         working-directory: ./tauri-app

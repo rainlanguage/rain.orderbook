@@ -1,43 +1,34 @@
-import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl } from '$lib/stores/settings';
-import type { Order } from '$lib/typeshare/subgraphTypes';
-import type { BatchOrderQuotesResponse } from '$lib/typeshare/orderQuote';
+import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RainEvalResultsTable } from '$lib/typeshare/config';
 
-export async function batchOrderQuotes(
-  orders: Order[],
-  blockNumber?: number,
-): Promise<BatchOrderQuotesResponse[]> {
-  return invoke('batch_order_quotes', {
-    orders,
-    blockNumber,
-    rpcUrl: get(rpcUrl),
-  });
-}
-
 export async function debugOrderQuote(
-  order: Order,
+  order: OrderSubgraph,
   inputIOIndex: number,
   outputIOIndex: number,
   orderbook: Hex,
   rpcUrl: string,
+  blockNumber?: number,
 ) {
-  return await invoke<RainEvalResultsTable>('debug_order_quote', {
+  return await invoke<[RainEvalResultsTable, string | undefined]>('debug_order_quote', {
     order,
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
     orderbook,
     rpcUrl,
+    blockNumber,
   });
 }
 
-export const mockQuoteDebug: RainEvalResultsTable = {
-  column_names: ['1', '2', '3'],
-  rows: [['0x01', '0x02', '0x03']],
-};
+export const mockQuoteDebug: [RainEvalResultsTable, string | undefined] = [
+  {
+    column_names: ['1', '2', '3'],
+    rows: [['0x01', '0x02', '0x03']],
+  },
+  'some error msg',
+];
 
 if (import.meta.vitest) {
   const { it, expect } = import.meta.vitest;
@@ -62,7 +53,7 @@ if (import.meta.vitest) {
         addEvents: [],
         timestampAdded: '123',
         trades: [],
-      },
+      } as unknown as OrderSubgraph,
       0,
       0,
       '0x123',

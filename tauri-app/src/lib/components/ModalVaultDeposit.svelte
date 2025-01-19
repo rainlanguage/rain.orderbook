@@ -7,7 +7,7 @@
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import { bigintStringToHex } from '$lib/utils/hex';
+  import { bigintStringToHex } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
@@ -19,6 +19,7 @@
 
   export let open = false;
   export let vault: TokenVaultDetail;
+  export let onDeposit: () => void;
   let amount: bigint;
   let isSubmitting = false;
   let selectWallet = false;
@@ -36,6 +37,7 @@
     isSubmitting = true;
     try {
       await vaultDeposit(BigInt(vault.vaultId), vault.token.id, amount);
+      onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -68,6 +70,7 @@
       const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
       toasts.success('Transaction sent successfully!');
       await depositTx.wait(1);
+      onDeposit();
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));
@@ -79,7 +82,7 @@
   async function fetchUserBalance() {
     try {
       userBalance = (await checkERC20Balance(vault.token.id)).toBigInt();
-    } catch (e) {
+    } catch (_e) {
       userBalance = 0n;
     }
   }
@@ -149,6 +152,7 @@
           bind:value={amount}
           symbol={vault.token.symbol}
           decimals={Number(vault.token.decimals) ?? 0}
+          maxValue={userBalance}
         />
       </ButtonGroup>
     </div>

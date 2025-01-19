@@ -8,8 +8,8 @@ import {
 } from "matchstick-as";
 import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
 import { Evaluable, IO, createTakeOrderEvent } from "../event-mocks.test";
-import { handleTakeOrder } from "../../src/takeorder";
 import { createMockERC20Functions } from "../erc20.test";
+import { handleTakeOrder } from "../../src/handlers";
 
 describe("Add and remove orders", () => {
   afterEach(() => {

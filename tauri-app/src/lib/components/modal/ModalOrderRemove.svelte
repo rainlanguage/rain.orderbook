@@ -6,16 +6,18 @@
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import type { Order as OrderDetailOrder } from '$lib/typeshare/subgraphTypes';
+  import type { OrderSubgraph as OrderDetailOrder } from '@rainlanguage/orderbook/js_api';
 
   let openOrderRemoveModal = true;
   export let order: OrderDetailOrder;
   let isSubmitting = false;
+  export let onOrderRemoved: () => void;
 
   async function executeLedger() {
     isSubmitting = true;
     try {
       await orderRemove(order.id);
+      onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
     }
@@ -28,6 +30,7 @@
       const tx = await ethersExecute(calldata, $orderbookAddress!);
       toasts.success('Transaction sent successfully!');
       await tx.wait(1);
+      onOrderRemoved();
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(formatEthersTransactionError(e));

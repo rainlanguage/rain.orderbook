@@ -1,9 +1,6 @@
 <script lang="ts">
   import { Toast } from 'flowbite-svelte';
-  import IconSuccess from '$lib/components/IconSuccess.svelte';
-  import IconError from '$lib/components/IconError.svelte';
-  import IconWarning from '$lib/components/IconWarning.svelte';
-  import IconInfo from '$lib/components/IconInfo.svelte';
+  import { IconError, IconSuccess, IconWarning, IconInfo } from '@rainlanguage/ui-components';
   import CloseSolid from 'flowbite-svelte-icons/CloseSolid.svelte';
   import type { ToastData } from '$lib/stores/toasts';
   import { ToastMessageType } from '$lib/typeshare/toast';
@@ -21,7 +18,7 @@
     | 'primary'
     | 'orange'
     | undefined;
-  $: toast, getToastColor();
+  $: if (toast) getToastColor();
 
   function getToastColor() {
     if (toast.message_type === ToastMessageType.Success) {
