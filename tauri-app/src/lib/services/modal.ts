@@ -3,8 +3,7 @@ import ModalVaultWithdraw from '$lib/components/ModalVaultWithdraw.svelte';
 import ModalVaultDepositGeneric from '$lib/components/ModalVaultDepositGeneric.svelte';
 import type { Vault } from '$lib/typeshare/subgraphTypes';
 import ModalOrderRemove from '$lib/components/modal/ModalOrderRemove.svelte';
-import type { OrderSubgraph as OrderDetailOrder } from '@rainlanguage/orderbook/js_api';
-import type { OrderSubgraph as OrderListOrder } from '@rainlanguage/orderbook/js_api';
+import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
@@ -21,10 +20,7 @@ export const handleWithdrawModal = (vault: Vault, onWithdraw: () => void) => {
   new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
 };
 
-export const handleOrderRemoveModal = (
-  order: OrderDetailOrder | OrderListOrder,
-  onOrderRemoved: () => void,
-) => {
+export const handleOrderRemoveModal = (order: OrderSubgraph, onOrderRemoved: () => void) => {
   new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
@@ -33,7 +29,7 @@ export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
 };
 
 export const handleQuoteDebugModal = (
-  order: OrderDetailOrder,
+  order: OrderSubgraph,
   rpcUrl: string,
   orderbook: string,
   inputIOIndex: number,
