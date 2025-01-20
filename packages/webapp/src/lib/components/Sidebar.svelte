@@ -6,15 +6,15 @@
 		SidebarWrapper,
 		SidebarBrand
 	} from 'flowbite-svelte';
-	import WalletConnect from './WalletConnect.svelte';
-	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
-	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
-	import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
-	import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
-	import { IconExternalLink, IconTelegram } from '@rainlanguage/ui-components';
+	import { WalletSolid, ReceiptSolid, FileLinesSolid, PlusOutline } from 'flowbite-svelte-icons';
 	import { page } from '$app/stores';
-	import ButtonDarkMode from './ButtonDarkMode.svelte';
-	import { PlusSolid } from 'flowbite-svelte-icons';
+	import {
+		ButtonDarkMode,
+		IconTelegram,
+		IconExternalLink,
+		logoDark,
+		logoLight
+	} from '@rainlanguage/ui-components';
 
 	export let colorTheme;
 </script>
@@ -22,38 +22,24 @@
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
 	<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
 		<SidebarGroup ulClass="">
-			<div class="block dark:hidden">
-				<SidebarBrand
-					site={{
-						name: '',
-						href: '/',
-						img: '/logo-light.svg'
-					}}
-					imgClass="w-2/3 m-auto"
-					aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-					spanClass="hidden"
-				></SidebarBrand>
-			</div>
-			<div class="hidden dark:block">
-				<SidebarBrand
-					site={{
-						name: '',
-						href: '/',
-						img: '/logo-dark.svg'
-					}}
-					imgClass="w-2/3 m-auto"
-					aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-					spanClass="hidden"
-				></SidebarBrand>
-			</div>
+			<SidebarBrand
+				site={{
+					name: '',
+					href: '/',
+					img: $colorTheme == 'light' ? logoLight : logoDark
+				}}
+				imgClass="m-auto"
+			></SidebarBrand>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<SidebarItem label="New Order" href={'/orders/add'}>
+			<SidebarItem label="Deploy" href="/deploy">
 				<svelte:fragment slot="icon">
-					<PlusSolid class="h-5 w-5" />
-					<span data-testid="sidebar-new-order"></span>
+					<PlusOutline class="h-5 w-5" />
+					<span data-testid="sidebar-deploy"></span>
 				</svelte:fragment>
 			</SidebarItem>
+		</SidebarGroup>
+		<SidebarGroup border>
 			<SidebarItem label="Orders" href="/orders">
 				<svelte:fragment slot="icon">
 					<ReceiptSolid class="h-5 w-5" />
@@ -70,13 +56,7 @@
 		<SidebarGroup border>
 			<WalletConnect />
 		</SidebarGroup>
-		<SidebarGroup border>
-			<SidebarItem label="Settings" href="/settings">
-				<svelte:fragment slot="icon">
-					<GearSolid class="h-5 w-5" />
-					<span data-testid="sidebar-settings"></span>
-				</svelte:fragment>
-			</SidebarItem>
+
 			<SidebarItem
 				label="Documentation"
 				target="_blank"
