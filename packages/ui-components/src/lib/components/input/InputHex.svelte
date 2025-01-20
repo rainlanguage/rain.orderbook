@@ -2,7 +2,7 @@
 	import type { InputMask } from 'imask';
 	import { imask } from '@imask/svelte';
 	import { fromHex, toHex } from 'viem';
-	import { HEX_INPUT_REGEX } from '@rainlanguage/ui-components';
+	import { HEX_INPUT_REGEX } from '../../utils/hex';
 
 	let valueRaw: string = '';
 	export let value: bigint | undefined;
@@ -33,7 +33,9 @@
 			try {
 				value = fromHex(valuePrefixed as `0x${string}`, 'bigint');
 				// eslint-disable-next-line no-empty
-			} catch (_e) {}
+			} catch (e) {
+				console.error(e);
+			}
 		}
 	}
 </script>
