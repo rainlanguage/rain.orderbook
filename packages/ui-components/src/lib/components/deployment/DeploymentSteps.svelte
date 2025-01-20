@@ -19,6 +19,8 @@
 	import { Button, Input, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
+	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
+	import { type Writable } from 'svelte/store';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -57,6 +59,13 @@
 	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
+	let addOrderError: string | null = null;
+	let addOrderErrorDetails: string | null = null;
+
+	export let wagmiConfig: Writable<Config> | null = null;
+	export let wagmiConnected: Writable<boolean> | null = null;
+
+	$: console.log($wagmiConnected);
 
 	async function loadStrategyFromUrl() {
 		isLoading = true;
@@ -203,6 +212,38 @@
 			errorDetails = `Unsupported chain ID: ${chainId}`;
 		}
 		return chain;
+	}
+
+	async function handleAddOrderWagmi() {
+		try {
+			if (!gui || !$wagmiConfig) return;
+
+			console.log($wagmiConfig);
+			const { address } = getAccount($wagmiConfig);
+
+			console.log(address);
+
+			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
+			console.log(approvals);
+
+			for (const approval of approvals) {
+				await sendTransaction($wagmiConfig, {
+					to: approval.token as `0x${string}`,
+					data: approval.calldata as `0x${string}`
+				});
+			}
+
+			const calldata: DepositAndAddOrderCalldataResult =
+				await gui.generateDepositAndAddOrderCalldatas();
+			await sendTransaction($wagmiConfig, {
+				// @ts-expect-error orderbook is not typed
+				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
+				data: calldata as `0x${string}`
+			});
+		} catch (e) {
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		}
 	}
 
 	async function handleAddOrder() {
@@ -369,7 +410,21 @@
 						{/if}
 					</div>
 				{/if}
-				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+				{#if $wagmiConfig}
+					{#if $wagmiConnected}
+						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+					{:else}
+						<slot name="wallet-connect" />
+					{/if}
+				{:else}
+					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+				{/if}
+				{#if addOrderError}
+					<p class="text-red-500">{addOrderError}</p>
+				{/if}
+				{#if addOrderErrorDetails}
+					<p class="text-red-500">{addOrderErrorDetails}</p>
+				{/if}
 			{/if}
 		</div>
 	{/if}

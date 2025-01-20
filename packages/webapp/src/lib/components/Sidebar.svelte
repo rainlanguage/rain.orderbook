@@ -15,6 +15,7 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
+	import WalletConnect from './WalletConnect.svelte';
 
 	export let colorTheme;
 </script>
@@ -56,7 +57,7 @@
 		<SidebarGroup border>
 			<WalletConnect />
 		</SidebarGroup>
-
+		<SidebarGroup border>
 			<SidebarItem
 				label="Documentation"
 				target="_blank"
