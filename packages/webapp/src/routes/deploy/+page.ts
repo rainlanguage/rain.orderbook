@@ -14,7 +14,6 @@ export const load: PageLoad = async () => {
 			files: data
 		};
 	} catch (error) {
-		console.error('Error fetching GitHub files:', error);
 		return {
 			files: []
 		};
