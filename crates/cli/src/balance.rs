@@ -40,7 +40,7 @@ mod tests {
         let subgraph_client = OrderbookSubgraphClient::new(subgraph_url);
 
         // Test order ID
-        let order_id: String = "0x12863c37d7dd314984b237619f569f6f6f645383bb39aec4cb219abd52f8eff2".to_string();
+        let order_id: String = "0x389d61c749f571e2da90a56385600ec421b487f8679ec7a98e2dcbd888a3c1ed".to_string();
 
         // Call the function to get balances
         let result = get_balances_single_order(&subgraph_client, order_id).await;
