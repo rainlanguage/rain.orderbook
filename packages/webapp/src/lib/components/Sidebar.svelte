@@ -19,6 +19,8 @@
 	} from '@rainlanguage/ui-components';
 	import { PlusOutline } from 'flowbite-svelte-icons';
 	export let colorTheme;
+
+	$: console.log($colorTheme);
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
@@ -28,7 +30,7 @@
 				site={{
 					name: '',
 					href: '/',
-					img: colorTheme == 'light' ? logoDark : logoLight
+					img: $colorTheme == 'light' ? logoLight : logoDark
 				}}
 				imgClass="m-auto"
 			></SidebarBrand>
