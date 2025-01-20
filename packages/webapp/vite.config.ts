@@ -20,14 +20,23 @@ export default defineConfig(({ mode }) => ({
 		environment: 'jsdom',
 		include: ['src/**/*.{test,spec}.ts'],
 		// Extend jest-dom matchers
-		setupFiles: ['./test-setup.ts'],
+		setupFiles: ['./test-setup.mjs'],
 		// load env vars
 		env: loadEnv('', process.cwd(), ''),
 		testTimeout: 10000,
 		server: {
 			deps: {
-				inline: [/@tanstack\/svelte-query/]
+				inline: [
+					/@tanstack\/svelte-query/,
+					/@walletconnect/,
+					/uint8arrays/,
+					/@web3modal/,
+					/@ethersproject/
+				]
 			}
+		},
+		deps: {
+			interopDefault: true
 		}
 	}
 }));

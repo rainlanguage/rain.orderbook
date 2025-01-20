@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/svelte';
-import WalletConnect from '../lib/components/WalletConnect.svelte';
+import WalletConnect from '../components/WalletConnect.svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 
 const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
+	() => import('../__mocks__/stores')
 );
 
 describe('WalletConnect component', () => {
