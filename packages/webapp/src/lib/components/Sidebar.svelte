@@ -9,12 +9,14 @@
 	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
 	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
 	import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
-	import IconTelegram from './IconTelegram.svelte';
-	import IconExternalLink from './IconExternalLink.svelte';
 	import { page } from '$app/stores';
-	import ButtonDarkMode from './ButtonDarkMode.svelte';
-	import logoDark from '../assets/logo-dark.svg';
-	import logoLight from '../assets/logo-light.svg';
+	import {
+		ButtonDarkMode,
+		IconTelegram,
+		IconExternalLink,
+		logoDark,
+		logoLight
+	} from '@rainlanguage/ui-components';
 	import { PlusOutline } from 'flowbite-svelte-icons';
 	export let colorTheme;
 </script>
