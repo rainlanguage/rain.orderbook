@@ -3,7 +3,7 @@
   import { PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
-  import { settings } from '$lib/stores/settings';
+  import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 </script>
@@ -18,4 +18,6 @@
   {lightweightChartsTheme}
   {settings}
   {walletAddressMatchesOrBlank}
+  {activeNetworkRef}
+  {activeOrderbookRef}
 />
