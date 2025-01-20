@@ -1,7 +1,7 @@
 {
     "name": "rainlanguage-packages",
-    "author": "Rain Language",
-    "license": "CAL-1.0",
+    "author": "Rain Open Source Software Ltd",
+    "license": "LicenseRef-DCL-1.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/rainlanguage/rain.orderbook.git"

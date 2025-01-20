@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"type": "module",
     "license": "LicenseRef-DCL-1.0",
-    "author": "Rain Open Source LLC",
+    "author": "Rain Open Source Software Ltd",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

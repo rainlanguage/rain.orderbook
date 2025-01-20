@@ -1,7 +1,7 @@
 use crate::{
     yaml::{
-        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        context::Context, default_document, get_hash_value, optional_hash, optional_string,
+        optional_vec, require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -98,7 +98,7 @@ impl GuiConfigSource {
                             .map(Arc::clone)?;
 
                         Ok(GuiDeposit {
-                            token: token.clone(),
+                            token: Some(token.clone()),
                             presets: deposit_source.presets.clone(),
                         })
                     })
@@ -187,8 +187,8 @@ impl_all_wasm_traits!(GuiPreset);
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiDeposit {
-    #[typeshare(typescript(type = "Token"))]
-    pub token: Arc<Token>,
+    #[typeshare(typescript(type = "Token | undefined"))]
+    pub token: Option<Arc<Token>>,
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub presets: Vec<String>,
 }
@@ -248,15 +248,108 @@ pub struct Gui {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
 
-impl Gui {}
+impl Gui {
+    pub fn parse_deployment_keys(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<Vec<String>, YamlError> {
+        let mut deployment_keys = Vec::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let deployments = gui
+                    .get(&StrictYaml::String("deployments".to_string()))
+                    .ok_or(YamlError::ParseError(
+                        "deployments field missing in gui".to_string(),
+                    ))?;
+
+                if let StrictYaml::Hash(deployments_hash) = deployments {
+                    for (key, _) in deployments_hash {
+                        if let StrictYaml::String(key) = key {
+                            deployment_keys.push(key.clone());
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(deployment_keys)
+    }
+
+    pub fn parse_select_tokens(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+    ) -> Result<Option<Vec<String>>, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(StrictYaml::Hash(deployments_hash)) =
+                    gui.get(&StrictYaml::String("deployments".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(deployment_hash)) =
+                        deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                    {
+                        if let Some(StrictYaml::Array(tokens)) =
+                            deployment_hash.get(&StrictYaml::String("select-tokens".to_string()))
+                        {
+                            let mut result = Vec::new();
+                            for token in tokens {
+                                if let StrictYaml::String(token_str) = token {
+                                    result.push(token_str.clone());
+                                }
+                            }
+                            return Ok(Some(result));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn parse_gui_details(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<(String, String), YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let name = require_string(
+                    get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
+                    None,
+                    Some("name field must be a string in gui".to_string()),
+                )?;
+
+                let description = require_string(
+                    get_hash_value(
+                        gui,
+                        "description",
+                        Some("description field missing in gui".to_string()),
+                    )?,
+                    None,
+                    Some("description field must be a string in gui".to_string()),
+                )?;
+
+                return Ok((name, description));
+            }
+        }
+        Err(YamlError::ParseError("gui details not found".to_string()))
+    }
+}
 
 impl YamlParseableValue for Gui {
-    fn parse_from_yaml(_: Vec<Arc<RwLock<StrictYaml>>>) -> Result<Self, YamlError> {
+    fn parse_from_yaml(
+        _: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
+    ) -> Result<Self, YamlError> {
         Err(YamlError::InvalidTraitFunction)
     }
 
     fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
         let mut gui_res: Option<Gui> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeployment> = HashMap::new();
@@ -302,8 +395,32 @@ impl YamlParseableValue for Gui {
                 for (deployment_name, deployment_yaml) in deployments {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let deployment =
-                        Deployment::parse_from_yaml(documents.clone(), &deployment_name)?;
+                    let mut context = Context::new();
+
+                    let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
+                            Some(tokens) => Some(
+                                tokens
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(select_token_index, select_token_value)| {
+                                        Ok(select_token_value.as_str().ok_or(YamlError::ParseError(format!(
+                                            "select-token value must be a string for select-token index: {select_token_index} in gui deployment: {deployment_name}",
+                                        )))?.to_string())
+                                    })
+                                    .collect::<Result<Vec<_>, YamlError>>()?,
+                            ),
+                            None => None,
+                        };
+                    if let Some(ref select_tokens) = select_tokens {
+                        context.add_select_tokens(select_tokens.clone());
+                    }
+
+                    let deployment = Deployment::parse_from_yaml(
+                        documents.clone(),
+                        &deployment_name,
+                        Some(&context),
+                    )?;
+                    context.add_order(deployment.order.clone());
 
                     let name = require_string(
                         deployment_yaml,
@@ -334,7 +451,7 @@ impl YamlParseableValue for Gui {
                             Some(format!(
                                 "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
                             )),
-                        )?)?;
+                        )?, None);
 
                         let presets = require_vec(
                             deposit_value,
@@ -353,7 +470,7 @@ impl YamlParseableValue for Gui {
                         .collect::<Result<Vec<_>, YamlError>>()?;
 
                         let gui_deposit = GuiDeposit {
-                            token: Arc::new(token),
+                            token: token.ok().map(Arc::new),
                             presets,
                         };
                         Ok(gui_deposit)
@@ -382,8 +499,10 @@ impl YamlParseableValue for Gui {
                                 "name string missing for field index: {field_index} in gui deployment: {deployment_name}",
                             )),
                         )?;
+                        let interpolated_name = context.interpolate(&name)?;
 
                         let description = optional_string(field_yaml, "description");
+                        let interpolated_description = description.map(|description| context.interpolate(&description)).transpose()?;
 
                         let presets = match optional_vec(field_yaml, "presets") {
                             Some(p) => Some(p.iter().enumerate().map(|(preset_index, preset_yaml)| {
@@ -409,28 +528,13 @@ impl YamlParseableValue for Gui {
 
                         let gui_field_definition = GuiFieldDefinition {
                             binding,
-                            name,
-                            description,
+                            name: interpolated_name,
+                            description: interpolated_description,
                             presets
                         };
                         Ok(gui_field_definition)
                     })
                     .collect::<Result<Vec<_>, YamlError>>()?;
-
-                    let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
-                        Some(tokens) => Some(
-                            tokens
-                                .iter()
-                                .enumerate()
-                                .map(|(select_token_index, select_token_value)| {
-                                    Ok(select_token_value.as_str().ok_or(YamlError::ParseError(format!(
-                                        "select-token value must be a string for select-token index: {select_token_index} in gui deployment: {deployment_name}",
-                                    )))?.to_string())
-                                })
-                                .collect::<Result<Vec<_>, YamlError>>()?,
-                        ),
-                        None => None,
-                    };
 
                     let gui_deployment = GuiDeployment {
                         document: document.clone(),
@@ -577,7 +681,10 @@ mod tests {
         assert_eq!(deployment.description, "test-deployment-description");
         assert_eq!(deployment.deposits.len(), 1);
         let deposit = &deployment.deposits[0];
-        assert_eq!(deposit.token.label, Some("test-token".to_string()));
+        assert_eq!(
+            deposit.token.as_ref().unwrap().label,
+            Some("test-token".to_string())
+        );
         assert_eq!(deposit.presets.len(), 2);
         assert_eq!(deposit.presets[0], "1.3".to_string());
         assert_eq!(deposit.presets[1], "2.7".to_string());
@@ -622,7 +729,7 @@ mod tests {
 gui:
     test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name field missing in gui".to_string())
@@ -632,7 +739,7 @@ gui:
     name:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name field must be a string in gui".to_string())
@@ -642,7 +749,7 @@ gui:
     name:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name field must be a string in gui".to_string())
@@ -652,7 +759,7 @@ gui:
 gui:
     name: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field missing in gui".to_string())
@@ -663,7 +770,7 @@ gui:
     description:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field must be a string in gui".to_string())
@@ -674,7 +781,7 @@ gui:
     description:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("description field must be a string in gui".to_string())
@@ -685,7 +792,7 @@ gui:
     name: test
     description: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field missing in gui".to_string())
@@ -696,7 +803,7 @@ gui:
     description: test
     deployments: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field must be a map in gui".to_string())
@@ -708,7 +815,7 @@ gui:
     deployments:
         - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("deployments field must be a map in gui".to_string())
@@ -722,7 +829,7 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)]).unwrap_err();
+        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: deployments".to_string())
@@ -770,9 +877,11 @@ gui:
         deployment1:
             test: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("name string missing in gui deployment: deployment1".to_string())
@@ -786,9 +895,11 @@ gui:
         deployment1:
             name: deployment1
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -805,9 +916,11 @@ gui:
             name: some name
             description: some description
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -826,9 +939,11 @@ gui:
             deposits:
                 - test: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -846,27 +961,13 @@ gui:
             name: test
             description: test
             deposits:
-                - token: test
-"#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
-        assert_eq!(error, YamlError::KeyNotFound("test".to_string()));
-
-        let yaml = r#"
-gui:
-    name: test
-    description: test
-    deployments:
-        deployment1:
-            name: test
-            description: test
-            deposits:
                 - token: token1
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -888,9 +989,11 @@ gui:
                   presets:
                     - test: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -912,9 +1015,11 @@ gui:
                   presets:
                     - "1"
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("fields list missing in gui deployment: deployment1".to_string())
@@ -935,9 +1040,11 @@ gui:
             fields:
                 - test: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -961,9 +1068,11 @@ gui:
             fields:
                 - binding: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -990,9 +1099,11 @@ gui:
                     - value:
                         - test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1021,9 +1132,11 @@ gui:
             select-tokens:
                 - test: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(&format!("{yaml_prefix}{yaml}"))])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -1105,9 +1218,11 @@ gui:
                   presets:
                     - value: test
 "#;
-        let res =
-            Gui::parse_from_yaml_optional(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap();
+        let res = Gui::parse_from_yaml_optional(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap();
 
         let gui = res.unwrap();
         assert_eq!(gui.deployments.len(), 2);
@@ -1115,12 +1230,12 @@ gui:
         let deployment = gui.deployments.get("deployment1").unwrap();
         assert_eq!(deployment.name, "test");
         assert_eq!(deployment.description, "test");
-        assert_eq!(deployment.deposits[0].token.key, "token1");
+        assert_eq!(deployment.deposits[0].token.as_ref().unwrap().key, "token1");
 
         let deployment = gui.deployments.get("deployment2").unwrap();
         assert_eq!(deployment.name, "test another");
         assert_eq!(deployment.description, "test another");
-        assert_eq!(deployment.deposits[0].token.key, "token2");
+        assert_eq!(deployment.deposits[0].token.as_ref().unwrap().key, "token2");
     }
 
     #[test]
@@ -1195,9 +1310,11 @@ gui:
                   presets:
                     - value: test
 "#;
-        let error =
-            Gui::parse_from_yaml_optional(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap_err();
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("deployment1".to_string()));
     }
