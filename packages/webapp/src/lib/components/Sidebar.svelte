@@ -6,9 +6,7 @@
 		SidebarWrapper,
 		SidebarBrand
 	} from 'flowbite-svelte';
-	import WalletSolid from 'flowbite-svelte-icons/WalletSolid.svelte';
-	import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
-	import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
+	import { WalletSolid, ReceiptSolid, FileLinesSolid, PlusOutline } from 'flowbite-svelte-icons';
 	import { page } from '$app/stores';
 	import {
 		ButtonDarkMode,
@@ -17,10 +15,8 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
-	import { PlusOutline } from 'flowbite-svelte-icons';
-	export let colorTheme;
 
-	$: console.log($colorTheme);
+	export let colorTheme;
 </script>
 
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
