@@ -6,9 +6,10 @@
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
 	import { defaultConfig } from '$lib/stores/wagmi';
-	import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
+
+	const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -23,7 +24,7 @@
 			appName: 'Rain Language',
 			connectors: [injected()],
 			chains: supportedChainsList as unknown as Chain[],
-			projectId: PUBLIC_WALLETCONNECT_ID
+			projectId: WALLETCONNECT_PROJECT_ID
 		});
 		await erckit.init();
 	};
