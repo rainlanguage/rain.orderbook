@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-DCL-1.0
-// SPDX-FileCopyrightText: Copyright (c) 2020 thedavidmeister
+// SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
@@ -72,6 +72,10 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
             raindex = address(deployRaindex());
+        }
+
+        if (raindex == address(0)) {
+            raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
         }
 
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {

@@ -1,13 +1,14 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Order, OrderWithSubgraphName, Trade } from '../../dist/types/js_api.js';
+import { Order, OrderPerformance, OrderWithSubgraphName, Trade } from '../../dist/types/js_api.js';
 import {
 	getOrders,
 	getOrder,
 	getOrderTradesList,
 	getOrderTradeDetail,
-	getOrderTradesCount
+	getOrderTradesCount,
+	getOrderPerformance
 } from '../../dist/cjs/js_api.js';
 
 const order1 = {
@@ -143,6 +144,73 @@ const order2: Order = {
 	trades: []
 } as unknown as Order;
 
+const order3 = {
+	id: 'order1',
+	orderBytes:
+		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+	orderHash: '0x1',
+	owner: '0x0000000000000000000000000000000000000000',
+	outputs: [
+		{
+			id: '0x0000000000000000000000000000000000000000',
+			token: {
+				id: 'token-1',
+				address: '0x1111111111111111111111111111111111111111',
+				name: 'Token One',
+				symbol: 'TK1',
+				decimals: '18'
+			},
+			balance: '0',
+			vaultId: '1',
+			owner: '0x0000000000000000000000000000000000000000',
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: [],
+			orderbook: {
+				id: '0x0000000000000000000000000000000000000000'
+			}
+		}
+	],
+	inputs: [
+		{
+			id: '0x0000000000000000000000000000000000000000',
+			token: {
+				id: 'token-2',
+				address: '0x2222222222222222222222222222222222222222',
+				name: 'Token Two',
+				symbol: 'TK2',
+				decimals: '18'
+			},
+			balance: '0',
+			vaultId: '2',
+			owner: '0x0000000000000000000000000000000000000000',
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: [],
+			orderbook: {
+				id: '0x0000000000000000000000000000000000000000'
+			}
+		}
+	],
+	active: true,
+	addEvents: [
+		{
+			transaction: {
+				blockNumber: '0',
+				timestamp: '0',
+				id: '0x0000000000000000000000000000000000000000',
+				from: '0x0000000000000000000000000000000000000000'
+			}
+		}
+	],
+	meta: null,
+	timestampAdded: '0',
+	orderbook: {
+		id: '0x0000000000000000000000000000000000000000'
+	},
+	trades: []
+};
+
 const mockOrderTradesList: Trade[] = [
 	{
 		id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
@@ -157,7 +225,7 @@ const mockOrderTradesList: Trade[] = [
 			}
 		},
 		outputVaultBalanceChange: {
-			amount: '-100',
+			amount: '-100000000000000000000',
 			vault: {
 				id: 'vault-1',
 				vaultId: '1',
@@ -170,7 +238,6 @@ const mockOrderTradesList: Trade[] = [
 				}
 			},
 			id: 'output-change-1',
-			// @ts-expect-error __typename is expected in rpc response
 			__typename: 'TradeVaultBalanceChange',
 			newVaultBalance: '900',
 			oldVaultBalance: '1000',
@@ -188,7 +255,7 @@ const mockOrderTradesList: Trade[] = [
 			orderHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 		},
 		inputVaultBalanceChange: {
-			amount: '50',
+			amount: '50000000000000000000',
 			vault: {
 				id: 'vault-2',
 				vaultId: '2',
@@ -201,7 +268,6 @@ const mockOrderTradesList: Trade[] = [
 				}
 			},
 			id: 'input-change-1',
-			// @ts-expect-error __typename is expected in rpc response
 			__typename: 'TradeVaultBalanceChange',
 			newVaultBalance: '150',
 			oldVaultBalance: '100',
@@ -218,7 +284,7 @@ const mockOrderTradesList: Trade[] = [
 			id: 'orderbook-1'
 		}
 	}
-];
+] as unknown as Trade[];
 
 const mockTrade: Trade = {
 	id: 'trade1',
@@ -241,7 +307,6 @@ const mockTrade: Trade = {
 	},
 	outputVaultBalanceChange: {
 		id: '0x0000000000000000000000000000000000000000',
-		// @ts-expect-error __typename is expected in rpc response
 		__typename: 'TradeVaultBalanceChange',
 		amount: '-7',
 		newVaultBalance: '93',
@@ -296,7 +361,7 @@ const mockTrade: Trade = {
 			id: '0x0000000000000000000000000000000000000000'
 		}
 	}
-};
+} as unknown as Trade;
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function () {
 	const mockServer = getLocal();
@@ -402,6 +467,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 			);
 		}
 	});
+
 	it('should fetch trade count for a single order', async () => {
 		await mockServer.forPost('/sg1').thenReply(
 			200,
@@ -441,5 +507,115 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 				'Expected to resolve, but failed: ' + (e instanceof Error ? e.message : String(e))
 			);
 		}
+	});
+
+	it('should measure order performance given an order id and subgraph', async () => {
+		const mockServer = getLocal();
+		mockServer.start(8088);
+		await mockServer
+			.forPost('/sg1')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { order: order3 } }));
+		await mockServer
+			.forPost('/sg1')
+			.once()
+			.thenReply(
+				200,
+				JSON.stringify({
+					data: {
+						trades: mockOrderTradesList
+					}
+				})
+			);
+		await mockServer.forPost('/sg1').thenReply(
+			200,
+			JSON.stringify({
+				data: {
+					trades: []
+				}
+			})
+		);
+
+		const result = await getOrderPerformance(
+			mockServer.url + '/sg1',
+			'0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
+			BigInt(1632000000),
+			BigInt(1734571449)
+		);
+		const expected: OrderPerformance = {
+			orderId: 'order1',
+			orderHash: '0x1',
+			orderbook: '0x0000000000000000000000000000000000000000',
+			denominatedPerformance: {
+				token: {
+					id: 'token-2',
+					address: '0x2222222222222222222222222222222222222222',
+					name: 'Token Two',
+					symbol: 'TK2',
+					decimals: '18'
+				},
+				apy: '0x0',
+				apyIsNeg: false,
+				netVol: '0x0',
+				netVolIsNeg: false,
+				startingCapital: '0x258'
+			},
+			startTime: 1632000000,
+			endTime: 1734571449,
+			inputsVaults: [
+				{
+					id: '2',
+					token: {
+						id: 'token-2',
+						address: '0x2222222222222222222222222222222222222222',
+						name: 'Token Two',
+						symbol: 'TK2',
+						decimals: '18'
+					},
+					volDetails: {
+						totalIn: '0x2b5e3af16b1880000',
+						totalOut: '0x0',
+						totalVol: '0x2b5e3af16b1880000',
+						netVol: '0x2b5e3af16b1880000'
+					},
+					apyDetails: {
+						startTime: 1632000000,
+						endTime: 1734571449,
+						netVol: '0x2b5e3af16b1880000',
+						capital: '0x96',
+						apy: '0x13bce241d361f7aa7687c05aa7a4e5',
+						isNeg: false
+					}
+				}
+			],
+			outputsVaults: [
+				{
+					id: '1',
+					token: {
+						id: 'token-1',
+						address: '0x1111111111111111111111111111111111111111',
+						name: 'Token One',
+						symbol: 'TK1',
+						decimals: '18'
+					},
+					volDetails: {
+						totalIn: '0x0',
+						totalOut: '0x56bc75e2d63100000',
+						totalVol: '0x56bc75e2d63100000',
+						netVol: '0x56bc75e2d63100000'
+					},
+					apyDetails: {
+						startTime: 1632000000,
+						endTime: 1734571449,
+						netVol: '0x56bc75e2d63100000',
+						capital: '0x384',
+						apy: '0x6944b6b4675fd38d22d401e37e1a1',
+						isNeg: true
+					}
+				}
+			]
+		};
+		mockServer.stop();
+		assert.deepEqual(result, expected);
 	});
 });

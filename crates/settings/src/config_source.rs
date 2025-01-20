@@ -502,7 +502,7 @@ gui:
   name: Fixed limit
   description: Fixed limit order strategy
   deployments:
-    - deployment: some-deployment
+    some-deployment:
       name: Buy WETH with USDC on Base.
       description: Buy WETH with USDC for fixed price on Base network.
       deposits:
@@ -650,7 +650,7 @@ gui:
         assert_eq!(gui.name, "Fixed limit");
         assert_eq!(gui.description, "Fixed limit order strategy");
         assert_eq!(gui.deployments.len(), 1);
-        let deployment = &gui.deployments[0];
+        let deployment = gui.deployments.get("some-deployment").unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.");
         assert_eq!(
             deployment.description,
