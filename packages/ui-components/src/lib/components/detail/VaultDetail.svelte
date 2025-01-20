@@ -63,10 +63,7 @@
 	});
 </script>
 
-tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
-	query={vaultDetailQuery}
-	emptyMessage="Vault not found"
->
+<TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
 	<svelte:fragment slot="top" let:data>
 		<div
 			data-testid="vaultDetailTokenName"
