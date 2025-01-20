@@ -124,7 +124,7 @@ const setupListeners = () => {
 };
 
 const handleAccountChange = (data: GetAccountReturnType) => {
-	// Wrap the original async logic in an immediately invoked function expression (IIFE)
+
 	return (async () => {
 		if (get(wagmiLoaded) && data.address) {
 			const chain = get(wagmiConfig).chains.find((chain) => chain.id === data.chainId);
@@ -135,7 +135,7 @@ const handleAccountChange = (data: GetAccountReturnType) => {
 			signerAddress.set(data.address);
 		} else if (data.isDisconnected && get(connected)) {
 			loading.set(false);
-			await disconnectWagmi(); // Handle async operation inside
+			await disconnectWagmi();
 		}
 	})();
 };
@@ -170,7 +170,6 @@ const waitForAccount = () => {
 		const unsub = watchAccount(get(wagmiConfig), {
 			onChange(data) {
 				if (data?.isConnected) {
-					// Gottem, resolve the promise w/user's selected & connected Acc.
 					resolve(data);
 					unsub();
 				}
