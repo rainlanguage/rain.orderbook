@@ -8,7 +8,7 @@
 </script>
 
 {#if !$connected}
-	<Button on:click={handleClick} class="w-full">Connect Wallet</Button>
+	<Button data-testid="wallet-connect" on:click={handleClick} class="w-full">Connect Wallet</Button>
 {:else}
-	<span>Connected: {$signerAddress}</span>
+	<span data-testid="connected">Connected: {$signerAddress}</span>
 {/if}

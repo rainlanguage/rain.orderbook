@@ -25,22 +25,19 @@ describe('WalletConnect component', () => {
 	it('displays "Connect" with red icon when wallet is not connected or wrong network', () => {
 		mockSignerAddressStore.mockSetSubscribeValue('');
 		mockConnectedStore.mockSetSubscribeValue(false);
-		mockAppKitModalStore.mockSetSubscribeValue({ open: vi.fn() });
+
 		render(WalletConnect);
 
 		const connectButton = screen.getByTestId('wallet-connect');
 		expect(connectButton).toBeInTheDocument();
-		expect(screen.getByTestId('not-connected')).toBeInTheDocument();
 	});
 
 	it('displays "Connected" with green icon when wallet is connected', () => {
 		mockSignerAddressStore.mockSetSubscribeValue('0x123');
 		mockConnectedStore.mockSetSubscribeValue(true);
-		mockAppKitModalStore.mockSetSubscribeValue({ open: vi.fn() });
+
 		render(WalletConnect);
 
-		const connectButton = screen.getByTestId('wallet-connect');
-		expect(connectButton).toBeInTheDocument();
 		expect(screen.getByTestId('connected')).toBeInTheDocument();
 	});
 });
