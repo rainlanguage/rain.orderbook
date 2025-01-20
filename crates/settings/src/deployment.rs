@@ -30,10 +30,32 @@ pub struct Deployment {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Deployment);
 
+impl Deployment {
+    pub fn parse_order_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployments_hash) = require_hash(&document_read, Some("deployments"), None) {
+                if let Some(deployment_yaml) =
+                    deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                {
+                    return require_string(deployment_yaml, Some("order"), None);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "order key not found for deployment: {deployment_key}"
+        )))
+    }
+}
+
 impl YamlParsableHash for Deployment {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployments = HashMap::new();
 
@@ -53,10 +75,11 @@ impl YamlParsableHash for Deployment {
                                 "order string missing in deployment: {deployment_key}"
                             )),
                         )?,
-                        None,
+                        context,
                     )?;
 
-                    let context = Context::with_order(Arc::new(order.clone()));
+                    let mut context = Context::new();
+                    context.add_order(Arc::new(order.clone()));
 
                     let scenario = Scenario::parse_from_yaml(
                         documents.clone(),

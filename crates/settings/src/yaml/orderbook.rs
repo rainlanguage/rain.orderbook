@@ -251,6 +251,10 @@ mod tests {
         assert_eq!(network.label, Some("Ethereum Mainnet".to_string()));
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
+        assert_eq!(
+            Network::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
+            Url::parse("https://mainnet.infura.io").unwrap()
+        );
 
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
@@ -261,6 +265,10 @@ mod tests {
         assert_eq!(token.decimals, Some(18));
         assert_eq!(token.label, Some("Wrapped Ether".to_string()));
         assert_eq!(token.symbol, Some("WETH".to_string()));
+        assert_eq!(
+            Token::parse_network_key(ob_yaml.documents.clone(), "token1").unwrap(),
+            "mainnet"
+        );
 
         assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
         let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
@@ -278,6 +286,10 @@ mod tests {
         assert_eq!(orderbook.network, network.clone().into());
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(
+            Orderbook::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
+            "mainnet"
+        );
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
         assert_eq!(
@@ -296,6 +308,10 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
         assert_eq!(deployer.network, network.into());
+        assert_eq!(
+            Deployer::parse_network_key(ob_yaml.documents.clone(), "deployer1").unwrap(),
+            "mainnet"
+        );
 
         assert!(ob_yaml.get_sentry().unwrap());
 
@@ -353,6 +369,48 @@ mod tests {
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
         );
+    }
+
+    #[test]
+    fn test_add_token_to_yaml() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+"#;
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+
+        Token::add_record_to_yaml(
+            ob_yaml.documents.clone(),
+            "test-token",
+            "mainnet",
+            "0x0000000000000000000000000000000000000001",
+            Some("18"),
+            Some("Test Token"),
+            Some("TTK"),
+        )
+        .unwrap();
+
+        let token = ob_yaml.get_token("test-token").unwrap();
+        assert_eq!(token.key, "test-token");
+        assert_eq!(token.network.key, "mainnet");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        assert_eq!(token.decimals, Some(18));
+        assert_eq!(token.label, Some("Test Token".to_string()));
+        assert_eq!(token.symbol, Some("TTK".to_string()));
+    }
+
+    #[test]
+    fn test_remove_token_from_yaml() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+        assert!(ob_yaml.get_token("token1").is_ok());
+        Token::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
+        assert!(ob_yaml.get_token("token1").is_err());
     }
 
     #[test]
