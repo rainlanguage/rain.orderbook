@@ -3,22 +3,15 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async () => {
 	const owner = 'rainlanguage';
 	const repo = 'rain.strategies';
-	const path = 'strategies'; // targeting the strategies folder
+	const path = 'strategies';
 
 	try {
 		const response = await fetch(
 			`https://api.github.com/repos/${owner}/${repo}/contents/${path}`
 		);
 		const data = await response.json();
-
-		console.log(data);
-
-		// Filter for files and get their raw URLs
-		const files = data
-
-
 		return {
-			files
+			files: data
 		};
 	} catch (error) {
 		console.error('Error fetching GitHub files:', error);
