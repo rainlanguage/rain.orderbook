@@ -12,21 +12,23 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import { getOrder, type Order } from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
+	import { page } from '$app/stores';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal: ((order: Order, refetch: () => void) => void) | undefined =
-		undefined;
+	export let handleOrderRemoveModal:
+		| ((order: OrderSubgraph, refetch: () => void) => void)
+		| undefined = undefined;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: Order,
+				order: OrderSubgraph,
 				rpcUrl: string,
 				orderbook: string,
 				inputIOIndex: number,
@@ -46,7 +48,7 @@
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
-	$: orderDetailQuery = createQuery<Order>({
+	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl
@@ -65,6 +67,8 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
+
+	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -118,7 +122,7 @@
 					</div>
 					<div class="space-y-2">
 						{#each data.inputs || [] as t}
-							<ButtonVaultLink tokenVault={t} />
+							<ButtonVaultLink tokenVault={t} {subgraphName} />
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -132,7 +136,7 @@
 					</div>
 					<div class="space-y-2">
 						{#each data.outputs || [] as t}
-							<ButtonVaultLink tokenVault={t} />
+							<ButtonVaultLink tokenVault={t} {subgraphName} />
 						{/each}
 					</div>
 				</svelte:fragment>

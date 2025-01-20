@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
 	import { ButtonLoading, IconError } from '@rainlanguage/ui-components';
+	import { RawRainlangExtension } from 'codemirror-rainlang';
 	import {
 		IconInfo,
 		IconLedger,
@@ -7,9 +8,17 @@
 		IconTelegram,
 		IconWalletConnect,
 		IconWarning,
-		IconExternalLink
+		IconExternalLink,
+		CodeMirrorDotrain,
+		darkCodeMirrorTheme
 	} from '@rainlanguage/ui-components';
 	let isLoading: boolean = true;
+	let rainlangText: string = 'Hello there';
+	const rainlangExtension = new RawRainlangExtension({
+		hover: async () => null,
+		completion: async () => null,
+		diagnostics: async () => []
+	});
 </script>
 
 <div>
@@ -21,7 +30,14 @@
 	<IconInfo />
 	<IconLedger />
 	<IconSuccess />
-	<IconTelegram dark />
+	<IconTelegram />
 	<IconWalletConnect />
 	<IconWarning />
+	<CodeMirrorDotrain
+		codeMirrorTheme={darkCodeMirrorTheme}
+		{rainlangText}
+		disabled={false}
+		styles={{ '&': { minHeight: '400px' } }}
+		{rainlangExtension}
+	/>
 </div>

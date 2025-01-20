@@ -6,6 +6,8 @@ use typeshare::typeshare;
 #[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OrderDetailExtended {
+    #[typeshare(typescript(type = "OrderSubgraph"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
     pub order: Order,
     pub rainlang: Option<String>,
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-DCL-1.0
-// SPDX-FileCopyrightText: Copyright (c) 2020 thedavidmeister
+// SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -786,14 +786,18 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 new uint256[](0)
             );
 
-            // This is redundant with the array index checks implied by solidity
-            // but it's a much clearer error message.
+            // This is a much clearer error message and overall is more efficient
+            // than solidity generic index out of bounds errors.
             if (calculateOrderStack.length < CALCULATE_ORDER_MIN_OUTPUTS) {
                 revert UnsupportedCalculateOutputs(calculateOrderStack.length);
             }
 
-            Output18Amount orderOutputMax18 = Output18Amount.wrap(calculateOrderStack[1]);
-            uint256 orderIORatio = calculateOrderStack[0];
+            uint256 orderIORatio;
+            Output18Amount orderOutputMax18;
+            assembly ("memory-safe") {
+                orderIORatio := mload(add(calculateOrderStack, 0x20))
+                orderOutputMax18 := mload(add(calculateOrderStack, 0x40))
+            }
 
             {
                 // The order owner can't send more than the smaller of their vault
@@ -954,36 +958,41 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         OrderIOCalculationV2 memory aliceOrderIOCalculation,
         OrderIOCalculationV2 memory bobOrderIOCalculation
     ) internal pure returns (uint256 aliceInput, uint256 aliceOutput) {
+        // Alice's input is her output * her IO ratio.
         // Always round IO calculations up so that the counterparty pays more.
-        // This is the max input that bob can afford, given his own IO ratio
-        // and maximum spend/output.
-        Input18Amount bobInputMax18 = Input18Amount.wrap(
-            Output18Amount.unwrap(bobOrderIOCalculation.outputMax).fixedPointMul(
-                bobOrderIOCalculation.IORatio, Math.Rounding.Up
+        Input18Amount aliceInputMax18 = Input18Amount.wrap(
+            Output18Amount.unwrap(aliceOrderIOCalculation.outputMax).fixedPointMul(
+                aliceOrderIOCalculation.IORatio, Math.Rounding.Up
             )
         );
         Output18Amount aliceOutputMax18 = aliceOrderIOCalculation.outputMax;
-        // Alice's doesn't need to provide more output than bob's max input.
-        if (Output18Amount.unwrap(aliceOutputMax18) > Input18Amount.unwrap(bobInputMax18)) {
-            aliceOutputMax18 = Output18Amount.wrap(Input18Amount.unwrap(bobInputMax18));
+
+        // If Alice's input is greater than Bob's max output, Alice's input is
+        // capped at Bob's max output.
+        if (Input18Amount.unwrap(aliceInputMax18) > Output18Amount.unwrap(bobOrderIOCalculation.outputMax)) {
+            aliceInputMax18 = Input18Amount.wrap(Output18Amount.unwrap(bobOrderIOCalculation.outputMax));
+
+            // Alice's output is capped at her input / her IO ratio.
+            // Round down to benefit Alice.
+            aliceOutputMax18 = Output18Amount.wrap(
+                Input18Amount.unwrap(aliceInputMax18).fixedPointDiv(aliceOrderIOCalculation.IORatio, Math.Rounding.Down)
+            );
         }
+
         // Alice's final output is the scaled version of the 18 decimal output,
         // rounded down to benefit Alice.
         aliceOutput = Output18Amount.unwrap(aliceOutputMax18).scaleN(
             aliceOrderIOCalculation.order.validOutputs[aliceOrderIOCalculation.outputIOIndex].decimals, 0
         );
 
-        // Alice's input is her bob-capped output * her IO ratio, rounded up.
-        Input18Amount aliceInput18 = Input18Amount.wrap(
-            Output18Amount.unwrap(aliceOutputMax18).fixedPointMul(aliceOrderIOCalculation.IORatio, Math.Rounding.Up)
-        );
-        aliceInput =
+        // Alice's final input is the scaled version of the 18 decimal input,
+        // rounded up to benefit Alice.
         // Use bob's output decimals as alice's input decimals.
         //
         // This is only safe if we have previously checked that the decimals
         // match for alice and bob per token, otherwise bob could manipulate
         // alice's intent.
-        Input18Amount.unwrap(aliceInput18).scaleN(
+        aliceInput = Input18Amount.unwrap(aliceInputMax18).scaleN(
             bobOrderIOCalculation.order.validOutputs[bobOrderIOCalculation.outputIOIndex].decimals, FLAG_ROUND_UP
         );
     }

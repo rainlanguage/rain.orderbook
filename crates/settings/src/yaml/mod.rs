@@ -1,12 +1,16 @@
+pub mod context;
 pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseNetworkConfigSourceError, ParseOrderbookConfigSourceError, ParseTokenConfigSourceError,
+    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
+use alloy::primitives::ruint::ParseError as RuintParseError;
+use context::{Context, ContextError};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use strict_yaml_rust::StrictYamlEmitter;
 use strict_yaml_rust::{
     strict_yaml::{Array, Hash},
@@ -16,24 +20,38 @@ use thiserror::Error;
 use url::ParseError as UrlParseError;
 
 pub trait YamlParsable: Sized {
-    fn new(source: String, validate: bool) -> Result<Self, YamlError>;
+    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
+
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
 
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();
         let mut out_str = String::new();
         let mut emitter = StrictYamlEmitter::new(&mut out_str);
         emitter.dump(&document)?;
+
+        let out_str = if out_str.starts_with("---") {
+            out_str.trim_start_matches("---").trim_start().to_string()
+        } else {
+            out_str
+        };
+
         Ok(out_str)
     }
 }
 
 pub trait YamlParsableHash: Sized + Clone {
     fn parse_all_from_yaml(
-        document: Arc<RwLock<StrictYaml>>,
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>, key: &str) -> Result<Self, YamlError> {
-        let all = Self::parse_all_from_yaml(document)?;
+    fn parse_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        key: &str,
+        context: Option<&Context>,
+    ) -> Result<Self, YamlError> {
+        let all = Self::parse_all_from_yaml(documents, context)?;
         all.get(key)
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
@@ -46,6 +64,22 @@ pub trait YamlParsableVector: Sized {
 
 pub trait YamlParsableString {
     fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+
+    fn parse_from_yaml_optional(
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<Option<String>, YamlError>;
+}
+
+pub trait YamlParseableValue: Sized {
+    fn parse_from_yaml(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
+    ) -> Result<Self, YamlError>;
+
+    fn parse_from_yaml_optional(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        context: Option<&Context>,
+    ) -> Result<Option<Self>, YamlError>;
 }
 
 #[derive(Debug, Error)]
@@ -55,11 +89,9 @@ pub enum YamlError {
     #[error(transparent)]
     EmitError(#[from] EmitError),
     #[error(transparent)]
-    RwLockReadGuardError(#[from] PoisonError<RwLockReadGuard<'static, StrictYaml>>),
-    #[error(transparent)]
-    RwLockWriteGuardError(#[from] PoisonError<RwLockWriteGuard<'static, StrictYaml>>),
-    #[error(transparent)]
     UrlParseError(#[from] UrlParseError),
+    #[error(transparent)]
+    RuintParseError(#[from] RuintParseError),
     #[error("Yaml file is empty")]
     EmptyFile,
     #[error("Yaml parse error: {0}")]
@@ -74,12 +106,26 @@ pub enum YamlError {
     ReadLockError,
     #[error("Document write lock error")]
     WriteLockError,
+    #[error("Invalid trait function")]
+    InvalidTraitFunction,
+    #[error("Key shadowing found: {0}")]
+    KeyShadowing(String),
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
     ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
     #[error(transparent)]
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    #[error(transparent)]
+    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    #[error(transparent)]
+    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    #[error(transparent)]
+    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
+    #[error(transparent)]
+    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ContextError(#[from] ContextError),
 }
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
@@ -92,6 +138,7 @@ impl PartialEq for YamlError {
             (Self::ConvertError, Self::ConvertError) => true,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
+            (Self::KeyShadowing(a), Self::KeyShadowing(b)) => a == b,
             (Self::ParseNetworkConfigSourceError(a), Self::ParseNetworkConfigSourceError(b)) => {
                 a == b
             }
@@ -174,6 +221,10 @@ pub fn require_vec<'a>(
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {
     value[field].as_vec()
+}
+
+pub fn default_document() -> Arc<RwLock<StrictYaml>> {
+    Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
 
 #[cfg(test)]

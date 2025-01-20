@@ -1,8 +1,9 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Vault, VaultWithSubgraphName } from '../../dist/types/js_api.js';
-import { getVaults, getVault } from '../../dist/cjs/js_api.js';
+import { Vault, VaultWithSubgraphName, Deposit } from '../../dist/types/js_api.js';
+import { getVaults, getVault, getVaultBalanceChanges } from '../../dist/cjs/js_api.js';
+import { VaultBalanceChange } from '../../dist/types/quote.js';
 
 const vault1: Vault = {
 	id: 'vault1',
@@ -87,6 +88,68 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		} catch (e) {
 			console.log(e);
 			assert.fail('expected to resolve, but failed');
+		}
+	});
+
+	it('should fetch vault balance changes', async () => {
+		const mockVaultBalanceChanges = [
+			{
+				__typename: 'Deposit',
+				amount: '5000000000000000000',
+				newVaultBalance: '5000000000000000000',
+				oldVaultBalance: '0',
+				vault: {
+					id: '0x166aeed725f0f3ef9fe62f2a9054035756d55e5560b17afa1ae439e9cd362902',
+					vaultId: '1',
+					token: {
+						id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						address: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
+						name: 'Wrapped Flare',
+						symbol: 'WFLR',
+						decimals: '18'
+					}
+				},
+				timestamp: '1734054063',
+				transaction: {
+					id: '0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22',
+					from: '0x7177b9d00bb5dbcaaf069cc63190902763783b09',
+					blockNumber: '34407047',
+					timestamp: '1734054063'
+				},
+				orderbook: {
+					id: '0xcee8cd002f151a536394e564b84076c41bbbcd4d'
+				}
+			}
+		];
+
+		await mockServer
+			.forPost('/sg3')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { vaultBalanceChanges: mockVaultBalanceChanges } }));
+
+		try {
+			const result: Deposit[] = await getVaultBalanceChanges(mockServer.url + '/sg3', vault1.id, {
+				page: 1,
+				pageSize: 1
+			});
+			assert.equal(result[0].__typename, 'Deposit');
+			assert.equal(result[0].amount, '5000000000000000000');
+			assert.equal(result[0].newVaultBalance, '5000000000000000000');
+			assert.equal(result[0].oldVaultBalance, '0');
+		} catch (e) {
+			console.log(e);
+			assert.fail('expected to resolve, but failed');
+		}
+	});
+
+	it('should handle errors when fetching vault balance changes', async () => {
+		await mockServer.forPost('/sg1').thenReply(500, 'Internal Server Error');
+
+		try {
+			await getVaultBalanceChanges(mockServer.url + '/sg1', 'vault1', { page: 1, pageSize: 10 });
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.ok(e);
 		}
 	});
 });

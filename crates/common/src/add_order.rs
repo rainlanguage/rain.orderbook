@@ -60,6 +60,10 @@ pub enum AddOrderArgsError {
     #[cfg(not(target_family = "wasm"))]
     #[error(transparent)]
     ForkCallError(#[from] ForkCallError),
+    #[error("Input token not found for index: {0}")]
+    InputTokenNotFound(String),
+    #[error("Output token not found for index: {0}")]
+    OutputTokenNotFound(String),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -80,24 +84,29 @@ impl AddOrderArgs {
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
-        for input in &deployment.order.inputs {
-            if let Some(decimals) = input.token.decimals {
+        for (i, input) in deployment.order.inputs.iter().enumerate() {
+            let input_token = input
+                .token
+                .as_ref()
+                .ok_or_else(|| AddOrderArgsError::InputTokenNotFound(i.to_string()))?;
+
+            if let Some(decimals) = input_token.decimals {
                 inputs.push(IO {
-                    token: input.token.address,
+                    token: input_token.address,
                     vaultId: input.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             } else {
-                let client = ReadableClientHttp::new_from_url(input.token.network.rpc.to_string())?;
+                let client = ReadableClientHttp::new_from_url(input_token.network.rpc.to_string())?;
                 let parameters = ReadContractParameters {
-                    address: input.token.address,
+                    address: input_token.address,
                     call: decimalsCall {},
                     block_number: None,
                     gas: None,
                 };
                 let decimals = client.read(parameters).await?._0;
                 inputs.push(IO {
-                    token: input.token.address,
+                    token: input_token.address,
                     vaultId: input.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
@@ -105,25 +114,30 @@ impl AddOrderArgs {
         }
 
         let mut outputs = vec![];
-        for output in &deployment.order.outputs {
-            if let Some(decimals) = output.token.decimals {
+        for (i, output) in deployment.order.outputs.iter().enumerate() {
+            let output_token = output
+                .token
+                .as_ref()
+                .ok_or_else(|| AddOrderArgsError::OutputTokenNotFound(i.to_string()))?;
+
+            if let Some(decimals) = output_token.decimals {
                 outputs.push(IO {
-                    token: output.token.address,
+                    token: output_token.address,
                     vaultId: output.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
             } else {
                 let client =
-                    ReadableClientHttp::new_from_url(output.token.network.rpc.to_string())?;
+                    ReadableClientHttp::new_from_url(output_token.network.rpc.to_string())?;
                 let parameters = ReadContractParameters {
-                    address: output.token.address,
+                    address: output_token.address,
                     call: decimalsCall {},
                     block_number: None,
                     gas: None,
                 };
                 let decimals = client.read(parameters).await?._0;
                 outputs.push(IO {
-                    token: output.token.address,
+                    token: output_token.address,
                     vaultId: output.vault_id.unwrap_or(random_vault_id),
                     decimals,
                 });
@@ -445,7 +459,8 @@ price: 2e18;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -483,18 +498,20 @@ price: 2e18;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
-                    token: token1_arc.clone(),
+                    token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
                 OrderIO {
-                    token: token2_arc.clone(),
+                    token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIO {
-                token: token3_arc.clone(),
+                token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
             network: network_arc.clone(),
@@ -502,6 +519,8 @@ price: 2e18;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -550,7 +569,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -587,18 +607,20 @@ _ _: 0 0;
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
-                    token: token1_arc.clone(),
+                    token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
                 },
                 OrderIO {
-                    token: token2_arc.clone(),
+                    token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIO {
-                token: token3_arc.clone(),
+                token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
@@ -606,6 +628,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -689,7 +713,8 @@ _ _: 0 0;
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = Scenario {
-            name: "test-scenario".to_string(),
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
@@ -727,18 +752,20 @@ _ _: 0 0;
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
         let order = Order {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             inputs: vec![
                 OrderIO {
-                    token: token1_arc.clone(),
+                    token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
                 OrderIO {
-                    token: token2_arc.clone(),
+                    token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIO {
-                token: token3_arc.clone(),
+                token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
             network: network_arc.clone(),
@@ -746,6 +773,8 @@ _ _: 0 0;
             orderbook: None,
         };
         let deployment = Deployment {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
@@ -817,11 +846,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 16 52;
 #handle-add-order
@@ -837,7 +870,7 @@ _ _: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
         AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -898,11 +931,15 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
 deployments:
     some-key:
         scenario: some-key
         order: some-key
 ---
+#key1 !Test binding
 #calculate-io
 _ _: 16 52;
 #handle-add-order
@@ -918,7 +955,7 @@ _ _: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.config().deployments["some-key"].as_ref().clone();
+        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
         AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
