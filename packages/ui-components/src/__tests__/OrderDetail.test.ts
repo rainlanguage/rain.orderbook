@@ -3,13 +3,13 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
-import type { Order } from '@rainlanguage/orderbook/js_api';
+import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-const mockOrder: Order = {
+const mockOrder: OrderSubgraph = {
 	id: 'mockId',
 	owner: 'mockOwner',
 	orderHash: 'mockOrderHash',
@@ -19,7 +19,7 @@ const mockOrder: Order = {
 	orderbook: { id: '1' },
 	inputs: [],
 	outputs: []
-} as unknown as Order;
+} as unknown as OrderSubgraph;
 
 vi.mock('@tanstack/svelte-query');
 

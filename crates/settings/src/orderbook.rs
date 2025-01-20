@@ -34,6 +34,27 @@ impl Orderbook {
     pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookConfigSourceError> {
         Address::from_str(address).map_err(ParseOrderbookConfigSourceError::AddressParseError)
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        orderbook_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orderbooks_hash) = require_hash(&document_read, Some("orderbooks"), None) {
+                if let Some(orderbook_yaml) =
+                    orderbooks_hash.get(&StrictYaml::String(orderbook_key.to_string()))
+                {
+                    return require_string(orderbook_yaml, Some("network"), None)
+                        .or_else(|_| Ok(orderbook_key.to_string()));
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for orderbook: {orderbook_key}"
+        )))
+    }
 }
 
 impl YamlParsableHash for Orderbook {
@@ -431,5 +452,36 @@ orderbooks:
             error,
             YamlError::KeyShadowing("DuplicateOrderbook".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_orderbook_from_yaml_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+"#;
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
     }
 }

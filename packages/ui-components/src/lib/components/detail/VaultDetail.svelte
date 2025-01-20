@@ -19,6 +19,7 @@
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import type { AppStoresInterface } from '../../types/appStores';
 
 	export let id: string;
 	export let network: string;
@@ -29,6 +30,8 @@
 	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
 		undefined;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
+	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
@@ -39,6 +42,11 @@
 		},
 		enabled: !!subgraphUrl
 	});
+
+	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
+		activeNetworkRef.set(subgraphName);
+		activeOrderbookRef.set(subgraphName);
+	};
 
 	const interval = setInterval(async () => {
 		// This invalidate function invalidates
@@ -129,7 +137,10 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 								color={order.active ? 'green' : 'yellow'}
 								data-order={order.id}
 								data-testid={'vaultDetailOrderAsInputOrder' + order.id}
-								on:click={() => goto(`/orders/${order.id}`)}
+								on:click={() => {
+									updateActiveNetworkAndOrderbook(order.subgraphName);
+									goto(`/orders/${order.id}`);
+								}}
 							>
 								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
 							</Button>
@@ -152,7 +163,10 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 								color={order.active ? 'green' : 'yellow'}
 								data-order={order.id}
 								data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
-								on:click={() => goto(`/orders/${order.id}`)}
+								on:click={() => {
+									updateActiveNetworkAndOrderbook(order.subgraphName);
+									goto(`/orders/${order.id}`);
+								}}
 							>
 								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
 							</Button>

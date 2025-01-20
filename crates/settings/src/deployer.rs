@@ -44,6 +44,27 @@ impl Deployer {
     pub fn validate_address(value: &str) -> Result<Address, ParseDeployerConfigSourceError> {
         Address::from_str(value).map_err(ParseDeployerConfigSourceError::AddressParseError)
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployer_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                if let Some(deployer_yaml) =
+                    deployers_hash.get(&StrictYaml::String(deployer_key.to_string()))
+                {
+                    return require_string(deployer_yaml, Some("network"), None)
+                        .or_else(|_| Ok(deployer_key.to_string()));
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for deployer: {deployer_key}"
+        )))
+    }
 }
 
 #[cfg(target_family = "wasm")]
@@ -280,5 +301,36 @@ deployers:
             error,
             YamlError::KeyShadowing("DuplicateDeployer".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_deployer_from_yaml_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let documents = vec![get_document(yaml)];
+        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+"#;
+        let documents = vec![get_document(yaml)];
+        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
     }
 }
