@@ -1,7 +1,7 @@
 <script lang="ts">
   import { debugOrderQuote } from '$lib/queries/orderQuote';
   import { queryClient } from '$lib/queries/queryClient';
-  import type { Order } from '@rainlanguage/orderbook/js_api';
+  import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
   import { createQuery } from '@tanstack/svelte-query';
   import { Alert, Modal } from 'flowbite-svelte';
   import { type Hex } from 'viem';
@@ -10,7 +10,7 @@
   import { fade } from 'svelte/transition';
 
   export let open: boolean;
-  export let order: Order;
+  export let order: OrderSubgraph;
   export let inputIOIndex: number;
   export let outputIOIndex: number;
   export let pair: string;
