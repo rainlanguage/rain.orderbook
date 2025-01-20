@@ -46,7 +46,8 @@ impl Orderbook {
                 if let Some(orderbook_yaml) =
                     orderbooks_hash.get(&StrictYaml::String(orderbook_key.to_string()))
                 {
-                    return require_string(orderbook_yaml, Some("network"), None);
+                    return require_string(orderbook_yaml, Some("network"), None)
+                        .or_else(|_| Ok(orderbook_key.to_string()));
                 }
             }
         }
@@ -451,5 +452,36 @@ orderbooks:
             error,
             YamlError::KeyShadowing("DuplicateOrderbook".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_orderbook_from_yaml_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+"#;
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
     }
 }
