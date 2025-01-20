@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
 import { type Config } from '@wagmi/core';
-import { mockWeb3Config } from '../mockWeb3Config';
+import { mockWeb3Config } from './mockWeb3Config';
 
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
