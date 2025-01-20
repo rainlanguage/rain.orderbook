@@ -241,8 +241,8 @@
 				data: calldata as `0x${string}`
 			});
 		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
+			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -410,21 +410,24 @@
 						{/if}
 					</div>
 				{/if}
-				{#if $wagmiConfig}
-					{#if $wagmiConnected}
-						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+				<div class="flex flex-col gap-2">
+					{#if $wagmiConfig}
+						{#if $wagmiConnected}
+							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+						{:else}
+							<slot name="wallet-connect" />
+						{/if}
 					{:else}
-						<slot name="wallet-connect" />
+						<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 					{/if}
-				{:else}
-					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-				{/if}
-				{#if addOrderError}
-					<p class="text-red-500">{addOrderError}</p>
-				{/if}
-				{#if addOrderErrorDetails}
-					<p class="text-red-500">{addOrderErrorDetails}</p>
-				{/if}
+					<div class="flex flex-col">
+						{#if addOrderError}
+							<p class="text-red-500">{addOrderError}</p>
+						{/if}
+					{#if addOrderErrorDetails}
+						<p class="text-red-500">{addOrderErrorDetails}</p>
+					{/if}
+				</div>
 			{/if}
 		</div>
 	{/if}
