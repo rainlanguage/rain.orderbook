@@ -3,6 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => ({
+	assetsInclude: ['**/*.rain'],
 	plugins: [sveltekit()],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []
@@ -11,7 +12,7 @@ export default defineConfig(({ mode }) => ({
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
 	},
-	
+
 	test: {
 		// Jest like globals
 		includeSource: ['src/**/*.{js,ts}'],

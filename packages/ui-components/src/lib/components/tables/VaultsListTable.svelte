@@ -10,7 +10,7 @@
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type ConfigSource, type OrderbookConfigSource } from '../../typeshare/config';
-	import { type Vault } from '../../typeshare/subgraphTypes';
+	import { type Vault } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
@@ -95,7 +95,7 @@
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
-			goto(`/vaults/${e.detail.item.vault.id}`);
+			goto(`/vaults/${e.detail.item.subgraphName}-${e.detail.item.vault.id}`);
 		}}
 	>
 		<svelte:fragment slot="title">
@@ -138,7 +138,6 @@
 			<TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4">Input For</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4">Output For</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4"></TableHeadCell>
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>

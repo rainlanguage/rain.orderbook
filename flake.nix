@@ -63,7 +63,7 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=tauri-app/src/lib/typeshare/appSettings.ts;
               
@@ -96,7 +96,7 @@
               cargo install --git https://github.com/tomjw64/typeshare --rev 556b44aafd5304eedf17206800f69834e3820b7c
               export PATH=$PATH:$CARGO_HOME/bin
 
-              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs crates/subgraph/src/vol.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/subgraphTypes.ts;
+              typeshare crates/subgraph/src/types/common.rs crates/subgraph/src/types/order.rs crates/subgraph/src/types/vault.rs crates/subgraph/src/types/order_trade.rs crates/common/src/types/order_detail_extended.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/subgraphTypes.ts;
 
               typeshare crates/settings/src/parse.rs --lang=typescript --output-file=packages/ui-components/src/lib/typeshare/appSettings.ts;
               
@@ -142,6 +142,7 @@
               echo VITE_SENTRY_FORCE_DISABLED=false >> .env
               echo VITE_SENTRY_DSN=''${SENTRY_DSN} >> .env
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
+              echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
             additionalBuildInputs = [
               pkgs.sentry-cli
@@ -156,8 +157,8 @@
               ENV_EXAMPLE_FILE=".env.example"
               cp $ENV_EXAMPLE_FILE $ENV_FILE  
 
-              # Add walletconnect project id from github action env to .env file
-              echo VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID} >> $ENV_FILE
+              # Update the existing WALLETCONNECT_PROJECT_ID line
+              sed -i "s/^VITE_WALLETCONNECT_PROJECT_ID=.*/VITE_WALLETCONNECT_PROJECT_ID=''${WALLETCONNECT_PROJECT_ID}/" $ENV_FILE
             '';
           };
 

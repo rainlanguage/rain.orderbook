@@ -1,7 +1,6 @@
 <script lang="ts">
-  import IconWarning from '$lib/components/IconWarning.svelte';
   import { Alert } from 'flowbite-svelte';
-  import ButtonLoading from './ButtonLoading.svelte';
+  import { ButtonLoading, IconWarning } from '@rainlanguage/ui-components';
   import { Hash, HashType } from '@rainlanguage/ui-components';
   import {
     walletconnectConnect,

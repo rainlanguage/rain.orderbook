@@ -101,7 +101,7 @@
 	on:clickRow={(e) => {
 		activeNetworkRef.set(e.detail.item.subgraphName);
 		activeOrderbookRef.set(e.detail.item.subgraphName);
-		goto(`/orders/${e.detail.item.order.id}`);
+		goto(`/orders/${e.detail.item.subgraphName}-${e.detail.item.order.id}`);
 	}}
 >
 	<svelte:fragment slot="title">
@@ -122,7 +122,6 @@
 			>Output Token(s)</TableHeadCell
 		>
 		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
-		<TableHeadCell padding="px-4 py-4"></TableHeadCell>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
