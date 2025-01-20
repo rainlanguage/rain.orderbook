@@ -15,7 +15,6 @@ vi.mock('$lib/stores/wagmi', async (importOriginal) => {
 	};
 });
 
-
 describe('WalletConnect component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

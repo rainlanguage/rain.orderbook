@@ -14,8 +14,6 @@ export interface LayoutData {
 }
 
 export const load = async () => {
-
-
 	const response = await fetch(
 		'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
 	);
@@ -60,8 +58,6 @@ export const load = async () => {
 					)
 	);
 
-
-
 	return {
 		stores: {
 			settings,
@@ -77,7 +73,7 @@ export const load = async () => {
 			activeOrderbook,
 			subgraphUrl,
 			activeNetworkOrderbooks
-		},
+		}
 	};
 };
 

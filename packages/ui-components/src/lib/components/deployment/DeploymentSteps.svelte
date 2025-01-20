@@ -216,6 +216,7 @@
 		try {
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
+			if (!address) return;
 			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
 			for (const approval of approvals) {
 				await sendTransaction($wagmiConfig, {
@@ -240,13 +241,12 @@
 		try {
 			if (!gui) return;
 
-			// @ts-expect-error window.ethereum is not typed
 			await window.ethereum?.request({ method: 'eth_requestAccounts' });
 			const walletClient = createWalletClient({
 				chain: getChainById(
 					gui.getCurrentDeployment().deployment.order.network['chain-id'] as number
 				),
-				// @ts-expect-error window.ethereum is not typed
+
 				transport: custom(window.ethereum!)
 			});
 			const [account] = await walletClient.getAddresses();
