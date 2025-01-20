@@ -49,7 +49,13 @@ mod tests {
         assert!(result.is_ok(), "Failed to fetch balances: {:?}", result);
 
         if let Ok(combined_balances) = result {
+            // Ensure there are balances in the result
             assert!(!combined_balances.is_empty(), "Combined balances should not be empty.");
+
+            for balance in combined_balances {
+                let expected_balance = BigInt("0".into());
+                assert_eq!(balance, expected_balance, "Balance should be zero.");
+            }
         }
     }
 }
