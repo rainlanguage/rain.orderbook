@@ -9,7 +9,6 @@ const mockConnectedWritable = writable<boolean>(false);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockAppKitModalWritable = writable<AppKit | null>(null);
 
-
 export const mockSignerAddressStore = {
 	subscribe: mockSignerAddressWritable.subscribe,
 	set: mockSignerAddressWritable.set,
@@ -37,5 +36,5 @@ export const mockWagmiConfigStore = {
 export const mockAppKitModalStore = {
 	subscribe: mockAppKitModalWritable.subscribe,
 	set: mockAppKitModalWritable.set,
-	mockSetSubscribeValue: (value: Config): void => mockAppKitModalWritable.set(value)
+	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
 };
