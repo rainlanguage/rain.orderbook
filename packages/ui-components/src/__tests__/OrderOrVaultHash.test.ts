@@ -26,7 +26,7 @@ describe('OrderOrVaultHash', () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				type: 'orders',
-				order: mockOrder,
+				orderOrVault: mockOrder,
 				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}
@@ -42,7 +42,7 @@ describe('OrderOrVaultHash', () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				type: 'orders',
-				order: mockInactiveOrder,
+				orderOrVault: mockInactiveOrder,
 				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}
@@ -56,7 +56,7 @@ describe('OrderOrVaultHash', () => {
 		const { getByTestId } = render(OrderOrVaultHash, {
 			props: {
 				type: 'orders',
-				order: mockOrder,
+				orderOrVault: mockOrder,
 				network: mockSubgraphName,
 				updateActiveNetworkAndOrderbook: mockUpdateFn
 			}

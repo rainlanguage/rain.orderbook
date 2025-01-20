@@ -168,7 +168,7 @@
 						{#each item.vault.ordersAsInput.slice(0, 3) as order}
 							<OrderOrVaultHash
 								type="orders"
-								{order}
+								orderOrVault={order}
 								network={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}
 							/>
@@ -183,7 +183,7 @@
 						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
 							<OrderOrVaultHash
 								type="orders"
-								{order}
+								orderOrVault={order}
 								network={item.subgraphName}
 								{updateActiveNetworkAndOrderbook}
 							/>

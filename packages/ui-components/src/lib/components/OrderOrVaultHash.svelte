@@ -2,25 +2,30 @@
 	import { Button } from 'flowbite-svelte';
 	import Hash, { HashType } from './Hash.svelte';
 	import { goto } from '$app/navigation';
-	import type { Order, OrderAsIO, Vault } from '@rainlanguage/orderbook/js_api';
+	import type { OrderAsIO, OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
 
-	export let order: Order | OrderAsIO | undefined = undefined;
-	export let vault: Vault | undefined = undefined;
+	type OrderOrVault = OrderSubgraph | OrderAsIO | Vault;
+
+	export let orderOrVault: OrderOrVault;
 	export let type: 'orders' | 'vaults';
 	export let network: string;
 	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 
-	$: id = order?.id || vault?.id;
-	$: hash = order?.orderHash || vault?.id || '';
+	let hash;
+
+	$: isOrder = 'orderHash' in (orderOrVault || {});
+	$: slug = isOrder ? (orderOrVault as OrderSubgraph).id : (orderOrVault as Vault)?.id;
+	$: hash = isOrder ? (orderOrVault as OrderSubgraph).id : (orderOrVault as Vault)?.id || '';
+	$: isActive = isOrder ? (orderOrVault as OrderAsIO).active : false;
 </script>
 
 <Button
 	class="mr-1 mt-1 px-2 py-1 text-sm"
-	color={order?.active ? 'green' : 'yellow'}
+	color={isActive ? 'green' : 'yellow'}
 	data-testid="vault-order-input"
-	data-id={id}
+	data-id={slug}
 	on:click={() => {
 		updateActiveNetworkAndOrderbook(network);
-		goto(`/${type}/${network}-${id}`);
+		goto(`/${type}/${network}-${slug}`);
 	}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
 >
