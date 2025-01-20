@@ -9,10 +9,9 @@ import {
   loading,
   defaultConfig,
   init,
-  WC,
   disconnectWagmi
 } from './wagmi';
-import { createConfig, disconnect, getAccount, watchAccount } from '@wagmi/core';
+import { createConfig, disconnect, getAccount, watchAccount, type Config } from '@wagmi/core';
 import { mainnet } from '@wagmi/core/chains';
 
 // Mock external dependencies
@@ -51,8 +50,8 @@ describe('wagmi store', () => {
 
   describe('defaultConfig', () => {
     it('should initialize with correct default values', () => {
-      const mockConfig = { chains: [mainnet] };
-      vi.mocked(createConfig).mockReturnValue(mockConfig);
+      const mockConfig = { chains: [mainnet], subscribe: vi.fn() };
+      vi.mocked(createConfig).mockReturnValue(mockConfig as unknown as Config);
 
       const result = defaultConfig({
         appName: 'Test App',
