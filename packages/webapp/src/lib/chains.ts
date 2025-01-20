@@ -9,4 +9,4 @@ export const SupportedChains = {
 	linea,
 	bsc
 } as const;
-export const SupportedChainsList = [mainnet, polygon, arbitrum, base, flare, linea, bsc] as const;
+export const supportedChainsList = [mainnet, polygon, arbitrum, base, flare, linea, bsc] as const;

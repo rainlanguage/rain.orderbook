@@ -65,8 +65,6 @@
 	export let wagmiConfig: Writable<Config> | null = null;
 	export let wagmiConnected: Writable<boolean> | null = null;
 
-	$: console.log($wagmiConnected);
-
 	async function loadStrategyFromUrl() {
 		isLoading = true;
 		error = null;
@@ -217,22 +215,14 @@
 	async function handleAddOrderWagmi() {
 		try {
 			if (!gui || !$wagmiConfig) return;
-
-			console.log($wagmiConfig);
 			const { address } = getAccount($wagmiConfig);
-
-			console.log(address);
-
 			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
-			console.log(approvals);
-
 			for (const approval of approvals) {
 				await sendTransaction($wagmiConfig, {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`
 				});
 			}
-
 			const calldata: DepositAndAddOrderCalldataResult =
 				await gui.generateDepositAndAddOrderCalldatas();
 			await sendTransaction($wagmiConfig, {
@@ -279,8 +269,8 @@
 				data: calldata as `0x${string}`
 			});
 		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
+			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -424,9 +414,10 @@
 						{#if addOrderError}
 							<p class="text-red-500">{addOrderError}</p>
 						{/if}
-					{#if addOrderErrorDetails}
-						<p class="text-red-500">{addOrderErrorDetails}</p>
-					{/if}
+						{#if addOrderErrorDetails}
+							<p class="text-red-500">{addOrderErrorDetails}</p>
+						{/if}
+					</div>
 				</div>
 			{/if}
 		</div>

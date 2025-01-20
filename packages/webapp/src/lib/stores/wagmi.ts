@@ -13,7 +13,7 @@ import {
 import { type Chain } from '@wagmi/core/chains';
 import { AppKit, createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { SupportedChainsList } from '$lib/chains';
+import { supportedChainsList } from '$lib/chains';
 
 export const connected = writable<boolean>(false);
 export const wagmiLoaded = writable<boolean>(false);
@@ -61,9 +61,8 @@ export const defaultConfig = ({
 				{}
 			)
 		: {};
-
 	const config = createConfig({
-		chains: SupportedChainsList,
+		chains: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
 		transports,
 		connectors: get(configuredConnectors)
 	});
@@ -86,7 +85,7 @@ export const defaultConfig = ({
 
 	const modal = createAppKit({
 		adapters: [wagmiAdapter],
-		networks: SupportedChainsList,
+		networks: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
 		metadata,
 		projectId,
 		features: {
@@ -111,7 +110,7 @@ export const init = async () => {
 			signerAddress.set(account.address);
 		}
 		loading.set(false);
-	} catch (err) {
+	} catch {
 		loading.set(false);
 	}
 };
@@ -147,7 +146,7 @@ export const WC = async () => {
 		await waitForAccount();
 
 		return { success: true };
-	} catch (err) {
+	} catch {
 		return { success: false };
 	}
 };
@@ -174,8 +173,6 @@ const waitForAccount = () => {
 					// Gottem, resolve the promise w/user's selected & connected Acc.
 					resolve(data);
 					unsub();
-				} else {
-					console.warn('🔃 - No Account Connected Yet...');
 				}
 			}
 		});

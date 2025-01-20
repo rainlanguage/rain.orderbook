@@ -4,19 +4,11 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
-	import { SupportedChainsList } from '$lib/chains';
-	import {
-		connected,
-		disconnectWagmi,
-		signerAddress,
-		wagmiConfig,
-		configuredConnectors,
-		loading,
-		chainId,
-		appKitModal,
-		defaultConfig,
-		wagmiLoaded
-	} from '$lib/stores/wagmi';
+	import { supportedChainsList } from '$lib/chains';
+	import { defaultConfig } from '$lib/stores/wagmi';
+	import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
+	import { injected } from '@wagmi/connectors';
+	import { type Chain } from '@wagmi/core/chains';
 
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -28,13 +20,13 @@
 
 	const initWallet = async () => {
 		const erckit = defaultConfig({
-			chains: SupportedChainsList,
-			projectId: '10e64d97c18d5dbeecfb11d7834e2682'
+			appName: 'Rain Language',
+			connectors: [injected()],
+			chains: supportedChainsList as unknown as Chain[],
+			projectId: PUBLIC_WALLETCONNECT_ID
 		});
 		await erckit.init();
 	};
-
-	$: console.log('wagmiconfig', $wagmiConfig);
 
 	$: if (browser && window.navigator) {
 		initWallet();
