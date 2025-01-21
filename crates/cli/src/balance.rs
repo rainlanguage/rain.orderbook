@@ -38,7 +38,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_balances_single_order() {
         let subgraph_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-10-25-af6a/gn";
-        let subgraph_url = Url::parse(&subgraph_url).expect("Invalid URL format.");
+        let subgraph_url = Url::parse(subgraph_url).expect("Invalid URL format.");
 
         let subgraph_client = OrderbookSubgraphClient::new(subgraph_url);
 
