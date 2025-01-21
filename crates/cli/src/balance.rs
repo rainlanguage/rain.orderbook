@@ -39,10 +39,10 @@ mod tests {
     async fn test_get_balances_single_order() {
         let default_url = "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-12-13-7f22/gn";
 
-        let subgraph_url = std::env::var("ORDERBOOK_SUBGRAPH_URL")
-            .expect("Environment variable ORDERBOOK_SUBGRAPH_URL must be set.");
+        let subgraph_url = std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL")
+            .expect("Environment variable ORDERBOOK_MAINNET_SUBGRAPH_URL must be set.");
         let subgraph_url =
-            std::env::var("ORDERBOOK_SUBGRAPH_URL").unwrap_or_else(|_| default_url.to_string());
+            std::env::var("ORDERBOOK_MAINNET_SUBGRAPH_URL").unwrap_or_else(|_| default_url.to_string());
 
         let subgraph_url = Url::parse(&subgraph_url).expect("Invalid URL format.");
 
