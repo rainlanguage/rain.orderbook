@@ -60,7 +60,7 @@
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
-	const initializingFields = writable(false);
+
 	async function initialize() {
 		try {
 			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
@@ -175,9 +175,6 @@
 	}
 
 	async function updateFields() {
-		console.log('Starting updateFields');
-		$initializingFields = true;
-		console.log('Set to true:', $initializingFields);
 		try {
 			error = null;
 			errorDetails = null;
@@ -189,13 +186,8 @@
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		} finally {
-			$initializingFields = false;
-			console.log('Set to false:', $initializingFields);
 		}
 	}
-
-	$: console.log($initializingFields);
 
 	export function getChainById(chainId: number): Chain {
 		const chain = chains[chainId];
@@ -277,12 +269,7 @@
 					{/if}
 				{/each}
 			</div>
-				{#if $initializingFields}
-					<div class="flex flex-col items-center justify-center gap-4 p-8">
-						<h1>Loading...</h1>
-						<Spinner />
-					</div>
-				{:else if gui}
+				{#if gui}
 					<div class="flex max-w-2xl flex-col gap-24" in:fade>
 						{#if guiDetails}
 							<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
