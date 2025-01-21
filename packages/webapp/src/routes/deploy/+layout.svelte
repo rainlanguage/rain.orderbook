@@ -21,6 +21,7 @@
 			isLoading = false;
 			_strategyUrl = selectedStrategy;
 			goto(`/deploy/${_strategyName}`);
+			return () => clearTimeout(debounceTimer);
 		}, 500);
 	}
 </script>

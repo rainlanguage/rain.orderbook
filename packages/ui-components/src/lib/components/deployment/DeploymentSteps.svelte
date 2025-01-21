@@ -44,11 +44,7 @@
 		[linea.id]: linea
 	};
 
-	export let dotrain: string = '';
-
-	$: console.log(dotrain);
-
-	$: console.log('selected', selectedDeployment);
+	export let dotrain;
 
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
@@ -61,7 +57,6 @@
 	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
-	let dropdownOpen = false;
 
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
@@ -83,16 +78,20 @@
 	}
 
 	$: if (dotrain) {
+		initializeAsync();
+	}
+
+	async function initializeAsync() {
 		isLoading = true;
 		error = null;
 		errorDetails = null;
 		gui = null;
-		initialize();
+		await initialize();
 		isLoading = false;
 	}
 
-	let selectedDeployment: string | undefined = undefined;
 	async function handleDeploymentChange(deployment: string) {
+		console.log('🔄 handleDeploymentChange started', { deployment, dotrain });
 		if (!deployment || !dotrain) return;
 
 		isLoading = true;
@@ -101,30 +100,36 @@
 		gui = null;
 
 		try {
+			console.log('📥 Attempting to choose deployment...');
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			console.log('✅ GUI created successfully', { gui });
+
 			if (gui) {
 				try {
-					selectTokens = gui.getSelectTokens();
-					getGuiDetails();
+					console.log('📥 Getting GUI details...');
+					await getGuiDetails();
+					console.log('✅ GUI details retrieved');
+
+					console.log('📥 Getting select tokens...');
+					selectTokens = await gui.getSelectTokens();
+					console.log('✅ Select tokens retrieved', { selectTokens });
+					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
-					errorDetails = e instanceof Error ? e.message : 'Unknown error';
+					return errorDetails = e instanceof Error ? e.message : 'Unknown error';
 				}
 			}
 		} catch (e) {
+			console.error('❌ Error in handleDeploymentChange:', e);
 			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			return errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		} finally {
+			console.log('🏁 handleDeploymentChange completed', { isLoading, error, errorDetails });
 			isLoading = false;
 		}
 	}
 
-	$: if (selectedDeployment && dotrain) {
-		dropdownOpen = false;
-		handleDeploymentChange(selectedDeployment);
-	}
-
-	function getGuiDetails() {
+	async function getGuiDetails() {
 		if (!gui) return;
 		try {
 			guiDetails = gui.getGuiDetails();
@@ -180,12 +185,30 @@
 	}
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
+		console.log('🔄 Reactive statement triggered', { selectTokens, allTokensSelected });
+		updateFields();
+	}
+
+	function updateFields() {
+		console.log('🔄 updateFields started', { isLoading, selectTokens, allTokensSelected });
+		// Guard against recursive updates
+		if (isLoading) {
+			console.log('⚠️ updateFields skipped due to isLoading');
+			return;
+		}
+
 		error = null;
+		console.log('📥 Initializing vault ID arrays...');
 		initializeVaultIdArrays();
+		console.log('📥 Getting deposit fields...');
 		getAllDepositFields();
+		console.log('📥 Getting field definitions...');
 		getAllFieldDefinitions();
+		console.log('📥 Getting token inputs...');
 		getAllTokenInputs();
+		console.log('📥 Getting token outputs...');
 		getAllTokenOutputs();
+		console.log('✅ updateFields completed');
 	}
 
 	export function getChainById(chainId: number): Chain {
@@ -253,9 +276,8 @@
 	{#if dotrain}
 		<DeploymentSectionHeader title="Select Deployment" />
 
-
 			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={() => (selectedDeployment = deployment)}>Load {label}</Button>
+				<Button on:click={handleDeploymentChange(deployment)}>Load {label}</Button>
 			{/each}
 
 		{#if gui}
