@@ -604,7 +604,9 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('handles initialization errors', async () => {
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockRejectedValue(new Error('Failed to initialize'));
+		(DotrainOrderGui.getDeploymentKeys as Mock).mockRejectedValue(
+			new Error('Failed to initialize')
+		);
 
 		render(DeploymentSteps, { props: { dotrain } });
 
