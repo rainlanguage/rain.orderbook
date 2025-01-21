@@ -33,9 +33,7 @@
 			try {
 				value = fromHex(valuePrefixed as `0x${string}`, 'bigint');
 				// eslint-disable-next-line no-empty
-			} catch (e) {
-				console.error(e);
-			}
+			} catch (e) {}
 		}
 	}
 </script>
