@@ -47,7 +47,6 @@
 
 	export let dotrain;
 
-
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let selectTokens: string[] | null = null;
@@ -169,9 +168,7 @@
 	}
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
-
 		updateFields();
-
 	}
 
 	async function updateFields() {
@@ -242,113 +239,107 @@
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
-
-
 </script>
 
 <div>
+	{#if error}
+		<p class="text-red-500">{error}</p>
+	{/if}
+	{#if errorDetails}
+		<p class="text-red-500">{errorDetails}</p>
+	{/if}
+	{#if dotrain}
+		{$initializingFields}
+		<DeploymentSectionHeader title="Select Deployment" />
 
-		{#if error}
-			<p class="text-red-500">{error}</p>
-		{/if}
-		{#if errorDetails}
-			<p class="text-red-500">{errorDetails}</p>
-		{/if}
-		{#if dotrain}
-			{$initializingFields}
-			<DeploymentSectionHeader title="Select Deployment" />
-
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-				{#each Object.entries(availableDeployments) as [deployment, { label }]}
-					<Button on:click={handleDeploymentChange(deployment)}>{label}</Button>
-					{#if $initializingFields === true}
-						<div class="flex flex-col items-center justify-center gap-4 p-8">
-							<h1>Loading...</h1>
-							<Spinner />
-						</div>
-					{/if}
-				{/each}
-			</div>
-				{#if gui}
-					<div class="flex max-w-2xl flex-col gap-24" in:fade>
-						{#if guiDetails}
-							<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-								<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
-									{guiDetails.name}
-								</h1>
-								<p class="text-xl text-gray-600 dark:text-gray-400">
-									{guiDetails.description}
-								</p>
-							</div>
-						{/if}
-
-						{#if selectTokens && selectTokens.length > 0}
-							<div class="flex w-full flex-col gap-6">
-								<DeploymentSectionHeader
-									title="Select Tokens"
-									description="Select the tokens that you want to use in your order."
-								/>
-								<div class="flex w-full flex-col gap-4">
-									{#each selectTokens as tokenKey}
-										<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
-									{/each}
-								</div>
-							</div>
-						{/if}
-
-						{#if allTokensSelected || selectTokens?.length === 0}
-							{#if allFieldDefinitions.length > 0}
-								<div class="flex w-full flex-col items-center gap-24">
-									{#each allFieldDefinitions as fieldDefinition}
-										<FieldDefinitionInput {fieldDefinition} {gui} />
-									{/each}
-								</div>
-							{/if}
-
-							{#if allDepositFields.length > 0}
-								<div class="flex w-full flex-col items-center gap-24">
-									{#each allDepositFields as deposit}
-										<DepositInput bind:deposit bind:gui />
-									{/each}
-								</div>
-							{/if}
-							{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-								<div class="flex w-full flex-col gap-6">
-									<DeploymentSectionHeader
-										title={'Input/Output Vaults'}
-										description={'The vault addresses for the input and output tokens.'}
-									/>
-									{#if allTokenInputs.length > 0}
-										{#each allTokenInputs as input, i}
-											<TokenInputOrOutput
-												{i}
-												label="Input"
-												vault={input}
-												vaultIds={inputVaultIds}
-												{gui}
-											/>
-										{/each}
-									{/if}
-
-									{#if allTokenOutputs.length > 0}
-										{#each allTokenOutputs as output, i}
-											<TokenInputOrOutput
-												{i}
-												label="Output"
-												vault={output}
-												vaultIds={outputVaultIds}
-												{gui}
-											/>
-										{/each}
-									{/if}
-								</div>
-							{/if}
-							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-						{/if}
-
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+			{#each Object.entries(availableDeployments) as [deployment, { label }]}
+				<Button on:click={handleDeploymentChange(deployment)}>{label}</Button>
+				{#if $initializingFields === true}
+					<div class="flex flex-col items-center justify-center gap-4 p-8">
+						<h1>Loading...</h1>
+						<Spinner />
+					</div>
+				{/if}
+			{/each}
+		</div>
+		{#if gui}
+			<div class="flex max-w-2xl flex-col gap-24" in:fade>
+				{#if guiDetails}
+					<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
+						<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+							{guiDetails.name}
+						</h1>
+						<p class="text-xl text-gray-600 dark:text-gray-400">
+							{guiDetails.description}
+						</p>
 					</div>
 				{/if}
 
-		{/if}
+				{#if selectTokens && selectTokens.length > 0}
+					<div class="flex w-full flex-col gap-6">
+						<DeploymentSectionHeader
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
+						/>
+						<div class="flex w-full flex-col gap-4">
+							{#each selectTokens as tokenKey}
+								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
+							{/each}
+						</div>
+					</div>
+				{/if}
 
+				{#if allTokensSelected || selectTokens?.length === 0}
+					{#if allFieldDefinitions.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allFieldDefinitions as fieldDefinition}
+								<FieldDefinitionInput {fieldDefinition} {gui} />
+							{/each}
+						</div>
+					{/if}
+
+					{#if allDepositFields.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allDepositFields as deposit}
+								<DepositInput bind:deposit bind:gui />
+							{/each}
+						</div>
+					{/if}
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+						<div class="flex w-full flex-col gap-6">
+							<DeploymentSectionHeader
+								title={'Input/Output Vaults'}
+								description={'The vault addresses for the input and output tokens.'}
+							/>
+							{#if allTokenInputs.length > 0}
+								{#each allTokenInputs as input, i}
+									<TokenInputOrOutput
+										{i}
+										label="Input"
+										vault={input}
+										vaultIds={inputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+
+							{#if allTokenOutputs.length > 0}
+								{#each allTokenOutputs as output, i}
+									<TokenInputOrOutput
+										{i}
+										label="Output"
+										vault={output}
+										vaultIds={outputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+						</div>
+					{/if}
+					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+				{/if}
+			</div>
+		{/if}
+	{/if}
 </div>
