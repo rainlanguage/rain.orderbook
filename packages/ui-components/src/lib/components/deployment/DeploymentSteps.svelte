@@ -15,7 +15,7 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Spinner, Dropdown, DropdownItem } from 'flowbite-svelte';
+	import { Button, Input, Spinner, Dropdown, DropdownItem, Radio } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
@@ -44,6 +44,12 @@
 		[linea.id]: linea
 	};
 
+	export let dotrain: string = '';
+
+	$: console.log(dotrain);
+
+	$: console.log('selected', selectedDeployment);
+
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -55,7 +61,6 @@
 	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
-	export let dotrain: string = '';
 	let dropdownOpen = false;
 
 	let gui: DotrainOrderGui | null = null;
@@ -88,28 +93,35 @@
 
 	let selectedDeployment: string | undefined = undefined;
 	async function handleDeploymentChange(deployment: string) {
+		if (!deployment || !dotrain) return;
+
 		isLoading = true;
+		error = null;
+		errorDetails = null;
 		gui = null;
-		if (!deployment) return;
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-			try {
-				selectTokens = gui.getSelectTokens();
-				getGuiDetails();
-			} catch (e) {
-				error = DeploymentStepErrors.NO_SELECT_TOKENS;
-				errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			if (gui) {
+				try {
+					selectTokens = gui.getSelectTokens();
+					getGuiDetails();
+				} catch (e) {
+					error = DeploymentStepErrors.NO_SELECT_TOKENS;
+					errorDetails = e instanceof Error ? e.message : 'Unknown error';
+				}
 			}
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		} finally {
+			isLoading = false;
 		}
-		isLoading = false;
 	}
 
-	$: if (selectedDeployment) {
-		handleDeploymentChange(selectedDeployment as string);
+	$: if (selectedDeployment && dotrain) {
+		dropdownOpen = false;
+		handleDeploymentChange(selectedDeployment);
 	}
 
 	function getGuiDetails() {
@@ -240,27 +252,12 @@
 	{/if}
 	{#if dotrain}
 		<DeploymentSectionHeader title="Select Deployment" />
-		<Button size="lg"
-			>Select a deployment<ChevronDownOutline
-				class="ms-2 flex h-3 w-3  text-white dark:text-white"
-			/></Button
-		>
-		<Dropdown class="w-full" bind:open={dropdownOpen}>
-			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<DropdownItem
-					on:click={() => {
-						selectedDeployment = deployment;
-						dropdownOpen = false;
-					}}
-				>
-					{label || deployment}
-				</DropdownItem>
-			{/each}
-		</Dropdown>
 
-		{#if isLoading}
-			<Spinner />
-		{/if}
+
+			{#each Object.entries(availableDeployments) as [deployment, { label }]}
+				<Button on:click={() => (selectedDeployment = deployment)}>Load {label}</Button>
+			{/each}
+
 		{#if gui}
 			<div class="flex max-w-2xl flex-col gap-24">
 				{#if guiDetails}

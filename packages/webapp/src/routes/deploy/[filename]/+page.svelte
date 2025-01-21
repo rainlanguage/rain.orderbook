@@ -5,6 +5,7 @@
 	import { fade } from 'svelte/transition';
 
 	const { dotrain, strategyName, errorDetails, error } = $page.data;
+	let _dotrain = dotrain;
 </script>
 
 {#if dotrain}
@@ -14,7 +15,7 @@
 			<p>Strategy loaded: {strategyName}</p>
 		</div>
 
-		<DeploymentSteps {dotrain} />
+		<DeploymentSteps dotrain={_dotrain} />
 	</div>
 {:else}
 	<div>
