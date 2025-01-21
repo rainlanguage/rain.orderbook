@@ -15,10 +15,10 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Spinner, Dropdown, DropdownItem, Radio } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
-	import { ChevronDownOutline } from 'flowbite-svelte-icons';
+
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -191,7 +191,6 @@
 
 	function updateFields() {
 		console.log('🔄 updateFields started', { isLoading, selectTokens, allTokensSelected });
-		// Guard against recursive updates
 		if (isLoading) {
 			console.log('⚠️ updateFields skipped due to isLoading');
 			return;
