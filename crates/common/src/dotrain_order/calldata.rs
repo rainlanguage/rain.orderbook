@@ -26,10 +26,8 @@ impl DotrainOrder {
     fn get_deployment(
         &self,
         deployment_name: &str,
-    ) -> Result<Arc<Deployment>, DotrainOrderCalldataError> {
-        self.config.deployments.get(deployment_name).cloned().ok_or(
-            DotrainOrderCalldataError::DeploymentNotFound(deployment_name.to_string()),
-        )
+    ) -> Result<Deployment, DotrainOrderCalldataError> {
+        Ok(self.dotrain_yaml.get_deployment(deployment_name)?)
     }
 
     fn get_orderbook(
@@ -47,18 +45,23 @@ impl DotrainOrder {
         &self,
         deployment_name: &str,
         owner: &str,
-        token_deposits: &HashMap<Address, U256>,
+        token_deposits: &HashMap<String, U256>,
     ) -> Result<Vec<ApprovalCalldata>, DotrainOrderCalldataError> {
         let deployment = self.get_deployment(deployment_name)?;
         let orderbook = self.get_orderbook(deployment_name)?;
 
         let mut calldatas = Vec::new();
 
-        for output in &deployment.order.outputs {
-            if let Some(deposit_amount) = token_deposits.get(&output.token.address) {
+        for (i, output) in deployment.order.outputs.iter().enumerate() {
+            let output_token = output
+                .token
+                .as_ref()
+                .ok_or_else(|| DotrainOrderCalldataError::OutputTokenNotFound(i.to_string()))?;
+
+            if let Some(deposit_amount) = token_deposits.get(&output_token.key) {
                 let deposit_amount = deposit_amount.to_owned();
                 let deposit_args = DepositArgs {
-                    token: output.token.address,
+                    token: output_token.address,
                     amount: deposit_amount,
                     vault_id: U256::default(),
                 };
@@ -77,7 +80,7 @@ impl DotrainOrder {
                         .get_approve_calldata(transaction_args, allowance)
                         .await?;
                     calldatas.push(ApprovalCalldata {
-                        token: output.token.address,
+                        token: output_token.address,
                         calldata: Bytes::copy_from_slice(&approve_call),
                     });
                 }
@@ -96,14 +99,18 @@ impl DotrainOrder {
         let mut calldatas = Vec::new();
 
         for (i, output) in deployment.order.outputs.iter().enumerate() {
+            let output_token = output
+                .token
+                .as_ref()
+                .ok_or_else(|| DotrainOrderCalldataError::OutputTokenNotFound(i.to_string()))?;
             let vault_id = output
                 .vault_id
                 .ok_or(DotrainOrderCalldataError::VaultIdNotFound(i.to_string()))?;
 
             let token_deposit = token_deposits
-                .get(&(vault_id, output.token.address))
+                .get(&(vault_id, output_token.address))
                 .ok_or(DotrainOrderCalldataError::TokenNotFound(
-                    output.token.address.to_string(),
+                    output_token.address.to_string(),
                 ))?;
 
             if *token_deposit == U256::ZERO {
@@ -111,7 +118,7 @@ impl DotrainOrder {
             }
 
             let calldata = DepositArgs {
-                token: output.token.address,
+                token: output_token.address,
                 amount: token_deposit.to_owned(),
                 vault_id,
             }
@@ -131,17 +138,14 @@ impl DotrainOrder {
         let deployment = self.get_deployment(deployment_name)?;
         let orderbook = self.get_orderbook(deployment_name)?;
 
-        let calldata = AddOrderArgs::new_from_deployment(
-            self.dotrain().to_string(),
-            deployment.as_ref().to_owned(),
-        )
-        .await?
-        .get_add_order_calldata(TransactionArgs {
-            orderbook_address: orderbook.address,
-            rpc_url: orderbook.network.rpc.to_string(),
-            ..Default::default()
-        })
-        .await?;
+        let calldata = AddOrderArgs::new_from_deployment(self.dotrain().to_string(), deployment)
+            .await?
+            .get_add_order_calldata(TransactionArgs {
+                orderbook_address: orderbook.address,
+                rpc_url: orderbook.network.rpc.to_string(),
+                ..Default::default()
+            })
+            .await?;
 
         Ok(Bytes::copy_from_slice(&calldata))
     }
@@ -155,11 +159,14 @@ pub enum DotrainOrderCalldataError {
     #[error("Orderbook not found")]
     OrderbookNotFound,
 
-    #[error("Token not found {0}")]
-    TokenNotFound(String),
+    #[error("Token not found for output index: {0}")]
+    OutputTokenNotFound(String),
 
     #[error("Vault id not found for output index: {0}")]
     VaultIdNotFound(String),
+
+    #[error("Token not found {0}")]
+    TokenNotFound(String),
 
     #[error(transparent)]
     DepositError(#[from] DepositError),
@@ -172,4 +179,7 @@ pub enum DotrainOrderCalldataError {
 
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
+
+    #[error(transparent)]
+    YamlError(#[from] YamlError),
 }

@@ -10,7 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, optional_string, require_hash, require_string, YamlError,
+    YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -42,6 +43,27 @@ impl Deployer {
 
     pub fn validate_address(value: &str) -> Result<Address, ParseDeployerConfigSourceError> {
         Address::from_str(value).map_err(ParseDeployerConfigSourceError::AddressParseError)
+    }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployer_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
+                if let Some(deployer_yaml) =
+                    deployers_hash.get(&StrictYaml::String(deployer_key.to_string()))
+                {
+                    return require_string(deployer_yaml, Some("network"), None)
+                        .or_else(|_| Ok(deployer_key.to_string()));
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for deployer: {deployer_key}"
+        )))
     }
 }
 
@@ -101,6 +123,7 @@ impl DeployerConfigSource {
 impl YamlParsableHash for Deployer {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
@@ -123,7 +146,7 @@ impl YamlParsableHash for Deployer {
                         Some(network_name) => network_name,
                         None => deployer_key.clone(),
                     };
-                    let network = Network::parse_from_yaml(documents.clone(), &network_name)?;
+                    let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
 
                     let deployer = Deployer {
                         document: document.clone(),
@@ -236,7 +259,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let deployers = Deployer::parse_all_from_yaml(documents).unwrap();
+        let deployers = Deployer::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(deployers.len(), 2);
         assert!(deployers.contains_key("DeployerOne"));
@@ -272,11 +295,42 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Deployer::parse_all_from_yaml(documents).unwrap_err();
+        let error = Deployer::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,
             YamlError::KeyShadowing("DuplicateDeployer".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_deployer_from_yaml_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let documents = vec![get_document(yaml)];
+        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+"#;
+        let documents = vec![get_document(yaml)];
+        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
     }
 }

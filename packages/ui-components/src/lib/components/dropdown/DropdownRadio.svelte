@@ -37,7 +37,7 @@
 	<ChevronDownSolid class="mx-2 h-3 w-3 text-black dark:text-white" />
 </Button>
 
-<Dropdown class="w-full min-w-72 py-0" bind:open data-testid="dropdown">
+<Dropdown bind:open data-testid="dropdown">
 	{#each optionsSorted as [ref, option]}
 		<Radio
 			bind:group={value}

@@ -34,24 +34,24 @@ impl Execute for OrderbookAddress {
             }
             None => None,
         };
-        let order = DotrainOrder::new(dotrain, settings).await?;
-        let order_config = order.config().clone();
-        let deployment_ref = order_config
-            .deployments
-            .get(&self.deployment)
-            .ok_or(anyhow!("specified deployment is undefined!"))?;
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
+        let deployment_ref = order.dotrain_yaml().get_deployment(&self.deployment)?;
 
         let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
             v.address
         } else {
             let network_key = &deployment_ref.scenario.deployer.network.key;
-            order_config
-                .orderbooks
-                .iter()
-                .find(|(k, v)| *k == network_key || v.network.key == *network_key)
-                .ok_or(anyhow!("specified orderbook is undefined!"))?
-                .1
-                .address
+            let mut orderbook_address = None;
+            for key in order.orderbook_yaml().get_orderbook_keys()? {
+                let orderbook = order.orderbook_yaml().get_orderbook(&key)?;
+                if key == *network_key || orderbook.network.key == *network_key {
+                    orderbook_address = Some(orderbook.address);
+                }
+            }
+            if orderbook_address.is_none() {
+                return Err(anyhow!("specified orderbook is undefined!"));
+            }
+            orderbook_address.unwrap()
         };
         output(&None, self.encoding.clone(), orderbook_address.as_slice())?;
 
@@ -149,6 +149,8 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key1: 10
 
 orders:
     some-order:
@@ -165,6 +167,7 @@ deployments:
         scenario: some-scenario
         order: some-order
 ---
+#key !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-io

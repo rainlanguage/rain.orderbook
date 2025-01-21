@@ -4,7 +4,7 @@ use rain_orderbook_common::dotrain_order::{DotrainOrder, ScenarioWords};
 #[tauri::command]
 pub async fn get_authoring_meta_v2_for_scenarios(
     dotrain: String,
-    settings: Option<String>,
+    settings: Option<Vec<String>>,
 ) -> CommandResult<Vec<ScenarioWords>> {
     let order = DotrainOrder::new(dotrain, settings).await?;
     Ok(order.get_all_scenarios_all_words().await?)
@@ -51,9 +51,13 @@ deployers:
         address: {deployer}
 scenarios:
     sepolia:
+        deployer: sepolia
+        bindings:
+            key: 10
 metaboards:
     sepolia: {metaboard_url}
 ---
+#key !Test binding
 #calculate-io
 using-words-from {pragma}
 _: order-hash(),
@@ -119,9 +123,13 @@ _ _: 0 0;
             address: {deployer}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key !Test binding
     #calculate-io
     using-words-from {pragma}
     _: order-hash(),
@@ -236,9 +244,13 @@ _ _: 0 0;
             address: {deployer}
     scenarios:
         sepolia:
+            deployer: sepolia
+            bindings:
+                key: 10
     metaboards:
         sepolia: {metaboard_url}
     ---
+    #key !Test binding
     #calculate-io
     using-words-from {pragma}
     _: order-hash(),

@@ -46,8 +46,8 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
-export { default as FieldDefinitionButtons } from './components/deployment/FieldDefinitionButtons.svelte';
-export { default as DepositButtons } from './components/deployment/DepositButtons.svelte';
+export { default as FieldDefinitionInput } from './components/deployment/FieldDefinitionInput.svelte';
+export { default as DepositInput } from './components/deployment/DepositInput.svelte';
 export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
 export { default as TokenOutput } from './components/deployment/TokenInputOrOutput.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
@@ -58,6 +58,8 @@ export { default as VaultBalanceChart } from './components/charts/VaultBalanceCh
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+export { default as License } from './components/License.svelte';
+export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -95,3 +97,7 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+
+// Assets
+export { default as logoLight } from './assets/logo-light.svg';
+export { default as logoDark } from './assets/logo-dark.svg';

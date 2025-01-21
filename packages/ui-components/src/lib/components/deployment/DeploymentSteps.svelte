@@ -1,36 +1,39 @@
 <script lang="ts">
-	import FieldDefinitionButtons from './FieldDefinitionButtons.svelte';
-	import DepositButtons from './DepositButtons.svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
-
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import {
 		DotrainOrderGui,
+		type DeploymentKeys,
 		type ApprovalCalldataResult,
-		type AvailableDeployments,
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type SelectTokens,
-		type TokenInfos,
-		type Vault
+		type GuiDetails,
+		type GuiDeployment,
+		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Label, Spinner } from 'flowbite-svelte';
+	import { Button, Input, Spinner } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
-
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
+		NO_STRATEGY = 'No valid strategy exists at this URL',
 		NO_SELECT_TOKENS = 'Error loading tokens',
 		NO_TOKEN_INFO = 'Error loading token information',
 		NO_FIELD_DEFINITIONS = 'Error loading field definitions',
 		NO_DEPOSITS = 'Error loading deposits',
 		NO_TOKEN_INPUTS = 'Error loading token inputs',
-		NO_TOKEN_OUTPUTS = 'Error loading token outputs'
+		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
+		NO_GUI_DETAILS = 'Error getting GUI details',
+		NO_CHAIN = 'Unsupported chain ID',
+		ADD_ORDER_FAILED = 'Failed to add order'
 	}
 
 	const chains: Record<number, Chain> = {
@@ -50,18 +53,42 @@
 	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let gui: DotrainOrderGui | null = null;
-	let availableDeployments: Record<string, { label: string }> = {};
-	let selectedDeployment: string | undefined = undefined;
-	let tokenInfos: TokenInfos;
-	let selectTokens: SelectTokens | null = null;
+	let strategyUrl = '';
+	let selectTokens: string[] | null = null;
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
-	let allDeposits: GuiDeposit[] = [];
-	let allTokenInputs: Vault[] = [];
-	let allTokenOutputs: Vault[] = [];
+	let allDepositFields: GuiDeposit[] = [];
+	let allTokenOutputs: OrderIO[] = [];
+	let allTokensSelected: boolean = false;
+	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let hasDeserialized = false;
+	let gui: DotrainOrderGui | null = null;
+	let availableDeployments: Record<string, { label: string }> = {};
+	let selectedDeployment: string | undefined = undefined;
+
+	async function loadStrategyFromUrl() {
+		isLoading = true;
+		error = null;
+		errorDetails = null;
+
+		try {
+			const response = await fetch(strategyUrl);
+			if (!response.ok) {
+				error = DeploymentStepErrors.NO_STRATEGY;
+				errorDetails = `HTTP error - status: ${response.status}`;
+			}
+			dotrain = await response.text();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_STRATEGY;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		} finally {
+			isLoading = false;
+		}
+	}
+
+
+
 
 	$: if (filename) {
 		loadStrategy(filename);
@@ -80,11 +107,6 @@
 		isLoading = false;
 	}
 
-	$: if (selectTokens) {
-		getTokenInfos();
-		getDeposits();
-	}
-
 	$: if (gui) {
 		try {
 			const serializedState = gui.serializeState();
@@ -94,16 +116,6 @@
 			console.error('Failed to serialize GUI:', e);
 		}
 		error = null;
-	}
-
-	function getTokenInfos() {
-		if (!gui) return;
-		try {
-			tokenInfos = gui.getTokenInfos();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_TOKEN_INFO;
-			console.error('Failed to get token infos:', e);
-		}
 	}
 
 	async function loadStrategy(filename: string) {
@@ -119,22 +131,18 @@
 
 	async function initialize() {
 		try {
-			let deployments: AvailableDeployments =
-				await DotrainOrderGui.getAvailableDeployments(dotrain);
+			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
 			availableDeployments = Object.fromEntries(
 				deployments.map((deployment) => [
-					deployment.key,
+					deployment,
 					{
-						label: deployment.key,
-						deployment
+						label: deployment
 					}
 				])
 			);
 		} catch (e: unknown) {
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-			// eslint-disable-next-line no-console
-			console.error('Failed to load deployments:', e);
 		}
 	}
 
@@ -145,30 +153,42 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			getGuiDetails();
 			if (stateFromUrl && !hasDeserialized) {
-				gui.deserializeState(stateFromUrl);
-				hasDeserialized = true;
+				try {
+					gui.deserializeState(stateFromUrl);
+					hasDeserialized = true;
+				} catch (e) {
+					error = DeploymentStepErrors.NO_GUI;
+					errorDetails = e instanceof Error ? e.message : 'Unknown error';
+				}
+			} else {
+				try {
+					selectTokens = gui.getSelectTokens();
+				} catch (e) {
+					error = DeploymentStepErrors.NO_SELECT_TOKENS;
+					errorDetails = e instanceof Error ? e.message : 'Unknown error';
+				}
 			}
-			getTokenInfos();
-			getSelectTokens();
-			getAllFieldDefinitions();
-			getDeposits();
-			getAllTokenInputs();
-			getAllTokenOutputs();
-			initializeVaultIdArrays();
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to get gui:', error);
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		} finally {
+			isLoading = false;
 		}
-		isLoading = false;
 	}
 
-	function getSelectTokens() {
+	$: if (selectedDeployment) {
+		handleDeploymentChange(selectedDeployment as string);
+	}
+
+	function getGuiDetails() {
 		if (!gui) return;
 		try {
-			selectTokens = gui.getSelectTokens();
-		} catch (e: unknown) {
-			console.error('Failed to get select tokens:', e);
+			guiDetails = gui.getGuiDetails();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI_DETAILS;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -178,27 +198,32 @@
 			allFieldDefinitions = gui.getAllFieldDefinitions();
 		} catch (e) {
 			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
-			console.error('Failed to get field definitions:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
-	function getDeposits() {
+	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
-			allDeposits = gui.getCurrentDeployment().deposits;
+			let dep: GuiDeployment = gui.getCurrentDeployment();
+			let depositFields: GuiDeposit[] = dep.deposits;
+
+			allDepositFields = depositFields;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_DEPOSITS;
-			console.error('Failed to get deposits:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
+	let allTokenInputs: OrderIO[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
+
 		try {
 			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_INPUTS;
-			console.error('Failed to get token inputs:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -208,14 +233,24 @@
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
-			console.error('Failed to get token outputs:', e);
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
+	}
+
+	$: if (selectTokens?.length === 0 || allTokensSelected) {
+		error = null;
+		initializeVaultIdArrays();
+		getAllDepositFields();
+		getAllFieldDefinitions();
+		getAllTokenInputs();
+		getAllTokenOutputs();
 	}
 
 	export function getChainById(chainId: number): Chain {
 		const chain = chains[chainId];
 		if (!chain) {
-			throw new Error(`Unsupported chain ID: ${chainId}`);
+			error = DeploymentStepErrors.NO_CHAIN;
+			errorDetails = `Unsupported chain ID: ${chainId}`;
 		}
 		return chain;
 	}
@@ -252,9 +287,9 @@
 				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
 				data: calldata as `0x${string}`
 			});
-		} catch (error) {
-			// eslint-disable-next-line no-console
-			console.error('Failed to add order:', error);
+		} catch (e) {
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -266,6 +301,21 @@
 	}
 </script>
 
+<div class="mb-4">
+	<div class="flex flex-col gap-4 md:flex-row">
+		<div class="flex-1">
+			<Input
+				id="strategy-url"
+				type="url"
+				placeholder="Enter URL to .rain file"
+				bind:value={strategyUrl}
+				size="lg"
+			/>
+		</div>
+		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
+	</div>
+</div>
+
 {#if error}
 	<p class="text-red-500">{error}</p>
 {/if}
@@ -273,82 +323,105 @@
 	<p class="text-red-500">{errorDetails}</p>
 {/if}
 {#if dotrain}
-	<div class="mb-4">
-		<Label class="mb-2 whitespace-nowrap text-xl">Deployments</Label>
-		<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-			<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-				{#if selectedRef === undefined}
-					<span>Select a deployment</span>
-				{:else if selectedOption?.label}
-					<span>{selectedOption.label}</span>
-				{:else}
-					<span>{selectedRef}</span>
-				{/if}
-			</svelte:fragment>
+	<DeploymentSectionHeader title="Select Deployment" />
+	<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
+		<svelte:fragment slot="content" let:selectedOption let:selectedRef>
+			{#if selectedRef === undefined}
+				<span>Select a deployment</span>
+			{:else if selectedOption?.label}
+				<span>{selectedOption.label}</span>
+			{:else}
+				<span>{selectedRef}</span>
+			{/if}
+		</svelte:fragment>
 
-			<svelte:fragment slot="option" let:option let:ref>
-				<div class="w-full overflow-hidden overflow-ellipsis">
-					<div class="text-md break-word">{option.label ? option.label : ref}</div>
-				</div>
-			</svelte:fragment>
-		</DropdownRadio>
-	</div>
+		<svelte:fragment slot="option" let:option let:ref>
+			<div class="w-full overflow-hidden overflow-ellipsis">
+				<div class="text-md break-word">{option.label ? option.label : ref}</div>
+			</div>
+		</svelte:fragment>
+	</DropdownRadio>
+
 	{#if isLoading}
 		<Spinner />
 	{/if}
 
 	{#if gui}
-		<div class="flex h-[80vh] flex-col justify-between">
-			{#if selectTokens}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Select Tokens</Label>
-
-				{#each selectTokens.entries() as token}
-					<SelectToken {token} bind:gui bind:selectTokens />
-				{/each}
+		<div class="flex max-w-2xl flex-col gap-24">
+			{#if guiDetails}
+				<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
+					<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+						{guiDetails.name}
+					</h1>
+					<p class="text-xl text-gray-600 dark:text-gray-400">
+						{guiDetails.description}
+					</p>
+				</div>
 			{/if}
 
-			{#if allFieldDefinitions.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Field Values</Label>
-				{#each allFieldDefinitions as fieldDefinition}
-					<FieldDefinitionButtons {fieldDefinition} bind:gui />
-				{/each}
-			{/if}
-
-			{#if allDeposits.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Deposits</Label>
-				{#each allDeposits as deposit}
-					<DepositButtons bind:deposit bind:gui bind:tokenInfos />
-				{/each}
-			{/if}
-
-			{#if allTokenInputs.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Input Vault IDs</Label>
-				{#each allTokenInputs as input, i}
-					<TokenInputOrOutput
-						{i}
-						label="Input"
-						vault={input}
-						{tokenInfos}
-						vaultIds={inputVaultIds}
-						bind:gui
+			{#if selectTokens && selectTokens.length > 0}
+				<div class="flex w-full flex-col gap-6">
+					<DeploymentSectionHeader
+						title="Select Tokens"
+						description="Select the tokens that you want to use in your order."
 					/>
-				{/each}
+					<div class="flex w-full flex-col gap-4">
+						{#each selectTokens as tokenKey}
+							<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
+						{/each}
+					</div>
+				</div>
 			{/if}
 
-			{#if allTokenOutputs.length > 0}
-				<Label class="my-4 whitespace-nowrap text-2xl underline">Output Vault IDs</Label>
-				{#each allTokenOutputs as output, i}
-					<TokenInputOrOutput
-						{i}
-						label="Output"
-						vault={output}
-						{tokenInfos}
-						vaultIds={outputVaultIds}
-						bind:gui
-					/>
-				{/each}
+			{#if allTokensSelected || selectTokens?.length === 0}
+				{#if allFieldDefinitions.length > 0}
+					<div class="flex w-full flex-col items-center gap-24">
+						{#each allFieldDefinitions as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
+					</div>
+				{/if}
+
+				{#if allDepositFields.length > 0}
+					<div class="flex w-full flex-col items-center gap-24">
+						{#each allDepositFields as deposit}
+							<DepositInput bind:deposit bind:gui />
+						{/each}
+					</div>
+				{/if}
+				{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+					<div class="flex w-full flex-col gap-6">
+						<DeploymentSectionHeader
+							title={'Input/Output Vaults'}
+							description={'The vault addresses for the input and output tokens.'}
+						/>
+						{#if allTokenInputs.length > 0}
+							{#each allTokenInputs as input, i}
+								<TokenInputOrOutput
+									{i}
+									label="Input"
+									vault={input}
+									vaultIds={inputVaultIds}
+									{gui}
+								/>
+							{/each}
+						{/if}
+
+						{#if allTokenOutputs.length > 0}
+							{#each allTokenOutputs as output, i}
+								<TokenInputOrOutput
+									{i}
+									label="Output"
+									vault={output}
+									vaultIds={outputVaultIds}
+									{gui}
+								/>
+							{/each}
+						{/if}
+					</div>
+				{/if}
+				<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 			{/if}
-			<Button class="flex-1" on:click={handleAddOrder}>Add Order</Button>
 		</div>
 	{/if}
 {/if}

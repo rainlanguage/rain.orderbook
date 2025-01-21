@@ -3,8 +3,7 @@ use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args, Parser};
 use csv::Writer;
 use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, WordsResult};
-use reqwest::Url;
-use std::{fs::read_to_string, path::PathBuf, str::FromStr, sync::Arc};
+use std::{fs::read_to_string, path::PathBuf};
 
 /// Get words of a deployer contract from the given inputs
 #[derive(Debug, Parser)]
@@ -92,15 +91,12 @@ impl Execute for Words {
             }
             None => None,
         };
-        let mut order = DotrainOrder::new(dotrain, settings).await?;
+
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
 
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
-            let deployer = order
-                .config()
-                .deployers
-                .get(deployer_key)
-                .ok_or(anyhow!("undefined deployer!"))?;
+            let deployer = order.orderbook_yaml().get_deployer(deployer_key)?;
 
             // get metaboard subgraph url
             let metaboard_url = self
@@ -109,10 +105,10 @@ impl Execute for Words {
                 .map(|v| v.to_string())
                 .or_else(|| {
                     order
-                        .config()
-                        .metaboards
-                        .get(&deployer.network.key)
-                        .map(|v| v.to_string())
+                        .orderbook_yaml()
+                        .get_metaboard(&deployer.network.key)
+                        .ok()
+                        .map(|metaboard| metaboard.url.to_string())
                 })
                 .ok_or(anyhow!("undefined metaboard subgraph url"))?;
 
@@ -127,18 +123,13 @@ impl Execute for Words {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_name = &order
-                    .config()
-                    .scenarios
-                    .get(scenario)
-                    .ok_or(anyhow!("undefined scenario"))?
+                    .dotrain_yaml()
+                    .get_scenario(scenario)?
                     .deployer
                     .network
                     .key
                     .clone();
-                order
-                    .config_mut()
-                    .metaboards
-                    .insert(network_name.to_string(), Arc::new(Url::from_str(v)?));
+                order.orderbook_yaml().add_metaboard(network_name, v)?;
             }
             if self.deployer_only {
                 match order.get_deployer_words_for_scenario(scenario).await?.words {
@@ -171,29 +162,15 @@ impl Execute for Words {
                 words
             }
         } else if let Some(deployment) = &self.source.deployment {
-            let deployment = order
-                .config()
-                .deployments
-                .get(deployment)
-                .ok_or(anyhow!("undefined deployment"))?;
-            let scenario = order
-                .config()
-                .scenarios
-                .iter()
-                .find(|(_, v)| *v == &deployment.scenario)
-                .ok_or(anyhow!("undefined deployment scenario"))?
-                .0
-                .clone();
+            let deployment = order.dotrain_yaml().get_deployment(deployment)?;
+            let scenario = &deployment.scenario.key;
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_key = deployment.scenario.deployer.network.key.clone();
-                order
-                    .config_mut()
-                    .metaboards
-                    .insert(network_key.to_string(), Arc::new(Url::from_str(v)?));
+                order.orderbook_yaml().add_metaboard(&network_key, v)?;
             }
-            let result = order.get_all_words_for_scenario(&scenario).await?;
+            let result = order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
             match result.deployer_words.words {
                 WordsResult::Success(v) => words.extend(v.words),
@@ -300,59 +277,11 @@ deployers:
         };
 
         // should execute successfully
+        words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
 
         // remove test file
         std::fs::remove_file(dotrain_path).unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_execute_happy_with_settings() {
-        let server = mock_server();
-        let settings_content = format!(
-            "
-networks:
-    some-network:
-        rpc: {}
-        chain-id: 123
-        network-id: 123
-        currency: ETH
-
-metaboards:
-    some-network: {}
-
-deployers:
-    some-deployer:
-        network: some-network
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
-            server.url("/rpc"),
-            server.url("/sg")
-        );
-        let settings_path = "./test_settings_words_happy.yml";
-        std::fs::write(settings_path, settings_content).unwrap();
-
-        let words = Words {
-            input: Input {
-                settings_file: Some(settings_path.into()),
-                dotrain_file: None,
-            },
-            source: Source {
-                deployer: Some("some-deployer".to_string()),
-                scenario: None,
-                deployment: None,
-            },
-            pragma_only: false,
-            deployer_only: false,
-            metaboard_subgraph: None,
-            output: None,
-            stdout: true,
-        };
-
-        // should execute successfully
-        assert!(words.execute().await.is_ok());
-
-        // remove test file
-        std::fs::remove_file(settings_path).unwrap();
     }
 
     #[tokio::test]
@@ -404,6 +333,7 @@ deployers:
         };
 
         // should execute successfully
+        words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
 
         // remove test files
@@ -414,8 +344,7 @@ deployers:
     #[tokio::test]
     async fn test_execute_happy_scenario_all_words() {
         let server = mock_server();
-        let dotrain_content = "---\n#calculate-io\n_ _: 1 2;\n#handle-io\n:;".to_string();
-        let settings_content = format!(
+        let dotrain_content = format!(
             "
 networks:
     some-network:
@@ -433,17 +362,23 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key1: 10
+---
+#key1 !Test binding
+#calculate-io
+_ _: 1 2;
+#handle-io
+:;
 ",
             server.url("/rpc"),
         );
-        let settings_path = "./test_settings_all_words_happy_all.yml";
-        std::fs::write(settings_path, settings_content).unwrap();
         let dotrain_path = "./test_dotrain_all_words_happy_all.rain";
         std::fs::write(dotrain_path, dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
-                settings_file: Some(settings_path.into()),
+                settings_file: None,
                 dotrain_file: Some(dotrain_path.into()),
             },
             source: Source {
@@ -459,10 +394,10 @@ scenarios:
         };
 
         // should execute successfully
+        words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
 
         // remove test files
-        std::fs::remove_file(settings_path).unwrap();
         std::fs::remove_file(dotrain_path).unwrap();
     }
 
@@ -495,6 +430,19 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key1: value1
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+orders:
+    some-order:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
 ",
             server.url("/rpc"),
         );
@@ -531,8 +479,7 @@ scenarios:
     #[tokio::test]
     async fn test_execute_happy_deployment_words() {
         let server = mock_server();
-        let dotrain_content = "---\n#calculate-io\n_ _: 1 2;\n#handle-io\n:;".to_string();
-        let settings_content = format!(
+        let dotrain_content = format!(
             "
 networks:
     some-network:
@@ -553,6 +500,8 @@ scenarios:
     some-scenario:
         network: some-network
         deployer: some-deployer
+        bindings:
+            key1: 10
 
 orderbooks:
     some-orderbook:
@@ -589,17 +538,22 @@ deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+---
+#key1 !Test binding
+#calculate-io
+_ _: 1 2;
+#handle-io
+:;
 ",
             server.url("/rpc"),
         );
-        let settings_path = "./test_settings_deployment_happy.yml";
-        std::fs::write(settings_path, settings_content).unwrap();
+
         let dotrain_path = "./test_dotrain_deployment_happy.rain";
         std::fs::write(dotrain_path, dotrain_content).unwrap();
 
         let words = Words {
             input: Input {
-                settings_file: Some(settings_path.into()),
+                settings_file: None,
                 dotrain_file: Some(dotrain_path.into()),
             },
             source: Source {
@@ -615,10 +569,10 @@ deployments:
         };
 
         // should execute successfully
+        words.execute().await.unwrap();
         assert!(words.execute().await.is_ok());
 
         // remove test files
-        std::fs::remove_file(settings_path).unwrap();
         std::fs::remove_file(dotrain_path).unwrap();
     }
 

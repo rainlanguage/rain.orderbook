@@ -1,10 +1,12 @@
-use crate::yaml::{default_document, require_hash, require_string, YamlError, YamlParsableHash};
+use crate::yaml::{
+    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use typeshare::typeshare;
 use url::{ParseError, Url};
 
@@ -23,11 +25,52 @@ impl Metaboard {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
+
+    pub fn add_record_to_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: &str,
+        value: &str,
+    ) -> Result<(), YamlError> {
+        Metaboard::validate_url(value)?;
+
+        let mut document = document.write().map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if !document_hash.contains_key(&StrictYaml::String("metaboards".to_string())) {
+                document_hash.insert(
+                    StrictYaml::String("metaboards".to_string()),
+                    StrictYaml::Hash(Hash::new()),
+                );
+            }
+
+            if let Some(StrictYaml::Hash(ref mut metaboards)) =
+                document_hash.get_mut(&StrictYaml::String("metaboards".to_string()))
+            {
+                if metaboards.contains_key(&StrictYaml::String(key.to_string())) {
+                    return Err(YamlError::KeyShadowing(key.to_string()));
+                }
+
+                metaboards.insert(
+                    StrictYaml::String(key.to_string()),
+                    StrictYaml::String(value.to_string()),
+                );
+            } else {
+                return Err(YamlError::ParseError(
+                    "missing field: metaboards".to_string(),
+                ));
+            }
+        } else {
+            return Err(YamlError::ParseError("document parse error".to_string()));
+        }
+
+        Ok(())
+    }
 }
 
 impl YamlParsableHash for Metaboard {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Metaboard>, YamlError> {
         let mut metaboards = HashMap::new();
 
@@ -103,7 +146,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let metaboards = Metaboard::parse_all_from_yaml(documents).unwrap();
+        let metaboards = Metaboard::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(metaboards.len(), 2);
         assert!(metaboards.contains_key("MetaboardOne"));
@@ -131,7 +174,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Metaboard::parse_all_from_yaml(documents).unwrap_err();
+        let error = Metaboard::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,

@@ -41,19 +41,21 @@ impl Execute for ListOrderFrontmatterKeys {
             None => None,
         };
 
-        let order = DotrainOrder::new(dotrain, settings).await?;
+        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
 
         let keys_string = match self.key_type {
             KeyType::Deployment => {
-                let deployment_keys = order.config().deployments.keys();
+                let deployment_keys = order.dotrain_yaml().get_deployment_keys()?;
                 deployment_keys
+                    .iter()
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")
             }
             KeyType::Scenario => {
-                let scenario_keys = order.config().scenarios.keys();
+                let scenario_keys = order.dotrain_yaml().get_scenario_keys()?;
                 scenario_keys
+                    .iter()
                     .map(|key| key.to_string())
                     .collect::<Vec<String>>()
                     .join(" ")

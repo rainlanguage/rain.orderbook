@@ -6,11 +6,6 @@ import type { ComponentProps } from 'svelte';
 export type TokenInputOrOutputComponentProps = ComponentProps<TokenInputOrOutput>;
 
 describe('TokenInput', () => {
-	const mockTokenInfos = new Map([
-		['0x123', { symbol: 'ETH' }],
-		['0x456', { symbol: 'USDC' }]
-	]);
-
 	const mockInput = {
 		token: {
 			address: '0x123'
@@ -18,25 +13,32 @@ describe('TokenInput', () => {
 	};
 
 	const mockGui = {
-		setVaultId: vi.fn()
+		setVaultId: vi.fn(),
+		getTokenInfo: vi.fn()
+	};
+
+	const mockTokenInfo = {
+		symbol: 'MOCK',
+		name: 'Mock Token',
+		decimals: 18
 	};
 
 	const mockProps: TokenInputOrOutputComponentProps = {
 		i: 0,
 		label: 'Input',
 		vault: mockInput,
-		tokenInfos: mockTokenInfos,
 		vaultIds: ['vault1'],
 		gui: mockGui
 	} as unknown as TokenInputOrOutputComponentProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockGui.getTokenInfo = vi.fn().mockResolvedValue(mockTokenInfo);
 	});
 
-	it('renders with correct label and token symbol', () => {
+	it('renders with correct label and no token symbol', () => {
 		const { getByText } = render(TokenInputOrOutput, mockProps);
-		expect(getByText('Input 1 (ETH)')).toBeInTheDocument();
+		expect(getByText('Input 1')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
@@ -81,6 +83,23 @@ describe('TokenInput', () => {
 			TokenInputOrOutput,
 			propsWithUnknownToken as unknown as TokenInputOrOutputComponentProps
 		);
-		expect(getByText('Input 1 (Unknown)')).toBeInTheDocument();
+		expect(getByText('Input 1')).toBeInTheDocument();
+	});
+
+	it('fetches and displays token symbol when token key is present', async () => {
+		const propsWithTokenKey = {
+			...mockProps,
+			vault: {
+				token: {
+					key: '0x456'
+				}
+			}
+		} as unknown as TokenInputOrOutputComponentProps;
+
+		const { findByText } = render(TokenInputOrOutput, propsWithTokenKey);
+
+		const labelWithSymbol = await findByText('Input 1 (MOCK)');
+		expect(labelWithSymbol).toBeInTheDocument();
+		expect(mockGui.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});
 });

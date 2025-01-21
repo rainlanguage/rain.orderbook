@@ -7,6 +7,7 @@
 		type GuiPreset
 	} from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
@@ -39,18 +40,11 @@
 	}
 </script>
 
-<div class="flex flex-grow flex-col items-center p-8">
-	<!-- Header Section -->
-	<div class="mt-16 max-w-2xl text-center">
-		<h1 class="mb-4 text-4xl font-bold text-gray-900 dark:text-white">{fieldDefinition.name}</h1>
-		<p class="mb-12 text-xl text-gray-600 dark:text-gray-400">
-			{fieldDefinition.description}
-		</p>
-	</div>
+<div class="flex w-full max-w-2xl flex-col gap-6">
+	<DeploymentSectionHeader title={fieldDefinition.name} description={fieldDefinition.description} />
 
-	<!-- Buttons Section -->
-	<div class="flex max-w-3xl flex-wrap justify-center gap-4">
-		{#if fieldDefinition.presets}
+	{#if fieldDefinition.presets}
+		<div class="flex w-full flex-wrap gap-4">
 			{#each fieldDefinition.presets as preset}
 				<ButtonSelectOption
 					buttonText={preset.name || preset.value}
@@ -58,21 +52,18 @@
 					active={currentFieldDefinition?.value === preset.value}
 				/>
 			{/each}
-		{/if}
-	</div>
-	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		<div class="mt-8 w-full max-w-md">
-			<Input
-				class="text-center text-lg"
-				size="lg"
-				placeholder="Enter custom value"
-				bind:value={inputValue}
-				on:input={({ currentTarget }) => {
-					if (currentTarget instanceof HTMLInputElement) {
-						handleCustomInputChange(currentTarget.value);
-					}
-				}}
-			/>
 		</div>
+	{/if}
+	{#if fieldDefinition.binding !== 'is-fast-exit'}
+		<Input
+			size="lg"
+			placeholder="Enter custom value"
+			bind:value={inputValue}
+			on:input={({ currentTarget }) => {
+				if (currentTarget instanceof HTMLInputElement) {
+					handleCustomInputChange(currentTarget.value);
+				}
+			}}
+		/>
 	{/if}
 </div>

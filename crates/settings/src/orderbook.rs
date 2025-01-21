@@ -9,6 +9,7 @@ use strict_yaml_rust::StrictYaml;
 use subgraph::Subgraph;
 use thiserror::Error;
 use typeshare::typeshare;
+use yaml::context::Context;
 use yaml::{
     default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
 };
@@ -33,11 +34,33 @@ impl Orderbook {
     pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookConfigSourceError> {
         Address::from_str(address).map_err(ParseOrderbookConfigSourceError::AddressParseError)
     }
+
+    pub fn parse_network_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        orderbook_key: &str,
+    ) -> Result<String, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orderbooks_hash) = require_hash(&document_read, Some("orderbooks"), None) {
+                if let Some(orderbook_yaml) =
+                    orderbooks_hash.get(&StrictYaml::String(orderbook_key.to_string()))
+                {
+                    return require_string(orderbook_yaml, Some("network"), None)
+                        .or_else(|_| Ok(orderbook_key.to_string()));
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "network key not found for orderbook: {orderbook_key}"
+        )))
+    }
 }
 
 impl YamlParsableHash for Orderbook {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orderbooks = HashMap::new();
 
@@ -65,7 +88,7 @@ impl YamlParsableHash for Orderbook {
                     Some(network_name) => network_name,
                     None => orderbook_key.clone(),
                 };
-                let network = Network::parse_from_yaml(documents.clone(), &network_name)?;
+                let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
 
                 let subgraph_name = match optional_string(orderbook_yaml, "subgraph") {
                     Some(subgraph_name) => subgraph_name,
@@ -74,6 +97,7 @@ impl YamlParsableHash for Orderbook {
                 let subgraph = Arc::new(Subgraph::parse_from_yaml(
                     documents.clone(),
                     &subgraph_name,
+                    None,
                 )?);
 
                 let label = optional_string(orderbook_yaml, "label");
@@ -284,7 +308,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: orderbooks".to_string())
@@ -294,7 +318,7 @@ test: test
 orderbooks:
     TestOrderbook:
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("address string missing in orderbook: TestOrderbook".to_string())
@@ -306,7 +330,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -322,7 +346,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("TestNetwork".to_string()));
 
         let yaml = r#"
@@ -335,7 +359,7 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: subgraphs".to_string())
@@ -354,7 +378,7 @@ orderbooks:
         network: TestNetwork
         subgraph: TestSubgraph
 "#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(error, YamlError::KeyNotFound("TestSubgraph".to_string()));
     }
 
@@ -382,7 +406,7 @@ orderbooks:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let orderbooks = Orderbook::parse_all_from_yaml(documents).unwrap();
+        let orderbooks = Orderbook::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(orderbooks.len(), 2);
         assert!(orderbooks.contains_key("OrderbookOne"));
@@ -422,11 +446,42 @@ orderbooks:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Orderbook::parse_all_from_yaml(documents).unwrap_err();
+        let error = Orderbook::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,
             YamlError::KeyShadowing("DuplicateOrderbook".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_orderbook_from_yaml_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+"#;
+        let documents = vec![get_document(yaml)];
+        let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
+        assert_eq!(network_key, "mainnet");
     }
 }

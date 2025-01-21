@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import FieldDefinitionButtons from '../lib/components/deployment/FieldDefinitionButtons.svelte';
+import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -11,7 +11,7 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}))
 }));
 
-describe('FieldDefinitionButtons', () => {
+describe('FieldDefinitionInput', () => {
 	let mockGui: DotrainOrderGui;
 	const mockFieldDefinition = {
 		binding: 'test-binding',
@@ -28,7 +28,7 @@ describe('FieldDefinitionButtons', () => {
 	});
 
 	it('renders field name and description', () => {
-		const { getByText } = render(FieldDefinitionButtons, {
+		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui
@@ -40,7 +40,7 @@ describe('FieldDefinitionButtons', () => {
 	});
 
 	it('renders preset buttons', () => {
-		const { getByText } = render(FieldDefinitionButtons, {
+		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui
@@ -52,7 +52,7 @@ describe('FieldDefinitionButtons', () => {
 	});
 
 	it('handles preset button clicks', async () => {
-		const { getByText } = render(FieldDefinitionButtons, {
+		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui
@@ -68,7 +68,7 @@ describe('FieldDefinitionButtons', () => {
 	});
 
 	it('handles custom input changes', async () => {
-		const { getByPlaceholderText } = render(FieldDefinitionButtons, {
+		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui
@@ -90,7 +90,7 @@ describe('FieldDefinitionButtons', () => {
 			binding: 'is-fast-exit'
 		};
 
-		const { queryByText } = render(FieldDefinitionButtons, {
+		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
 				gui: mockGui

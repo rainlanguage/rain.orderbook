@@ -13,15 +13,15 @@ impl_all_wasm_traits!(TokenDeposit);
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeposits")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
+        let deployment = self.get_current_deployment()?;
         self.deposits
             .iter()
-            .map(|(token, value)| {
-                let gui_deposit = self
-                    .deployment
+            .map(|(key, value)| {
+                let gui_deposit = deployment
                     .deposits
                     .iter()
-                    .find(|dg| dg.token.key == *token)
-                    .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+                    .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == *key))
+                    .ok_or(GuiError::DepositTokenNotFound(key.clone()))?;
                 let amount: String = if value.is_preset {
                     let index = value
                         .value
@@ -35,10 +35,16 @@ impl DotrainOrderGui {
                 } else {
                     value.value.clone()
                 };
+
+                if gui_deposit.token.is_none() {
+                    return Err(GuiError::TokenMustBeSelected(key.clone()));
+                }
+                let token = gui_deposit.token.as_ref().unwrap();
+
                 Ok(TokenDeposit {
-                    token: gui_deposit.token.key.clone(),
+                    token: token.key.clone(),
                     amount,
-                    address: gui_deposit.token.address,
+                    address: token.address,
                 })
             })
             .collect::<Result<Vec<TokenDeposit>, GuiError>>()
@@ -46,11 +52,11 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "saveDeposit")]
     pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
-        let gui_deposit = self
-            .deployment
+        let deployment = self.get_current_deployment()?;
+        let gui_deposit = deployment
             .deposits
             .iter()
-            .find(|dg| dg.token.key == token)
+            .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == token))
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
         let value = if let Some(index) = gui_deposit.presets.iter().position(|p| **p == amount) {
@@ -75,13 +81,13 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getDepositPresets")]
-    pub fn get_deposit_presets(&self, token: String) -> Result<Vec<String>, GuiError> {
-        let gui_deposit = self
-            .deployment
+    pub fn get_deposit_presets(&self, key: String) -> Result<Vec<String>, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let gui_deposit = deployment
             .deposits
             .iter()
-            .find(|dg| dg.token.key == token)
-            .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
+            .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == key))
+            .ok_or(GuiError::DepositTokenNotFound(key.clone()))?;
         Ok(gui_deposit.presets.clone())
     }
 }

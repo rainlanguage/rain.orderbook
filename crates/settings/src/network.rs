@@ -1,4 +1,5 @@
 use crate::config_source::*;
+use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
 };
@@ -62,6 +63,8 @@ impl Network {
     }
 
     pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
+        let rpc = Network::validate_rpc(rpc)?;
+
         let mut document = self
             .document
             .write()
@@ -76,7 +79,7 @@ impl Network {
                 {
                     network[&StrictYaml::String("rpc".to_string())] =
                         StrictYaml::String(rpc.to_string());
-                    self.rpc = Network::validate_rpc(rpc)?;
+                    self.rpc = rpc;
                 } else {
                     return Err(YamlError::ParseError(format!(
                         "missing field: {} in networks",
@@ -92,6 +95,30 @@ impl Network {
 
         Ok(self.clone())
     }
+
+    pub fn parse_rpc(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        network_key: &str,
+    ) -> Result<Url, YamlError> {
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(networks_hash) = require_hash(&document_read, Some("networks"), None) {
+                if let Some(network_yaml) =
+                    networks_hash.get(&StrictYaml::String(network_key.to_string()))
+                {
+                    return Ok(Network::validate_rpc(&require_string(
+                        network_yaml,
+                        Some("rpc"),
+                        None,
+                    )?)?);
+                }
+            }
+        }
+        Err(YamlError::ParseError(format!(
+            "rpc not found for network: {network_key}"
+        )))
+    }
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
@@ -99,6 +126,7 @@ impl_all_wasm_traits!(Network);
 impl YamlParsableHash for Network {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut networks = HashMap::new();
 
@@ -230,7 +258,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("missing field: networks".to_string())
@@ -240,7 +268,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError("rpc string missing in network: mainnet".to_string())
@@ -251,7 +279,7 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)]).unwrap_err();
+        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -280,9 +308,11 @@ networks:
         rpc: https://network-two.infura.io
         chain-id: 4
 "#;
-        let networks =
-            Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap();
+        let networks = Network::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap();
 
         assert_eq!(networks.len(), 4);
         assert_eq!(
@@ -320,9 +350,11 @@ networks:
         rpc: https://mainnet.infura.io
         chain-id: 1
 "#;
-        let error =
-            Network::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)])
-                .unwrap_err();
+        let error = Network::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
     }
 }
