@@ -15,11 +15,10 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Spinner } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
-	import { writable } from 'svelte/store';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -249,18 +248,11 @@
 		<p class="text-red-500">{errorDetails}</p>
 	{/if}
 	{#if dotrain}
-		{$initializingFields}
 		<DeploymentSectionHeader title="Select Deployment" />
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
 			{#each Object.entries(availableDeployments) as [deployment, { label }]}
 				<Button on:click={handleDeploymentChange(deployment)}>{label}</Button>
-				{#if $initializingFields === true}
-					<div class="flex flex-col items-center justify-center gap-4 p-8">
-						<h1>Loading...</h1>
-						<Spinner />
-					</div>
-				{/if}
 			{/each}
 		</div>
 		{#if gui}
