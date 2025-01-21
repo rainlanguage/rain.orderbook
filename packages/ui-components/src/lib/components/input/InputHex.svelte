@@ -32,8 +32,10 @@
 			}
 			try {
 				value = fromHex(valuePrefixed as `0x${string}`, 'bigint');
-				// eslint-disable-next-line no-empty
-			} catch (e) {}
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			} catch (e) {
+				value = 0n;
+			}
 		}
 	}
 </script>
