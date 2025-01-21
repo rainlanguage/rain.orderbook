@@ -17,7 +17,7 @@
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
 	import { Button, Input, Spinner } from 'flowbite-svelte';
-	import { createWalletClient, custom, type Chain } from 'viem';
+	import { type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
@@ -52,9 +52,9 @@
 	let errorDetails: string | null = null;
 	let strategyUrl = '';
 	let selectTokens: string[] | null = null;
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
+	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
 	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
@@ -87,6 +87,7 @@
 
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
+
 	async function initialize() {
 		try {
 			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
