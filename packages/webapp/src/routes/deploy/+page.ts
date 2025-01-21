@@ -3,7 +3,7 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async () => {
 	const owner = 'rainlanguage';
 	const repo = 'rain.strategies';
-	const path = 'strategies';
+	const path = 'strategies/dev';
 
 	try {
 		const response = await fetch(
