@@ -25,7 +25,7 @@ jobs:
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
         env:
-          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@canary
