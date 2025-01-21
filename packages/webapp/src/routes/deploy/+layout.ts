@@ -1,6 +1,6 @@
-import type { PageLoad } from './$types';
+import type { LayoutLoad } from './$types';
 
-export const load: PageLoad = async () => {
+export const load: LayoutLoad = async () => {
 	const owner = 'rainlanguage';
 	const repo = 'rain.strategies';
 	const path = 'strategies/dev';
@@ -10,10 +10,11 @@ export const load: PageLoad = async () => {
 			`https://api.github.com/repos/${owner}/${repo}/contents/${path}`
 		);
 		const data = await response.json();
+
 		return {
 			files: data
 		};
-	} catch (error) {
+	} catch {
 		return {
 			files: []
 		};
