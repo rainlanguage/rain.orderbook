@@ -8,7 +8,7 @@
 	import { defaultConfig } from '$lib/stores/wagmi';
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
-	import { PUBLIC_WALLETCONNECT_ID } from '$env/static/public';
+	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 
 	const queryClient = new QueryClient({
 		defaultOptions: {
@@ -23,7 +23,7 @@
 			appName: 'Rain Language',
 			connectors: [injected()],
 			chains: supportedChainsList as unknown as Chain[],
-			projectId: PUBLIC_WALLETCONNECT_ID
+			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
 		});
 		await erckit.init();
 	};
