@@ -354,7 +354,7 @@ impl YamlParseableValue for Gui {
         let mut gui_res: Option<Gui> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeployment> = HashMap::new();
 
-        let tokens = Token::parse_all_from_yaml(documents.clone(), None)?;
+        let tokens = Token::parse_all_from_yaml(documents.clone(), None);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -447,13 +447,19 @@ impl YamlParseableValue for Gui {
                             "deposits list missing in gui deployment: {deployment_name}",
                         )),
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
-                        let token = tokens.get(&require_string(
-                            deposit_value,
-                            Some("token"),
-                            Some(format!(
-                                "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                            )),
-                        )?);
+                        let mut deposit_token = None;
+
+                        if let Ok(tokens) = &tokens {
+                            let token = tokens.get(&require_string(
+                                deposit_value,
+                                Some("token"),
+                                Some(format!(
+                                    "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
+                                )),
+                            )?);
+
+                            deposit_token = token.map(|token| Arc::new(token.clone()));
+                        }
 
                         let presets = require_vec(
                             deposit_value,
@@ -472,7 +478,7 @@ impl YamlParseableValue for Gui {
                         .collect::<Result<Vec<_>, YamlError>>()?;
 
                         let gui_deposit = GuiDeposit {
-                            token: token.map(|token| Arc::new(token.clone())),
+                            token: deposit_token,
                             presets,
                         };
                         Ok(gui_deposit)

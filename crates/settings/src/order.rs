@@ -420,7 +420,13 @@ impl YamlParsableHash for Order {
                                     )));
                                 }
                             }
-                        };
+                        } else if let Some(context) = context {
+                            if !context.is_select_token(&token_name) {
+                                return Err(YamlError::ParseError(format!(
+                                    "yaml data for token: {token_name} not found in input index: {i} in order: {order_key}"
+                                )));
+                            }
+                        }
 
                         let vault_id = match optional_string(input, "vault-id") {
                             Some(id) => Some(Order::validate_vault_id(&id)?),
@@ -473,6 +479,12 @@ impl YamlParsableHash for Order {
                                         "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
                                     )));
                                 }
+                            }
+                        } else if let Some(context) = context {
+                            if !context.is_select_token(&token_name) {
+                                return Err(YamlError::ParseError(format!(
+                                    "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
+                                )));
                             }
                         }
 
