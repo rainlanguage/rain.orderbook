@@ -6,9 +6,7 @@ export const load: LayoutLoad = async () => {
 	const path = 'strategies/dev';
 
 	try {
-		const response = await fetch(
-			`https://api.github.com/repos/${owner}/${repo}/contents/${path}`
-		);
+		const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`);
 		const data = await response.json();
 
 		return {
