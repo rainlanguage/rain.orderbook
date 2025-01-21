@@ -124,7 +124,6 @@ const setupListeners = () => {
 };
 
 const handleAccountChange = (data: GetAccountReturnType) => {
-
 	return (async () => {
 		if (get(wagmiLoaded) && data.address) {
 			const chain = get(wagmiConfig).chains.find((chain) => chain.id === data.chainId);
