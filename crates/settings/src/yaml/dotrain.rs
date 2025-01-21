@@ -644,6 +644,10 @@ gui:
 "#;
         let missing_input_token_yaml = format!(
             "{yaml_prefix}
+tokens:
+    random-token:
+        address: 0x0000000000000000000000000000000000000000
+        network: mainnet
 orders:
     order1:
         inputs:
@@ -655,6 +659,10 @@ orders:
         );
         let missing_output_token_yaml = format!(
             "{yaml_prefix}
+tokens:
+    random-token:
+        address: 0x0000000000000000000000000000000000000000
+        network: mainnet
 orders:
     order1:
         inputs:
