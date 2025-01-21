@@ -237,43 +237,6 @@
 		}
 	}
 
-	async function handleAddOrder() {
-		try {
-			if (!gui) return;
-
-			await window.ethereum?.request({ method: 'eth_requestAccounts' });
-			const walletClient = createWalletClient({
-				chain: getChainById(
-					gui.getCurrentDeployment().deployment.order.network['chain-id'] as number
-				),
-
-				transport: custom(window.ethereum!)
-			});
-			const [account] = await walletClient.getAddresses();
-
-			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(account);
-			for (const approval of approvals) {
-				await walletClient.sendTransaction({
-					account,
-					to: approval.token as `0x${string}`,
-					data: approval.calldata as `0x${string}`
-				});
-			}
-
-			const calldata: DepositAndAddOrderCalldataResult =
-				await gui.generateDepositAndAddOrderCalldatas();
-			await walletClient.sendTransaction({
-				account,
-				// @ts-expect-error orderbook is not typed
-				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
-				data: calldata as `0x${string}`
-			});
-		} catch (e) {
-			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
-			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
 	function initializeVaultIdArrays() {
 		if (!gui) return;
 		const deployment = gui.getCurrentDeployment();
@@ -401,14 +364,10 @@
 					</div>
 				{/if}
 				<div class="flex flex-col gap-2">
-					{#if $wagmiConfig}
-						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
-						{:else}
-							<slot name="wallet-connect" />
-						{/if}
+					{#if $wagmiConnected}
+						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
 					{:else}
-						<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+						<slot name="wallet-connect" />
 					{/if}
 					<div class="flex flex-col">
 						{#if addOrderError}

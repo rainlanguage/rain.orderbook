@@ -43,13 +43,12 @@ export const defaultConfig = ({
 	appIcon = null,
 	autoConnect = true,
 	chains = [],
-	alchemyId,
 	connectors,
 	projectId
 }: DefaultConfigProps) => {
 	if (connectors) configuredConnectors.set(connectors);
 
-	const url = alchemyId ? http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyId}`) : http();
+	const url = http();
 
 	const chainsToUse = chains ? chains.map((chain) => chain) : [];
 	const transports = chains
@@ -89,7 +88,9 @@ export const defaultConfig = ({
 		metadata,
 		projectId,
 		features: {
-			analytics: true
+			analytics: false,
+			socials: [],
+			email: false
 		}
 	});
 
