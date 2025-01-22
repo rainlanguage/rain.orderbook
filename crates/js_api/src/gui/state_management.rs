@@ -7,7 +7,6 @@ struct SerializedGuiState {
     deposits: BTreeMap<String, GuiPreset>,
     select_tokens: BTreeMap<String, Token>,
     vault_ids: BTreeMap<(bool, u8), Option<String>>,
-    selected_deployment: String,
 }
 
 #[wasm_bindgen]
@@ -72,14 +71,11 @@ impl DotrainOrderGui {
             vault_ids.insert((false, i as u8), output.vault_id.map(|v| v.to_string()));
         }
 
-        let selected_deployment = self.selected_deployment.clone();
-
         let state = SerializedGuiState {
             field_values: field_values.clone(),
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            selected_deployment,
         };
         let bytes = bincode::serialize(&state)?;
 
@@ -175,8 +171,6 @@ impl DotrainOrderGui {
                     order.update_vault_id(is_input, index, vault_id.unwrap_or_default())
                 })?;
         }
-
-        self.selected_deployment = state.selected_deployment;
 
         Ok(())
     }

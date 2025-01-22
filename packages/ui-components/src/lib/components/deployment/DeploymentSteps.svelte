@@ -24,6 +24,7 @@
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
+		DEPLOYMENT_ERROR = 'Error changing deployment',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
 		NO_SELECT_TOKENS = 'Error loading tokens',
 		NO_TOKEN_INFO = 'Error loading token information',
@@ -33,7 +34,8 @@
 		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
 		NO_GUI_DETAILS = 'Error getting GUI details',
 		NO_CHAIN = 'Unsupported chain ID',
-		ADD_ORDER_FAILED = 'Failed to add order'
+		ADD_ORDER_FAILED = 'Failed to add order',
+		DESERIALIZE_FAILED = 'Failed to deserialize GUI'
 	}
 
 	const chains: Record<number, Chain> = {
@@ -80,6 +82,7 @@
 				])
 			);
 		} catch (e: unknown) {
+			console.error('Failed to get deployment keys:', e);
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
@@ -109,16 +112,6 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
-				if (stateFromUrl && !hasDeserialized) {
-					console.log('deserializing state from url', stateFromUrl);
-					try {
-						gui.deserializeState(stateFromUrl);
-						console.log('deserialized state', gui.getCurrentDeployment());
-					} catch (e) {
-						error = DeploymentStepErrors.NO_GUI;
-						errorDetails = e instanceof Error ? e.message : 'Unknown error';
-					}
-				}
 				try {
 					await getGuiDetails();
 					selectTokens = await gui.getSelectTokens();
@@ -128,7 +121,7 @@
 				}
 			}
 		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
+			error = DeploymentStepErrors.DEPLOYMENT_ERROR;
 			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
 		}
 	}
@@ -203,9 +196,20 @@
 				getAllTokenInputs(),
 				getAllTokenOutputs()
 			]);
-			hasDeserialized = true;
+			if (stateFromUrl && !hasDeserialized && gui) {
+				console.log('deserializing state from url', stateFromUrl);
+				try {
+					gui.deserializeState(stateFromUrl);
+					hasDeserialized = true;
+				} catch (e) {
+					error = DeploymentStepErrors.DESERIALIZE_FAILED;
+					errorDetails = e instanceof Error ? e.message : 'Unknown error';
+				}
+			} else {
+				hasDeserialized = true;
+			}
 		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
+			error = DeploymentStepErrors.DESERIALIZE_FAILED;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
@@ -275,12 +279,6 @@
 			console.log('serializedState', serializedState);
 			$page.url.searchParams.set('state', serializedState);
 			window.history.pushState({}, '', '?state=' + serializedState);
-			try {
-				const state = await gui.deserializeState(serializedState);
-				console.log('Deserialized state', state);
-			} catch (e) {
-				console.error('Failed to deserialize GUI:', e);
-			}
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}

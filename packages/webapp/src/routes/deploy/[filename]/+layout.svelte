@@ -7,6 +7,7 @@
 	const { dotrain, strategyName, errorDetails, error, deployment } = $page.data;
 	console.log($page.data);
 	const stateFromUrl = $page.url.searchParams.get('state');
+	console.log('STATE IN LAYOUT', stateFromUrl);
 	let _dotrain = dotrain;
 </script>
 
