@@ -654,8 +654,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7VOyw6CMBBk1WBiPHo18QeQgqEh3E38AH4AsQqhtgSKHvx5Q9xVmhBvzGV3ZvYx4HywxmpEa7xzqS6lugFqzFkN3UcmOzFDxSVHV0IFDmGBNWJ7bo2E35E51oCx8WM2o4CtvgtPCfPUTbVFrTCmTnxf6jyThW5NErM48ps697pGvughUAf0-pieNtheRwAuLNFO-wy7AChpaqcLbTZx1sMI_malbnCuX_kxzvkbrBXoaQkCAAA=';
+			'H4sIAAAAAAAA_6VVwXLbIBBN2k47w_TQT6DOWQ6SLdmhJyuxpx-QewZLxNYEgQZQ3HxNf7VIIAspcZO0XLDf7r5ddh_o_Myur27XVOlgW_C84Ltzh6Ez4FsfCavpB4d87izigfLwrFuf3B6jaTJwiY4uH90eIvTN_RR6T2WQ04qJp5Jy3RXw-4vdd3WBAYSclBTDW1MLbAoySE5VJotKF4J7ht7aEaomHMJxHou-RNysv5Nbj0qoomNvVgDb02K7hUccwrIw6ARNPKiSVFE_2jL4TkO-6D_57gvK8kG1buIY-vP34r3OPDc-b5Dz8S2v19fqylXQ_nZ2RRnNdNCe_HmLwzEQAU71QciH1leJkgYOsLGyykzD9lpX-PKSiYywvVAaL9EyvjS2oJbM9inbk4IHRW68w2hmMcc0QrNaSsqzJwzXtz-Bqrc7Sap9n1_tXEZlUh4Oh6lDp5koJ6CkmmwFkXYizfE976PR-lrNUtlzdwj268ODc7cWkuem7QpD9GsTztfoKkHhar6I4-iGJiTNZyuUhkmcoMWGbPIojVMChMyp3ArhtfII4TFrdhWv4vsl3dBwni9IhNKbaB2nq836er5ehPfLa4rSq1XySp1d93DXOtAP3g78HSdN3riAlXFWlISZwEli58rIljIj6SYttEJTT-VWNFjY1RO9o57ZG9c_1aMyyokshKc7h2DH55QyFE5rcxf2eL38Z8Dkj23-QQY3rFGSl8jaJnD76PacM2Teo1ZOI3XZsIJXdf9GnHpPH0nNtL2NZoy2SlHr06HRS6Gm45NXW9Qrf3QTwOj74oX2H5djl4aT6Zl9VnDqE3WCZerP4QRlEAQAXPhzhd_BxWgsDWQexKxmRNPAcN3BO6NbiH6Aiz3hOWtB3P8z2nb8BvwDZfaAZkwIAAA=';
 		let gui: DotrainOrderGui;
+		let newGui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
 				.forPost('/rpc-url')
@@ -703,31 +704,9 @@ ${dotrain}`;
 		});
 
 		it('should deserialize gui state', async () => {
-			mockServer
-				.forPost('/rpc-url')
-				.once()
-				.withBodyIncluding('0x82ad56cb')
-				.thenSendJsonRpcResult(
-					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
-				);
-			let dotrain3 = `${guiConfig3}
+			newGui = await DotrainOrderGui.deserializeState(serializedState);
 
-${dotrain}`;
-			gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'other-deployment');
-			gui.removeSelectToken('token1');
-			gui.removeSelectToken('token2');
-
-			assert.equal(gui.getAllFieldValues().length, 0);
-			assert.equal(gui.getDeposits().length, 0);
-			assert.equal(gui.isSelectTokenSet('token1'), false);
-			assert.equal(gui.isSelectTokenSet('token2'), false);
-			let oldGuiDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.equal(oldGuiDeployment.deployment.order.inputs[0].vaultId, '0x1');
-			assert.equal(oldGuiDeployment.deployment.order.outputs[0].vaultId, '0x1');
-
-			gui.deserializeState(serializedState);
-
-			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
+			const fieldValues: AllFieldValuesResult[] = newGui.getAllFieldValues();
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
 				binding: 'test-binding',
@@ -738,9 +717,9 @@ ${dotrain}`;
 				}
 			});
 
-			assert.equal(gui.isSelectTokenSet('token1'), true);
-			assert.equal(gui.isSelectTokenSet('token2'), true);
-			const deposits: TokenDeposit[] = gui.getDeposits();
+			assert.equal(newGui.isSelectTokenSet('token1'), true);
+			assert.equal(newGui.isSelectTokenSet('token2'), true);
+			const deposits: TokenDeposit[] = newGui.getDeposits();
 			assert.equal(deposits.length, 2);
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
@@ -749,37 +728,37 @@ ${dotrain}`;
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x3333333333333333333333333333333333333333');
 
-			let guiDeployment: GuiDeployment = gui.getCurrentDeployment();
+			let guiDeployment: GuiDeployment = newGui.getCurrentDeployment();
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
 			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
 
 		it('should clear state', async () => {
-			gui.clearState();
-			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
+			newGui.clearState();
+			const fieldValues: AllFieldValuesResult[] = newGui.getAllFieldValues();
 			assert.equal(fieldValues.length, 0);
-			const deposits: TokenDeposit[] = gui.getDeposits();
+			const deposits: TokenDeposit[] = newGui.getDeposits();
 			assert.equal(deposits.length, 0);
 		});
 
 		it('should check if field is preset', async () => {
-			gui.saveFieldValue('test-binding', {
+			newGui.saveFieldValue('test-binding', {
 				isPreset: true,
-				value: gui.getFieldDefinition('test-binding').presets[0].id
+				value: newGui.getFieldDefinition('test-binding').presets[0].id
 			});
-			assert.equal(gui.isFieldPreset('test-binding'), true);
-			gui.saveFieldValue('test-binding', {
+			assert.equal(newGui.isFieldPreset('test-binding'), true);
+			newGui.saveFieldValue('test-binding', {
 				isPreset: false,
 				value: '100'
 			});
-			assert.equal(gui.isFieldPreset('test-binding'), false);
+			assert.equal(newGui.isFieldPreset('test-binding'), false);
 		});
 
 		it('should check if deposit is preset', async () => {
-			gui.saveDeposit('token1', '55');
-			assert.equal(gui.isDepositPreset('token1'), false);
-			gui.saveDeposit('token1', '0');
-			assert.equal(gui.isDepositPreset('token1'), true);
+			newGui.saveDeposit('token1', '55');
+			assert.equal(newGui.isDepositPreset('token1'), false);
+			newGui.saveDeposit('token1', '0');
+			assert.equal(newGui.isDepositPreset('token1'), true);
 		});
 	});
 
