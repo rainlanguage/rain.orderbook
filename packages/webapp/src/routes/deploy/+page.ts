@@ -6,11 +6,11 @@ export const load: PageLoad = async () => {
 		const data = await response.json();
 
 		return {
-			files: data
+			strategies: data
 		};
 	} catch {
 		return {
-			files: []
+			strategies: []
 		};
 	}
 };
