@@ -145,9 +145,9 @@
 				{item.subgraphName}
 			</TableBodyCell>
 
-			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
-				>{bigintStringToHex(item.vault.vaultId)}</TableBodyCell
-			>
+			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
+				<Hash type={HashType.Identifier} value={bigintStringToHex(item.vault.vaultId)} />
+			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
 				<Hash type={HashType.Identifier} value={item.vault.orderbook.id} />
 			</TableBodyCell>
