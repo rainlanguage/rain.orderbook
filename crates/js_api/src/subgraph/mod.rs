@@ -16,6 +16,8 @@ pub enum SubgraphError {
     InvalidAmount,
     #[error("Invalid output index")]
     InvalidOutputIndex,
+    #[error("Invalid input index")]
+    InvalidInputIndex,
     #[error(transparent)]
     OrderbookSubgraphClientError(#[from] OrderbookSubgraphClientError),
     #[error(transparent)]

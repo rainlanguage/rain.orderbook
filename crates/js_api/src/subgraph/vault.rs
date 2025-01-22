@@ -4,6 +4,7 @@ use alloy::primitives::{Address, Bytes, U256};
 use cynic::Id;
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::deposit::DepositArgs;
+use rain_orderbook_common::withdraw::WithdrawArgs;
 use rain_orderbook_subgraph_client::types::common::VaultsListFilterArgs;
 use rain_orderbook_subgraph_client::{
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -77,6 +78,38 @@ pub async fn get_vault_deposit_calldata(
         amount,
     }
     .get_deposit_calldata()
+    .await?;
+
+    Ok(to_value(&Bytes::copy_from_slice(&calldata))?)
+}
+
+/// Get withdraw calldata for a vault
+/// Returns a string of the calldata
+#[wasm_bindgen(js_name = "getVaultWithdrawCalldata")]
+pub async fn get_vault_withdraw_calldata(
+    url: &str,
+    order_id: &str,
+    input_index: u8,
+    amount: &str,
+) -> Result<JsValue, SubgraphError> {
+    let amount = U256::from_str(&amount)?;
+    if amount == U256::ZERO {
+        return Err(SubgraphError::InvalidAmount);
+    }
+
+    let order = get_sg_order(url, order_id).await?;
+
+    let index = input_index as usize;
+    if order.inputs.len() <= index {
+        return Err(SubgraphError::InvalidInputIndex);
+    }
+
+    let calldata = WithdrawArgs {
+        token: Address::from_str(&order.inputs[index].token.address.0)?,
+        vault_id: U256::from_str(&order.inputs[index].vault_id.0)?,
+        target_amount: amount,
+    }
+    .get_withdraw_calldata()
     .await?;
 
     Ok(to_value(&Bytes::copy_from_slice(&calldata))?)
