@@ -18,6 +18,7 @@
 		type VaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
 	import type { Writable, Readable } from 'svelte/store';
+
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let orderHash: Writable<string>;
@@ -90,6 +91,17 @@
 </script>
 
 {#if $query}
+	<ListViewOrderbookFilters
+		{activeSubgraphs}
+		{settings}
+		{accounts}
+		{activeAccountsItems}
+		{activeOrderStatus}
+		{orderHash}
+		{hideZeroBalanceVaults}
+		{isVaultsPage}
+		{isOrdersPage}
+	/>
 	<AppTable
 		{query}
 		emptyMessage="No Vaults Found"
@@ -99,7 +111,7 @@
 		}}
 	>
 		<svelte:fragment slot="title">
-			<div class="flex w-full justify-between py-4">
+			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
 					{#if handleDepositGenericModal}
@@ -110,22 +122,10 @@
 							data-testid="new-vault-button"
 							on:click={() => {
 								handleDepositGenericModal();
-							}}>New vault</Button
-						>
+							}}
+							>New vault
+						</Button>
 					{/if}
-				</div>
-				<div class="flex flex-col items-end gap-y-2">
-					<ListViewOrderbookFilters
-						{activeSubgraphs}
-						{settings}
-						{accounts}
-						{activeAccountsItems}
-						{activeOrderStatus}
-						{orderHash}
-						{hideZeroBalanceVaults}
-						{isVaultsPage}
-						{isOrdersPage}
-					/>
 				</div>
 			</div>
 		</svelte:fragment>
@@ -148,12 +148,12 @@
 			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
 				>{bigintStringToHex(item.vault.vaultId)}</TableBodyCell
 			>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook"
-				><Hash type={HashType.Identifier} value={item.vault.orderbook.id} /></TableBodyCell
-			>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner"
-				><Hash type={HashType.Wallet} value={item.vault.owner} /></TableBodyCell
-			>
+			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
+				<Hash type={HashType.Identifier} value={item.vault.orderbook.id} />
+			</TableBodyCell>
+			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
+				<Hash type={HashType.Wallet} value={item.vault.owner} />
+			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
 				>{item.vault.token.name}</TableBodyCell
 			>
@@ -174,12 +174,9 @@
 									updateActiveNetworkAndOrderbook(item.subgraphName);
 									goto(`/orders/${order.id}`);
 								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
 							>
+								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
+							</Button>
 						{/each}
 						{#if item.vault.ordersAsInput.length > 3}...{/if}
 					</div>
@@ -198,12 +195,9 @@
 									updateActiveNetworkAndOrderbook(item.subgraphName);
 									goto(`/orders/${order.id}`);
 								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
 							>
+								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
+							</Button>
 						{/each}
 						{#if item.vault.ordersAsOutput.length > 3}...{/if}
 					</div>
@@ -237,15 +231,17 @@
 							on:click={(e) => {
 								e.stopPropagation();
 								handleDepositModal(item.vault, $query.refetch);
-							}}>Deposit</DropdownItem
-						>
+							}}
+							>Deposit
+						</DropdownItem>
 						<DropdownItem
 							data-testid="withdraw-button"
 							on:click={(e) => {
 								e.stopPropagation();
 								handleWithdrawModal(item.vault, $query.refetch);
-							}}>Withdraw</DropdownItem
-						>
+							}}
+							>Withdraw
+						</DropdownItem>
 					</Dropdown>
 				{/if}
 			{/if}

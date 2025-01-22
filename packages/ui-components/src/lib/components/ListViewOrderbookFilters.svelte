@@ -20,7 +20,7 @@
 	export let isOrdersPage: boolean;
 </script>
 
-<div class="flex min-w-[600px] items-center justify-end gap-x-2">
+<div class="flex flex-wrap items-center justify-end gap-x-2 lg:min-w-[600px]">
 	{#if isEmpty($settings?.networks)}
 		<Alert color="gray" data-testid="no-networks-alert">
 			No networks added to <a class="underline" href="/settings">settings</a>
