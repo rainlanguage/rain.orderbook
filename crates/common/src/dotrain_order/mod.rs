@@ -5,6 +5,7 @@ use crate::{
 };
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
+use dotrain::types::patterns::FRONTMATTER_SEPARATOR;
 use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
@@ -217,6 +218,22 @@ impl DotrainOrder {
 
     pub fn orderbook_yaml(&self) -> OrderbookYaml {
         OrderbookYaml::from_documents(self.dotrain_yaml.documents.clone())
+    }
+
+    pub fn get_sources(&self) -> Result<Vec<String>, DotrainOrderError> {
+        let rain_document = RainDocument::create(self.dotrain.clone(), None, None, None);
+        let rainlang = rain_document.body();
+        let dotrain_source = DotrainYaml::get_yaml_string(self.dotrain_yaml.documents[0].clone())?;
+
+        let mut sources = vec![format!(
+            "{dotrain_source}\n{FRONTMATTER_SEPARATOR}\n{rainlang}"
+        )];
+
+        for document in &self.dotrain_yaml.documents[1..] {
+            sources.push(DotrainYaml::get_yaml_string(document.clone())?);
+        }
+
+        Ok(sources)
     }
 
     pub async fn get_pragmas_for_scenario(
