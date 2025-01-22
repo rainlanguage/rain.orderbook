@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { fade } from 'svelte/transition';
-	const { files, strategyName, strategyUrl } = $page.data;
+	const { files, strategyName, strategyUrl, deployment } = $page.data;
 
 	let isLoading = false;
 	let debounceTimer: ReturnType<typeof setTimeout>;
@@ -20,7 +20,11 @@
 		debounceTimer = setTimeout(() => {
 			isLoading = false;
 			_strategyUrl = selectedStrategy;
-			goto(`/deploy/${_strategyName}`);
+			if (deployment) {
+				goto(`/deploy/${_strategyName}/${deployment}`);
+			} else {
+				goto(`/deploy/${_strategyName}`);
+			}
 			return () => clearTimeout(debounceTimer);
 		}, 500);
 	}

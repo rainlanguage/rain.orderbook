@@ -1,6 +1,7 @@
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {
+	console.log('params', params);
 	const owner = 'rainlanguage';
 	const repo = 'rain.strategies';
 	const path = 'strategies/dev';
@@ -14,7 +15,7 @@ export const load: PageLoad = async ({ params }) => {
 		if (!response.ok) {
 			throw new Error(`HTTP error - status: ${response.status}`);
 		}
-		return { dotrain, strategyName: params.filename, strategyUrl: data.download_url };
+		return { dotrain, strategyName: params.filename, strategyUrl: data.download_url, deployment: params.deployment };
 	} catch (e) {
 		return {
 			error: 'Error loading strategy',

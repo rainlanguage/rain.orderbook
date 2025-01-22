@@ -47,7 +47,9 @@
 
 	export let dotrain: string;
 	export let stateFromUrl: string | null = null;
+	export let deploymentFromUrl: string | null = null;
 	$: console.log('stateFromUrl', stateFromUrl);
+	$: console.log('deploymentFromUrl', deploymentFromUrl);
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -89,6 +91,9 @@
 		errorDetails = null;
 		gui = null;
 		await initialize();
+		if (deploymentFromUrl) {
+			await handleDeploymentChange(deploymentFromUrl);
+		}
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -104,6 +109,7 @@
 					console.log('deserializing state from url', stateFromUrl);
 					try {
 						gui.deserializeState(stateFromUrl);
+						console.log('deserialized state', gui.serializeState());
 						hasDeserialized = true;
 					} catch (e) {
 						error = DeploymentStepErrors.NO_GUI;
@@ -253,16 +259,16 @@
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
 
-	$: if (gui) {
-		try {
-			const serializedState = gui.serializeState();
-			$page.url.searchParams.set('gui', serializedState);
-			window.history.pushState({}, '', '?state=' + serializedState);
-		} catch (e) {
-			console.error('Failed to serialize GUI:', e);
-		}
-		error = null;
-	}
+	// $: if (gui) {
+	// 	try {
+	// 		const serializedState = gui.serializeState();
+	// 		$page.url.searchParams.set('gui', serializedState);
+	// 		window.history.pushState({}, '', '?state=' + serializedState);
+	// 	} catch (e) {
+	// 		console.error('Failed to serialize GUI:', e);
+	// 	}
+	// 	error = null;
+	// }
 </script>
 
 <div>
