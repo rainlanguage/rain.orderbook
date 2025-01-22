@@ -60,6 +60,7 @@
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
 	let availableDeployments: Record<string, { label: string }> = {};
+	let hasDeserialized: boolean = false;
 
 	async function initialize() {
 		try {
@@ -98,6 +99,16 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
+				if (stateFromUrl && !hasDeserialized) {
+					console.log('deserializing state from url', stateFromUrl);
+					try {
+						gui.deserializeState(stateFromUrl);
+						hasDeserialized = true;
+					} catch (e) {
+						error = DeploymentStepErrors.NO_GUI;
+						errorDetails = e instanceof Error ? e.message : 'Unknown error';
+					}
+				}
 				try {
 					await getGuiDetails();
 					selectTokens = await gui.getSelectTokens();
