@@ -259,16 +259,16 @@
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
 
-	// $: if (gui) {
-	// 	try {
-	// 		const serializedState = gui.serializeState();
-	// 		$page.url.searchParams.set('gui', serializedState);
-	// 		window.history.pushState({}, '', '?state=' + serializedState);
-	// 	} catch (e) {
-	// 		console.error('Failed to serialize GUI:', e);
-	// 	}
-	// 	error = null;
-	// }
+	$: if (gui) {
+		try {
+			const serializedState = gui.serializeState();
+			$page.url.searchParams.set('gui', serializedState);
+			window.history.pushState({}, '', '?state=' + serializedState);
+		} catch (e) {
+			console.error('Failed to serialize GUI:', e);
+		}
+		error = null;
+	}
 </script>
 
 <div>
@@ -283,7 +283,7 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
 			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={handleDeploymentChange(deployment)}>{label}</Button>
+				<Button on:click={() => handleDeploymentChange(deployment)}>{label}</Button>
 			{/each}
 		</div>
 		{#if gui}
