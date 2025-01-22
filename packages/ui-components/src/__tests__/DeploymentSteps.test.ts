@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
