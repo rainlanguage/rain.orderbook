@@ -140,9 +140,9 @@ impl Context {
     pub fn from_context(context: Option<&Context>) -> Self {
         let mut new_context = Self::new();
         if let Some(context) = context {
-            new_context.order = context.order.clone();
-            new_context.select_tokens = context.select_tokens.clone();
-            new_context.gui_context = context.gui_context.clone();
+            new_context.order.clone_from(&context.order);
+            new_context.select_tokens.clone_from(&context.select_tokens);
+            new_context.gui_context.clone_from(&context.gui_context);
         }
         new_context
     }
