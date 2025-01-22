@@ -365,8 +365,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const guiConfig = gui.getGuiConfig() as Gui;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
+	});
 
-		const guiDetails: GuiDetails = gui.getGuiDetails();
+	it('should get gui details', async () => {
+		const guiDetails: GuiDetails = await DotrainOrderGui.getGuiDetails(dotrainWithGui);
 		assert.equal(guiDetails.name, 'Fixed limit');
 		assert.equal(guiDetails.description, 'Fixed limit order strategy');
 	});
