@@ -44,7 +44,7 @@
 		[linea.id]: linea
 	};
 
-	export let dotrain;
+	export let dotrain: string;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -252,7 +252,7 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
 			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={handleDeploymentChange(deployment)}>{label}</Button>
+				<Button on:click={() => handleDeploymentChange(deployment)}>{label}</Button>
 			{/each}
 		</div>
 		{#if gui}
