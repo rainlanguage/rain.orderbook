@@ -646,6 +646,7 @@ gui:
             "{yaml_prefix}
 orders:
     order1:
+        deployer: mainnet
         inputs:
             - token: token-three
         outputs:
@@ -657,6 +658,7 @@ orders:
             "{yaml_prefix}
 orders:
     order1:
+        deployer: mainnet
         inputs:
             - token: token-one
             - token: token-two
