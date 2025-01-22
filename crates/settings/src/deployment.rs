@@ -59,6 +59,8 @@ impl YamlParsableHash for Deployment {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployments = HashMap::new();
 
+        let orders = Order::parse_all_from_yaml(documents.clone(), context)?;
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -66,17 +68,17 @@ impl YamlParsableHash for Deployment {
                 for (key_yaml, deployment_yaml) in deployments_hash {
                     let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                    let order = Order::parse_from_yaml(
-                        documents.clone(),
-                        &require_string(
-                            deployment_yaml,
-                            Some("order"),
-                            Some(format!(
-                                "order string missing in deployment: {deployment_key}"
-                            )),
-                        )?,
-                        context,
+                    let order_key = require_string(
+                        deployment_yaml,
+                        Some("order"),
+                        Some(format!(
+                            "order string missing in deployment: {deployment_key}"
+                        )),
                     )?;
+                    let order = orders
+                        .get(&order_key)
+                        .ok_or_else(|| YamlError::KeyNotFound(order_key.clone()))?
+                        .clone();
 
                     let mut context = Context::new();
                     context.add_order(Arc::new(order.clone()));
@@ -266,6 +268,25 @@ mod tests {
     #[test]
     fn test_parse_deployments_from_yaml() {
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
 test: test
 "#;
         let error = Deployment::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -275,6 +296,25 @@ test: test
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
 deployments:
     deployment1:
         test: test
