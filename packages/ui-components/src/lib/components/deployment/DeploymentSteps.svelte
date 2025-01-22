@@ -46,6 +46,7 @@
 
 	export let dotrain: string;
 	export let stateFromUrl: string | null = null;
+	$: console.log('stateFromUrl', stateFromUrl);
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
