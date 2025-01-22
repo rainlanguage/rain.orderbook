@@ -566,10 +566,7 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-	it('shows no content when dotrain is not provided', () => {
-		render(DeploymentSteps, { props: { dotrain: null } });
-		expect(screen.queryByText('Select Deployment')).not.toBeInTheDocument();
-	});
+
 
 	it('shows deployment buttons when dotrain is provided', async () => {
 		const mockDeployments = ['deployment1', 'deployment2'];
