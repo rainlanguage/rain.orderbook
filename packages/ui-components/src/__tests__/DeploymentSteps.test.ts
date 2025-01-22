@@ -566,8 +566,6 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-
-
 	it('shows deployment buttons when dotrain is provided', async () => {
 		const mockDeployments = ['deployment1', 'deployment2'];
 		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
