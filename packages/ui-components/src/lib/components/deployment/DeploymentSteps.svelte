@@ -19,6 +19,7 @@
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
+	import { page } from '$app/stores';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -250,6 +251,17 @@
 		const deployment = gui.getCurrentDeployment();
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
+	}
+
+	$: if (gui) {
+		try {
+			const serializedState = gui.serializeState();
+			$page.url.searchParams.set('gui', serializedState);
+			window.history.pushState({}, '', '?state=' + serializedState);
+		} catch (e) {
+			console.error('Failed to serialize GUI:', e);
+		}
+		error = null;
 	}
 </script>
 
