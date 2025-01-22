@@ -40,30 +40,31 @@
 </script>
 
 <svelte:window bind:innerWidth={width} />
-<template>
+<div>
 	{#if sideBarHidden}
-		<BarsSolid data-testid="sidebar-bars"
-				   class="absolute left-2 top-2 size-5 lg:hidden"
-				   on:click={() => (sideBarHidden = false)}
+		<BarsSolid
+			data-testid="sidebar-bars"
+			class="absolute left-2 top-2 size-5 lg:hidden"
+			on:click={() => (sideBarHidden = false)}
 		/>
 	{/if}
 	<Sidebar activeUrl={page.url.pathname} asideClass="w-64 z-10 fixed" bind:hidden={sideBarHidden}>
 		{#if !sideBarHidden}
 			<CloseButton
-					class="absolute right-3 top-2 z-20 size-5 lg:hidden"
-					on:click={() => (sideBarHidden = true)}
+				class="absolute right-3 top-2 z-20 size-5 lg:hidden"
+				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
 		<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
 			<SidebarGroup ulClass="">
 				<SidebarBrand
-						site={{
-					name: '',
-					href: '/',
-					img: $colorTheme === 'light' ? logoLight : logoDark
-				}}
-						imgClass="m-auto"
-						aClass="mb-0"
+					site={{
+						name: '',
+						href: '/',
+						img: $colorTheme === 'light' ? logoLight : logoDark
+					}}
+					imgClass="m-auto"
+					aClass="mb-0"
 				></SidebarBrand>
 			</SidebarGroup>
 			<SidebarGroup border>
@@ -90,10 +91,10 @@
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem
-						on:click={toggleSide}
-						label="Documentation"
-						target="_blank"
-						href="https://docs.rainlang.xyz/raindex/overview"
+					on:click={toggleSide}
+					label="Documentation"
+					target="_blank"
+					href="https://docs.rainlang.xyz/raindex/overview"
 				>
 					<svelte:fragment slot="icon">
 						<IconExternalLink />
@@ -101,10 +102,10 @@
 					</svelte:fragment>
 				</SidebarItem>
 				<SidebarItem
-						on:click={toggleSide}
-						label="Ask for help"
-						target="_blank"
-						href="https://t.me/+W0aQ36ptN_E2MjZk"
+					on:click={toggleSide}
+					label="Ask for help"
+					target="_blank"
+					href="https://t.me/+W0aQ36ptN_E2MjZk"
 				>
 					<svelte:fragment slot="icon">
 						<IconTelegram />
@@ -123,4 +124,4 @@
 			</SidebarGroup>
 		</SidebarWrapper>
 	</Sidebar>
-</template>
+</div>
