@@ -2,8 +2,12 @@ import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import { Vault, VaultWithSubgraphName, Deposit } from '../../dist/types/js_api.js';
-import { getVaults, getVault, getVaultBalanceChanges } from '../../dist/cjs/js_api.js';
-import { VaultBalanceChange } from '../../dist/types/quote.js';
+import {
+	getVaults,
+	getVault,
+	getVaultBalanceChanges,
+	getVaultDepositCalldata
+} from '../../dist/cjs/js_api.js';
 
 const vault1: Vault = {
 	id: 'vault1',
@@ -150,6 +154,99 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			assert.fail('expected to reject, but resolved');
 		} catch (e) {
 			assert.ok(e);
+		}
+	});
+
+	const order = {
+		id: 'order',
+		orderBytes:
+			'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+		orderHash: '0x1',
+		owner: '0x0000000000000000000000000000000000000000',
+		outputs: [
+			{
+				id: '0x0000000000000000000000000000000000000000',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x1234567890123456789012345678901234567890',
+					name: 'T1',
+					symbol: 'T1',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0x2523',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		inputs: [
+			{
+				id: '0x0000000000000000000000000000000000000000',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'T2',
+					symbol: 'T2',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		active: true,
+		addEvents: [
+			{
+				transaction: {
+					blockNumber: '0',
+					timestamp: '0',
+					id: '0x0000000000000000000000000000000000000000',
+					from: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		meta: null,
+		timestampAdded: '0',
+		orderbook: {
+			id: '0x0000000000000000000000000000000000000000'
+		},
+		trades: []
+	};
+
+	it('should get deposit calldata for a vault', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		let calldata: string = await getVaultDepositCalldata(
+			mockServer.url + '/sg4',
+			'order1',
+			0,
+			'500'
+		);
+		assert.equal(calldata.length, 330);
+
+		try {
+			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 99, '500');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid output index');
+		}
+
+		try {
+			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
+			assert.fail('expected to reject, but resolved');
+		} catch (error) {
+			assert.equal((error as Error).message, 'Invalid amount');
 		}
 	});
 });
