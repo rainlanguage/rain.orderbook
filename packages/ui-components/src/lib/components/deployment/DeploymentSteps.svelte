@@ -20,6 +20,7 @@
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -44,6 +45,8 @@
 		[mainnet.id]: mainnet,
 		[linea.id]: linea
 	};
+
+	const { strategyName } = $page.data;
 
 	export let dotrain: string;
 	export let stateFromUrl: string | null = null;
@@ -97,6 +100,7 @@
 	}
 
 	async function handleDeploymentChange(deployment: string) {
+		hasDeserialized = false;
 		if (!deployment || !dotrain) return;
 		error = null;
 		errorDetails = null;
@@ -110,7 +114,6 @@
 					try {
 						gui.deserializeState(stateFromUrl);
 						console.log('deserialized state', gui.getCurrentDeployment());
-						hasDeserialized = true;
 					} catch (e) {
 						error = DeploymentStepErrors.NO_GUI;
 						errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -119,7 +122,6 @@
 				try {
 					await getGuiDetails();
 					selectTokens = await gui.getSelectTokens();
-					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
 					return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
@@ -194,11 +196,14 @@
 		try {
 			error = null;
 			errorDetails = null;
-			initializeVaultIdArrays();
-			getAllDepositFields();
-			getAllFieldDefinitions();
-			getAllTokenInputs();
-			getAllTokenOutputs();
+			await Promise.all([
+				initializeVaultIdArrays(),
+				getAllDepositFields(),
+				getAllFieldDefinitions(),
+				getAllTokenInputs(),
+				getAllTokenOutputs()
+			]);
+			hasDeserialized = true;
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -259,12 +264,23 @@
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
 
-	$: if (gui) {
-		console.log('gui', gui);
+	$: if (gui && hasDeserialized) {
+		console.log('serializing state', gui);
+		handleSerializeState(gui);
+	}
+
+	async function handleSerializeState(gui) {
 		try {
-			const serializedState = gui.serializeState();
-			$page.url.searchParams.set('gui', serializedState);
+			const serializedState = await gui.serializeState();
+			console.log('serializedState', serializedState);
+			$page.url.searchParams.set('state', serializedState);
 			window.history.pushState({}, '', '?state=' + serializedState);
+			try {
+				const state = await gui.deserializeState(serializedState);
+				console.log('Deserialized state', state);
+			} catch (e) {
+				console.error('Failed to deserialize GUI:', e);
+			}
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}
@@ -283,7 +299,7 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
 			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={() => handleDeploymentChange(deployment)}>{label}</Button>
+				<Button on:click={() => goto(`/deploy/${strategyName}/${deployment}`)}>{label}</Button>
 			{/each}
 		</div>
 		{#if gui}
