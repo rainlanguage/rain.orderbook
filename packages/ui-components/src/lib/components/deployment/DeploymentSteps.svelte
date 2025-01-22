@@ -45,6 +45,7 @@
 	};
 
 	export let dotrain: string;
+	export let stateFromUrl: string | null = null;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;

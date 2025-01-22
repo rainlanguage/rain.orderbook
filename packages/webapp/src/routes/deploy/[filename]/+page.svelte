@@ -5,6 +5,7 @@
 	import { fade } from 'svelte/transition';
 
 	const { dotrain, strategyName, errorDetails, error } = $page.data;
+	const stateFromUrl = $page.url.searchParams.get('state');
 	let _dotrain = dotrain;
 </script>
 
@@ -15,7 +16,7 @@
 			<p>Strategy loaded: {strategyName}</p>
 		</div>
 
-		<DeploymentSteps dotrain={_dotrain} />
+		<DeploymentSteps dotrain={_dotrain} {stateFromUrl} />
 	</div>
 {:else}
 	<div>
