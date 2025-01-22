@@ -1,11 +1,17 @@
+use super::order::get_sg_order;
+use super::SubgraphError;
+use alloy::primitives::{Address, Bytes, U256};
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use rain_orderbook_common::deposit::DepositArgs;
 use rain_orderbook_subgraph_client::types::common::VaultsListFilterArgs;
 use rain_orderbook_subgraph_client::{
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError, PaginationArgs,
 };
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Fetch all vaults from multiple subgraphs
 /// Returns a list of VaultWithSubgraphName structs
@@ -42,4 +48,36 @@ pub async fn get_vault_balance_changes(
         .vault_balance_changes_list(Id::new(id), pagination_args)
         .await?;
     Ok(to_value(&changes)?)
+}
+
+/// Get deposit calldata for a vault
+/// Returns a string of the calldata
+#[wasm_bindgen(js_name = "getVaultDepositCalldata")]
+pub async fn get_vault_deposit_calldata(
+    url: &str,
+    order_id: &str,
+    output_index: u8,
+    amount: &str,
+) -> Result<JsValue, SubgraphError> {
+    let amount = U256::from_str(&amount)?;
+    if amount == U256::ZERO {
+        return Err(SubgraphError::InvalidAmount);
+    }
+
+    let order = get_sg_order(url, order_id).await?;
+
+    let index = output_index as usize;
+    if order.outputs.len() <= index {
+        return Err(SubgraphError::InvalidOutputIndex);
+    }
+
+    let calldata = DepositArgs {
+        token: Address::from_str(&order.outputs[index].token.address.0)?,
+        vault_id: U256::from_str(&order.outputs[index].vault_id.0)?,
+        amount,
+    }
+    .get_deposit_calldata()
+    .await?;
+
+    Ok(to_value(&Bytes::copy_from_slice(&calldata))?)
 }
