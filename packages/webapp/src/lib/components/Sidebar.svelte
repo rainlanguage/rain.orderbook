@@ -4,9 +4,16 @@
 		SidebarGroup,
 		SidebarItem,
 		SidebarWrapper,
-		SidebarBrand
+		SidebarBrand,
+		CloseButton
 	} from 'flowbite-svelte';
-	import { WalletSolid, ReceiptSolid, FileLinesSolid, PlusOutline } from 'flowbite-svelte-icons';
+	import {
+		WalletSolid,
+		ReceiptSolid,
+		FileLinesSolid,
+		PlusOutline,
+		BarsSolid
+	} from 'flowbite-svelte-icons';
 	import { page } from '$app/stores';
 	import {
 		ButtonDarkMode,
@@ -15,20 +22,35 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
+	let sideBarHidden: boolean = false;
 
 	export let colorTheme;
 </script>
 
-<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
+{#if sideBarHidden}
+	<BarsSolid
+		class="absolute left-2 top-2 size-5 lg:hidden"
+		on:click={() => (sideBarHidden = false)}
+	/>
+{/if}
+
+<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 z-10 fixed" bind:hidden={sideBarHidden}>
+	{#if !sideBarHidden}
+		<CloseButton
+			class="absolute right-3 top-2 z-20 size-5 lg:hidden"
+			on:click={() => (sideBarHidden = true)}
+		/>
+	{/if}
 	<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
 		<SidebarGroup ulClass="">
 			<SidebarBrand
 				site={{
 					name: '',
 					href: '/',
-					img: $colorTheme == 'light' ? logoLight : logoDark
+					img: $colorTheme === 'light' ? logoLight : logoDark
 				}}
 				imgClass="m-auto"
+				aClass="mb-0"
 			></SidebarBrand>
 		</SidebarGroup>
 		<SidebarGroup border>
