@@ -1,12 +1,13 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
-import { describe, it, beforeEach, afterEach } from 'vitest';
+import { describe, it, beforeEach, beforeAll, afterAll } from 'vitest';
 import { Vault, VaultWithSubgraphName, Deposit } from '../../dist/types/js_api.js';
 import {
 	getVaults,
 	getVault,
 	getVaultBalanceChanges,
-	getVaultDepositCalldata
+	getVaultDepositCalldata,
+	getVaultWithdrawCalldata
 } from '../../dist/cjs/js_api.js';
 
 const vault1: Vault = {
@@ -50,8 +51,15 @@ const vault2: Vault = {
 
 describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () {
 	const mockServer = getLocal();
-	beforeEach(() => mockServer.start(8083));
-	afterEach(() => mockServer.stop());
+	beforeAll(async () => {
+		await mockServer.start(8083);
+	});
+	afterAll(async () => {
+		await mockServer.stop();
+	});
+	beforeEach(() => {
+		mockServer.reset();
+	});
 
 	it('should fetch a single vault', async () => {
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
@@ -189,13 +197,13 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 				id: '0x0000000000000000000000000000000000000000',
 				token: {
 					id: '0x0000000000000000000000000000000000000000',
-					address: '0x0000000000000000000000000000000000000000',
+					address: '0x9876543210987654321098765432109876543210',
 					name: 'T2',
 					symbol: 'T2',
 					decimals: '0'
 				},
-				balance: '0',
-				vaultId: '0',
+				balance: '999999999999999',
+				vaultId: '0x100',
 				owner: '0x0000000000000000000000000000000000000000',
 				ordersAsOutput: [],
 				ordersAsInput: [],
@@ -244,6 +252,32 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 
 		try {
 			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
+			assert.fail('expected to reject, but resolved');
+		} catch (error) {
+			assert.equal((error as Error).message, 'Invalid amount');
+		}
+	});
+
+	it('should get withdraw calldata for a vault', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		let calldata: string = await getVaultWithdrawCalldata(
+			mockServer.url + '/sg4',
+			'order1',
+			0,
+			'500'
+		);
+		assert.equal(calldata.length, 330);
+
+		try {
+			await getVaultWithdrawCalldata(mockServer.url + '/sg4', 'order1', 99, '500');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid input index');
+		}
+
+		try {
+			await getVaultWithdrawCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
 			assert.fail('expected to reject, but resolved');
 		} catch (error) {
 			assert.equal((error as Error).message, 'Invalid amount');
