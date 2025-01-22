@@ -2,7 +2,7 @@ use super::order::get_sg_order;
 use super::SubgraphError;
 use alloy::primitives::{Address, Bytes, U256};
 use cynic::Id;
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_common::deposit::DepositArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
 use rain_orderbook_subgraph_client::types::common::VaultsListFilterArgs;
@@ -11,7 +11,6 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError, PaginationArgs,
 };
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 /// Fetch all vaults from multiple subgraphs
