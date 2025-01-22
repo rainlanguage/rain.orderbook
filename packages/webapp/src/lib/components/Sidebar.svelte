@@ -22,9 +22,21 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
-	let sideBarHidden: boolean = false;
-
+	import { onMount } from 'svelte';
 	export let colorTheme;
+	let sideBarHidden: boolean = false;
+	let breakPoint: number = 1024;
+	let width: number;
+	$: sideBarHidden = width < breakPoint;
+	onMount(() => {
+		sideBarHidden = width < breakPoint;
+	});
+
+	const toggleSide = () => {
+		if (width < breakPoint) {
+			sideBarHidden = !sideBarHidden;
+		}
+	};
 </script>
 
 {#if sideBarHidden}
@@ -33,7 +45,7 @@
 		on:click={() => (sideBarHidden = false)}
 	/>
 {/if}
-
+<svelte:window bind:innerWidth={width} />
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 z-10 fixed" bind:hidden={sideBarHidden}>
 	{#if !sideBarHidden}
 		<CloseButton
@@ -54,7 +66,7 @@
 			></SidebarBrand>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<SidebarItem label="Deploy" href="/deploy">
+			<SidebarItem label="Deploy" href="/deploy" on:click={toggleSide}>
 				<svelte:fragment slot="icon">
 					<PlusOutline class="h-5 w-5" />
 					<span data-testid="sidebar-deploy"></span>
@@ -62,13 +74,13 @@
 			</SidebarItem>
 		</SidebarGroup>
 		<SidebarGroup border>
-			<SidebarItem label="Orders" href="/orders">
+			<SidebarItem label="Orders" href="/orders" on:click={toggleSide}>
 				<svelte:fragment slot="icon">
 					<ReceiptSolid class="h-5 w-5" />
 					<span data-testid="sidebar-orders"></span>
 				</svelte:fragment>
 			</SidebarItem>
-			<SidebarItem label="Vaults" href="/vaults">
+			<SidebarItem label="Vaults" href="/vaults" on:click={toggleSide}>
 				<svelte:fragment slot="icon">
 					<WalletSolid class="h-5 w-5" />
 					<span data-testid="sidebar-vaults"></span>
@@ -77,6 +89,7 @@
 		</SidebarGroup>
 		<SidebarGroup border>
 			<SidebarItem
+				on:click={toggleSide}
 				label="Documentation"
 				target="_blank"
 				href="https://docs.rainlang.xyz/raindex/overview"
@@ -86,13 +99,18 @@
 					<span data-testid="sidebar-documentation"></span>
 				</svelte:fragment>
 			</SidebarItem>
-			<SidebarItem label="Ask for help" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
+			<SidebarItem
+				on:click={toggleSide}
+				label="Ask for help"
+				target="_blank"
+				href="https://t.me/+W0aQ36ptN_E2MjZk"
+			>
 				<svelte:fragment slot="icon">
 					<IconTelegram />
 					<span data-testid="sidebar-telegram"></span>
 				</svelte:fragment>
 			</SidebarItem>
-			<SidebarItem label="License" href="/license">
+			<SidebarItem on:click={toggleSide} label="License" href="/license">
 				<svelte:fragment slot="icon">
 					<FileLinesSolid />
 					<span data-testid="sidebar-license"></span>
