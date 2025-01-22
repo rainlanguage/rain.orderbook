@@ -3,9 +3,16 @@ use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
+pub struct GuiContext {
+    pub current_deployment: Option<String>,
+    pub current_order: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<Order>>,
     pub select_tokens: Option<Vec<String>>,
+    pub gui_context: Option<GuiContext>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -101,12 +108,43 @@ impl OrderContext for Context {
     }
 }
 
+pub trait GuiContextTrait {
+    fn get_current_deployment(&self) -> Option<&String>;
+
+    fn get_current_order(&self) -> Option<&String>;
+}
+
+impl GuiContextTrait for Context {
+    fn get_current_deployment(&self) -> Option<&String> {
+        self.gui_context
+            .as_ref()
+            .and_then(|gui_context| gui_context.current_deployment.as_ref())
+    }
+
+    fn get_current_order(&self) -> Option<&String> {
+        self.gui_context
+            .as_ref()
+            .and_then(|gui_context| gui_context.current_order.as_ref())
+    }
+}
+
 impl Context {
     pub fn new() -> Self {
         Self {
             order: None,
             select_tokens: None,
+            gui_context: None,
         }
+    }
+
+    pub fn from_context(context: Option<&Context>) -> Self {
+        let mut new_context = Self::new();
+        if let Some(context) = context {
+            new_context.order = context.order.clone();
+            new_context.select_tokens = context.select_tokens.clone();
+            new_context.gui_context = context.gui_context.clone();
+        }
+        new_context
     }
 
     pub fn add_order(&mut self, order: Arc<Order>) -> &mut Self {
@@ -116,6 +154,22 @@ impl Context {
 
     pub fn add_select_tokens(&mut self, select_tokens: Vec<String>) -> &mut Self {
         self.select_tokens = Some(select_tokens);
+        self
+    }
+
+    pub fn add_current_deployment(&mut self, deployment: String) -> &mut Self {
+        self.gui_context = Some(GuiContext {
+            current_deployment: Some(deployment),
+            current_order: None,
+        });
+        self
+    }
+
+    pub fn add_current_order(&mut self, order: String) -> &mut Self {
+        self.gui_context = Some(GuiContext {
+            current_deployment: None,
+            current_order: Some(order),
+        });
         self
     }
 
