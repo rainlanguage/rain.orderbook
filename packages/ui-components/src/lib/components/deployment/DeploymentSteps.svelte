@@ -109,7 +109,7 @@
 					console.log('deserializing state from url', stateFromUrl);
 					try {
 						gui.deserializeState(stateFromUrl);
-						console.log('deserialized state', gui.serializeState());
+						console.log('deserialized state', gui.getCurrentDeployment());
 						hasDeserialized = true;
 					} catch (e) {
 						error = DeploymentStepErrors.NO_GUI;
@@ -260,6 +260,7 @@
 	}
 
 	$: if (gui) {
+		console.log('gui', gui);
 		try {
 			const serializedState = gui.serializeState();
 			$page.url.searchParams.set('gui', serializedState);
@@ -267,7 +268,6 @@
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}
-		error = null;
 	}
 </script>
 
@@ -317,7 +317,7 @@
 					{#if allFieldDefinitions.length > 0}
 						<div class="flex w-full flex-col items-center gap-24">
 							{#each allFieldDefinitions as fieldDefinition}
-								<FieldDefinitionInput {fieldDefinition} {gui} />
+								<FieldDefinitionInput {fieldDefinition} bind:gui />
 							{/each}
 						</div>
 					{/if}
@@ -342,7 +342,7 @@
 										label="Input"
 										vault={input}
 										vaultIds={inputVaultIds}
-										{gui}
+										bind:gui
 									/>
 								{/each}
 							{/if}
@@ -354,7 +354,7 @@
 										label="Output"
 										vault={output}
 										vaultIds={outputVaultIds}
-										{gui}
+										bind:gui
 									/>
 								{/each}
 							{/if}

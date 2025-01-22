@@ -6,6 +6,7 @@
 	import { page } from '$app/stores';
 	import { fade } from 'svelte/transition';
 	const { files, strategyName, strategyUrl, deployment } = $page.data;
+	const stateFromUrl = $page.url.searchParams.get('state');
 
 	let isLoading = false;
 	let debounceTimer: ReturnType<typeof setTimeout>;
@@ -14,6 +15,8 @@
 	let _strategyUrl = strategyUrl;
 	let _strategyName = strategyName;
 
+	// TODO: fix the URL search input and add a load button
+
 	$: if (selectedStrategy) {
 		isLoading = true;
 		clearTimeout(debounceTimer);
@@ -21,7 +24,11 @@
 			isLoading = false;
 			_strategyUrl = selectedStrategy;
 			if (deployment) {
-				goto(`/deploy/${_strategyName}/${deployment}`);
+				if (stateFromUrl) {
+					goto(`/deploy/${_strategyName}/${deployment}?state=${stateFromUrl}`);
+				} else {
+					goto(`/deploy/${_strategyName}/${deployment}`);
+				}
 			} else {
 				goto(`/deploy/${_strategyName}`);
 			}
