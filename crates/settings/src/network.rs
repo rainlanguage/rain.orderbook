@@ -113,6 +113,10 @@ impl Network {
                         None,
                     )?)?);
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "networks field must be a map".to_string(),
+                ));
             }
         }
         Err(YamlError::ParseError(format!(
@@ -356,5 +360,46 @@ networks:
         )
         .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
+    }
+
+    #[test]
+    fn test_parse_network_key() {
+        let yaml = r#"
+networks: test
+"#;
+        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("networks field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+  - test
+"#;
+        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("networks field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+  - test: test
+"#;
+        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("networks field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+  mainnet:
+    rpc: https://rpc.com
+    chain-id: 1
+"#;
+        let res = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
+        assert_eq!(res, Url::parse("https://rpc.com").unwrap());
     }
 }
