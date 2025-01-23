@@ -18,7 +18,7 @@
 	on:click={() => goto(`/vaults/${subgraphName}-${tokenVault.id}`)}
 >
 	<div class="flex flex-col space-y-2">
-		<div class="flex items-center justify-between">
+		<div class="flex flex-col items-start justify-between lg:flex-row lg:items-center">
 			<Tooltip triggeredBy="#token-info" class="w-96">
 				ID: <span class="font-mono">{bigintStringToHex(tokenVault.vaultId)}</span>
 			</Tooltip>

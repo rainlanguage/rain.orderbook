@@ -22,10 +22,10 @@
 		<slot name="top" {data} />
 	</div>
 	<div class="grid gap-4 lg:grid-cols-3">
-		<div class="col-span-1 flex flex-col gap-y-6">
+		<div class="flex flex-col gap-y-6 lg:col-span-1">
 			<slot name="card" {data} />
 		</div>
-		<div class="col-span-2 min-h-[500px]">
+		<div class="min-h-[500px] lg:col-span-2">
 			<slot name="chart" {data} />
 		</div>
 	</div>
