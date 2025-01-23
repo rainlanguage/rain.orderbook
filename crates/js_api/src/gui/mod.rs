@@ -39,11 +39,11 @@ pub struct TokenInfo {
 impl_all_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct GuiDetails {
+pub struct NameAndDescription {
     name: String,
     description: String,
 }
-impl_all_wasm_traits!(GuiDetails);
+impl_all_wasm_traits!(NameAndDescription);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -146,11 +146,34 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
-    #[wasm_bindgen(js_name = "getGuiDetails")]
-    pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
+    #[wasm_bindgen(js_name = "getStrategyDetails")]
+    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescription, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let (name, description) =
-            Gui::parse_gui_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(GuiDetails { name, description })
+            Gui::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(NameAndDescription { name, description })
+    }
+
+    #[wasm_bindgen(js_name = "getDeploymentDetails")]
+    pub async fn get_deployment_details(
+        dotrain: String,
+        deployment_key: String,
+    ) -> Result<NameAndDescription, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let gui = dotrain_order
+            .dotrain_yaml()
+            .get_gui()?
+            .ok_or(GuiError::GuiConfigNotFound)?;
+
+        let deployment = gui
+            .deployments
+            .get(&deployment_key)
+            .ok_or(GuiError::DeploymentNotFound(deployment_key))?;
+
+        Ok(NameAndDescription {
+            name: deployment.name.clone(),
+            description: deployment.description.clone(),
+        })
     }
 }
 

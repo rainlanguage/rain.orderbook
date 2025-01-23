@@ -377,8 +377,14 @@ mod tests {
         assert_eq!(select_tokens.len(), 1);
         assert_eq!(select_tokens[0], "token2");
 
-        let (name, description) = Gui::parse_gui_details(dotrain_yaml.documents.clone()).unwrap();
+        let (name, description) =
+            Gui::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(name, "Test gui");
+        assert_eq!(description, "Test description");
+
+        let (name, description) =
+            Gui::parse_deployment_details(dotrain_yaml.documents.clone(), "deployment1").unwrap();
+        assert_eq!(name, "Test deployment");
         assert_eq!(description, "Test description");
 
         let deployment_keys = Gui::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
