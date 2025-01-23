@@ -1,4 +1,4 @@
-import {render, cleanup, screen, fireEvent} from '@testing-library/svelte';
+import { render, cleanup, screen, fireEvent } from '@testing-library/svelte';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import Sidebar from '../lib/components/Sidebar.svelte';
 import { writable } from 'svelte/store';

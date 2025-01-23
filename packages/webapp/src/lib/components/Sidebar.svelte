@@ -52,7 +52,12 @@
 			<BarsSolid class="" />
 		</Button>
 	{/if}
-	<Sidebar activeUrl={page.url.pathname} asideClass="w-64 z-10 fixed" bind:hidden={sideBarHidden} data-testid="sidebar">
+	<Sidebar
+		activeUrl={page.url.pathname}
+		asideClass="w-64 z-10 fixed"
+		bind:hidden={sideBarHidden}
+		data-testid="sidebar"
+	>
 		{#if !sideBarHidden}
 			<CloseButton
 				class="absolute right-3 top-2 z-20 flex size-8 items-center lg:hidden"
