@@ -1,4 +1,4 @@
-import { render, cleanup, screen } from '@testing-library/svelte';
+import {render, cleanup, screen, fireEvent} from '@testing-library/svelte';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import Sidebar from '../lib/components/Sidebar.svelte';
 import { writable } from 'svelte/store';
@@ -49,8 +49,7 @@ describe('Sidebar', () => {
 
 		expect(container).toBeTruthy();
 	});
-
-	it('renders menu bars button when screen width is small', async () => {
+	it('renders menu bars button when screen width is small', () => {
 		// Mock small screen width
 		mockWindowSize(500);
 		const mockColorTheme = writable('light');
@@ -59,8 +58,20 @@ describe('Sidebar', () => {
 		};
 		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
 
-		const toggleButton = screen.getByTestId('sidebar-bars');
-		expect(toggleButton).toBeInTheDocument();
+		const barsButton = screen.getByTestId('sidebar-bars');
+		expect(barsButton).toBeInTheDocument();
 	});
+	it('renders sidebar when bars button is clicked', () => {
+		// Mock small screen width
+		mockWindowSize(500);
+		const mockColorTheme = writable('light');
+		const mockPage = {
+			url: { pathname: '/' }
+		};
+		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
 
+		const barsButton = screen.getByTestId('sidebar-bars');
+		fireEvent.click(barsButton);
+		expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+	});
 });
