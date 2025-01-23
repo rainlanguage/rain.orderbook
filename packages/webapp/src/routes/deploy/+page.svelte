@@ -17,8 +17,6 @@
 		try {
 			const response = await fetch(url);
 			const files = await response.text();
-			console.log(files);
-			// Parse the response text into array of {name, url} objects
 			_files = files
 				.split('\n')
 				.filter((line) => line.trim())
