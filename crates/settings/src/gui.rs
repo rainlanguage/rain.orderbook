@@ -1,7 +1,8 @@
 use crate::{
     yaml::{
-        context::Context, default_document, get_hash_value, optional_hash, optional_string,
-        optional_vec, require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        context::{Context, GuiContextTrait},
+        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
+        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -349,7 +350,7 @@ impl YamlParseableValue for Gui {
 
     fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
         let mut gui_res: Option<Gui> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeployment> = HashMap::new();
@@ -397,7 +398,15 @@ impl YamlParseableValue for Gui {
                 for (deployment_name, deployment_yaml) in deployments {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let mut context = Context::new();
+                    if let Some(context) = context {
+                        if let Some(current_deployment) = context.get_current_deployment() {
+                            if current_deployment != &deployment_name {
+                                continue;
+                            }
+                        }
+                    }
+
+                    let mut context = Context::from_context(context);
 
                     let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
                             Some(tokens) => Some(
