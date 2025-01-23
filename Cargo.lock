@@ -6461,11 +6461,13 @@ dependencies = [
  "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.5",
+ "sha2",
  "thiserror",
  "tokio",
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
