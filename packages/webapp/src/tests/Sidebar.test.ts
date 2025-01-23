@@ -1,4 +1,4 @@
-import { render, cleanup, screen, fireEvent } from '@testing-library/svelte';
+import { render, cleanup, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import Sidebar from '../lib/components/Sidebar.svelte';
 import { writable } from 'svelte/store';
@@ -61,7 +61,7 @@ describe('Sidebar', () => {
 		const barsButton = screen.getByTestId('sidebar-bars');
 		expect(barsButton).toBeInTheDocument();
 	});
-	it('renders sidebar when bars button is clicked', () => {
+	it('renders sidebar when bars button is clicked', async () => {
 		// Mock small screen width
 		mockWindowSize(500);
 		const mockColorTheme = writable('light');
@@ -72,6 +72,30 @@ describe('Sidebar', () => {
 
 		const barsButton = screen.getByTestId('sidebar-bars');
 		fireEvent.click(barsButton);
-		expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+
+		await waitFor(() => {
+			const sidebar = screen.getByTestId('sidebar');
+			expect(sidebar.hidden).toBe(false);
+		});
+	});
+	it('hides sidebar when close button is clicked', async () => {
+		mockWindowSize(500);
+		const mockColorTheme = writable('light');
+		const mockPage = {
+			url: { pathname: '/' }
+		};
+		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
+
+		const barsButton = screen.getByTestId('sidebar-bars');
+		await fireEvent.click(barsButton);
+		await waitFor(() => {
+			expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+		});
+		const closeButton = screen.getByTestId('close-button');
+		await fireEvent.click(closeButton);
+		await waitFor(() => {
+			const sidebar = screen.getByTestId('sidebar');
+			expect(sidebar.hidden).toBe(true);
+		});
 	});
 });
