@@ -5,7 +5,8 @@
 		SidebarItem,
 		SidebarWrapper,
 		SidebarBrand,
-		CloseButton
+		CloseButton,
+		Button
 	} from 'flowbite-svelte';
 	import {
 		WalletSolid,
@@ -42,16 +43,19 @@
 <svelte:window bind:innerWidth={width} />
 <div>
 	{#if sideBarHidden}
-		<BarsSolid
-			data-testid="sidebar-bars"
-			class="absolute left-2 top-2 size-5 lg:hidden"
+		<Button
 			on:click={() => (sideBarHidden = false)}
-		/>
+			color="alternative"
+			class="absolute left-2 top-2 flex size-8 items-center p-5 lg:hidden"
+			data-testid="sidebar-bars"
+		>
+			<BarsSolid data-testid="sidebar-bars" class="" />
+		</Button>
 	{/if}
 	<Sidebar activeUrl={page.url.pathname} asideClass="w-64 z-10 fixed" bind:hidden={sideBarHidden}>
 		{#if !sideBarHidden}
 			<CloseButton
-				class="absolute right-3 top-2 z-20 size-5 lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center lg:hidden"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
