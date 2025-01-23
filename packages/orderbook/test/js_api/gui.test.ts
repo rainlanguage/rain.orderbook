@@ -11,7 +11,7 @@ import {
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
-	GuiDetails,
+	NameAndDescription,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
@@ -367,10 +367,23 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
 	});
 
-	it('should get gui details', async () => {
-		const guiDetails: GuiDetails = await DotrainOrderGui.getGuiDetails(dotrainWithGui);
-		assert.equal(guiDetails.name, 'Fixed limit');
-		assert.equal(guiDetails.description, 'Fixed limit order strategy');
+	it('should get strategy details', async () => {
+		const strategyDetails: NameAndDescription =
+			await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
+		assert.equal(strategyDetails.name, 'Fixed limit');
+		assert.equal(strategyDetails.description, 'Fixed limit order strategy');
+	});
+
+	it('should get deployment details', async () => {
+		const deploymentDetails: NameAndDescription = await DotrainOrderGui.getDeploymentDetails(
+			dotrainWithGui,
+			'some-deployment'
+		);
+		assert.equal(deploymentDetails.name, 'Buy WETH with USDC on Base.');
+		assert.equal(
+			deploymentDetails.description,
+			'Buy WETH with USDC for fixed price on Base network.'
+		);
 	});
 
 	it('should get token infos', async () => {
