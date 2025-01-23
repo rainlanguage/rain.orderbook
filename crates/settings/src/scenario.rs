@@ -57,6 +57,7 @@ impl Scenario {
     pub fn validate_scenario(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         current_document: Arc<RwLock<StrictYaml>>,
+        deployers: &HashMap<String, Deployer>,
         deployer: &mut Option<Arc<Deployer>>,
         scenarios: &mut HashMap<String, Scenario>,
         parent_scenario: ScenarioParent,
@@ -117,14 +118,18 @@ impl Scenario {
 
         let mut current_deployer: Option<Deployer> = None;
 
-        if let Ok(dep) = Deployer::parse_from_yaml(documents.clone(), &scenario_key, None) {
-            current_deployer = Some(dep);
+        if let Ok(dep) = deployers
+            .get(&scenario_key)
+            .ok_or_else(|| YamlError::KeyNotFound(scenario_key.clone()))
+        {
+            current_deployer = Some(dep.clone());
         } else if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-            current_deployer = Some(Deployer::parse_from_yaml(
-                documents.clone(),
-                &deployer_name,
-                None,
-            )?);
+            current_deployer = Some(
+                deployers
+                    .get(&deployer_name)
+                    .ok_or_else(|| YamlError::KeyNotFound(deployer_name.to_string()))?
+                    .clone(),
+            );
         }
 
         if let Some(current_deployer) = current_deployer {
@@ -168,6 +173,7 @@ impl Scenario {
                 Self::validate_scenario(
                     documents.clone(),
                     current_document.clone(),
+                    deployers,
                     deployer,
                     scenarios,
                     ScenarioParent {
@@ -305,6 +311,8 @@ impl YamlParsableHash for Scenario {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
+        let deployers = Deployer::parse_all_from_yaml(documents.clone(), None)?;
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -317,6 +325,7 @@ impl YamlParsableHash for Scenario {
                     Self::validate_scenario(
                         documents.clone(),
                         document.clone(),
+                        &deployers,
                         &mut deployer,
                         &mut scenarios,
                         ScenarioParent {
@@ -649,6 +658,14 @@ mod tests {
     #[test]
     fn test_parse_scenarios_from_yaml() {
         let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
 test: test
 "#;
         let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -658,6 +675,14 @@ test: test
         );
 
         let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
 scenarios:
     scenario1:
         bindings:
@@ -673,6 +698,14 @@ scenarios:
         );
 
         let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
 scenarios:
     scenario1:
         bindings:
