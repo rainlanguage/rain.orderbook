@@ -61,6 +61,16 @@ describe('Sidebar', () => {
 		const barsButton = screen.getByTestId('sidebar-bars');
 		expect(barsButton).toBeInTheDocument();
 	});
+	it('shows sidebar on wide screen', () => {
+		mockWindowSize(1025);
+		const mockColorTheme = writable('light');
+		const mockPage = {
+			url: { pathname: '/' }
+		};
+		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
+
+		expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+	});
 	it('renders sidebar when bars button is clicked', async () => {
 		// Mock small screen width
 		mockWindowSize(500);
