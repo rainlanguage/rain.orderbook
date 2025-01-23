@@ -6,7 +6,6 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import {
 		DotrainOrderGui,
-		type DeploymentKeys,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
@@ -45,6 +44,8 @@
 	};
 
 	export let dotrain: string;
+	export let deployment: string;
+	export let deploymentDetails: NameAndDescription;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -53,38 +54,12 @@
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allTokensSelected: boolean = false;
-	let guiDetails: NameAndDescription;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
-	let availableDeployments: Record<string, { label: string }> = {};
 
-	async function initialize() {
-		try {
-			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
-			availableDeployments = Object.fromEntries(
-				deployments.map((deployment) => [
-					deployment,
-					{
-						label: deployment
-					}
-				])
-			);
-		} catch (e: unknown) {
-			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
-	$: if (dotrain) {
-		initializeAsync();
-	}
-
-	async function initializeAsync() {
-		error = null;
-		errorDetails = null;
-		gui = null;
-		await initialize();
+	$: if (deployment) {
+		handleDeploymentChange(deployment);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -97,7 +72,6 @@
 
 			if (gui) {
 				try {
-					await getGuiDetails();
 					selectTokens = await gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
@@ -108,16 +82,6 @@
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI;
 			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
-		}
-	}
-
-	async function getGuiDetails() {
-		if (!gui) return;
-		try {
-			guiDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
-		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI_DETAILS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -248,22 +212,15 @@
 		<p class="text-red-500">{errorDetails}</p>
 	{/if}
 	{#if dotrain}
-		<DeploymentSectionHeader title="Select Deployment" />
-
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={() => handleDeploymentChange(deployment)}>{label}</Button>
-			{/each}
-		</div>
 		{#if gui}
 			<div class="flex max-w-2xl flex-col gap-24" in:fade>
-				{#if guiDetails}
+				{#if deploymentDetails}
 					<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
 						<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
-							{guiDetails.name}
+							{deploymentDetails.name}
 						</h1>
-						<p class="text-xl text-gray-600 dark:text-gray-400">
-							{guiDetails.description}
+						<p class="text-2xl lg:text-3xl text-gray-600 dark:text-gray-400">
+							{deploymentDetails.description}
 						</p>
 					</div>
 				{/if}
