@@ -136,7 +136,7 @@ impl DotrainOrderGui {
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let mut dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
         let field_values = state
             .field_values
@@ -176,8 +176,15 @@ impl DotrainOrderGui {
             })
             .collect::<BTreeMap<_, _>>();
 
+        let dotrain_order_gui = DotrainOrderGui {
+            dotrain_order,
+            field_values,
+            deposits,
+            selected_deployment: state.selected_deployment.clone(),
+        };
+
         let deployment_select_tokens = Gui::parse_select_tokens(
-            dotrain_order.dotrain_yaml().documents,
+            dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
         for (key, token) in state.select_tokens {
@@ -187,11 +194,14 @@ impl DotrainOrderGui {
             if !select_tokens.contains(&key) {
                 return Err(GuiError::TokenNotInSelectTokens(key));
             }
-            if dotrain_order.orderbook_yaml().get_token(&key).is_ok() {
-                Token::remove_record_from_yaml(dotrain_order.orderbook_yaml().documents, &key)?;
+            if dotrain_order_gui.is_select_token_set(key.clone())? {
+                Token::remove_record_from_yaml(
+                    dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
+                    &key,
+                )?;
             }
             Token::add_record_to_yaml(
-                dotrain_order.orderbook_yaml().documents,
+                dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                 &key,
                 &token.network.key,
                 &token.address.to_string(),
@@ -202,11 +212,12 @@ impl DotrainOrderGui {
         }
 
         let order_key = Deployment::parse_order_key(
-            dotrain_order.dotrain_yaml().documents,
+            dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
         for ((is_input, index), vault_id) in state.vault_ids {
-            dotrain_order
+            dotrain_order_gui
+                .dotrain_order
                 .dotrain_yaml()
                 .get_order(&order_key)
                 .and_then(|mut order| {
@@ -214,12 +225,7 @@ impl DotrainOrderGui {
                 })?;
         }
 
-        Ok(DotrainOrderGui {
-            dotrain_order,
-            field_values,
-            deposits,
-            selected_deployment: state.selected_deployment,
-        })
+        Ok(dotrain_order_gui)
     }
 
     #[wasm_bindgen(js_name = "clearState")]
