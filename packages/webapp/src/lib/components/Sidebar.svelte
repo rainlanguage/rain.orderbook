@@ -4,10 +4,17 @@
 		SidebarGroup,
 		SidebarItem,
 		SidebarWrapper,
-		SidebarBrand
+		SidebarBrand,
+		CloseButton,
+		Button
 	} from 'flowbite-svelte';
-	import { WalletSolid, ReceiptSolid, FileLinesSolid, PlusOutline } from 'flowbite-svelte-icons';
-	import { page } from '$app/stores';
+	import {
+		WalletSolid,
+		ReceiptSolid,
+		FileLinesSolid,
+		PlusOutline,
+		BarsSolid
+	} from 'flowbite-svelte-icons';
 	import {
 		ButtonDarkMode,
 		IconTelegram,
@@ -15,70 +22,116 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
-
+	import { onMount } from 'svelte';
 	export let colorTheme;
+	export let page;
+	let sideBarHidden: boolean = false;
+	let breakPoint: number = 1024;
+	let width: number;
+	$: sideBarHidden = width < breakPoint;
+	onMount(() => {
+		sideBarHidden = width < breakPoint;
+	});
+
+	const toggleSide = () => {
+		if (width < breakPoint) {
+			sideBarHidden = !sideBarHidden;
+		}
+	};
 </script>
 
-<Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
-	<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
-		<SidebarGroup ulClass="">
-			<SidebarBrand
-				site={{
-					name: '',
-					href: '/',
-					img: $colorTheme == 'light' ? logoLight : logoDark
-				}}
-				imgClass="m-auto"
-			></SidebarBrand>
-		</SidebarGroup>
-		<SidebarGroup border>
-			<SidebarItem label="Deploy" href="/deploy">
-				<svelte:fragment slot="icon">
-					<PlusOutline class="h-5 w-5" />
-					<span data-testid="sidebar-deploy"></span>
-				</svelte:fragment>
-			</SidebarItem>
-		</SidebarGroup>
-		<SidebarGroup border>
-			<SidebarItem label="Orders" href="/orders">
-				<svelte:fragment slot="icon">
-					<ReceiptSolid class="h-5 w-5" />
-					<span data-testid="sidebar-orders"></span>
-				</svelte:fragment>
-			</SidebarItem>
-			<SidebarItem label="Vaults" href="/vaults">
-				<svelte:fragment slot="icon">
-					<WalletSolid class="h-5 w-5" />
-					<span data-testid="sidebar-vaults"></span>
-				</svelte:fragment>
-			</SidebarItem>
-		</SidebarGroup>
-		<SidebarGroup border>
-			<SidebarItem
-				label="Documentation"
-				target="_blank"
-				href="https://docs.rainlang.xyz/raindex/overview"
-			>
-				<svelte:fragment slot="icon">
-					<IconExternalLink />
-					<span data-testid="sidebar-documentation"></span>
-				</svelte:fragment>
-			</SidebarItem>
-			<SidebarItem label="Ask for help" target="_blank" href="https://t.me/+W0aQ36ptN_E2MjZk">
-				<svelte:fragment slot="icon">
-					<IconTelegram />
-					<span data-testid="sidebar-telegram"></span>
-				</svelte:fragment>
-			</SidebarItem>
-			<SidebarItem label="License" href="/license">
-				<svelte:fragment slot="icon">
-					<FileLinesSolid />
-					<span data-testid="sidebar-license"></span>
-				</svelte:fragment>
-			</SidebarItem>
-		</SidebarGroup>
-		<SidebarGroup border class="flex justify-start">
-			<ButtonDarkMode {colorTheme} />
-		</SidebarGroup>
-	</SidebarWrapper>
-</Sidebar>
+<svelte:window bind:innerWidth={width} />
+<div>
+	{#if sideBarHidden}
+		<Button
+			on:click={() => (sideBarHidden = false)}
+			color="alternative"
+			class="absolute left-2 top-2 flex size-8 items-center p-5 lg:hidden"
+			data-testid="sidebar-bars"
+		>
+			<BarsSolid class="" />
+		</Button>
+	{/if}
+	<Sidebar
+		activeUrl={page.url.pathname}
+		asideClass="w-64 z-10 fixed"
+		bind:hidden={sideBarHidden}
+		data-testid="sidebar"
+	>
+		{#if !sideBarHidden}
+			<CloseButton
+				data-testid="close-button"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center lg:hidden"
+				on:click={() => (sideBarHidden = true)}
+			/>
+		{/if}
+		<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
+			<SidebarGroup ulClass="">
+				<SidebarBrand
+					site={{
+						name: '',
+						href: '/',
+						img: $colorTheme === 'light' ? logoLight : logoDark
+					}}
+					imgClass="m-auto"
+					aClass="mb-0"
+				></SidebarBrand>
+			</SidebarGroup>
+			<SidebarGroup border>
+				<SidebarItem label="Deploy" href="/deploy" on:click={toggleSide}>
+					<svelte:fragment slot="icon">
+						<PlusOutline class="h-5 w-5" />
+						<span data-testid="sidebar-deploy"></span>
+					</svelte:fragment>
+				</SidebarItem>
+			</SidebarGroup>
+			<SidebarGroup border>
+				<SidebarItem label="Orders" href="/orders" on:click={toggleSide}>
+					<svelte:fragment slot="icon">
+						<ReceiptSolid class="h-5 w-5" />
+						<span data-testid="sidebar-orders"></span>
+					</svelte:fragment>
+				</SidebarItem>
+				<SidebarItem label="Vaults" href="/vaults" on:click={toggleSide}>
+					<svelte:fragment slot="icon">
+						<WalletSolid class="h-5 w-5" />
+						<span data-testid="sidebar-vaults"></span>
+					</svelte:fragment>
+				</SidebarItem>
+			</SidebarGroup>
+			<SidebarGroup border>
+				<SidebarItem
+					on:click={toggleSide}
+					label="Documentation"
+					target="_blank"
+					href="https://docs.rainlang.xyz/raindex/overview"
+				>
+					<svelte:fragment slot="icon">
+						<IconExternalLink />
+						<span data-testid="sidebar-documentation"></span>
+					</svelte:fragment>
+				</SidebarItem>
+				<SidebarItem
+					on:click={toggleSide}
+					label="Ask for help"
+					target="_blank"
+					href="https://t.me/+W0aQ36ptN_E2MjZk"
+				>
+					<svelte:fragment slot="icon">
+						<IconTelegram />
+						<span data-testid="sidebar-telegram"></span>
+					</svelte:fragment>
+				</SidebarItem>
+				<SidebarItem on:click={toggleSide} label="License" href="/license">
+					<svelte:fragment slot="icon">
+						<FileLinesSolid />
+						<span data-testid="sidebar-license"></span>
+					</svelte:fragment>
+				</SidebarItem>
+			</SidebarGroup>
+			<SidebarGroup border class="flex justify-start">
+				<ButtonDarkMode {colorTheme} />
+			</SidebarGroup>
+		</SidebarWrapper>
+	</Sidebar>
+</div>
