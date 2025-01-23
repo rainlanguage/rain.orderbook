@@ -21,7 +21,7 @@
 	<div class="mb-6 flex items-end justify-between">
 		<slot name="top" {data} />
 	</div>
-	<div class="grid grid-cols-3 gap-4">
+	<div class="grid gap-4 lg:grid-cols-3">
 		<div class="col-span-1 flex flex-col gap-y-6">
 			<slot name="card" {data} />
 		</div>
