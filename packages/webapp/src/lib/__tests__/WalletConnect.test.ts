@@ -37,6 +37,6 @@ describe('WalletConnect component', () => {
 
 		render(WalletConnect);
 
-		expect(screen.getByTestId('connected')).toBeInTheDocument();
+		expect(screen.getByText('Connected')).toBeInTheDocument();
 	});
 });
