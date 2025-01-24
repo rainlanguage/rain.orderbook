@@ -494,7 +494,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 				undefined,
 				undefined
 			);
-			console.log(count);
 
 			assert.strictEqual(typeof count, 'number', 'Count should be a number');
 			assert.strictEqual(count, 1, 'Should count one trade');

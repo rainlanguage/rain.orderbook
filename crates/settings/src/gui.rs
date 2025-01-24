@@ -337,6 +337,78 @@ impl Gui {
         }
         Err(YamlError::ParseError("gui details not found".to_string()))
     }
+
+    pub fn parse_field_presets(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+        field_binding: &str,
+    ) -> Result<Option<Vec<GuiPreset>>, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(StrictYaml::Hash(deployments_hash)) =
+                    gui.get(&StrictYaml::String("deployments".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(deployment_hash)) =
+                        deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                    {
+                        if let Some(StrictYaml::Array(fields)) =
+                            deployment_hash.get(&StrictYaml::String("fields".to_string()))
+                        {
+                            for (field_index, field) in fields.iter().enumerate() {
+                                if let StrictYaml::Hash(field_hash) = field {
+                                    if let Some(StrictYaml::String(binding)) =
+                                        field_hash.get(&StrictYaml::String("binding".to_string()))
+                                    {
+                                        if binding == field_binding {
+                                            return match optional_vec(field, "presets") {
+                                                Some(presets) => {
+                                                    let preset_vec = presets.iter().enumerate()
+                                                        .map(|(preset_index, preset_yaml)| {
+                                                            let name = optional_string(preset_yaml, "name");
+                                                            let value = require_string(
+                                                                preset_yaml,
+                                                                Some("value"),
+                                                                Some(format!(
+                                                                    "preset value must be a string for preset index: {preset_index} for field index: {field_index} in gui deployment: {deployment_key}",
+                                                                ))
+                                                            )?;
+
+                                                            Ok(GuiPreset {
+                                                                id: preset_index.to_string(),
+                                                                name,
+                                                                value,
+                                                            })
+                                                        })
+                                                        .collect::<Result<Vec<_>, YamlError>>()?;
+                                                    Ok(Some(preset_vec))
+                                                }
+                                                None => Ok(None),
+                                            };
+                                        }
+                                    } else {
+                                        return Err(YamlError::ParseError(format!(
+                                            "binding string missing for field index: {field_index} in gui deployment: {deployment_key}",
+                                        )));
+                                    }
+                                }
+                            }
+                        } else {
+                            return Err(YamlError::ParseError(format!(
+                                "fields list missing in gui deployment: {deployment_key}"
+                            )));
+                        }
+                    }
+                } else {
+                    return Err(YamlError::ParseError(
+                        "deployments field must be a map in gui".to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(None)
+    }
 }
 
 impl YamlParseableValue for Gui {
