@@ -6,6 +6,7 @@ import {
 	AllFieldValuesResult,
 	AllowancesResult,
 	ApprovalCalldataResult,
+	DeploymentDetails,
 	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
@@ -375,15 +376,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment details', async () => {
-		const deploymentDetails: NameAndDescription = await DotrainOrderGui.getDeploymentDetails(
-			dotrainWithGui,
-			'some-deployment'
-		);
-		assert.equal(deploymentDetails.name, 'Buy WETH with USDC on Base.');
-		assert.equal(
-			deploymentDetails.description,
-			'Buy WETH with USDC for fixed price on Base network.'
-		);
+		const deploymentDetails: DeploymentDetails =
+			await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
+		const entries = Array.from(deploymentDetails.entries());
+		assert.equal(entries[0][0], 'other-deployment');
+		assert.equal(entries[0][1].name, 'Test test');
+		assert.equal(entries[0][1].description, 'Test test test');
+		assert.equal(entries[1][0], 'some-deployment');
+		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
+		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
 	it('should get token infos', async () => {
