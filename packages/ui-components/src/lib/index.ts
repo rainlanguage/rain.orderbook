@@ -61,7 +61,7 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
 export { default as StrategySection } from './components/deployment/StrategySection.svelte';
-
+export { default as DeploymentPage } from './components/deployment/DeploymentPage.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

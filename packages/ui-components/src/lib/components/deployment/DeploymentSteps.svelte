@@ -215,11 +215,11 @@
 		{#if gui}
 			<div class="flex max-w-2xl flex-col gap-24" in:fade>
 				{#if deploymentDetails}
-					<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-						<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+					<div class="mt-16 flex max-w-2xl flex-col gap-4 text-start">
+						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
 							{deploymentDetails.name}
 						</h1>
-						<p class="text-2xl lg:text-3xl text-gray-600 dark:text-gray-400">
+						<p class="text-2xl text-gray-600 lg:text-3xl dark:text-gray-400">
 							{deploymentDetails.description}
 						</p>
 					</div>
