@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DeploymentSteps } from './DeploymentSteps.svelte';
+	import DeploymentSteps from './DeploymentSteps.svelte';
 
 	export let dotrain: string;
 	export let key: string;
