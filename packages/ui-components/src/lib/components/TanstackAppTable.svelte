@@ -32,7 +32,7 @@
 	</div>
 {:else if $query.data}
 	<Table
-		divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border"
+		divClass="cursor-pointer rounded-lg lg:overflow-hidden overflow-auto dark:border-none border"
 		hoverable={rowHoverable}
 	>
 		<TableHead data-testid="head">
@@ -42,6 +42,7 @@
 			{#each $query.data?.pages as page}
 				{#each page as item}
 					<TableBodyRow
+						class="whitespace-nowrap"
 						data-testid="bodyRow"
 						on:click={() => {
 							dispatch('clickRow', { item });
