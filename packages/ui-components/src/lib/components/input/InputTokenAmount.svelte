@@ -54,7 +54,9 @@
 
 		{#if symbol}
 			<InputAddon>
-				{symbol}
+				<span class="whitespace-nowrap">
+					{symbol}
+				</span>
 			</InputAddon>
 		{/if}
 	</div>
