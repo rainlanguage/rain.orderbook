@@ -61,6 +61,7 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
+export { default as InputHex } from './components/input/InputHex.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
