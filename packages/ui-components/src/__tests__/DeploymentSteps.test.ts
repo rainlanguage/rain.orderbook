@@ -4,6 +4,10 @@ import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
+import type { ComponentProps } from 'svelte';
+
+export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
+
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		getDeploymentKeys: vi.fn(),
@@ -566,47 +570,97 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-	it('shows deployment buttons when dotrain is provided', async () => {
-		const mockDeployments = ['deployment1', 'deployment2'];
+	it('shows deployment details when provided', async () => {
+		const mockDeployments = ['flare-sflr-wflr'];
 		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => []
+		});
 
-		render(DeploymentSteps, { props: { dotrain } });
+		const deploymentDetails = {
+			name: 'SFLR<>WFLR on Flare',
+			description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+		};
+
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails
+			}
+		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Select Deployment')).toBeInTheDocument();
-			expect(screen.getByText('deployment1')).toBeInTheDocument();
-			expect(screen.getByText('deployment2')).toBeInTheDocument();
+			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
+			expect(screen.getByText('Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.')).toBeInTheDocument();
 		});
 	});
 
-	it('initializes GUI when deployment button is clicked', async () => {
-		const mockDeployments = ['deployment1', 'deployment2'];
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
+	it('shows select tokens section when tokens need to be selected', async () => {
+		const mockSelectTokens = ['token1', 'token2'];
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => mockSelectTokens
+		});
 
-		render(DeploymentSteps, { props: { dotrain } });
-
-		await waitFor(() => {
-			const deploymentButton = screen.getByText('deployment1');
-			userEvent.click(deploymentButton);
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+			}
 		});
 
 		await waitFor(() => {
-			expect(DotrainOrderGui.chooseDeployment).toHaveBeenCalledWith(
-				expect.anything(),
-				'deployment1'
-			);
+			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
+			expect(screen.getByText('Select the tokens that you want to use in your order.')).toBeInTheDocument();
 		});
 	});
 
-	it('handles initialization errors', async () => {
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockRejectedValue(
-			new Error('Failed to initialize')
+	it('shows error message when GUI initialization fails', async () => {
+		(DotrainOrderGui.chooseDeployment as Mock).mockRejectedValue(
+			new Error('Failed to initialize GUI')
 		);
 
-		render(DeploymentSteps, { props: { dotrain } });
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+			}
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Error loading GUI')).toBeInTheDocument();
+			expect(screen.getByText('Failed to initialize GUI')).toBeInTheDocument();
 		});
 	});
+
+	it('shows deploy strategy button when all required fields are filled', async () => {
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => [],
+			getCurrentDeployment: () => ({
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}),
+			getAllFieldDefinitions: () => []
+		});
+
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+	});
+
 });
