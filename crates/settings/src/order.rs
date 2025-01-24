@@ -10,7 +10,7 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::{Context, SelectTokensContext},
+    context::{Context, GuiContextTrait, SelectTokensContext},
     default_document, optional_string, require_hash, require_string, require_vec, YamlError,
     YamlParsableHash,
 };
@@ -313,6 +313,10 @@ impl YamlParsableHash for Order {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
+        let deployers = Deployer::parse_all_from_yaml(documents.clone(), None);
+        let orderbooks = Orderbook::parse_all_from_yaml(documents.clone(), None);
+        let tokens = Token::parse_all_from_yaml(documents.clone(), None);
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -320,15 +324,29 @@ impl YamlParsableHash for Order {
                 for (key_yaml, order_yaml) in orders_hash {
                     let order_key = key_yaml.as_str().unwrap_or_default().to_string();
 
+                    if let Some(context) = context {
+                        if let Some(current_order) = context.get_current_order() {
+                            if current_order != &order_key {
+                                continue;
+                            }
+                        }
+                    }
+
                     let mut network: Option<Arc<Network>> = None;
 
                     let deployer = match optional_string(order_yaml, "deployer") {
                         Some(deployer_name) => {
-                            let deployer = Arc::new(Deployer::parse_from_yaml(
-                                documents.clone(),
-                                &deployer_name,
-                                None,
-                            )?);
+                            let deployers = deployers.as_ref().map_err(|_| {
+                                YamlError::ParseError("failed to parse deployers".to_string())
+                            })?;
+                            let deployer = Arc::new(
+                                deployers
+                                    .get(&deployer_name)
+                                    .ok_or_else(|| {
+                                        YamlError::KeyNotFound(deployer_name.to_string())
+                                    })?
+                                    .clone(),
+                            );
                             if let Some(n) = &network {
                                 if deployer.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
@@ -345,11 +363,17 @@ impl YamlParsableHash for Order {
 
                     let orderbook = match optional_string(order_yaml, "orderbook") {
                         Some(orderbook_name) => {
-                            let orderbook = Arc::new(Orderbook::parse_from_yaml(
-                                documents.clone(),
-                                &orderbook_name,
-                                None,
-                            )?);
+                            let orderbooks = orderbooks.as_ref().map_err(|_| {
+                                YamlError::ParseError("failed to parse orderbooks".to_string())
+                            })?;
+                            let orderbook = Arc::new(
+                                orderbooks
+                                    .get(&orderbook_name)
+                                    .ok_or_else(|| {
+                                        YamlError::KeyNotFound(orderbook_name.to_string())
+                                    })?
+                                    .clone(),
+                            );
                             if let Some(n) = &network {
                                 if orderbook.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
@@ -379,17 +403,30 @@ impl YamlParsableHash for Order {
                                 "token string missing in input index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
-                        if let Ok(ref token) = token {
-                            if let Some(n) = &network {
-                                if token.network != *n {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
-                                    ));
+                        let mut order_token = None;
+
+                        if let Ok(tokens) = &tokens {
+                            let token = tokens.get(&token_name);
+
+                            if let Some(token) = token {
+                                if let Some(n) = &network {
+                                    if token.network != *n {
+                                        return Err(YamlError::ParseOrderConfigSourceError(
+                                            ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ));
+                                    }
+                                } else {
+                                    network = Some(token.network.clone());
                                 }
-                            } else {
-                                network = Some(token.network.clone());
+
+                                order_token = Some(token.clone());
+                            } else if let Some(context) = context {
+                                if !context.is_select_token(&token_name) {
+                                    return Err(YamlError::ParseError(format!(
+                                        "yaml data for token: {token_name} not found in input index: {i} in order: {order_key}"
+                                    )));
+                                }
                             }
                         } else if let Some(context) = context {
                             if !context.is_select_token(&token_name) {
@@ -405,7 +442,7 @@ impl YamlParsableHash for Order {
                         };
 
                         Ok(OrderIO {
-                            token: token.ok().map(Arc::new),
+                            token: order_token.map(Arc::new),
                             vault_id,
                         })
                     })
@@ -426,17 +463,30 @@ impl YamlParsableHash for Order {
                                 "token string missing in output index: {i} in order: {order_key}"
                             )),
                         )?;
-                        let token = Token::parse_from_yaml(documents.clone(), &token_name, None);
 
-                        if let Ok(ref token) = token {
-                            if let Some(n) = &network {
-                                if token.network != *n {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
-                                    ));
+                        let mut order_token = None;
+
+                        if let Ok(tokens) = &tokens {
+                            let token = tokens.get(&token_name);
+
+                            if let Some(token) = token {
+                                if let Some(n) = &network {
+                                    if token.network != *n {
+                                        return Err(YamlError::ParseOrderConfigSourceError(
+                                            ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ));
+                                    }
+                                } else {
+                                    network = Some(token.network.clone());
                                 }
-                            } else {
-                                network = Some(token.network.clone());
+
+                                order_token = Some(token.clone());
+                            } else if let Some(context) = context {
+                                if !context.is_select_token(&token_name) {
+                                    return Err(YamlError::ParseError(format!(
+                                        "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
+                                    )));
+                                }
                             }
                         } else if let Some(context) = context {
                             if !context.is_select_token(&token_name) {
@@ -452,7 +502,7 @@ impl YamlParsableHash for Order {
                         };
 
                         Ok(OrderIO {
-                            token: token.ok().map(Arc::new),
+                            token: order_token.map(Arc::new),
                             vault_id,
                         })
                     })

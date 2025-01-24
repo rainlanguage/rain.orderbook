@@ -1,7 +1,8 @@
 use crate::{
     yaml::{
-        context::Context, default_document, get_hash_value, optional_hash, optional_string,
-        optional_vec, require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        context::{Context, GuiContextTrait},
+        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
+        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -349,10 +350,12 @@ impl YamlParseableValue for Gui {
 
     fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
         let mut gui_res: Option<Gui> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeployment> = HashMap::new();
+
+        let tokens = Token::parse_all_from_yaml(documents.clone(), None);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -395,7 +398,15 @@ impl YamlParseableValue for Gui {
                 for (deployment_name, deployment_yaml) in deployments {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
 
-                    let mut context = Context::new();
+                    if let Some(context) = context {
+                        if let Some(current_deployment) = context.get_current_deployment() {
+                            if current_deployment != &deployment_name {
+                                continue;
+                            }
+                        }
+                    }
+
+                    let mut context = Context::from_context(context);
 
                     let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
                             Some(tokens) => Some(
@@ -445,13 +456,19 @@ impl YamlParseableValue for Gui {
                             "deposits list missing in gui deployment: {deployment_name}",
                         )),
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
-                        let token =  Token::parse_from_yaml(documents.clone(), &require_string(
-                            deposit_value,
-                            Some("token"),
-                            Some(format!(
-                                "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                            )),
-                        )?, None);
+                        let mut deposit_token = None;
+
+                        if let Ok(tokens) = &tokens {
+                            let token = tokens.get(&require_string(
+                                deposit_value,
+                                Some("token"),
+                                Some(format!(
+                                    "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
+                                )),
+                            )?);
+
+                            deposit_token = token.map(|token| Arc::new(token.clone()));
+                        }
 
                         let presets = require_vec(
                             deposit_value,
@@ -470,7 +487,7 @@ impl YamlParseableValue for Gui {
                         .collect::<Result<Vec<_>, YamlError>>()?;
 
                         let gui_deposit = GuiDeposit {
-                            token: token.ok().map(Arc::new),
+                            token: deposit_token,
                             presets,
                         };
                         Ok(gui_deposit)
@@ -726,6 +743,17 @@ mod tests {
     #[test]
     fn test_parse_gui_from_yaml() {
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     test: test
 "#;
@@ -735,6 +763,17 @@ gui:
             YamlError::ParseError("name field missing in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name:
       - test
@@ -745,6 +784,17 @@ gui:
             YamlError::ParseError("name field must be a string in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name:
       - test: test
@@ -756,6 +806,17 @@ gui:
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
 "#;
@@ -765,6 +826,17 @@ gui:
             YamlError::ParseError("description field missing in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
     description:
@@ -776,6 +848,17 @@ gui:
             YamlError::ParseError("description field must be a string in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
     description:
@@ -788,6 +871,17 @@ gui:
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
     description: test
@@ -798,6 +892,17 @@ gui:
             YamlError::ParseError("deployments field missing in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
     description: test
@@ -809,6 +914,17 @@ gui:
             YamlError::ParseError("deployments field must be a map in gui".to_string())
         );
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
 gui:
     name: test
     description: test
@@ -822,6 +938,33 @@ gui:
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+scenarios:
+    scenario1:
+        bindings:
+            test: test
+        deployer: deployer1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token2
+        deployer: deployer1
 gui:
     name: test
     description: test
