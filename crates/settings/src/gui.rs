@@ -249,6 +249,15 @@ pub struct Gui {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct NameAndDescription {
+    pub name: String,
+    pub description: String,
+}
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(NameAndDescription);
+
 impl Gui {
     pub fn parse_deployment_keys(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
@@ -310,9 +319,9 @@ impl Gui {
         Ok(None)
     }
 
-    pub fn parse_gui_details(
+    pub fn parse_strategy_details(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-    ) -> Result<(String, String), YamlError> {
+    ) -> Result<NameAndDescription, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -333,10 +342,57 @@ impl Gui {
                     Some("description field must be a string in gui".to_string()),
                 )?;
 
-                return Ok((name, description));
+                return Ok(NameAndDescription { name, description });
             }
         }
         Err(YamlError::ParseError("gui details not found".to_string()))
+    }
+
+    pub fn parse_deployment_details(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<HashMap<String, NameAndDescription>, YamlError> {
+        let mut deployment_details = HashMap::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let deployments = gui
+                    .get(&StrictYaml::String("deployments".to_string()))
+                    .ok_or(YamlError::ParseError(
+                        "deployments field missing in gui".to_string(),
+                    ))?
+                    .as_hash()
+                    .ok_or(YamlError::ParseError(
+                        "deployments field must be a map in gui".to_string(),
+                    ))?;
+
+                for (key_yaml, deployment_yaml) in deployments {
+                    let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    let name = require_string(
+                        deployment_yaml,
+                        Some("name"),
+                        Some(format!(
+                            "name string missing in gui deployment: {deployment_key}"
+                        )),
+                    )?;
+
+                    let description = require_string(
+                        deployment_yaml,
+                        Some("description"),
+                        Some(format!(
+                            "description string missing in gui deployment: {deployment_key}"
+                        )),
+                    )?;
+
+                    deployment_details
+                        .insert(deployment_key, NameAndDescription { name, description });
+                }
+            }
+        }
+
+        Ok(deployment_details)
     }
 }
 

@@ -12,7 +12,7 @@
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type GuiDetails,
+		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
@@ -54,7 +54,7 @@
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allTokensSelected: boolean = false;
-	let guiDetails: GuiDetails;
+	let guiDetails: NameAndDescription;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 
