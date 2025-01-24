@@ -33,7 +33,7 @@
 	};
 </script>
 
-<div class="flex flex-col gap-24">
+<div class="flex flex-col">
 	<div class="flex h-12 w-full items-center justify-end gap-4">
 		{#if advancedMode}
 			<Input
@@ -56,8 +56,10 @@
 		<p>{error}</p>
 		<p>{errorDetails}</p>
 	{:else if _files.length > 0}
-		{#each _files as { name, url }}
-			<StrategySection strategyUrl={url} strategyName={name} />
-		{/each}
+		<div class="flex flex-col gap-36">
+			{#each _files as { name, url }}
+				<StrategySection strategyUrl={url} strategyName={name} />
+			{/each}
+		</div>
 	{/if}
 </div>
