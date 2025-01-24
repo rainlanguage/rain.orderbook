@@ -1,13 +1,12 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
   import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
-  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import {
     vaultDeposit,
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import { bigintStringToHex } from '@rainlanguage/ui-components';
+  import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute, checkERC20Balance } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';
