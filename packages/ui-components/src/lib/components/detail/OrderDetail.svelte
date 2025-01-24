@@ -48,7 +48,7 @@
 	export let subgraphUrl: string;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
-	let amount: bigint | undefined = undefined;
+	let amounts: Record<string | number, bigint> = {};
 
 	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -71,6 +71,14 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
+
+	const handleDeposit = (id: string) => {
+		console.log(`Depositing ${amounts[id]} for tokenVault ID ${id}`);
+	};
+
+	const handleWithdraw = (id: string) => {
+		console.log(`Withdrawing ${amounts[id]} for tokenVault ID ${id}`);
+	};
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -127,7 +135,7 @@
 							<ButtonVaultLink tokenVault={t} {subgraphName} />
 							<div class="flex w-full flex-col items-end justify-between gap-2">
 								<InputTokenAmount
-									bind:value={amount}
+									bind:value={amounts[t.id]}
 									symbol={t.token.symbol}
 									decimals={Number(t.token.decimals) ?? 0}
 								/>
@@ -136,16 +144,12 @@
 										data-testid="vaultDetailDepositButton"
 										color="dark"
 										class="whitespace-nowrap"
-										on:click={() => {
-											console.log(545);
-										}}>Deposit</Button
+										on:click={() => handleDeposit(t.id)}>Deposit</Button
 									>
 									<Button
 										data-testid="vaultDetailDepositButton"
 										color="dark"
-										on:click={() => {
-											console.log(333);
-										}}>Withdraw</Button
+										on:click={() => handleWithdraw(t.id)}>Withdraw</Button
 									>
 								</div>
 							</div>
@@ -163,6 +167,26 @@
 					<div class="space-y-2">
 						{#each data.outputs || [] as t}
 							<ButtonVaultLink tokenVault={t} {subgraphName} />
+							<div class="flex w-full flex-col items-end justify-between gap-2">
+								<InputTokenAmount
+									bind:value={amounts[t.id]}
+									symbol={t.token.symbol}
+									decimals={Number(t.token.decimals) ?? 0}
+								/>
+								<div class="flex gap-2">
+									<Button
+										data-testid="vaultDetailDepositButton"
+										color="dark"
+										class="whitespace-nowrap"
+										on:click={() => handleDeposit(t.id)}>Deposit</Button
+									>
+									<Button
+										data-testid="vaultDetailDepositButton"
+										color="dark"
+										on:click={() => handleWithdraw(t.id)}>Withdraw</Button
+									>
+								</div>
+							</div>
 						{/each}
 					</div>
 				</svelte:fragment>
