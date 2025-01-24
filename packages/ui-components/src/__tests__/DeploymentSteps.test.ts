@@ -592,7 +592,9 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-			expect(screen.getByText('Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.')).toBeInTheDocument();
+			expect(
+				screen.getByText('Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.')
+			).toBeInTheDocument();
 		});
 	});
 
@@ -612,7 +614,9 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
-			expect(screen.getByText('Select the tokens that you want to use in your order.')).toBeInTheDocument();
+			expect(
+				screen.getByText('Select the tokens that you want to use in your order.')
+			).toBeInTheDocument();
 		});
 	});
 
@@ -662,5 +666,4 @@ describe('DeploymentSteps', () => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
 	});
-
 });
