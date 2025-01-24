@@ -6,12 +6,11 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import {
 		DotrainOrderGui,
-		type DeploymentKeys,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type GuiDetails,
+		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
@@ -48,13 +47,9 @@
 		[linea.id]: linea
 	};
 
-	const { strategyName } = $page.data;
-
 	export let dotrain: string;
-	export let stateFromUrl: string | null = null;
-	export let deploymentFromUrl: string | null = null;
-	$: console.log('stateFromUrl', stateFromUrl);
-	$: console.log('deploymentFromUrl', deploymentFromUrl);
+	export let deployment: string;
+	export let deploymentDetails: NameAndDescription;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -63,43 +58,12 @@
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allTokensSelected: boolean = false;
-	let guiDetails: GuiDetails;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
-	let availableDeployments: Record<string, { label: string }> = {};
-	let hasDeserialized: boolean = false;
 
-	async function initialize() {
-		try {
-			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
-			availableDeployments = Object.fromEntries(
-				deployments.map((deployment) => [
-					deployment,
-					{
-						label: deployment
-					}
-				])
-			);
-		} catch (e: unknown) {
-			console.error('Failed to get deployment keys:', e);
-			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
-	$: if (dotrain) {
-		initializeAsync();
-	}
-
-	async function initializeAsync() {
-		error = null;
-		errorDetails = null;
-		gui = null;
-		await initialize();
-		if (deploymentFromUrl) {
-			await handleDeploymentChange(deploymentFromUrl);
-		}
+	$: if (deployment) {
+		handleDeploymentChange(deployment);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -113,7 +77,6 @@
 
 			if (gui) {
 				try {
-					await getGuiDetails();
 					selectTokens = await gui.getSelectTokens();
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -123,16 +86,6 @@
 		} catch (e) {
 			error = DeploymentStepErrors.DEPLOYMENT_ERROR;
 			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
-		}
-	}
-
-	async function getGuiDetails() {
-		if (!gui) return;
-		try {
-			guiDetails = gui.getGuiDetails();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI_DETAILS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -293,22 +246,15 @@
 		<p class="text-red-500">{errorDetails}</p>
 	{/if}
 	{#if dotrain}
-		<DeploymentSectionHeader title="Select Deployment" />
-
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-			{#each Object.entries(availableDeployments) as [deployment, { label }]}
-				<Button on:click={() => goto(`/deploy/${strategyName}/${deployment}`)}>{label}</Button>
-			{/each}
-		</div>
 		{#if gui}
 			<div class="flex max-w-2xl flex-col gap-24" in:fade>
-				{#if guiDetails}
-					<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-						<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
-							{guiDetails.name}
+				{#if deploymentDetails}
+					<div class="mt-16 flex max-w-2xl flex-col gap-4 text-start">
+						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+							{deploymentDetails.name}
 						</h1>
-						<p class="text-xl text-gray-600 dark:text-gray-400">
-							{guiDetails.description}
+						<p class="text-2xl text-gray-600 lg:text-3xl dark:text-gray-400">
+							{deploymentDetails.description}
 						</p>
 					</div>
 				{/if}

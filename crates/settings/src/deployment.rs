@@ -8,7 +8,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    context::{Context, GuiContextTrait},
+    default_document, require_hash, require_string, YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -59,14 +60,22 @@ impl YamlParsableHash for Deployment {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployments = HashMap::new();
 
-        let orders = Order::parse_all_from_yaml(documents.clone(), context)?;
-
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Ok(deployments_hash) = require_hash(&document_read, Some("deployments"), None) {
                 for (key_yaml, deployment_yaml) in deployments_hash {
                     let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    if let Some(context) = context {
+                        if let Some(current_deployment) = context.get_current_deployment() {
+                            if current_deployment != &deployment_key {
+                                continue;
+                            }
+                        }
+                    }
+
+                    let mut context = Context::from_context(context);
 
                     let order_key = require_string(
                         deployment_yaml,
@@ -75,12 +84,10 @@ impl YamlParsableHash for Deployment {
                             "order string missing in deployment: {deployment_key}"
                         )),
                     )?;
-                    let order = orders
-                        .get(&order_key)
-                        .ok_or_else(|| YamlError::KeyNotFound(order_key.clone()))?
-                        .clone();
+                    context.add_current_order(order_key.clone());
 
-                    let mut context = Context::new();
+                    let order =
+                        Order::parse_from_yaml(documents.clone(), &order_key, Some(&context))?;
                     context.add_order(Arc::new(order.clone()));
 
                     let scenario = Scenario::parse_from_yaml(

@@ -75,8 +75,12 @@ impl DotrainYaml {
         Deployment::parse_from_yaml(self.documents.clone(), key, None)
     }
 
-    pub fn get_gui(&self) -> Result<Option<Gui>, YamlError> {
-        Gui::parse_from_yaml_optional(self.documents.clone(), None)
+    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<Gui>, YamlError> {
+        let mut context = Context::new();
+        if let Some(deployment) = current_deployment {
+            context.add_current_deployment(deployment);
+        }
+        Gui::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 }
 
@@ -359,7 +363,7 @@ mod tests {
             "order1"
         );
 
-        let gui = dotrain_yaml.get_gui().unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -385,9 +389,20 @@ mod tests {
         assert_eq!(select_tokens.len(), 1);
         assert_eq!(select_tokens[0], "token2");
 
-        let (name, description) = Gui::parse_gui_details(dotrain_yaml.documents.clone()).unwrap();
-        assert_eq!(name, "Test gui");
-        assert_eq!(description, "Test description");
+        let details = Gui::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
+        assert_eq!(details.name, "Test gui");
+        assert_eq!(details.description, "Test description");
+
+        let deployment_details =
+            Gui::parse_deployment_details(dotrain_yaml.documents.clone()).unwrap();
+        assert_eq!(
+            deployment_details.get("deployment1").unwrap().name,
+            "Test deployment"
+        );
+        assert_eq!(
+            deployment_details.get("deployment1").unwrap().description,
+            "Test description"
+        );
 
         let deployment_keys = Gui::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(deployment_keys.len(), 1);
@@ -593,7 +608,7 @@ mod tests {
     fn test_handlebars() {
         let dotrain_yaml = DotrainYaml::new(vec![HANDLEBARS_YAML.to_string()], false).unwrap();
 
-        let gui = dotrain_yaml.get_gui().unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
 
         assert_eq!(
@@ -684,7 +699,7 @@ orders:
         );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui().unwrap_err();
+        let error = dotrain_yaml.get_gui(None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(
@@ -694,7 +709,7 @@ orders:
         );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui().unwrap_err();
+        let error = dotrain_yaml.get_gui(None).unwrap_err();
         assert_eq!(
             error,
             YamlError::ParseError(

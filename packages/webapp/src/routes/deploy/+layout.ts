@@ -1,16 +1,22 @@
 import type { LayoutLoad } from './$types';
 
-export const load: LayoutLoad = async () => {
-	const owner = 'rainlanguage';
-	const repo = 'rain.strategies';
-	const path = 'strategies/dev';
-
+export const load: LayoutLoad = async ({ fetch }) => {
 	try {
-		const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`);
-		const data = await response.json();
+		const response = await fetch(
+			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/strategies/dev/registry'
+		);
+		const files = await response.text();
+
+		const _files = files
+			.split('\n')
+			.filter((line: string) => line.trim())
+			.map((line: string) => {
+				const [name, url] = line.split(' ');
+				return { name, url };
+			});
 
 		return {
-			files: data
+			files: _files
 		};
 	} catch {
 		return {
