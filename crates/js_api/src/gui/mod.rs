@@ -4,7 +4,10 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
     deployment::Deployment,
-    gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
+    gui::{
+        Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, NameAndDescription,
+        ParseGuiConfigSourceError,
+    },
     network::Network,
     order::Order,
     yaml::YamlError,
@@ -39,11 +42,8 @@ pub struct TokenInfo {
 impl_all_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct NameAndDescription {
-    name: String,
-    description: String,
-}
-impl_all_wasm_traits!(NameAndDescription);
+pub struct DeploymentDetails(BTreeMap<String, NameAndDescription>);
+impl_all_wasm_traits!(DeploymentDetails);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -149,31 +149,16 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getStrategyDetails")]
     pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescription, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let (name, description) =
-            Gui::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(NameAndDescription { name, description })
+        let details = Gui::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(details)
     }
 
     #[wasm_bindgen(js_name = "getDeploymentDetails")]
-    pub async fn get_deployment_details(
-        dotrain: String,
-        deployment_key: String,
-    ) -> Result<NameAndDescription, GuiError> {
+    pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let gui = dotrain_order
-            .dotrain_yaml()
-            .get_gui()?
-            .ok_or(GuiError::GuiConfigNotFound)?;
-
-        let deployment = gui
-            .deployments
-            .get(&deployment_key)
-            .ok_or(GuiError::DeploymentNotFound(deployment_key))?;
-
-        Ok(NameAndDescription {
-            name: deployment.name.clone(),
-            description: deployment.description.clone(),
-        })
+        let deployment_details =
+            Gui::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
     }
 }
 
