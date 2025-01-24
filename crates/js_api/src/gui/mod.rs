@@ -87,7 +87,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui()?
+            .get_gui(Some(self.selected_deployment.clone()))?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
