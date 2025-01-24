@@ -24,15 +24,13 @@ export default defineConfig(({ mode }) => ({
 		// load env vars
 		env: loadEnv('', process.cwd(), ''),
 		testTimeout: 10000,
-		server: {
-			deps: {
-				inline: [
-					/@reown\/appkit/
-				]
-			}
-		},
-		deps: {
-			interopDefault: true
-		}
+        server: {
+            deps: {
+                inline: [/@tanstack\/svelte-query/, /@reown\/appkit/]
+            }
+        },
+        deps: {
+            interopDefault: true
+        }
 	}
 }));
