@@ -25,5 +25,10 @@ jobs:
 
       - run: nix develop -c npm run svelte-lint-format-check
         working-directory: packages/webapp
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+
       - run: nix develop -c npm run test
         working-directory: packages/webapp
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
