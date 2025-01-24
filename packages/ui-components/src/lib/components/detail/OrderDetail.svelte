@@ -19,6 +19,7 @@
 	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
+	import { InputTokenAmount } from '@rainlanguage/ui-components';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -47,6 +48,7 @@
 	export let subgraphUrl: string;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
+	let amount: bigint | undefined = undefined;
 
 	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -123,6 +125,30 @@
 					<div class="space-y-2">
 						{#each data.inputs || [] as t}
 							<ButtonVaultLink tokenVault={t} {subgraphName} />
+							<div class="flex w-full flex-col items-end justify-between gap-2">
+								<InputTokenAmount
+									bind:value={amount}
+									symbol={t.token.symbol}
+									decimals={Number(t.token.decimals) ?? 0}
+								/>
+								<div class="flex gap-2">
+									<Button
+										data-testid="vaultDetailDepositButton"
+										color="dark"
+										class="whitespace-nowrap"
+										on:click={() => {
+											console.log(545);
+										}}>Deposit</Button
+									>
+									<Button
+										data-testid="vaultDetailDepositButton"
+										color="dark"
+										on:click={() => {
+											console.log(333);
+										}}>Withdraw</Button
+									>
+								</div>
+							</div>
 						{/each}
 					</div>
 				</svelte:fragment>
