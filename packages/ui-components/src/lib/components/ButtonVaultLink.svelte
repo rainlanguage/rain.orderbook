@@ -25,9 +25,14 @@
 			<span class="font-medium">
 				{tokenVault.token.name} ({tokenVault.token.symbol})
 			</span>
-			<span class="text-sm text-gray-500 dark:text-gray-400">
-				{formatUnits(BigInt(tokenVault.balance), parseInt(tokenVault.token.decimals || '18'))}
-			</span>
+			<div class="flex w-full justify-between md:w-auto">
+				<div class="mb-2 flex justify-end text-sm text-gray-500 md:hidden dark:text-gray-400">
+					<span>Balance</span>
+				</div>
+				<span class="text-sm text-gray-500 dark:text-gray-400">
+					{formatUnits(BigInt(tokenVault.balance), parseInt(tokenVault.token.decimals || '18'))}
+				</span>
+			</div>
 		</div>
 	</div>
 </div>

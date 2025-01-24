@@ -119,7 +119,7 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 flex justify-start lg:justify-end">
+					<div class="mb-2 hidden justify-end md:flex">
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
@@ -133,7 +133,7 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Output vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 flex justify-start lg:justify-end">
+					<div class="mb-2 flex justify-end">
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
