@@ -12,6 +12,7 @@ import {
 	Gui,
 	GuiDeployment,
 	GuiDetails,
+	NameAndDescription,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
@@ -366,7 +367,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
 
-		const guiDetails: GuiDetails = gui.getGuiDetails();
+		const guiDetails: NameAndDescription = await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
 		assert.equal(guiDetails.name, 'Fixed limit');
 		assert.equal(guiDetails.description, 'Fixed limit order strategy');
 	});

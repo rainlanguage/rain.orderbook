@@ -130,7 +130,12 @@
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<OrderOrVaultHash type="orders" orderOrVault={order} {network} {updateActiveNetworkAndOrderbook} />
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								{network}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None
@@ -145,7 +150,12 @@
 				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<OrderOrVaultHash type="orders" orderOrVault={order} {network} {updateActiveNetworkAndOrderbook} />
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								{network}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None

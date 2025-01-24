@@ -132,10 +132,10 @@
 		handleDeploymentChange(selectedDeployment as string);
 	}
 
-	function getGuiDetails() {
+	async function getGuiDetails() {
 		if (!gui) return;
 		try {
-			guiDetails = gui.getGuiDetails();
+			guiDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI_DETAILS;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
