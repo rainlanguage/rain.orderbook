@@ -174,8 +174,8 @@ pub enum GuiError {
     DepositTokenNotFound(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
-    #[error("Deserialized config mismatch")]
-    DeserializedConfigMismatch,
+    #[error("Deserialized dotrain mismatch")]
+    DotrainMismatch,
     #[error("Vault id not found for output index: {0}")]
     VaultIdNotFound(String),
     #[error("Deployer not found")]
