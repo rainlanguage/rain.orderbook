@@ -22,6 +22,12 @@
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
+	import { disableScrollHandling } from '$app/navigation';
+	import { onMount } from 'svelte';
+	onMount(async () => {
+		disableScrollHandling();
+		init(deployment);
+	});
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -50,8 +56,10 @@
 	};
 
 	export let dotrain: string;
-	export let deployment: string;
 	export let deploymentDetails: NameAndDescription;
+	export let deployment: string;
+	export let wagmiConfig: Writable<Config | undefined>;
+	export let wagmiConnected: Writable<boolean>;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -67,34 +75,32 @@
 	let stateFromUrl = $page.url.searchParams.get('state');
 	let addOrderError: DeploymentStepErrors | null = null;
 	let addOrderErrorDetails: string | null = null;
-	export let wagmiConfig: Writable<Config | undefined>;
-	export let wagmiConnected: Writable<boolean>;
 
-	$: if (deployment) {
-		handleDeploymentChange(deployment);
-	}
-
-	async function handleDeploymentChange(deployment: string) {
+	async function init(deployment: string) {
 		hasDeserialized = false;
 		if (!deployment || !dotrain) return;
 		error = null;
 		errorDetails = null;
 
-		try {
+		if (!stateFromUrl) {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-
-			if (gui) {
-				try {
-					selectTokens = await gui.getSelectTokens();
-				} catch (e) {
-					error = DeploymentStepErrors.NO_SELECT_TOKENS;
-					return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
-				}
-			}
-		} catch (e) {
-			error = DeploymentStepErrors.DEPLOYMENT_ERROR;
-			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+		} else {
+			console.log('deserializing state from url', stateFromUrl);
+			gui = await DotrainOrderGui.deserializeState(dotrain, stateFromUrl);
+			selectTokens = await gui.getSelectTokens();
+			await gui.getAllFieldValues();
+			await gui.getDeposits();
+			await gui.getCurrentDeployment();
+			console.log(gui.getAllFieldValues());
 		}
+		// if (gui) {
+		// 	try {
+		// 		selectTokens = await gui.getSelectTokens();
+		// 	} catch (e) {
+		// 		error = DeploymentStepErrors.NO_SELECT_TOKENS;
+		// 		return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+		// 	}
+		// }
 	}
 
 	function getAllFieldDefinitions() {
@@ -142,14 +148,39 @@
 		}
 	}
 
+	function initializeVaultIdArrays() {
+		if (!gui) return;
+		const deployment = gui.getCurrentDeployment();
+		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
+		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
+	}
+
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		updateFields();
 	}
 
+	// $: if (selectTokens?.length && hasDeserialized) {
+	// 	handleSerializeState(gui);
+	// }
+
+	async function handleSerializeState(gui: DotrainOrderGui) {
+		try {
+			const serializedState = await gui.serializeState();
+			if (serializedState) {
+				$page.url.searchParams.set('state', serializedState);
+				goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
+			}
+		} catch (e) {
+			console.error('Failed to serialize GUI:', e);
+		}
+	}
+
 	async function updateFields() {
 		try {
+			console.log('updating fields');
 			error = null;
 			errorDetails = null;
+
 			await Promise.all([
 				initializeVaultIdArrays(),
 				getAllDepositFields(),
@@ -157,19 +188,6 @@
 				getAllTokenInputs(),
 				getAllTokenOutputs()
 			]);
-			console.log(hasDeserialized);
-			if (stateFromUrl && !hasDeserialized && gui) {
-				console.log('deserializing state from url', stateFromUrl);
-				try {
-					gui.deserializeState(stateFromUrl);
-					hasDeserialized = true;
-				} catch (e) {
-					error = DeploymentStepErrors.DESERIALIZE_FAILED;
-					errorDetails = e instanceof Error ? e.message : 'Unknown error';
-				}
-			} else {
-				hasDeserialized = true;
-			}
 		} catch (e) {
 			error = DeploymentStepErrors.DESERIALIZE_FAILED;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -185,7 +203,7 @@
 		return chain;
 	}
 
-	async function handleAddOrderWagmi() {
+	async function handleAddOrder() {
 		try {
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
@@ -207,30 +225,6 @@
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
 			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
-	function initializeVaultIdArrays() {
-		if (!gui) return;
-		const deployment = gui.getCurrentDeployment();
-		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
-		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
-	}
-
-	$: if (gui && hasDeserialized) {
-		console.log('serializing state', gui);
-		handleSerializeState(gui);
-	}
-
-	async function handleSerializeState(gui: DotrainOrderGui) {
-		try {
-			const serializedState = await DotrainOrderGui.serializeState(gui);
-			if (serializedState) {
-				$page.url.searchParams.set('state', serializedState);
-				goto(`?${$page.url.searchParams.toString()}`);
-			}
-		} catch (e) {
-			console.error('Failed to serialize GUI:', e);
 		}
 	}
 </script>
@@ -264,7 +258,13 @@
 						/>
 						<div class="flex w-full flex-col gap-4">
 							{#each selectTokens as tokenKey}
-								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
+								<SelectToken
+									{tokenKey}
+									bind:gui
+									bind:selectTokens
+									bind:allTokensSelected
+									on:change={() => handleSerializeState(gui)}
+								/>
 							{/each}
 						</div>
 					</div>
@@ -274,7 +274,11 @@
 					{#if allFieldDefinitions.length > 0}
 						<div class="flex w-full flex-col items-center gap-24">
 							{#each allFieldDefinitions as fieldDefinition}
-								<FieldDefinitionInput {fieldDefinition} bind:gui />
+								<FieldDefinitionInput
+									{fieldDefinition}
+									bind:gui
+									on:change={() => handleSerializeState(gui)}
+								/>
 							{/each}
 						</div>
 					{/if}
@@ -282,7 +286,7 @@
 					{#if allDepositFields.length > 0}
 						<div class="flex w-full flex-col items-center gap-24">
 							{#each allDepositFields as deposit}
-								<DepositInput bind:deposit bind:gui />
+								<DepositInput bind:deposit bind:gui on:change={() => handleSerializeState(gui)} />
 							{/each}
 						</div>
 					{/if}
@@ -300,6 +304,7 @@
 										vault={input}
 										vaultIds={inputVaultIds}
 										bind:gui
+										on:change={() => handleSerializeState(gui)}
 									/>
 								{/each}
 							{/if}
@@ -312,6 +317,7 @@
 										vault={output}
 										vaultIds={outputVaultIds}
 										bind:gui
+										on:change={() => handleSerializeState(gui)}
 									/>
 								{/each}
 							{/if}
@@ -319,7 +325,7 @@
 					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy with Wagmi</Button>
 						{:else}
 							<slot name="wallet-connect" />
 						{/if}

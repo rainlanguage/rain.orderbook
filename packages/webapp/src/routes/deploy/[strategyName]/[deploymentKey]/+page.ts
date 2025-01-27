@@ -1,5 +1,6 @@
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { PageLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 
 export const load: PageLoad = async ({ fetch, params }) => {
 	try {
@@ -45,17 +46,9 @@ export const load: PageLoad = async ({ fetch, params }) => {
 				description
 			};
 		} else {
-			return {
-				dotrain: null,
-				strategyName: null,
-				deploymentKey: null
-			};
+			throw redirect(307, '/deploy');
 		}
 	} catch {
-		return {
-			dotrain: null,
-			strategyName: null,
-			deploymentKey: null
-		};
+		throw redirect(307, '/deploy');
 	}
 };

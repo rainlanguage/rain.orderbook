@@ -11,8 +11,17 @@
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
+
 	let currentFieldDefinition: GuiPreset | undefined;
 	let inputValue: string | null = null;
+
+	$: if (gui) {
+		try {
+			currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
+		} catch (e) {
+			currentFieldDefinition = undefined;
+		}
+	}
 
 	function handlePresetClick(preset: GuiPreset) {
 		inputValue = preset.value;
