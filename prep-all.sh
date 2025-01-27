@@ -23,6 +23,7 @@ keep=(
   -k CI_SEPOLIA_METABOARD_URL
   -k RPC_URL_ETHEREUM_FORK
   -k COMMIT_SHA
+  -k PUBLIC_WALLETCONNECT_PROJECT_ID
 )
 
 echo "Installing Forge dependencies..."
