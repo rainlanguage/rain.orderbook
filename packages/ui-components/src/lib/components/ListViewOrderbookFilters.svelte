@@ -20,14 +20,17 @@
 	export let isOrdersPage: boolean;
 </script>
 
-<div class="flex flex-wrap items-center justify-end gap-x-2 lg:min-w-[600px]">
+<div
+	class="grid w-full items-center gap-4 md:flex md:justify-end lg:min-w-[600px]"
+	style="grid-template-columns: repeat(2, minmax(0, 1fr));"
+>
 	{#if isEmpty($settings?.networks)}
-		<Alert color="gray" data-testid="no-networks-alert">
+		<Alert color="gray" data-testid="no-networks-alert" class="w-full">
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
 		{#if isVaultsPage}
-			<div class="mt-4">
+			<div class="mt-4 w-full lg:w-auto">
 				<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
 			</div>
 		{/if}
