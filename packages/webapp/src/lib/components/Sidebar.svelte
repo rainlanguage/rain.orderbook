@@ -22,6 +22,8 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
+	import WalletConnect from './WalletConnect.svelte';
+
 	import { onMount } from 'svelte';
 	export let colorTheme;
 	export let page;
@@ -61,7 +63,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
@@ -98,6 +100,9 @@
 						<span data-testid="sidebar-vaults"></span>
 					</svelte:fragment>
 				</SidebarItem>
+			</SidebarGroup>
+			<SidebarGroup border>
+				<WalletConnect />
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem
