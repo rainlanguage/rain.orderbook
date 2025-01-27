@@ -4,10 +4,7 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
     deployment::Deployment,
-    gui::{
-        Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, NameAndDescription,
-        ParseGuiConfigSourceError,
-    },
+    gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
     network::Network,
     order::Order,
     yaml::YamlError,
@@ -42,8 +39,11 @@ pub struct TokenInfo {
 impl_all_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DeploymentDetails(BTreeMap<String, NameAndDescription>);
-impl_all_wasm_traits!(DeploymentDetails);
+pub struct GuiDetails {
+    name: String,
+    description: String,
+}
+impl_all_wasm_traits!(GuiDetails);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -87,7 +87,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui()?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -146,19 +146,11 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
-    #[wasm_bindgen(js_name = "getStrategyDetails")]
-    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescription, GuiError> {
-        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let details = Gui::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(details)
-    }
-
-    #[wasm_bindgen(js_name = "getDeploymentDetails")]
-    pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
-        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let deployment_details =
-            Gui::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+    #[wasm_bindgen(js_name = "getGuiDetails")]
+    pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
+        let (name, description) =
+            Gui::parse_gui_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(GuiDetails { name, description })
     }
 }
 

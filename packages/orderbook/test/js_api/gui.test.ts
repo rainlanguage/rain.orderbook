@@ -6,13 +6,12 @@ import {
 	AllFieldValuesResult,
 	AllowancesResult,
 	ApprovalCalldataResult,
-	DeploymentDetails,
 	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
-	NameAndDescription,
+	GuiDetails,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
@@ -366,25 +365,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const guiConfig = gui.getGuiConfig() as Gui;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
-	});
 
-	it('should get strategy details', async () => {
-		const strategyDetails: NameAndDescription =
-			await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
-		assert.equal(strategyDetails.name, 'Fixed limit');
-		assert.equal(strategyDetails.description, 'Fixed limit order strategy');
-	});
-
-	it('should get deployment details', async () => {
-		const deploymentDetails: DeploymentDetails =
-			await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
-		const entries = Array.from(deploymentDetails.entries());
-		assert.equal(entries[0][0], 'other-deployment');
-		assert.equal(entries[0][1].name, 'Test test');
-		assert.equal(entries[0][1].description, 'Test test test');
-		assert.equal(entries[1][0], 'some-deployment');
-		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
-		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
+		const guiDetails: GuiDetails = gui.getGuiDetails();
+		assert.equal(guiDetails.name, 'Fixed limit');
+		assert.equal(guiDetails.description, 'Fixed limit order strategy');
 	});
 
 	it('should get token infos', async () => {

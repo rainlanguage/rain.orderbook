@@ -14,14 +14,14 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { createWalletClient, custom, type Chain } from 'viem';
+	import { type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { Input, Spinner, Button } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
+	import { goto } from '$app/navigation';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -63,6 +63,12 @@
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
+	let hasDeserialized = false;
+	let stateFromUrl = $page.url.searchParams.get('state');
+	let addOrderError: DeploymentStepErrors | null = null;
+	let addOrderErrorDetails: string | null = null;
+	export let wagmiConfig: Writable<Config | undefined>;
+	export let wagmiConnected: Writable<boolean>;
 
 	$: if (deployment) {
 		handleDeploymentChange(deployment);
@@ -151,6 +157,7 @@
 				getAllTokenInputs(),
 				getAllTokenOutputs()
 			]);
+			console.log(hasDeserialized);
 			if (stateFromUrl && !hasDeserialized && gui) {
 				console.log('deserializing state from url', stateFromUrl);
 				try {
@@ -215,12 +222,13 @@
 		handleSerializeState(gui);
 	}
 
-	async function handleSerializeState(gui) {
+	async function handleSerializeState(gui: DotrainOrderGui) {
 		try {
-			const serializedState = await gui.serializeState();
-			console.log('serializedState', serializedState);
-			$page.url.searchParams.set('state', serializedState);
-			window.history.pushState({}, '', '?state=' + serializedState);
+			const serializedState = await DotrainOrderGui.serializeState(gui);
+			if (serializedState) {
+				$page.url.searchParams.set('state', serializedState);
+				goto(`?${$page.url.searchParams.toString()}`);
+			}
 		} catch (e) {
 			console.error('Failed to serialize GUI:', e);
 		}
@@ -309,26 +317,23 @@
 							{/if}
 						</div>
 					{/if}
-					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+					<div class="flex flex-col gap-2">
+						{#if $wagmiConnected}
+							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+						{:else}
+							<slot name="wallet-connect" />
+						{/if}
+						<div class="flex flex-col">
+							{#if addOrderError}
+								<p class="text-red-500">{addOrderError}</p>
+							{/if}
+							{#if addOrderErrorDetails}
+								<p class="text-red-500">{addOrderErrorDetails}</p>
+							{/if}
+						</div>
+					</div>
 				{/if}
 			</div>
 		{/if}
-				<div class="flex flex-col gap-2">
-					{#if $wagmiConnected}
-						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
-					{:else}
-						<slot name="wallet-connect" />
-					{/if}
-					<div class="flex flex-col">
-						{#if addOrderError}
-							<p class="text-red-500">{addOrderError}</p>
-						{/if}
-						{#if addOrderErrorDetails}
-							<p class="text-red-500">{addOrderErrorDetails}</p>
-						{/if}
-					</div>
-				</div>
-			{/if}
-		</div>
 	{/if}
 </div>
