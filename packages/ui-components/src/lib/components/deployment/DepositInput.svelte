@@ -18,6 +18,14 @@
 	let inputValue: string = '';
 	let tokenInfo: TokenInfo | null = null;
 
+	$: if (gui) {
+		try {
+			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
+		} catch {
+			currentDeposit = undefined;
+		}
+	}
+
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {

@@ -71,36 +71,38 @@
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let gui: DotrainOrderGui | null = null;
-	let hasDeserialized = false;
+	let awaitingDeserialization = true;
 	let stateFromUrl = $page.url.searchParams.get('state');
 	let addOrderError: DeploymentStepErrors | null = null;
 	let addOrderErrorDetails: string | null = null;
 
 	async function init(deployment: string) {
-		hasDeserialized = false;
 		if (!deployment || !dotrain) return;
 		error = null;
 		errorDetails = null;
-
 		if (!stateFromUrl) {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			try {
+				selectTokens = await gui.getSelectTokens();
+
+			} catch (e) {
+				error = DeploymentStepErrors.NO_SELECT_TOKENS;
+				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+			}
 		} else {
 			console.log('deserializing state from url', stateFromUrl);
 			gui = await DotrainOrderGui.deserializeState(dotrain, stateFromUrl);
-			selectTokens = await gui.getSelectTokens();
 			await gui.getAllFieldValues();
 			await gui.getDeposits();
 			await gui.getCurrentDeployment();
-			console.log(gui.getAllFieldValues());
+			try {
+				selectTokens = await gui.getSelectTokens();
+			} catch (e) {
+				error = DeploymentStepErrors.NO_SELECT_TOKENS;
+				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+			}
 		}
-		// if (gui) {
-		// 	try {
-		// 		selectTokens = await gui.getSelectTokens();
-		// 	} catch (e) {
-		// 		error = DeploymentStepErrors.NO_SELECT_TOKENS;
-		// 		return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
-		// 	}
-		// }
+		awaitingDeserialization = false;
 	}
 
 	function getAllFieldDefinitions() {
@@ -159,11 +161,12 @@
 		updateFields();
 	}
 
-	// $: if (selectTokens?.length && hasDeserialized) {
-	// 	handleSerializeState(gui);
-	// }
+	$: if (!awaitingDeserialization && gui) {
+		handleSerializeState(gui);
+	}
 
 	async function handleSerializeState(gui: DotrainOrderGui) {
+		console.log('serializing state');
 		try {
 			const serializedState = await gui.serializeState();
 			if (serializedState) {
@@ -258,13 +261,7 @@
 						/>
 						<div class="flex w-full flex-col gap-4">
 							{#each selectTokens as tokenKey}
-								<SelectToken
-									{tokenKey}
-									bind:gui
-									bind:selectTokens
-									bind:allTokensSelected
-									on:change={() => handleSerializeState(gui)}
-								/>
+								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
 							{/each}
 						</div>
 					</div>
@@ -274,11 +271,7 @@
 					{#if allFieldDefinitions.length > 0}
 						<div class="flex w-full flex-col items-center gap-24">
 							{#each allFieldDefinitions as fieldDefinition}
-								<FieldDefinitionInput
-									{fieldDefinition}
-									bind:gui
-									on:change={() => handleSerializeState(gui)}
-								/>
+								<FieldDefinitionInput {fieldDefinition} bind:gui />
 							{/each}
 						</div>
 					{/if}
@@ -286,7 +279,7 @@
 					{#if allDepositFields.length > 0}
 						<div class="flex w-full flex-col items-center gap-24">
 							{#each allDepositFields as deposit}
-								<DepositInput bind:deposit bind:gui on:change={() => handleSerializeState(gui)} />
+								<DepositInput bind:deposit bind:gui />
 							{/each}
 						</div>
 					{/if}
