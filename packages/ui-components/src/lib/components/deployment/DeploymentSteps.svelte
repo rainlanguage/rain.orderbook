@@ -14,10 +14,10 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { createWalletClient, custom, type Chain } from 'viem';
+	import { type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
-	import { Input, Spinner, Button } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 
@@ -58,7 +58,12 @@
 	let allTokensSelected: boolean = false;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
+
 	let gui: DotrainOrderGui | null = null;
+	let addOrderError: DeploymentStepErrors | null = null;
+	let addOrderErrorDetails: string | null = null;
+	export let wagmiConfig: Writable<Config | undefined>;
+	export let wagmiConnected: Writable<boolean>;
 
 	$: if (deployment) {
 		handleDeploymentChange(deployment);
@@ -275,26 +280,23 @@
 							{/if}
 						</div>
 					{/if}
-					<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+					<div class="flex flex-col gap-2">
+						{#if $wagmiConnected}
+							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+						{:else}
+							<slot name="wallet-connect" />
+						{/if}
+						<div class="flex flex-col">
+							{#if addOrderError}
+								<p class="text-red-500">{addOrderError}</p>
+							{/if}
+							{#if addOrderErrorDetails}
+								<p class="text-red-500">{addOrderErrorDetails}</p>
+							{/if}
+						</div>
+					</div>
 				{/if}
 			</div>
 		{/if}
-				<div class="flex flex-col gap-2">
-					{#if $wagmiConnected}
-						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
-					{:else}
-						<slot name="wallet-connect" />
-					{/if}
-					<div class="flex flex-col">
-						{#if addOrderError}
-							<p class="text-red-500">{addOrderError}</p>
-						{/if}
-						{#if addOrderErrorDetails}
-							<p class="text-red-500">{addOrderErrorDetails}</p>
-						{/if}
-					</div>
-				</div>
-			{/if}
-		</div>
 	{/if}
 </div>
