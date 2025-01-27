@@ -21,9 +21,13 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@canary
