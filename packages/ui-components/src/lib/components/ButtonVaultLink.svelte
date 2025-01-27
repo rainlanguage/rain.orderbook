@@ -18,16 +18,21 @@
 	on:click={() => goto(`/vaults/${subgraphName}-${tokenVault.id}`)}
 >
 	<div class="flex flex-col space-y-2">
-		<div class="flex items-center justify-between">
+		<div class="flex flex-col items-start justify-between lg:flex-row lg:items-center">
 			<Tooltip triggeredBy="#token-info" class="w-96">
 				ID: <span class="font-mono">{bigintStringToHex(tokenVault.vaultId)}</span>
 			</Tooltip>
 			<span class="font-medium">
 				{tokenVault.token.name} ({tokenVault.token.symbol})
 			</span>
-			<span class="text-sm text-gray-500 dark:text-gray-400">
-				{formatUnits(BigInt(tokenVault.balance), parseInt(tokenVault.token.decimals || '18'))}
-			</span>
+			<div class="flex w-full justify-between md:w-auto">
+				<div class="mb-2 flex justify-end text-sm text-gray-500 md:hidden dark:text-gray-400">
+					<span>Balance</span>
+				</div>
+				<span class="text-sm text-gray-500 dark:text-gray-400">
+					{formatUnits(BigInt(tokenVault.balance), parseInt(tokenVault.token.decimals || '18'))}
+				</span>
+			</div>
 		</div>
 	</div>
 </div>
