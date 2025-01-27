@@ -12,7 +12,7 @@
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type GuiDetails,
+		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
@@ -56,7 +56,7 @@
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
-	let guiDetails: GuiDetails;
+	let guiDetails: NameAndDescription;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
 	let addOrderError: string | null = null;
@@ -140,10 +140,10 @@
 		handleDeploymentChange(selectedDeployment as string);
 	}
 
-	function getGuiDetails() {
+	async function getGuiDetails() {
 		if (!gui) return;
 		try {
-			guiDetails = gui.getGuiDetails();
+			guiDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI_DETAILS;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
