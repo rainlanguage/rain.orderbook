@@ -8,7 +8,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    context::{Context, GuiContextTrait},
+    default_document, require_hash, require_string, YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -44,6 +45,10 @@ impl Deployment {
                 {
                     return require_string(deployment_yaml, Some("order"), None);
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "deployments field must be a map".to_string(),
+                ));
             }
         }
         Err(YamlError::ParseError(format!(
@@ -66,19 +71,27 @@ impl YamlParsableHash for Deployment {
                 for (key_yaml, deployment_yaml) in deployments_hash {
                     let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                    let order = Order::parse_from_yaml(
-                        documents.clone(),
-                        &require_string(
-                            deployment_yaml,
-                            Some("order"),
-                            Some(format!(
-                                "order string missing in deployment: {deployment_key}"
-                            )),
-                        )?,
-                        context,
-                    )?;
+                    if let Some(context) = context {
+                        if let Some(current_deployment) = context.get_current_deployment() {
+                            if current_deployment != &deployment_key {
+                                continue;
+                            }
+                        }
+                    }
 
-                    let mut context = Context::new();
+                    let mut context = Context::from_context(context);
+
+                    let order_key = require_string(
+                        deployment_yaml,
+                        Some("order"),
+                        Some(format!(
+                            "order string missing in deployment: {deployment_key}"
+                        )),
+                    )?;
+                    context.add_current_order(order_key.clone());
+
+                    let order =
+                        Order::parse_from_yaml(documents.clone(), &order_key, Some(&context))?;
                     context.add_order(Arc::new(order.clone()));
 
                     let scenario = Scenario::parse_from_yaml(
@@ -266,6 +279,25 @@ mod tests {
     #[test]
     fn test_parse_deployments_from_yaml() {
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
 test: test
 "#;
         let error = Deployment::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -275,6 +307,25 @@ test: test
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000000
+        network: network1
+orders:
+    order1:
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+        deployer: deployer1
 deployments:
     deployment1:
         test: test
@@ -472,5 +523,49 @@ deployments:
             error,
             YamlError::KeyShadowing("DuplicateDeployment".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_order_key() {
+        let yaml = r#"
+deployments: test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  - test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  - test: test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  deployment1:
+    order: order1
+    scenario: scenario1
+"#;
+        let res = Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap();
+        assert_eq!(res, "order1");
     }
 }

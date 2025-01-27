@@ -13,7 +13,7 @@
 
 <div data-testid="order-hash-input" class="flex flex-col gap-x-2">
 	<Label>Order Hash</Label>
-	<div class="w-32">
+	<div class="w-full lg:w-32">
 		<input
 			type="text"
 			bind:value
