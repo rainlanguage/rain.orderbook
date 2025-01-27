@@ -74,7 +74,7 @@
 {/if}
 
 {#if shorten}
-	<Tooltip triggeredBy={`#${id}`} class="z-20 dark:bg-gray-500">
+	<Tooltip triggeredBy={`#${id}`} class="z-20 whitespace-normal">
 		<div class="flex items-center justify-start space-x-2">
 			{#if type === HashType.Wallet}
 				<WalletOutline size="sm" />

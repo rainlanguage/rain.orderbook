@@ -66,6 +66,8 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
