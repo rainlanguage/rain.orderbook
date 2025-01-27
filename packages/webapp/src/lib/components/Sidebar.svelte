@@ -22,6 +22,8 @@
 		logoDark,
 		logoLight
 	} from '@rainlanguage/ui-components';
+	import WalletConnect from './WalletConnect.svelte';
+
 	import { onMount } from 'svelte';
 	export let colorTheme;
 	export let page;
@@ -98,6 +100,9 @@
 						<span data-testid="sidebar-vaults"></span>
 					</svelte:fragment>
 				</SidebarItem>
+			</SidebarGroup>
+			<SidebarGroup border>
+				<WalletConnect />
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem

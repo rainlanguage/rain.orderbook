@@ -6,7 +6,9 @@ import type {
 } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
 import pkg from 'lodash';
+
 const { pickBy } = pkg;
+
 export interface LayoutData {
 	stores: AppStoresInterface;
 }
@@ -16,8 +18,8 @@ export const load = async () => {
 		'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
 	);
 	const settingsJson = await response.json();
-	const activeNetworkRef = writable<string>('');
 	const settings = writable<ConfigSource | undefined>(settingsJson);
+	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(
 		[settings, activeOrderbookRef],
@@ -26,11 +28,7 @@ export const load = async () => {
 				? $settings.orderbooks[$activeOrderbookRef]
 				: undefined
 	);
-	const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-			? $settings.subgraphs[$activeOrderbook.subgraph]
-			: undefined
-	);
+
 	const activeNetworkOrderbooks = derived(
 		[settings, activeNetworkRef],
 		([$settings, $activeNetworkRef]) =>
@@ -45,6 +43,11 @@ export const load = async () => {
 	const accounts = derived(settings, ($settings) => $settings?.accounts);
 	const activeAccountsItems = writable<Record<string, string>>({});
 
+	const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
+		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
+			? $settings.subgraphs[$activeOrderbook.subgraph]
+			: undefined
+	);
 	const activeAccounts = derived(
 		[accounts, activeAccountsItems],
 		([$accounts, $activeAccountsItems]) =>
@@ -54,6 +57,7 @@ export const load = async () => {
 						Object.entries($accounts || {}).filter(([key]) => key in $activeAccountsItems)
 					)
 	);
+
 	return {
 		stores: {
 			settings,
