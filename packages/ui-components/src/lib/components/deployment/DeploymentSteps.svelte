@@ -14,10 +14,12 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button } from 'flowbite-svelte';
 	import { createWalletClient, custom, type Chain } from 'viem';
 	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
+	import { Input, Spinner, Button } from 'flowbite-svelte';
+	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
+	import { type Writable } from 'svelte/store';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -50,9 +52,9 @@
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let selectTokens: string[] | null = null;
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
+	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
@@ -158,41 +160,28 @@
 		return chain;
 	}
 
-	async function handleAddOrder() {
+	async function handleAddOrderWagmi() {
 		try {
-			if (!gui) return;
-
-			// @ts-expect-error window.ethereum is not typed
-			await window.ethereum?.request({ method: 'eth_requestAccounts' });
-			const walletClient = createWalletClient({
-				chain: getChainById(
-					gui.getCurrentDeployment().deployment.order.network['chain-id'] as number
-				),
-				// @ts-expect-error window.ethereum is not typed
-				transport: custom(window.ethereum!)
-			});
-			const [account] = await walletClient.getAddresses();
-
-			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(account);
+			if (!gui || !$wagmiConfig) return;
+			const { address } = getAccount($wagmiConfig);
+			if (!address) return;
+			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
 			for (const approval of approvals) {
-				await walletClient.sendTransaction({
-					account,
+				await sendTransaction($wagmiConfig, {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`
 				});
 			}
-
 			const calldata: DepositAndAddOrderCalldataResult =
 				await gui.generateDepositAndAddOrderCalldatas();
-			await walletClient.sendTransaction({
-				account,
+			await sendTransaction($wagmiConfig, {
 				// @ts-expect-error orderbook is not typed
 				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
 				data: calldata as `0x${string}`
 			});
 		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
+			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -290,5 +279,22 @@
 				{/if}
 			</div>
 		{/if}
+				<div class="flex flex-col gap-2">
+					{#if $wagmiConnected}
+						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+					{:else}
+						<slot name="wallet-connect" />
+					{/if}
+					<div class="flex flex-col">
+						{#if addOrderError}
+							<p class="text-red-500">{addOrderError}</p>
+						{/if}
+						{#if addOrderErrorDetails}
+							<p class="text-red-500">{addOrderErrorDetails}</p>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>
