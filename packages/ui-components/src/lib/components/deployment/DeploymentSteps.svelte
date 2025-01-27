@@ -84,7 +84,6 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 			try {
 				selectTokens = await gui.getSelectTokens();
-
 			} catch (e) {
 				error = DeploymentStepErrors.NO_SELECT_TOKENS;
 				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
@@ -297,7 +296,6 @@
 										vault={input}
 										vaultIds={inputVaultIds}
 										bind:gui
-										on:change={() => handleSerializeState(gui)}
 									/>
 								{/each}
 							{/if}
