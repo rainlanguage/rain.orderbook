@@ -2,8 +2,16 @@ import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import {loadEnv} from "vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+	assetsInclude: ['**/*.rain'],
 	plugins: [sveltekit()],
+	resolve: {
+		conditions: mode === 'test' ? ['browser'] : []
+	},
+	define: {
+		'process.env': {},
+		'import.meta.vitest': 'undefined'
+	},
 
 	test: {
 		// Jest like globals
@@ -18,8 +26,13 @@ export default defineConfig({
 		testTimeout: 10000,
 		server: {
 			deps: {
-				inline: [/@tanstack\/svelte-query/]
+				inline: [
+					/@reown\/appkit/, /@tanstack\/svelte-query/
+				]
 			}
+		},
+		deps: {
+			interopDefault: true
 		}
 	}
-});
+}));
