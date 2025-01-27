@@ -295,6 +295,10 @@ impl Order {
                         }
                     }
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "orders field must be a map".to_string(),
+                ));
             }
         }
 
@@ -1013,5 +1017,37 @@ orders:
         let error = Order::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
+    }
+
+    #[test]
+    fn parse_network_key() {
+        let yaml = r#"
+orders: test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orders:
+  - test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orders:
+  - test: test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
     }
 }

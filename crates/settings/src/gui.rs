@@ -280,6 +280,10 @@ impl Gui {
                             deployment_keys.push(key.clone());
                         }
                     }
+                } else {
+                    return Err(YamlError::ParseError(
+                        "deployments field must be a map in gui".to_string(),
+                    ));
                 }
             }
         }
@@ -1516,5 +1520,128 @@ gui:
         .unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("deployment1".to_string()));
+    }
+
+    #[test]
+    fn test_parse_deployment_keys() {
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+gui:
+    name: test
+    description: test
+"#;
+
+        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field missing in gui".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+gui:
+    name: test
+    description: test
+    deployments: test
+"#;
+
+        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map in gui".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+gui:
+    name: test
+    description: test
+    deployments:
+      - test
+"#;
+
+        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map in gui".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+gui:
+    name: test
+    description: test
+    deployments:
+      - test: test
+"#;
+
+        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map in gui".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    token1:
+        address: 0x0000000000000000000000000000000000000001
+        network: network1
+    token2:
+        address: 0x0000000000000000000000000000000000000002
+        network: network1
+gui:
+    name: test
+    description: test
+    deployments:
+      test: test
+      test2: test2
+"#;
+
+        let keys = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
+        assert_eq!(keys, vec!["test".to_string(), "test2".to_string()]);
     }
 }
