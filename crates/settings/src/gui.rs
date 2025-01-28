@@ -352,6 +352,53 @@ impl Gui {
         Err(YamlError::ParseError("gui details not found".to_string()))
     }
 
+    pub fn parse_deployment_details(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<HashMap<String, NameAndDescription>, YamlError> {
+        let mut deployment_details = HashMap::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                let deployments = gui
+                    .get(&StrictYaml::String("deployments".to_string()))
+                    .ok_or(YamlError::ParseError(
+                        "deployments field missing in gui".to_string(),
+                    ))?
+                    .as_hash()
+                    .ok_or(YamlError::ParseError(
+                        "deployments field must be a map in gui".to_string(),
+                    ))?;
+
+                for (key_yaml, deployment_yaml) in deployments {
+                    let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    let name = require_string(
+                        deployment_yaml,
+                        Some("name"),
+                        Some(format!(
+                            "name string missing in gui deployment: {deployment_key}"
+                        )),
+                    )?;
+
+                    let description = require_string(
+                        deployment_yaml,
+                        Some("description"),
+                        Some(format!(
+                            "description string missing in gui deployment: {deployment_key}"
+                        )),
+                    )?;
+
+                    deployment_details
+                        .insert(deployment_key, NameAndDescription { name, description });
+                }
+            }
+        }
+
+        Ok(deployment_details)
+    }
+
     pub fn parse_field_presets(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         deployment_key: &str,
