@@ -16,9 +16,10 @@
 	let inputValue: string | null = null;
 
 	$: if (gui) {
+		console.log();
 		try {
 			currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
-		} catch (e) {
+		} catch {
 			currentFieldDefinition = undefined;
 		}
 	}
@@ -29,6 +30,7 @@
 			isPreset: true,
 			value: preset.id
 		});
+		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
 	}
 
 	function handleCustomInputChange(value: string) {
@@ -37,9 +39,10 @@
 			isPreset: false,
 			value: value
 		});
+		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
 	}
 
-	$: if (fieldDefinition && !inputValue && inputValue !== '') {
+	$: if (!inputValue && inputValue !== '') {
 		inputValue = currentFieldDefinition?.value || '';
 	}
 </script>
@@ -63,7 +66,7 @@
 			size="lg"
 			placeholder="Enter custom value"
 			bind:value={inputValue}
-			on:input={({ currentTarget }) => {
+			on:change={({ currentTarget }) => {
 				if (currentTarget instanceof HTMLInputElement) {
 					handleCustomInputChange(currentTarget.value);
 				}
