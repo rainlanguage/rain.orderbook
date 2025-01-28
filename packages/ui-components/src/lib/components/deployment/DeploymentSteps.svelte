@@ -229,6 +229,10 @@
 			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
+
+	$: if (gui) {
+		console.log('gui changed in parent');
+	}
 </script>
 
 <div>

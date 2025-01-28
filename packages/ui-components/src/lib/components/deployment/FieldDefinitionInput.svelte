@@ -16,7 +16,7 @@
 	let inputValue: string | null = null;
 
 	$: if (gui) {
-		console.log();
+		console.log('GUI');
 		try {
 			currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
 		} catch {
@@ -24,26 +24,28 @@
 		}
 	}
 
-	function handlePresetClick(preset: GuiPreset) {
+	async function handlePresetClick(preset: GuiPreset) {
 		inputValue = preset.value;
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: true,
 			value: preset.id
 		});
 		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
+		await gui.getAllFieldValues();
+		await gui.getCurrentDeployment();
+
+		console.log('currentFieldDefinition', currentFieldDefinition);
 	}
 
-	function handleCustomInputChange(value: string) {
+	async function handleCustomInputChange(value: string) {
 		inputValue = value;
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: false,
 			value: value
 		});
 		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
-	}
-
-	$: if (!inputValue && inputValue !== '') {
-		inputValue = currentFieldDefinition?.value || '';
+		await gui.getAllFieldValues();
+		await gui.getCurrentDeployment();
 	}
 </script>
 
@@ -66,7 +68,7 @@
 			size="lg"
 			placeholder="Enter custom value"
 			bind:value={inputValue}
-			on:change={({ currentTarget }) => {
+			on:input={({ currentTarget }) => {
 				if (currentTarget instanceof HTMLInputElement) {
 					handleCustomInputChange(currentTarget.value);
 				}
