@@ -9,7 +9,6 @@
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
-	import { appKitModal, connected } from '$lib/stores/wagmi';
 
 	import { page } from '$app/stores';
 	const queryClient = new QueryClient({
@@ -37,7 +36,7 @@
 
 <QueryClientProvider client={queryClient}>
 	<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400">
-		<Sidebar {colorTheme} page={$page} {appKitModal} wagmiConnected={connected} />
+		<Sidebar {colorTheme} page={$page} />
 		<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
 			<slot />
 		</main>

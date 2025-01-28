@@ -25,12 +25,10 @@
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
-	import type { Writable } from 'svelte/store';
-	import type { AppKit } from '@reown/appkit';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	export let colorTheme;
 	export let page;
-	export let appKitModal: Writable<AppKit>;
-	export let wagmiConnected: Writable<boolean>;
+
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
 	let width: number;
@@ -106,7 +104,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border>
-				<WalletConnect {appKitModal} connected={wagmiConnected} />
+				<WalletConnect {appKitModal} {connected} />
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem

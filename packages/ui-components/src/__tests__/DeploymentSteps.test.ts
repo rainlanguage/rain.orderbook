@@ -6,7 +6,9 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-const {mockWagmiConfigStore, mockConnectedStore} = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
@@ -648,7 +650,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
-
 		mockConnectedStore.mockSetSubscribeValue(true);
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
@@ -678,11 +679,8 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
-    screen.debug();
 	});
-  	it('shows connect wallet button when not connected', async () => {
-
-
+	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
@@ -705,13 +703,12 @@ describe('DeploymentSteps', () => {
 				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-        appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit)
 			}
 		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
-    screen.debug();
-});
+	});
 });
