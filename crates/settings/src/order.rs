@@ -10,7 +10,7 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::{Context, SelectTokensContext},
+    context::{Context, GuiContextTrait, SelectTokensContext},
     default_document, optional_string, require_hash, require_string, require_vec, YamlError,
     YamlParsableHash,
 };
@@ -295,6 +295,10 @@ impl Order {
                         }
                     }
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "orders field must be a map".to_string(),
+                ));
             }
         }
 
@@ -323,6 +327,14 @@ impl YamlParsableHash for Order {
             if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
                 for (key_yaml, order_yaml) in orders_hash {
                     let order_key = key_yaml.as_str().unwrap_or_default().to_string();
+
+                    if let Some(context) = context {
+                        if let Some(current_order) = context.get_current_order() {
+                            if current_order != &order_key {
+                                continue;
+                            }
+                        }
+                    }
 
                     let mut network: Option<Arc<Network>> = None;
 
@@ -1005,5 +1017,37 @@ orders:
         let error = Order::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
+    }
+
+    #[test]
+    fn parse_network_key() {
+        let yaml = r#"
+orders: test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orders:
+  - test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orders:
+  - test: test
+"#;
+        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orders field must be a map".to_string())
+        );
     }
 }

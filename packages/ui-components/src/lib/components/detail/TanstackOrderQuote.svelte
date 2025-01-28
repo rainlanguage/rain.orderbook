@@ -91,7 +91,7 @@
 		</div>
 	</div>
 
-	<Table divClass="rounded-lg overflow-hidden dark:border-none border">
+	<Table divClass="rounded-lg lg:overflow-hidden overflow-auto dark:border-none border">
 		<TableHead data-testid="head">
 			<TableHeadCell class="w-[80px]" data-testid="orderQuotesPair">Pair</TableHeadCell>
 			<TableHeadCell class="w-1/4" data-testid="orderQuotesMaxOutput">Maximum Output</TableHeadCell>

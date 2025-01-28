@@ -58,8 +58,10 @@ export { default as VaultBalanceChart } from './components/charts/VaultBalanceCh
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
+export { default as InputHex } from './components/input/InputHex.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
