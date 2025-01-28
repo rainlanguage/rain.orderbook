@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
-	import { transactionStore } from '@rainlanguage/ui-components';
+	import {
+		transactionStore,
+		TransactionStatus,
+		TransactionErrorMessage
+	} from '@rainlanguage/ui-components';
 
 	const handleClose = () => {
 		return transactionStore.reset();
