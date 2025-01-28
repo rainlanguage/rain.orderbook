@@ -11,7 +11,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-export let transactionStore;
+	export let handleDeployModal: () => void;
 </script>
 
 <DeploymentSteps
@@ -21,4 +21,5 @@ export let transactionStore;
 	{wagmiConfig}
 	{wagmiConnected}
 	{appKitModal}
+	{handleDeployModal}
 />

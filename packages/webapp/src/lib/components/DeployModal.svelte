@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
-	import {
-		transactionStore,
-		TransactionStatus,
-		TransactionErrorMessage
-	} from '@rainlanguage/ui-components';
-
+	import { transactionStore, TransactionStatus } from '@rainlanguage/ui-components';
+	export let open;
 	const handleClose = () => {
 		return transactionStore.reset();
 	};
@@ -13,9 +9,8 @@
 
 <Modal
 	size="sm"
-	defaultClass="rounded-none border-4 inset"
 	class="bg-opacity-90 backdrop-blur-sm"
-	open={$transactionStore.status !== TransactionStatus.IDLE}
+	{open}
 	on:close={() => handleClose()}
 	data-testid="transaction-modal"
 >
@@ -40,18 +35,7 @@
 				>
 					{$transactionStore.error}
 				</p>
-				{#if $transactionStore.error === TransactionErrorMessage.GENERIC}
-					<a class="text-center hover:underline" href="https://t.me/cyclofinance"
-						>https://t.me/cyclofinance</a
-					>
-				{/if}
-				{#if $transactionStore.hash}
-					<a
-						class="text-primary whitespace-pre-wrap break-words text-center text-sm hover:underline"
-						href={`https://flarescan.com/tx/${$transactionStore.hash}`}
-						data-testid="view-transaction-link">View transaction on Flarescan</a
-					>
-				{/if}
+
 				<Button on:click={() => handleClose()} class="mt-4" data-testid="dismiss-button"
 					>DISMISS</Button
 				>
@@ -77,29 +61,12 @@
 							{$transactionStore.message}
 						</p>
 					{/if}
-
-					{#if $transactionStore.hash}
-						<div class="flex flex-col gap-2">
-							<a
-								target="_blank"
-								class="whitespace-pre-wrap break-words text-center hover:underline"
-								href={`https://flarescan.com/tx/${$transactionStore.hash}`}
-								data-testid="view-transaction-link">View transaction on Flarescan</a
-							>
-							<a
-								target="_blank"
-								class="whitespace-pre-wrap break-words text-center hover:underline"
-								href={`https://sparkdex.ai/swap/`}
-								data-testid="sell-cysflr-link">Sell your cysFLR on Sparkdex</a
-							>
-						</div>
-					{/if}
 				</div>
 
 				<Button on:click={() => handleClose()} class="mt-4" data-testid="dismiss-button"
 					>DISMISS</Button
 				>
-			{:else if $transactionStore.status === TransactionStatus.CHECKING_ALLOWANCE || $transactionStore.status === TransactionStatus.PENDING_WALLET || $transactionStore.status === TransactionStatus.PENDING_LOCK || $transactionStore.status === TransactionStatus.PENDING_UNLOCK || $transactionStore.status === TransactionStatus.PENDING_APPROVAL}
+			{:else if $transactionStore.status === TransactionStatus.CHECKING_ALLOWANCE || $transactionStore.status === TransactionStatus.PENDING_WALLET || $transactionStore.status === TransactionStatus.PENDING_DEPLOYMENT || $transactionStore.status === TransactionStatus.PENDING_APPROVAL}
 				<div
 					class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"
 					data-testid="spinner"

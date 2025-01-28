@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { DeploymentPage } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
+	import { handleDeployModal } from '$lib/services/modal';
 	const { dotrain, key, name, description } = $page.data;
 
 	if (!dotrain || !key) {
@@ -23,5 +24,6 @@
 		{wagmiConfig}
 		wagmiConnected={connected}
 		{appKitModal}
+		{handleDeployModal}
 	/>
 {/if}

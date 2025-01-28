@@ -18,8 +18,7 @@
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import transactionStore, { type TransactionStore } from '../../stores/transactionStore';
-	import type { Hex } from 'viem';
+	import transactionStore from '../../stores/transactionStore';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -38,6 +37,7 @@
 	export let dotrain: string;
 	export let deployment: string;
 	export let deploymentDetails: NameAndDescription;
+	export let handleDeployModal: () => void | undefined = undefined;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -147,21 +147,24 @@
 		}
 	}
 
-	async function handleAddOrderWagmi() {
+	async function handleAddOrder() {
 		try {
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
 			const approvals = await gui.generateApprovalCalldatas(address);
 			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
+			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
 			// @ts-expect-error orderbook is not typed
 			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
+			handleDeployModal();
 			transactionStore.handleDeploymentTransaction({
 				config: $wagmiConfig,
 				address,
 				approvals,
 				deploymentCalldata,
-				orderbookAddress
+				orderbookAddress,
+				chainId
 			});
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
@@ -261,7 +264,7 @@
 					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy</Button>
+							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}

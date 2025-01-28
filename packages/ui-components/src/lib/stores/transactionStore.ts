@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
-import { sendTransaction, waitForTransactionReceipt } from '@wagmi/core';
+import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type { ApprovalCalldataResult, DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -12,11 +12,9 @@ export enum TransactionStatus {
 	CHECKING_ALLOWANCE = 'Checking your approved sFLR spend...',
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
-	PENDING_LOCK = 'Locking sFLR...',
-	PENDING_UNLOCK = 'Unlocking sFLR...',
+	PENDING_DEPLOYMENT = 'Deploying your strategy...',
 	SUCCESS = 'Success! Transaction confirmed',
 	ERROR = 'Something went wrong',
-	PENDING_DEPLOYMENT = 'Deploying strategy...',
 }
 
 export enum TransactionErrorMessage {
@@ -26,6 +24,7 @@ export enum TransactionErrorMessage {
 	TIMEOUT = 'Transaction timed out',
 	APPROVAL_FAILED = 'Approval transaction failed',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed',
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain',
 }
 
 export type DeploymentTransactionArgs = {
@@ -34,6 +33,7 @@ export type DeploymentTransactionArgs = {
 	approvals: ApprovalCalldataResult;
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
+	chainId: number;
 };
 
 export type TransactionState = {
@@ -92,7 +92,7 @@ const transactionStore = () => {
 		update((state) => ({
 			...state,
 			hash: hash,
-			status: TransactionStatus.PENDING_LOCK,
+			status: TransactionStatus.PENDING_DEPLOYMENT,
 			message: ''
 		}));
 	const transactionSuccess = (hash: string, message?: string) =>
@@ -112,12 +112,16 @@ const transactionStore = () => {
 
 	const handleDeploymentTransaction = async ({
 		config,
-		address,
 		approvals,
 		deploymentCalldata,
-		orderbookAddress
+		orderbookAddress,
+		chainId
 	}: DeploymentTransactionArgs) => {
-		// Handle approvals first
+		try {
+			await switchChain(config, { chainId });
+		} catch {
+			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+		}
 		for (const approval of approvals) {
 			try {
 				awaitWalletConfirmation('Please approve token spend in your wallet...');
