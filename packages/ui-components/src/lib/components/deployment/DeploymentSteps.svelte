@@ -7,8 +7,6 @@
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type NameAndDescription,
@@ -17,9 +15,11 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button } from 'flowbite-svelte';
-	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
+	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
+	import transactionStore, { type TransactionStore } from '../../stores/transactionStore';
+	import type { Hex } from 'viem';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -152,19 +152,16 @@
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
-			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
-			for (const approval of approvals) {
-				await sendTransaction($wagmiConfig, {
-					to: approval.token as `0x${string}`,
-					data: approval.calldata as `0x${string}`
-				});
-			}
-			const calldata: DepositAndAddOrderCalldataResult =
-				await gui.generateDepositAndAddOrderCalldatas();
-			await sendTransaction($wagmiConfig, {
-				// @ts-expect-error orderbook is not typed
-				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
-				data: calldata as `0x${string}`
+			const approvals = await gui.generateApprovalCalldatas(address);
+			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
+			// @ts-expect-error orderbook is not typed
+			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
+			transactionStore.handleDeploymentTransaction({
+				config: $wagmiConfig,
+				address,
+				approvals,
+				deploymentCalldata,
+				orderbookAddress
 			});
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
