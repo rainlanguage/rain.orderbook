@@ -29,9 +29,6 @@
 			isPreset: true,
 			value: preset.id
 		});
-
-		gui = gui;
-		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	function handleCustomInputChange(value: string) {
@@ -40,8 +37,6 @@
 			isPreset: false,
 			value: value
 		});
-		gui = gui;
-		currentFieldDefinition = gui?.getFieldValue(fieldDefinition.binding);
 	}
 
 	$: if (fieldDefinition && !inputValue && inputValue !== '') {
