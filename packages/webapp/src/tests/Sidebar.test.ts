@@ -10,7 +10,8 @@ vi.mock('@rainlanguage/ui-components', async () => {
 		logoLight: 'mock-logo-light.svg',
 		logoDark: 'mock-logo-dark.svg',
 		IconTelegram: MockComponent,
-		IconExternalLink: MockComponent
+		IconExternalLink: MockComponent,
+		WalletConnect: MockComponent
 	};
 });
 
