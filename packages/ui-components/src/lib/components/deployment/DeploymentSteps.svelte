@@ -4,6 +4,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
 		type ApprovalCalldataResult,
@@ -14,12 +15,11 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { type Chain } from 'viem';
-	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
 	import { fade } from 'svelte/transition';
 	import { Button } from 'flowbite-svelte';
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
+	import type { AppKit } from '@reown/appkit';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -34,16 +34,6 @@
 		NO_CHAIN = 'Unsupported chain ID',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
-
-	const chains: Record<number, Chain> = {
-		[base.id]: base,
-		[flare.id]: flare,
-		[arbitrum.id]: arbitrum,
-		[polygon.id]: polygon,
-		[bsc.id]: bsc,
-		[mainnet.id]: mainnet,
-		[linea.id]: linea
-	};
 
 	export let dotrain: string;
 	export let deployment: string;
@@ -64,6 +54,7 @@
 	let addOrderErrorDetails: string | null = null;
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
+	export let appKitModal: Writable<AppKit>;
 
 	$: if (deployment) {
 		handleDeploymentChange(deployment);
@@ -154,15 +145,6 @@
 			error = DeploymentStepErrors.NO_GUI;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
-	}
-
-	export function getChainById(chainId: number): Chain {
-		const chain = chains[chainId];
-		if (!chain) {
-			error = DeploymentStepErrors.NO_CHAIN;
-			errorDetails = `Unsupported chain ID: ${chainId}`;
-		}
-		return chain;
 	}
 
 	async function handleAddOrderWagmi() {
@@ -282,9 +264,9 @@
 					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
+							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy</Button>
 						{:else}
-							<slot name="wallet-connect" />
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
 						<div class="flex flex-col">
 							{#if addOrderError}

@@ -20,13 +20,17 @@
 		IconTelegram,
 		IconExternalLink,
 		logoDark,
-		logoLight
+		logoLight,
+		WalletConnect
 	} from '@rainlanguage/ui-components';
-	import WalletConnect from './WalletConnect.svelte';
 
 	import { onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { AppKit } from '@reown/appkit';
 	export let colorTheme;
 	export let page;
+	export let appKitModal: Writable<AppKit>;
+	export let wagmiConnected: Writable<boolean>;
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
 	let width: number;
@@ -63,7 +67,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border lg:hidden dark:border-gray-700"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
@@ -102,7 +106,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border>
-				<WalletConnect />
+				<WalletConnect {appKitModal} connected={wagmiConnected} />
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem

@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { DeploymentPage } from '@rainlanguage/ui-components';
-
+	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	const { dotrain, key, name, description } = $page.data;
 
 	if (!dotrain || !key) {
@@ -15,5 +15,13 @@
 {#if !dotrain || !key}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else}
-	<DeploymentPage {dotrain} {key} {name} {description} />
+	<DeploymentPage
+		{dotrain}
+		{key}
+		{name}
+		{description}
+		{wagmiConfig}
+		wagmiConnected={connected}
+		{appKitModal}
+	/>
 {/if}
