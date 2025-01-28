@@ -9,7 +9,6 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { goto } from '$app/navigation';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 
@@ -19,6 +18,7 @@
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 
 	export let id: string;
@@ -33,6 +33,7 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
 	$: vaultDetailQuery = createQuery({
@@ -63,10 +64,7 @@
 	});
 </script>
 
-tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
-	query={vaultDetailQuery}
-	emptyMessage="Vault not found"
->
+<TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
 	<svelte:fragment slot="top" let:data>
 		<div
 			data-testid="vaultDetailTokenName"
@@ -132,18 +130,12 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaultDetailOrdersAsInput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsInput && data.ordersAsInput.length > 0}
 						{#each data.ordersAsInput as order}
-							<Button
-								class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-								color={order.active ? 'green' : 'yellow'}
-								data-order={order.id}
-								data-testid={'vaultDetailOrderAsInputOrder' + order.id}
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(order.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-							>
-								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
-							</Button>
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								{network}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None
@@ -158,18 +150,12 @@ tauri-app/src/lib/components/detail/VaultDetail.svelte<TanstackPageContentDetail
 				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
-							<Button
-								class={'mr-1 mt-1 px-1 py-0' + (!order.active ? ' opacity-50' : '')}
-								color={order.active ? 'green' : 'yellow'}
-								data-order={order.id}
-								data-testid={'vaultDetailOrderAsOutputOrder' + order.id}
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(order.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-							>
-								<Hash type={HashType.Identifier} value={order.orderHash} copyOnClick={false} />
-							</Button>
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								{network}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 					{:else}
 						None
