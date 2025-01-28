@@ -5,7 +5,7 @@ export const load = async ({
 	params
 }: {
 	fetch: typeof globalThis.fetch;
-	params: { strategyName: string; deploymentKey: string }
+	params: { strategyName: string; deploymentKey: string };
 }) => {
 	try {
 		const response = await fetch(
@@ -34,7 +34,9 @@ export const load = async ({
 				key,
 				...details
 			}));
-			const deployment = deployments.find((deployment: { key: string }) => deployment.key === deploymentKey);
+			const deployment = deployments.find(
+				(deployment: { key: string }) => deployment.key === deploymentKey
+			);
 
 			if (!deployment) {
 				throw new Error(`Deployment ${deploymentKey} not found`);
