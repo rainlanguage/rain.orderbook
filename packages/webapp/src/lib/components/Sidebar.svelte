@@ -20,13 +20,15 @@
 		IconTelegram,
 		IconExternalLink,
 		logoDark,
-		logoLight
+		logoLight,
+		WalletConnect
 	} from '@rainlanguage/ui-components';
-	import WalletConnect from './WalletConnect.svelte';
 
 	import { onMount } from 'svelte';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	export let colorTheme;
 	export let page;
+
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
 	let width: number;
@@ -102,7 +104,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border>
-				<WalletConnect />
+				<WalletConnect {appKitModal} {connected} />
 			</SidebarGroup>
 			<SidebarGroup border>
 				<SidebarItem

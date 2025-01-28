@@ -3,11 +3,10 @@
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
-	import DropdownRadio from '../dropdown/DropdownRadio.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type DeploymentKeys,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
@@ -16,11 +15,11 @@
 		type GuiDeployment,
 		type OrderIO
 	} from '@rainlanguage/orderbook/js_api';
-	import { Button, Input, Spinner } from 'flowbite-svelte';
-	import { type Chain } from 'viem';
-	import { base, flare, arbitrum, polygon, bsc, mainnet, linea } from 'viem/chains';
+	import { fade } from 'svelte/transition';
+	import { Button } from 'flowbite-svelte';
 	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
+	import type { AppKit } from '@reown/appkit';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -36,117 +35,51 @@
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
 
-	const chains: Record<number, Chain> = {
-		[base.id]: base,
-		[flare.id]: flare,
-		[arbitrum.id]: arbitrum,
-		[polygon.id]: polygon,
-		[bsc.id]: bsc,
-		[mainnet.id]: mainnet,
-		[linea.id]: linea
-	};
+	export let dotrain: string;
+	export let deployment: string;
+	export let deploymentDetails: NameAndDescription;
 
-	let dotrain = '';
-	let isLoading = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let strategyUrl = '';
 	let selectTokens: string[] | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
-	let guiDetails: NameAndDescription;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
-	let addOrderError: string | null = null;
-	let addOrderErrorDetails: string | null = null;
-
-	export let wagmiConfig: Writable<Config> | null = null;
-	export let wagmiConnected: Writable<boolean> | null = null;
-
-	async function loadStrategyFromUrl() {
-		isLoading = true;
-		error = null;
-		errorDetails = null;
-
-		try {
-			const response = await fetch(strategyUrl);
-			if (!response.ok) {
-				error = DeploymentStepErrors.NO_STRATEGY;
-				errorDetails = `HTTP error - status: ${response.status}`;
-			}
-			dotrain = await response.text();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_STRATEGY;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		} finally {
-			isLoading = false;
-		}
-	}
 
 	let gui: DotrainOrderGui | null = null;
-	let availableDeployments: Record<string, { label: string }> = {};
+	let addOrderError: DeploymentStepErrors | null = null;
+	let addOrderErrorDetails: string | null = null;
+	export let wagmiConfig: Writable<Config | undefined>;
+	export let wagmiConnected: Writable<boolean>;
+	export let appKitModal: Writable<AppKit>;
 
-	async function initialize() {
-		try {
-			let deployments: DeploymentKeys = await DotrainOrderGui.getDeploymentKeys(dotrain);
-			availableDeployments = Object.fromEntries(
-				deployments.map((deployment) => [
-					deployment,
-					{
-						label: deployment
-					}
-				])
-			);
-		} catch (e: unknown) {
-			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
+	$: if (deployment) {
+		handleDeploymentChange(deployment);
 	}
 
-	$: if (dotrain) {
-		isLoading = true;
+	async function handleDeploymentChange(deployment: string) {
+		if (!deployment || !dotrain) return;
 		error = null;
 		errorDetails = null;
-		gui = null;
-		initialize();
-		isLoading = false;
-	}
-
-	let selectedDeployment: string | undefined = undefined;
-	async function handleDeploymentChange(deployment: string) {
-		isLoading = true;
-		gui = null;
-		if (!deployment) return;
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-			try {
-				selectTokens = gui.getSelectTokens();
-				getGuiDetails();
-			} catch (e) {
-				error = DeploymentStepErrors.NO_SELECT_TOKENS;
-				errorDetails = e instanceof Error ? e.message : 'Unknown error';
+
+			if (gui) {
+				try {
+					selectTokens = await gui.getSelectTokens();
+					return selectTokens;
+				} catch (e) {
+					error = DeploymentStepErrors.NO_SELECT_TOKENS;
+					return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+				}
 			}
 		} catch (e) {
 			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-		isLoading = false;
-	}
-
-	$: if (selectedDeployment) {
-		handleDeploymentChange(selectedDeployment as string);
-	}
-
-	async function getGuiDetails() {
-		if (!gui) return;
-		try {
-			guiDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
-		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI_DETAILS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
 		}
 	}
 
@@ -196,21 +129,22 @@
 	}
 
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
-		error = null;
-		initializeVaultIdArrays();
-		getAllDepositFields();
-		getAllFieldDefinitions();
-		getAllTokenInputs();
-		getAllTokenOutputs();
+		updateFields();
 	}
 
-	export function getChainById(chainId: number): Chain {
-		const chain = chains[chainId];
-		if (!chain) {
-			error = DeploymentStepErrors.NO_CHAIN;
-			errorDetails = `Unsupported chain ID: ${chainId}`;
+	async function updateFields() {
+		try {
+			error = null;
+			errorDetails = null;
+			initializeVaultIdArrays();
+			getAllDepositFields();
+			getAllFieldDefinitions();
+			getAllTokenInputs();
+			getAllTokenOutputs();
+		} catch (e) {
+			error = DeploymentStepErrors.NO_GUI;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
-		return chain;
 	}
 
 	async function handleAddOrderWagmi() {
@@ -246,140 +180,105 @@
 	}
 </script>
 
-<div class="mb-4">
-	<div class="flex flex-col gap-4 md:flex-row">
-		<div class="flex-1">
-			<Input
-				id="strategy-url"
-				type="url"
-				placeholder="Enter URL to .rain file"
-				bind:value={strategyUrl}
-				size="lg"
-			/>
-		</div>
-		<Button on:click={loadStrategyFromUrl} disabled={!strategyUrl} size="lg">Load Strategy</Button>
-	</div>
-</div>
-
-{#if error}
-	<p class="text-red-500">{error}</p>
-{/if}
-{#if errorDetails}
-	<p class="text-red-500">{errorDetails}</p>
-{/if}
-{#if dotrain}
-	<DeploymentSectionHeader title="Select Deployment" />
-	<DropdownRadio options={availableDeployments} bind:value={selectedDeployment}>
-		<svelte:fragment slot="content" let:selectedOption let:selectedRef>
-			{#if selectedRef === undefined}
-				<span>Select a deployment</span>
-			{:else if selectedOption?.label}
-				<span>{selectedOption.label}</span>
-			{:else}
-				<span>{selectedRef}</span>
-			{/if}
-		</svelte:fragment>
-
-		<svelte:fragment slot="option" let:option let:ref>
-			<div class="w-full overflow-hidden overflow-ellipsis">
-				<div class="text-md break-word">{option.label ? option.label : ref}</div>
-			</div>
-		</svelte:fragment>
-	</DropdownRadio>
-
-	{#if isLoading}
-		<Spinner />
+<div>
+	{#if error}
+		<p class="text-red-500">{error}</p>
 	{/if}
-	{#if gui}
-		<div class="flex max-w-2xl flex-col gap-24">
-			{#if guiDetails}
-				<div class="mt-16 flex max-w-2xl flex-col gap-6 text-start">
-					<h1 class="mb-6 text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
-						{guiDetails.name}
-					</h1>
-					<p class="text-xl text-gray-600 dark:text-gray-400">
-						{guiDetails.description}
-					</p>
-				</div>
-			{/if}
-
-			{#if selectTokens && selectTokens.length > 0}
-				<div class="flex w-full flex-col gap-6">
-					<DeploymentSectionHeader
-						title="Select Tokens"
-						description="Select the tokens that you want to use in your order."
-					/>
-					<div class="flex w-full flex-col gap-4">
-						{#each selectTokens as tokenKey}
-							<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			{#if allTokensSelected || selectTokens?.length === 0}
-				{#if allFieldDefinitions.length > 0}
-					<div class="flex w-full flex-col items-center gap-24">
-						{#each allFieldDefinitions as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
-						{/each}
+	{#if errorDetails}
+		<p class="text-red-500">{errorDetails}</p>
+	{/if}
+	{#if dotrain}
+		{#if gui}
+			<div class="flex max-w-2xl flex-col gap-24" in:fade>
+				{#if deploymentDetails}
+					<div class="mt-16 flex max-w-2xl flex-col gap-4 text-start">
+						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
+							{deploymentDetails.name}
+						</h1>
+						<p class="text-2xl text-gray-600 lg:text-3xl dark:text-gray-400">
+							{deploymentDetails.description}
+						</p>
 					</div>
 				{/if}
 
-				{#if allDepositFields.length > 0}
-					<div class="flex w-full flex-col items-center gap-24">
-						{#each allDepositFields as deposit}
-							<DepositInput bind:deposit bind:gui />
-						{/each}
-					</div>
-				{/if}
-				{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+				{#if selectTokens && selectTokens.length > 0}
 					<div class="flex w-full flex-col gap-6">
 						<DeploymentSectionHeader
-							title={'Input/Output Vaults'}
-							description={'The vault addresses for the input and output tokens.'}
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
 						/>
-						{#if allTokenInputs.length > 0}
-							{#each allTokenInputs as input, i}
-								<TokenInputOrOutput
-									{i}
-									label="Input"
-									vault={input}
-									vaultIds={inputVaultIds}
-									{gui}
-								/>
+						<div class="flex w-full flex-col gap-4">
+							{#each selectTokens as tokenKey}
+								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
 							{/each}
-						{/if}
-
-						{#if allTokenOutputs.length > 0}
-							{#each allTokenOutputs as output, i}
-								<TokenInputOrOutput
-									{i}
-									label="Output"
-									vault={output}
-									vaultIds={outputVaultIds}
-									{gui}
-								/>
-							{/each}
-						{/if}
+						</div>
 					</div>
 				{/if}
-				<div class="flex flex-col gap-2">
-					{#if $wagmiConnected}
-						<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy with Wagmi</Button>
-					{:else}
-						<slot name="wallet-connect" />
+
+				{#if allTokensSelected || selectTokens?.length === 0}
+					{#if allFieldDefinitions.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allFieldDefinitions as fieldDefinition}
+								<FieldDefinitionInput {fieldDefinition} {gui} />
+							{/each}
+						</div>
 					{/if}
-					<div class="flex flex-col">
-						{#if addOrderError}
-							<p class="text-red-500">{addOrderError}</p>
+
+					{#if allDepositFields.length > 0}
+						<div class="flex w-full flex-col items-center gap-24">
+							{#each allDepositFields as deposit}
+								<DepositInput bind:deposit bind:gui />
+							{/each}
+						</div>
+					{/if}
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+						<div class="flex w-full flex-col gap-6">
+							<DeploymentSectionHeader
+								title={'Input/Output Vaults'}
+								description={'The vault addresses for the input and output tokens.'}
+							/>
+							{#if allTokenInputs.length > 0}
+								{#each allTokenInputs as input, i}
+									<TokenInputOrOutput
+										{i}
+										label="Input"
+										vault={input}
+										vaultIds={inputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+
+							{#if allTokenOutputs.length > 0}
+								{#each allTokenOutputs as output, i}
+									<TokenInputOrOutput
+										{i}
+										label="Output"
+										vault={output}
+										vaultIds={outputVaultIds}
+										{gui}
+									/>
+								{/each}
+							{/if}
+						</div>
+					{/if}
+					<div class="flex flex-col gap-2">
+						{#if $wagmiConnected}
+							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy</Button>
+						{:else}
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
-						{#if addOrderErrorDetails}
-							<p class="text-red-500">{addOrderErrorDetails}</p>
-						{/if}
+						<div class="flex flex-col">
+							{#if addOrderError}
+								<p class="text-red-500">{addOrderError}</p>
+							{/if}
+							{#if addOrderErrorDetails}
+								<p class="text-red-500">{addOrderErrorDetails}</p>
+							{/if}
+						</div>
 					</div>
-				</div>
-			{/if}
-		</div>
+				{/if}
+			</div>
+		{/if}
 	{/if}
-{/if}
+</div>

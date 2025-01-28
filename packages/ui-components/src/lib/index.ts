@@ -51,7 +51,6 @@ export { default as DepositInput } from './components/deployment/DepositInput.sv
 export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
 export { default as TokenOutput } from './components/deployment/TokenInputOrOutput.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
-
 export { default as TokenInputOrOutput } from './components/deployment/TokenInputOrOutput.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
@@ -61,7 +60,10 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
+export { default as StrategySection } from './components/deployment/StrategySection.svelte';
+export { default as DeploymentPage } from './components/deployment/DeploymentPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
+export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

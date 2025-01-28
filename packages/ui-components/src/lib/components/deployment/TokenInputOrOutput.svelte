@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Input, Label } from 'flowbite-svelte';
-	import type { OrderIO, TokenInfo } from '@rainlanguage/orderbook/js_api';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import type { OrderIO, TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 
 	export let i: number;
