@@ -68,7 +68,11 @@ export { default as WalletConnect } from './components/wallet/WalletConnect.svel
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
-export { TransactionStatus, TransactionErrorMessage, type TransactionState} from './stores/transactionStore';
+export {
+	TransactionStatus,
+	TransactionErrorMessage,
+	type TransactionState
+} from './stores/transactionStore';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

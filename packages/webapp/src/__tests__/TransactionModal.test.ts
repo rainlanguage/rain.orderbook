@@ -9,126 +9,125 @@ const { mockTransactionStore } = await vi.hoisted(() => import('@rainlanguage/ui
 
 // Mock the transaction store
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-  return {
-    ...((await importOriginal()) as object),
-    transactionStore: mockTransactionStore
-  };
+	return {
+		...((await importOriginal()) as object),
+		transactionStore: mockTransactionStore
+	};
 });
 
 describe('TransactionModal Component', () => {
-  const messages = {
-    success: 'Transaction Successful',
-    error: 'Transaction Failed',
-    pending: 'Transaction Pending'
-  };
-  const resetSpy = vi.spyOn(mockTransactionStore, 'reset');
+	const messages = {
+		success: 'Transaction Successful',
+		error: 'Transaction Failed',
+		pending: 'Transaction Pending'
+	};
+	const resetSpy = vi.spyOn(mockTransactionStore, 'reset');
 
-  beforeEach(() => {
-    resetSpy.mockClear();
-    mockTransactionStore.reset();
-  });
+	beforeEach(() => {
+		resetSpy.mockClear();
+		mockTransactionStore.reset();
+	});
 
-  it('should render correctly in IDLE state', async () => {
-    render(TransactionModal, { props: { open: true, messages } });
-    expect(screen.queryByTestId('transaction-modal')).toBeInTheDocument();
-    // In IDLE state, modal should be empty
-    expect(screen.queryByText(messages.pending)).not.toBeInTheDocument();
-    expect(screen.queryByText(messages.success)).not.toBeInTheDocument();
-    expect(screen.queryByText(messages.error)).not.toBeInTheDocument();
-  });
+	it('should render correctly in IDLE state', async () => {
+		render(TransactionModal, { props: { open: true, messages } });
+		expect(screen.queryByTestId('transaction-modal')).toBeInTheDocument();
+		// In IDLE state, modal should be empty
+		expect(screen.queryByText(messages.pending)).not.toBeInTheDocument();
+		expect(screen.queryByText(messages.success)).not.toBeInTheDocument();
+		expect(screen.queryByText(messages.error)).not.toBeInTheDocument();
+	});
 
-  it('should display an error when transaction fails', async () => {
-    const errorMessage = 'Transaction failed';
-    mockTransactionStore.mockSetSubscribeValue({
-      status: TransactionStatus.ERROR,
-      error: errorMessage,
-      hash: '0xMockTransactionHash'
-    });
+	it('should display an error when transaction fails', async () => {
+		const errorMessage = 'Transaction failed';
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.ERROR,
+			error: errorMessage,
+			hash: '0xMockTransactionHash'
+		});
 
-    render(TransactionModal, { props: { open: true, messages } });
+		render(TransactionModal, { props: { open: true, messages } });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('error-icon')).toBeInTheDocument();
-      expect(screen.getByText(messages.error)).toBeInTheDocument();
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
-    });
+		await waitFor(() => {
+			expect(screen.getByTestId('error-icon')).toBeInTheDocument();
+			expect(screen.getByText(messages.error)).toBeInTheDocument();
+			expect(screen.getByText(errorMessage)).toBeInTheDocument();
+		});
 
-    // Test modal close behavior
-    const dismissButton = screen.getByText('DISMISS');
-    await userEvent.click(dismissButton);
-    expect(resetSpy).toHaveBeenCalled();
-  });
+		// Test modal close behavior
+		const dismissButton = screen.getByText('DISMISS');
+		await userEvent.click(dismissButton);
+		expect(resetSpy).toHaveBeenCalled();
+	});
 
-  it('should display success message when transaction succeeds', async () => {
-    const successMessage = 'Transaction succeeded';
-    mockTransactionStore.mockSetSubscribeValue({
-      status: TransactionStatus.SUCCESS,
-      message: successMessage,
-      hash: '0xMockTransactionHash'
-    });
+	it('should display success message when transaction succeeds', async () => {
+		const successMessage = 'Transaction succeeded';
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.SUCCESS,
+			message: successMessage,
+			hash: '0xMockTransactionHash'
+		});
 
-    render(TransactionModal, { props: { open: true, messages } });
+		render(TransactionModal, { props: { open: true, messages } });
 
-    await waitFor(() => {
-      expect(screen.getByText('✅')).toBeInTheDocument();
-      expect(screen.getByText(messages.success)).toBeInTheDocument();
-      expect(screen.getByText(successMessage)).toBeInTheDocument();
-    });
+		await waitFor(() => {
+			expect(screen.getByText('✅')).toBeInTheDocument();
+			expect(screen.getByText(messages.success)).toBeInTheDocument();
+			expect(screen.getByText(successMessage)).toBeInTheDocument();
+		});
 
-    const dismissButton = screen.getByText('DISMISS');
-    await userEvent.click(dismissButton);
-    expect(resetSpy).toHaveBeenCalled();
-  });
+		const dismissButton = screen.getByText('DISMISS');
+		await userEvent.click(dismissButton);
+		expect(resetSpy).toHaveBeenCalled();
+	});
 
-  it('should display pending state with a spinner for pending transactions', async () => {
-    const pendingMessage = 'Waiting for wallet confirmation...';
-    mockTransactionStore.mockSetSubscribeValue({
-      status: TransactionStatus.PENDING_WALLET,
-      message: pendingMessage
-    });
+	it('should display pending state with a spinner for pending transactions', async () => {
+		const pendingMessage = 'Waiting for wallet confirmation...';
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.PENDING_WALLET,
+			message: pendingMessage
+		});
 
-    render(TransactionModal, { props: { open: true, messages } });
+		render(TransactionModal, { props: { open: true, messages } });
 
-    await waitFor(() => {
-      expect(screen.getByText(messages.pending)).toBeInTheDocument();
-      expect(screen.getByText(pendingMessage)).toBeInTheDocument();
-      // Check for spinner presence
-      expect(document.querySelector('[role="status"]')).toBeInTheDocument();
-    });
-  });
+		await waitFor(() => {
+			expect(screen.getByText(messages.pending)).toBeInTheDocument();
+			expect(screen.getByText(pendingMessage)).toBeInTheDocument();
+			expect(document.querySelector('[role="status"]')).toBeInTheDocument();
+		});
+	});
 
-  it('should handle multiple statuses like CHECKING_ALLOWANCE and PENDING_APPROVAL', async () => {
-    const checkingMessage = 'Checking your approved sFLR spend...';
-    mockTransactionStore.mockSetSubscribeValue({
-      status: TransactionStatus.CHECKING_ALLOWANCE,
-      message: checkingMessage
-    });
+	it('should handle multiple statuses like CHECKING_ALLOWANCE and PENDING_APPROVAL', async () => {
+		const checkingMessage = 'Checking your approved sFLR spend...';
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.CHECKING_ALLOWANCE,
+			message: checkingMessage
+		});
 
-    render(TransactionModal, { props: { open: true, messages } });
+		render(TransactionModal, { props: { open: true, messages } });
 
-    await waitFor(() => {
-      expect(screen.getByText(messages.pending)).toBeInTheDocument();
-      expect(screen.getByText(checkingMessage)).toBeInTheDocument();
-    });
+		await waitFor(() => {
+			expect(screen.getByText(messages.pending)).toBeInTheDocument();
+			expect(screen.getByText(checkingMessage)).toBeInTheDocument();
+		});
 
-    const approvalMessage = 'Approving sFLR spend...';
-    mockTransactionStore.mockSetSubscribeValue({
-      status: TransactionStatus.PENDING_APPROVAL,
-      message: approvalMessage
-    });
+		const approvalMessage = 'Approving sFLR spend...';
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.PENDING_APPROVAL,
+			message: approvalMessage
+		});
 
-    await waitFor(() => {
-      expect(screen.getByText(messages.pending)).toBeInTheDocument();
-      expect(screen.getByText(approvalMessage)).toBeInTheDocument();
-    });
-  });
+		await waitFor(() => {
+			expect(screen.getByText(messages.pending)).toBeInTheDocument();
+			expect(screen.getByText(approvalMessage)).toBeInTheDocument();
+		});
+	});
 
-  it('should reset transaction store when modal is closed', async () => {
-    render(TransactionModal, { props: { open: true, messages } });
+	it('should reset transaction store when modal is closed', async () => {
+		render(TransactionModal, { props: { open: true, messages } });
 
-    // Simulate closing the modal by changing the prop
-    await render(TransactionModal, { props: { open: false, messages } });
+		// Simulate closing the modal by changing the prop
+		await render(TransactionModal, { props: { open: false, messages } });
 
-    expect(resetSpy).toHaveBeenCalled();
-  });
+		expect(resetSpy).toHaveBeenCalled();
+	});
 });

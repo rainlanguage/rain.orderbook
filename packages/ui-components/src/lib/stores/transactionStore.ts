@@ -2,7 +2,10 @@ import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
-import type { ApprovalCalldataResult, DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
+import type {
+	ApprovalCalldataResult,
+	DepositAndAddOrderCalldataResult
+} from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -14,7 +17,7 @@ export enum TransactionStatus {
 	PENDING_APPROVAL = 'Approving token spend...',
 	PENDING_DEPLOYMENT = 'Deploying your strategy...',
 	SUCCESS = 'Success! Transaction confirmed',
-	ERROR = 'Something went wrong',
+	ERROR = 'Something went wrong'
 }
 
 export enum TransactionErrorMessage {
@@ -25,7 +28,7 @@ export enum TransactionErrorMessage {
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.'
 }
 
 export type DeploymentTransactionArgs = {
@@ -130,11 +133,10 @@ const transactionStore = () => {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`
 				});
-				} catch {
+			} catch {
 				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
 			}
 			try {
-
 				awaitApprovalTx(approvalHash);
 				await waitForTransactionReceipt(config, { hash: approvalHash });
 			} catch {
@@ -149,18 +151,17 @@ const transactionStore = () => {
 				to: orderbookAddress as `0x${string}`,
 				data: deploymentCalldata as `0x${string}`
 			});
-			} catch {
-				return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
-			}
-			try {
-				awaitDeployTx(hash);
-				await waitForTransactionReceipt(config, { hash });
-				return transactionSuccess(hash, 'Strategy deployed successfully!');
+		} catch {
+			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
+		}
+		try {
+			awaitDeployTx(hash);
+			await waitForTransactionReceipt(config, { hash });
+			return transactionSuccess(hash, 'Strategy deployed successfully!');
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
 	};
-
 
 	return {
 		subscribe,

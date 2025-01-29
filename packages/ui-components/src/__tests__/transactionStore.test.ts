@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterAll, type Mock } from 'vitest';
 import { get } from 'svelte/store';
-import transactionStore, { TransactionStatus, TransactionErrorMessage } from '../lib/stores/transactionStore';
+import transactionStore, {
+	TransactionStatus,
+	TransactionErrorMessage
+} from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
 
 vi.mock('@wagmi/core', () => ({

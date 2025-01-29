@@ -32,7 +32,7 @@ export const mockTransactionStore = {
 			status: TransactionStatus.SUCCESS,
 			message: 'Strategy deployed successfully!',
 			hash: '0x123'
-		}))
+		}));
 	},
 
 	checkingWalletAllowance: (message: string = '') =>
