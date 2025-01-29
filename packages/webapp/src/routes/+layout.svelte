@@ -3,7 +3,6 @@
 	import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import { colorTheme } from '$lib/darkMode';
-	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
 	import { defaultConfig } from '$lib/stores/wagmi';
@@ -11,6 +10,7 @@
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 
+	import { page } from '$app/stores';
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {

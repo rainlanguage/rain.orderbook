@@ -3,9 +3,9 @@
   import { PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
-  import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
+  import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
 </script>
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />

@@ -59,6 +59,10 @@ impl Deployer {
                     return require_string(deployer_yaml, Some("network"), None)
                         .or_else(|_| Ok(deployer_key.to_string()));
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "deployers field must be a map".to_string(),
+                ));
             }
         }
         Err(YamlError::ParseError(format!(
@@ -332,5 +336,61 @@ deployers:
         let documents = vec![get_document(yaml)];
         let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
         assert_eq!(network_key, "mainnet");
+    }
+
+    #[test]
+    fn test_parse_network_key() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers: test
+"#;
+        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployers field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+  - test
+"#;
+        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployers field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+  - test: test
+"#;
+        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployers field must be a map".to_string())
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+"#;
+        let res = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap();
+        assert_eq!(res, "mainnet");
     }
 }

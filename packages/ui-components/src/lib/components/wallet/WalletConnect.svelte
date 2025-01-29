@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
-
+	import type { Writable } from 'svelte/store';
+	import type { AppKit } from '@reown/appkit';
+	export let appKitModal: Writable<AppKit>;
+	export let connected: Writable<boolean>;
 	function handleClick() {
 		$appKitModal.open();
 	}

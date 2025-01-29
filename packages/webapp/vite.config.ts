@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { loadEnv } from 'vite';
+import {loadEnv} from "vite";
 
 export default defineConfig(({ mode }) => ({
 	assetsInclude: ['**/*.rain'],
@@ -24,13 +24,15 @@ export default defineConfig(({ mode }) => ({
 		// load env vars
 		env: loadEnv('', process.cwd(), ''),
 		testTimeout: 10000,
-        server: {
-            deps: {
-                inline: [/@tanstack\/svelte-query/, /@reown\/appkit/]
-            }
-        },
-        deps: {
-            interopDefault: true
-        }
+		server: {
+			deps: {
+				inline: [
+					/@reown\/appkit/, /@tanstack\/svelte-query/
+				]
+			}
+		},
+		deps: {
+			interopDefault: true
+		}
 	}
 }));

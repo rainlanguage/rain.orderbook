@@ -13,7 +13,7 @@ export interface LayoutData {
 	stores: AppStoresInterface;
 }
 
-export const load = async () => {
+export const load = async ({ fetch }) => {
 	const response = await fetch(
 		'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
 	);

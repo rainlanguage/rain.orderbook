@@ -83,7 +83,9 @@
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
-		<div class="flex gap-x-4 text-3xl font-medium dark:text-white">
+		<div
+			class="flex w-full justify-between gap-x-4 text-3xl font-medium lg:justify-normal dark:text-white"
+		>
 			<div class="flex gap-x-2">
 				<span class="font-light">Order</span>
 				<Hash shorten value={data.orderHash} />
@@ -127,7 +129,7 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 flex justify-end">
+					<div class="mb-2 hidden justify-end md:flex">
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">

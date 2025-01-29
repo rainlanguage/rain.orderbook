@@ -45,6 +45,10 @@ impl Deployment {
                 {
                     return require_string(deployment_yaml, Some("order"), None);
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "deployments field must be a map".to_string(),
+                ));
             }
         }
         Err(YamlError::ParseError(format!(
@@ -519,5 +523,49 @@ deployments:
             error,
             YamlError::KeyShadowing("DuplicateDeployment".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_order_key() {
+        let yaml = r#"
+deployments: test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  - test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  - test: test
+"#;
+        let error =
+            Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("deployments field must be a map".to_string())
+        );
+
+        let yaml = r#"
+deployments:
+  deployment1:
+    order: order1
+    scenario: scenario1
+"#;
+        let res = Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap();
+        assert_eq!(res, "order1");
     }
 }
