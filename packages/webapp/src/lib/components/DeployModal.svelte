@@ -20,6 +20,8 @@
 		error: 'Could not deploy strategy.'
 	};
 
+	$: console.log($wagmiConfig);
+
 	transactionStore.handleDeploymentTransaction({
 		config: $wagmiConfig,
 		approvals,
