@@ -12,7 +12,7 @@ export const ONE = BigInt('1000000000000000000');
 
 export enum TransactionStatus {
 	IDLE = 'Idle',
-	CHECKING_ALLOWANCE = 'Checking your approved sFLR spend...',
+	CHECKING_ALLOWANCE = 'Checking your allowance...',
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
 	PENDING_DEPLOYMENT = 'Deploying your strategy...',
