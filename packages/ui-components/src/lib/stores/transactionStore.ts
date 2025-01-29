@@ -29,7 +29,6 @@ export enum TransactionErrorMessage {
 
 export type DeploymentTransactionArgs = {
 	config: Config;
-	address: Hex;
 	approvals: ApprovalCalldataResult;
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;

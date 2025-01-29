@@ -18,7 +18,6 @@
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import transactionStore from '../../stores/transactionStore';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -37,7 +36,12 @@
 	export let dotrain: string;
 	export let deployment: string;
 	export let deploymentDetails: NameAndDescription;
-	export let handleDeployModal: () => void | undefined = undefined;
+	export let handleDeployModal: (
+		approvals,
+		deploymentCalldata,
+		orderbookAddress,
+		chainId: number
+	) => void | undefined = undefined;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -157,15 +161,7 @@
 			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
 			// @ts-expect-error orderbook is not typed
 			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
-			handleDeployModal();
-			transactionStore.handleDeploymentTransaction({
-				config: $wagmiConfig,
-				address,
-				approvals,
-				deploymentCalldata,
-				orderbookAddress,
-				chainId
-			});
+			handleDeployModal(approvals, deploymentCalldata, orderbookAddress, chainId);
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
 			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';

@@ -1,19 +1,28 @@
 <script lang="ts">
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
 	import { transactionStore, TransactionStatus } from '@rainlanguage/ui-components';
-	export let open;
-	const handleClose = () => {
-		return transactionStore.reset();
-	};
+	import type { Hex } from 'viem';
+	import type {
+		ApprovalCalldataResult,
+		DepositAndAddOrderCalldataResult
+	} from '@rainlanguage/orderbook/js_api';
+	import { wagmiConfig } from '$lib/stores/wagmi';
+	export let open: boolean;
+	export let approvals: ApprovalCalldataResult;
+	export let deploymentCalldata: DepositAndAddOrderCalldataResult;
+	export let orderbookAddress: Hex;
+	export let chainId: number;
+
+	transactionStore.handleDeploymentTransaction({
+		config: $wagmiConfig,
+		approvals,
+		deploymentCalldata,
+		orderbookAddress,
+		chainId
+	});
 </script>
 
-<Modal
-	size="sm"
-	class="bg-opacity-90 backdrop-blur-sm"
-	{open}
-	on:close={() => handleClose()}
-	data-testid="transaction-modal"
->
+<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
 	{#if $transactionStore.status !== TransactionStatus.IDLE}
 		<div class="flex flex-col items-center justify-center gap-2 p-4">
 			{#if $transactionStore.status === TransactionStatus.ERROR}
@@ -36,7 +45,7 @@
 					{$transactionStore.error}
 				</p>
 
-				<Button on:click={() => handleClose()} class="mt-4" data-testid="dismiss-button"
+				<Button on:click={() => (open = !open)} class="mt-4" data-testid="dismiss-button"
 					>DISMISS</Button
 				>
 			{:else if $transactionStore.status === TransactionStatus.SUCCESS}
@@ -63,7 +72,7 @@
 					{/if}
 				</div>
 
-				<Button on:click={() => handleClose()} class="mt-4" data-testid="dismiss-button"
+				<Button on:click={() => (open = !open)} class="mt-4" data-testid="dismiss-button"
 					>DISMISS</Button
 				>
 			{:else if $transactionStore.status === TransactionStatus.CHECKING_ALLOWANCE || $transactionStore.status === TransactionStatus.PENDING_WALLET || $transactionStore.status === TransactionStatus.PENDING_DEPLOYMENT || $transactionStore.status === TransactionStatus.PENDING_APPROVAL}
