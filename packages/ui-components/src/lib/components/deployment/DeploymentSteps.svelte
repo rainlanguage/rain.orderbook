@@ -159,12 +159,29 @@
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
-			const approvals = await gui.generateApprovalCalldatas(address);
+			let approvals = await gui.generateApprovalCalldatas(address);
 			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
 			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
 			// @ts-expect-error orderbook is not typed
 			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
-			handleDeployModal({ approvals, deploymentCalldata, orderbookAddress, chainId });
+			const outputTokenInfos = await Promise.all(
+				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
+			);
+
+			approvals = approvals.map((approval) => {
+				const token = outputTokenInfos.find((token) => token?.address === approval.token);
+				return {
+					...approval,
+					symbol: token?.symbol
+				};
+			});
+
+			handleDeployModal({
+				approvals,
+				deploymentCalldata,
+				orderbookAddress,
+				chainId
+			});
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
 			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';

@@ -59,9 +59,10 @@ describe('transactionStore', () => {
 	});
 
 	it('should update status to PENDING_APPROVAL', () => {
-		awaitApprovalTx('mockHash');
+		awaitApprovalTx('mockHash', 'TEST');
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_APPROVAL);
 		expect(get(transactionStore).hash).toBe('mockHash');
+		expect(get(transactionStore).message).toBe('Approving TEST spend...');
 	});
 
 	it('should update status to SUCCESS', () => {

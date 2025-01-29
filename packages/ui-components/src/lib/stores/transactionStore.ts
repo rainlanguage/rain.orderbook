@@ -3,8 +3,8 @@ import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
-	ApprovalCalldataResult,
-	DepositAndAddOrderCalldataResult
+	ApprovalCalldata,
+	DepositAndAddOrderCalldataResult,
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -31,9 +31,11 @@ export enum TransactionErrorMessage {
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.'
 }
 
+type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
+
 export type DeploymentTransactionArgs = {
 	config: Config;
-	approvals: ApprovalCalldataResult;
+	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
@@ -84,12 +86,12 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_WALLET,
 			message: message || ''
 		}));
-	const awaitApprovalTx = (hash: string) =>
+	const awaitApprovalTx = (hash: string, symbol: string | undefined) =>
 		update((state) => ({
 			...state,
 			hash: hash,
 			status: TransactionStatus.PENDING_APPROVAL,
-			message: ''
+			message: `Approving ${symbol || 'token'} spend...`
 		}));
 	const awaitDeployTx = (hash: string) =>
 		update((state) => ({
@@ -128,7 +130,7 @@ const transactionStore = () => {
 		for (const approval of approvals) {
 			let approvalHash: Hex;
 			try {
-				awaitWalletConfirmation('Please approve token spend in your wallet...');
+				awaitWalletConfirmation(`Please approve ${approval.symbol || approval.token} spend in your wallet...`);
 				approvalHash = await sendTransaction(config, {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`
@@ -137,7 +139,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
 			}
 			try {
-				awaitApprovalTx(approvalHash);
+				awaitApprovalTx(approvalHash, approval.symbol);
 				await waitForTransactionReceipt(config, { hash: approvalHash });
 			} catch {
 				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);

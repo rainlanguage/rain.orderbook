@@ -1,7 +1,8 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
 import type {
 	ApprovalCalldataResult,
-	DepositAndAddOrderCalldataResult
+	DepositAndAddOrderCalldataResult,
+  TokenInfo
 } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 
@@ -10,6 +11,7 @@ export type DeployModalProps = {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+	outputTokenInfos: TokenInfo[];
 };
 
 export const handleDeployModal = (args: DeployModalProps) => {
