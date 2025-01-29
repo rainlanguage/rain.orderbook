@@ -2,39 +2,26 @@
 	import { StrategySection } from '@rainlanguage/ui-components';
 	import { Button, Input, Spinner, Toggle } from 'flowbite-svelte';
 	import { registryUrl } from '$lib/stores/registry';
+	import { getFileRegistry } from './getFileRegistry';
 	import { onMount } from 'svelte';
 
 	let files: { name: string; url: string }[] = [];
 
 	let error = '';
-	let errorDetails = '';
 	let loading = false;
 	let advancedMode = false;
 
 	onMount(() => {
-		getFileRegistry($registryUrl);
+		fetchFilesFromRegistry($registryUrl);
 	});
 
-	const getFileRegistry = async (url: string) => {
+	const fetchFilesFromRegistry = async (url: string) => {
 		loading = true;
-
 		try {
-			const response = await fetch(url);
-			if (!response.ok) {
-				throw new Error('Failed to fetch registry');
-			}
-			const filesList = await response.text();
-			files = filesList
-				.split('\n')
-				.filter((line) => line.trim())
-				.map((line) => {
-					const [name, url] = line.split(' ');
-					return { name, url };
-				});
+			files = await getFileRegistry(url);
 		} catch (e) {
 			files = [];
-			error = 'Error getting registry';
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			error = e instanceof Error ? e.message : 'Unknown error';
 		}
 		return (loading = false);
 	};
@@ -50,7 +37,7 @@
 				bind:value={$registryUrl}
 				class="max-w-lg"
 			/>
-			<Button on:click={() => getFileRegistry($registryUrl)}>Load</Button>
+			<Button on:click={() => fetchFilesFromRegistry($registryUrl)}>Load</Button>
 		{/if}
 		<Toggle on:change={() => (advancedMode = !advancedMode)}>
 			{'Advanced Mode'}
@@ -61,7 +48,6 @@
 		<Spinner />
 	{:else if error}
 		<p>{error}</p>
-		<p>{errorDetails}</p>
 	{:else if files.length > 0}
 		<div class="flex flex-col gap-36">
 			{#each files as { name, url }}
