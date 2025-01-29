@@ -4,7 +4,7 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
+	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -130,7 +130,9 @@ const transactionStore = () => {
 		for (const approval of approvals) {
 			let approvalHash: Hex;
 			try {
-				awaitWalletConfirmation(`Please approve ${approval.symbol || approval.token} spend in your wallet...`);
+				awaitWalletConfirmation(
+					`Please approve ${approval.symbol || approval.token} spend in your wallet...`
+				);
 				approvalHash = await sendTransaction(config, {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`

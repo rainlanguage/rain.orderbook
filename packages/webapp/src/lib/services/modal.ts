@@ -1,7 +1,7 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
 import type {
 	ApprovalCalldataResult,
-	DepositAndAddOrderCalldataResult,
+	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 
