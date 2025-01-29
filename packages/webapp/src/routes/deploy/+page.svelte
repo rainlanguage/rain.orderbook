@@ -17,7 +17,6 @@
 
 	const getFileRegistry = async (url: string) => {
 		loading = true;
-		console.log('getting file registry', url);
 
 		try {
 			const response = await fetch(url);
