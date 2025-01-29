@@ -590,7 +590,8 @@ describe('DeploymentSteps', () => {
 				deploymentDetails,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -615,7 +616,8 @@ describe('DeploymentSteps', () => {
 				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -639,7 +641,8 @@ describe('DeploymentSteps', () => {
 				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -672,7 +675,8 @@ describe('DeploymentSteps', () => {
 				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -703,7 +707,8 @@ describe('DeploymentSteps', () => {
 				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit)
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 

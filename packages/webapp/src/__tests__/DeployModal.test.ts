@@ -10,7 +10,7 @@ const { mockTransactionStore } = await vi.hoisted(() => import('@rainlanguage/ui
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
-		...await importOriginal(),
+		...(await importOriginal()),
 		transactionStore: mockTransactionStore
 	};
 });
@@ -43,7 +43,10 @@ describe('DeployModal', () => {
 
 	it('renders and initiates transaction handling', () => {
 		const config = get(mockWagmiConfigStore);
-		const handleDeploymentTransactionSpy = vi.spyOn(transactionStore, 'handleDeploymentTransaction')
+		const handleDeploymentTransactionSpy = vi.spyOn(
+			transactionStore,
+			'handleDeploymentTransaction'
+		);
 		render(DeployModal, { props: mockProps });
 		expect(handleDeploymentTransactionSpy).toHaveBeenCalledWith({
 			config: config,
