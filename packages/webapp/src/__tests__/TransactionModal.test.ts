@@ -97,7 +97,7 @@ describe('TransactionModal Component', () => {
 	});
 
 	it('should handle multiple statuses like CHECKING_ALLOWANCE and PENDING_APPROVAL', async () => {
-		const checkingMessage = 'Checking your approved sFLR spend...';
+		const checkingMessage = 'Checking your allowance...';
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatus.CHECKING_ALLOWANCE,
 			message: checkingMessage
@@ -110,7 +110,7 @@ describe('TransactionModal Component', () => {
 			expect(screen.getByText(checkingMessage)).toBeInTheDocument();
 		});
 
-		const approvalMessage = 'Approving sFLR spend...';
+		const approvalMessage = 'Approving token spend...';
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatus.PENDING_APPROVAL,
 			message: approvalMessage
