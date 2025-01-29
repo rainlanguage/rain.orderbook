@@ -18,13 +18,14 @@ export enum TransactionStatus {
 }
 
 export enum TransactionErrorMessage {
-	USER_REJECTED = 'User rejected transaction',
-	BAD_CALLLDATA = 'Bad calldata',
-	DEPLOY_FAILED = 'Lock transaction failed',
-	TIMEOUT = 'Transaction timed out',
-	APPROVAL_FAILED = 'Approval transaction failed',
-	DEPLOYMENT_FAILED = 'Deployment transaction failed',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain',
+	BAD_CALLLDATA = 'Bad calldata.',
+	DEPLOY_FAILED = 'Lock transaction failed.',
+	TIMEOUT = 'Transaction timed out.',
+	APPROVAL_FAILED = 'Approval transaction failed.',
+	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
+	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
+	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
 }
 
 export type DeploymentTransactionArgs = {
@@ -122,29 +123,39 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
 		}
 		for (const approval of approvals) {
+			let approvalHash: Hex;
 			try {
 				awaitWalletConfirmation('Please approve token spend in your wallet...');
-				const hash = await sendTransaction(config, {
+				approvalHash = await sendTransaction(config, {
 					to: approval.token as `0x${string}`,
 					data: approval.calldata as `0x${string}`
 				});
+				} catch {
+				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
+			}
+			try {
 
-				awaitApprovalTx(hash);
-				await waitForTransactionReceipt(config, { hash });
+				awaitApprovalTx(approvalHash);
+				await waitForTransactionReceipt(config, { hash: approvalHash });
 			} catch {
 				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
 			}
 		}
+
+		let hash: Hex;
 		try {
 			awaitWalletConfirmation('Please confirm deployment in your wallet...');
-			const hash = await sendTransaction(config, {
+			hash = await sendTransaction(config, {
 				to: orderbookAddress as `0x${string}`,
 				data: deploymentCalldata as `0x${string}`
 			});
-
-			awaitDeployTx(hash);
-			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Strategy deployed successfully!');
+			} catch {
+				return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
+			}
+			try {
+				awaitDeployTx(hash);
+				await waitForTransactionReceipt(config, { hash });
+				return transactionSuccess(hash, 'Strategy deployed successfully!');
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
