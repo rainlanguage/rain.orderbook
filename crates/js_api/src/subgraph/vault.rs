@@ -100,20 +100,23 @@ pub async fn get_vault_withdraw_calldata(
 
 #[wasm_bindgen(js_name = "getVaultApprovalCalldata")]
 pub async fn get_vault_approval_calldata(
-    rpc_url: &str,
-    order_id: &str,
-    input_index: u8,
+    token_address: &str,
+    vault_id: &str,
     deposit_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
-    let order = get_sg_order(rpc_url, order_id).await?;
-    let index = validate_io_index(&order, true, input_index)?;
+    let token = Address::from_str(token_address)?;
+    let vault_id = U256::from_str(vault_id)?;
 
-    let (deposit_args, transaction_args) =
-        get_deposit_and_transaction_args(rpc_url, &order, index, deposit_amount)?;
+    let deposit_args = DepositArgs {
+        token,
+        amount: deposit_amount,
+        vault_id,
+    };
 
+    let transaction_args = TransactionArgs::default();
     let allowance = deposit_args
-        .read_allowance(Address::from_str(&order.owner.0)?, transaction_args.clone())
+        .read_allowance(token, transaction_args.clone())
         .await?;
     if allowance > deposit_amount {
         return Err(SubgraphError::InvalidAmount);

@@ -37,6 +37,7 @@
 		onDepositOrWithdraw: () => void;
 		action: 'deposit' | 'withdraw';
 		subgraphUrl: string;
+		chainId: number;
 	}) => void;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
@@ -45,6 +46,7 @@
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 
 	$: vaultDetailQuery = createQuery({
 		queryKey: [id, QKEY_VAULT + id],
@@ -92,7 +94,8 @@
 							vault: data,
 							onDepositOrWithdraw: $vaultDetailQuery.refetch,
 							action: 'deposit',
-							subgraphUrl
+							subgraphUrl,
+							chainId
 						})}><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
 				>
 				<Button
@@ -103,7 +106,8 @@
 							vault: data,
 							onDepositOrWithdraw: $vaultDetailQuery.refetch,
 							action: 'withdraw',
-							subgraphUrl
+							subgraphUrl,
+							chainId
 						})}><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
 				>
 			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}

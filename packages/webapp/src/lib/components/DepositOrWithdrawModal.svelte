@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { transactionStore, InputTokenAmount } from '@rainlanguage/ui-components';
-	import type { Hex } from 'viem';
 	import {
 		getVaultDepositCalldata,
-		getVaultWithdrawCalldata,
-		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult,
+		type DepositCalldataResult,
 		type Vault
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
@@ -14,8 +11,7 @@
 
 	export let open: boolean;
 	export let vault: Vault;
-	export let action: 'deposit' | 'withdraw';
-	export let subgraphUrl: string;
+	export let chainId: number;
 	export let onDepositOrWithdraw: () => void;
 
 	$: console.log(vault);
@@ -64,21 +60,19 @@
 	// 	reset();
 	// }
 
-	function handleContinue() {
-		// const calldata = getVaultDepositCalldata({
-		//     subgraphUrl
-		// 	deploymentCalldata,
-		// 	amount
-		// });
-		// if (amount > 0n) {
-		// 	currentStep = 2;
-		// 	transactionStore.handleDepositOrWithdrawTransaction({
-		// 		config: $wagmiConfig,
-		// 		chainId,
-		// 		amount,
-		// 		isDeposit
-		// 	});
-		// }
+	async function handleContinue() {
+		const calldata: DepositCalldataResult = await getVaultDepositCalldata(
+			vault.token.address,
+			vault.vaultId,
+			amount.toString()
+		);
+		currentStep = 2;
+		transactionStore.handleDepositOrWithdrawTransaction({
+			config: $wagmiConfig,
+			calldata,
+			chainId,
+			vaultId: vault.orderbook.id
+		});
 	}
 
 	function handleClose() {
@@ -97,7 +91,12 @@
 					{isDeposit ? 'Deposit' : 'Withdraw'}
 				</Toggle>
 			</div>
-			<!-- <TokenAmountInput bind:value={amount} {symbol} {decimals} {maxValue} /> -->
+			<InputTokenAmount
+				bind:value={amount}
+				symbol={vault.token.symbol}
+				decimals={Number(vault.token.decimals)}
+				maxValue={0n}
+			/>
 			<div class="flex justify-end gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>
 				<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
