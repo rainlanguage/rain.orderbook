@@ -2,6 +2,7 @@
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
 	import { TransactionStatus } from '@rainlanguage/ui-components';
 	import { transactionStore } from '@rainlanguage/ui-components';
+	import { createEventDispatcher } from 'svelte';
 
 	export let open: boolean;
 	export let messages: {
@@ -12,6 +13,11 @@
 
 	function handleClose() {
 		open = false;
+	}
+	const dispatch = createEventDispatcher();
+
+	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
+		dispatch('success');
 	}
 
 	$: if (!open) {

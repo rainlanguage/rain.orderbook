@@ -6,7 +6,8 @@ import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
-	Vault
+	Vault,
+	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -47,7 +48,7 @@ export type DeploymentTransactionArgs = {
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
 	approvalCalldata?: ApprovalCalldata;
-	depositCalldata: DepositCalldataResult;
+	depositCalldata: DepositCalldataResult | WithdrawCalldataResult;
 	chainId: number;
 	vault: Vault;
 };

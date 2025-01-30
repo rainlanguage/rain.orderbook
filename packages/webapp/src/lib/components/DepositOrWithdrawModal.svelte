@@ -5,24 +5,21 @@
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type Vault,
-		type ApprovalCalldata,
-		checkVaultAllowance
+		type ApprovalCalldata
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
-	import { Modal, Button, Toggle } from 'flowbite-svelte';
+	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 
 	export let open: boolean;
+	export let action: 'deposit' | 'withdraw';
 	export let vault: Vault;
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let onDepositOrWithdraw: () => void;
 
-	$: console.log(vault);
-
 	let currentStep = 1;
 	let amount: bigint = 0n;
-	let isDeposit = true;
 
 	const messages = {
 		success: 'Your transaction was successful.',
@@ -31,29 +28,29 @@
 	};
 
 	async function handleContinue() {
-		const allowance = await checkVaultAllowance(rpcUrl, vault);
-		console.log('allowance', allowance);
-		let approvalCalldata: ApprovalCalldata | undefined = undefined;
-		try {
-			approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
-			console.log('approval calldata!', approvalCalldata);
-		} catch (e) {
-			console.error('error getting approval calldata!', e);
-			approvalCalldata = undefined;
+		if (action === 'deposit') {
+			let approvalCalldata: ApprovalCalldata | undefined = undefined;
+			try {
+				approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+			} catch {
+				approvalCalldata = undefined;
+			}
+			const depositCalldata: DepositCalldataResult = await getVaultDepositCalldata(
+				vault.token.address,
+				vault.vaultId,
+				amount.toString()
+			);
+			currentStep = 2;
+			transactionStore.handleDepositOrWithdrawTransaction({
+				config: $wagmiConfig,
+				depositCalldata,
+				approvalCalldata,
+				chainId,
+				vault
+			});
+		} else {
+			console.log('withdraw');
 		}
-		const depositCalldata: DepositCalldataResult = await getVaultDepositCalldata(
-			vault.token.address,
-			vault.vaultId,
-			amount.toString()
-		);
-		currentStep = 2;
-		transactionStore.handleDepositOrWithdrawTransaction({
-			config: $wagmiConfig,
-			depositCalldata,
-			approvalCalldata,
-			chainId,
-			vault
-		});
 	}
 
 	function handleClose() {
@@ -68,9 +65,6 @@
 		<div class="space-y-6">
 			<div class="flex flex-col gap-4">
 				<h3 class="text-xl font-medium">Enter Amount</h3>
-				<Toggle bind:checked={isDeposit}>
-					{isDeposit ? 'Deposit' : 'Withdraw'}
-				</Toggle>
 			</div>
 			<InputTokenAmount
 				bind:value={amount}
@@ -81,11 +75,11 @@
 			<div class="flex justify-end gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>
 				<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
-					{isDeposit ? 'Deposit' : 'Withdraw'}
+					{action === 'deposit' ? 'Deposit' : 'Withdraw'}
 				</Button>
 			</div>
 		</div>
 	</Modal>
 {:else}
-	<TransactionModal bind:open {messages} on:close={handleClose} />
+	<TransactionModal bind:open {messages} on:close={handleClose} on:success={onDepositOrWithdraw} />
 {/if}

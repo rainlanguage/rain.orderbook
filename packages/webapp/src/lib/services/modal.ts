@@ -18,7 +18,6 @@ export type DepositOrWithdrawModalProps = {
 	vault: Vault;
 	onDepositOrWithdraw: () => void;
 	action: 'deposit' | 'withdraw';
-	subgraphUrl: string;
 	chainId: number;
 	rpcUrl: string;
 };

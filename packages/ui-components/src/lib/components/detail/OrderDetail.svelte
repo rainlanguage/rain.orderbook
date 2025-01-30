@@ -12,17 +12,28 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import { getOrder, type OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderSubgraph, type Vault } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import { InputTokenAmount } from '@rainlanguage/ui-components';
+	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import type { Config } from 'wagmi';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
+	export let handleDepositOrWithdrawModal:
+		| ((args: {
+				vault: Vault;
+				onDepositOrWithdraw: () => void;
+				action: 'deposit' | 'withdraw';
+				subgraphUrl: string;
+				chainId: number;
+				rpcUrl: string;
+		  }) => void)
+		| undefined = undefined;
 	export let handleOrderRemoveModal:
 		| ((order: OrderSubgraph, refetch: () => void) => void)
 		| undefined = undefined;
@@ -46,9 +57,10 @@
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
+	export let chainId: number;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
-	let amounts: Record<string | number, bigint> = {};
 
 	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -71,14 +83,6 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
-
-	const handleDeposit = (id: string) => {
-		console.log(`Depositing ${amounts[id]} for tokenVault ID ${id}`);
-	};
-
-	const handleWithdraw = (id: string) => {
-		console.log(`Withdrawing ${amounts[id]} for tokenVault ID ${id}`);
-	};
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -133,28 +137,18 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each data.inputs || [] as t}
-							<ButtonVaultLink tokenVault={t} {subgraphName} />
-							<div class="flex w-full flex-col items-end justify-between gap-2">
-								<InputTokenAmount
-									bind:value={amounts[t.id]}
-									symbol={t.token.symbol}
-									decimals={Number(t.token.decimals) ?? 0}
+						{#each data.inputs || [] as vault}
+							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							{#if handleDepositOrWithdrawModal && $wagmiConfig}
+								<DepositOrWithdrawButtons
+									{vault}
+									{subgraphUrl}
+									{chainId}
+									{rpcUrl}
+									query={orderDetailQuery}
+									{handleDepositOrWithdrawModal}
 								/>
-								<div class="flex gap-2">
-									<Button
-										data-testid="vaultDetailDepositButton"
-										color="dark"
-										class="whitespace-nowrap"
-										on:click={() => handleDeposit(t.id)}>Deposit</Button
-									>
-									<Button
-										data-testid="vaultDetailDepositButton"
-										color="dark"
-										on:click={() => handleWithdraw(t.id)}>Withdraw</Button
-									>
-								</div>
-							</div>
+							{/if}
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -167,28 +161,18 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each data.outputs || [] as t}
-							<ButtonVaultLink tokenVault={t} {subgraphName} />
-							<div class="flex w-full flex-col items-end justify-between gap-2">
-								<InputTokenAmount
-									bind:value={amounts[t.id]}
-									symbol={t.token.symbol}
-									decimals={Number(t.token.decimals) ?? 0}
+						{#each data.outputs || [] as vault}
+							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							{#if handleDepositOrWithdrawModal && $wagmiConfig}
+								<DepositOrWithdrawButtons
+									{vault}
+									{subgraphUrl}
+									{chainId}
+									{rpcUrl}
+									query={orderDetailQuery}
+									{handleDepositOrWithdrawModal}
 								/>
-								<div class="flex gap-2">
-									<Button
-										data-testid="vaultDetailDepositButton"
-										color="dark"
-										class="whitespace-nowrap"
-										on:click={() => handleDeposit(t.id)}>Deposit</Button
-									>
-									<Button
-										data-testid="vaultDetailDepositButton"
-										color="dark"
-										on:click={() => handleWithdraw(t.id)}>Withdraw</Button
-									>
-								</div>
-							</div>
+							{/if}
 						{/each}
 					</div>
 				</svelte:fragment>
