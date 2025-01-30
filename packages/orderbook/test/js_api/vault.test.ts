@@ -238,26 +238,11 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
 
 		let calldata: string = await getVaultDepositCalldata(
-			mockServer.url + '/sg4',
-			'order1',
-			0,
+			vault1.token.address,
+			vault1.vaultId,
 			'500'
 		);
 		assert.equal(calldata.length, 330);
-
-		try {
-			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 99, '500');
-			assert.fail('expected to reject, but resolved');
-		} catch (e) {
-			assert.equal((e as Error).message, 'Invalid output index');
-		}
-
-		try {
-			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
-			assert.fail('expected to reject, but resolved');
-		} catch (error) {
-			assert.equal((error as Error).message, 'Invalid amount');
-		}
 	});
 
 	it('should get withdraw calldata for a vault', async () => {

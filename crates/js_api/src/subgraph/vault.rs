@@ -55,17 +55,19 @@ pub async fn get_vault_balance_changes(
 /// Returns a string of the calldata
 #[wasm_bindgen(js_name = "getVaultDepositCalldata")]
 pub async fn get_vault_deposit_calldata(
-    rpc_url: &str,
-    order_id: &str,
-    output_index: u8,
+    token_address: &str,
+    vault_id: &str,
     deposit_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
-    let order = get_sg_order(rpc_url, order_id).await?;
-    let index = validate_io_index(&order, false, output_index)?;
+    let token = Address::from_str(token_address)?;
+    let vault_id = U256::from_str(vault_id)?;
 
-    let (deposit_args, _) =
-        get_deposit_and_transaction_args(rpc_url, &order, index, deposit_amount)?;
+    let deposit_args = DepositArgs {
+        token,
+        amount: deposit_amount,
+        vault_id,
+    };
 
     Ok(to_value(&Bytes::copy_from_slice(
         &deposit_args.get_deposit_calldata().await?,
