@@ -7,19 +7,20 @@
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult,
 		type GuiDeposit,
 		type GuiFieldDefinition,
 		type NameAndDescription,
 		type GuiDeployment,
-		type OrderIO
+		type OrderIO,
+		type ApprovalCalldataResult,
+		type DepositAndAddOrderCalldataResult
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button } from 'flowbite-svelte';
-	import { getAccount, sendTransaction, type Config } from '@wagmi/core';
+	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
+	import type { Hex } from 'viem';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -38,6 +39,12 @@
 	export let dotrain: string;
 	export let deployment: string;
 	export let deploymentDetails: NameAndDescription;
+	export let handleDeployModal: (args: {
+		approvals: ApprovalCalldataResult;
+		deploymentCalldata: DepositAndAddOrderCalldataResult;
+		orderbookAddress: Hex;
+		chainId: number;
+	}) => void;
 
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -147,24 +154,33 @@
 		}
 	}
 
-	async function handleAddOrderWagmi() {
+	async function handleAddOrder() {
 		try {
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
-			const approvals: ApprovalCalldataResult = await gui.generateApprovalCalldatas(address);
-			for (const approval of approvals) {
-				await sendTransaction($wagmiConfig, {
-					to: approval.token as `0x${string}`,
-					data: approval.calldata as `0x${string}`
-				});
-			}
-			const calldata: DepositAndAddOrderCalldataResult =
-				await gui.generateDepositAndAddOrderCalldatas();
-			await sendTransaction($wagmiConfig, {
-				// @ts-expect-error orderbook is not typed
-				to: gui.getCurrentDeployment().deployment.order.orderbook.address as `0x${string}`,
-				data: calldata as `0x${string}`
+			let approvals = await gui.generateApprovalCalldatas(address);
+			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
+			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
+			// @ts-expect-error orderbook is not typed
+			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
+			const outputTokenInfos = await Promise.all(
+				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
+			);
+
+			approvals = approvals.map((approval) => {
+				const token = outputTokenInfos.find((token) => token?.address === approval.token);
+				return {
+					...approval,
+					symbol: token?.symbol
+				};
+			});
+
+			handleDeployModal({
+				approvals,
+				deploymentCalldata,
+				orderbookAddress,
+				chainId
 			});
 		} catch (e) {
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
@@ -264,7 +280,7 @@
 					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderWagmi}>Deploy Strategy</Button>
+							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
