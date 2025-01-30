@@ -1,11 +1,12 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
-import { readContract, sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
+import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
-	DepositCalldataResult
+	DepositCalldataResult,
+	Vault
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -45,9 +46,10 @@ export type DeploymentTransactionArgs = {
 
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
-	calldata: DepositCalldataResult;
+	approvalCalldata?: ApprovalCalldata;
+	depositCalldata: DepositCalldataResult;
 	chainId: number;
-	vaultId: Hex;
+	vault: Vault;
 };
 
 export type TransactionState = {
@@ -176,24 +178,44 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleDepositOrWithdrawTransaction = async ({config, calldata, chainId, vaultId}: DepositOrWithdrawTransactionArgs) => {
+	const handleDepositOrWithdrawTransaction = async ({config, approvalCalldata, depositCalldata, chainId, vault}: DepositOrWithdrawTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
-		} catch(e) {
-			console.log(e)
+		} catch {
 			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
 		}
-
-
+		if (approvalCalldata) {
+			console.log("approving!")
+			let approvalHash: Hex;
+			try {
+				awaitWalletConfirmation(
+					`Please approve ${vault.token.symbol} spend in your wallet...`
+				);
+				approvalHash = await sendTransaction(config, {
+					to: vault.token.address as `0x${string}`,
+					data: approvalCalldata as unknown as `0x${string}`
+				});
+			} catch {
+				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
+			}
+			try {
+				awaitApprovalTx(approvalHash, vault.token.symbol);
+				await waitForTransactionReceipt(config, { hash: approvalHash });
+			} catch {
+				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
+			}
+		}
+		console.log("depositing!")
 		let hash: Hex;
 		try {
-			awaitWalletConfirmation('Please confirm deployment in your wallet...');
+			awaitWalletConfirmation('Please confirm deposit in your wallet...');
 			hash = await sendTransaction(config, {
-				to: vaultId as `0x${string}`,
-				data: calldata as unknown as `0x${string}`
+				to: vault.orderbook.id as `0x${string}`,
+				data: depositCalldata as unknown as `0x${string}`
 			});
 			console.log(hash)
-		} catch {
+		} catch(e) {
+			console.error("error depositing!", e)
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {

@@ -2,8 +2,10 @@
 	import { transactionStore, InputTokenAmount } from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
+		getVaultApprovalCalldata,
 		type DepositCalldataResult,
-		type Vault
+		type Vault,
+		type ApprovalCalldata
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button, Toggle } from 'flowbite-svelte';
@@ -12,6 +14,7 @@
 	export let open: boolean;
 	export let vault: Vault;
 	export let chainId: number;
+	export let rpcUrl: string;
 	export let onDepositOrWithdraw: () => void;
 
 	$: console.log(vault);
@@ -61,7 +64,15 @@
 	// }
 
 	async function handleContinue() {
-		const calldata: DepositCalldataResult = await getVaultDepositCalldata(
+		let approvalCalldata: ApprovalCalldata | undefined = undefined;
+		try {
+			approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+			console.log('approval calldata!', approvalCalldata);
+		} catch (e) {
+			console.error('error getting approval calldata!', e);
+			approvalCalldata = undefined;
+		}
+		const depositCalldata: DepositCalldataResult = await getVaultDepositCalldata(
 			vault.token.address,
 			vault.vaultId,
 			amount.toString()
@@ -69,9 +80,10 @@
 		currentStep = 2;
 		transactionStore.handleDepositOrWithdrawTransaction({
 			config: $wagmiConfig,
-			calldata,
+			depositCalldata,
+			approvalCalldata,
 			chainId,
-			vaultId: vault.orderbook.id
+			vault
 		});
 	}
 

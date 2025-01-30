@@ -38,6 +38,7 @@
 		action: 'deposit' | 'withdraw';
 		subgraphUrl: string;
 		chainId: number;
+		rpcUrl: string;
 	}) => void;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
@@ -47,6 +48,7 @@
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 
 	$: vaultDetailQuery = createQuery({
 		queryKey: [id, QKEY_VAULT + id],
@@ -95,7 +97,8 @@
 							onDepositOrWithdraw: $vaultDetailQuery.refetch,
 							action: 'deposit',
 							subgraphUrl,
-							chainId
+							chainId,
+							rpcUrl
 						})}><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
 				>
 				<Button
@@ -107,7 +110,8 @@
 							onDepositOrWithdraw: $vaultDetailQuery.refetch,
 							action: 'withdraw',
 							subgraphUrl,
-							chainId
+							chainId,
+							rpcUrl
 						})}><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
 				>
 			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
