@@ -113,9 +113,7 @@ pub async fn get_vault_approval_calldata(
     }
 
     Ok(to_value(&Bytes::copy_from_slice(
-        &deposit_args
-            .get_approve_calldata(transaction_args, allowance)
-            .await?,
+        &deposit_args.get_approve_calldata(transaction_args).await?,
     ))?)
 }
 
