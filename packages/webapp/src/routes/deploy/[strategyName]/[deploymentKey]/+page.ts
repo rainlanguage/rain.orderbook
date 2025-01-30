@@ -1,4 +1,6 @@
+import { registryUrl } from '$lib/stores/registry';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { get } from 'svelte/store';
 
 export const load = async ({
 	fetch,
@@ -8,9 +10,9 @@ export const load = async ({
 	params: { strategyName: string; deploymentKey: string };
 }) => {
 	try {
-		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/strategies/dev/registry'
-		);
+		const _registryUrl = get(registryUrl);
+		const response = await fetch(_registryUrl);
+		console.log(_registryUrl);
 		const files = await response.text();
 		const { strategyName, deploymentKey } = params;
 
