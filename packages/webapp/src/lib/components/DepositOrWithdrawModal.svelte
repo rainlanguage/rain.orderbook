@@ -30,40 +30,6 @@
 		error: 'Transaction failed.'
 	};
 
-	// async function executeWalletconnect() {
-	// 	isSubmitting = true;
-	// 	try {
-	// 		if (!$orderbookAddress) throw Error('Select an orderbook to deposit');
-	// 		const allowance = await checkAllowance(vault.token.id, $orderbookAddress);
-	// 		if (allowance.lt(amount)) {
-	// 			const approveCalldata = (await vaultDepositApproveCalldata(
-	// 				BigInt(vault.vaultId),
-	// 				vault.token.id,
-	// 				amount,
-	// 				allowance.toBigInt()
-	// 			)) as Uint8Array;
-	// 			const approveTx = await ethersExecute(approveCalldata, vault.token.id);
-	// 			toasts.success('Approve Transaction sent successfully!');
-	// 			await approveTx.wait(1);
-	// 		}
-
-	// 		const depositCalldata = (await vaultDepositCalldata(
-	// 			BigInt(vault.vaultId),
-	// 			vault.token.id,
-	// 			amount
-	// 		)) as Uint8Array;
-	// 		const depositTx = await ethersExecute(depositCalldata, $orderbookAddress);
-	// 		toasts.success('Transaction sent successfully!');
-	// 		await depositTx.wait(1);
-	// 		onDeposit();
-	// 	} catch (e) {
-	// 		reportErrorToSentry(e);
-	// 		toasts.error(formatEthersTransactionError(e));
-	// 	}
-	// 	isSubmitting = false;
-	// 	reset();
-	// }
-
 	async function handleContinue() {
 		const allowance = await checkVaultAllowance(rpcUrl, vault);
 		console.log('allowance', allowance);
