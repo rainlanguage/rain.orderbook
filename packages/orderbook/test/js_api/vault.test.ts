@@ -7,7 +7,9 @@ import {
 	getVault,
 	getVaultBalanceChanges,
 	getVaultDepositCalldata,
-	getVaultWithdrawCalldata
+	getVaultWithdrawCalldata,
+	checkVaultAllowance,
+	getVaultApprovalCalldata
 } from '../../dist/cjs/js_api.js';
 
 const vault1: Vault = {
@@ -181,7 +183,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 					symbol: 'T1',
 					decimals: '0'
 				},
-				balance: '0',
+				balance: '88888888888',
 				vaultId: '0x2523',
 				owner: '0x0000000000000000000000000000000000000000',
 				ordersAsOutput: [],
@@ -236,26 +238,11 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
 
 		let calldata: string = await getVaultDepositCalldata(
-			mockServer.url + '/sg4',
-			'order1',
-			0,
+			vault1.token.address,
+			vault1.vaultId,
 			'500'
 		);
 		assert.equal(calldata.length, 330);
-
-		try {
-			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 99, '500');
-			assert.fail('expected to reject, but resolved');
-		} catch (e) {
-			assert.equal((e as Error).message, 'Invalid output index');
-		}
-
-		try {
-			await getVaultDepositCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
-			assert.fail('expected to reject, but resolved');
-		} catch (error) {
-			assert.equal((error as Error).message, 'Invalid amount');
-		}
 	});
 
 	it('should get withdraw calldata for a vault', async () => {
@@ -281,6 +268,87 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			assert.fail('expected to reject, but resolved');
 		} catch (error) {
 			assert.equal((error as Error).message, 'Invalid amount');
+		}
+	});
+
+	it('should read allowance for a vault', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenSendJsonRpcResult('0x0000000000000000000000000000000000000000000000000000000000000001');
+
+		let allowance: string = await checkVaultAllowance(mockServer.url + '/sg4', 'order1', 0);
+		assert.equal(allowance, '0x1');
+
+		try {
+			await checkVaultAllowance(mockServer.url + '/sg4', 'order1', 99);
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid input index');
+		}
+	});
+
+	it('should get approval calldata for a vault', async () => {
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { order } }));
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenSendJsonRpcResult('0x00000000000000000000000000000000000000000000000000000000000001f4');
+
+		let calldata: string = await getVaultApprovalCalldata(
+			mockServer.url + '/sg4',
+			'order1',
+			0,
+			'600'
+		);
+		assert.equal(calldata.length, 138);
+
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { order } }));
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenSendJsonRpcResult('0x00000000000000000000000000000000000000000000000000000000000001f4');
+
+		calldata = await getVaultApprovalCalldata(mockServer.url + '/sg4', 'order1', 0, '500');
+		assert.equal(calldata.length, 138);
+
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		try {
+			await getVaultApprovalCalldata(mockServer.url + '/sg4', 'order1', 0, '0');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid amount');
+		}
+
+		try {
+			await getVaultApprovalCalldata(mockServer.url + '/sg4', 'order1', 99, '500');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid input index');
+		}
+
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { order } }));
+		await mockServer
+			.forPost('/sg4')
+			.once()
+			.thenSendJsonRpcResult('0x00000000000000000000000000000000000000000000000000000000000001f4');
+
+		try {
+			await getVaultApprovalCalldata(mockServer.url + '/sg4', 'order1', 0, '200');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid amount');
 		}
 	});
 });

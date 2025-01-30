@@ -1,6 +1,6 @@
 use alloy::{hex::FromHexError, primitives::ruint::ParseError};
 use rain_orderbook_common::{
-    dotrain_order::calldata::DotrainOrderCalldataError,
+    deposit::DepositError, dotrain_order::calldata::DotrainOrderCalldataError,
     transaction::WritableTransactionExecuteError,
 };
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
@@ -30,6 +30,8 @@ pub enum SubgraphError {
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    #[error(transparent)]
+    DepositError(#[from] DepositError),
 }
 impl From<SubgraphError> for JsValue {
     fn from(value: SubgraphError) -> Self {
