@@ -6,7 +6,7 @@
 
 	let _registryUrl = '';
 	let _files = files;
-	let _dotrain = '';
+	let _dotrainList: string[] = [];
 	let inputDotrain = '';
 	let error = '';
 	let errorDetails = '';
@@ -30,11 +30,13 @@
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 		loading = false;
-		return;
 	};
 
 	const loadStrategy = () => {
-		_dotrain = inputDotrain;
+		if (inputDotrain.trim()) {
+			_dotrainList = [..._dotrainList, inputDotrain];
+			inputDotrain = '';
+		}
 	};
 </script>
 
@@ -49,9 +51,9 @@
 						placeholder="Enter URL to raw strategy registry file"
 						bind:value={_registryUrl}
 					/>
-					<Button class="text-nowrap" on:click={() => getFileRegistry(_registryUrl)}
-						>Load URL</Button
-					>
+					<Button class="text-nowrap" on:click={() => getFileRegistry(_registryUrl)}>
+						Load URL
+					</Button>
 				</div>
 				<div class="flex w-full items-start gap-4">
 					<Textarea
@@ -74,12 +76,14 @@
 	{:else if error}
 		<p>{error}</p>
 		<p>{errorDetails}</p>
-	{:else if _dotrain}
-		<div class="mb-36">
-			<StrategySection rawDotrain={_dotrain} />
+	{/if}
+	{#if _dotrainList.length > 0}
+		<div class="mb-36 flex flex-col gap-8">
+			{#each _dotrainList as dotrain}
+				<StrategySection rawDotrain={dotrain} />
+			{/each}
 		</div>
 	{/if}
-
 	{#if _files.length > 0}
 		<div class="flex flex-col gap-36">
 			{#each _files as { name, url }}
