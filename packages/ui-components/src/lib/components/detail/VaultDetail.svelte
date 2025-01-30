@@ -13,26 +13,36 @@
 	import { createQuery } from '@tanstack/svelte-query';
 
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
+	import type { Config } from 'wagmi';
 
 	export let id: string;
 	export let network: string;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
+	// Tauri App modals
 	export let handleDepositModal: ((vault: Vault, onDeposit: () => void) => void) | undefined =
 		undefined;
 	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
 		undefined;
+	// Wagmi modals
+	export let handleDepositOrWithdrawModal: (args: {
+		vault: Vault;
+		onDepositOrWithdraw: () => void;
+		action: 'deposit' | 'withdraw';
+		subgraphUrl: string;
+	}) => void;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 
@@ -73,7 +83,30 @@
 			{data.token.name}
 		</div>
 		<div>
-			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
+			{#if $wagmiConfig}
+				<Button
+					data-testid="vaultDetailDepositButton"
+					color="dark"
+					on:click={() =>
+						handleDepositOrWithdrawModal({
+							vault: data,
+							onDepositOrWithdraw: $vaultDetailQuery.refetch,
+							action: 'deposit',
+							subgraphUrl
+						})}><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
+				>
+				<Button
+					data-testid="vaultDetailDepositButton"
+					color="dark"
+					on:click={() =>
+						handleDepositOrWithdrawModal({
+							vault: data,
+							onDepositOrWithdraw: $vaultDetailQuery.refetch,
+							action: 'withdraw',
+							subgraphUrl
+						})}><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
+				>
+			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
 				<Button
 					data-testid="vaultDetailDepositButton"
 					color="dark"

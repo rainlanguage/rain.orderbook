@@ -4,7 +4,9 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult
+	DepositAndAddOrderCalldataResult,
+	DepositCalldataResult,
+	WithdrawalCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -38,6 +40,12 @@ export type DeploymentTransactionArgs = {
 	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
+	chainId: number;
+};
+
+export type DepositOrWithdrawTransactionArgs = {
+	config: Config;
+	calldata: DepositCalldataResult | WithdrawalCalldataResult;
 	chainId: number;
 };
 
@@ -167,10 +175,19 @@ const transactionStore = () => {
 		}
 	};
 
+	const handleDepositOrWithdrawTransaction = async (config, calldata, chainId) => {
+		try {
+			await switchChain(config, { chainId });
+		} catch {
+			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+		}
+	};
+
 	return {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
+		handleDepositOrWithdrawTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,
