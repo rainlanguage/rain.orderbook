@@ -103,10 +103,12 @@ pub async fn get_vault_approval_calldata(
     token_address: &str,
     vault_id: &str,
     deposit_amount: &str,
+    vault_owner: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
     let token = Address::from_str(token_address)?;
     let vault_id = U256::from_str(vault_id)?;
+    let owner = Address::from_str(vault_owner)?;
 
     let deposit_args = DepositArgs {
         token,
@@ -116,7 +118,7 @@ pub async fn get_vault_approval_calldata(
 
     let transaction_args = TransactionArgs::default();
     let allowance = deposit_args
-        .read_allowance(token, transaction_args.clone())
+        .read_allowance(owner, transaction_args.clone())
         .await?;
     if allowance > deposit_amount {
         return Err(SubgraphError::InvalidAmount);
