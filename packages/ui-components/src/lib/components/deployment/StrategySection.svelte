@@ -3,8 +3,9 @@
 	import { DotrainOrderGui, type NameAndDescription } from '@rainlanguage/orderbook/js_api';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 
-	export let strategyUrl: string;
-	export let strategyName: string;
+	export let strategyUrl: string = '';
+	export let strategyName: string = '';
+	export let rawDotrain: string = '';
 	let strategyDetails: NameAndDescription;
 	let dotrain: string;
 	let error: string;
@@ -12,9 +13,13 @@
 
 	const getStrategy = async () => {
 		try {
-			const response = await fetch(strategyUrl);
-			const data = await response.text();
-			dotrain = data;
+			if (rawDotrain) {
+				dotrain = rawDotrain;
+			} else {
+				const response = await fetch(strategyUrl);
+				const data = await response.text();
+				dotrain = data;
+			}
 			try {
 				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 			} catch (e: unknown) {
