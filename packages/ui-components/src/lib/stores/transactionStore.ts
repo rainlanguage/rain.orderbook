@@ -185,7 +185,6 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
 		}
 		if (approvalCalldata) {
-			console.log("approving!")
 			let approvalHash: Hex;
 			try {
 				awaitWalletConfirmation(
@@ -201,11 +200,11 @@ const transactionStore = () => {
 			try {
 				awaitApprovalTx(approvalHash, vault.token.symbol);
 				await waitForTransactionReceipt(config, { hash: approvalHash });
-			} catch {
+			} catch(e) {
+				console.error("error approving!", e)
 				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
 			}
 		}
-		console.log("depositing!")
 		let hash: Hex;
 		try {
 			awaitWalletConfirmation('Please confirm deposit in your wallet...');
@@ -222,7 +221,8 @@ const transactionStore = () => {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
 			return transactionSuccess(hash, 'Deposit successful.');
-		} catch {
+		} catch(e) {
+			console.error("error depositing!", e)
 			return transactionError(TransactionErrorMessage.DEPOSIT_FAILED);
 		}
 	};

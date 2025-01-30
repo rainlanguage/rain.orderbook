@@ -5,7 +5,8 @@
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type Vault,
-		type ApprovalCalldata
+		type ApprovalCalldata,
+		checkVaultAllowance
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button, Toggle } from 'flowbite-svelte';
@@ -64,6 +65,8 @@
 	// }
 
 	async function handleContinue() {
+		const allowance = await checkVaultAllowance(rpcUrl, vault);
+		console.log('allowance', allowance);
 		let approvalCalldata: ApprovalCalldata | undefined = undefined;
 		try {
 			approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
