@@ -287,8 +287,8 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 	});
 
 	it('should read allowance for a vault', async () => {
-		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
-		await mockServer.forPost('/sg4').thenReply(
+		await mockServer.forPost('/rpc').thenReply(200, JSON.stringify({ data: '0' }));
+		await mockServer.forPost('/rpc').thenReply(
 			200,
 			JSON.stringify({
 				jsonrpc: '2.0',
@@ -297,13 +297,13 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const allowance = await checkVaultAllowance(mockServer.url + '/sg4', vault1);
+		const allowance = await checkVaultAllowance(mockServer.url + '/rpc', vault1);
 		assert.equal(allowance, '0x1');
 	});
 
 	it('should generate valid approval calldata with correct length', async () => {
-		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
-		await mockServer.forPost('/sg4').thenReply(
+		await mockServer.forPost('/rpc').thenReply(200, JSON.stringify({ data: '0' }));
+		await mockServer.forPost('/rpc').thenReply(
 			200,
 			JSON.stringify({
 				jsonrpc: '2.0',
@@ -312,7 +312,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			})
 		);
 
-		const calldata = await getVaultApprovalCalldata(mockServer.url + '/sg4', vault1, '600');
+		const calldata = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '600');
 
 		assert.ok(calldata.startsWith('0x'));
 		assert.equal(calldata.length, 138);
