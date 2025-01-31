@@ -49,6 +49,10 @@ impl Orderbook {
                     return require_string(orderbook_yaml, Some("network"), None)
                         .or_else(|_| Ok(orderbook_key.to_string()));
                 }
+            } else {
+                return Err(YamlError::ParseError(
+                    "orderbooks field must be a map".to_string(),
+                ));
             }
         }
         Err(YamlError::ParseError(format!(
@@ -483,5 +487,37 @@ orderbooks:
         let documents = vec![get_document(yaml)];
         let network_key = Orderbook::parse_network_key(documents, "mainnet").unwrap();
         assert_eq!(network_key, "mainnet");
+    }
+
+    #[test]
+    fn test_parse_network_key() {
+        let yaml = r#"
+orderbooks: test
+"#;
+        let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orderbooks field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orderbooks:
+  - test
+"#;
+        let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orderbooks field must be a map".to_string())
+        );
+
+        let yaml = r#"
+orderbooks:
+  - test: test
+"#;
+        let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseError("orderbooks field must be a map".to_string())
+        );
     }
 }

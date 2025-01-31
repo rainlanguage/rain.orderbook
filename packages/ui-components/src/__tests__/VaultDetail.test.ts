@@ -34,12 +34,12 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 
 	render(VaultDetail, {
 		props: {
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme),
-			activeNetworkRef: writable('mainnet'),
-			activeOrderbookRef: writable('0x00')
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -57,10 +57,10 @@ test('shows the correct empty message when the query returns no data', async () 
 		props: {
 			id: '100',
 			network: 'mainnet',
-			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme),
 			activeNetworkRef: writable('mainnet'),
-			activeOrderbookRef: writable('0x00')
+			activeOrderbookRef: writable('0x00'),
+			settings: mockSettings,
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -100,10 +100,10 @@ test('shows the correct data when the query returns data', async () => {
 		props: {
 			id: '100',
 			network: 'mainnet',
-			settings: mockSettings,
-			lightweightChartsTheme: readable(darkChartTheme),
 			activeNetworkRef: writable('mainnet'),
-			activeOrderbookRef: writable('0x00')
+			activeOrderbookRef: writable('0x00'),
+			settings: mockSettings,
+			lightweightChartsTheme: readable(darkChartTheme)
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});

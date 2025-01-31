@@ -57,15 +57,22 @@ export { default as VaultBalanceChart } from './components/charts/VaultBalanceCh
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
 export { default as StrategySection } from './components/deployment/StrategySection.svelte';
 export { default as DeploymentPage } from './components/deployment/DeploymentPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
+export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
+export {
+	TransactionStatus,
+	TransactionErrorMessage,
+	type TransactionState
+} from './stores/transactionStore';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -99,6 +106,8 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+export { default as transactionStore } from './stores/transactionStore';
+export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';

@@ -1,8 +1,13 @@
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import type { PageLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 
-export const load: PageLoad = async ({ fetch, params }) => {
+export const load = async ({
+	fetch,
+	params
+}: {
+	fetch: typeof globalThis.fetch;
+	params: { strategyName: string; deploymentKey: string };
+}) => {
 	try {
 		const response = await fetch(
 			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/strategies/dev/registry'
@@ -13,12 +18,12 @@ export const load: PageLoad = async ({ fetch, params }) => {
 		const fileList = files
 			.split('\n')
 			.filter(Boolean)
-			.map((line) => {
+			.map((line: string) => {
 				const [name, url] = line.split(' ');
 				return { name, url };
 			});
 
-		const strategy = fileList.find((file) => file.name === strategyName);
+		const strategy = fileList.find((file: { name: string }) => file.name === strategyName);
 
 		if (strategy) {
 			const dotrainResponse = await fetch(strategy.url);
@@ -30,7 +35,9 @@ export const load: PageLoad = async ({ fetch, params }) => {
 				key,
 				...details
 			}));
-			const deployment = deployments.find((deployment) => deployment.key === deploymentKey);
+			const deployment = deployments.find(
+				(deployment: { key: string }) => deployment.key === deploymentKey
+			);
 
 			if (!deployment) {
 				throw new Error(`Deployment ${deploymentKey} not found`);

@@ -112,11 +112,13 @@ export const mockChainIdStore = {
 export const mockConnectedStore = {
 	subscribe: mockConnectedWritable.subscribe,
 	set: mockConnectedWritable.set,
+	update: mockConnectedWritable.update,
 	mockSetSubscribeValue: (value: boolean): void => mockConnectedWritable.set(value)
 };
 
 export const mockWagmiConfigStore = {
 	subscribe: mockWagmiConfigWritable.subscribe,
 	set: mockWagmiConfigWritable.set,
+	update: mockWagmiConfigWritable.update,
 	mockSetSubscribeValue: (value: Config): void => mockWagmiConfigWritable.set(value)
 };

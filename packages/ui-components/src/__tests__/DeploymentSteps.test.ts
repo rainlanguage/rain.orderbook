@@ -4,12 +4,16 @@ import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 import type { ComponentProps } from 'svelte';
+import { writable } from 'svelte/store';
+import type { AppKit } from '@reown/appkit';
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
-		getDeploymentKeys: vi.fn(),
 		chooseDeployment: vi.fn()
 	}
 }));
@@ -570,8 +574,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deployment details when provided', async () => {
-		const mockDeployments = ['flare-sflr-wflr'];
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => []
 		});
@@ -585,7 +587,11 @@ describe('DeploymentSteps', () => {
 			props: {
 				dotrain,
 				deployment: 'flare-sflr-wflr',
-				deploymentDetails
+				deploymentDetails,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -607,7 +613,11 @@ describe('DeploymentSteps', () => {
 			props: {
 				dotrain,
 				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -628,7 +638,11 @@ describe('DeploymentSteps', () => {
 			props: {
 				dotrain,
 				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
@@ -639,6 +653,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
+		mockConnectedStore.mockSetSubscribeValue(true);
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
 			getCurrentDeployment: () => ({
@@ -657,12 +672,48 @@ describe('DeploymentSteps', () => {
 			props: {
 				dotrain,
 				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' }
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
 			}
 		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+	});
+	it('shows connect wallet button when not connected', async () => {
+		mockConnectedStore.mockSetSubscribeValue(false);
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => [],
+			getCurrentDeployment: () => ({
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}),
+			getAllFieldDefinitions: () => []
+		});
+
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
 	});
 });
