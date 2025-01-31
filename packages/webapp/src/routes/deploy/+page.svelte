@@ -1,30 +1,26 @@
 <script lang="ts">
 	import { StrategySection } from '@rainlanguage/ui-components';
-	import { page } from '$app/stores';
 	import { Button, Input, Spinner, Toggle, Textarea } from 'flowbite-svelte';
-	const { files } = $page.data;
+	import { registryUrl } from '$lib/stores/registry';
+	import { getFileRegistry } from './getFileRegistry';
+	import { onMount } from 'svelte';
+	import { rawDotrain } from '$lib/stores/raw-dotrain';
 
-	let _registryUrl = '';
-	let _files = files;
-	let _dotrainList: string[] = [];
+	let files: { name: string; url: string }[] = [];
 	let inputDotrain = '';
 	let error = '';
 	let errorDetails = '';
 	let loading = false;
 	let advancedMode = false;
 
-	const getFileRegistry = async (url: string) => {
+	onMount(() => {
+		fetchFilesFromRegistry($registryUrl);
+	});
+
+	const fetchFilesFromRegistry = async (url: string) => {
 		loading = true;
 		try {
-			const response = await fetch(url);
-			const files = await response.text();
-			_files = files
-				.split('\n')
-				.filter((line) => line.trim())
-				.map((line) => {
-					const [name, url] = line.split(' ');
-					return { name, url };
-				});
+			files = await getFileRegistry(url);
 		} catch (e) {
 			error = 'Error getting registry';
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -34,7 +30,8 @@
 
 	const loadStrategy = () => {
 		if (inputDotrain.trim()) {
-			_dotrainList = [..._dotrainList, inputDotrain];
+			files = [];
+			$rawDotrain = inputDotrain;
 			inputDotrain = '';
 		}
 	};
@@ -49,9 +46,9 @@
 						id="strategy-url"
 						type="url"
 						placeholder="Enter URL to raw strategy registry file"
-						bind:value={_registryUrl}
+						bind:value={$registryUrl}
 					/>
-					<Button class="text-nowrap" on:click={() => getFileRegistry(_registryUrl)}>
+					<Button class="text-nowrap" on:click={() => fetchFilesFromRegistry($registryUrl)}>
 						Load URL
 					</Button>
 				</div>
@@ -77,18 +74,13 @@
 		<p>{error}</p>
 		<p>{errorDetails}</p>
 	{/if}
-	{#if _dotrainList.length > 0}
+	{#if files.length > 0}
 		<div class="mb-36 flex flex-col gap-8">
-			{#each _dotrainList as dotrain}
-				<StrategySection rawDotrain={dotrain} />
-			{/each}
-		</div>
-	{/if}
-	{#if _files.length > 0}
-		<div class="flex flex-col gap-36">
-			{#each _files as { name, url }}
+			{#each files as { name, url }}
 				<StrategySection strategyUrl={url} strategyName={name} />
 			{/each}
 		</div>
+	{:else if $rawDotrain}
+		<StrategySection rawDotrain={$rawDotrain} strategyName={'raw'} />
 	{/if}
 </div>
