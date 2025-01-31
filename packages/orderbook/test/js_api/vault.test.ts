@@ -268,10 +268,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 	it('should get withdraw calldata for a vault', async () => {
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
 
-		let calldata: string = await getVaultWithdrawCalldata(
-			vault1,
-			'500'
-		);
+		let calldata: string = await getVaultWithdrawCalldata(vault1, '500');
 		assert.equal(calldata.length, 330);
 
 		try {
@@ -291,35 +288,33 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 
 	it('should read allowance for a vault', async () => {
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
-		await mockServer
-			.forPost('/sg4')
-			.thenReply(200, JSON.stringify({
+		await mockServer.forPost('/sg4').thenReply(
+			200,
+			JSON.stringify({
 				jsonrpc: '2.0',
 				id: 1,
 				result: '0x0000000000000000000000000000000000000000000000000000000000000001'
-			}));
+			})
+		);
 
 		const allowance = await checkVaultAllowance(mockServer.url + '/sg4', vault1);
 		assert.equal(allowance, '0x1');
 	});
 
-it('should generate valid approval calldata with correct length', async () => {
-    await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
-    await mockServer
-        .forPost('/sg4')
-        .thenReply(200, JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            result: '0x0000000000000000000000000000000000000000000000000000000000000000'
-        }));
+	it('should generate valid approval calldata with correct length', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+		await mockServer.forPost('/sg4').thenReply(
+			200,
+			JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				result: '0x0000000000000000000000000000000000000000000000000000000000000000'
+			})
+		);
 
-    const calldata = await getVaultApprovalCalldata(
-        mockServer.url + '/sg4',
-        vault1,
-        '600'
-    );
-    
-    assert.ok(calldata.startsWith('0x'));
-    assert.equal(calldata.length, 138);
-});
+		const calldata = await getVaultApprovalCalldata(mockServer.url + '/sg4', vault1, '600');
+
+		assert.ok(calldata.startsWith('0x'));
+		assert.equal(calldata.length, 138);
+	});
 });
