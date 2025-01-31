@@ -181,7 +181,14 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleDepositOrWithdrawTransaction = async ({config, approvalCalldata, transactionCalldata, action, chainId, vault}: DepositOrWithdrawTransactionArgs) => {
+	const handleDepositOrWithdrawTransaction = async ({
+		config,
+		approvalCalldata,
+		transactionCalldata,
+		action,
+		chainId,
+		vault
+	}: DepositOrWithdrawTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
 		} catch {
@@ -190,9 +197,7 @@ const transactionStore = () => {
 		if (approvalCalldata) {
 			let approvalHash: Hex;
 			try {
-				awaitWalletConfirmation(
-					`Please approve ${vault.token.symbol} spend in your wallet...`
-				);
+				awaitWalletConfirmation(`Please approve ${vault.token.symbol} spend in your wallet...`);
 				approvalHash = await sendTransaction(config, {
 					to: vault.token.address as `0x${string}`,
 					data: approvalCalldata as unknown as `0x${string}`
@@ -203,28 +208,37 @@ const transactionStore = () => {
 			try {
 				awaitApprovalTx(approvalHash, vault.token.symbol);
 				await waitForTransactionReceipt(config, { hash: approvalHash });
-			} catch(e) {
-				console.error("error approving!", e)
+			} catch (e) {
+				console.error('error approving!', e);
 				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
 			}
 		}
 		let hash: Hex;
 		try {
-			awaitWalletConfirmation(`Please confirm ${action === 'deposit' ? 'deposit' : 'withdrawal'} in your wallet...`);
+			awaitWalletConfirmation(
+				`Please confirm ${action === 'deposit' ? 'deposit' : 'withdrawal'} in your wallet...`
+			);
 			hash = await sendTransaction(config, {
 				to: vault.orderbook.id as `0x${string}`,
 				data: transactionCalldata as unknown as `0x${string}`
 			});
 		} catch (e) {
-			console.error("error withdrawing!", e)
+			console.error('error withdrawing!', e);
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, `${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`);
+			return transactionSuccess(
+				hash,
+				`${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`
+			);
 		} catch {
-			return transactionError(action === 'deposit' ? TransactionErrorMessage.DEPOSIT_FAILED : TransactionErrorMessage.WITHDRAWAL_FAILED);
+			return transactionError(
+				action === 'deposit'
+					? TransactionErrorMessage.DEPOSIT_FAILED
+					: TransactionErrorMessage.WITHDRAWAL_FAILED
+			);
 		}
 	};
 
