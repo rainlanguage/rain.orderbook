@@ -17,8 +17,7 @@
 				dotrain = rawDotrain;
 			} else {
 				const response = await fetch(strategyUrl);
-				const data = await response.text();
-				dotrain = data;
+				dotrain = await response.text();
 			}
 			try {
 				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
