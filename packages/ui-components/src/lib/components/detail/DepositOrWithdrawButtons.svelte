@@ -8,40 +8,36 @@
 		vault: Vault;
 		onDepositOrWithdraw: () => void;
 		action: 'deposit' | 'withdraw';
-		subgraphUrl: string;
 		chainId: number;
 		rpcUrl: string;
 	}) => void;
 
 	export let vault: Vault;
-	export let subgraphUrl: string;
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let query: CreateQueryResult;
 </script>
 
 <Button
-	data-testid="vaultDetailDepositButton"
+	data-testid="depositOrWithdrawButton"
 	color="dark"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
 			vault,
 			onDepositOrWithdraw: $query.refetch,
 			action: 'deposit',
-			subgraphUrl,
 			chainId,
 			rpcUrl
 		})}><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
 >
 <Button
-	data-testid="vaultDetailDepositButton"
+	data-testid="depositOrWithdrawButton"
 	color="dark"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
 			vault,
 			onDepositOrWithdraw: $query.refetch,
 			action: 'withdraw',
-			subgraphUrl,
 			chainId,
 			rpcUrl
 		})}><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button

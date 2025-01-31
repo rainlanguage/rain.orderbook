@@ -32,7 +32,8 @@ export enum TransactionErrorMessage {
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
-	DEPOSIT_FAILED = 'Failed to deposit tokens.'
+	DEPOSIT_FAILED = 'Failed to deposit tokens.',
+	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.'
 }
 
 type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
@@ -48,7 +49,8 @@ export type DeploymentTransactionArgs = {
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
 	approvalCalldata?: ApprovalCalldata;
-	depositCalldata: DepositCalldataResult | WithdrawCalldataResult;
+	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
+	action: 'deposit' | 'withdraw';
 	chainId: number;
 	vault: Vault;
 };
@@ -179,7 +181,7 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleDepositOrWithdrawTransaction = async ({config, approvalCalldata, depositCalldata, chainId, vault}: DepositOrWithdrawTransactionArgs) => {
+	const handleDepositOrWithdrawTransaction = async ({config, approvalCalldata, transactionCalldata, action, chainId, vault}: DepositOrWithdrawTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
 		} catch {
@@ -208,23 +210,21 @@ const transactionStore = () => {
 		}
 		let hash: Hex;
 		try {
-			awaitWalletConfirmation('Please confirm deposit in your wallet...');
+			awaitWalletConfirmation(`Please confirm ${action === 'deposit' ? 'deposit' : 'withdrawal'} in your wallet...`);
 			hash = await sendTransaction(config, {
 				to: vault.orderbook.id as `0x${string}`,
-				data: depositCalldata as unknown as `0x${string}`
+				data: transactionCalldata as unknown as `0x${string}`
 			});
-			console.log(hash)
-		} catch(e) {
-			console.error("error depositing!", e)
+		} catch (e) {
+			console.error("error withdrawing!", e)
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Deposit successful.');
-		} catch(e) {
-			console.error("error depositing!", e)
-			return transactionError(TransactionErrorMessage.DEPOSIT_FAILED);
+			return transactionSuccess(hash, `${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`);
+		} catch {
+			return transactionError(action === 'deposit' ? TransactionErrorMessage.DEPOSIT_FAILED : TransactionErrorMessage.WITHDRAWAL_FAILED);
 		}
 	};
 

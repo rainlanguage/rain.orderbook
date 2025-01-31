@@ -1,15 +1,18 @@
 <script lang="ts">
-	import { transactionStore, InputTokenAmount } from '@rainlanguage/ui-components';
+	import { transactionStore, InputTokenAmount, WalletConnect } from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
+		type WithdrawCalldataResult,
 		type Vault,
-		type ApprovalCalldata
+		type ApprovalCalldata,
+		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
+	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
 
 	export let open: boolean;
 	export let action: 'deposit' | 'withdraw';
@@ -17,6 +20,12 @@
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let onDepositOrWithdraw: () => void;
+
+	function handleSuccess() {
+		setTimeout(() => {
+			onDepositOrWithdraw();
+		}, 5000);
+	}
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -43,17 +52,30 @@
 			currentStep = 2;
 			transactionStore.handleDepositOrWithdrawTransaction({
 				config: $wagmiConfig,
-				depositCalldata,
+				transactionCalldata: depositCalldata,
+				action,
 				approvalCalldata,
 				chainId,
 				vault
 			});
-		} else {
-			console.log('withdraw');
+		} else if (action === 'withdraw') {
+			const withdrawCalldata: WithdrawCalldataResult = await getVaultWithdrawCalldata(
+				vault,
+				amount.toString()
+			);
+			currentStep = 2;
+			transactionStore.handleDepositOrWithdrawTransaction({
+				config: $wagmiConfig,
+				transactionCalldata: withdrawCalldata,
+				action,
+				chainId,
+				vault
+			});
 		}
 	}
 
 	function handleClose() {
+		transactionStore.reset();
 		open = false;
 		currentStep = 1;
 		amount = 0n;
@@ -74,12 +96,16 @@
 			/>
 			<div class="flex justify-end gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>
-				<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
-					{action === 'deposit' ? 'Deposit' : 'Withdraw'}
-				</Button>
+				{#if $signerAddress}
+					<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
+						{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+					</Button>
+				{:else}
+					<WalletConnect {appKitModal} {connected} />
+				{/if}
 			</div>
 		</div>
 	</Modal>
 {:else}
-	<TransactionModal bind:open {messages} on:close={handleClose} on:success={onDepositOrWithdraw} />
+	<TransactionModal bind:open {messages} on:close={handleClose} on:success={handleSuccess} />
 {/if}

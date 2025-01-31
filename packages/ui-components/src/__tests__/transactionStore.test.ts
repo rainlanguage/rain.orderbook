@@ -212,6 +212,6 @@ describe('transactionStore', () => {
 
 		expect(sendTransaction).toHaveBeenCalledTimes(3); // 2 approvals + 1 deployment
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
-		expect(get(transactionStore).message).toBe('Strategy deployed successfully!');
+		expect(get(transactionStore).message).toBe('Strategy deployed successfully.');
 	});
 });

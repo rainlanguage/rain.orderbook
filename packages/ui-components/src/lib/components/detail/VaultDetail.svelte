@@ -28,7 +28,6 @@
 				vault: Vault;
 				onDepositOrWithdraw: () => void;
 				action: 'deposit' | 'withdraw';
-				subgraphUrl: string;
 				chainId: number;
 				rpcUrl: string;
 		  }) => void)
@@ -48,6 +47,7 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
@@ -90,10 +90,9 @@
 			{data.token.name}
 		</div>
 		<div>
-			{#if $wagmiConfig && handleDepositOrWithdrawModal}
+			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
 				<DepositOrWithdrawButtons
 					vault={data}
-					{subgraphUrl}
 					{chainId}
 					{rpcUrl}
 					query={vaultDetailQuery}

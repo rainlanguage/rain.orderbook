@@ -29,7 +29,6 @@
 				vault: Vault;
 				onDepositOrWithdraw: () => void;
 				action: 'deposit' | 'withdraw';
-				subgraphUrl: string;
 				chainId: number;
 				rpcUrl: string;
 		  }) => void)
@@ -59,6 +58,7 @@
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -134,15 +134,14 @@
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
 					<div class="mb-2 hidden justify-end md:flex">
-						<span>Balance</span>
+						<span>Balance!!!</span>
 					</div>
 					<div class="space-y-2">
 						{#each data.inputs || [] as vault}
 							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $wagmiConfig}
+							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner}
 								<DepositOrWithdrawButtons
 									{vault}
-									{subgraphUrl}
 									{chainId}
 									{rpcUrl}
 									query={orderDetailQuery}
@@ -163,10 +162,9 @@
 					<div class="space-y-2">
 						{#each data.outputs || [] as vault}
 							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $wagmiConfig}
+							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner}
 								<DepositOrWithdrawButtons
 									{vault}
-									{subgraphUrl}
 									{chainId}
 									{rpcUrl}
 									query={orderDetailQuery}
