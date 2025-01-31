@@ -12,7 +12,6 @@ export const load = async ({
 	try {
 		const _registryUrl = get(registryUrl);
 		const response = await fetch(_registryUrl);
-		console.log(_registryUrl);
 		const files = await response.text();
 		const { strategyName, deploymentKey } = params;
 
