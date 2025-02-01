@@ -139,7 +139,7 @@
 					<div class="space-y-2">
 						{#each data.inputs || [] as vault}
 							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner}
+							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
 								<DepositOrWithdrawButtons
 									{vault}
 									{chainId}
@@ -162,7 +162,7 @@
 					<div class="space-y-2">
 						{#each data.outputs || [] as vault}
 							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner}
+							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner && chainId}
 								<DepositOrWithdrawButtons
 									{vault}
 									{chainId}
