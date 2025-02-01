@@ -65,7 +65,6 @@ export async function vaultDepositApproveCalldata(
   vaultId: bigint,
   token: string,
   amount: bigint,
-  currentAllowance: bigint,
 ) {
   return await invoke('vault_deposit_approve_calldata', {
     depositArgs: {
@@ -79,6 +78,5 @@ export async function vaultDepositApproveCalldata(
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
-    currentAllowance: currentAllowance.toString(),
   });
 }
