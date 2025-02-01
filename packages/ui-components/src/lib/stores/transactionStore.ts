@@ -208,8 +208,7 @@ const transactionStore = () => {
 			try {
 				awaitApprovalTx(approvalHash, vault.token.symbol);
 				await waitForTransactionReceipt(config, { hash: approvalHash });
-			} catch (e) {
-				console.error('error approving!', e);
+			} catch {
 				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
 			}
 		}
@@ -222,8 +221,7 @@ const transactionStore = () => {
 				to: vault.orderbook.id as `0x${string}`,
 				data: transactionCalldata as unknown as `0x${string}`
 			});
-		} catch (e) {
-			console.error('error withdrawing!', e);
+		} catch {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
