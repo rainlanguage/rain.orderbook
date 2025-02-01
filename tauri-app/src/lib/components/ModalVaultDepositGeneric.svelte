@@ -60,7 +60,6 @@
           vaultId,
           tokenAddress,
           amount,
-          allowance.toBigInt(),
         )) as Uint8Array;
         const approveTx = await ethersExecute(approveCalldata, tokenAddress);
         toasts.success('Approve Transaction sent successfully!');

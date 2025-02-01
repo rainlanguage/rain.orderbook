@@ -54,7 +54,6 @@
           BigInt(vault.vaultId),
           vault.token.id,
           amount,
-          allowance.toBigInt(),
         )) as Uint8Array;
         const approveTx = await ethersExecute(approveCalldata, vault.token.id);
         toasts.success('Approve Transaction sent successfully!');
