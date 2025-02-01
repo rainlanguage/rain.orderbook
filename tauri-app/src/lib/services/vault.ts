@@ -61,11 +61,7 @@ export async function vaultDepositCalldata(vaultId: bigint, token: string, amoun
   });
 }
 
-export async function vaultDepositApproveCalldata(
-  vaultId: bigint,
-  token: string,
-  amount: bigint,
-) {
+export async function vaultDepositApproveCalldata(vaultId: bigint, token: string, amount: bigint) {
   return await invoke('vault_deposit_approve_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
