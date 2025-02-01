@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import userEvent from '@testing-library/user-event';
+
+import type { ComponentProps } from 'svelte';
+import { writable } from 'svelte/store';
+import type { AppKit } from '@reown/appkit';
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
+
+export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
-		getDeploymentKeys: vi.fn(),
 		chooseDeployment: vi.fn()
 	}
 }));
@@ -566,115 +573,147 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-	it('renders strategy URL input and load button initially', () => {
-		render(DeploymentSteps);
-		expect(screen.getByPlaceholderText('Enter URL to .rain file')).toBeInTheDocument();
-		const loadButton = screen.getByText('Load Strategy');
-		expect(loadButton).toBeInTheDocument();
-		expect(loadButton).toBeDisabled();
-	});
-
-	it('enables load button when URL is entered', async () => {
-		render(DeploymentSteps);
-		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
-		const loadButton = screen.getByText('Load Strategy');
-
-		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
-		await waitFor(() => {
-			expect(loadButton).not.toBeDisabled();
-		});
-	});
-
-	it('loads strategy from URL when button is clicked', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(dotrain))
+	it('shows deployment details when provided', async () => {
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => []
 		});
 
-		render(DeploymentSteps);
-		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
-		const loadButton = screen.getByText('Load Strategy');
-		await userEvent.clear(urlInput);
-		await fireEvent.input(urlInput, { target: { value: 'https://example.com/strategy.rain' } });
-		await userEvent.click(loadButton);
+		const deploymentDetails = {
+			name: 'SFLR<>WFLR on Flare',
+			description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+		};
+
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
+		});
 
 		await waitFor(() => {
-			expect(global.fetch).toHaveBeenCalledWith('https://example.com/strategy.rain');
+			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
+			expect(
+				screen.getByText('Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.')
+			).toBeInTheDocument();
 		});
 	});
 
-	it('shows deployments dropdown after strategy is loaded', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(dotrain))
+	it('shows select tokens section when tokens need to be selected', async () => {
+		const mockSelectTokens = ['token1', 'token2'];
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => mockSelectTokens
 		});
 
-		const mockDeployments = [
-			{ key: 'deployment1', label: 'Deployment 1' },
-			{ key: 'deployment2', label: 'Deployment 2' }
-		];
-
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
-
-		render(DeploymentSteps);
-		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
-		const loadButton = screen.getByText('Load Strategy');
-
-		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
-		await userEvent.click(loadButton);
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
+		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Select Deployment')).toBeInTheDocument();
-			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
+			expect(
+				screen.getByText('Select the tokens that you want to use in your order.')
+			).toBeInTheDocument();
 		});
 	});
 
-	it('handles URL fetch errors', async () => {
-		global.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
+	it('shows error message when GUI initialization fails', async () => {
+		(DotrainOrderGui.chooseDeployment as Mock).mockRejectedValue(
+			new Error('Failed to initialize GUI')
+		);
 
-		render(DeploymentSteps);
-		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
-		const loadButton = screen.getByText('Load Strategy');
-
-		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
-		await userEvent.click(loadButton);
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
+		});
 
 		await waitFor(() => {
-			expect(screen.getByText('No valid strategy exists at this URL')).toBeInTheDocument();
+			expect(screen.getByText('Error loading GUI')).toBeInTheDocument();
+			expect(screen.getByText('Failed to initialize GUI')).toBeInTheDocument();
 		});
 	});
 
-	it('initializes GUI when deployment is selected', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(dotrain))
+	it('shows deploy strategy button when all required fields are filled', async () => {
+		mockConnectedStore.mockSetSubscribeValue(true);
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => [],
+			getCurrentDeployment: () => ({
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}),
+			getAllFieldDefinitions: () => []
 		});
 
-		const mockDeployments: string[] = ['deployment1', 'deployment2'];
-
-		(DotrainOrderGui.getDeploymentKeys as Mock).mockResolvedValue(mockDeployments);
-
-		render(DeploymentSteps);
-		const urlInput = screen.getByPlaceholderText('Enter URL to .rain file');
-		const loadButton = screen.getByText('Load Strategy');
-
-		await userEvent.type(urlInput, 'https://example.com/strategy.rain');
-		await userEvent.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText('Select Deployment')).toBeInTheDocument();
-			expect(screen.getByText('Select a deployment')).toBeInTheDocument();
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
 		});
 
-		const dropdownButton = screen.getByTestId('dropdown-button');
-		await userEvent.click(dropdownButton);
-		const dropdown = screen.getByTestId('dropdown');
-		await userEvent.click(dropdown);
-		const deploymentOption = screen.getByText('deployment1');
-		await userEvent.click(deploymentOption);
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+	});
+	it('shows connect wallet button when not connected', async () => {
+		mockConnectedStore.mockSetSubscribeValue(false);
+		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+			getSelectTokens: () => [],
+			getCurrentDeployment: () => ({
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}),
+			getAllFieldDefinitions: () => []
+		});
+
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				deployment: 'flare-sflr-wflr',
+				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn()
+			}
+		});
 
 		await waitFor(() => {
-			expect(DotrainOrderGui.chooseDeployment).toHaveBeenCalled();
+			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
 	});
 });

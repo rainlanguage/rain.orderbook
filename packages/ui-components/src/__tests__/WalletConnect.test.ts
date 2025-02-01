@@ -1,16 +1,18 @@
 import { render, screen } from '@testing-library/svelte';
-import WalletConnect from '../components/WalletConnect.svelte';
+import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
+import { writable, type Writable } from 'svelte/store';
+import type { AppKit } from '@reown/appkit';
 
-const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
-	() => import('../__mocks__/stores')
+const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
 );
 
 vi.mock('$lib/stores/wagmi', async (importOriginal) => {
 	const original = (await importOriginal()) as object;
 	return {
 		...original,
-		appKitModal: mockAppKitModalStore,
+		appKitModal: writable({} as AppKit),
 		connected: mockConnectedStore
 	};
 });
@@ -35,7 +37,12 @@ describe('WalletConnect component', () => {
 		mockSignerAddressStore.mockSetSubscribeValue('0x123');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
-		render(WalletConnect);
+		render(WalletConnect, {
+			props: {
+				connected: mockConnectedStore as Writable<boolean>,
+				appKitModal: writable({} as AppKit)
+			}
+		});
 
 		expect(screen.getByText('Connected')).toBeInTheDocument();
 	});
