@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { Input, Label } from 'flowbite-svelte';
+	import { AccordionItem, Input } from 'flowbite-svelte';
 	import type { OrderIO, TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
@@ -25,15 +26,15 @@
 	}
 </script>
 
-<div class="flex w-full max-w-2xl flex-col gap-6">
-	<div class="flex flex-col gap-4">
-		<div class="flex flex-row gap-6">
-			<Label class="whitespace-nowrap text-xl"
-				>{label}
-				{i + 1}
-				{tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}</Label
-			>
-		</div>
+<AccordionItem open={true}>
+	<span slot="header">
+		<DeploymentSectionHeader
+			title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
+			description={`${tokenInfo?.symbol} vault address`}
+		/>
+	</span>
+
+	<div class="flex w-full max-w-2xl flex-col gap-6">
 		<Input
 			size="lg"
 			type="text"
@@ -41,11 +42,12 @@
 			bind:value={vaultIds[i]}
 			on:change={() => gui?.setVaultId(true, i, vaultIds[i])}
 		/>
-	</div>
-	{#if error}
-		<div class="flex h-5 flex-row items-center gap-2">
-			<CloseCircleSolid class="h-5 w-5" color="red" />
-			<span>{error}</span>
-		</div>
-	{/if}
-</div>
+
+		{#if error}
+			<div class="flex h-5 flex-row items-center gap-2">
+				<CloseCircleSolid class="h-5 w-5" color="red" />
+				<span>{error}</span>
+			</div>
+		{/if}
+	</div></AccordionItem
+>

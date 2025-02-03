@@ -5,15 +5,15 @@
 		type TokenDeposit,
 		type TokenInfo
 	} from '@rainlanguage/orderbook/js_api';
-	import { Input } from 'flowbite-svelte';
+	import { AccordionItem, Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 
-	let error: string = '';
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
 
+	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
 	let tokenInfo: TokenInfo | null = null;
@@ -58,38 +58,47 @@
 	$: if (deposit.token?.key) {
 		getTokenSymbol();
 	}
+
+	$: open = true;
 </script>
 
-<div class="flex w-full max-w-2xl flex-col gap-6">
-	<DeploymentSectionHeader
-		title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
-		description={tokenInfo?.symbol
-			? `The amount of ${tokenInfo?.symbol} that you want to deposit`
-			: 'The amount that you want to deposit'}
-	/>
-	{#if deposit.presets}
-		<div class="flex w-full flex-wrap gap-4">
-			{#each deposit.presets as preset}
-				<ButtonSelectOption
-					active={currentDeposit?.amount === preset}
-					buttonText={preset}
-					clickHandler={() => handlePresetClick(preset)}
-				/>
-			{/each}
-		</div>
-	{/if}
+<AccordionItem bind:open>
+	<span slot="header" class="w-full">
+		<DeploymentSectionHeader
+			title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
+			description={tokenInfo?.symbol
+				? `The amount of ${tokenInfo?.symbol} that you want to deposit`
+				: 'The amount that you want to deposit'}
+			bind:open
+			value={currentDeposit?.amount}
+		/>
+	</span>
 
-	<Input
-		size="lg"
-		placeholder="Enter deposit amount"
-		bind:value={inputValue}
-		on:input={(e) => handleInput(e)}
-	/>
+	<div class="flex w-full max-w-2xl flex-col gap-6">
+		{#if deposit.presets}
+			<div class="flex w-full flex-wrap gap-4">
+				{#each deposit.presets as preset}
+					<ButtonSelectOption
+						active={currentDeposit?.amount === preset}
+						buttonText={preset}
+						clickHandler={() => handlePresetClick(preset)}
+					/>
+				{/each}
+			</div>
+		{/if}
 
-	{#if error}
-		<div class="flex h-5 flex-row items-center gap-2">
-			<CloseCircleSolid class="h-5 w-5" color="red" />
-			<span>{error}</span>
-		</div>
-	{/if}
-</div>
+		<Input
+			size="lg"
+			placeholder="Enter deposit amount"
+			bind:value={inputValue}
+			on:input={(e) => handleInput(e)}
+		/>
+
+		{#if error}
+			<div class="flex h-5 flex-row items-center gap-2">
+				<CloseCircleSolid class="h-5 w-5" color="red" />
+				<span>{error}</span>
+			</div>
+		{/if}
+	</div>
+</AccordionItem>

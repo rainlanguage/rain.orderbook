@@ -1,9 +1,8 @@
 <script lang="ts">
-	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
-	import DepositInput from './DepositInput.svelte';
-	import SelectToken from './SelectToken.svelte';
-	import TokenInputOrOutput from './TokenInputOrOutput.svelte';
-	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import TokenIOSection from './TokenIOSection.svelte';
+	import DepositsSection from './DepositsSection.svelte';
+	import SelectTokensSection from './SelectTokensSection.svelte';
+
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -16,11 +15,12 @@
 		type DepositAndAddOrderCalldataResult
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button } from 'flowbite-svelte';
+	import { Accordion, Button } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
+	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -205,7 +205,7 @@
 	{/if}
 	{#if dotrain}
 		{#if gui}
-			<div class="flex max-w-2xl flex-col gap-24" in:fade>
+			<div class="flex max-w-3xl flex-col gap-24" in:fade>
 				{#if deploymentDetails}
 					<div class="mt-16 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
@@ -218,66 +218,30 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<div class="flex w-full flex-col gap-6">
-						<DeploymentSectionHeader
-							title="Select Tokens"
-							description="Select the tokens that you want to use in your order."
-						/>
-						<div class="flex w-full flex-col gap-4">
-							{#each selectTokens as tokenKey}
-								<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
-							{/each}
-						</div>
-					</div>
+					<SelectTokensSection bind:gui bind:selectTokens bind:allTokensSelected />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
-					{#if allFieldDefinitions.length > 0}
-						<div class="flex w-full flex-col items-center gap-24">
-							{#each allFieldDefinitions as fieldDefinition}
-								<FieldDefinitionInput {fieldDefinition} {gui} />
-							{/each}
-						</div>
-					{/if}
+					<Accordion multiple={true}>
+						{#if allFieldDefinitions.length > 0}
+							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui />
+						{/if}
 
-					{#if allDepositFields.length > 0}
-						<div class="flex w-full flex-col items-center gap-24">
-							{#each allDepositFields as deposit}
-								<DepositInput bind:deposit bind:gui />
-							{/each}
-						</div>
-					{/if}
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-						<div class="flex w-full flex-col gap-6">
-							<DeploymentSectionHeader
-								title={'Input/Output Vaults'}
-								description={'The vault addresses for the input and output tokens.'}
+						{#if allDepositFields.length > 0}
+							<DepositsSection bind:allDepositFields bind:gui />
+						{/if}
+
+						{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+							<TokenIOSection
+								bind:allTokenInputs
+								bind:allTokenOutputs
+								bind:gui
+								bind:inputVaultIds
+								bind:outputVaultIds
 							/>
-							{#if allTokenInputs.length > 0}
-								{#each allTokenInputs as input, i}
-									<TokenInputOrOutput
-										{i}
-										label="Input"
-										vault={input}
-										vaultIds={inputVaultIds}
-										{gui}
-									/>
-								{/each}
-							{/if}
+						{/if}
+					</Accordion>
 
-							{#if allTokenOutputs.length > 0}
-								{#each allTokenOutputs as output, i}
-									<TokenInputOrOutput
-										{i}
-										label="Output"
-										vault={output}
-										vaultIds={outputVaultIds}
-										{gui}
-									/>
-								{/each}
-							{/if}
-						</div>
-					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>

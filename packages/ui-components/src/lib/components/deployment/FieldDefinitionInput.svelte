@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
+	import { AccordionItem, Input } from 'flowbite-svelte';
 
 	import {
 		DotrainOrderGui,
@@ -16,7 +16,6 @@
 	let inputValue: string | null = null;
 
 	$: if (gui) {
-		console.log('GUI');
 		try {
 			currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
 		} catch {
@@ -33,8 +32,6 @@
 		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
-
-		console.log('currentFieldDefinition', currentFieldDefinition);
 	}
 
 	async function handleCustomInputChange(value: string) {
@@ -47,32 +44,42 @@
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
 	}
+
+	$: open = true;
 </script>
 
-<div class="flex w-full max-w-2xl flex-col gap-6">
-	<DeploymentSectionHeader title={fieldDefinition.name} description={fieldDefinition.description} />
-
-	{#if fieldDefinition.presets}
-		<div class="flex w-full flex-wrap gap-4">
-			{#each fieldDefinition.presets as preset}
-				<ButtonSelectOption
-					buttonText={preset.name || preset.value}
-					clickHandler={() => handlePresetClick(preset)}
-					active={currentFieldDefinition?.value === preset.value}
-				/>
-			{/each}
-		</div>
-	{/if}
-	{#if fieldDefinition.binding !== 'is-fast-exit'}
-		<Input
-			size="lg"
-			placeholder="Enter custom value"
-			bind:value={inputValue}
-			on:input={({ currentTarget }) => {
-				if (currentTarget instanceof HTMLInputElement) {
-					handleCustomInputChange(currentTarget.value);
-				}
-			}}
+<AccordionItem title={fieldDefinition.name} bind:open>
+	<span slot="header" class="w-full">
+		<DeploymentSectionHeader
+			title={fieldDefinition.name}
+			description={fieldDefinition.description}
+			bind:open
+			value={currentFieldDefinition?.value}
 		/>
-	{/if}
-</div>
+	</span>
+	<div class="flex w-full max-w-2xl flex-col gap-6">
+		{#if fieldDefinition.presets}
+			<div class="flex w-full flex-wrap gap-4">
+				{#each fieldDefinition.presets as preset}
+					<ButtonSelectOption
+						buttonText={preset.name || preset.value}
+						clickHandler={() => handlePresetClick(preset)}
+						active={currentFieldDefinition?.value === preset.value}
+					/>
+				{/each}
+			</div>
+		{/if}
+		{#if fieldDefinition.binding !== 'is-fast-exit'}
+			<Input
+				size="lg"
+				placeholder="Enter custom value"
+				bind:value={inputValue}
+				on:input={({ currentTarget }) => {
+					if (currentTarget instanceof HTMLInputElement) {
+						handleCustomInputChange(currentTarget.value);
+					}
+				}}
+			/>
+		{/if}
+	</div>
+</AccordionItem>
