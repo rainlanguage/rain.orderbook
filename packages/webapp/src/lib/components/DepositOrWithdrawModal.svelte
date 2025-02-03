@@ -13,6 +13,8 @@
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
+	import { readContract } from '@wagmi/core';
+	import { erc20Abi, type Hex } from 'viem';
 
 	export let open: boolean;
 	export let action: 'deposit' | 'withdraw';
@@ -29,11 +31,25 @@
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
+	let userBalance: bigint = 0n;
 
 	const messages = {
 		success: 'Your transaction was successful.',
 		pending: 'Processing your transaction...',
 		error: 'Transaction failed.'
+	};
+
+	$: if ($signerAddress) {
+		getUserBalance();
+	}
+
+	const getUserBalance = async () => {
+		userBalance = await readContract($wagmiConfig, {
+			abi: erc20Abi,
+			address: vault.token.address as Hex,
+			functionName: 'balanceOf',
+			args: [$signerAddress as Hex]
+		});
 	};
 
 	async function handleContinue() {
@@ -92,11 +108,12 @@
 				bind:value={amount}
 				symbol={vault.token.symbol}
 				decimals={Number(vault.token.decimals)}
-				maxValue={0n}
+				maxValue={userBalance}
 			/>
 			<div class="flex justify-end gap-2">
 				<Button color="alternative" on:click={handleClose}>Cancel</Button>
 				{#if $signerAddress}
+					<!-- <Button on:click={setValueToMax} color="blue">Max</Button> -->
 					<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
 						{action === 'deposit' ? 'Deposit' : 'Withdraw'}
 					</Button>

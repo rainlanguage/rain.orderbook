@@ -28,7 +28,7 @@
 			action: 'deposit',
 			chainId,
 			rpcUrl
-		})}><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
+		})}><ArrowUpOutline size="sm" /></Button
 >
 <Button
 	data-testid="depositOrWithdrawButton"
@@ -40,5 +40,5 @@
 			action: 'withdraw',
 			chainId,
 			rpcUrl
-		})}><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
+		})}><ArrowDownOutline size="sm" /></Button
 >
