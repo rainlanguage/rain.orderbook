@@ -76,7 +76,7 @@
 			refetchType: 'active',
 			exact: false
 		});
-	}, 10000);
+	}, 5000);
 
 	onDestroy(() => {
 		clearInterval(interval);
