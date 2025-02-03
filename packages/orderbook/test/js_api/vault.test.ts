@@ -238,8 +238,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
 
 		let calldata: string = await getVaultDepositCalldata(
-			vault1.token.address,
-			vault1.vaultId,
+			vault1,
 			'500'
 		);
 		assert.equal(calldata.length, 330);
@@ -250,7 +249,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 
 		await assert.rejects(
 			async () => {
-				await getVaultDepositCalldata(vault1.token.address, vault1.vaultId, '0');
+				await getVaultDepositCalldata(vault1, '0');
 			},
 			{ message: 'Invalid amount' }
 		);
@@ -259,7 +258,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 	it('should throw error for invalid deposit amount', async () => {
 		await assert.rejects(
 			async () => {
-				await getVaultDepositCalldata(vault1.token.address, vault1.vaultId, '-100');
+				await getVaultDepositCalldata(vault1, '-100');
 			},
 			{ message: 'invalid digit: -' }
 		);

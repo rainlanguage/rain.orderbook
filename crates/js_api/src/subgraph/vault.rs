@@ -54,18 +54,15 @@ pub async fn get_vault_balance_changes(
 /// Returns a string of the calldata
 #[wasm_bindgen(js_name = "getVaultDepositCalldata")]
 pub async fn get_vault_deposit_calldata(
-    token_address: &str,
-    vault_id: &str,
+    vault: &Vault,
     deposit_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
-    let token = Address::from_str(token_address)?;
-    let vault_id = U256::from_str(vault_id)?;
 
     let deposit_args = DepositArgs {
-        token,
-        amount: deposit_amount,
-        vault_id,
+            token: Address::from_str(&vault.token.address.0)?,
+            vault_id: U256::from_str(&vault.vault_id.0)?,
+            amount: deposit_amount,
     };
 
     Ok(to_value(&Bytes::copy_from_slice(
@@ -74,7 +71,6 @@ pub async fn get_vault_deposit_calldata(
 }
 
 /// Get withdraw calldata for a vault
-/// Returns a string of the calldata
 #[wasm_bindgen(js_name = "getVaultWithdrawCalldata")]
 pub async fn get_vault_withdraw_calldata(
     vault: &Vault,
