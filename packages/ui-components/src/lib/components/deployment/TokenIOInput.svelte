@@ -24,13 +24,17 @@
 	$: if (vault.token?.key) {
 		handleGetTokenInfo();
 	}
+
+	$: open = true;
 </script>
 
-<AccordionItem open={true}>
+<AccordionItem bind:open>
 	<span slot="header">
 		<DeploymentSectionHeader
 			title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
 			description={`${tokenInfo?.symbol} vault address`}
+			bind:open
+			value={undefined}
 		/>
 	</span>
 
