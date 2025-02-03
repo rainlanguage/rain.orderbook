@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, screen } from '@testing-library/svelte';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import { signerAddress } from '$lib/stores/wagmi';
+import { readContract } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
@@ -13,6 +14,10 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
 }));
 
+vi.mock('@wagmi/core', () => ({
+	readContract: vi.fn()
+}));
+
 describe('DepositOrWithdrawModal', () => {
 	const mockVault = {
 		token: {
@@ -20,7 +25,8 @@ describe('DepositOrWithdrawModal', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		},
-		vaultId: '1'
+		vaultId: '1',
+		balance: BigInt(1)
 	};
 
 	const defaultProps = {
@@ -82,6 +88,30 @@ describe('DepositOrWithdrawModal', () => {
 				vault: mockVault
 			})
 		);
+	});
+
+	it('Blocks deposit if not enough balance in wallet', async () => {
+		(readContract as Mock).mockReturnValue(BigInt(0));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		await waitFor(() => {
+			expect(screen.getByTestId('error')).toBeInTheDocument();
+		});
+	});
+
+	it('Blocks withdrawal if not enough balance in vault', async () => {
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '2' } });
+
+		await waitFor(() => {
+			expect(screen.getByTestId('error')).toBeInTheDocument();
+		});
 	});
 
 	it('handles withdraw transaction correctly', async () => {

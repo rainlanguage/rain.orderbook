@@ -133,7 +133,7 @@
 					{/if}
 				</div>
 				{#if amountGreaterThanBalance[action]}
-					<p class="text-red-500">Amount cannot exceed available balance.</p>
+					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
 				{/if}
 			</div>
 		</div>
