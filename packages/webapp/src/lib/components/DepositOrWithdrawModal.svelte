@@ -39,7 +39,7 @@
 		error: 'Transaction failed.'
 	};
 
-	$: if ($signerAddress) {
+	$: if ($signerAddress && action === 'deposit') {
 		getUserBalance();
 	}
 
@@ -96,6 +96,11 @@
 		currentStep = 1;
 		amount = 0n;
 	}
+
+	$: amountGreaterThanBalance = {
+		deposit: amount > userBalance,
+		withdraw: amount > BigInt(vault.balance)
+	};
 </script>
 
 {#if currentStep === 1}
@@ -108,17 +113,27 @@
 				bind:value={amount}
 				symbol={vault.token.symbol}
 				decimals={Number(vault.token.decimals)}
-				maxValue={userBalance}
+				maxValue={action === 'deposit' ? userBalance : BigInt(vault.balance)}
 			/>
-			<div class="flex justify-end gap-2">
-				<Button color="alternative" on:click={handleClose}>Cancel</Button>
-				{#if $signerAddress}
-					<!-- <Button on:click={setValueToMax} color="blue">Max</Button> -->
-					<Button color="blue" on:click={handleContinue} disabled={amount <= 0n}>
-						{action === 'deposit' ? 'Deposit' : 'Withdraw'}
-					</Button>
-				{:else}
-					<WalletConnect {appKitModal} {connected} />
+			<div class="flex flex-col justify-end gap-2">
+				<div class="flex gap-2">
+					<Button color="alternative" on:click={handleClose}>Cancel</Button>
+					{#if $signerAddress}
+						<div class="flex flex-col gap-2">
+							<Button
+								color="blue"
+								on:click={handleContinue}
+								disabled={amount <= 0n || amountGreaterThanBalance[action]}
+							>
+								{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+							</Button>
+						</div>
+					{:else}
+						<WalletConnect {appKitModal} {connected} />
+					{/if}
+				</div>
+				{#if amountGreaterThanBalance[action]}
+					<p class="text-red-500">Amount cannot exceed available balance.</p>
 				{/if}
 			</div>
 		</div>

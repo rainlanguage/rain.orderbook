@@ -134,7 +134,7 @@
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
 					<div class="mb-2 hidden justify-end md:flex">
-						<span>Balance!!!</span>
+						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
 						{#each data.inputs || [] as vault}
