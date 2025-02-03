@@ -25,15 +25,15 @@
 		handleGetTokenInfo();
 	}
 
-	$: open = true;
+	export let open = true;
 </script>
 
-<AccordionItem bind:open>
+<AccordionItem {open}>
 	<span slot="header">
 		<DeploymentSectionHeader
 			title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
 			description={`${tokenInfo?.symbol} vault address`}
-			bind:open
+			{open}
 			value={undefined}
 		/>
 	</span>

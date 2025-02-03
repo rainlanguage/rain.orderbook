@@ -21,6 +21,8 @@
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -59,6 +61,8 @@
 	let gui: DotrainOrderGui | null = null;
 	let addOrderError: DeploymentStepErrors | null = null;
 	let addOrderErrorDetails: string | null = null;
+	let open = true;
+
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
@@ -194,6 +198,23 @@
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
+
+	async function handleReviewChoices() {
+		try {
+			const serializedState = await gui?.serializeState();
+			if (serializedState) {
+				$page.url.searchParams.set('state', serializedState);
+				$page.url.searchParams.set('review', 'true');
+				goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
+			}
+		} catch (e) {
+			console.error('Failed to serialize GUI:', e);
+		}
+	}
+
+	$: if ($page.url.searchParams.get('review') === 'true') {
+		open = false;
+	}
 </script>
 
 <div>
@@ -224,11 +245,11 @@
 				{#if allTokensSelected || selectTokens?.length === 0}
 					<Accordion multiple={true}>
 						{#if allFieldDefinitions.length > 0}
-							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui />
+							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui {open} />
 						{/if}
 
 						{#if allDepositFields.length > 0}
-							<DepositsSection bind:allDepositFields bind:gui />
+							<DepositsSection bind:allDepositFields bind:gui {open} />
 						{/if}
 
 						{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
@@ -238,16 +259,19 @@
 								bind:gui
 								bind:inputVaultIds
 								bind:outputVaultIds
+								{open}
 							/>
 						{/if}
 					</Accordion>
 
 					<div class="flex flex-col gap-2">
+						<Button size="lg" on:click={handleReviewChoices}>Review Choices</Button>
 						{#if $wagmiConnected}
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
+
 						<div class="flex flex-col">
 							{#if addOrderError}
 								<p class="text-red-500">{addOrderError}</p>

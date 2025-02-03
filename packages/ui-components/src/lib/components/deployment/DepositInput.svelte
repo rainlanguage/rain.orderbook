@@ -59,17 +59,17 @@
 		getTokenSymbol();
 	}
 
-	$: open = true;
+	export let open = true;
 </script>
 
-<AccordionItem bind:open>
+<AccordionItem {open}>
 	<span slot="header" class="w-full">
 		<DeploymentSectionHeader
 			title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
 			description={tokenInfo?.symbol
 				? `The amount of ${tokenInfo?.symbol} that you want to deposit`
 				: 'The amount that you want to deposit'}
-			bind:open
+			{open}
 			value={currentDeposit?.amount}
 		/>
 	</span>

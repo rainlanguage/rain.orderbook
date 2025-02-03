@@ -4,8 +4,9 @@
 
 	export let allFieldDefinitions: GuiFieldDefinition[];
 	export let gui: DotrainOrderGui;
+	export let open;
 </script>
 
 {#each allFieldDefinitions as fieldDefinition}
-	<FieldDefinitionInput {fieldDefinition} {gui} />
+	<FieldDefinitionInput {fieldDefinition} {gui} {open} />
 {/each}

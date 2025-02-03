@@ -12,14 +12,14 @@
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
 
-	let currentFieldDefinition: GuiPreset | undefined;
+	let currentValue: GuiPreset | undefined;
 	let inputValue: string | null = null;
 
 	$: if (gui) {
 		try {
-			currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
+			currentValue = gui.getFieldValue(fieldDefinition.binding);
 		} catch {
-			currentFieldDefinition = undefined;
+			currentValue = undefined;
 		}
 	}
 
@@ -29,7 +29,7 @@
 			isPreset: true,
 			value: preset.id
 		});
-		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
+		currentValue = gui.getFieldValue(fieldDefinition.binding);
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
 	}
@@ -40,12 +40,12 @@
 			isPreset: false,
 			value: value
 		});
-		currentFieldDefinition = gui.getFieldValue(fieldDefinition.binding);
+		currentValue = gui.getFieldValue(fieldDefinition.binding);
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
 	}
 
-	$: open = true;
+	export let open = true;
 </script>
 
 <AccordionItem title={fieldDefinition.name} bind:open>
@@ -54,7 +54,7 @@
 			title={fieldDefinition.name}
 			description={fieldDefinition.description}
 			bind:open
-			value={currentFieldDefinition?.value}
+			value={currentValue?.name || currentValue?.value}
 		/>
 	</span>
 	<div class="flex w-full max-w-2xl flex-col gap-6">
@@ -64,7 +64,7 @@
 					<ButtonSelectOption
 						buttonText={preset.name || preset.value}
 						clickHandler={() => handlePresetClick(preset)}
-						active={currentFieldDefinition?.value === preset.value}
+						active={currentValue?.value === preset.value}
 					/>
 				{/each}
 			</div>
