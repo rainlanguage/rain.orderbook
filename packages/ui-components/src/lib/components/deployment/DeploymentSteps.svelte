@@ -66,6 +66,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
+	export let stateFromUrl: string;
 
 	$: if (deployment) {
 		handleDeploymentChange(deployment);
@@ -214,6 +215,25 @@
 
 	$: if ($page.url.searchParams.get('review') === 'true') {
 		open = false;
+		if (stateFromUrl) {
+			handleGetStateFromUrl(stateFromUrl);
+		}
+	}
+
+	async function handleGetStateFromUrl() {
+		open = false;
+		gui = await DotrainOrderGui.deserializeState(dotrain, $page.url.searchParams.get('state'));
+		if (gui) {
+			await gui.getAllFieldValues();
+			await gui.getDeposits();
+			await gui.getCurrentDeployment();
+			try {
+				selectTokens = await gui.getSelectTokens();
+			} catch (e) {
+				error = DeploymentStepErrors.NO_SELECT_TOKENS;
+				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+			}
+		}
 	}
 </script>
 

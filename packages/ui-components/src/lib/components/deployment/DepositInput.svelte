@@ -67,8 +67,8 @@
 		<DeploymentSectionHeader
 			title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
 			description={tokenInfo?.symbol
-				? `The amount of ${tokenInfo?.symbol} that you want to deposit`
-				: 'The amount that you want to deposit'}
+				? `The amount of ${tokenInfo?.symbol} that you want to deposit.`
+				: 'The amount that you want to deposit.'}
 			{open}
 			value={currentDeposit?.amount}
 		/>
