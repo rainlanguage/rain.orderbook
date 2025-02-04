@@ -228,7 +228,7 @@ impl Order {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
     ) -> Result<String, YamlError> {
-        let mut network_key = None;
+        let mut network_key: Option<String> = None;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -243,7 +243,10 @@ impl Order {
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
                                 return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                        expected: existing_key.clone(),
+                                        found: key.clone(),
+                                    },
                                 ));
                             }
                         } else {
@@ -257,7 +260,10 @@ impl Order {
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
                                 return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::NetworkNotMatch,
+                                    ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                        expected: existing_key.clone(),
+                                        found: key.clone(),
+                                    },
                                 ));
                             }
                         } else {
@@ -272,7 +278,11 @@ impl Order {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch {
+                                            key: token_key,
+                                            expected: existing_key.clone(),
+                                            found: key.clone(),
+                                        },
                                     ));
                                 }
                             } else {
@@ -288,7 +298,11 @@ impl Order {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch {
+                                            key: token_key,
+                                            expected: existing_key.clone(),
+                                            found: key.clone(),
+                                        },
                                     ));
                                 }
                             }
@@ -354,7 +368,10 @@ impl YamlParsableHash for Order {
                             if let Some(n) = &network {
                                 if deployer.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                            expected: n.key.clone(),
+                                            found: deployer.network.key.clone(),
+                                        },
                                     ));
                                 }
                             } else {
@@ -381,7 +398,10 @@ impl YamlParsableHash for Order {
                             if let Some(n) = &network {
                                 if orderbook.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::NetworkNotMatch,
+                                        ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                            expected: n.key.clone(),
+                                            found: orderbook.network.key.clone(),
+                                        },
                                     ));
                                 }
                             } else {
@@ -417,7 +437,11 @@ impl YamlParsableHash for Order {
                                 if let Some(n) = &network {
                                     if token.network != *n {
                                         return Err(YamlError::ParseOrderConfigSourceError(
-                                            ParseOrderConfigSourceError::NetworkNotMatch,
+                                            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch {
+                                                key: token_name,
+                                                expected: n.key.clone(),
+                                                found: token.network.key.clone(),
+                                            },
                                         ));
                                     }
                                 } else {
@@ -477,7 +501,11 @@ impl YamlParsableHash for Order {
                                 if let Some(n) = &network {
                                     if token.network != *n {
                                         return Err(YamlError::ParseOrderConfigSourceError(
-                                            ParseOrderConfigSourceError::NetworkNotMatch,
+                                            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch {
+                                                key: token_name,
+                                                expected: n.key.clone(),
+                                                found: token.network.key.clone(),
+                                            },
                                         ));
                                     }
                                 } else {
@@ -577,6 +605,26 @@ pub enum ParseOrderConfigSourceError {
     NetworkNotFoundError(String),
     #[error("Network does not match")]
     NetworkNotMatch,
+    #[error("Deployer network does not match: expected {expected}, found {found}")]
+    DeployerNetworkDoesNotMatch { expected: String, found: String },
+    #[error("Orderbook network does not match: expected {expected}, found {found}")]
+    OrderbookNetworkDoesNotMatch { expected: String, found: String },
+    #[error(
+        "Input token network with key: {key} does not match: expected {expected}, found {found}"
+    )]
+    InputTokenNetworkDoesNotMatch {
+        key: String,
+        expected: String,
+        found: String,
+    },
+    #[error(
+        "Output token network with key: {key} does not match: expected {expected}, found {found}"
+    )]
+    OutputTokenNetworkDoesNotMatch {
+        key: String,
+        expected: String,
+        found: String,
+    },
     #[error("Failed to parse vault {}", 0)]
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
