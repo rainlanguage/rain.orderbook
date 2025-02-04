@@ -16,7 +16,7 @@
 		type DepositAndAddOrderCalldataResult
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button } from 'flowbite-svelte';
+	import { Button, Modal, Spinner } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -55,6 +55,12 @@
 	let allTokensSelected: boolean = false;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
+	let calldataModalOpen: boolean = false;
+	let calldataMessages = {
+		pending: 'Generating deployment calldata...',
+		error: 'Could not generate calldata.'
+	};
+	let calldataMessage = calldataMessages.pending;
 
 	let gui: DotrainOrderGui | null = null;
 	let addOrderError: DeploymentStepErrors | null = null;
@@ -156,6 +162,9 @@
 
 	async function handleAddOrder() {
 		try {
+			calldataModalOpen = true;
+			calldataMessage = calldataMessages.pending;
+
 			if (!gui || !$wagmiConfig) return;
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
@@ -175,14 +184,15 @@
 					symbol: token?.symbol
 				};
 			});
-
 			handleDeployModal({
 				approvals,
 				deploymentCalldata,
 				orderbookAddress,
 				chainId
 			});
+			calldataModalOpen = false;
 		} catch (e) {
+			calldataMessage = calldataMessages.error;
 			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
 			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
@@ -193,6 +203,10 @@
 		const deployment = gui.getCurrentDeployment();
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
+	}
+
+	function handleClose() {
+		calldataModalOpen = false;
 	}
 </script>
 
@@ -284,17 +298,46 @@
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
-						<div class="flex flex-col">
-							{#if addOrderError}
-								<p class="text-red-500">{addOrderError}</p>
-							{/if}
-							{#if addOrderErrorDetails}
-								<p class="text-red-500">{addOrderErrorDetails}</p>
-							{/if}
-						</div>
 					</div>
 				{/if}
 			</div>
 		{/if}
 	{/if}
 </div>
+
+<Modal bind:open={calldataModalOpen}>
+	<div class="flex flex-col items-center justify-center gap-2 p-4">
+		{#if calldataMessage === calldataMessages.error}
+			<div
+				class="mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-red-400 bg-red-100 dark:bg-red-900"
+				data-testid="error-icon"
+			>
+				<h1 class="text-lg md:text-2xl">❌</h1>
+			</div>
+			<p
+				class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
+			>
+				{calldataMessage}
+			</p>
+			{#if addOrderErrorDetails}
+				<p
+					class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
+				>
+					{addOrderErrorDetails}
+				</p>
+			{/if}
+			<Button on:click={handleClose} class="mt-4">DISMISS</Button>
+		{:else}
+			<div
+				class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+			>
+				<Spinner color="blue" size={10} />
+			</div>
+			<p
+				class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
+			>
+				{calldataMessage}
+			</p>
+		{/if}
+	</div>
+</Modal>
