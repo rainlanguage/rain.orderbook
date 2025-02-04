@@ -177,10 +177,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    fn update_config_source_bindings(
-        &mut self,
-        deployment: &GuiDeployment,
-    ) -> Result<(), GuiError> {
+    fn update_bindings(&mut self, deployment: &GuiDeployment) -> Result<(), GuiError> {
         self.dotrain_order
             .dotrain_yaml()
             .get_scenario(&deployment.deployment.scenario.key)?
@@ -236,7 +233,7 @@ impl DotrainOrderGui {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
         self.populate_vault_ids(&deployment)?;
-        self.update_config_source_bindings(&deployment)?;
+        self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
         let calldata = self
@@ -253,7 +250,7 @@ impl DotrainOrderGui {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
         self.populate_vault_ids(&deployment)?;
-        self.update_config_source_bindings(&deployment)?;
+        self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
         let token_deposits = self
@@ -307,6 +304,13 @@ impl DotrainOrderGui {
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
             .update_vault_id(is_input, index, vault_id)?;
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "updateScenarioBindings")]
+    pub fn update_scenario_bindings(&mut self) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
+        self.update_bindings(&deployment)?;
         Ok(())
     }
 }
