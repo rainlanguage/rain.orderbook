@@ -9,7 +9,7 @@
 
 <div class="flex w-full items-center justify-between gap-12 pr-6">
 	<div class="max-w-xl flex-grow text-left">
-		<h1 class="break-words text-2xl font-bold text-gray-900 lg:text-3xl dark:text-white">
+		<h1 class="break-words text-xl font-semibold text-gray-900 lg:text-2xl dark:text-white">
 			{title}
 		</h1>
 		<p class="break-words text-sm font-light text-gray-600 lg:text-base dark:text-gray-400">
