@@ -61,8 +61,7 @@
 				approvalCalldata = undefined;
 			}
 			const depositCalldata: DepositCalldataResult = await getVaultDepositCalldata(
-				vault.token.address,
-				vault.vaultId,
+				vault,
 				amount.toString()
 			);
 			currentStep = 2;
