@@ -15,8 +15,11 @@
 		if (!vault.token?.key) return;
 		try {
 			tokenInfo = await gui.getTokenInfo(vault.token?.key);
-		} catch {
-			error = 'Error getting token info';
+		} catch (e) {
+			const errorMessage = (e as Error).message
+				? (e as Error).message
+				: 'Error getting token info.';
+			error = errorMessage;
 		}
 	};
 
