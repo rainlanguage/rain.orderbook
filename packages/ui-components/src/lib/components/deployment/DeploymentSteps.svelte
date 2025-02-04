@@ -23,6 +23,7 @@
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { FileCopySolid } from 'flowbite-svelte-icons';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -216,7 +217,7 @@
 	$: if ($page.url.searchParams.get('review') === 'true') {
 		open = false;
 		if (stateFromUrl) {
-			handleGetStateFromUrl(stateFromUrl);
+			handleGetStateFromUrl();
 		}
 	}
 
@@ -246,7 +247,7 @@
 	{/if}
 	{#if dotrain}
 		{#if gui}
-			<div class="flex max-w-3xl flex-col gap-24" in:fade>
+			<div class="flex max-w-3xl flex-col gap-16" in:fade>
 				{#if deploymentDetails}
 					<div class="mt-16 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-8xl dark:text-white">
@@ -285,7 +286,9 @@
 					</Accordion>
 
 					<div class="flex flex-col gap-2">
-						<Button size="lg" on:click={handleReviewChoices}>Review Choices</Button>
+						<Button size="lg" class="flex gap-2" color="alternative" on:click={handleReviewChoices}
+							><FileCopySolid />Review Choices</Button
+						>
 						{#if $wagmiConnected}
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}

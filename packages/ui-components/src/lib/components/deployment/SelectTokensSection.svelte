@@ -8,11 +8,13 @@
 	export let allTokensSelected: boolean;
 </script>
 
-<DeploymentSectionHeader
-	title="Select Tokens"
-	description="Select the tokens that you want to use in your order."
-/>
 <div class="flex w-full flex-col gap-4">
+	<DeploymentSectionHeader
+		title="Select Tokens"
+		description="Select the tokens that you want to use in your order."
+		open={true}
+		value={undefined}
+	/>
 	{#each selectTokens as tokenKey}
 		<SelectToken {tokenKey} bind:gui bind:selectTokens bind:allTokensSelected />
 	{/each}

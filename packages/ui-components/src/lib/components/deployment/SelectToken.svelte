@@ -58,10 +58,10 @@
 	}
 </script>
 
-<div class="mb-4 flex w-full max-w-2xl flex-col">
-	<div class="flex flex-col gap-4">
-		<div class="flex flex-row items-center gap-6">
-			<Label class="whitespace-nowrap text-xl">{tokenKey}</Label>
+<div class="flex w-full flex-col">
+	<div class="flex flex-col gap-2">
+		<div class="flex flex-row items-center gap-4">
+			<Label class="whitespace-nowrap text-lg">{tokenKey}</Label>
 			{#if checking}
 				<div class="flex h-5 flex-row items-center gap-2">
 					<Spinner class="h-5 w-5" />
