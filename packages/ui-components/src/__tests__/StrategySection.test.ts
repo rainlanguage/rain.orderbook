@@ -20,7 +20,27 @@ describe('StrategySection', () => {
 		vi.clearAllMocks();
 	});
 
-	it('renders strategy details successfully', async () => {
+	it('renders strategy details successfully with rawDotrain', async () => {
+		const mockDotrain = 'mock dotrain content';
+		const mockStrategyDetails = {
+			name: 'Test Strategy',
+			description: 'Test Description'
+		};
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+
+		render(StrategySection, {
+			props: {
+				rawDotrain: mockDotrain
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByText('Test Description')).toBeInTheDocument();
+		});
+	});
+
+	it('renders strategy details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
