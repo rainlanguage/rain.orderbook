@@ -62,7 +62,7 @@
 	export let open = true;
 </script>
 
-<AccordionItem {open}>
+<AccordionItem bind:open>
 	<span slot="header" class="w-full">
 		<DeploymentSectionHeader
 			title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
