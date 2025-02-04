@@ -60,9 +60,9 @@ pub async fn get_vault_deposit_calldata(
     let deposit_amount = validate_amount(deposit_amount)?;
 
     let deposit_args = DepositArgs {
-            token: Address::from_str(&vault.token.address.0)?,
-            vault_id: U256::from_str(&vault.vault_id.0)?,
-            amount: deposit_amount,
+        token: Address::from_str(&vault.token.address.0)?,
+        vault_id: U256::from_str(&vault.vault_id.0)?,
+        amount: deposit_amount,
     };
 
     Ok(to_value(&Bytes::copy_from_slice(
@@ -154,7 +154,7 @@ pub fn get_deposit_and_transaction_args(
 ) -> Result<(DepositArgs, TransactionArgs), SubgraphError> {
     let deposit_args = DepositArgs {
         token: Address::from_str(&vault.token.address.0)?,
-        vault_id: U256::from_str(&vault.vault_id.0)?, // Use vault_id instead of id
+        vault_id: U256::from_str(&vault.vault_id.0)?,
         amount,
     };
     let transaction_args = TransactionArgs {
