@@ -55,15 +55,15 @@ describe('SelectToken', () => {
 			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
 		} as unknown as DotrainOrderGui;
 
-		const { getByRole, findByText } = render(SelectToken, {
+		const screen = render(SelectToken, {
 			...mockProps,
 			gui: mockGuiWithError
 		});
 
-		const input = getByRole('textbox');
+		const input = screen.getByRole('textbox');
 		await user.type(input, 'invalid');
 		await waitFor(() => {
-			expect(findByText('Invalid token address.')).resolves.toBeInTheDocument();
+			expect(screen.getByTestId('error')).toBeInTheDocument();
 		});
 	});
 
