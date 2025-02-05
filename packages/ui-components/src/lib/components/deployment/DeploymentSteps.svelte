@@ -298,8 +298,12 @@
 					</Accordion>
 
 					<div class="flex flex-col gap-2">
-						<Button size="lg" class="flex gap-2" color="alternative" on:click={handleReviewChoices}
-							><FileCopySolid />Review Choices</Button
+						<Button
+							size="lg"
+							class="flex gap-2"
+							color="alternative"
+							data-testid="review-choices-button"
+							on:click={handleReviewChoices}><FileCopySolid />Review Choices</Button
 						>
 						{#if $wagmiConnected}
 							<ComposedRainlangModal {composeRainlang} />
