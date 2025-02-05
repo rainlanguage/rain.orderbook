@@ -60,11 +60,17 @@ impl DotrainOrderGui {
 
     async fn get_deposits_as_map(&self) -> Result<HashMap<String, U256>, GuiError> {
         let mut map: HashMap<String, U256> = HashMap::new();
-        for d in self.get_deposits()? {
-            let token_info = self.get_token_info(d.token.clone()).await?;
+        let deposits = self.get_deposits()?;
+
+        let token_keys: Vec<String> = deposits.iter().map(|d| d.token.clone()).collect();
+        let token_infos = self.get_token_infos(token_keys).await?;
+
+        for (i, d) in deposits.into_iter().enumerate() {
+            let token_info = &token_infos.0[i];
             let amount = parse_units(&d.amount, token_info.decimals)?.into();
             map.insert(d.token, amount);
         }
+
         Ok(map)
     }
 

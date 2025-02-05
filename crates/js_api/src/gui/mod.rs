@@ -10,10 +10,11 @@ use rain_orderbook_app_settings::{
     },
     network::Network,
     order::Order,
-    yaml::YamlError,
+    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
 };
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
+    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
@@ -40,6 +41,10 @@ pub struct TokenInfo {
     pub symbol: String,
 }
 impl_all_wasm_traits!(TokenInfo);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct TokenInfos(Vec<TokenInfo>);
+impl_all_wasm_traits!(TokenInfos);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct DeploymentDetails(BTreeMap<String, NameAndDescription>);
@@ -105,24 +110,27 @@ impl DotrainOrderGui {
         Ok(gui_deployment.clone())
     }
 
-    /// Get token info for a given key
-    ///
-    /// Returns a [`TokenInfo`]
-    #[wasm_bindgen(js_name = "getTokenInfo")]
-    pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
-        let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
+    #[wasm_bindgen(js_name = "getTokenInfos")]
+    pub async fn get_token_infos(&self, keys: Vec<String>) -> Result<TokenInfos, GuiError> {
+        let mut tokens_to_query = Vec::new();
+        let mut token_infos = Vec::new();
 
-        let token_info = if token.decimals.is_some()
-            && token.label.is_some()
-            && token.symbol.is_some()
-        {
-            TokenInfo {
-                address: token.address,
-                decimals: token.decimals.unwrap(),
-                name: token.label.unwrap(),
-                symbol: token.symbol.unwrap(),
+        for key in keys {
+            let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
+
+            if token.decimals.is_some() && token.label.is_some() && token.symbol.is_some() {
+                token_infos.push(TokenInfo {
+                    address: token.address,
+                    decimals: token.decimals.unwrap(),
+                    name: token.label.unwrap(),
+                    symbol: token.symbol.unwrap(),
+                });
+            } else {
+                tokens_to_query.push(token);
             }
-        } else {
+        }
+
+        if !tokens_to_query.is_empty() {
             let order_key = Deployment::parse_order_key(
                 self.dotrain_order.dotrain_yaml().documents,
                 &self.selected_deployment,
@@ -132,18 +140,21 @@ impl DotrainOrderGui {
             let rpc_url =
                 Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-            let erc20 = ERC20::new(rpc_url, token.address);
-            let onchain_info = erc20.token_info(None).await?;
+            let addresses: Vec<Address> = tokens_to_query.iter().map(|t| t.address).collect();
 
-            TokenInfo {
-                address: token.address,
-                decimals: token.decimals.unwrap_or(onchain_info.decimals),
-                name: token.label.unwrap_or(onchain_info.name),
-                symbol: token.symbol.unwrap_or(onchain_info.symbol),
+            let onchain_infos = ERC20::batch_token_info(rpc_url, addresses, None).await?;
+
+            for (token, onchain_info) in tokens_to_query.into_iter().zip(onchain_infos) {
+                token_infos.push(TokenInfo {
+                    address: token.address,
+                    decimals: token.decimals.unwrap_or(onchain_info.decimals),
+                    name: token.label.unwrap_or(onchain_info.name),
+                    symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                });
             }
-        };
+        }
 
-        Ok(token_info)
+        Ok(TokenInfos(token_infos))
     }
 
     #[wasm_bindgen(js_name = "getStrategyDetails")]
@@ -159,6 +170,18 @@ impl DotrainOrderGui {
         let deployment_details =
             Gui::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+    }
+
+    #[wasm_bindgen(js_name = "generateDotrainText")]
+    pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
+        let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
+        let dotrain = format!(
+            "{}\n{}\n{}",
+            DotrainYaml::get_yaml_string(self.dotrain_order.dotrain_yaml().documents[0].clone(),)?,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+        Ok(dotrain)
     }
 }
 
@@ -184,6 +207,8 @@ pub enum GuiError {
     TokenNotFound(String),
     #[error("Invalid preset")]
     InvalidPreset,
+    #[error("Presets not set")]
+    PresetsNotSet,
     #[error("Select tokens not set")]
     SelectTokensNotSet,
     #[error("Token must be selected: {0}")]
