@@ -18,7 +18,7 @@
 	</div>
 
 	{#if !open && value}
-		<span in:fade class="text-right text-base font-semibold lg:text-lg">
+		<span data-testid="header-value" in:fade class="text-right text-base font-semibold lg:text-lg">
 			{value}
 		</span>
 	{/if}
