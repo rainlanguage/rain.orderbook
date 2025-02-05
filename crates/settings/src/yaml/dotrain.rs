@@ -308,6 +308,14 @@ mod tests {
             *order.network.as_ref(),
             ob_yaml.get_network("mainnet").unwrap()
         );
+        let input_vault_ids =
+            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
+        assert_eq!(input_vault_ids.len(), 1);
+        assert_eq!(input_vault_ids[0], Some("1".to_string()));
+        let output_vault_ids =
+            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
+        assert_eq!(output_vault_ids.len(), 1);
+        assert_eq!(output_vault_ids[0], Some("2".to_string()));
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
         assert_eq!(scenario_keys.len(), 3);
@@ -413,6 +421,14 @@ mod tests {
         let select_tokens =
             Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());
+
+        let field_presets =
+            Gui::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
+                .unwrap()
+                .unwrap();
+        assert_eq!(field_presets[0].id, "0");
+        assert_eq!(field_presets[0].name, None);
+        assert_eq!(field_presets[0].value, "value2");
     }
 
     #[test]
