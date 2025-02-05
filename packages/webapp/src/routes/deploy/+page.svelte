@@ -28,12 +28,18 @@
 		loading = false;
 	};
 
-	const loadStrategy = () => {
+	const loadRawStrategy = () => {
 		if (inputDotrain.trim()) {
 			files = [];
 			$rawDotrain = inputDotrain;
 			inputDotrain = '';
 		}
+	};
+
+	const loadRegistryUrl = () => {
+		fetchFilesFromRegistry($registryUrl);
+		// add the registry url to the url params
+		window.history.pushState({}, '', window.location.pathname + '?registry=' + $registryUrl);
 	};
 </script>
 
@@ -48,9 +54,7 @@
 						placeholder="Enter URL to raw strategy registry file"
 						bind:value={$registryUrl}
 					/>
-					<Button class="text-nowrap" on:click={() => fetchFilesFromRegistry($registryUrl)}>
-						Load URL
-					</Button>
+					<Button class="text-nowrap" on:click={loadRegistryUrl}>Load Registry URL</Button>
 				</div>
 				<div class="flex w-full items-start gap-4">
 					<Textarea
@@ -59,7 +63,7 @@
 						rows="8"
 						bind:value={inputDotrain}
 					/>
-					<Button class="text-nowrap" on:click={loadStrategy}>Load Strategy</Button>
+					<Button class="text-nowrap" on:click={loadRawStrategy}>Load Raw Strategy</Button>
 				</div>
 			</div>
 		{/if}
@@ -75,11 +79,13 @@
 		<p>{errorDetails}</p>
 	{/if}
 	{#if files.length > 0}
-		<div class="mb-36 flex flex-col gap-8">
-			{#each files as { name, url }}
-				<StrategySection strategyUrl={url} strategyName={name} />
-			{/each}
-		</div>
+		{#key files}
+			<div class="mb-36 flex flex-col gap-8">
+				{#each files as { name, url }}
+					<StrategySection strategyUrl={url} strategyName={name} />
+				{/each}
+			</div>
+		{/key}
 	{:else if $rawDotrain}
 		<StrategySection rawDotrain={$rawDotrain} strategyName={'raw'} />
 	{/if}

@@ -5,10 +5,13 @@ import { get } from 'svelte/store';
 import type { PageLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 
-export const load: PageLoad = async ({ fetch, params }) => {
+export const load: PageLoad = async ({ fetch, params, parent }) => {
+	const { strategyName, deploymentKey } = params;
+	const { registry } = await parent();
+	if (registry) {
+		registryUrl.set(registry);
+	}
 	try {
-		const { strategyName, deploymentKey } = params;
-
 		let dotrain;
 		if (strategyName === 'raw' && get(rawDotrain)) {
 			dotrain = get(rawDotrain);
