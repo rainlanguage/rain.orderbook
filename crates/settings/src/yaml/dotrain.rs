@@ -372,9 +372,10 @@ mod tests {
             *deposit.token.as_ref().unwrap(),
             ob_yaml.get_token("token1").unwrap().into()
         );
-        assert_eq!(deposit.presets.len(), 2);
-        assert_eq!(deposit.presets[0], "100".to_string());
-        assert_eq!(deposit.presets[1], "2000".to_string());
+        let presets = deposit.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0], "100".to_string());
+        assert_eq!(presets[1], "2000".to_string());
         assert_eq!(deployment.fields.len(), 1);
         let field = &deployment.fields[0];
         assert_eq!(field.binding, "key1");
