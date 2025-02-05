@@ -13,7 +13,8 @@
 		type GuiDeployment,
 		type OrderIO,
 		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult
+		type DepositAndAddOrderCalldataResult,
+		DotrainOrder
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button } from 'flowbite-svelte';
@@ -21,6 +22,7 @@
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
+	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -194,6 +196,16 @@
 		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
+
+	async function composeRainlang() {
+		if (!gui) return;
+		gui.updateScenarioBindings();
+		const deployment = gui.getCurrentDeployment();
+		const dotrain = gui.generateDotrainText();
+		const dotrainOrder = await DotrainOrder.create(dotrain);
+		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
+		return composedRainlang;
+	}
 </script>
 
 <div>
@@ -280,6 +292,7 @@
 					{/if}
 					<div class="flex flex-col gap-2">
 						{#if $wagmiConnected}
+							<ComposedRainlangModal {composeRainlang} />
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
