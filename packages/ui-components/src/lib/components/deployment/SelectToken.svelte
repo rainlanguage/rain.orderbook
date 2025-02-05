@@ -15,6 +15,7 @@
 	let checking = false;
 
 	function checkIfAllTokensAreSelected() {
+		allTokensSelected = false;
 		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 			allTokensSelected = true;
 		} else {
@@ -53,8 +54,8 @@
 				error = 'Invalid token address.';
 			}
 		}
-		checking = false;
 		checkIfAllTokensAreSelected();
+		checking = false;
 	}
 </script>
 
