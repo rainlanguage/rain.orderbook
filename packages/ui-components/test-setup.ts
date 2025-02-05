@@ -12,7 +12,7 @@ vi.mock('$app/stores', async () => {
 	 */
 	const getStores = () => ({
 		navigating: readable(null),
-		page: readable({ url: new URL('http://localhost'), params: {} }),
+		page: readable({ url: new URL('http://localhost'), params: {}, searchParams: new URLSearchParams() }),
 		session: writable(null),
 		updated: readable(false)
 	});

@@ -68,7 +68,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let stateFromUrl: string;
+	export let stateFromUrl: string | null = null;
 
 	$: if (deployment) {
 		handleDeploymentChange(deployment);
@@ -225,7 +225,11 @@
 
 	async function handleGetStateFromUrl() {
 		open = false;
-		gui = await DotrainOrderGui.deserializeState(dotrain, $page.url.searchParams.get('state'));
+		if (!$page.url.searchParams.get('state')) return;
+		gui = await DotrainOrderGui.deserializeState(
+			dotrain,
+			$page.url.searchParams.get('state') || ''
+		);
 		if (gui) {
 			await gui.getAllFieldValues();
 			await gui.getDeposits();
