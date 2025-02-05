@@ -36,6 +36,7 @@
 		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
 		NO_GUI_DETAILS = 'Error getting GUI details',
 		NO_CHAIN = 'Unsupported chain ID',
+		SERIALIZE_ERROR = 'Error serializing state',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
 
@@ -60,8 +61,8 @@
 	let outputVaultIds: string[] = [];
 
 	let gui: DotrainOrderGui | null = null;
-	let addOrderError: DeploymentStepErrors | null = null;
-	let addOrderErrorDetails: string | null = null;
+	let error: DeploymentStepErrors | null = null;
+	let errorDetails: string | null = null;
 	let open = true;
 
 	export let wagmiConfig: Writable<Config | undefined>;
@@ -189,8 +190,8 @@
 				chainId
 			});
 		} catch (e) {
-			addOrderError = DeploymentStepErrors.ADD_ORDER_FAILED;
-			addOrderErrorDetails = e instanceof Error ? e.message : 'Unknown error';
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -210,7 +211,8 @@
 				goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
 			}
 		} catch (e) {
-			console.error('Failed to serialize GUI:', e);
+			error = DeploymentStepErrors.SERIALIZE_ERROR;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	}
 
@@ -296,11 +298,11 @@
 						{/if}
 
 						<div class="flex flex-col">
-							{#if addOrderError}
-								<p class="text-red-500">{addOrderError}</p>
+							{#if error}
+								<p class="text-red-500">{error}</p>
 							{/if}
-							{#if addOrderErrorDetails}
-								<p class="text-red-500">{addOrderErrorDetails}</p>
+							{#if errorDetails}
+								<p class="text-red-500">{errorDetails}</p>
 							{/if}
 						</div>
 					</div>
