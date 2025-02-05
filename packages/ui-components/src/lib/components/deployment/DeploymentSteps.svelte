@@ -2,6 +2,8 @@
 	import TokenIOSection from './TokenIOSection.svelte';
 	import DepositsSection from './DepositsSection.svelte';
 	import SelectTokensSection from './SelectTokensSection.svelte';
+	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
+	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
@@ -12,7 +14,8 @@
 		type GuiDeployment,
 		type OrderIO,
 		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult
+		type DepositAndAddOrderCalldataResult,
+		DotrainOrder
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Accordion, Button } from 'flowbite-svelte';
@@ -20,7 +23,6 @@
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { FileCopySolid } from 'flowbite-svelte-icons';
@@ -236,6 +238,16 @@
 			}
 		}
 	}
+
+	async function composeRainlang() {
+		if (!gui) return;
+		gui.updateScenarioBindings();
+		const deployment = gui.getCurrentDeployment();
+		const dotrain = gui.generateDotrainText();
+		const dotrainOrder = await DotrainOrder.create(dotrain);
+		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
+		return composedRainlang;
+	}
 </script>
 
 <div>
@@ -290,6 +302,7 @@
 							><FileCopySolid />Review Choices</Button
 						>
 						{#if $wagmiConnected}
+							<ComposedRainlangModal {composeRainlang} />
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />

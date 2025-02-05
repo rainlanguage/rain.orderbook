@@ -7,7 +7,9 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: vi.fn().mockImplementation(() => ({
 		saveFieldValue: vi.fn(),
 		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn()
+		isFieldPreset: vi.fn(),
+		getAllFieldValues: vi.fn(),
+		getCurrentDeployment: vi.fn()
 	}))
 }));
 

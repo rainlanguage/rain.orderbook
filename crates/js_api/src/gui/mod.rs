@@ -10,10 +10,11 @@ use rain_orderbook_app_settings::{
     },
     network::Network,
     order::Order,
-    yaml::YamlError,
+    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
 };
 use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
+    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
@@ -159,6 +160,18 @@ impl DotrainOrderGui {
         let deployment_details =
             Gui::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+    }
+
+    #[wasm_bindgen(js_name = "generateDotrainText")]
+    pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
+        let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
+        let dotrain = format!(
+            "{}\n{}\n{}",
+            DotrainYaml::get_yaml_string(self.dotrain_order.dotrain_yaml().documents[0].clone(),)?,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+        Ok(dotrain)
     }
 }
 
