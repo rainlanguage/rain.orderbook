@@ -111,11 +111,10 @@ impl DepositArgs {
     pub async fn get_approve_calldata(
         &self,
         transaction_args: TransactionArgs,
-        current_allowance: U256,
     ) -> Result<Vec<u8>, WritableTransactionExecuteError> {
         let approve_call = approveCall {
             spender: transaction_args.orderbook_address,
-            amount: self.amount - current_allowance,
+            amount: self.amount,
         };
         Ok(approve_call.abi_encode())
     }

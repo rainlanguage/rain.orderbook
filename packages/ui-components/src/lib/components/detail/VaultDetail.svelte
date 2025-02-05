@@ -13,28 +13,45 @@
 	import { createQuery } from '@tanstack/svelte-query';
 
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import { queryClient } from '../../queries/queryClient';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Vault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
+	import type { Config } from 'wagmi';
+	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 
+	export let handleDepositOrWithdrawModal:
+		| ((args: {
+				vault: Vault;
+				onDepositOrWithdraw: () => void;
+				action: 'deposit' | 'withdraw';
+				chainId: number;
+				rpcUrl: string;
+		  }) => void)
+		| undefined = undefined;
 	export let id: string;
 	export let network: string;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
+	// Tauri App modals
 	export let handleDepositModal: ((vault: Vault, onDeposit: () => void) => void) | undefined =
 		undefined;
 	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
 		undefined;
+
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 
 	$: vaultDetailQuery = createQuery({
 		queryKey: [id, QKEY_VAULT + id],
@@ -57,7 +74,7 @@
 			refetchType: 'active',
 			exact: false
 		});
-	}, 10000);
+	}, 5000);
 
 	onDestroy(() => {
 		clearInterval(interval);
@@ -73,7 +90,15 @@
 			{data.token.name}
 		</div>
 		<div>
-			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
+			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
+				<DepositOrWithdrawButtons
+					vault={data}
+					{chainId}
+					{rpcUrl}
+					query={vaultDetailQuery}
+					{handleDepositOrWithdrawModal}
+				/>
+			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
 				<Button
 					data-testid="vaultDetailDepositButton"
 					color="dark"

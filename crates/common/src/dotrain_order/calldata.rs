@@ -76,9 +76,7 @@ impl DotrainOrder {
                     .await?;
 
                 if allowance < deposit_amount {
-                    let approve_call = deposit_args
-                        .get_approve_calldata(transaction_args, allowance)
-                        .await?;
+                    let approve_call = deposit_args.get_approve_calldata(transaction_args).await?;
                     calldatas.push(ApprovalCalldata {
                         token: output_token.address,
                         calldata: Bytes::copy_from_slice(&approve_call),
