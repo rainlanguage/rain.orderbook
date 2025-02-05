@@ -12,16 +12,27 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import { getOrder, type OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderSubgraph, type Vault } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
+	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import type { Config } from 'wagmi';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
+	export let handleDepositOrWithdrawModal:
+		| ((args: {
+				vault: Vault;
+				onDepositOrWithdraw: () => void;
+				action: 'deposit' | 'withdraw';
+				chainId: number;
+				rpcUrl: string;
+		  }) => void)
+		| undefined = undefined;
 	export let handleOrderRemoveModal:
 		| ((order: OrderSubgraph, refetch: () => void) => void)
 		| undefined = undefined;
@@ -45,6 +56,9 @@
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
+	export let chainId: number | undefined;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -62,7 +76,7 @@
 			refetchType: 'active',
 			exact: false
 		});
-	}, 10000);
+	}, 5000);
 
 	onDestroy(() => {
 		clearInterval(interval);
@@ -123,8 +137,17 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each data.inputs || [] as t}
-							<ButtonVaultLink tokenVault={t} {subgraphName} />
+						{#each data.inputs || [] as vault}
+							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
+								<DepositOrWithdrawButtons
+									{vault}
+									{chainId}
+									{rpcUrl}
+									query={orderDetailQuery}
+									{handleDepositOrWithdrawModal}
+								/>
+							{/if}
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -137,8 +160,17 @@
 						<span>Balance</span>
 					</div>
 					<div class="space-y-2">
-						{#each data.outputs || [] as t}
-							<ButtonVaultLink tokenVault={t} {subgraphName} />
+						{#each data.outputs || [] as vault}
+							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner && chainId}
+								<DepositOrWithdrawButtons
+									{vault}
+									{chainId}
+									{rpcUrl}
+									query={orderDetailQuery}
+									{handleDepositOrWithdrawModal}
+								/>
+							{/if}
 						{/each}
 					</div>
 				</svelte:fragment>
