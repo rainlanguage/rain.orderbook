@@ -12,6 +12,7 @@
   const orderbookAddress = $settings?.orderbooks?.[network]?.address;
   const subgraphUrl = $settings?.subgraphs?.[network];
   const rpcUrl = $settings?.networks?.[network]?.rpc;
+  const chainId = $settings?.networks?.[network]?.['chain-id'];
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -27,5 +28,6 @@
     {handleDebugTradeModal}
     {orderbookAddress}
     {walletAddressMatchesOrBlank}
+    {chainId}
   />
 {/if}

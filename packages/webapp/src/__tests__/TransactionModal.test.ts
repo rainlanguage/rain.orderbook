@@ -54,7 +54,7 @@ describe('TransactionModal Component', () => {
 		});
 
 		// Test modal close behavior
-		const dismissButton = screen.getByText('DISMISS');
+		const dismissButton = screen.getByText('Dismiss');
 		await userEvent.click(dismissButton);
 		expect(resetSpy).toHaveBeenCalled();
 	});
@@ -75,7 +75,7 @@ describe('TransactionModal Component', () => {
 			expect(screen.getByText(successMessage)).toBeInTheDocument();
 		});
 
-		const dismissButton = screen.getByText('DISMISS');
+		const dismissButton = screen.getByText('Dismiss');
 		await userEvent.click(dismissButton);
 		expect(resetSpy).toHaveBeenCalled();
 	});
