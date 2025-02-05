@@ -32,6 +32,10 @@ pub struct DepositCalldataResult(Vec<Bytes>);
 impl_all_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct WithdrawCalldataResult(Vec<Bytes>);
+impl_all_wasm_traits!(WithdrawCalldataResult);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AddOrderCalldataResult(Bytes);
 impl_all_wasm_traits!(AddOrderCalldataResult);
 

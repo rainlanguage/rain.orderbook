@@ -61,12 +61,7 @@ export async function vaultDepositCalldata(vaultId: bigint, token: string, amoun
   });
 }
 
-export async function vaultDepositApproveCalldata(
-  vaultId: bigint,
-  token: string,
-  amount: bigint,
-  currentAllowance: bigint,
-) {
+export async function vaultDepositApproveCalldata(vaultId: bigint, token: string, amount: bigint) {
   return await invoke('vault_deposit_approve_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
@@ -79,6 +74,5 @@ export async function vaultDepositApproveCalldata(
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
-    currentAllowance: currentAllowance.toString(),
   });
 }
