@@ -1,12 +1,11 @@
 <script lang="ts">
   import { Button, Modal, Label } from 'flowbite-svelte';
-  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
   import {
     vaultDeposit,
     vaultDepositApproveCalldata,
     vaultDepositCalldata,
   } from '$lib/services/vault';
-  import { InputToken } from '@rainlanguage/ui-components';
+  import { InputToken, InputTokenAmount } from '@rainlanguage/ui-components';
   import InputVaultId from '$lib/components/InputVaultId.svelte';
   import { orderbookAddress } from '$lib/stores/settings';
   import { checkAllowance, ethersExecute } from '$lib/services/ethersTx';
