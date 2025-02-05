@@ -50,8 +50,6 @@
 		chainId: number;
 	}) => void;
 
-	let error: DeploymentStepErrors | null = null;
-	let errorDetails: string | null = null;
 	let selectTokens: string[] | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
