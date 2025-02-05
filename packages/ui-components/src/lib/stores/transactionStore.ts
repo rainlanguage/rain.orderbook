@@ -4,7 +4,10 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult
+	DepositAndAddOrderCalldataResult,
+	DepositCalldataResult,
+	Vault,
+	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -28,7 +31,9 @@ export enum TransactionErrorMessage {
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain.'
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
+	DEPOSIT_FAILED = 'Failed to deposit tokens.',
+	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.'
 }
 
 type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
@@ -39,6 +44,15 @@ export type DeploymentTransactionArgs = {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+};
+
+export type DepositOrWithdrawTransactionArgs = {
+	config: Config;
+	approvalCalldata?: ApprovalCalldata;
+	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
+	action: 'deposit' | 'withdraw';
+	chainId: number;
+	vault: Vault;
 };
 
 export type TransactionState = {
@@ -161,9 +175,68 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Strategy deployed successfully!');
+			return transactionSuccess(hash, 'Strategy deployed successfully.');
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
+		}
+	};
+
+	const handleDepositOrWithdrawTransaction = async ({
+		config,
+		approvalCalldata,
+		transactionCalldata,
+		action,
+		chainId,
+		vault
+	}: DepositOrWithdrawTransactionArgs) => {
+		try {
+			await switchChain(config, { chainId });
+		} catch {
+			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+		}
+		if (approvalCalldata) {
+			let approvalHash: Hex;
+			try {
+				awaitWalletConfirmation(`Please approve ${vault.token.symbol} spend in your wallet...`);
+				approvalHash = await sendTransaction(config, {
+					to: vault.token.address as `0x${string}`,
+					data: approvalCalldata as unknown as `0x${string}`
+				});
+			} catch {
+				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
+			}
+			try {
+				awaitApprovalTx(approvalHash, vault.token.symbol);
+				await waitForTransactionReceipt(config, { hash: approvalHash });
+			} catch {
+				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
+			}
+		}
+		let hash: Hex;
+		try {
+			awaitWalletConfirmation(
+				`Please confirm ${action === 'deposit' ? 'deposit' : 'withdrawal'} in your wallet...`
+			);
+			hash = await sendTransaction(config, {
+				to: vault.orderbook.id as `0x${string}`,
+				data: transactionCalldata as unknown as `0x${string}`
+			});
+		} catch {
+			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
+		}
+		try {
+			awaitDeployTx(hash);
+			await waitForTransactionReceipt(config, { hash });
+			return transactionSuccess(
+				hash,
+				`${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`
+			);
+		} catch {
+			return transactionError(
+				action === 'deposit'
+					? TransactionErrorMessage.DEPOSIT_FAILED
+					: TransactionErrorMessage.WITHDRAWAL_FAILED
+			);
 		}
 	};
 
@@ -171,6 +244,7 @@ const transactionStore = () => {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
+		handleDepositOrWithdrawTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,

@@ -10,7 +10,7 @@ use reqwest::Url;
 
 /// Internal function to fetch a single order
 /// Returns the Order struct
-async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgraphClientError> {
+pub async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let order = client.order_detail(Id::new(id)).await?;
     Ok(order)

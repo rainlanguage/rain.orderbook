@@ -62,6 +62,7 @@ export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
 export { default as StrategySection } from './components/deployment/StrategySection.svelte';
 export { default as DeploymentPage } from './components/deployment/DeploymentPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
+export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 
 //Types

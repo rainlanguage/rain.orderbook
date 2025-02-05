@@ -56,7 +56,9 @@ impl DotrainYaml {
         Ok(orders.keys().cloned().collect())
     }
     pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
-        Order::parse_from_yaml(self.documents.clone(), key, None)
+        let mut context = Context::new();
+        context.add_current_order(key.to_string());
+        Order::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -72,7 +74,9 @@ impl DotrainYaml {
         Ok(deployments.keys().cloned().collect())
     }
     pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
-        Deployment::parse_from_yaml(self.documents.clone(), key, None)
+        let mut context = Context::new();
+        context.add_current_deployment(key.to_string());
+        Deployment::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<Gui>, YamlError> {

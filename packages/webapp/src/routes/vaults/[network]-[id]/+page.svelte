@@ -2,7 +2,8 @@
 	import { PageHeader } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-
+	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
 		$page.data.stores;
 </script>
@@ -16,4 +17,7 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
+	{wagmiConfig}
+	{handleDepositOrWithdrawModal}
+	{signerAddress}
 />
