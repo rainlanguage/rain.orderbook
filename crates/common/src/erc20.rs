@@ -116,6 +116,63 @@ impl ERC20 {
             symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData, true)?._0,
         })
     }
+
+    pub async fn batch_token_info(
+        rpc_url: Url,
+        addresses: Vec<Address>,
+        multicall_address: Option<String>,
+    ) -> Result<Vec<TokenInfo>, Error> {
+        if addresses.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
+        let multicall_addr = multicall_address
+            .map_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap(), |s| {
+                Address::from_str(&s).unwrap_or(Address::default())
+            });
+
+        let mut calls = Vec::with_capacity(addresses.len() * 3);
+        for address in addresses.iter() {
+            calls.extend([
+                Call3 {
+                    target: *address,
+                    allowFailure: false,
+                    callData: decimalsCall {}.abi_encode().into(),
+                },
+                Call3 {
+                    target: *address,
+                    allowFailure: false,
+                    callData: nameCall {}.abi_encode().into(),
+                },
+                Call3 {
+                    target: *address,
+                    allowFailure: false,
+                    callData: symbolCall {}.abi_encode().into(),
+                },
+            ]);
+        }
+
+        let results = client
+            .read(ReadContractParameters {
+                gas: None,
+                address: multicall_addr,
+                call: aggregate3Call { calls },
+                block_number: None,
+            })
+            .await?;
+
+        let mut token_infos = Vec::with_capacity(addresses.len());
+        for chunk in results.returnData.chunks(3) {
+            token_infos.push(TokenInfo {
+                decimals: decimalsCall::abi_decode_returns(&chunk[0].returnData, true)?._0,
+                name: nameCall::abi_decode_returns(&chunk[1].returnData, true)?._0,
+                symbol: symbolCall::abi_decode_returns(&chunk[2].returnData, true)?._0,
+            });
+        }
+
+        Ok(token_infos)
+    }
 }
 
 #[derive(Debug, Error)]
