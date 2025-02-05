@@ -14,7 +14,7 @@ import {
 	GuiDeployment,
 	NameAndDescription,
 	TokenDeposit,
-	TokenInfo
+	TokenInfos
 } from '../../dist/types/js_api.js';
 import { getLocal } from 'mockttp';
 
@@ -409,16 +409,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
     `;
 		const gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'other-deployment');
 
-		let token1TokenInfo = await gui.getTokenInfo('token1');
-		let token2TokenInfo = await gui.getTokenInfo('token2');
-		assert.equal(token1TokenInfo.address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
-		assert.equal(token1TokenInfo.decimals, 6);
-		assert.equal(token1TokenInfo.name, 'Token 1');
-		assert.equal(token1TokenInfo.symbol, 'T1');
-		assert.equal(token2TokenInfo.address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
-		assert.equal(token2TokenInfo.decimals, 18);
-		assert.equal(token2TokenInfo.name, 'Token 2');
-		assert.equal(token2TokenInfo.symbol, 'T2');
+		let tokenInfos: TokenInfos = await gui.getTokenInfos(['token1', 'token2']);
+		assert.equal(tokenInfos[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+		assert.equal(tokenInfos[0].decimals, 6);
+		assert.equal(tokenInfos[0].name, 'Token 1');
+		assert.equal(tokenInfos[0].symbol, 'T1');
+		assert.equal(tokenInfos[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+		assert.equal(tokenInfos[1].decimals, 18);
+		assert.equal(tokenInfos[1].name, 'Token 2');
+		assert.equal(tokenInfos[1].symbol, 'T2');
 	});
 
 	describe('deposit tests', async () => {
@@ -1192,10 +1191,10 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(gui.isSelectTokenSet('token1'), false);
 			assert.equal(gui.isSelectTokenSet('token2'), false);
 
-			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
+			await expect(async () => await gui.getTokenInfos(['token1'])).rejects.toThrow(
 				'Yaml parse error: missing field: token'
 			);
-			await expect(async () => await gui.getTokenInfo('token2')).rejects.toThrow(
+			await expect(async () => await gui.getTokenInfos(['token2'])).rejects.toThrow(
 				'Yaml parse error: missing field: token'
 			);
 
@@ -1205,15 +1204,13 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(gui.isSelectTokenSet('token1'), true);
 			assert.equal(gui.isSelectTokenSet('token2'), true);
 
-			let tokenInfo: TokenInfo = await gui.getTokenInfo('token1');
-			assert.equal(tokenInfo.name, 'Token 1');
-			assert.equal(tokenInfo.symbol, 'T1');
-			assert.equal(tokenInfo.decimals, 6);
-
-			tokenInfo = await gui.getTokenInfo('token2');
-			assert.equal(tokenInfo.name, 'Teken 2');
-			assert.equal(tokenInfo.symbol, 'T2');
-			assert.equal(tokenInfo.decimals, 18);
+			let tokenInfos: TokenInfos = await gui.getTokenInfos(['token1', 'token2']);
+			assert.equal(tokenInfos[0].name, 'Token 1');
+			assert.equal(tokenInfos[0].symbol, 'T1');
+			assert.equal(tokenInfos[0].decimals, 6);
+			assert.equal(tokenInfos[1].name, 'Teken 2');
+			assert.equal(tokenInfos[1].symbol, 'T2');
+			assert.equal(tokenInfos[1].decimals, 18);
 		});
 
 		it('should replace select token', async () => {
@@ -1237,17 +1234,18 @@ ${dotrainWithoutVaultIds}`;
 
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			assert.equal(gui.isSelectTokenSet('token1'), true);
-			let tokenInfo = await gui.getTokenInfo('token1');
-			assert.equal(tokenInfo.name, 'Token 1');
-			assert.equal(tokenInfo.symbol, 'T1');
-			assert.equal(tokenInfo.decimals, 6);
+
+			let tokenInfos = await gui.getTokenInfos(['token1']);
+			assert.equal(tokenInfos[0].name, 'Token 1');
+			assert.equal(tokenInfos[0].symbol, 'T1');
+			assert.equal(tokenInfos[0].decimals, 6);
 
 			await gui.replaceSelectToken('token1', '0x8888888888888888888888888888888888888888');
 			assert.equal(gui.isSelectTokenSet('token1'), true);
-			tokenInfo = await gui.getTokenInfo('token1');
-			assert.equal(tokenInfo.name, 'Teken 2');
-			assert.equal(tokenInfo.symbol, 'T2');
-			assert.equal(tokenInfo.decimals, 18);
+			tokenInfos = await gui.getTokenInfos(['token1']);
+			assert.equal(tokenInfos[0].name, 'Teken 2');
+			assert.equal(tokenInfos[0].symbol, 'T2');
+			assert.equal(tokenInfos[0].decimals, 18);
 		});
 
 		it('should remove select token', async () => {
@@ -1275,14 +1273,14 @@ ${dotrainWithoutVaultIds}`;
 
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			assert.equal(gui.isSelectTokenSet('token1'), true);
-			let tokenInfo = await gui.getTokenInfo('token1');
-			assert.equal(tokenInfo.name, 'Token 1');
-			assert.equal(tokenInfo.symbol, 'T1');
-			assert.equal(tokenInfo.decimals, 6);
+			let tokenInfos: TokenInfos = await gui.getTokenInfos(['token1']);
+			assert.equal(tokenInfos[0].name, 'Token 1');
+			assert.equal(tokenInfos[0].symbol, 'T1');
+			assert.equal(tokenInfos[0].decimals, 6);
 
 			gui.removeSelectToken('token1');
 			assert.equal(gui.isSelectTokenSet('token1'), false);
-			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
+			await expect(async () => await gui.getTokenInfos(['token1'])).rejects.toThrow(
 				'Yaml parse error: missing field: token'
 			);
 		});
