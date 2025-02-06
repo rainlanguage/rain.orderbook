@@ -10,8 +10,8 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::Context, default_document, optional_string, require_hash, require_string, YamlError,
-    YamlParsableHash,
+    context::Context, default_document, optional_string, require_hash, require_string,
+    FieldErrorKind, YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -60,14 +60,19 @@ impl Deployer {
                         .or_else(|_| Ok(deployer_key.to_string()));
                 }
             } else {
-                return Err(YamlError::ParseError(
-                    "deployers field must be a map".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "deployers".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
-        Err(YamlError::ParseError(format!(
-            "network key not found for deployer: {deployer_key}"
-        )))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(format!("network for deployer '{}'", deployer_key)),
+            location: "root document".to_string(),
+        })
     }
 }
 
@@ -131,32 +136,46 @@ impl YamlParsableHash for Deployer {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
+        let networks = Network::parse_all_from_yaml(documents.clone(), None)?;
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Ok(deployers_hash) = require_hash(&document_read, Some("deployers"), None) {
                 for (key_yaml, deployer_yaml) in deployers_hash {
                     let deployer_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("deployer '{}'", deployer_key);
 
-                    let address = Deployer::validate_address(&require_string(
-                        deployer_yaml,
-                        Some("address"),
-                        Some(format!(
-                            "address string missing in deployer: {deployer_key}"
-                        )),
-                    )?)?;
+                    let address_str =
+                        require_string(deployer_yaml, Some("address"), Some(location.clone()))?;
+                    let address =
+                        Deployer::validate_address(&address_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "address".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let network_name = match optional_string(deployer_yaml, "network") {
                         Some(network_name) => network_name,
                         None => deployer_key.clone(),
                     };
-                    let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
+                    let network = networks
+                        .get(&network_name)
+                        .ok_or_else(|| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "network".to_string(),
+                                reason: format!("Network '{}' not found", network_name),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let deployer = Deployer {
                         document: document.clone(),
                         key: deployer_key.clone(),
                         address,
-                        network: Arc::new(network),
+                        network: Arc::new(network.clone()),
                     };
 
                     if deployers.contains_key(&deployer_key) {
@@ -168,9 +187,10 @@ impl YamlParsableHash for Deployer {
         }
 
         if deployers.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: deployers".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("deployers".to_string()),
+                location: "root document".to_string(),
+            });
         }
 
         Ok(deployers)
@@ -350,7 +370,13 @@ deployers: test
         let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployers field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployers".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -364,7 +390,13 @@ deployers:
         let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployers field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployers".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -378,7 +410,13 @@ deployers:
         let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployers field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployers".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
