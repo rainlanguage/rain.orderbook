@@ -9,7 +9,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
     context::{Context, GuiContextTrait},
-    default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, require_hash, require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -46,14 +46,19 @@ impl Deployment {
                     return require_string(deployment_yaml, Some("order"), None);
                 }
             } else {
-                return Err(YamlError::ParseError(
-                    "deployments field must be a map".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "deployments".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
-        Err(YamlError::ParseError(format!(
-            "order key not found for deployment: {deployment_key}"
-        )))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing("order".to_string()),
+            location: format!("deployment '{deployment_key}'"),
+        })
     }
 }
 
@@ -70,6 +75,7 @@ impl YamlParsableHash for Deployment {
             if let Ok(deployments_hash) = require_hash(&document_read, Some("deployments"), None) {
                 for (key_yaml, deployment_yaml) in deployments_hash {
                     let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("deployment '{deployment_key}'");
 
                     if let Some(context) = context {
                         if let Some(current_deployment) = context.get_current_deployment() {
@@ -81,28 +87,19 @@ impl YamlParsableHash for Deployment {
 
                     let mut context = Context::from_context(context);
 
-                    let order_key = require_string(
-                        deployment_yaml,
-                        Some("order"),
-                        Some(format!(
-                            "order string missing in deployment: {deployment_key}"
-                        )),
-                    )?;
+                    let order_key =
+                        require_string(deployment_yaml, Some("order"), Some(location.clone()))?;
                     context.add_current_order(order_key.clone());
 
                     let order =
                         Order::parse_from_yaml(documents.clone(), &order_key, Some(&context))?;
                     context.add_order(Arc::new(order.clone()));
 
+                    let scenario_key =
+                        require_string(deployment_yaml, Some("scenario"), Some(location.clone()))?;
                     let scenario = Scenario::parse_from_yaml(
                         documents.clone(),
-                        &require_string(
-                            deployment_yaml,
-                            Some("scenario"),
-                            Some(format!(
-                                "scenario string missing in deployment: {deployment_key}"
-                            )),
-                        )?,
+                        &scenario_key,
                         Some(&context),
                     )?;
 
@@ -130,9 +127,10 @@ impl YamlParsableHash for Deployment {
         }
 
         if deployments.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: deployments".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(deployments)
@@ -303,7 +301,10 @@ test: test
         let error = Deployment::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: deployments".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -333,7 +334,10 @@ deployments:
         let error = Deployment::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("order string missing in deployment: deployment1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("order".to_string()),
+                location: "deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -364,7 +368,10 @@ deployments:
         let error = Deployment::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("scenario string missing in deployment: deployment1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("scenario".to_string()),
+                location: "deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -534,7 +541,13 @@ deployments: test
             Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -545,7 +558,13 @@ deployments:
             Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -556,7 +575,13 @@ deployments:
             Deployment::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
