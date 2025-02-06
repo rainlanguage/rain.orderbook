@@ -8,5 +8,5 @@
 </script>
 
 {#each allFieldDefinitions as fieldDefinition}
-	<FieldDefinitionInput {fieldDefinition} {gui} bind:open />
+	<FieldDefinitionInput {fieldDefinition} {gui} {open} />
 {/each}

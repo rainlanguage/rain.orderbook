@@ -63,7 +63,7 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let open = true;
+	let open: boolean;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -208,6 +208,7 @@
 			if (serializedState) {
 				$page.url.searchParams.set('state', serializedState);
 				$page.url.searchParams.set('review', 'true');
+				open = false;
 				goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
 			}
 		} catch (e) {
@@ -216,8 +217,10 @@
 		}
 	}
 
-	$: if ($page.url.searchParams.get('review') === 'true') {
-		open = false;
+	$: if ($page.url.searchParams) {
+		if ($page.url.searchParams.get('review') === 'true') {
+			open = false;
+		}
 		if (stateFromUrl) {
 			handleGetStateFromUrl();
 		}

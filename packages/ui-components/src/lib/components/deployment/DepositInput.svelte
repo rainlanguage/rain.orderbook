@@ -21,13 +21,17 @@
 	let tokenInfo: TokenInfo | null = null;
 
 	onMount(() => {
+		setCurrentDeposit();
+	});
+
+	const setCurrentDeposit = async () => {
 		try {
 			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
 			inputValue = currentDeposit?.amount || '';
 		} catch {
 			currentDeposit = undefined;
 		}
-	});
+	};
 
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
