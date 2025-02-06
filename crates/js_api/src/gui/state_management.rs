@@ -1,5 +1,6 @@
 use super::*;
 use rain_orderbook_app_settings::token::Token;
+use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
@@ -7,21 +8,29 @@ struct SerializedGuiState {
     deposits: BTreeMap<String, GuiPreset>,
     select_tokens: BTreeMap<String, Token>,
     vault_ids: BTreeMap<(bool, u8), Option<String>>,
+    dotrain_hash: String,
+    selected_deployment: String,
 }
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
+    fn get_dotrain_hash(dotrain: &str) -> Result<String, GuiError> {
+        let dotrain_bytes = bincode::serialize(dotrain)?;
+        let hash = Sha256::digest(&dotrain_bytes);
+        Ok(URL_SAFE.encode(hash))
+    }
+
     #[wasm_bindgen(js_name = "serializeState")]
     pub fn serialize_state(&self) -> Result<String, GuiError> {
-        let deployment = self.get_current_deployment()?;
-
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
-                let field_definition = self.get_field_definition(k)?;
-                let presets = field_definition
-                    .presets
-                    .ok_or(GuiError::BindingHasNoPresets(k.clone()))?;
+                let presets = Gui::parse_field_presets(
+                    self.dotrain_order.dotrain_yaml().documents.clone(),
+                    &self.selected_deployment,
+                    k,
+                )?
+                .ok_or(GuiError::BindingHasNoPresets(k.clone()))?;
                 presets
                     .iter()
                     .find(|preset| preset.id == v.value)
@@ -56,19 +65,41 @@ impl DotrainOrderGui {
         }
 
         let mut select_tokens: BTreeMap<String, Token> = BTreeMap::new();
-        if let Some(st) = deployment.select_tokens {
+        if let Some(st) = Gui::parse_select_tokens(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+            &self.selected_deployment,
+        )? {
             for key in st {
-                let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
-                select_tokens.insert(key, token);
+                if let Ok(token) = self.dotrain_order.orderbook_yaml().get_token(&key) {
+                    select_tokens.insert(key, token);
+                }
             }
         }
 
+        let order_key = Deployment::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
         let mut vault_ids = BTreeMap::new();
-        for (i, input) in deployment.deployment.order.inputs.iter().enumerate() {
-            vault_ids.insert((true, i as u8), input.vault_id.map(|v| v.to_string()));
+        for (i, vault_id) in Order::parse_vault_ids(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+            &order_key,
+            true,
+        )?
+        .iter()
+        .enumerate()
+        {
+            vault_ids.insert((true, i as u8), vault_id.as_ref().map(|v| v.to_string()));
         }
-        for (i, output) in deployment.deployment.order.outputs.iter().enumerate() {
-            vault_ids.insert((false, i as u8), output.vault_id.map(|v| v.to_string()));
+        for (i, vault_id) in Order::parse_vault_ids(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+            &order_key,
+            false,
+        )?
+        .iter()
+        .enumerate()
+        {
+            vault_ids.insert((false, i as u8), vault_id.as_ref().map(|v| v.to_string()));
         }
 
         let state = SerializedGuiState {
@@ -76,6 +107,8 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(&self.dotrain_order.dotrain())?,
+            selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
 
@@ -87,15 +120,23 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "deserializeState")]
-    pub fn deserialize_state(&mut self, serialized: String) -> Result<(), GuiError> {
-        let deployment = self.get_current_deployment()?;
+    pub async fn deserialize_state(
+        dotrain: String,
+        serialized: String,
+    ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
 
+        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(&dotrain)?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
+
+        if original_dotrain_hash != state.dotrain_hash {
+            return Err(GuiError::DotrainMismatch);
+        }
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
         let field_values = state
             .field_values
@@ -135,25 +176,32 @@ impl DotrainOrderGui {
             })
             .collect::<BTreeMap<_, _>>();
 
-        self.field_values = field_values;
-        self.deposits = deposits;
+        let dotrain_order_gui = DotrainOrderGui {
+            dotrain_order,
+            field_values,
+            deposits,
+            selected_deployment: state.selected_deployment.clone(),
+        };
 
+        let deployment_select_tokens = Gui::parse_select_tokens(
+            dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
+            &state.selected_deployment,
+        )?;
         for (key, token) in state.select_tokens {
-            let select_tokens = deployment
-                .select_tokens
+            let select_tokens = deployment_select_tokens
                 .as_ref()
                 .ok_or(GuiError::SelectTokensNotSet)?;
             if !select_tokens.contains(&key) {
                 return Err(GuiError::TokenNotInSelectTokens(key));
             }
-            if self.is_select_token_set(key.clone())? {
+            if dotrain_order_gui.is_select_token_set(key.clone())? {
                 Token::remove_record_from_yaml(
-                    self.dotrain_order.orderbook_yaml().documents.clone(),
+                    dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                     &key,
                 )?;
             }
             Token::add_record_to_yaml(
-                self.dotrain_order.orderbook_yaml().documents.clone(),
+                dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                 &key,
                 &token.network.key,
                 &token.address.to_string(),
@@ -163,16 +211,21 @@ impl DotrainOrderGui {
             )?;
         }
 
+        let order_key = Deployment::parse_order_key(
+            dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
+            &state.selected_deployment,
+        )?;
         for ((is_input, index), vault_id) in state.vault_ids {
-            self.dotrain_order
+            dotrain_order_gui
+                .dotrain_order
                 .dotrain_yaml()
-                .get_order(&deployment.deployment.order.key)
+                .get_order(&order_key)
                 .and_then(|mut order| {
                     order.update_vault_id(is_input, index, vault_id.unwrap_or_default())
                 })?;
         }
 
-        Ok(())
+        Ok(dotrain_order_gui)
     }
 
     #[wasm_bindgen(js_name = "clearState")]

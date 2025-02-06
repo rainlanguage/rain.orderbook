@@ -322,6 +322,49 @@ impl Order {
             ))?,
         )
     }
+
+    pub fn parse_vault_ids(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+        is_input: bool,
+    ) -> Result<Vec<Option<String>>, YamlError> {
+        let mut vault_ids = Vec::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
+                if let Some(order_yaml) =
+                    orders_hash.get(&StrictYaml::String(order_key.to_string()))
+                {
+                    let items = if is_input {
+                        require_vec(
+                            order_yaml,
+                            "inputs",
+                            Some(format!("inputs list missing in order: {order_key}")),
+                        )?
+                    } else {
+                        require_vec(
+                            order_yaml,
+                            "outputs",
+                            Some(format!("outputs list missing in order: {order_key}")),
+                        )?
+                    };
+
+                    for item in items {
+                        let vault_id = optional_string(item, "vault-id");
+                        vault_ids.push(vault_id);
+                    }
+                }
+            } else {
+                return Err(YamlError::ParseError(
+                    "orders field must be a map".to_string(),
+                ));
+            }
+        }
+
+        Ok(vault_ids)
+    }
 }
 
 impl YamlParsableHash for Order {

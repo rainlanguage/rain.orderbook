@@ -37,7 +37,7 @@ impl_all_wasm_traits!(GuiPresetSource);
 #[serde(rename_all = "kebab-case")]
 pub struct GuiDepositSource {
     pub token: TokenRef,
-    pub presets: Vec<String>,
+    pub presets: Option<Vec<String>>,
 }
 
 #[typeshare]
@@ -190,8 +190,7 @@ impl_all_wasm_traits!(GuiPreset);
 pub struct GuiDeposit {
     #[typeshare(typescript(type = "Token | undefined"))]
     pub token: Option<Arc<Token>>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
-    pub presets: Vec<String>,
+    pub presets: Option<Vec<String>>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(GuiDeposit);
@@ -398,6 +397,78 @@ impl Gui {
 
         Ok(deployment_details)
     }
+
+    pub fn parse_field_presets(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        deployment_key: &str,
+        field_binding: &str,
+    ) -> Result<Option<Vec<GuiPreset>>, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(StrictYaml::Hash(deployments_hash)) =
+                    gui.get(&StrictYaml::String("deployments".to_string()))
+                {
+                    if let Some(StrictYaml::Hash(deployment_hash)) =
+                        deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
+                    {
+                        if let Some(StrictYaml::Array(fields)) =
+                            deployment_hash.get(&StrictYaml::String("fields".to_string()))
+                        {
+                            for (field_index, field) in fields.iter().enumerate() {
+                                if let StrictYaml::Hash(field_hash) = field {
+                                    if let Some(StrictYaml::String(binding)) =
+                                        field_hash.get(&StrictYaml::String("binding".to_string()))
+                                    {
+                                        if binding == field_binding {
+                                            return match optional_vec(field, "presets") {
+                                                Some(presets) => {
+                                                    let preset_vec = presets.iter().enumerate()
+                                                        .map(|(preset_index, preset_yaml)| {
+                                                            let name = optional_string(preset_yaml, "name");
+                                                            let value = require_string(
+                                                                preset_yaml,
+                                                                Some("value"),
+                                                                Some(format!(
+                                                                    "preset value must be a string for preset index: {preset_index} for field index: {field_index} in gui deployment: {deployment_key}",
+                                                                ))
+                                                            )?;
+
+                                                            Ok(GuiPreset {
+                                                                id: preset_index.to_string(),
+                                                                name,
+                                                                value,
+                                                            })
+                                                        })
+                                                        .collect::<Result<Vec<_>, YamlError>>()?;
+                                                    Ok(Some(preset_vec))
+                                                }
+                                                None => Ok(None),
+                                            };
+                                        }
+                                    } else {
+                                        return Err(YamlError::ParseError(format!(
+                                            "binding string missing for field index: {field_index} in gui deployment: {deployment_key}",
+                                        )));
+                                    }
+                                }
+                            }
+                        } else {
+                            return Err(YamlError::ParseError(format!(
+                                "fields list missing in gui deployment: {deployment_key}"
+                            )));
+                        }
+                    }
+                } else {
+                    return Err(YamlError::ParseError(
+                        "deployments field must be a map in gui".to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(None)
+    }
 }
 
 impl YamlParseableValue for Gui {
@@ -530,21 +601,17 @@ impl YamlParseableValue for Gui {
                             deposit_token = token.map(|token| Arc::new(token.clone()));
                         }
 
-                        let presets = require_vec(
-                            deposit_value,
-                            "presets",
-                            Some(format!(
-                                "presets list missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                            )),
-                        )?
-                        .iter()
-                        .enumerate()
-                        .map(|(preset_index, preset_yaml)| {
-                            Ok(preset_yaml.as_str().ok_or(YamlError::ParseError(format!(
-                                "preset value must be a string for preset list index: {preset_index} for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                            )))?.to_string())
-                        })
-                        .collect::<Result<Vec<_>, YamlError>>()?;
+                        let presets = match optional_vec(deposit_value, "presets") {
+                            Some(presets) => Some(presets.iter()
+                            .enumerate()
+                            .map(|(preset_index, preset_yaml)| {
+                                Ok(preset_yaml.as_str().ok_or(YamlError::ParseError(format!(
+                                    "preset value must be a string for preset list index: {preset_index} for deposit index: {deposit_index} in gui deployment: {deployment_name}",
+                                )))?.to_string())
+                            })
+                            .collect::<Result<Vec<_>, YamlError>>()?),
+                            None => None,
+                        };
 
                         let gui_deposit = GuiDeposit {
                             token: deposit_token,
@@ -663,7 +730,7 @@ mod tests {
                     description: "test-deployment-description".to_string(),
                     deposits: vec![GuiDepositSource {
                         token: "test-token".to_string(),
-                        presets: vec!["1.3".to_string(), "2.7".to_string()],
+                        presets: Some(vec!["1.3".to_string(), "2.7".to_string()]),
                     }],
                     fields: vec![
                         GuiFieldDefinitionSource {
@@ -762,9 +829,10 @@ mod tests {
             deposit.token.as_ref().unwrap().label,
             Some("test-token".to_string())
         );
-        assert_eq!(deposit.presets.len(), 2);
-        assert_eq!(deposit.presets[0], "1.3".to_string());
-        assert_eq!(deposit.presets[1], "2.7".to_string());
+        let presets = deposit.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0], "1.3".to_string());
+        assert_eq!(presets[1], "2.7".to_string());
         assert_eq!(deployment.fields.len(), 3);
         let field1 = &deployment.fields[0];
         assert_eq!(field1.binding, "test-binding");
@@ -1151,30 +1219,6 @@ gui:
             error,
             YamlError::ParseError(
                 "token string missing for deposit index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
-        );
-
-        let yaml = r#"
-gui:
-    name: test
-    description: test
-    deployments:
-        deployment1:
-            name: test
-            description: test
-            deposits:
-                - token: token1
-"#;
-        let error = Gui::parse_from_yaml_optional(
-            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
-            None,
-        )
-        .unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError(
-                "presets list missing for deposit index: 0 in gui deployment: deployment1"
                     .to_string()
             )
         );

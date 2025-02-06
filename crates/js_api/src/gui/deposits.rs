@@ -29,6 +29,8 @@ impl DotrainOrderGui {
                         .map_err(|_| GuiError::InvalidPreset)?;
                     gui_deposit
                         .presets
+                        .as_ref()
+                        .ok_or(GuiError::PresetsNotSet)?
                         .get(index)
                         .ok_or(GuiError::InvalidPreset)?
                         .clone()
@@ -59,16 +61,21 @@ impl DotrainOrderGui {
             .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == token))
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
-        let value = if let Some(index) = gui_deposit.presets.iter().position(|p| **p == amount) {
-            field_values::PairValue {
-                is_preset: true,
-                value: index.to_string(),
-            }
-        } else {
-            field_values::PairValue {
+        let value = match gui_deposit.presets.as_ref() {
+            Some(presets) => match presets.iter().position(|p| **p == amount) {
+                Some(index) => field_values::PairValue {
+                    is_preset: true,
+                    value: index.to_string(),
+                },
+                None => field_values::PairValue {
+                    is_preset: false,
+                    value: amount,
+                },
+            },
+            None => field_values::PairValue {
                 is_preset: false,
                 value: amount,
-            }
+            },
         };
 
         self.deposits.insert(token, value);
@@ -88,6 +95,6 @@ impl DotrainOrderGui {
             .iter()
             .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == key))
             .ok_or(GuiError::DepositTokenNotFound(key.clone()))?;
-        Ok(gui_deposit.presets.clone())
+        Ok(gui_deposit.presets.clone().unwrap_or(vec![]))
     }
 }
