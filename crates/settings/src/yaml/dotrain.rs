@@ -218,7 +218,9 @@ mod tests {
                       presets:
                         - value: value2
                 select-tokens:
-                    - token2
+                    - key: token2
+                      name: Test token
+                      description: Test description
     "#;
 
     const HANDLEBARS_YAML: &str = r#"
@@ -392,7 +394,12 @@ mod tests {
         assert_eq!(presets[0].value, "value2");
         let select_tokens = deployment.select_tokens.as_ref().unwrap();
         assert_eq!(select_tokens.len(), 1);
-        assert_eq!(select_tokens[0], "token2");
+        assert_eq!(select_tokens[0].key, "token2".to_string());
+        assert_eq!(select_tokens[0].name, Some("Test token".to_string()));
+        assert_eq!(
+            select_tokens[0].description,
+            Some("Test description".to_string())
+        );
 
         let details = Gui::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(details.name, "Test gui");
@@ -692,8 +699,8 @@ gui:
                   presets:
                     - value: 1
             select-tokens:
-                - token-one
-                - token-two
+                - key: token-one
+                - key: token-two
 "#;
         let missing_input_token_yaml = format!(
             "{yaml_prefix}

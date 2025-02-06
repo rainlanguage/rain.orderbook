@@ -124,8 +124,8 @@ gui:
           presets:
             - value: "test-value"
       select-tokens:
-        - token1
-        - token2
+        - key: token1
+        - key: token2
 `;
 
 const dotrain = `
@@ -670,7 +670,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOz0rDQBDGs1UqiAcRr4Lg1ZjdDQm11Eu1EIoYC0HEi9Rk04Rsd2OyMRYfwqNXX6D4BF69-TzirZTutk3ptXOZP9_MfD-gzWJPZkFyoT_FLIjZAMgZ1HaX1Zc-LUhNTupK4QlhSFOxLbMFz-zKCp6vbMmMIFz_rNopwJwPic6IKHmWHMlZJETaNAzK_T6NeC6aDdiwjCz19SKjb8oQqAoo647nHMoyXBOgDnak7E0ZjhFQpF6VDle7DbO-t_7GJ7-t8feH9fV_X8PnP58-OFhhxQtWrKqld6ZpgkVn2_ap8ukEbtl-eOzFz8hxSS8qu7fO5Y1z93o9KrA76IZhAttXYYCSi315w0VEMj0gKeWjIWFiAlOpXOtVAgAA';
+			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiXEcUgwVdm4pEFCRcpQsaWpIVFcO7WdIuAhGFl5gYonYGXjeRAbQti0qbr2LOc_5z-XD1h_saGzIlLZ_ZwNcnYHdA9a67PuOKEVaehO0zi8IMy1TKzq7MODoDaC_kdWdHYhXHysXhlAyYfEZkTdc1Hs6F6mVNlyHMrThGZcqhaG2HdEmdqVoE_mITAKmNdncbit5e2CAE2wpu34l2HXBYY0rtOherVk1uf212Tvsz15f_HfvnsNdPzxmoKtOVY0ZUVGzZzzPA9MqyAI9rUMZYSPbOzRccRE1VM33c7hIz-PqpG8CPvXpz68xKNOcpV3i5NNvcNVRoQ9ICXlD0PC1A_3nQ2PVQIAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
