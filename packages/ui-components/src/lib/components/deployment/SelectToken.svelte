@@ -15,6 +15,7 @@
 	let checking = false;
 
 	function checkIfAllTokensAreSelected() {
+		allTokensSelected = false;
 		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 			allTokensSelected = true;
 		} else {
@@ -54,8 +55,8 @@
 				error = errorMessage;
 			}
 		}
-		checking = false;
 		checkIfAllTokensAreSelected();
+		checking = false;
 	}
 </script>
 

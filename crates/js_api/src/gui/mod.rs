@@ -197,6 +197,8 @@ pub enum GuiError {
     TokenNotFound(String),
     #[error("Invalid preset")]
     InvalidPreset,
+    #[error("Presets not set")]
+    PresetsNotSet,
     #[error("Select tokens not set")]
     SelectTokensNotSet,
     #[error("Token must be selected: {0}")]
