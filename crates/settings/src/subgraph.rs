@@ -63,11 +63,8 @@ impl Subgraph {
                 );
             } else {
                 return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "subgraphs".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root document".to_string(),
+                    kind: FieldErrorKind::Missing("subgraphs".to_string()),
+                    location: "root".to_string(),
                 });
             }
         } else {
