@@ -9,22 +9,25 @@
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
+	import { onMount } from 'svelte';
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
+	export let open: boolean = true;
 
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
 	let tokenInfo: TokenInfo | null = null;
 
-	$: if (gui) {
+	onMount(() => {
 		try {
 			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
+			inputValue = currentDeposit?.amount || '';
 		} catch {
 			currentDeposit = undefined;
 		}
-	}
+	});
 
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
@@ -61,8 +64,6 @@
 	$: if (deposit.token?.key) {
 		getTokenSymbol();
 	}
-
-	export let open = true;
 </script>
 
 <AccordionItem bind:open>

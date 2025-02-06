@@ -8,20 +8,23 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import { onMount } from 'svelte';
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
+	export let open: boolean = true;
 
 	let currentValue: GuiPreset | undefined;
-	let inputValue: string | null = null;
+	let inputValue: string | null = currentValue?.value || null;
 
-	$: if (gui) {
+	onMount(() => {
 		try {
 			currentValue = gui.getFieldValue(fieldDefinition.binding);
+			inputValue = currentValue?.value || null;
 		} catch {
 			currentValue = undefined;
 		}
-	}
+	});
 
 	async function handlePresetClick(preset: GuiPreset) {
 		inputValue = preset.value;
@@ -44,8 +47,6 @@
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
 	}
-
-	export let open = true;
 </script>
 
 <AccordionItem title={fieldDefinition.name} bind:open>
