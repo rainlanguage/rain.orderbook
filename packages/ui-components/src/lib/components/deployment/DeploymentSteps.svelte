@@ -63,7 +63,7 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let open: boolean = true
+	let open: boolean = true;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -240,6 +240,9 @@
 			await gui.getCurrentDeployment();
 			try {
 				selectTokens = await gui.getSelectTokens();
+				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
+					allTokensSelected = true;
+				}
 			} catch (e) {
 				error = DeploymentStepErrors.NO_SELECT_TOKENS;
 				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
@@ -286,7 +289,7 @@
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
-				{open}
+					{open}
 					<Accordion multiple={true}>
 						{#if allFieldDefinitions.length > 0}
 							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui bind:open />

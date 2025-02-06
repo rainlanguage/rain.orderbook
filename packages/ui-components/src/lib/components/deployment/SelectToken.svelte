@@ -3,6 +3,7 @@
 	import type { DotrainOrderGui, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
+	import { onMount } from 'svelte';
 
 	export let tokenKey: string;
 	export let gui: DotrainOrderGui;
@@ -13,6 +14,13 @@
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
+
+	onMount(async () => {
+		const currentToken = await gui.getTokenInfo(tokenKey);
+		if (currentToken.address) {
+			inputValue = currentToken.address;
+		}
+	});
 
 	function checkIfAllTokensAreSelected() {
 		allTokensSelected = false;
