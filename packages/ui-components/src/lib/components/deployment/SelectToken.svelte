@@ -19,6 +19,7 @@
 		const currentToken = await gui.getTokenInfo(tokenKey);
 		if (currentToken.address) {
 			inputValue = currentToken.address;
+			getInfoForSelectedToken();
 		}
 	});
 
