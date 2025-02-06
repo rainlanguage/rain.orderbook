@@ -2,7 +2,7 @@ use crate::*;
 use blocks::Blocks;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     num::ParseIntError,
     sync::{Arc, RwLock},
 };
@@ -199,6 +199,7 @@ impl Scenario {
         let base_scenario = scenario_parts[0];
 
         let mut new_bindings = Hash::new();
+        let mut unhandled_bindings: HashSet<String> = bindings.keys().cloned().collect();
         for (k, v) in bindings {
             new_bindings.insert(StrictYaml::String(k), StrictYaml::String(v));
         }
@@ -221,68 +222,78 @@ impl Scenario {
                         {
                             let updates: Vec<_> = base_bindings
                                 .keys()
-                                .filter_map(|k| new_bindings.get(k).map(|v| (k.clone(), v.clone())))
+                                .filter_map(|k| {
+                                    if let Some(v) = new_bindings.get(k) {
+                                        unhandled_bindings.remove(k.as_str().unwrap_or_default());
+                                        Some((k.clone(), v.clone()))
+                                    } else {
+                                        None
+                                    }
+                                })
                                 .collect();
                             for (k, v) in updates {
                                 base_bindings.insert(k, v);
                             }
+                        }
 
-                            let scenario_parts_vec: Vec<_> =
-                                scenario_parts.iter().skip(1).collect();
-                            let mut current = scenario;
+                        let scenario_parts_vec: Vec<_> = scenario_parts.iter().skip(1).collect();
+                        let mut current = scenario;
 
-                            for &part in scenario_parts_vec {
-                                let next_scenario =
-                                    if let Some(StrictYaml::Hash(ref mut sub_scenarios)) = current
-                                        .get_mut(&StrictYaml::String("scenarios".to_string()))
+                        for &part in scenario_parts_vec {
+                            let next_scenario =
+                                if let Some(StrictYaml::Hash(ref mut sub_scenarios)) =
+                                    current.get_mut(&StrictYaml::String("scenarios".to_string()))
+                                {
+                                    if let Some(StrictYaml::Hash(ref mut sub_scenario)) =
+                                        sub_scenarios.get_mut(&StrictYaml::String(part.to_string()))
                                     {
-                                        if let Some(StrictYaml::Hash(ref mut sub_scenario)) =
-                                            sub_scenarios
-                                                .get_mut(&StrictYaml::String(part.to_string()))
+                                        if let Some(StrictYaml::Hash(ref mut sub_bindings)) =
+                                            sub_scenario.get_mut(&StrictYaml::String(
+                                                "bindings".to_string(),
+                                            ))
                                         {
-                                            if let Some(StrictYaml::Hash(ref mut sub_bindings)) =
-                                                sub_scenario.get_mut(&StrictYaml::String(
-                                                    "bindings".to_string(),
-                                                ))
-                                            {
-                                                let sub_updates: Vec<_> = sub_bindings
-                                                    .keys()
-                                                    .filter_map(|k| {
-                                                        new_bindings
-                                                            .get(k)
-                                                            .map(|v| (k.clone(), v.clone()))
-                                                    })
-                                                    .collect();
-
-                                                for (k, v) in sub_updates {
-                                                    sub_bindings.insert(k, v);
-                                                }
-                                            } else {
-                                                return Err(YamlError::ParseError(format!(
-                                                    "bindings not found in scenario {}",
-                                                    part
-                                                )));
+                                            let updates: Vec<_> = sub_bindings
+                                                .keys()
+                                                .filter_map(|k| {
+                                                    if let Some(v) = new_bindings.get(k) {
+                                                        unhandled_bindings
+                                                            .remove(k.as_str().unwrap_or_default());
+                                                        Some((k.clone(), v.clone()))
+                                                    } else {
+                                                        None
+                                                    }
+                                                })
+                                                .collect();
+                                            for (k, v) in updates {
+                                                sub_bindings.insert(k, v);
                                             }
-                                            sub_scenario
-                                        } else {
-                                            return Err(YamlError::ParseError(format!(
-                                                "{} not found in sub scenarios",
-                                                part
-                                            )));
                                         }
+                                        sub_scenario
                                     } else {
                                         return Err(YamlError::ParseError(format!(
-                                            "scenarios not found for part {}",
+                                            "{} not found in sub scenarios",
                                             part
                                         )));
-                                    };
-                                current = next_scenario;
+                                    }
+                                } else {
+                                    return Err(YamlError::ParseError(format!(
+                                        "scenarios not found for part {}",
+                                        part
+                                    )));
+                                };
+                            current = next_scenario;
+                        }
+
+                        if let Some(StrictYaml::Hash(ref mut lowest_bindings)) =
+                            current.get_mut(&StrictYaml::String("bindings".to_string()))
+                        {
+                            for key in unhandled_bindings {
+                                if let Some(value) =
+                                    new_bindings.get(&StrictYaml::String(key.clone()))
+                                {
+                                    lowest_bindings.insert(StrictYaml::String(key), value.clone());
+                                }
                             }
-                        } else {
-                            return Err(YamlError::ParseError(format!(
-                                "bindings not found in scenario {}",
-                                base_scenario
-                            )));
                         }
                     } else {
                         return Err(YamlError::ParseError(format!(

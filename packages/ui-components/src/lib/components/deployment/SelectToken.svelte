@@ -50,8 +50,9 @@
 					await gui.saveSelectToken(tokenKey, currentTarget.value);
 				}
 				await getInfoForSelectedToken();
-			} catch {
-				error = 'Invalid token address.';
+			} catch (e) {
+				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
+				error = errorMessage;
 			}
 		}
 		checkIfAllTokensAreSelected();
@@ -74,7 +75,7 @@
 					<span>{tokenInfo.name}</span>
 				</div>
 			{:else if error}
-				<div class="flex h-5 flex-row items-center gap-2">
+				<div class="flex h-5 flex-row items-center gap-2" data-testid="error">
 					<CloseCircleSolid class="h-5 w-5" color="red" />
 					<span>{error}</span>
 				</div>

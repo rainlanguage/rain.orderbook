@@ -308,6 +308,14 @@ mod tests {
             *order.network.as_ref(),
             ob_yaml.get_network("mainnet").unwrap()
         );
+        let input_vault_ids =
+            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
+        assert_eq!(input_vault_ids.len(), 1);
+        assert_eq!(input_vault_ids[0], Some("1".to_string()));
+        let output_vault_ids =
+            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
+        assert_eq!(output_vault_ids.len(), 1);
+        assert_eq!(output_vault_ids[0], Some("2".to_string()));
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
         assert_eq!(scenario_keys.len(), 3);
@@ -372,9 +380,10 @@ mod tests {
             *deposit.token.as_ref().unwrap(),
             ob_yaml.get_token("token1").unwrap().into()
         );
-        assert_eq!(deposit.presets.len(), 2);
-        assert_eq!(deposit.presets[0], "100".to_string());
-        assert_eq!(deposit.presets[1], "2000".to_string());
+        let presets = deposit.presets.as_ref().unwrap();
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0], "100".to_string());
+        assert_eq!(presets[1], "2000".to_string());
         assert_eq!(deployment.fields.len(), 1);
         let field = &deployment.fields[0];
         assert_eq!(field.binding, "key1");
@@ -412,6 +421,14 @@ mod tests {
         let select_tokens =
             Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());
+
+        let field_presets =
+            Gui::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
+                .unwrap()
+                .unwrap();
+        assert_eq!(field_presets[0].id, "0");
+        assert_eq!(field_presets[0].name, None);
+        assert_eq!(field_presets[0].value, "value2");
     }
 
     #[test]
@@ -589,6 +606,23 @@ mod tests {
             assert_eq!(scenario.bindings.len(), 2);
             assert_eq!(scenario.bindings.get("key1").unwrap(), "value3");
             assert_eq!(scenario.bindings.get("key2").unwrap(), "value4");
+        }
+
+        // Adding additional bindings
+        {
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+
+            let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            let updated_scenario = scenario
+                .update_bindings(HashMap::from([
+                    ("key3".to_string(), "value3".to_string()),
+                    ("key4".to_string(), "value4".to_string()),
+                ]))
+                .unwrap();
+
+            assert_eq!(updated_scenario.bindings.len(), 4);
+            assert_eq!(updated_scenario.bindings.get("key3").unwrap(), "value3");
+            assert_eq!(updated_scenario.bindings.get("key4").unwrap(), "value4");
         }
     }
 
