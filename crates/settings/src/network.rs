@@ -154,65 +154,67 @@ impl YamlParsableHash for Network {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let networks_hash = require_hash(
+            if let Ok(networks_hash) = require_hash(
                 &document_read,
                 Some("networks"),
                 Some("root document".to_string()),
-            )?;
+            ) {
+                for (key_yaml, network_yaml) in networks_hash {
+                    let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("network '{}'", network_key);
 
-            for (key_yaml, network_yaml) in networks_hash {
-                let network_key = key_yaml.as_str().unwrap_or_default().to_string();
-                let location = format!("network '{}'", network_key);
+                    let rpc_str =
+                        require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
 
-                let rpc_str = require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+                    let rpc_url =
+                        Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "rpc".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                let rpc_url = Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
-                    kind: FieldErrorKind::InvalidValue {
-                        field: "rpc".to_string(),
-                        reason: e.to_string(),
-                    },
-                    location: location.clone(),
-                })?;
+                    let chain_id_str =
+                        require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
 
-                let chain_id_str =
-                    require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
-
-                let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
-                    kind: FieldErrorKind::InvalidValue {
-                        field: "chain-id".to_string(),
-                        reason: e.to_string(),
-                    },
-                    location: location.clone(),
-                })?;
-
-                let label = optional_string(network_yaml, "label");
-                let network_id = optional_string(network_yaml, "network-id")
-                    .map(|id| Network::validate_network_id(&id))
-                    .transpose()
-                    .map_err(|e| YamlError::Field {
+                    let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
                         kind: FieldErrorKind::InvalidValue {
-                            field: "network-id".to_string(),
+                            field: "chain-id".to_string(),
                             reason: e.to_string(),
                         },
                         location: location.clone(),
                     })?;
 
-                let currency = optional_string(network_yaml, "currency");
+                    let label = optional_string(network_yaml, "label");
+                    let network_id = optional_string(network_yaml, "network-id")
+                        .map(|id| Network::validate_network_id(&id))
+                        .transpose()
+                        .map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "network-id".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                let network = Network {
-                    document: document.clone(),
-                    key: network_key.clone(),
-                    rpc: rpc_url,
-                    chain_id,
-                    label,
-                    network_id,
-                    currency,
-                };
+                    let currency = optional_string(network_yaml, "currency");
 
-                if networks.contains_key(&network_key) {
-                    return Err(YamlError::KeyShadowing(network_key));
+                    let network = Network {
+                        document: document.clone(),
+                        key: network_key.clone(),
+                        rpc: rpc_url,
+                        chain_id,
+                        label,
+                        network_id,
+                        currency,
+                    };
+
+                    if networks.contains_key(&network_key) {
+                        return Err(YamlError::KeyShadowing(network_key));
+                    }
+                    networks.insert(network_key, network);
                 }
-                networks.insert(network_key, network);
             }
         }
 
