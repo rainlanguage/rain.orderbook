@@ -71,7 +71,7 @@ impl Deployer {
         }
         Err(YamlError::Field {
             kind: FieldErrorKind::Missing(format!("network for deployer '{}'", deployer_key)),
-            location: "root document".to_string(),
+            location: "root".to_string(),
         })
     }
 }
@@ -189,7 +189,7 @@ impl YamlParsableHash for Deployer {
         if deployers.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("deployers".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             });
         }
 

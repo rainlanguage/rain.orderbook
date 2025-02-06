@@ -62,7 +62,7 @@ impl Orderbook {
         }
         Err(YamlError::Field {
             kind: FieldErrorKind::Missing(format!("network for orderbook '{}'", orderbook_key)),
-            location: "root document".to_string(),
+            location: "root".to_string(),
         })
     }
 }
@@ -148,7 +148,7 @@ impl YamlParsableHash for Orderbook {
         if orderbooks.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("orderbooks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             });
         }
 
@@ -347,7 +347,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -363,7 +363,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("subgraphs".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -381,7 +381,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("orderbooks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -422,7 +422,7 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "network".to_string(),
-                    reason: format!("Network 'TestNetwork' not found"),
+                    reason: "Network 'TestNetwork' not found".to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
@@ -447,7 +447,7 @@ orderbooks:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidValue {
                     field: "subgraph".to_string(),
-                    reason: format!("Subgraph 'TestSubgraph' not found"),
+                    reason: "Subgraph 'TestSubgraph' not found".to_string(),
                 },
                 location: "orderbook 'TestOrderbook'".to_string(),
             }

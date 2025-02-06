@@ -287,7 +287,7 @@ impl Gui {
                             field: "deployments".to_string(),
                             expected: "a map".to_string(),
                         },
-                        location: "root".to_string(),
+                        location: "gui".to_string(),
                     });
                 }
             }
@@ -320,23 +320,7 @@ impl Gui {
                                 }
                             }
                             return Ok(Some(result));
-                        } else {
-                            return Err(YamlError::Field {
-                                kind: FieldErrorKind::InvalidType {
-                                    field: "select-tokens".to_string(),
-                                    expected: "an array".to_string(),
-                                },
-                                location: deployment_key.to_string(),
-                            });
                         }
-                    } else {
-                        return Err(YamlError::Field {
-                            kind: FieldErrorKind::InvalidType {
-                                field: deployment_key.to_string(),
-                                expected: "a map".to_string(),
-                            },
-                            location: "gui".to_string(),
-                        });
                     }
                 } else {
                     return Err(YamlError::Field {
@@ -523,22 +507,30 @@ impl YamlParseableValue for Gui {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Some(gui) = optional_hash(&document_read, "gui") {
-                let name = require_string(
-                    get_hash_value(gui, "name", Some("gui".to_string()))?,
-                    None,
-                    Some("gui".to_string()),
-                )?;
+                let name = get_hash_value(gui, "name", Some("gui".to_string()))?
+                    .as_str()
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "name".to_string(),
+                            expected: "a string".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
-                let description = require_string(
-                    get_hash_value(gui, "description", Some("gui".to_string()))?,
-                    None,
-                    Some("gui".to_string()),
-                )?;
+                let description = get_hash_value(gui, "description", Some("gui".to_string()))?
+                    .as_str()
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "description".to_string(),
+                            expected: "a string".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
                 if gui_res.is_none() {
                     gui_res = Some(Gui {
-                        name,
-                        description,
+                        name: name.to_string(),
+                        description: description.to_string(),
                         deployments: gui_deployments_res.clone(),
                     });
                 }
@@ -622,7 +614,7 @@ impl YamlParseableValue for Gui {
                                 deposit_value,
                                 Some("token"),
                                 Some(format!(
-                                    "deposit index' {deposit_index}' in {location}",
+                                    "deposit index '{deposit_index}' in {location}",
                                 )),
                             )?);
 
@@ -633,9 +625,15 @@ impl YamlParseableValue for Gui {
                             Some(presets) => Some(presets.iter()
                             .enumerate()
                             .map(|(preset_index, preset_yaml)| {
-                                Ok(preset_yaml.as_str().ok_or(YamlError::ParseError(format!(
-                                    "preset list index '{preset_index}' for deposit index '{deposit_index}' in {location}",
-                                )))?.to_string())
+                                Ok(preset_yaml.as_str().ok_or(YamlError::Field{
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: "preset value".to_string(),
+                                        expected: "a string".to_string(),
+                                    },
+                                    location: format!(
+                                        "presets list index '{preset_index}' for deposit index '{deposit_index}' in {location}",
+                                    ),
+                                })?.to_string())
                             })
                             .collect::<Result<Vec<_>, YamlError>>()?),
                             None => None,
@@ -1176,7 +1174,7 @@ gui:
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("deployments".to_string()),
-                location: "gui".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -1328,7 +1326,7 @@ gui:
                     expected: "a string".to_string()
                 },
                 location:
-                    "preset list index '0' for deposit index '0' in gui deployment 'deployment1'"
+                    "presets list index '0' for deposit index '0' in gui deployment 'deployment1'"
                         .to_string(),
             }
         );
@@ -1443,7 +1441,7 @@ gui:
             error,
             YamlError::Field {
                 kind: FieldErrorKind::InvalidType {
-                    field: "preset value".to_string(),
+                    field: "value".to_string(),
                     expected: "a string".to_string()
                 },
                 location: "preset index '0' for field index '0' in gui deployment 'deployment1'"

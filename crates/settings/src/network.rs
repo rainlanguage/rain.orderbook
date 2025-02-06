@@ -90,7 +90,7 @@ impl Network {
             } else {
                 return Err(YamlError::Field {
                     kind: FieldErrorKind::Missing("networks".to_string()),
-                    location: "root document".to_string(),
+                    location: "root".to_string(),
                 });
             }
         } else {
@@ -113,11 +113,8 @@ impl Network {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let networks_hash = require_hash(
-                &document_read,
-                Some("networks"),
-                Some("root document".to_string()),
-            )?;
+            let networks_hash =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))?;
 
             if let Some(network_yaml) =
                 networks_hash.get(&StrictYaml::String(network_key.to_string()))
@@ -137,7 +134,7 @@ impl Network {
 
         Err(YamlError::Field {
             kind: FieldErrorKind::Missing(format!("rpc for network '{}'", network_key)),
-            location: "root document".to_string(),
+            location: "root".to_string(),
         })
     }
 }
@@ -154,11 +151,9 @@ impl YamlParsableHash for Network {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(networks_hash) = require_hash(
-                &document_read,
-                Some("networks"),
-                Some("root document".to_string()),
-            ) {
+            if let Ok(networks_hash) =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))
+            {
                 for (key_yaml, network_yaml) in networks_hash {
                     let network_key = key_yaml.as_str().unwrap_or_default().to_string();
                     let location = format!("network '{}'", network_key);
@@ -221,7 +216,7 @@ impl YamlParsableHash for Network {
         if networks.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             });
         }
 
@@ -307,7 +302,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -422,7 +417,7 @@ networks: test
                     field: "networks".to_string(),
                     expected: "a map".to_string(),
                 },
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -438,7 +433,7 @@ networks:
                     field: "networks".to_string(),
                     expected: "a map".to_string(),
                 },
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -454,7 +449,7 @@ networks:
                     field: "networks".to_string(),
                     expected: "a map".to_string(),
                 },
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 

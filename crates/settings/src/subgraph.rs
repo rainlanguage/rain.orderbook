@@ -91,11 +91,9 @@ impl YamlParsableHash for Subgraph {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(subgraphs_hash) = require_hash(
-                &document_read,
-                Some("subgraphs"),
-                Some("root document".to_string()),
-            ) {
+            if let Ok(subgraphs_hash) =
+                require_hash(&document_read, Some("subgraphs"), Some("root".to_string()))
+            {
                 for (key_yaml, subgraph_yaml) in subgraphs_hash {
                     let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
                     let location = format!("subgraph '{}'", subgraph_key);
@@ -126,7 +124,7 @@ impl YamlParsableHash for Subgraph {
         if subgraphs.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("subgraphs".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             });
         }
 
@@ -165,7 +163,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("subgraphs".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 

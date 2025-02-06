@@ -554,7 +554,7 @@ impl YamlParsableHash for Order {
                                         kind: FieldErrorKind::InvalidValue {
                                             field: "token".to_string(),
                                             reason: format!(
-                                                "missing yaml data for token '{token_name}' for location: '{location}'"
+                                                "missing yaml data for token '{token_name}'"
                                             ),
                                         },
                                         location: location.clone(),
@@ -567,7 +567,7 @@ impl YamlParsableHash for Order {
                                     kind: FieldErrorKind::InvalidValue {
                                         field: "token".to_string(),
                                         reason: format!(
-                                            "missing yaml data for token '{token_name}' for location: '{location}'"
+                                            "missing yaml data for token '{token_name}'"
                                         ),
                                     },
                                     location: location.clone(),
@@ -638,7 +638,7 @@ impl YamlParsableHash for Order {
                                         kind: FieldErrorKind::InvalidValue {
                                             field: "token".to_string(),
                                             reason: format!(
-                                                "missing yaml data for token '{token_name}' for location: '{location}'"
+                                                "missing yaml data for token '{token_name}'"
                                             ),
                                         },
                                         location: location.clone(),
@@ -651,7 +651,7 @@ impl YamlParsableHash for Order {
                                     kind: FieldErrorKind::InvalidValue {
                                         field: "token".to_string(),
                                         reason: format!(
-                                            "missing yaml data for token '{token_name}' for location: '{location}'"
+                                            "missing yaml data for token '{token_name}'"
                                         ),
                                     },
                                     location: location.clone(),

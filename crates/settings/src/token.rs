@@ -71,7 +71,7 @@ impl Token {
             } else {
                 return Err(YamlError::Field {
                     kind: FieldErrorKind::Missing("tokens".to_string()),
-                    location: "root document".to_string(),
+                    location: "root".to_string(),
                 });
             }
         } else {
@@ -162,7 +162,7 @@ impl Token {
             } else {
                 return Err(YamlError::Field {
                     kind: FieldErrorKind::Missing("tokens".to_string()),
-                    location: "root document".to_string(),
+                    location: "root".to_string(),
                 });
             }
         } else {
@@ -218,7 +218,7 @@ impl Token {
         }
         Err(YamlError::Field {
             kind: FieldErrorKind::Missing(format!("network for token '{}'", token_key)),
-            location: "root document".to_string(),
+            location: "root".to_string(),
         })
     }
 }
@@ -296,7 +296,7 @@ impl YamlParsableHash for Token {
         if tokens.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("tokens".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             });
         }
 
@@ -469,7 +469,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
@@ -490,7 +490,7 @@ test: test
             error,
             YamlError::Field {
                 kind: FieldErrorKind::Missing("tokens".to_string()),
-                location: "root document".to_string(),
+                location: "root".to_string(),
             }
         );
 
