@@ -5,8 +5,13 @@
 	export let allFieldDefinitions: GuiFieldDefinition[];
 	export let gui: DotrainOrderGui;
 	export let open: boolean;
+
+	$: currentOpen = open;
+
+	$: console.log('open in section', currentOpen);
+	$: console.log('open in section', open);
 </script>
 
 {#each allFieldDefinitions as fieldDefinition}
-	<FieldDefinitionInput {fieldDefinition} {gui} {open} />
+	<FieldDefinitionInput {fieldDefinition} {gui} open={currentOpen} />
 {/each}

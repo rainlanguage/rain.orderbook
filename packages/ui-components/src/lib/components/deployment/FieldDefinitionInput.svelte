@@ -9,7 +9,7 @@
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
 	export let open: boolean = true;
@@ -46,12 +46,6 @@
 		currentValue = gui.getFieldValue(fieldDefinition.binding);
 		await gui.getAllFieldValues();
 		await gui.getCurrentDeployment();
-	}
-
-	$: console.log('OPEN in input', open);
-	$: if ($page.url.searchParams) {
-		console.log('params changed');
-		console.log($page.url.searchParams.get('review'));
 	}
 </script>
 

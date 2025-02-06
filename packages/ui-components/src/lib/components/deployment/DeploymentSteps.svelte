@@ -63,7 +63,7 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let open: boolean;
+	let open: boolean = true
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -203,13 +203,14 @@
 	}
 
 	async function handleReviewChoices() {
+		console.log('Reviewing choices');
 		try {
 			const serializedState = await gui?.serializeState();
 			if (serializedState) {
 				$page.url.searchParams.set('state', serializedState);
 				$page.url.searchParams.set('review', 'true');
+				await goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
 				open = false;
-				goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
 			}
 		} catch (e) {
 			error = DeploymentStepErrors.SERIALIZE_ERROR;
@@ -218,16 +219,16 @@
 	}
 
 	$: if ($page.url.searchParams) {
+		console.log('got search params', $page.url.searchParams);
 		if ($page.url.searchParams.get('review') === 'true') {
 			open = false;
-		}
+		} else open = true;
 		if (stateFromUrl) {
 			handleGetStateFromUrl();
 		}
 	}
 
 	async function handleGetStateFromUrl() {
-		open = false;
 		if (!$page.url.searchParams.get('state')) return;
 		gui = await DotrainOrderGui.deserializeState(
 			dotrain,
@@ -255,6 +256,8 @@
 		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
 		return composedRainlang;
 	}
+
+	$: console.log('Open in container', open);
 </script>
 
 <div>
@@ -283,9 +286,10 @@
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
+				{open}
 					<Accordion multiple={true}>
 						{#if allFieldDefinitions.length > 0}
-							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui {open} />
+							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui bind:open />
 						{/if}
 
 						{#if allDepositFields.length > 0}
