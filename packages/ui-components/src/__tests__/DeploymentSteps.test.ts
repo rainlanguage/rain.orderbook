@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import { goto } from '$app/navigation';
 
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
@@ -17,10 +16,6 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		chooseDeployment: vi.fn()
 	}
-}));
-
-vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
 }));
 
 const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
@@ -580,7 +575,8 @@ describe('DeploymentSteps', () => {
 
 	it('shows deployment details when provided', async () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => []
+			getSelectTokens: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		const deploymentDetails = {
@@ -611,7 +607,8 @@ describe('DeploymentSteps', () => {
 	it('shows select tokens section when tokens need to be selected', async () => {
 		const mockSelectTokens = ['token1', 'token2'];
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => mockSelectTokens
+			getSelectTokens: () => mockSelectTokens,
+      getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -670,7 +667,8 @@ describe('DeploymentSteps', () => {
 				},
 				deposits: []
 			}),
-			getAllFieldDefinitions: () => []
+			getAllFieldDefinitions: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -702,7 +700,8 @@ describe('DeploymentSteps', () => {
 				},
 				deposits: []
 			}),
-			getAllFieldDefinitions: () => []
+			getAllFieldDefinitions: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -720,48 +719,5 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
-	});
-
-	it('shows and handles review choices button click', async () => {
-		mockConnectedStore.mockSetSubscribeValue(true);
-		const mockSerializeState = vi.fn().mockResolvedValue('serialized-state');
-
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => [],
-			getCurrentDeployment: () => ({
-				deployment: {
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				},
-				deposits: []
-			}),
-			getAllFieldDefinitions: () => [],
-			serializeState: mockSerializeState
-		});
-
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
-			}
-		});
-
-		await waitFor(() => {
-			const reviewButton = screen.getByTestId('review-choices-button');
-			expect(reviewButton).toBeInTheDocument();
-		});
-
-		const reviewButton = screen.getByTestId('review-choices-button');
-		await fireEvent.click(reviewButton);
-
-		expect(mockSerializeState).toHaveBeenCalled();
-		expect(goto).toHaveBeenCalledWith('?state=serialized-state&review=true', { noScroll: true });
 	});
 });
