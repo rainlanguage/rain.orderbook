@@ -11,7 +11,11 @@ describe('SelectToken', () => {
 		saveSelectToken: vi.fn(),
 		replaceSelectToken: vi.fn(),
 		isSelectTokenSet: vi.fn(),
-		getTokenInfo: vi.fn()
+		getTokenInfo: vi.fn().mockResolvedValue({
+			symbol: 'ETH',
+			decimals: 18,
+			address: '0x456'
+		})
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
@@ -37,10 +41,17 @@ describe('SelectToken', () => {
 
 	it('calls saveSelectToken and updates token info when input changes', async () => {
 		const user = userEvent.setup();
-		const { getByRole } = render(SelectToken, mockProps);
+		const mockGuiWithNoToken = {
+			...mockGui,
+			getTokenInfo: vi.fn().mockResolvedValue(null)
+		} as unknown as DotrainOrderGui;
+		const { getByRole } = render(SelectToken, {
+			...mockProps,
+			gui: mockGuiWithNoToken
+		});
 		const input = getByRole('textbox');
 
-		await user.clear(input);
+		await userEvent.clear(input);
 		await user.type(input, '0x456');
 
 		await waitFor(() => {

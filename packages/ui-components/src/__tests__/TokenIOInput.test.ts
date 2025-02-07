@@ -1,9 +1,9 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TokenInputOrOutput from '../lib/components/deployment/TokenInputOrOutput.svelte';
+import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
 
-export type TokenInputOrOutputComponentProps = ComponentProps<TokenInputOrOutput>;
+export type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
 describe('TokenInput', () => {
 	const mockInput = {
@@ -23,13 +23,13 @@ describe('TokenInput', () => {
 		decimals: 18
 	};
 
-	const mockProps: TokenInputOrOutputComponentProps = {
+	const mockProps: TokenIOInputComponentProps = {
 		i: 0,
 		label: 'Input',
 		vault: mockInput,
 		vaultIds: ['vault1'],
 		gui: mockGui
-	} as unknown as TokenInputOrOutputComponentProps;
+	} as unknown as TokenIOInputComponentProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -37,23 +37,23 @@ describe('TokenInput', () => {
 	});
 
 	it('renders with correct label and no token symbol', () => {
-		const { getByText } = render(TokenInputOrOutput, mockProps);
+		const { getByText } = render(TokenIOInput, mockProps);
 		expect(getByText('Input 1')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
-		const { getByPlaceholderText } = render(TokenInputOrOutput, mockProps);
+		const { getByPlaceholderText } = render(TokenIOInput, mockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 		expect(input).toBeInTheDocument();
 	});
 
 	it('displays the correct vault ID value', () => {
-		const { getByDisplayValue } = render(TokenInputOrOutput, mockProps);
+		const { getByDisplayValue } = render(TokenIOInput, mockProps);
 		expect(getByDisplayValue('vault1')).toBeInTheDocument();
 	});
 
 	it('calls setVaultId when input changes', async () => {
-		const { getByPlaceholderText } = render(TokenInputOrOutput, mockProps);
+		const { getByPlaceholderText } = render(TokenIOInput, mockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 
 		await fireEvent.change(input, { target: { value: 'vault1' } });
@@ -65,8 +65,8 @@ describe('TokenInput', () => {
 		const propsWithoutGui = {
 			...mockProps,
 			gui: undefined
-		} as unknown as TokenInputOrOutputComponentProps;
-		const { getByPlaceholderText } = render(TokenInputOrOutput, propsWithoutGui);
+		} as unknown as TokenIOInputComponentProps;
+		const { getByPlaceholderText } = render(TokenIOInput, propsWithoutGui);
 		const input = getByPlaceholderText('Enter vault ID');
 
 		await fireEvent.change(input, { target: { value: 'newVault' } });
@@ -80,8 +80,8 @@ describe('TokenInput', () => {
 			vault: { token: { address: '0x789' } }
 		};
 		const { getByText } = render(
-			TokenInputOrOutput,
-			propsWithUnknownToken as unknown as TokenInputOrOutputComponentProps
+			TokenIOInput,
+			propsWithUnknownToken as unknown as TokenIOInputComponentProps
 		);
 		expect(getByText('Input 1')).toBeInTheDocument();
 	});
@@ -94,9 +94,9 @@ describe('TokenInput', () => {
 					key: '0x456'
 				}
 			}
-		} as unknown as TokenInputOrOutputComponentProps;
+		} as unknown as TokenIOInputComponentProps;
 
-		const { findByText } = render(TokenInputOrOutput, propsWithTokenKey);
+		const { findByText } = render(TokenIOInput, propsWithTokenKey);
 
 		const labelWithSymbol = await findByText('Input 1 (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
