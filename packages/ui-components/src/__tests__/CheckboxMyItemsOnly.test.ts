@@ -1,8 +1,7 @@
 import { render, fireEvent, screen } from '@testing-library/svelte';
-import {get, readable, writable, type Writable} from 'svelte/store';
+import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import CheckboxMyItemsOnly from '../lib/components/CheckboxMyItemsOnly.svelte';
-import CheckboxZeroBalanceVault from "$lib/components/CheckboxZeroBalanceVault.svelte";
 
 describe('CheckboxMyItemsOnly', () => {
 	let showMyItemsOnly: Writable<boolean>;
