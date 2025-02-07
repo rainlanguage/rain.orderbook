@@ -33,7 +33,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -45,7 +46,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -57,7 +59,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -73,7 +76,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -83,6 +87,7 @@ describe('FieldDefinitionInput', () => {
 		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'custom value'
+
 		});
 	});
 
@@ -95,7 +100,8 @@ describe('FieldDefinitionInput', () => {
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
