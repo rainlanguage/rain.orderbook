@@ -13,7 +13,7 @@
 				<img src={$colorTheme === 'light' ? logoLight : logoDark} alt="Rainlang logo" class="h-8" />
 			</div>
 			<div class="flex h-full flex-row items-center gap-x-2 md:gap-x-6 dark:text-gray-100">
-				<a href="/docs">Docs</a>
+				<a href="https://docs.rainlang.xyz/raindex/overview">Docs</a>
 				<a href="/deploy">Dashboard</a>
 				<WalletConnect {appKitModal} {connected} />
 			</div>
