@@ -19,10 +19,8 @@
 	}: AppStoresInterface = $page.data.stores;
 
 	$: currentRoute = $page.url.pathname;
+	$: showMyItemsOnly.set($connected);
 
-	onMount(async () => {
-		showMyItemsOnly.set($connected);
-	});
 </script>
 
 <OrdersListTable

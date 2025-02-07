@@ -47,9 +47,9 @@
 			await resetActiveNetworkRef();
 			resetActiveOrderbookRef();
 		}
-
-		showMyItemsOnly.set($connected);
 	});
+	$:showMyItemsOnly.set($connected);
+
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
