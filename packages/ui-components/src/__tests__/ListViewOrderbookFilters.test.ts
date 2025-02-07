@@ -92,7 +92,13 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows common components when networks exist', () => {
-		render(ListViewOrderbookFilters, defaultProps);
+		const props = {
+			...defaultProps,
+			signerAddress: '0x123',
+			showMyItemsOnly: writable(true),
+			activeAccountsItems: undefined
+		};
+		render(ListViewOrderbookFilters, props);
 
 		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
 		expect(screen.getByTestId('subgraphs-dropdown')).toBeInTheDocument();
