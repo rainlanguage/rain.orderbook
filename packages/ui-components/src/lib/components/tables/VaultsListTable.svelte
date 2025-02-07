@@ -18,12 +18,12 @@
 		type MultiSubgraphArgs,
 		type VaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
-	import type { Writable, Readable } from 'svelte/store';
+	import { type Writable, type Readable, writable } from 'svelte/store';
+	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let orderHash: Writable<string>;
-	export let accounts: Readable<Record<string, string>>;
 	export let activeAccountsItems: Writable<Record<string, string>>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let settings: Writable<ConfigSource | undefined>;
@@ -41,6 +41,7 @@
 	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] = writable(true);
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -95,7 +96,7 @@
 	<ListViewOrderbookFilters
 		{activeSubgraphs}
 		{settings}
-		{accounts}
+		{showMyItemsOnly}
 		{activeAccountsItems}
 		{activeOrderStatus}
 		{orderHash}

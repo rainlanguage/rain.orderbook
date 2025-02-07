@@ -19,6 +19,7 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
+	import { writable } from 'svelte/store';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,11 +30,11 @@
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
-	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] = writable(true);
 	export let currentRoute: string;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
@@ -86,7 +87,7 @@
 <ListViewOrderbookFilters
 	{activeSubgraphs}
 	{settings}
-	{accounts}
+	{showMyItemsOnly}
 	{activeAccountsItems}
 	{activeOrderStatus}
 	{orderHash}

@@ -2,11 +2,11 @@
 	import { Checkbox, Label } from 'flowbite-svelte';
 	import type { Writable } from 'svelte/store';
 
-	export let showMyItems: Writable<boolean>;
+	export let showMyItemsOnly: Writable<boolean>;
 	export let context: 'orders' | 'vaults';
 
 	function handleShowMyItemsChange() {
-		$showMyItems = !$showMyItems;
+		$showMyItemsOnly = !$showMyItemsOnly;
 	}
 </script>
 
@@ -17,5 +17,5 @@
 	>
 		Only show my {context}
 	</Label>
-	<Checkbox id="show-my-items" checked={$showMyItems} on:change={handleShowMyItemsChange} />
+	<Checkbox id="show-my-items" checked={$showMyItemsOnly} on:change={handleShowMyItemsChange} />
 </div>

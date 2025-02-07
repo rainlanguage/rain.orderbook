@@ -6,13 +6,13 @@
 	const {
 		activeSubgraphs,
 		settings,
-		accounts,
 		activeAccountsItems,
 		activeOrderStatus,
 		orderHash,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
-		activeOrderbookRef
+		activeOrderbookRef,
+		showMyItemsOnly
 	}: AppStoresInterface = $page.data.stores;
 
 	$: currentRoute = $page.url.pathname;
@@ -23,7 +23,7 @@
 	{activeOrderbookRef}
 	{activeSubgraphs}
 	{settings}
-	{accounts}
+	{showMyItemsOnly}
 	{activeAccountsItems}
 	{activeOrderStatus}
 	{orderHash}
