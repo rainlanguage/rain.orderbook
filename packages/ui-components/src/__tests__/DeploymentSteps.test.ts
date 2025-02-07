@@ -575,7 +575,8 @@ describe('DeploymentSteps', () => {
 
 	it('shows deployment details when provided', async () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => []
+			getSelectTokens: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		const deploymentDetails = {
@@ -606,7 +607,8 @@ describe('DeploymentSteps', () => {
 	it('shows select tokens section when tokens need to be selected', async () => {
 		const mockSelectTokens = ['token1', 'token2'];
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => mockSelectTokens
+			getSelectTokens: () => mockSelectTokens,
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -665,7 +667,8 @@ describe('DeploymentSteps', () => {
 				},
 				deposits: []
 			}),
-			getAllFieldDefinitions: () => []
+			getAllFieldDefinitions: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -697,7 +700,8 @@ describe('DeploymentSteps', () => {
 				},
 				deposits: []
 			}),
-			getAllFieldDefinitions: () => []
+			getAllFieldDefinitions: () => [],
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
