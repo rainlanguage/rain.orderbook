@@ -28,7 +28,7 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		<div class="mt-4 w-full lg:w-auto">
+		<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 			<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 		</div>
 		{#if isVaultsPage}

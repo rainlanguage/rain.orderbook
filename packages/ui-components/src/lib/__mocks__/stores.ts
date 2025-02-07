@@ -21,6 +21,7 @@ const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(false);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
+const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 
 export const mockWalletAddressMatchesOrBlankStore = {
 	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
@@ -121,4 +122,10 @@ export const mockWagmiConfigStore = {
 	set: mockWagmiConfigWritable.set,
 	update: mockWagmiConfigWritable.update,
 	mockSetSubscribeValue: (value: Config): void => mockWagmiConfigWritable.set(value)
+};
+
+export const mockShowMyItemsOnlyStore = {
+	subscribe: mockShowMyItemsOnlyWritable.subscribe,
+	set: mockShowMyItemsOnlyWritable.set,
+	mockSetSubscribeValue: (value: boolean): void => mockShowMyItemsOnlyWritable.set(value)
 };

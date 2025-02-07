@@ -39,7 +39,9 @@ describe('ListViewOrderbookFilters', () => {
 		orderHash: writable(''),
 		isVaultsPage: false,
 		isOrdersPage: false,
-		query
+		query,
+		signerAddress: '',
+		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
@@ -64,7 +66,7 @@ describe('ListViewOrderbookFilters', () => {
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();
-		expect(screen.queryByTestId('accounts-dropdown')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('my-items-only')).not.toBeInTheDocument();
 	});
 
 	test('shows vault-specific components on vault page', () => {
@@ -92,7 +94,7 @@ describe('ListViewOrderbookFilters', () => {
 	test('shows common components when networks exist', () => {
 		render(ListViewOrderbookFilters, defaultProps);
 
-		expect(screen.getByTestId('accounts-dropdown')).toBeInTheDocument();
+		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
 		expect(screen.getByTestId('subgraphs-dropdown')).toBeInTheDocument();
 	});
 
