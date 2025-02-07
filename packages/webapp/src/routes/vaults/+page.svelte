@@ -2,6 +2,8 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { connected } from '$lib/stores/wagmi';
+	import {writable} from "svelte/store";
 
 	const {
 		activeOrderbook,
@@ -17,7 +19,7 @@
 		activeAccounts,
 		walletAddressMatchesOrBlank,
 		activeNetworkOrderbooks,
-		showMyItemsOnly
+		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {
@@ -45,6 +47,8 @@
 			await resetActiveNetworkRef();
 			resetActiveOrderbookRef();
 		}
+
+		showMyItemsOnly.set($connected);
 	});
 </script>
 
