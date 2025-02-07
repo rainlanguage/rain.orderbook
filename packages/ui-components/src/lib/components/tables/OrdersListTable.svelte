@@ -30,6 +30,8 @@
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
+	export let accounts: AppStoresInterface['accounts'] | undefined;
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
@@ -46,8 +48,13 @@
 		url
 	})) as MultiSubgraphArgs[];
 
-	$: owners = $showMyItemsOnly && $signerAddress ? [$signerAddress] : [];
-
+	// $: owners = $showMyItemsOnly && $signerAddress ? [$signerAddress] : [];
+	$: owners =
+		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
+			? Object.values($activeAccountsItems)
+			: $showMyItemsOnly && $signerAddress
+				? [$signerAddress]
+				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_ORDERS,
@@ -86,6 +93,8 @@
 <ListViewOrderbookFilters
 	{activeSubgraphs}
 	{settings}
+	{accounts}
+	{activeAccountsItems}
 	{showMyItemsOnly}
 	{activeOrderStatus}
 	{orderHash}

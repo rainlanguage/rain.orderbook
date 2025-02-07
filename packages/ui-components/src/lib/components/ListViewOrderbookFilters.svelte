@@ -3,14 +3,17 @@
 	import { Alert } from 'flowbite-svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
+	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
-	import type { Writable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '../typeshare/config';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 
 	export let settings: Writable<ConfigSource | undefined>;
+	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
+	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	export let showMyItemsOnly: Writable<boolean>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
@@ -28,9 +31,11 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-			<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
-		</div>
+		{#if !$activeAccountsItems}
+			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
+				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
+			</div>
+		{/if}
 		{#if isVaultsPage}
 			<div class="mt-4 w-full lg:w-auto">
 				<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
@@ -40,6 +45,9 @@
 		{#if isOrdersPage}
 			<InputOrderHash {orderHash} />
 			<DropdownOrderStatus {activeOrderStatus} />
+		{/if}
+		{#if $activeAccountsItems && Object.values($activeAccountsItems).length > 0}
+			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
 	{/if}
