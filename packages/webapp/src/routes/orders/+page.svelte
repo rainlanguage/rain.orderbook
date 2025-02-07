@@ -2,14 +2,13 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { onMount } from 'svelte';
+	import { signerAddress } from '$lib/stores/wagmi';
 	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
 
 	const {
 		activeSubgraphs,
 		settings,
-		activeAccountsItems,
 		activeOrderStatus,
 		orderHash,
 		hideZeroBalanceVaults,
@@ -28,7 +27,7 @@
 	{activeSubgraphs}
 	{settings}
 	{showMyItemsOnly}
-	{activeAccountsItems}
+	{signerAddress}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}

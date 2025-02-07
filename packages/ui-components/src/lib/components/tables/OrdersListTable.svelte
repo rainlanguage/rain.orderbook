@@ -19,6 +19,7 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
+	import type { Writable } from 'svelte/store';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,12 +30,12 @@
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let currentRoute: string;
+	export let signerAddress: Writable<string | null>;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
@@ -45,8 +46,7 @@
 		url
 	})) as MultiSubgraphArgs[];
 
-	$: owners =
-		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
+	$: owners = $showMyItemsOnly && $signerAddress ? [$signerAddress] : [];
 
 	$: query = createInfiniteQuery({
 		queryKey: [
@@ -87,7 +87,6 @@
 	{activeSubgraphs}
 	{settings}
 	{showMyItemsOnly}
-	{activeAccountsItems}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}

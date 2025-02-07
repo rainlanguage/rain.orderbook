@@ -12,7 +12,6 @@
 	export let settings: Writable<ConfigSource | undefined>;
 	export let hideZeroBalanceVaults: Writable<boolean>;
 	export let showMyItemsOnly: Writable<boolean>;
-	// export let activeAccountsItems: Writable<Record<string, string>>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
 	export let orderHash: Writable<string>;
