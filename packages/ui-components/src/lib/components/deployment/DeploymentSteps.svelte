@@ -303,7 +303,7 @@
 								bind:gui
 								bind:inputVaultIds
 								bind:outputVaultIds
-								bind:{open}
+								bind:open
 							/>
 						{/if}
 					</Accordion>
