@@ -7,7 +7,9 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: vi.fn().mockImplementation(() => ({
 		saveFieldValue: vi.fn(),
 		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn()
+		isFieldPreset: vi.fn(),
+		getAllFieldValues: vi.fn(),
+		getCurrentDeployment: vi.fn()
 	}))
 }));
 
@@ -31,7 +33,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -43,7 +46,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -55,7 +59,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -71,7 +76,8 @@ describe('FieldDefinitionInput', () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
@@ -93,7 +99,8 @@ describe('FieldDefinitionInput', () => {
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
+				gui: mockGui,
+				open: true
 			}
 		});
 
