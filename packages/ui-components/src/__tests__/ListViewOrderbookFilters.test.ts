@@ -96,7 +96,8 @@ describe('ListViewOrderbookFilters', () => {
 			...defaultProps,
 			signerAddress: '0x123',
 			showMyItemsOnly: writable(true),
-			activeAccountsItems: undefined
+			activeAccountsItems: undefined,
+			accounts: undefined
 		};
 		render(ListViewOrderbookFilters, props);
 
