@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { connected } from '$lib/stores/wagmi';
-	import {writable} from "svelte/store";
+	import { writable } from 'svelte/store';
 
 	const {
 		activeOrderbook,
@@ -48,8 +48,7 @@
 			resetActiveOrderbookRef();
 		}
 	});
-	$:showMyItemsOnly.set($connected);
-
+	$: showMyItemsOnly.set($connected);
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />

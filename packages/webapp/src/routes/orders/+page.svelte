@@ -2,9 +2,9 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import {onMount} from "svelte";
-	import {connected} from "$lib/stores/wagmi.ts";
-	import {writable} from "svelte/store";
+	import { onMount } from 'svelte';
+	import { connected } from '$lib/stores/wagmi.ts';
+	import { writable } from 'svelte/store';
 
 	const {
 		activeSubgraphs,
@@ -20,7 +20,6 @@
 
 	$: currentRoute = $page.url.pathname;
 	$: showMyItemsOnly.set($connected);
-
 </script>
 
 <OrdersListTable
