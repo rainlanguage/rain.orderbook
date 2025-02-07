@@ -87,7 +87,6 @@ describe('FieldDefinitionInput', () => {
 		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'custom value'
-
 		});
 	});
 
