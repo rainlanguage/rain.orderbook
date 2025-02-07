@@ -24,7 +24,6 @@
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let orderHash: Writable<string>;
-	export let activeAccountsItems: Writable<Record<string, string>>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let settings: Writable<ConfigSource | undefined>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
@@ -42,6 +41,7 @@
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let signerAddress: Writable<string | null>;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -50,8 +50,7 @@
 		url
 	})) as MultiSubgraphArgs[];
 
-	$: owners =
-		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
+	$: owners = $showMyItemsOnly && $signerAddress ? [$signerAddress] : [];
 
 	$: query = createInfiniteQuery({
 		queryKey: [
@@ -97,7 +96,6 @@
 		{activeSubgraphs}
 		{settings}
 		{showMyItemsOnly}
-		{activeAccountsItems}
 		{activeOrderStatus}
 		{orderHash}
 		{hideZeroBalanceVaults}

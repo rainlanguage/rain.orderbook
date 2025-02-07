@@ -2,14 +2,13 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { connected } from '$lib/stores/wagmi';
+	import { connected, signerAddress } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
 
 	const {
 		activeOrderbook,
 		subgraphUrl,
 		orderHash,
-		activeAccountsItems,
 		activeSubgraphs,
 		settings,
 		activeOrderStatus,
@@ -58,7 +57,7 @@
 	{subgraphUrl}
 	{orderHash}
 	{showMyItemsOnly}
-	{activeAccountsItems}
+	{signerAddress}
 	{activeSubgraphs}
 	{settings}
 	{activeOrderStatus}
