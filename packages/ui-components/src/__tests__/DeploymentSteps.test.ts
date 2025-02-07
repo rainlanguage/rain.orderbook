@@ -608,7 +608,7 @@ describe('DeploymentSteps', () => {
 		const mockSelectTokens = ['token1', 'token2'];
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => mockSelectTokens,
-      getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn()
 		});
 
 		render(DeploymentSteps, {
