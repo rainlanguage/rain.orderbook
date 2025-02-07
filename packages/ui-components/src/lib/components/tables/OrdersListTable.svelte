@@ -19,7 +19,6 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { writable } from 'svelte/store';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +33,7 @@
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] = writable(true);
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let currentRoute: string;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];

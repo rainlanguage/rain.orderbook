@@ -7,7 +7,6 @@
 		activeOrderbook,
 		subgraphUrl,
 		orderHash,
-		accounts,
 		activeAccountsItems,
 		activeSubgraphs,
 		settings,
@@ -17,7 +16,8 @@
 		activeOrderbookRef,
 		activeAccounts,
 		walletAddressMatchesOrBlank,
-		activeNetworkOrderbooks
+		activeNetworkOrderbooks,
+		showMyItemsOnly
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {
@@ -54,7 +54,7 @@
 	{activeOrderbook}
 	{subgraphUrl}
 	{orderHash}
-	{accounts}
+	{showMyItemsOnly}
 	{activeAccountsItems}
 	{activeSubgraphs}
 	{settings}

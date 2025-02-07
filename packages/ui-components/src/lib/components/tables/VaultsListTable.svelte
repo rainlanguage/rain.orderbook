@@ -18,7 +18,7 @@
 		type MultiSubgraphArgs,
 		type VaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
-	import { type Writable, type Readable, writable } from 'svelte/store';
+	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
@@ -41,7 +41,7 @@
 	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] = writable(true);
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
