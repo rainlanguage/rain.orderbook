@@ -31,7 +31,7 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		{#if !$activeAccountsItems}
+		{#if !$accounts}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 			</div>
@@ -46,7 +46,7 @@
 			<InputOrderHash {orderHash} />
 			<DropdownOrderStatus {activeOrderStatus} />
 		{/if}
-		{#if $activeAccountsItems && Object.values($activeAccountsItems).length > 0}
+		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
 		{/if}
 		<DropdownActiveSubgraphs settings={$settings} {activeSubgraphs} />
