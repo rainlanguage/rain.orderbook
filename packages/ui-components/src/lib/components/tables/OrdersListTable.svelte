@@ -48,7 +48,6 @@
 		url
 	})) as MultiSubgraphArgs[];
 
-	// $: owners = $showMyItemsOnly && $signerAddress ? [$signerAddress] : [];
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
