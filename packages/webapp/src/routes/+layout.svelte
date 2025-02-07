@@ -11,6 +11,7 @@
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 
 	import { page } from '$app/stores';
+	import Homepage from '$lib/components/Homepage.svelte';
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -18,6 +19,8 @@
 			}
 		}
 	});
+
+	$: console.log($colorTheme);
 
 	const initWallet = async () => {
 		const erckit = defaultConfig({
@@ -35,10 +38,16 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-	<div class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400">
-		<Sidebar {colorTheme} page={$page} />
-		<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-			<slot />
-		</main>
-	</div>
+	{#if $page.url.pathname === '/'}
+		<Homepage {colorTheme} />
+	{:else}
+		<div
+			class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+		>
+			<Sidebar {colorTheme} page={$page} />
+			<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+				<slot />
+			</main>
+		</div>
+	{/if}
 </QueryClientProvider>

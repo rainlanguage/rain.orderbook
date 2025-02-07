@@ -14,7 +14,8 @@ export default {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['DM Sans', 'sans-serif']
+				sans: ['DM Sans', 'sans-serif'],
+'instrument-serif': ['Instrument Serif', 'serif']
 			},
 			colors: {
 				primary: { ...indigo },
