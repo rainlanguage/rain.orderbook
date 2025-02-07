@@ -3,6 +3,7 @@ import { rawDotrain } from '$lib/stores/raw-dotrain';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { get } from 'svelte/store';
 import type { PageLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 
 export const load: PageLoad = async ({ fetch, params, parent }) => {
 	const { strategyName, deploymentKey } = params;
@@ -61,10 +62,6 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
 			description
 		};
 	} catch {
-		return {
-			dotrain: null,
-			strategyName: null,
-			deploymentKey: null
-		};
+		throw redirect(307, '/deploy');
 	}
 };
