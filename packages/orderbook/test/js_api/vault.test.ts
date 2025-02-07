@@ -237,10 +237,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 	it('should get deposit calldata for a vault', async () => {
 		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
 
-		let calldata: string = await getVaultDepositCalldata(
-			vault1,
-			'500'
-		);
+		let calldata: string = await getVaultDepositCalldata(vault1, '500');
 		assert.equal(calldata.length, 330);
 	});
 
