@@ -9,6 +9,8 @@
 	const {
 		activeSubgraphs,
 		settings,
+		accounts,
+		activeAccountsItems,
 		activeOrderStatus,
 		orderHash,
 		hideZeroBalanceVaults,
@@ -26,6 +28,8 @@
 	{activeOrderbookRef}
 	{activeSubgraphs}
 	{settings}
+	{accounts}
+	{activeAccountsItems}
 	{showMyItemsOnly}
 	{signerAddress}
 	{activeOrderStatus}

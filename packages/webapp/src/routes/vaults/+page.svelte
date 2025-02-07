@@ -11,6 +11,8 @@
 		orderHash,
 		activeSubgraphs,
 		settings,
+		accounts,
+		activeAccountsItems,
 		activeOrderStatus,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
@@ -60,6 +62,8 @@
 	{signerAddress}
 	{activeSubgraphs}
 	{settings}
+	{accounts}
+	{activeAccountsItems}
 	{activeOrderStatus}
 	{hideZeroBalanceVaults}
 	{activeNetworkRef}

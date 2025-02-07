@@ -35,9 +35,9 @@
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] | undefined;
 	export let currentRoute: string;
-	export let signerAddress: Writable<string | null>;
+	export let signerAddress: Writable<string | null> | undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
