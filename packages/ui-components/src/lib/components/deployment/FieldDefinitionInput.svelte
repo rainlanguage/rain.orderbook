@@ -12,7 +12,7 @@
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-	export let open: boolean = true;
+	export let open: boolean;
 
 	let currentValue: GuiPreset | undefined;
 	let inputValue: string | null = currentValue?.value || null;

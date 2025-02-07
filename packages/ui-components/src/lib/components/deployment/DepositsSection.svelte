@@ -8,5 +8,5 @@
 </script>
 
 {#each allDepositFields as deposit}
-	<DepositInput bind:deposit bind:gui {open} />
+	<DepositInput bind:deposit bind:gui bind:open />
 {/each}

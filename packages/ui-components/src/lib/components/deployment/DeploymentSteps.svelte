@@ -26,6 +26,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { FileCopySolid } from 'flowbite-svelte-icons';
+	import { onMount } from 'svelte';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -203,14 +204,13 @@
 	}
 
 	async function handleReviewChoices() {
-		console.log('Reviewing choices');
+		open = !open;
 		try {
 			const serializedState = await gui?.serializeState();
 			if (serializedState) {
 				$page.url.searchParams.set('state', serializedState);
 				$page.url.searchParams.set('review', 'true');
 				await goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
-				open = false;
 			}
 		} catch (e) {
 			error = DeploymentStepErrors.SERIALIZE_ERROR;
@@ -218,15 +218,15 @@
 		}
 	}
 
-	$: if ($page.url.searchParams) {
-		console.log('got search params', $page.url.searchParams);
-		if ($page.url.searchParams.get('review') === 'true') {
-			open = false;
-		} else open = true;
-		if (stateFromUrl) {
-			handleGetStateFromUrl();
+	onMount(() => {
+		if ($page.url.searchParams) {
+			const isReview = $page.url.searchParams.get('review') === 'true';
+			open = !isReview;
+			if (stateFromUrl) {
+				handleGetStateFromUrl();
+			}
 		}
-	}
+	});
 
 	async function handleGetStateFromUrl() {
 		if (!$page.url.searchParams.get('state')) return;
@@ -259,8 +259,6 @@
 		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
 		return composedRainlang;
 	}
-
-	$: console.log('Open in container', open);
 </script>
 
 <div>
@@ -289,14 +287,13 @@
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
-					{open}
 					<Accordion multiple={true}>
 						{#if allFieldDefinitions.length > 0}
 							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui bind:open />
 						{/if}
 
 						{#if allDepositFields.length > 0}
-							<DepositsSection bind:allDepositFields bind:gui {open} />
+							<DepositsSection bind:allDepositFields bind:gui bind:open />
 						{/if}
 
 						{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
@@ -306,7 +303,7 @@
 								bind:gui
 								bind:inputVaultIds
 								bind:outputVaultIds
-								{open}
+								bind:{open}
 							/>
 						{/if}
 					</Accordion>

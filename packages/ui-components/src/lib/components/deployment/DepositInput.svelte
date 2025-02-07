@@ -13,7 +13,7 @@
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
-	export let open: boolean = true;
+	export let open: boolean;
 
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
