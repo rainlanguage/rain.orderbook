@@ -1,3 +1,4 @@
+use crate::yaml::FieldErrorKind;
 use crate::*;
 use alloy::primitives::hex::FromHexError;
 use alloy::primitives::Address;
@@ -50,14 +51,19 @@ impl Orderbook {
                         .or_else(|_| Ok(orderbook_key.to_string()));
                 }
             } else {
-                return Err(YamlError::ParseError(
-                    "orderbooks field must be a map".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "orderbooks".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
-        Err(YamlError::ParseError(format!(
-            "network key not found for orderbook: {orderbook_key}"
-        )))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(format!("network for orderbook '{}'", orderbook_key)),
+            location: "root".to_string(),
+        })
     }
 }
 
@@ -68,58 +74,82 @@ impl YamlParsableHash for Orderbook {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orderbooks = HashMap::new();
 
+        let networks = Network::parse_all_from_yaml(documents.clone(), None)?;
+        let subgraphs = Subgraph::parse_all_from_yaml(documents.clone(), None)?;
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let orderbooks_hash = require_hash(
-                &document_read,
-                Some("orderbooks"),
-                Some("missing field: orderbooks".to_string()),
-            )?;
+            if let Ok(orderbooks_hash) = require_hash(&document_read, Some("orderbooks"), None) {
+                for (key_yaml, orderbook_yaml) in orderbooks_hash {
+                    let orderbook_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("orderbook '{}'", orderbook_key);
 
-            for (key_yaml, orderbook_yaml) in orderbooks_hash {
-                let orderbook_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let address_str =
+                        require_string(orderbook_yaml, Some("address"), Some(location.clone()))?;
+                    let address = Orderbook::validate_address(&address_str).map_err(|e| {
+                        YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "address".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        }
+                    })?;
 
-                let address = Orderbook::validate_address(&require_string(
-                    orderbook_yaml,
-                    Some("address"),
-                    Some(format!(
-                        "address string missing in orderbook: {orderbook_key}"
-                    )),
-                )?)?;
+                    let network_name = match optional_string(orderbook_yaml, "network") {
+                        Some(network_name) => network_name,
+                        None => orderbook_key.clone(),
+                    };
+                    let network = networks
+                        .get(&network_name)
+                        .ok_or_else(|| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "network".to_string(),
+                                reason: format!("Network '{}' not found", network_name),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                let network_name = match optional_string(orderbook_yaml, "network") {
-                    Some(network_name) => network_name,
-                    None => orderbook_key.clone(),
-                };
-                let network = Network::parse_from_yaml(documents.clone(), &network_name, None)?;
+                    let subgraph_name = match optional_string(orderbook_yaml, "subgraph") {
+                        Some(subgraph_name) => subgraph_name,
+                        None => orderbook_key.clone(),
+                    };
+                    let subgraph =
+                        subgraphs
+                            .get(&subgraph_name)
+                            .ok_or_else(|| YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "subgraph".to_string(),
+                                    reason: format!("Subgraph '{}' not found", subgraph_name),
+                                },
+                                location: location.clone(),
+                            })?;
 
-                let subgraph_name = match optional_string(orderbook_yaml, "subgraph") {
-                    Some(subgraph_name) => subgraph_name,
-                    None => orderbook_key.clone(),
-                };
-                let subgraph = Arc::new(Subgraph::parse_from_yaml(
-                    documents.clone(),
-                    &subgraph_name,
-                    None,
-                )?);
+                    let label = optional_string(orderbook_yaml, "label");
 
-                let label = optional_string(orderbook_yaml, "label");
+                    let orderbook = Orderbook {
+                        document: document.clone(),
+                        key: orderbook_key.clone(),
+                        address,
+                        network: Arc::new(network.clone()),
+                        subgraph: Arc::new(subgraph.clone()),
+                        label,
+                    };
 
-                let orderbook = Orderbook {
-                    document: document.clone(),
-                    key: orderbook_key.clone(),
-                    address,
-                    network: Arc::new(network),
-                    subgraph,
-                    label,
-                };
-
-                if orderbooks.contains_key(&orderbook_key) {
-                    return Err(YamlError::KeyShadowing(orderbook_key));
+                    if orderbooks.contains_key(&orderbook_key) {
+                        return Err(YamlError::KeyShadowing(orderbook_key));
+                    }
+                    orderbooks.insert(orderbook_key, orderbook);
                 }
-                orderbooks.insert(orderbook_key, orderbook);
             }
+        }
+
+        if orderbooks.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("orderbooks".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(orderbooks)
@@ -315,29 +345,63 @@ test: test
         let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: orderbooks".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+test: test
+"#;
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("subgraphs".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+subgraphs:
+    SomeSubgraph: https://subgraph.com
+test: test
+"#;
+        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("orderbooks".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    TestNetwork:
+        rpc: https://rpc.com
+        chain-id: 1
+subgraphs:
+    SomeSubgraph: https://subgraph.com
 orderbooks:
     TestOrderbook:
 "#;
         let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("address string missing in orderbook: TestOrderbook".to_string())
-        );
-
-        let yaml = r#"
-orderbooks:
-    TestOrderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: TestNetwork
-"#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::ParseError("missing field: networks".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("address".to_string()),
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -345,19 +409,8 @@ networks:
     SomeNetwork:
         rpc: https://rpc.com
         chain-id: 1
-orderbooks:
-    TestOrderbook:
-        address: 0x1234567890123456789012345678901234567890
-        network: TestNetwork
-"#;
-        let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(error, YamlError::KeyNotFound("TestNetwork".to_string()));
-
-        let yaml = r#"
-networks:
-    TestNetwork:
-        rpc: https://rpc.com
-        chain-id: 1
+subgraphs:
+    SomeSubgraph: https://subgraph.com
 orderbooks:
     TestOrderbook:
         address: 0x1234567890123456789012345678901234567890
@@ -366,7 +419,13 @@ orderbooks:
         let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: subgraphs".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "network".to_string(),
+                    reason: "Network 'TestNetwork' not found".to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -383,7 +442,16 @@ orderbooks:
         subgraph: TestSubgraph
 "#;
         let error = Orderbook::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(error, YamlError::KeyNotFound("TestSubgraph".to_string()));
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "subgraph".to_string(),
+                    reason: "Subgraph 'TestSubgraph' not found".to_string(),
+                },
+                location: "orderbook 'TestOrderbook'".to_string(),
+            }
+        );
     }
 
     #[test]
@@ -497,7 +565,13 @@ orderbooks: test
         let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orderbooks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orderbooks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -507,7 +581,13 @@ orderbooks:
         let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orderbooks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orderbooks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -517,7 +597,13 @@ orderbooks:
         let error = Orderbook::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orderbooks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orderbooks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
     }
 }
