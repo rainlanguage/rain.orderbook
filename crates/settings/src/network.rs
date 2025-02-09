@@ -1,7 +1,8 @@
 use crate::config_source::*;
 use crate::yaml::context::Context;
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -81,16 +82,25 @@ impl Network {
                         StrictYaml::String(rpc.to_string());
                     self.rpc = rpc;
                 } else {
-                    return Err(YamlError::ParseError(format!(
-                        "missing field: {} in networks",
-                        self.key
-                    )));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "networks".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("missing field: networks".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("networks".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(self.clone())
@@ -103,25 +113,29 @@ impl Network {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(networks_hash) = require_hash(&document_read, Some("networks"), None) {
-                if let Some(network_yaml) =
-                    networks_hash.get(&StrictYaml::String(network_key.to_string()))
-                {
-                    return Ok(Network::validate_rpc(&require_string(
-                        network_yaml,
-                        Some("rpc"),
-                        None,
-                    )?)?);
-                }
-            } else {
-                return Err(YamlError::ParseError(
-                    "networks field must be a map".to_string(),
-                ));
+            let networks_hash =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))?;
+
+            if let Some(network_yaml) =
+                networks_hash.get(&StrictYaml::String(network_key.to_string()))
+            {
+                let location = format!("network '{}'", network_key);
+                let rpc_str = require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+
+                return Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "rpc".to_string(),
+                        reason: e.to_string(),
+                    },
+                    location,
+                });
             }
         }
-        Err(YamlError::ParseError(format!(
-            "rpc not found for network: {network_key}"
-        )))
+
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(format!("rpc for network '{}'", network_key)),
+            location: "root".to_string(),
+        })
     }
 }
 #[cfg(target_family = "wasm")]
@@ -137,29 +151,47 @@ impl YamlParsableHash for Network {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(networks_hash) = require_hash(&document_read, Some("networks"), None) {
+            if let Ok(networks_hash) =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))
+            {
                 for (key_yaml, network_yaml) in networks_hash {
                     let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("network '{}'", network_key);
 
-                    let rpc_url = Network::validate_rpc(&require_string(
-                        network_yaml,
-                        Some("rpc"),
-                        Some(format!("rpc string missing in network: {network_key}")),
-                    )?)?;
+                    let rpc_str =
+                        require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
 
-                    let chain_id = Network::validate_chain_id(&require_string(
-                        network_yaml,
-                        Some("chain-id"),
-                        Some(format!(
-                            "chain-id number as string missing in network: {network_key}"
-                        )),
-                    )?)?;
+                    let rpc_url =
+                        Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "rpc".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
+
+                    let chain_id_str =
+                        require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
+
+                    let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "chain-id".to_string(),
+                            reason: e.to_string(),
+                        },
+                        location: location.clone(),
+                    })?;
 
                     let label = optional_string(network_yaml, "label");
-
                     let network_id = optional_string(network_yaml, "network-id")
                         .map(|id| Network::validate_network_id(&id))
-                        .transpose()?;
+                        .transpose()
+                        .map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "network-id".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let currency = optional_string(network_yaml, "currency");
 
@@ -182,7 +214,10 @@ impl YamlParsableHash for Network {
         }
 
         if networks.is_empty() {
-            return Err(YamlError::ParseError("missing field: networks".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(networks)
@@ -265,7 +300,10 @@ test: test
         let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: networks".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -275,7 +313,10 @@ networks:
         let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("rpc string missing in network: mainnet".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("rpc".to_string()),
+                location: "network 'mainnet'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -286,9 +327,10 @@ networks:
         let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "chain-id number as string missing in network: mainnet".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("chain-id".to_string()),
+                location: "network 'mainnet'".to_string(),
+            }
         );
     }
 
@@ -370,7 +412,13 @@ networks: test
         let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("networks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "networks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -380,7 +428,13 @@ networks:
         let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("networks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "networks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -390,7 +444,13 @@ networks:
         let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("networks field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "networks".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"

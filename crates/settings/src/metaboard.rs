@@ -1,5 +1,6 @@
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -55,12 +56,19 @@ impl Metaboard {
                     StrictYaml::String(value.to_string()),
                 );
             } else {
-                return Err(YamlError::ParseError(
-                    "missing field: metaboards".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("metaboards".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(())
@@ -80,14 +88,16 @@ impl YamlParsableHash for Metaboard {
             if let Ok(metaboards_hash) = require_hash(&document_read, Some("metaboards"), None) {
                 for (key_yaml, metaboard_yaml) in metaboards_hash {
                     let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("metaboards[{}]", metaboard_key);
 
-                    let url = Metaboard::validate_url(&require_string(
-                        metaboard_yaml,
-                        None,
-                        Some(format!(
-                            "metaboard value must be a string for key: {metaboard_key}"
-                        )),
-                    )?)?;
+                    let url_str = require_string(metaboard_yaml, None, Some(location.clone()))?;
+                    let url = Metaboard::validate_url(&url_str).map_err(|e| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "url".to_string(),
+                            reason: e.to_string(),
+                        },
+                        location: location.clone(),
+                    })?;
 
                     let metaboard = Metaboard {
                         document: document.clone(),
@@ -104,9 +114,10 @@ impl YamlParsableHash for Metaboard {
         }
 
         if metaboards.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: metaboards".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("metaboards".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(metaboards)
@@ -130,7 +141,7 @@ impl PartialEq for Metaboard {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 

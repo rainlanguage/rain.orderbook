@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{yaml::FieldErrorKind, *};
 use alloy::primitives::{private::rand, U256};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -101,34 +101,49 @@ impl Order {
                                     self.outputs[index as usize].vault_id = Some(new_vault_id);
                                 }
                             } else {
-                                return Err(YamlError::ParseError(format!(
-                                    "vector item is not a hash: {index} for {vec_key} in order: {0}",
-                                    self.key
-                                )));
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: vec_key.to_string(),
+                                        expected: "a hash".to_string(),
+                                    },
+                                    location: format!("order '{0}'", self.key),
+                                });
                             }
                         } else {
-                            return Err(YamlError::ParseError(format!(
-                                "index out of bounds: {index} for {vec_key} in order: {0}",
-                                self.key
-                            )));
+                            return Err(YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: vec_key.to_string(),
+                                    reason: format!("index out of bounds: {index}"),
+                                },
+                                location: format!("order '{0}'", self.key),
+                            });
                         }
                     } else {
-                        return Err(YamlError::ParseError(format!(
-                            "missing field: {vec_key} in order: {0}",
-                            self.key
-                        )));
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(vec_key.to_string()),
+                            location: format!("order '{0}'", self.key),
+                        });
                     }
                 } else {
-                    return Err(YamlError::ParseError(format!(
-                        "missing field: {} in orders",
-                        self.key
-                    )));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "orders".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("missing field: orders".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("orders".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(self.clone())
@@ -163,17 +178,20 @@ impl Order {
                                     );
                                 }
                             } else {
-                                return Err(YamlError::ParseError(format!(
-                                    "vector item is not a hash: {index} for inputs in order: {0}",
-                                    self.key
-                                )));
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: format!("input index: {index}"),
+                                        expected: "a hash".to_string(),
+                                    },
+                                    location: format!("order '{0}'", self.key),
+                                });
                             }
                         }
                     } else {
-                        return Err(YamlError::ParseError(format!(
-                            "missing field: inputs in order: {0}",
-                            self.key
-                        )));
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing("inputs".to_string()),
+                            location: format!("order '{0}'", self.key),
+                        });
                     }
                     if let Some(StrictYaml::Array(ref mut outputs)) =
                         order.get_mut(&StrictYaml::String("outputs".to_string()))
@@ -189,17 +207,20 @@ impl Order {
                                     );
                                 }
                             } else {
-                                return Err(YamlError::ParseError(format!(
-                                    "vector item is not a hash: {index} for outputs in order: {0}",
-                                    self.key
-                                )));
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: format!("output index: {index}"),
+                                        expected: "a hash".to_string(),
+                                    },
+                                    location: format!("order '{0}'", self.key),
+                                });
                             }
                         }
                     } else {
-                        return Err(YamlError::ParseError(format!(
-                            "missing field: outputs in order: {0}",
-                            self.key
-                        )));
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing("outputs".to_string()),
+                            location: format!("order '{0}'", self.key),
+                        });
                     }
 
                     self.inputs.iter_mut().for_each(|input| {
@@ -209,16 +230,25 @@ impl Order {
                         output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
                     });
                 } else {
-                    return Err(YamlError::ParseError(format!(
-                        "missing field: {} in orders",
-                        self.key
-                    )));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "orders".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("missing field: orders".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("orders".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(self.clone())
@@ -237,6 +267,8 @@ impl Order {
                 if let Some(order_yaml) =
                     orders_hash.get(&StrictYaml::String(order_key.to_string()))
                 {
+                    let location = format!("order '{}'", order_key);
+
                     if let Some(deployer_key) = optional_string(order_yaml, "deployer") {
                         let key = Deployer::parse_network_key(documents.clone(), &deployer_key)?;
 
@@ -271,8 +303,14 @@ impl Order {
                         }
                     }
 
-                    for input in require_vec(order_yaml, "inputs", None)? {
-                        let token_key = require_string(input, Some("token"), None)?;
+                    for (index, input) in require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        .iter()
+                        .enumerate()
+                    {
+                        let location = format!("input index '{index}' in order '{order_key}'");
+
+                        let token_key =
+                            require_string(input, Some("token"), Some(location.clone()))?;
                         let res = Token::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
@@ -291,8 +329,15 @@ impl Order {
                         }
                     }
 
-                    for output in require_vec(order_yaml, "outputs", None)? {
-                        let token_key = require_string(output, Some("token"), None)?;
+                    for (index, output) in
+                        require_vec(order_yaml, "outputs", Some(location.clone()))?
+                            .iter()
+                            .enumerate()
+                    {
+                        let location = format!("output index '{index}' in order '{order_key}'");
+
+                        let token_key =
+                            require_string(output, Some("token"), Some(location.clone()))?;
                         let res = Token::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
@@ -310,9 +355,13 @@ impl Order {
                     }
                 }
             } else {
-                return Err(YamlError::ParseError(
-                    "orders field must be a map".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "orders".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
 
@@ -337,18 +386,12 @@ impl Order {
                 if let Some(order_yaml) =
                     orders_hash.get(&StrictYaml::String(order_key.to_string()))
                 {
+                    let location = format!("order '{}'", order_key);
+
                     let items = if is_input {
-                        require_vec(
-                            order_yaml,
-                            "inputs",
-                            Some(format!("inputs list missing in order: {order_key}")),
-                        )?
+                        require_vec(order_yaml, "inputs", Some(location.clone()))?
                     } else {
-                        require_vec(
-                            order_yaml,
-                            "outputs",
-                            Some(format!("outputs list missing in order: {order_key}")),
-                        )?
+                        require_vec(order_yaml, "outputs", Some(location.clone()))?
                     };
 
                     for item in items {
@@ -357,9 +400,13 @@ impl Order {
                     }
                 }
             } else {
-                return Err(YamlError::ParseError(
-                    "orders field must be a map".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "orders".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
 
@@ -384,6 +431,7 @@ impl YamlParsableHash for Order {
             if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
                 for (key_yaml, order_yaml) in orders_hash {
                     let order_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("order '{}'", order_key);
 
                     if let Some(context) = context {
                         if let Some(current_order) = context.get_current_order() {
@@ -397,8 +445,12 @@ impl YamlParsableHash for Order {
 
                     let deployer = match optional_string(order_yaml, "deployer") {
                         Some(deployer_name) => {
-                            let deployers = deployers.as_ref().map_err(|_| {
-                                YamlError::ParseError("failed to parse deployers".to_string())
+                            let deployers = deployers.as_ref().map_err(|e| YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "deployers".to_string(),
+                                    reason: e.to_string(),
+                                },
+                                location: "root".to_string(),
                             })?;
                             let deployer = Arc::new(
                                 deployers
@@ -427,8 +479,12 @@ impl YamlParsableHash for Order {
 
                     let orderbook = match optional_string(order_yaml, "orderbook") {
                         Some(orderbook_name) => {
-                            let orderbooks = orderbooks.as_ref().map_err(|_| {
-                                YamlError::ParseError("failed to parse orderbooks".to_string())
+                            let orderbooks = orderbooks.as_ref().map_err(|e| YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "orderbooks".to_string(),
+                                    reason: e.to_string(),
+                                },
+                                location: "root".to_string(),
                             })?;
                             let orderbook = Arc::new(
                                 orderbooks
@@ -458,17 +514,17 @@ impl YamlParsableHash for Order {
                     let inputs = require_vec(
                         order_yaml,
                         "inputs",
-                        Some(format!("inputs list missing in order: {order_key}")),
+                        Some(location.clone()),
                     )?
                     .iter()
                     .enumerate()
                     .map(|(i, input)| {
+                        let location = format!("input index '{i}' in order '{order_key}'");
+
                         let token_name = require_string(
                             input,
                             Some("token"),
-                            Some(format!(
-                                "token string missing in input index: {i} in order: {order_key}"
-                            )),
+                            Some(location.clone()),
                         )?;
 
                         let mut order_token = None;
@@ -494,21 +550,41 @@ impl YamlParsableHash for Order {
                                 order_token = Some(token.clone());
                             } else if let Some(context) = context {
                                 if !context.is_select_token(&token_name) {
-                                    return Err(YamlError::ParseError(format!(
-                                        "yaml data for token: {token_name} not found in input index: {i} in order: {order_key}"
-                                    )));
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidValue {
+                                            field: "token".to_string(),
+                                            reason: format!(
+                                                "missing yaml data for token '{token_name}'"
+                                            ),
+                                        },
+                                        location: location.clone(),
+                                    });
                                 }
                             }
                         } else if let Some(context) = context {
                             if !context.is_select_token(&token_name) {
-                                return Err(YamlError::ParseError(format!(
-                                    "yaml data for token: {token_name} not found in input index: {i} in order: {order_key}"
-                                )));
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "token".to_string(),
+                                        reason: format!(
+                                            "missing yaml data for token '{token_name}'"
+                                        ),
+                                    },
+                                    location: location.clone(),
+                                });
                             }
                         }
 
                         let vault_id = match optional_string(input, "vault-id") {
-                            Some(id) => Some(Order::validate_vault_id(&id)?),
+                            Some(id) => Some(Order::validate_vault_id(&id).map_err(|e| {
+                                YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "vault-id".to_string(),
+                                        reason: e.to_string(),
+                                    },
+                                    location: location.clone(),
+                                }
+                            })?),
                             None => None,
                         };
 
@@ -522,17 +598,17 @@ impl YamlParsableHash for Order {
                     let outputs = require_vec(
                         order_yaml,
                         "outputs",
-                        Some(format!("outputs list missing in order: {order_key}")),
+                        Some(location.clone()),
                     )?
                     .iter()
                     .enumerate()
                     .map(|(i, output)| {
+                        let location = format!("output index '{i}' in order '{order_key}'");
+
                         let token_name = require_string(
                             output,
                             Some("token"),
-                            Some(format!(
-                                "token string missing in output index: {i} in order: {order_key}"
-                            )),
+                            Some(location.clone()),
                         )?;
 
                         let mut order_token = None;
@@ -558,21 +634,41 @@ impl YamlParsableHash for Order {
                                 order_token = Some(token.clone());
                             } else if let Some(context) = context {
                                 if !context.is_select_token(&token_name) {
-                                    return Err(YamlError::ParseError(format!(
-                                        "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
-                                    )));
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidValue {
+                                            field: "token".to_string(),
+                                            reason: format!(
+                                                "missing yaml data for token '{token_name}'"
+                                            ),
+                                        },
+                                        location: location.clone(),
+                                    });
                                 }
                             }
                         } else if let Some(context) = context {
                             if !context.is_select_token(&token_name) {
-                                return Err(YamlError::ParseError(format!(
-                                    "yaml data for token: {token_name} not found in output index: {i} in order: {order_key}"
-                                )));
+                                return Err(YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "token".to_string(),
+                                        reason: format!(
+                                            "missing yaml data for token '{token_name}'"
+                                        ),
+                                    },
+                                    location: location.clone(),
+                                });
                             }
                         }
 
                         let vault_id = match optional_string(output, "vault-id") {
-                            Some(id) => Some(Order::validate_vault_id(&id)?),
+                            Some(id) => Some(Order::validate_vault_id(&id).map_err(|e| {
+                                YamlError::Field {
+                                    kind: FieldErrorKind::InvalidValue {
+                                        field: "vault-id".to_string(),
+                                        reason: e.to_string(),
+                                    },
+                                    location: location.clone(),
+                                }
+                            })?),
                             None => None,
                         };
 
@@ -604,7 +700,10 @@ impl YamlParsableHash for Order {
         }
 
         if orders.is_empty() {
-            return Err(YamlError::ParseError("missing field: orders".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("orders".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(orders)
@@ -949,7 +1048,10 @@ test: test
         let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: orders".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("orders".to_string()),
+                location: "root".to_string()
+            }
         );
 
         let yaml = r#"
@@ -959,7 +1061,10 @@ orders:
         let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("inputs list missing in order: order1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("inputs".to_string()),
+                location: "order 'order1'".to_string()
+            }
         );
 
         let yaml = r#"
@@ -971,9 +1076,10 @@ orders:
         let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "token string missing in input index: 0 in order: order1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("token".to_string()),
+                location: "input index '0' in order 'order1'".to_string()
+            }
         );
 
         let yaml = r#"
@@ -993,7 +1099,10 @@ orders:
         let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("outputs list missing in order: order1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("outputs".to_string()),
+                location: "order 'order1'".to_string()
+            }
         );
 
         let yaml = r#"
@@ -1015,9 +1124,10 @@ orders:
         let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "token string missing in output index: 0 in order: order1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("token".to_string()),
+                location: "output index '0' in order 'order1'".to_string()
+            }
         );
     }
 
@@ -1118,7 +1228,13 @@ orders: test
         let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orders field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
         );
 
         let yaml = r#"
@@ -1128,7 +1244,13 @@ orders:
         let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orders field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
         );
 
         let yaml = r#"
@@ -1138,7 +1260,13 @@ orders:
         let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("orders field must be a map".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
         );
     }
 }
