@@ -1,8 +1,8 @@
 use crate::{
     yaml::{
         context::{Context, GuiContextTrait},
-        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
+        default_document, get_hash_value, get_hash_value_as_option, optional_hash, optional_string,
+        optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
     Deployment, Token, TokenRef,
@@ -308,7 +308,7 @@ impl Gui {
     pub fn parse_select_tokens(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         deployment_key: &str,
-    ) -> Result<Option<Vec<String>>, YamlError> {
+    ) -> Result<Option<Vec<GuiSelectTokens>>, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -325,8 +325,22 @@ impl Gui {
                             let mut result = Vec::new();
                             for (index, token) in tokens.iter().enumerate() {
                                 if let StrictYaml::Hash(token_hash) = token {
-                                    let key = get_hash_value(token_hash, "key", Some(format!("key string missing for select-token index: {index} in gui deployment: {deployment_key}")))?;
-                                    result.push(key.as_str().unwrap_or_default().to_string());
+                                    let key = get_hash_value(token_hash, "key", Some(format!("key string missing for select-token index: {index} in gui deployment: {deployment_key}")))?.as_str().ok_or(YamlError::Field {
+                                        kind: FieldErrorKind::Missing("key".to_string()),
+                                        location: format!("select-token index: {index} in gui deployment: {deployment_key}"),
+                                    })?;
+                                    let name = get_hash_value_as_option(token_hash, "name")
+                                        .map(|s| s.as_str())
+                                        .unwrap_or_default();
+                                    let description =
+                                        get_hash_value_as_option(token_hash, "description")
+                                            .map(|s| s.as_str())
+                                            .unwrap_or_default();
+                                    result.push(GuiSelectTokens {
+                                        key: key.to_string(),
+                                        name: name.map(|s| s.to_string()),
+                                        description: description.map(|s| s.to_string()),
+                                    });
                                 }
                             }
                             return Ok(Some(result));
