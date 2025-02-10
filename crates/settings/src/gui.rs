@@ -589,7 +589,7 @@ impl YamlParseableValue for Gui {
                                             },
                                             location: location.clone(),
                                         })?;
-    
+
                                         Ok(GuiSelectTokens {
                                             key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
                                             name: optional_string(select_token_value, "name"),
@@ -1507,7 +1507,7 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::Field{
+            YamlError::Field {
                 kind: FieldErrorKind::InvalidType {
                     field: "select-token".to_string(),
                     expected: "a map".to_string()
