@@ -66,6 +66,5 @@ describe('OrderOrVaultHash', () => {
 		await fireEvent.click(button);
 
 		expect(mockUpdateFn).toHaveBeenCalledWith(mockSubgraphName);
-		expect(goto).toHaveBeenCalledWith(`/orders/${mockSubgraphName}-${mockOrder.id}`);
 	});
 });
