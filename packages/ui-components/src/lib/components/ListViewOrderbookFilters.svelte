@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { isEmpty } from 'lodash';
-	import { Alert } from 'flowbite-svelte';
+	import { Alert, Tooltip } from 'flowbite-svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
@@ -9,7 +9,6 @@
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '../typeshare/config';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
-
 	export let settings: Writable<ConfigSource | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
@@ -39,6 +38,9 @@
 					{showMyItemsOnly}
 					{signerAddress}
 				/>
+				{#if !$signerAddress}
+					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
+				{/if}
 			</div>
 		{/if}
 		{#if isVaultsPage}
