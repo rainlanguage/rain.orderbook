@@ -7,7 +7,6 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
-	import ButtonVaultLink from '../ButtonVaultLink.svelte';
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
@@ -21,6 +20,7 @@
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Config } from 'wagmi';
+	import OrderVaultInfo from '../OrderVaultInfo.svelte';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -133,12 +133,9 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 hidden justify-end md:flex">
-						<span>Balance</span>
-					</div>
 					<div class="space-y-2">
 						{#each data.inputs || [] as vault}
-							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							<OrderVaultInfo tokenVault={vault} {subgraphName} />
 							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
 								<DepositOrWithdrawButtons
 									{vault}
@@ -156,12 +153,9 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Output vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 flex justify-end">
-						<span>Balance</span>
-					</div>
 					<div class="space-y-2">
 						{#each data.outputs || [] as vault}
-							<ButtonVaultLink tokenVault={vault} {subgraphName} />
+							<OrderVaultInfo tokenVault={vault} {subgraphName} />
 							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner && chainId}
 								<DepositOrWithdrawButtons
 									{vault}

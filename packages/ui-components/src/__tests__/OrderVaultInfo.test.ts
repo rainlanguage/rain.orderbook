@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
+import OrderVaultInfo from '../lib/components/OrderVaultInfo.svelte';
 import * as navigation from '$app/navigation';
 import { userEvent } from '@testing-library/user-event';
 import type { Vault } from '@rainlanguage/orderbook/js_api';
@@ -9,7 +9,7 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-describe('ButtonVaultLink', () => {
+describe('OrderVaultInfo', () => {
 	const mockVault = {
 		id: '123',
 		vaultId: '1000',
@@ -22,7 +22,7 @@ describe('ButtonVaultLink', () => {
 	} as unknown as Vault;
 
 	it('should navigate to vault details page when clicked', async () => {
-		render(ButtonVaultLink, {
+		render(OrderVaultInfo, {
 			props: {
 				tokenVault: mockVault,
 				subgraphName: 'test'

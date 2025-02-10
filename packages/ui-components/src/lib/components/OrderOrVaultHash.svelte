@@ -20,7 +20,7 @@
 </script>
 
 <Button
-	class="mr-1 mt-1 px-2 py-1 text-sm"
+	class="mr-1 mt-1 w-fit px-2 py-1 text-sm"
 	color={isActive ? 'green' : 'yellow'}
 	data-testid="vault-order-input"
 	data-id={slug}
