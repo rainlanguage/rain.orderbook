@@ -20,7 +20,9 @@
 	};
 
 	function handleSuccess() {
-		onRemove();
+		setTimeout(() => {
+			onRemove();
+		}, 5000);
 	}
 
 	function handleClose() {

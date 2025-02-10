@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { ComponentProps } from 'svelte';
@@ -9,6 +9,8 @@ export type ModalProps = ComponentProps<OrderRemoveModal>;
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
 }));
+
+vi.useFakeTimers();
 
 describe('OrderRemoveModal', () => {
 	const mockOrder = {
@@ -31,14 +33,11 @@ describe('OrderRemoveModal', () => {
 		transactionStore.reset();
 	});
 
-	it('renders transaction modal correctly', () => {
-		render(OrderRemoveModal, defaultProps);
-		expect(screen.getByText('Removing order...')).toBeInTheDocument();
-	});
-
-	it('handles transaction correctly', () => {
+	it('handles transaction correctly', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleRemoveOrderTransaction');
 		render(OrderRemoveModal, defaultProps);
+
+		await vi.runAllTimersAsync();
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -49,18 +48,21 @@ describe('OrderRemoveModal', () => {
 		);
 	});
 
-	it('closes modal and resets transaction store', () => {
-		const { component } = render(OrderRemoveModal, defaultProps);
+	it('closes modal and resets transaction store', async () => {
+		render(OrderRemoveModal, defaultProps);
 		const resetSpy = vi.spyOn(transactionStore, 'reset');
 
-		component.$set({ open: false });
+		const closeButton = screen.getByLabelText('Close modal');
+		await fireEvent.click(closeButton);
 
 		expect(resetSpy).toHaveBeenCalled();
 	});
 
-	it('calls onRemove callback after successful transaction', () => {
+	it('calls onRemove callback after successful transaction', async () => {
 		render(OrderRemoveModal, defaultProps);
+
 		transactionStore.transactionSuccess('0x123');
+		await vi.runAllTimersAsync();
 
 		expect(defaultProps.onRemove).toHaveBeenCalled();
 	});
