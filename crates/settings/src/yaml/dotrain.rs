@@ -142,6 +142,7 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 
 #[cfg(test)]
 mod tests {
+    use crate::GuiSelectTokens;
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
 
@@ -423,8 +424,14 @@ mod tests {
         let select_tokens =
             Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment1").unwrap();
         assert!(select_tokens.is_some());
-        assert_eq!(select_tokens.unwrap()[0], "token2");
-
+        assert_eq!(
+            select_tokens.unwrap()[0],
+            GuiSelectTokens {
+                key: "token2".to_string(),
+                name: Some("Test token".to_string()),
+                description: Some("Test description".to_string())
+            }
+        );
         let select_tokens =
             Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());

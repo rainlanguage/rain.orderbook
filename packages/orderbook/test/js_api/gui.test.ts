@@ -1130,10 +1130,10 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get select tokens', async () => {
-			const selectTokens: string[] = gui.getSelectTokens();
+			const selectTokens = gui.getSelectTokens();
 			assert.equal(selectTokens.length, 2);
-			assert.equal(selectTokens[0], 'token1');
-			assert.equal(selectTokens[1], 'token2');
+			assert.equal(selectTokens[0].key, 'token1');
+			assert.equal(selectTokens[1].key, 'token2');
 		});
 
 		it('should throw error if select tokens not set', async () => {
