@@ -4,6 +4,7 @@
 
 	export let showMyItemsOnly: Writable<boolean>;
 	export let context: 'orders' | 'vaults';
+	export let signerAddress: Writable<string | null> | undefined;
 
 	function handleShowMyItemsChange() {
 		$showMyItemsOnly = !$showMyItemsOnly;
@@ -17,5 +18,10 @@
 	>
 		Only show my {context}
 	</Label>
-	<Checkbox id="show-my-items" checked={$showMyItemsOnly} on:change={handleShowMyItemsChange} />
+	<Checkbox
+		id="show-my-items"
+		checked={$showMyItemsOnly}
+		on:change={handleShowMyItemsChange}
+		disabled={!$signerAddress}
+	/>
 </div>

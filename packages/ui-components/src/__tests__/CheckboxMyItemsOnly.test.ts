@@ -6,6 +6,7 @@ import CheckboxMyItemsOnly from '../lib/components/CheckboxMyItemsOnly.svelte';
 describe('CheckboxMyItemsOnly', () => {
 	let showMyItemsOnly: Writable<boolean>;
 	let context: 'orders' | 'vaults';
+	let signerAddress: Writable<string | null> | undefined;
 	beforeEach(() => {
 		showMyItemsOnly = writable(true);
 		context = 'orders';
@@ -15,7 +16,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context
+				context,
+				signerAddress
 			}
 		});
 		expect(screen.getByText('Only show my orders')).toBeInTheDocument();
@@ -24,7 +26,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context: 'vaults'
+				context: 'vaults',
+				signerAddress
 			}
 		});
 		expect(screen.getByText('Only show my vaults')).toBeInTheDocument();
@@ -34,7 +37,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context
+				context,
+				signerAddress
 			}
 		});
 

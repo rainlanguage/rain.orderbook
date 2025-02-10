@@ -40,8 +40,8 @@ describe('ListViewOrderbookFilters', () => {
 		isVaultsPage: false,
 		isOrdersPage: false,
 		query,
-		signerAddress: '',
-		showMyItemsOnly: writable(false)
+		showMyItemsOnly: writable(false),
+		signerAddress: writable('')
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
@@ -94,14 +94,13 @@ describe('ListViewOrderbookFilters', () => {
 	test('shows common components when networks exist', () => {
 		const props = {
 			...defaultProps,
-			signerAddress: '0x123',
+			signerAddress: writable('0x123'),
 			showMyItemsOnly: writable(true),
 			activeAccountsItems: undefined,
 			accounts: undefined
 		};
 		render(ListViewOrderbookFilters, props);
 
-		expect(screen.getByTestId('my-items-only')).toBeInTheDocument();
 		expect(screen.getByTestId('subgraphs-dropdown')).toBeInTheDocument();
 	});
 

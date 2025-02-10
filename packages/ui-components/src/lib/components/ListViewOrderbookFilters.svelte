@@ -20,6 +20,7 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
+	export let signerAddress: Writable<string | null> | undefined;
 </script>
 
 <div
@@ -33,7 +34,11 @@
 	{:else}
 		{#if $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
+				<CheckboxMyItemsOnly
+					context={isVaultsPage ? 'vaults' : 'orders'}
+					{showMyItemsOnly}
+					{signerAddress}
+				/>
 			</div>
 		{/if}
 		{#if isVaultsPage}

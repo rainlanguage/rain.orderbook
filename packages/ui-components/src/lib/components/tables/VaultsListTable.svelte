@@ -109,6 +109,7 @@
 		{hideZeroBalanceVaults}
 		{isVaultsPage}
 		{isOrdersPage}
+		{signerAddress}
 	/>
 	<AppTable
 		{query}
