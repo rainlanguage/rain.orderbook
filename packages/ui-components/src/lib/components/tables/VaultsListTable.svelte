@@ -42,7 +42,7 @@
 	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'] | undefined;
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let signerAddress: Writable<string | null> | undefined;
 
 	$: multiSubgraphArgs = Object.entries(
