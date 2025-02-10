@@ -2,22 +2,25 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { connected, signerAddress } from '$lib/stores/wagmi';
+	import { writable } from 'svelte/store';
 
 	const {
 		activeOrderbook,
 		subgraphUrl,
 		orderHash,
-		accounts,
-		activeAccountsItems,
 		activeSubgraphs,
 		settings,
+		accounts,
+		activeAccountsItems,
 		activeOrderStatus,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
 		walletAddressMatchesOrBlank,
-		activeNetworkOrderbooks
+		activeNetworkOrderbooks,
+		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {
@@ -46,6 +49,7 @@
 			resetActiveOrderbookRef();
 		}
 	});
+	$: showMyItemsOnly.set($connected);
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -54,10 +58,12 @@
 	{activeOrderbook}
 	{subgraphUrl}
 	{orderHash}
-	{accounts}
-	{activeAccountsItems}
+	{showMyItemsOnly}
+	{signerAddress}
 	{activeSubgraphs}
 	{settings}
+	{accounts}
+	{activeAccountsItems}
 	{activeOrderStatus}
 	{hideZeroBalanceVaults}
 	{activeNetworkRef}
