@@ -82,6 +82,18 @@ pub trait YamlParseableValue: Sized {
     ) -> Result<Option<Self>, YamlError>;
 }
 
+#[derive(Debug, Error, PartialEq)]
+pub enum FieldErrorKind {
+    #[error("Missing required field '{0}'")]
+    Missing(String),
+
+    #[error("Field '{field}' must be {expected}")]
+    InvalidType { field: String, expected: String },
+
+    #[error("Invalid value for field '{field}': {reason}")]
+    InvalidValue { field: String, reason: String },
+}
+
 #[derive(Debug, Error)]
 pub enum YamlError {
     #[error(transparent)]
@@ -92,24 +104,34 @@ pub enum YamlError {
     UrlParseError(#[from] UrlParseError),
     #[error(transparent)]
     RuintParseError(#[from] RuintParseError),
-    #[error("Yaml file is empty")]
-    EmptyFile,
-    #[error("Yaml parse error: {0}")]
+
+    #[error("{kind} in {location}")]
+    Field {
+        kind: FieldErrorKind,
+        location: String,
+    },
+
+    #[error("YAML parse error: {0}")]
     ParseError(String),
-    #[error("Missing custom message")]
-    MissingCustomMsg,
-    #[error("Key not found: {0}")]
+
+    #[error("Key '{0}' not found")]
     KeyNotFound(String),
-    #[error("Error while converting to yaml string")]
-    ConvertError,
-    #[error("Document read lock error")]
+    #[error("Key '{0}' is already defined")]
+    KeyShadowing(String),
+
+    #[error("Failed to acquire read lock")]
     ReadLockError,
-    #[error("Document write lock error")]
+    #[error("Failed to acquire write lock")]
     WriteLockError,
+
+    #[error("YAML file is empty")]
+    EmptyFile,
+
+    #[error("Error while converting to YAML string")]
+    ConvertError,
     #[error("Invalid trait function")]
     InvalidTraitFunction,
-    #[error("Key shadowing found: {0}")]
-    KeyShadowing(String),
+
     #[error(transparent)]
     ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
     #[error(transparent)]
@@ -127,22 +149,61 @@ pub enum YamlError {
     #[error(transparent)]
     ContextError(#[from] ContextError),
 }
+
 impl PartialEq for YamlError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::ScanError(a), Self::ScanError(b)) => a == b,
-            (Self::EmptyFile, Self::EmptyFile) => true,
-            (Self::ParseError(a), Self::ParseError(b)) => a == b,
-            (Self::MissingCustomMsg, Self::MissingCustomMsg) => true,
-            (Self::KeyNotFound(a), Self::KeyNotFound(b)) => a == b,
-            (Self::ConvertError, Self::ConvertError) => true,
+            (
+                Self::Field {
+                    kind: k1,
+                    location: l1,
+                },
+                Self::Field {
+                    kind: k2,
+                    location: l2,
+                },
+            ) => k1 == k2 && l1 == l2,
+            (Self::ParseError(s1), Self::ParseError(s2)) => s1 == s2,
+            (Self::KeyNotFound(k1), Self::KeyNotFound(k2)) => k1 == k2,
+            (Self::KeyShadowing(k1), Self::KeyShadowing(k2)) => k1 == k2,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
-            (Self::KeyShadowing(a), Self::KeyShadowing(b)) => a == b,
-            (Self::ParseNetworkConfigSourceError(a), Self::ParseNetworkConfigSourceError(b)) => {
-                a == b
+            (Self::EmptyFile, Self::EmptyFile) => true,
+            (Self::ConvertError, Self::ConvertError) => true,
+            (Self::InvalidTraitFunction, Self::InvalidTraitFunction) => true,
+            // For external error types, we'll compare their string representations
+            (Self::ScanError(e1), Self::ScanError(e2)) => e1.to_string() == e2.to_string(),
+            (Self::EmitError(e1), Self::EmitError(e2)) => e1.to_string() == e2.to_string(),
+            (Self::UrlParseError(e1), Self::UrlParseError(e2)) => e1.to_string() == e2.to_string(),
+            (Self::RuintParseError(e1), Self::RuintParseError(e2)) => {
+                e1.to_string() == e2.to_string()
             }
-            (Self::ParseTokenConfigSourceError(a), Self::ParseTokenConfigSourceError(b)) => a == b,
+            (Self::ParseNetworkConfigSourceError(e1), Self::ParseNetworkConfigSourceError(e2)) => {
+                e1 == e2
+            }
+            (Self::ParseTokenConfigSourceError(e1), Self::ParseTokenConfigSourceError(e2)) => {
+                e1 == e2
+            }
+            (
+                Self::ParseOrderbookConfigSourceError(e1),
+                Self::ParseOrderbookConfigSourceError(e2),
+            ) => e1 == e2,
+            (
+                Self::ParseDeployerConfigSourceError(e1),
+                Self::ParseDeployerConfigSourceError(e2),
+            ) => e1 == e2,
+            (Self::ParseOrderConfigSourceError(e1), Self::ParseOrderConfigSourceError(e2)) => {
+                e1 == e2
+            }
+            (
+                Self::ParseScenarioConfigSourceError(e1),
+                Self::ParseScenarioConfigSourceError(e2),
+            ) => e1 == e2,
+            (
+                Self::ParseDeploymentConfigSourceError(e1),
+                Self::ParseDeploymentConfigSourceError(e2),
+            ) => e1 == e2,
+            (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
             _ => false,
         }
     }
@@ -159,18 +220,37 @@ pub fn load_yaml(yaml: &str) -> Result<StrictYaml, YamlError> {
 pub fn require_string(
     value: &StrictYaml,
     field: Option<&str>,
-    custom_msg: Option<String>,
+    location: Option<String>,
 ) -> Result<String, YamlError> {
     match field {
-        Some(field) => value[field].as_str().map(|s| s.to_string()).ok_or_else(|| {
-            YamlError::ParseError(custom_msg.unwrap_or(format!("{field} must be a string")))
-        }),
+        Some(field) => {
+            if value[field].is_badvalue() {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing(field.to_string()),
+                    location: location.unwrap_or_else(|| "document".to_string()),
+                });
+            }
+            value[field]
+                .as_str()
+                .map(|s| s.to_string())
+                .ok_or_else(|| YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: field.to_string(),
+                        expected: "a string".to_string(),
+                    },
+                    location: location.unwrap_or_else(|| "document".to_string()),
+                })
+        }
         None => value
             .as_str()
             .map(|s| s.to_string())
-            .ok_or(YamlError::ParseError(
-                custom_msg.ok_or(YamlError::MissingCustomMsg)?,
-            )),
+            .ok_or_else(|| YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: location.unwrap_or_else(|| "document".to_string()),
+            }),
     }
 }
 pub fn optional_string(value: &StrictYaml, field: &str) -> Option<String> {
@@ -180,15 +260,31 @@ pub fn optional_string(value: &StrictYaml, field: &str) -> Option<String> {
 pub fn require_hash<'a>(
     value: &'a StrictYaml,
     field: Option<&str>,
-    custom_msg: Option<String>,
+    location: Option<String>,
 ) -> Result<&'a Hash, YamlError> {
     match field {
-        Some(field) => value[field].as_hash().ok_or_else(|| {
-            YamlError::ParseError(custom_msg.unwrap_or(format!("{field} must be a map")))
+        Some(field) => {
+            if value[field].is_badvalue() {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing(field.to_string()),
+                    location: location.unwrap_or_else(|| "document".to_string()),
+                });
+            }
+            value[field].as_hash().ok_or_else(|| YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: field.to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: location.unwrap_or_else(|| "document".to_string()),
+            })
+        }
+        None => value.as_hash().ok_or_else(|| YamlError::Field {
+            kind: FieldErrorKind::InvalidType {
+                field: "value".to_string(),
+                expected: "a map".to_string(),
+            },
+            location: location.unwrap_or_else(|| "document".to_string()),
         }),
-        None => value.as_hash().ok_or(YamlError::ParseError(
-            custom_msg.ok_or(YamlError::MissingCustomMsg)?,
-        )),
     }
 }
 pub fn optional_hash<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Hash> {
@@ -198,12 +294,13 @@ pub fn optional_hash<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Hash>
 pub fn get_hash_value<'a>(
     hash: &'a Hash,
     field: &str,
-    custom_msg: Option<String>,
+    location: Option<String>,
 ) -> Result<&'a StrictYaml, YamlError> {
     hash.get(&StrictYaml::String(field.to_string()))
-        .ok_or(YamlError::ParseError(
-            custom_msg.unwrap_or(format!("{field} missing in map")),
-        ))
+        .ok_or_else(|| YamlError::Field {
+            kind: FieldErrorKind::Missing(field.to_string()),
+            location: location.unwrap_or_else(|| "document".to_string()),
+        })
 }
 
 pub fn get_hash_value_as_option<'a>(hash: &'a Hash, field: &str) -> Option<&'a StrictYaml> {
@@ -213,10 +310,20 @@ pub fn get_hash_value_as_option<'a>(hash: &'a Hash, field: &str) -> Option<&'a S
 pub fn require_vec<'a>(
     value: &'a StrictYaml,
     field: &str,
-    custom_msg: Option<String>,
+    location: Option<String>,
 ) -> Result<&'a Array, YamlError> {
-    value[field].as_vec().ok_or_else(|| {
-        YamlError::ParseError(custom_msg.unwrap_or(format!("{field} must be a vector")))
+    if value[field].is_badvalue() {
+        return Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(field.to_string()),
+            location: location.unwrap_or_else(|| "document".to_string()),
+        });
+    }
+    value[field].as_vec().ok_or_else(|| YamlError::Field {
+        kind: FieldErrorKind::InvalidType {
+            field: field.to_string(),
+            expected: "a vector".to_string(),
+        },
+        location: location.unwrap_or_else(|| "document".to_string()),
     })
 }
 pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array> {

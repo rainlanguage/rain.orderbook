@@ -724,20 +724,26 @@ orders:
         let error = dotrain_yaml.get_gui(None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "yaml data for token: token-three not found in input index: 0 in order: order1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "token".to_string(),
+                    reason: "missing yaml data for token 'token-three'".to_string(),
+                },
+                location: "input index '0' in order 'order1'".to_string(),
+            }
         );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
         let error = dotrain_yaml.get_gui(None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "yaml data for token: token-three not found in output index: 0 in order: order1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "token".to_string(),
+                    reason: "missing yaml data for token 'token-three'".to_string(),
+                },
+                location: "output index '0' in order 'order1'".to_string(),
+            }
         );
     }
 }
