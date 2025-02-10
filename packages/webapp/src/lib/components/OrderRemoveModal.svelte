@@ -4,14 +4,13 @@
 	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook/js_api';
 	import type { Config } from 'wagmi';
-	import type { Hex } from 'viem';
 
 	export let open: boolean;
 	export let order: OrderSubgraph;
 	export let onRemove: () => void;
 	export let wagmiConfig: Config;
 	export let chainId: number;
-	export let orderbookAddress: Hex;
+	export let orderbookAddress: string;
 
 	const messages = {
 		success: 'Order was successfully removed.',
@@ -35,7 +34,7 @@
 		transactionStore.handleRemoveOrderTransaction({
 			config: wagmiConfig,
 			removeOrderCalldata,
-			orderbookAddress,
+			orderbookAddress: orderbookAddress as `0x${string}`,
 			chainId
 		});
 	}
