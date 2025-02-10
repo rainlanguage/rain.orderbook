@@ -9,7 +9,8 @@
 	export let orderOrVault: OrderOrVault;
 	export let type: 'orders' | 'vaults';
 	export let network: string;
-	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
+	export let updateActiveNetworkAndOrderbook: ((subgraphName: string) => void) | undefined =
+		undefined;
 
 	let hash;
 
