@@ -1,7 +1,6 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
-import { goto } from '$app/navigation';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
