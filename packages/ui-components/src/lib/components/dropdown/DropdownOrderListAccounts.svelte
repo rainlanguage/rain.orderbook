@@ -1,8 +1,8 @@
 <script lang="ts">
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import type { Writable, Readable } from 'svelte/store';
-	export let accounts: Readable<Record<string, string>>;
-	export let activeAccountsItems: Writable<Record<string, string>>;
+	export let accounts: Readable<Record<string, string>> | undefined;
+	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	$: options = $accounts;
 </script>
 

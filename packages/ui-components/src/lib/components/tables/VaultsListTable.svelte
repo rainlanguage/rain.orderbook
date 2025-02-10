@@ -18,13 +18,14 @@
 		type MultiSubgraphArgs,
 		type VaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
-	import type { Writable, Readable } from 'svelte/store';
+	import { type Writable, type Readable } from 'svelte/store';
+	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
+	export let accounts: AppStoresInterface['accounts'] | undefined;
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let orderHash: Writable<string>;
-	export let accounts: Readable<Record<string, string>>;
-	export let activeAccountsItems: Writable<Record<string, string>>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let settings: Writable<ConfigSource | undefined>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
@@ -41,6 +42,8 @@
 	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let signerAddress: Writable<string | null> | undefined;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -50,8 +53,11 @@
 	})) as MultiSubgraphArgs[];
 
 	$: owners =
-		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
-
+		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
+			? Object.values($activeAccountsItems)
+			: $showMyItemsOnly && $signerAddress
+				? [$signerAddress]
+				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
@@ -97,11 +103,13 @@
 		{settings}
 		{accounts}
 		{activeAccountsItems}
+		{showMyItemsOnly}
 		{activeOrderStatus}
 		{orderHash}
 		{hideZeroBalanceVaults}
 		{isVaultsPage}
 		{isOrdersPage}
+		{signerAddress}
 	/>
 	<AppTable
 		{query}

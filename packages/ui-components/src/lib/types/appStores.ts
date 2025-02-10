@@ -16,4 +16,5 @@ export interface AppStoresInterface {
 	activeAccounts: Readable<{
 		[k: string]: string;
 	}>;
+	showMyItemsOnly: Writable<boolean>;
 }

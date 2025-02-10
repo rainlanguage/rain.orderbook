@@ -20,6 +20,7 @@
     activeOrderbookRef,
   } from '$lib/stores/settings';
   import { page } from '$app/stores';
+  import { writable } from 'svelte/store';
 
   $: currentRoute = $page.url.pathname;
 
@@ -46,4 +47,6 @@
   {orderHash}
   {hideZeroBalanceVaults}
   {currentRoute}
+  showMyItemsOnly={writable(false)}
+  signerAddress={writable('')}
 />

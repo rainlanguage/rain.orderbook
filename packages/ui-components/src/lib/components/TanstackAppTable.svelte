@@ -32,7 +32,7 @@
 	</div>
 {:else if $query.data}
 	<Table
-		divClass="cursor-pointer rounded-lg lg:overflow-hidden overflow-auto dark:border-none border"
+		divClass="cursor-pointer rounded-lg overflow-auto dark:border-none border"
 		hoverable={rowHoverable}
 	>
 		<TableHead data-testid="head">

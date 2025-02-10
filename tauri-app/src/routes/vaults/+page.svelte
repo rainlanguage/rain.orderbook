@@ -26,6 +26,7 @@
     handleDepositModal,
     handleWithdrawModal,
   } from '$lib/services/modal';
+  import { writable } from 'svelte/store';
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -57,4 +58,6 @@
   {handleDepositModal}
   {handleWithdrawModal}
   {currentRoute}
+  showMyItemsOnly={writable(false)}
+  signerAddress={writable('')}
 />
