@@ -20,8 +20,6 @@
 		}
 	});
 
-	$: console.log($colorTheme);
-
 	const initWallet = async () => {
 		const erckit = defaultConfig({
 			appName: 'Rain Language',
