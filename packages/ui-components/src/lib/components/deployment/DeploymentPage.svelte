@@ -8,6 +8,7 @@
 		DepositAndAddOrderCalldataResult
 	} from '@rainlanguage/orderbook/js_api';
 	import type { Hex } from 'viem';
+	import { page } from '$app/stores';
 
 	export let dotrain: string;
 	export let key: string;
@@ -22,6 +23,7 @@
 		orderbookAddress: Hex;
 		chainId: number;
 	}) => void;
+	const stateFromUrl = $page.url.searchParams.get('state') || '';
 </script>
 
 <DeploymentSteps
@@ -32,4 +34,5 @@
 	{wagmiConnected}
 	{appKitModal}
 	{handleDeployModal}
+	{stateFromUrl}
 />

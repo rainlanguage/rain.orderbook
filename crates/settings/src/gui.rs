@@ -2,7 +2,8 @@ use crate::{
     yaml::{
         context::{Context, GuiContextTrait},
         default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, YamlError, YamlParsableHash, YamlParseableValue,
+        require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
+        YamlParseableValue,
     },
     Deployment, Token, TokenRef,
 };
@@ -278,9 +279,10 @@ impl Gui {
             if let Some(gui) = optional_hash(&document_read, "gui") {
                 let deployments = gui
                     .get(&StrictYaml::String("deployments".to_string()))
-                    .ok_or(YamlError::ParseError(
-                        "deployments field missing in gui".to_string(),
-                    ))?;
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::Missing("deployments".to_string()),
+                        location: "gui".to_string(),
+                    })?;
 
                 if let StrictYaml::Hash(deployments_hash) = deployments {
                     for (key, _) in deployments_hash {
@@ -289,9 +291,13 @@ impl Gui {
                         }
                     }
                 } else {
-                    return Err(YamlError::ParseError(
-                        "deployments field must be a map in gui".to_string(),
-                    ));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "deployments".to_string(),
+                            expected: "a map".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    });
                 }
             }
         }
@@ -326,6 +332,11 @@ impl Gui {
                             return Ok(Some(result));
                         }
                     }
+                } else {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing("deployments".to_string()),
+                        location: "gui".to_string(),
+                    });
                 }
             }
         }
@@ -340,25 +351,24 @@ impl Gui {
 
             if let Some(gui) = optional_hash(&document_read, "gui") {
                 let name = require_string(
-                    get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
+                    get_hash_value(gui, "name", Some("gui".to_string()))?,
                     None,
-                    Some("name field must be a string in gui".to_string()),
+                    Some("gui".to_string()),
                 )?;
 
                 let description = require_string(
-                    get_hash_value(
-                        gui,
-                        "description",
-                        Some("description field missing in gui".to_string()),
-                    )?,
+                    get_hash_value(gui, "description", Some("gui".to_string()))?,
                     None,
-                    Some("description field must be a string in gui".to_string()),
+                    Some("gui".to_string()),
                 )?;
 
                 return Ok(NameAndDescription { name, description });
             }
         }
-        Err(YamlError::ParseError("gui details not found".to_string()))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing("name/description".to_string()),
+            location: "gui".to_string(),
+        })
     }
 
     pub fn parse_deployment_details(
@@ -372,31 +382,30 @@ impl Gui {
             if let Some(gui) = optional_hash(&document_read, "gui") {
                 let deployments = gui
                     .get(&StrictYaml::String("deployments".to_string()))
-                    .ok_or(YamlError::ParseError(
-                        "deployments field missing in gui".to_string(),
-                    ))?
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::Missing("deployments".to_string()),
+                        location: "gui".to_string(),
+                    })?
                     .as_hash()
-                    .ok_or(YamlError::ParseError(
-                        "deployments field must be a map in gui".to_string(),
-                    ))?;
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "deployments".to_string(),
+                            expected: "a map".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
                 for (key_yaml, deployment_yaml) in deployments {
                     let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("gui deployment '{deployment_key}'");
 
-                    let name = require_string(
-                        deployment_yaml,
-                        Some("name"),
-                        Some(format!(
-                            "name string missing in gui deployment: {deployment_key}"
-                        )),
-                    )?;
+                    let name =
+                        require_string(deployment_yaml, Some("name"), Some(location.clone()))?;
 
                     let description = require_string(
                         deployment_yaml,
                         Some("description"),
-                        Some(format!(
-                            "description string missing in gui deployment: {deployment_key}"
-                        )),
+                        Some(location.clone()),
                     )?;
 
                     deployment_details
@@ -441,7 +450,7 @@ impl Gui {
                                                                 preset_yaml,
                                                                 Some("value"),
                                                                 Some(format!(
-                                                                    "preset value must be a string for preset index: {preset_index} for field index: {field_index} in gui deployment: {deployment_key}",
+                                                                    "preset index '{preset_index}' for field index '{field_index}' in gui deployment '{deployment_key}'",
                                                                 ))
                                                             )?;
 
@@ -458,22 +467,28 @@ impl Gui {
                                             };
                                         }
                                     } else {
-                                        return Err(YamlError::ParseError(format!(
-                                            "binding string missing for field index: {field_index} in gui deployment: {deployment_key}",
-                                        )));
+                                        return Err(YamlError::Field {
+                                            kind: FieldErrorKind::Missing("binding".to_string()),
+                                            location: format!("field index: {field_index} in gui deployment '{deployment_key}'"),
+                                        });
                                     }
                                 }
                             }
                         } else {
-                            return Err(YamlError::ParseError(format!(
-                                "fields list missing in gui deployment: {deployment_key}"
-                            )));
+                            return Err(YamlError::Field {
+                                kind: FieldErrorKind::Missing("fields".to_string()),
+                                location: format!("gui deployment '{deployment_key}'"),
+                            });
                         }
                     }
                 } else {
-                    return Err(YamlError::ParseError(
-                        "deployments field must be a map in gui".to_string(),
-                    ));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "deployments".to_string(),
+                            expected: "a map".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    });
                 }
             }
         }
@@ -502,42 +517,52 @@ impl YamlParseableValue for Gui {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Some(gui) = optional_hash(&document_read, "gui") {
-                let name = require_string(
-                    get_hash_value(gui, "name", Some("name field missing in gui".to_string()))?,
-                    None,
-                    Some("name field must be a string in gui".to_string()),
-                )?;
+                let name = get_hash_value(gui, "name", Some("gui".to_string()))?
+                    .as_str()
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "name".to_string(),
+                            expected: "a string".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
-                let description = require_string(
-                    get_hash_value(
-                        gui,
-                        "description",
-                        Some("description field missing in gui".to_string()),
-                    )?,
-                    None,
-                    Some("description field must be a string in gui".to_string()),
-                )?;
+                let description = get_hash_value(gui, "description", Some("gui".to_string()))?
+                    .as_str()
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "description".to_string(),
+                            expected: "a string".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
                 if gui_res.is_none() {
                     gui_res = Some(Gui {
-                        name,
-                        description,
+                        name: name.to_string(),
+                        description: description.to_string(),
                         deployments: gui_deployments_res.clone(),
                     });
                 }
 
                 let deployments = gui
                     .get(&StrictYaml::String("deployments".to_string()))
-                    .ok_or(YamlError::ParseError(
-                        "deployments field missing in gui".to_string(),
-                    ))?
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::Missing("deployments".to_string()),
+                        location: "gui".to_string(),
+                    })?
                     .as_hash()
-                    .ok_or(YamlError::ParseError(
-                        "deployments field must be a map in gui".to_string(),
-                    ))?;
+                    .ok_or(YamlError::Field {
+                        kind: FieldErrorKind::InvalidType {
+                            field: "deployments".to_string(),
+                            expected: "a map".to_string(),
+                        },
+                        location: "gui".to_string(),
+                    })?;
 
                 for (deployment_name, deployment_yaml) in deployments {
                     let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
+                    let location = format!("gui deployment '{deployment_name}'");
 
                     if let Some(context) = context {
                         if let Some(current_deployment) = context.get_current_deployment() {
@@ -550,21 +575,25 @@ impl YamlParseableValue for Gui {
                     let mut context = Context::from_context(context);
 
                     let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
-                        Some(tokens) => Some(
-                            tokens
-                                .iter()
-                                .enumerate()
-                                .map(|(select_token_index, select_token_value)| {
-                                    select_token_value.as_hash().ok_or(YamlError::ParseError(format!(
-                                        "select-token value must be a map for select-token index: {select_token_index} in gui deployment: {deployment_name}",
-                                    )))?;
+                            Some(tokens) => Some(
+                                tokens
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(select_token_index, select_token_value)| {
+                                        let location = format!("select-token index '{select_token_index}' in gui deployment '{deployment_name}'");
 
-                                    Ok(GuiSelectTokens {
-                                        key: require_string(select_token_value, Some("key"), Some(format!(
-                                            "key field missing for select-token index: {select_token_index} in gui deployment: {deployment_name}",
-                                        )))?,
-                                        name: optional_string(select_token_value, "name"),
-                                        description: optional_string(select_token_value, "description"),
+                                        select_token_value.as_hash().ok_or(YamlError::Field{
+                                            kind: FieldErrorKind::InvalidType {
+                                                field: "select-token".to_string(),
+                                                expected: "a map".to_string(),
+                                            },
+                                            location: location.clone(),
+                                        })?;
+    
+                                        Ok(GuiSelectTokens {
+                                            key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
+                                            name: optional_string(select_token_value, "name"),
+                                            description: optional_string(select_token_value, "description"),
                                     })
                                 })
                                 .collect::<Result<Vec<_>, YamlError>>()?,
@@ -587,28 +616,19 @@ impl YamlParseableValue for Gui {
                     )?;
                     context.add_order(deployment.order.clone());
 
-                    let name = require_string(
-                        deployment_yaml,
-                        Some("name"),
-                        Some(format!(
-                            "name string missing in gui deployment: {deployment_name}"
-                        )),
-                    )?;
+                    let name =
+                        require_string(deployment_yaml, Some("name"), Some(location.clone()))?;
 
                     let description = require_string(
                         deployment_yaml,
                         Some("description"),
-                        Some(format!(
-                            "description string missing in gui deployment: {deployment_name}"
-                        )),
+                        Some(location.clone()),
                     )?;
 
                     let deposits = require_vec(
                         deployment_yaml,
                         "deposits",
-                        Some(format!(
-                            "deposits list missing in gui deployment: {deployment_name}",
-                        )),
+                        Some(location.clone()),
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
                         let mut deposit_token = None;
 
@@ -617,7 +637,7 @@ impl YamlParseableValue for Gui {
                                 deposit_value,
                                 Some("token"),
                                 Some(format!(
-                                    "token string missing for deposit index: {deposit_index} in gui deployment: {deployment_name}",
+                                    "deposit index '{deposit_index}' in {location}",
                                 )),
                             )?);
 
@@ -628,9 +648,15 @@ impl YamlParseableValue for Gui {
                             Some(presets) => Some(presets.iter()
                             .enumerate()
                             .map(|(preset_index, preset_yaml)| {
-                                Ok(preset_yaml.as_str().ok_or(YamlError::ParseError(format!(
-                                    "preset value must be a string for preset list index: {preset_index} for deposit index: {deposit_index} in gui deployment: {deployment_name}",
-                                )))?.to_string())
+                                Ok(preset_yaml.as_str().ok_or(YamlError::Field{
+                                    kind: FieldErrorKind::InvalidType {
+                                        field: "preset value".to_string(),
+                                        expected: "a string".to_string(),
+                                    },
+                                    location: format!(
+                                        "presets list index '{preset_index}' for deposit index '{deposit_index}' in {location}",
+                                    ),
+                                })?.to_string())
                             })
                             .collect::<Result<Vec<_>, YamlError>>()?),
                             None => None,
@@ -647,15 +673,13 @@ impl YamlParseableValue for Gui {
                     let fields = require_vec(
                         deployment_yaml,
                         "fields",
-                        Some(format!(
-                            "fields list missing in gui deployment: {deployment_name}"
-                        )),
+                        Some(location.clone()),
                     )?.iter().enumerate().map(|(field_index, field_yaml)| {
                         let binding = require_string(
                             field_yaml,
                             Some("binding"),
                             Some(format!(
-                                "binding string missing for field index: {field_index} in gui deployment: {deployment_name}",
+                                "fields list index '{field_index}' in {location}",
                             )),
                         )?;
 
@@ -663,7 +687,7 @@ impl YamlParseableValue for Gui {
                             field_yaml,
                             Some("name"),
                             Some(format!(
-                                "name string missing for field index: {field_index} in gui deployment: {deployment_name}",
+                                "fields list index '{field_index}' in {location}",
                             )),
                         )?;
                         let interpolated_name = context.interpolate(&name)?;
@@ -678,7 +702,7 @@ impl YamlParseableValue for Gui {
                                     preset_yaml,
                                     Some("value"),
                                     Some(format!(
-                                        "preset value must be a string for preset index: {preset_index} for field index: {field_index} in gui deployment: {deployment_name}",
+                                        "preset index '{preset_index}' for field index '{field_index}' in {location}",
                                     ))
                                 )?;
 
@@ -919,7 +943,10 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name field missing in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("name".to_string()),
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -940,7 +967,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name field must be a string in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "name".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -961,7 +994,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name field must be a string in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "name".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -982,7 +1021,10 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description field missing in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("description".to_string()),
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -1004,7 +1046,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description field must be a string in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "description".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -1026,7 +1074,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("description field must be a string in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "description".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1048,7 +1102,10 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field missing in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -1070,7 +1127,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
         let yaml = r#"
 networks:
@@ -1093,7 +1156,13 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1134,7 +1203,10 @@ gui:
         let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: deployments".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml_prefix = r#"
@@ -1186,7 +1258,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("name string missing in gui deployment: deployment1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("name".to_string()),
+                location: "gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1204,9 +1279,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "description string missing in gui deployment: deployment1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("description".to_string()),
+                location: "gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1225,9 +1301,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "deposits list missing in gui deployment: deployment1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deposits".to_string()),
+                location: "gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1248,10 +1325,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "token string missing for deposit index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("token".to_string()),
+                location: "deposit index '0' in gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1274,10 +1351,15 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "preset value must be a string for preset list index: 0 for deposit index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "preset value".to_string(),
+                    expected: "a string".to_string()
+                },
+                location:
+                    "presets list index '0' for deposit index '0' in gui deployment 'deployment1'"
+                        .to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1300,7 +1382,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("fields list missing in gui deployment: deployment1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("fields".to_string()),
+                location: "gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1325,10 +1410,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "binding string missing for field index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("binding".to_string()),
+                location: "fields list index '0' in gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1353,9 +1438,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "name string missing for field index: 0 in gui deployment: deployment1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("name".to_string()),
+                location: "fields list index '0' in gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1384,10 +1470,14 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "preset value must be a string for preset index: 0 for field index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "preset index '0' for field index '0' in gui deployment 'deployment1'"
+                    .to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1417,10 +1507,13 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "select-token value must be a map for select-token index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field{
+                kind: FieldErrorKind::InvalidType {
+                    field: "select-token".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "select-token index '0' in gui deployment 'deployment1'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1450,10 +1543,10 @@ gui:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "key field missing for select-token index: 0 in gui deployment: deployment1"
-                    .to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("key".to_string()),
+                location: "select-token index '0' in gui deployment 'deployment1'".to_string(),
+            }
         );
     }
 
@@ -1652,7 +1745,10 @@ gui:
         let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field missing in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1676,7 +1772,13 @@ gui:
         let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1701,7 +1803,13 @@ gui:
         let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -1726,7 +1834,13 @@ gui:
         let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("deployments field must be a map in gui".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "deployments".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "gui".to_string(),
+            }
         );
 
         let yaml = r#"

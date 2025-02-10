@@ -11,7 +11,7 @@ use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
     context::Context, default_document, optional_hash, optional_string, require_hash,
-    require_string, YamlError, YamlParsableHash,
+    require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
 #[cfg(target_family = "wasm")]
@@ -70,13 +70,12 @@ impl Scenario {
         if let Some(bindings) = optional_hash(scenario_yaml, "bindings") {
             for (binding_key, binding_value) in bindings {
                 let binding_key = binding_key.as_str().unwrap_or_default();
-                let binding_value = require_string(
-                binding_value,
-                None,
-                Some(format!(
-                    "binding value must be a string for key: {binding_key} in scenario: {scenario_key}",
-                )),
-            )?;
+                let location = format!(
+                    "binding key '{}' in scenario '{}'",
+                    binding_key, scenario_key
+                );
+
+                let binding_value = require_string(binding_value, None, Some(location.clone()))?;
 
                 let interpolated_value = match context {
                     Some(context) => context.interpolate(&binding_value)?,
@@ -270,16 +269,19 @@ impl Scenario {
                                         }
                                         sub_scenario
                                     } else {
-                                        return Err(YamlError::ParseError(format!(
-                                            "{} not found in sub scenarios",
-                                            part
-                                        )));
+                                        return Err(YamlError::Field {
+                                            kind: FieldErrorKind::Missing(part.to_string()),
+                                            location: format!(
+                                                "sub scenarios of '{}'",
+                                                base_scenario
+                                            ),
+                                        });
                                     }
                                 } else {
-                                    return Err(YamlError::ParseError(format!(
-                                        "scenarios not found for part {}",
-                                        part
-                                    )));
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::Missing("scenarios".to_string()),
+                                        location: format!("{} of '{}'", part, base_scenario),
+                                    });
                                 };
                             current = next_scenario;
                         }
@@ -296,18 +298,25 @@ impl Scenario {
                             }
                         }
                     } else {
-                        return Err(YamlError::ParseError(format!(
-                            "missing field: {} in scenarios",
-                            base_scenario
-                        )));
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(base_scenario.to_string()),
+                            location: "scenarios".to_string(),
+                        });
                     }
                 } else {
-                    return Err(YamlError::ParseError(
-                        "missing field: scenarios".to_string(),
-                    ));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing("scenarios".to_string()),
+                        location: "root".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("document parse error".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "document".to_string(),
+                        expected: "a hash".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
             }
         }
 
@@ -359,9 +368,10 @@ impl YamlParsableHash for Scenario {
         }
 
         if scenarios.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: scenarios".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("scenarios".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(scenarios)
@@ -682,7 +692,10 @@ test: test
         let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: scenarios".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("scenarios".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -703,9 +716,13 @@ scenarios:
         let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "binding key 'key1' in scenario 'scenario1'".to_string()
+            }
         );
 
         let yaml = r#"
@@ -726,9 +743,13 @@ scenarios:
         let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "binding value must be a string for key: key1 in scenario: scenario1".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string()
+                },
+                location: "binding key 'key1' in scenario 'scenario1'".to_string()
+            }
         );
 
         let yaml = r#"

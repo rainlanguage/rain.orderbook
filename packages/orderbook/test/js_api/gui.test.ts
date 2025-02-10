@@ -1179,10 +1179,10 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(gui.isSelectTokenSet('token2'), false);
 
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
-				'Yaml parse error: missing field: token'
+				"Missing required field 'tokens' in root"
 			);
 			await expect(async () => await gui.getTokenInfo('token2')).rejects.toThrow(
-				'Yaml parse error: missing field: token'
+				"Missing required field 'tokens' in root"
 			);
 
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
@@ -1269,7 +1269,7 @@ ${dotrainWithoutVaultIds}`;
 			gui.removeSelectToken('token1');
 			assert.equal(gui.isSelectTokenSet('token1'), false);
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
-				'Yaml parse error: missing field: token'
+				"Missing required field 'tokens' in root"
 			);
 		});
 	});
