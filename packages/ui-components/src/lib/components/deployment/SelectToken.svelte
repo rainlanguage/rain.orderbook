@@ -16,10 +16,14 @@
 	let checking = false;
 
 	onMount(async () => {
-		const currentToken = await gui?.getTokenInfo(tokenKey);
-		if (currentToken?.address) {
-			inputValue = currentToken.address;
-			getInfoForSelectedToken();
+		try {
+			const currentToken = await gui?.getTokenInfo(tokenKey);
+			if (currentToken?.address) {
+				inputValue = currentToken.address;
+				getInfoForSelectedToken();
+			}
+		} catch {
+			// do nothing
 		}
 	});
 
