@@ -80,7 +80,7 @@
 	{/if}
 	{#if files.length > 0}
 		{#key files}
-			<div class="mb-36 flex flex-col gap-8">
+			<div class="mb-36 flex flex-col gap-y-24">
 				{#each files as { name, url }}
 					<StrategySection strategyUrl={url} strategyName={name} />
 				{/each}

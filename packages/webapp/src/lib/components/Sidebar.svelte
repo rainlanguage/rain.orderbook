@@ -65,7 +65,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border lg:hidden dark:border-gray-700"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
@@ -77,7 +77,7 @@
 						href: '/',
 						img: $colorTheme === 'light' ? logoLight : logoDark
 					}}
-					imgClass="m-auto"
+					imgClass="m-auto px-4"
 					aClass="mb-0"
 				></SidebarBrand>
 			</SidebarGroup>
