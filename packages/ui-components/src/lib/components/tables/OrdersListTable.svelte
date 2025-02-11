@@ -19,6 +19,7 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
+	import type { Writable } from 'svelte/store';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,12 +30,14 @@
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 	export let settings: AppStoresInterface['settings'];
-	export let accounts: AppStoresInterface['accounts'];
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
+	export let accounts: AppStoresInterface['accounts'] | undefined;
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let currentRoute: string;
+	export let signerAddress: Writable<string | null> | undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
@@ -46,8 +49,11 @@
 	})) as MultiSubgraphArgs[];
 
 	$: owners =
-		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
-
+		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
+			? Object.values($activeAccountsItems)
+			: $showMyItemsOnly && $signerAddress
+				? [$signerAddress]
+				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_ORDERS,
@@ -88,11 +94,13 @@
 	{settings}
 	{accounts}
 	{activeAccountsItems}
+	{showMyItemsOnly}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
 	{isVaultsPage}
 	{isOrdersPage}
+	{signerAddress}
 />
 
 <AppTable

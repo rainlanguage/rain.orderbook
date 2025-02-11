@@ -2,6 +2,9 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
+	import { signerAddress } from '$lib/stores/wagmi';
+	import { connected } from '$lib/stores/wagmi.ts';
+	import { writable } from 'svelte/store';
 
 	const {
 		activeSubgraphs,
@@ -12,10 +15,12 @@
 		orderHash,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
-		activeOrderbookRef
+		activeOrderbookRef,
+		showMyItemsOnly = writable(false)
 	}: AppStoresInterface = $page.data.stores;
 
 	$: currentRoute = $page.url.pathname;
+	$: showMyItemsOnly.set($connected);
 </script>
 
 <OrdersListTable
@@ -25,6 +30,8 @@
 	{settings}
 	{accounts}
 	{activeAccountsItems}
+	{showMyItemsOnly}
+	{signerAddress}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}

@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
+	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
 	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	const { id, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -25,5 +25,6 @@
 	{chainId}
 	{wagmiConfig}
 	{handleDepositOrWithdrawModal}
+	{handleOrderRemoveModal}
 	{signerAddress}
 />
