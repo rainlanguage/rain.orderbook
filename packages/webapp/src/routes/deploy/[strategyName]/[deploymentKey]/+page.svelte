@@ -4,7 +4,8 @@
 	import { DeploymentPage } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal } from '$lib/services/modal';
-	const { dotrain, key, name, description } = $page.data;
+	const { dotrain, key, name, description, settings } = $page.data;
+	const { subgraphUrl } = settings;
 
 	if (!dotrain || !key) {
 		setTimeout(() => {
@@ -25,5 +26,6 @@
 		wagmiConnected={connected}
 		{appKitModal}
 		{handleDeployModal}
+		{subgraphUrl}
 	/>
 {/if}

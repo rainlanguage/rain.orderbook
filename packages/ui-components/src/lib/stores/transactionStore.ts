@@ -6,10 +6,11 @@ import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
+	Transaction,
 	Vault,
-	WithdrawCalldataResult,
-	getTransaction
+	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
+import { getTransaction } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -46,6 +47,7 @@ export type DeploymentTransactionArgs = {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+	subgraphUrl: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -97,26 +99,26 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_SUBGRAPH,
 			message: 'Checking for transaction indexing...'
 		}));
-		let interval: NodeJS.Timeout;
+
 		let attempts = 0;
-		try {
-			interval = setInterval(async () => {
+		let newTx: Transaction;
+
+			const interval: NodeJS.Timeout = setInterval(async () => {
 				attempts++;
-				const newTx = await getTransaction(subgraphUrl, txHash);
+				newTx = await getTransaction(subgraphUrl, txHash);
 				if (newTx) {
+					console.log("new tx!", newTx)
 					clearInterval(interval);
 					return transactionSuccess(txHash, successMessage);
 				} else if (attempts >= 5) {
 					update((state) => ({
 						...state,
-						message: 'Please check again later.'
+						message: 'The subgraph took too long to respond. Please check again later.'
 					}));
 					clearInterval(interval);
 				}
 			}, 1000);
-		} catch (error) {
-			console.error(error);
-		}
+
 	};
 
 	const checkingWalletAllowance = (message?: string) =>
@@ -165,7 +167,8 @@ const transactionStore = () => {
 		approvals,
 		deploymentCalldata,
 		orderbookAddress,
-		chainId
+		chainId,
+		subgraphUrl
 	}: DeploymentTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -206,7 +209,9 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Strategy deployed successfully.');
+			return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
+
+
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
@@ -259,7 +264,7 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitTransactionIndexing(subgraphUrl, hash, `${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`);
+			return awaitTransactionIndexing(subgraphUrl, hash, `The ${action === 'deposit' ? 'deposit' : 'withdrawal'} was successful.`);
 
 		} catch {
 			return transactionError(

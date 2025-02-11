@@ -97,7 +97,8 @@ describe('transactionStore', () => {
 			approvals: mockApprovals,
 			deploymentCalldata: mockDeploymentCalldata,
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
@@ -112,7 +113,9 @@ describe('transactionStore', () => {
 			approvals: [],
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -130,7 +133,9 @@ describe('transactionStore', () => {
 			approvals: mockApprovals,
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -149,7 +154,9 @@ describe('transactionStore', () => {
 			approvals: mockApprovals,
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -165,7 +172,9 @@ describe('transactionStore', () => {
 			approvals: [],
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -182,7 +191,9 @@ describe('transactionStore', () => {
 			approvals: [],
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -207,7 +218,9 @@ describe('transactionStore', () => {
 			approvals: mockApprovals,
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+						subgraphUrl: 'test.com'
+
 		});
 
 		expect(sendTransaction).toHaveBeenCalledTimes(3); // 2 approvals + 1 deployment

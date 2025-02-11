@@ -22,7 +22,9 @@
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string;
 	}) => void;
+	export let subgraphUrl: string;
 	const stateFromUrl = $page.url.searchParams.get('state') || '';
 </script>
 
@@ -35,4 +37,5 @@
 	{appKitModal}
 	{handleDeployModal}
 	{stateFromUrl}
+	{subgraphUrl}
 />

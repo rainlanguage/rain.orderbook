@@ -51,7 +51,9 @@
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string
 	}) => void;
+	export let subgraphUrl: string;
 
 	let selectTokens: string[] | null = null;
 	let allDepositFields: GuiDeposit[] = [];
@@ -188,7 +190,8 @@
 				approvals,
 				deploymentCalldata,
 				orderbookAddress,
-				chainId
+				chainId,
+				subgraphUrl
 			});
 		} catch (e) {
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
