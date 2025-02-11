@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { type ConfigSource } from '../../typeshare/config';
 	import type { Writable } from 'svelte/store';
 	import DeploymentSteps from './DeploymentSteps.svelte';
 	import type { Config } from 'wagmi';
@@ -24,7 +25,7 @@
 		chainId: number;
 		subgraphUrl: string;
 	}) => void;
-	export let subgraphUrl: string;
+	export let settings: Writable<ConfigSource>;
 	const stateFromUrl = $page.url.searchParams.get('state') || '';
 </script>
 
@@ -37,5 +38,5 @@
 	{appKitModal}
 	{handleDeployModal}
 	{stateFromUrl}
-	{subgraphUrl}
+	{settings}
 />

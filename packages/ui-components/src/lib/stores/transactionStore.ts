@@ -209,9 +209,11 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
+			if (subgraphUrl === '') {
+				return transactionSuccess(hash, `Strategy deployed successfully.`);
+			} else {
 			return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
-
-
+			}
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

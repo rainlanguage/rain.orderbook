@@ -38,6 +38,17 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = "getNetworkKey")]
+    pub fn get_network_key(&self) -> Result<String, GuiError> {
+        let order_key = Deployment::parse_order_key(
+            self.dotrain_order.dotrain_yaml().documents,
+            &self.selected_deployment,
+        )?;
+        let network_key =
+            Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+        Ok(network_key)
+    }
+
     #[wasm_bindgen(js_name = "saveSelectToken")]
     pub async fn save_select_token(
         &mut self,
