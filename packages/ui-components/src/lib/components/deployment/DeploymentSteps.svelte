@@ -55,8 +55,6 @@
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
-	let inputVaultIds: string[] = [];
-	let outputVaultIds: string[] = [];
 
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
@@ -269,14 +267,7 @@
 					{/if}
 
 					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-						<TokenIOSection
-							bind:allTokenInputs
-							bind:allTokenOutputs
-							{gui}
-							bind:inputVaultIds
-							bind:outputVaultIds
-							{handleUpdateGuiState}
-						/>
+						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
 					<div class="flex flex-col gap-2">

@@ -1,26 +1,34 @@
-import { render, fireEvent } from '@testing-library/svelte';
+import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
+import userEvent from '@testing-library/user-event';
 
 export type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
 describe('TokenInput', () => {
 	const mockInput = {
 		token: {
-			address: '0x123'
+			address: '0x123',
+			key: 'test'
 		}
 	};
-
-	const mockGui = {
-		setVaultId: vi.fn(),
-		getTokenInfo: vi.fn()
-	};
-
 	const mockTokenInfo = {
 		symbol: 'MOCK',
 		name: 'Mock Token',
 		decimals: 18
+	};
+
+	const mockGui = {
+		setVaultId: vi.fn(),
+		getTokenInfo: vi.fn(),
+		getCurrentDeployment: vi.fn().mockResolvedValue({
+			deployment: {
+				order: {
+					inputs: [mockInput]
+				}
+			}
+		})
 	};
 
 	const mockProps: TokenIOInputComponentProps = {
@@ -28,7 +36,8 @@ describe('TokenInput', () => {
 		label: 'Input',
 		vault: mockInput,
 		vaultIds: ['vault1'],
-		gui: mockGui
+		gui: mockGui,
+		handleUpdateGuiState: vi.fn()
 	} as unknown as TokenIOInputComponentProps;
 
 	beforeEach(() => {
@@ -47,18 +56,21 @@ describe('TokenInput', () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it('displays the correct vault ID value', () => {
-		const { getByDisplayValue } = render(TokenIOInput, mockProps);
-		expect(getByDisplayValue('vault1')).toBeInTheDocument();
+	it('displays the correct vault ID value', async () => {
+		const { getByText } = render(TokenIOInput, mockProps);
+		await waitFor(() => {
+			expect(getByText('MOCK vault ID')).toBeInTheDocument();
+		});
 	});
 
 	it('calls setVaultId when input changes', async () => {
 		const { getByPlaceholderText } = render(TokenIOInput, mockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 
-		await fireEvent.change(input, { target: { value: 'vault1' } });
-
-		expect(mockGui.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		await userEvent.type(input, 'vault1');
+		await waitFor(() => {
+			expect(mockGui.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		});
 	});
 
 	it('does not call setVaultId when gui is undefined', async () => {
