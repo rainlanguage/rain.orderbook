@@ -9,17 +9,16 @@
 	export let gui: DotrainOrderGui;
 	export let selectTokens: string[];
 	export let allTokensSelected: boolean;
-
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 
 	onMount(async () => {
-		const currentToken = await gui?.getTokenInfo(tokenKey);
-		if (currentToken?.address) {
-			inputValue = currentToken.address;
-			getInfoForSelectedToken();
+		tokenInfo = await gui?.getTokenInfo(tokenKey);
+		if (tokenInfo?.address) {
+			inputValue = tokenInfo.address;
 		}
 	});
 
@@ -66,6 +65,7 @@
 		}
 		checkIfAllTokensAreSelected();
 		checking = false;
+		handleUpdateGuiState(gui);
 	}
 </script>
 

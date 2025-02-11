@@ -4,7 +4,6 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -18,7 +17,7 @@
 		DotrainOrder
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Accordion, Button } from 'flowbite-svelte';
+	import { Button } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -52,7 +51,7 @@
 		orderbookAddress: Hex;
 		chainId: number;
 	}) => void;
-
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let selectTokens: string[] | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
@@ -203,19 +202,9 @@
 		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
 
-	async function handleReviewChoices() {
-		open = !open;
-		try {
-			const serializedState = await gui?.serializeState();
-			if (serializedState) {
-				$page.url.searchParams.set('state', serializedState);
-				$page.url.searchParams.set('review', 'true');
-				await goto(`?${$page.url.searchParams.toString()}`, { noScroll: true });
-			}
-		} catch (e) {
-			error = DeploymentStepErrors.SERIALIZE_ERROR;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
+	async function handleShareChoices() {
+		// copy the current url to the clipboard
+		navigator.clipboard.writeText($page.url.toString());
 	}
 
 	onMount(() => {
@@ -235,9 +224,6 @@
 			$page.url.searchParams.get('state') || ''
 		);
 		if (gui) {
-			await gui.getAllFieldValues();
-			await gui.getDeposits();
-			await gui.getCurrentDeployment();
 			try {
 				selectTokens = await gui.getSelectTokens();
 				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
@@ -283,30 +269,28 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection bind:gui bind:selectTokens bind:allTokensSelected />
+					<SelectTokensSection {gui} {selectTokens} bind:allTokensSelected {handleUpdateGuiState} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
-					<Accordion multiple={true}>
-						{#if allFieldDefinitions.length > 0}
-							<FieldDefinitionsSection bind:allFieldDefinitions bind:gui bind:open />
-						{/if}
+					{#if allFieldDefinitions.length > 0}
+						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
+					{/if}
 
-						{#if allDepositFields.length > 0}
-							<DepositsSection bind:allDepositFields bind:gui bind:open />
-						{/if}
+					{#if allDepositFields.length > 0}
+						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
+					{/if}
 
-						{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
-							<TokenIOSection
-								bind:allTokenInputs
-								bind:allTokenOutputs
-								bind:gui
-								bind:inputVaultIds
-								bind:outputVaultIds
-								bind:open
-							/>
-						{/if}
-					</Accordion>
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+						<TokenIOSection
+							bind:allTokenInputs
+							bind:allTokenOutputs
+							{gui}
+							bind:inputVaultIds
+							bind:outputVaultIds
+							{handleUpdateGuiState}
+						/>
+					{/if}
 
 					<div class="flex flex-col gap-2">
 						<Button
@@ -314,7 +298,7 @@
 							class="flex gap-2"
 							color="alternative"
 							data-testid="review-choices-button"
-							on:click={handleReviewChoices}><FileCopySolid />Review Choices</Button
+							on:click={handleShareChoices}>Share these choices</Button
 						>
 						{#if $wagmiConnected}
 							<ComposedRainlangModal {composeRainlang} />

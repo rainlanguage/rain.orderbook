@@ -5,7 +5,7 @@
 		type TokenDeposit,
 		type TokenInfo
 	} from '@rainlanguage/orderbook/js_api';
-	import { AccordionItem, Input } from 'flowbite-svelte';
+	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
@@ -13,8 +13,7 @@
 
 	export let deposit: GuiDeposit;
 	export let gui: DotrainOrderGui;
-	export let open: boolean;
-
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -52,6 +51,7 @@
 			gui = gui;
 			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 		}
+		handleUpdateGuiState(gui);
 	}
 
 	function handleInput(e: Event) {
@@ -63,6 +63,7 @@
 				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 			}
 		}
+		handleUpdateGuiState(gui);
 	}
 
 	$: if (deposit.token?.key) {
@@ -70,19 +71,15 @@
 	}
 </script>
 
-<AccordionItem bind:open>
-	<span slot="header" class="w-full">
-		<DeploymentSectionHeader
-			title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
-			description={tokenInfo?.symbol
-				? `The amount of ${tokenInfo?.symbol} that you want to deposit.`
-				: 'The amount that you want to deposit.'}
-			{open}
-			value={currentDeposit?.amount}
-		/>
-	</span>
+<div class="flex w-full flex-col gap-6">
+	<DeploymentSectionHeader
+		title={tokenInfo?.symbol ? `Deposit amount (${tokenInfo?.symbol})` : 'Deposit amount'}
+		description={tokenInfo?.symbol
+			? `The amount of ${tokenInfo?.symbol} that you want to deposit.`
+			: 'The amount that you want to deposit.'}
+	/>
 
-	<div class="flex w-full max-w-2xl flex-col gap-6">
+	<div class="flex w-full flex-col gap-6">
 		{#if deposit.presets}
 			<div class="flex w-full flex-wrap gap-4">
 				{#each deposit.presets as preset}
@@ -109,4 +106,4 @@
 			</div>
 		{/if}
 	</div>
-</AccordionItem>
+</div>

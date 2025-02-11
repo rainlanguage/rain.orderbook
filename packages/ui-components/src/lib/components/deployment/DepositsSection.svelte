@@ -4,9 +4,9 @@
 
 	export let allDepositFields: GuiDeposit[];
 	export let gui: DotrainOrderGui;
-	export let open: boolean;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 </script>
 
 {#each allDepositFields as deposit}
-	<DepositInput bind:deposit bind:gui bind:open />
+	<DepositInput bind:deposit {gui} {handleUpdateGuiState} />
 {/each}
