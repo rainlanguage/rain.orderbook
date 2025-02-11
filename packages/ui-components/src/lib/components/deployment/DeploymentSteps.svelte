@@ -23,8 +23,6 @@
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { FileCopySolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 
 	enum DeploymentStepErrors {
@@ -63,7 +61,6 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let open: boolean = true;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -150,7 +147,6 @@
 		try {
 			error = null;
 			errorDetails = null;
-			initializeVaultIdArrays();
 			getAllDepositFields();
 			getAllFieldDefinitions();
 			getAllTokenInputs();
@@ -193,13 +189,6 @@
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
-	}
-
-	function initializeVaultIdArrays() {
-		if (!gui) return;
-		const deployment = gui.getCurrentDeployment();
-		inputVaultIds = new Array(deployment.deployment.order.inputs.length).fill('');
-		outputVaultIds = new Array(deployment.deployment.order.outputs.length).fill('');
 	}
 
 	async function handleShareChoices() {
