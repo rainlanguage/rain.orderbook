@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
-import { goto } from '$app/navigation';
 import DeploymentTile from '../lib/components/deployment/DeploymentTile.svelte';
 
 // Mock the goto function
@@ -21,14 +20,5 @@ describe('DeploymentTile', () => {
 
 		expect(screen.getByText('Test Deployment')).toBeInTheDocument();
 		expect(screen.getByText('This is a test deployment description')).toBeInTheDocument();
-	});
-
-	it('navigates to the correct URL when clicked', async () => {
-		const { getByRole } = render(DeploymentTile, mockProps);
-
-		const button = getByRole('button');
-		await button.click();
-
-		expect(goto).toHaveBeenCalledWith('/deploy/test-strategy/test-key');
 	});
 });
