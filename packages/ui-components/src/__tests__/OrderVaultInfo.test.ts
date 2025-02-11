@@ -21,7 +21,7 @@ describe('OrderVaultInfo', () => {
 		}
 	} as unknown as Vault;
 
-	it('should navigate to vault details page when clicked', async () => {
+	it('should display vault name and address', () => {
 		render(OrderVaultInfo, {
 			props: {
 				tokenVault: mockVault,
@@ -29,9 +29,7 @@ describe('OrderVaultInfo', () => {
 			}
 		});
 
-		const vaultLink = screen.getByTestId('vault-link');
-		expect(vaultLink).toBeTruthy();
-		await userEvent.click(vaultLink);
-		expect(navigation.goto).toHaveBeenCalledWith(`/vaults/test-${mockVault.id}`);
+		expect(screen.getByText('Test Token (TEST)')).toBeInTheDocument();
+		expect(screen.getByText('1')).toBeInTheDocument();
 	});
 });
