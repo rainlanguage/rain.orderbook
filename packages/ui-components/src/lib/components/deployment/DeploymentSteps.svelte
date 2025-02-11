@@ -198,8 +198,6 @@
 
 	onMount(() => {
 		if ($page.url.searchParams) {
-			const isReview = $page.url.searchParams.get('review') === 'true';
-			open = !isReview;
 			if (stateFromUrl) {
 				handleGetStateFromUrl();
 			}
