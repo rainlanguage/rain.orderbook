@@ -1,13 +1,14 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import DeploymentSectionHeader from '../lib/components/deployment/DeploymentSectionHeader.svelte';
+import type { ComponentProps } from 'svelte';
+
+export type DeploymentSectionHeaderComponentProps = ComponentProps<DeploymentSectionHeader>;
 
 describe('DeploymentSectionHeader', () => {
-	const defaultProps = {
+	const defaultProps: DeploymentSectionHeaderComponentProps = {
 		title: 'Test Title',
-		description: 'Test Description',
-		open: false,
-		value: 'Test Value'
+		description: 'Test Description'
 	};
 
 	it('renders title and description', () => {
@@ -26,8 +27,7 @@ describe('DeploymentSectionHeader', () => {
 
 	it('hides value when open', () => {
 		render(DeploymentSectionHeader, {
-			...defaultProps,
-			open: true
+			...defaultProps
 		});
 
 		expect(screen.queryByTestId('header-value')).not.toBeInTheDocument();
@@ -35,8 +35,7 @@ describe('DeploymentSectionHeader', () => {
 
 	it('hides value when value is undefined', () => {
 		render(DeploymentSectionHeader, {
-			...defaultProps,
-			value: undefined
+			...defaultProps
 		});
 
 		expect(screen.queryByTestId('header-value')).not.toBeInTheDocument();

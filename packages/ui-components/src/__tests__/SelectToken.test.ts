@@ -22,7 +22,8 @@ describe('SelectToken', () => {
 		allTokensSelected: false,
 		tokenKey: 'input',
 		gui: mockGui,
-		selectTokens: ['input', 'output']
+		selectTokens: ['input', 'output'],
+		handleUpdateGuiState: vi.fn()
 	};
 
 	beforeEach(() => {
