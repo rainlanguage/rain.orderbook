@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AccordionItem, Input } from 'flowbite-svelte';
+	import { Input } from 'flowbite-svelte';
 	import type { OrderIO, TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
@@ -9,6 +9,7 @@
 	export let vault: OrderIO;
 	export let vaultIds: string[];
 	export let gui: DotrainOrderGui;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let error: string = '';
 	let tokenInfo: TokenInfo | null = null;
 
@@ -24,30 +25,29 @@
 		}
 	};
 
+	const handleChange = () => {
+		gui?.setVaultId(true, i, vaultIds[i]);
+		handleUpdateGuiState(gui);
+	};
+
 	$: if (vault.token?.key) {
 		handleGetTokenInfo();
 	}
-
-	export let open = true;
 </script>
 
-<AccordionItem {open}>
-	<span slot="header">
-		<DeploymentSectionHeader
-			title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-			description={`${tokenInfo?.symbol} vault address`}
-			{open}
-			value={undefined}
-		/>
-	</span>
+<div class="flex w-full flex-col gap-6">
+	<DeploymentSectionHeader
+		title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
+		description={`${tokenInfo?.symbol} vault address`}
+	/>
 
-	<div class="flex w-full max-w-2xl flex-col gap-6">
+	<div class="flex w-full flex-col gap-6">
 		<Input
 			size="lg"
 			type="text"
 			placeholder="Enter vault ID"
 			bind:value={vaultIds[i]}
-			on:change={() => gui?.setVaultId(true, i, vaultIds[i])}
+			on:input={handleChange}
 		/>
 
 		{#if error}
@@ -56,5 +56,5 @@
 				<span>{error}</span>
 			</div>
 		{/if}
-	</div></AccordionItem
->
+	</div>
+</div>

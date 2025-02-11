@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AccordionItem, Input } from 'flowbite-svelte';
+	import { Input } from 'flowbite-svelte';
 
 	import {
 		DotrainOrderGui,
@@ -12,7 +12,7 @@
 
 	export let fieldDefinition: GuiFieldDefinition;
 	export let gui: DotrainOrderGui;
-	export let open: boolean;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let currentValue: GuiPreset | undefined;
 	let inputValue: string | null = currentValue?.value || null;
@@ -33,8 +33,7 @@
 			value: preset.id
 		});
 		currentValue = gui.getFieldValue(fieldDefinition.binding);
-		await gui.getAllFieldValues();
-		await gui.getCurrentDeployment();
+		handleUpdateGuiState(gui);
 	}
 
 	async function handleCustomInputChange(value: string) {
@@ -44,21 +43,13 @@
 			value: value
 		});
 		currentValue = gui.getFieldValue(fieldDefinition.binding);
-		await gui.getAllFieldValues();
-		await gui.getCurrentDeployment();
+		handleUpdateGuiState(gui);
 	}
 </script>
 
-<AccordionItem title={fieldDefinition.name} bind:open>
-	<span slot="header" class="w-full">
-		<DeploymentSectionHeader
-			title={fieldDefinition.name}
-			description={fieldDefinition.description}
-			bind:open
-			value={currentValue?.name || currentValue?.value}
-		/>
-	</span>
-	<div class="flex w-full max-w-2xl flex-col gap-6">
+<div class="flex w-full flex-col gap-6">
+	<DeploymentSectionHeader title={fieldDefinition.name} description={fieldDefinition.description} />
+	<div class="flex w-full flex-col gap-6">
 		{#if fieldDefinition.presets}
 			<div class="flex w-full flex-wrap gap-4">
 				{#each fieldDefinition.presets as preset}
@@ -70,17 +61,15 @@
 				{/each}
 			</div>
 		{/if}
-		{#if fieldDefinition.binding !== 'is-fast-exit'}
-			<Input
-				size="lg"
-				placeholder="Enter custom value"
-				bind:value={inputValue}
-				on:input={({ currentTarget }) => {
-					if (currentTarget instanceof HTMLInputElement) {
-						handleCustomInputChange(currentTarget.value);
-					}
-				}}
-			/>
-		{/if}
+		<Input
+			size="lg"
+			placeholder="Enter custom value"
+			bind:value={inputValue}
+			on:input={({ currentTarget }) => {
+				if (currentTarget instanceof HTMLInputElement) {
+					handleCustomInputChange(currentTarget.value);
+				}
+			}}
+		/>
 	</div>
-</AccordionItem>
+</div>
