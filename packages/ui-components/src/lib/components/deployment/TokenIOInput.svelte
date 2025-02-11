@@ -35,7 +35,7 @@
 	<span slot="header">
 		<DeploymentSectionHeader
 			title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-			description={`${tokenInfo?.symbol} vault address`}
+			description={`${tokenInfo?.symbol} Vault ID`}
 			{open}
 			value={undefined}
 		/>
