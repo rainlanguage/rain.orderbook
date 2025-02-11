@@ -5,7 +5,6 @@
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
   import { settings } from '$lib/stores/settings';
   import { handleDebugTradeModal, handleQuoteDebugModal } from '$lib/services/modal';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
   const { id, network } = $page.params;
 
@@ -27,7 +26,6 @@
     {handleQuoteDebugModal}
     {handleDebugTradeModal}
     {orderbookAddress}
-    {walletAddressMatchesOrBlank}
     {chainId}
   />
 {/if}
