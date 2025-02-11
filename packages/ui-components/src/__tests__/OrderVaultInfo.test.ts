@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import OrderVaultInfo from '../lib/components/OrderVaultInfo.svelte';
-import * as navigation from '$app/navigation';
-import { userEvent } from '@testing-library/user-event';
 import type { Vault } from '@rainlanguage/orderbook/js_api';
 // Mock the $app/navigation module
 vi.mock('$app/navigation', () => ({
