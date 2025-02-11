@@ -1,19 +1,32 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type { OrderIO, TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-	import { CloseCircleSolid } from 'flowbite-svelte-icons';
+	import {
+		type OrderIO,
+		type TokenInfo,
+		type DotrainOrderGui
+	} from '@rainlanguage/orderbook/js_api';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
-
+	import { onMount } from 'svelte';
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIO;
-	export let vaultIds: string[];
 	export let gui: DotrainOrderGui;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
-	let error: string = '';
+
 	let tokenInfo: TokenInfo | null = null;
+	let inputValue: string = '';
+	let error: string = '';
+
+	onMount(() => {
+		if (label === 'Input') {
+			inputValue = gui?.getCurrentDeployment()?.deployment?.order?.inputs[i]?.vaultId;
+		} else if (label === 'Output') {
+			inputValue = gui?.getCurrentDeployment()?.deployment?.order?.outputs[i]?.vaultId;
+		}
+	});
 
 	const handleGetTokenInfo = async () => {
+		console.log('handleGetTokenInfo', vault.token?.key);
 		if (!vault.token?.key) return;
 		try {
 			tokenInfo = await gui?.getTokenInfo(vault.token?.key);
@@ -25,8 +38,9 @@
 		}
 	};
 
-	const handleChange = () => {
-		gui?.setVaultId(true, i, vaultIds[i]);
+	const handleInput = async () => {
+		const isInput = label === 'Input';
+		gui?.setVaultId(isInput, i, inputValue);
 		handleUpdateGuiState(gui);
 	};
 
@@ -38,23 +52,18 @@
 <div class="flex w-full flex-col gap-6">
 	<DeploymentSectionHeader
 		title={`${label} ${i + 1} ${tokenInfo?.symbol ? `(${tokenInfo.symbol})` : ''}`}
-		description={`${tokenInfo?.symbol} vault address`}
+		description={`${tokenInfo?.symbol} vault ID`}
 	/>
-
-	<div class="flex w-full flex-col gap-6">
+	<div class="flex flex-col gap-2">
 		<Input
 			size="lg"
 			type="text"
 			placeholder="Enter vault ID"
-			bind:value={vaultIds[i]}
-			on:input={handleChange}
+			bind:value={inputValue}
+			on:input={handleInput}
 		/>
-
 		{#if error}
-			<div class="flex h-5 flex-row items-center gap-2">
-				<CloseCircleSolid class="h-5 w-5" color="red" />
-				<span>{error}</span>
-			</div>
+			<p class="text-red-500">{error}</p>
 		{/if}
 	</div>
 </div>
