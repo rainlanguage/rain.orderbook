@@ -26,7 +26,6 @@
 	});
 
 	const handleGetTokenInfo = async () => {
-		console.log('handleGetTokenInfo', vault.token?.key);
 		if (!vault.token?.key) return;
 		try {
 			tokenInfo = await gui?.getTokenInfo(vault.token?.key);
