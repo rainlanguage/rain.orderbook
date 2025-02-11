@@ -118,16 +118,18 @@ impl ERC20 {
     }
 }
 
+const ERROR_MESSAGE: &str = "Failed to get token information for given address:";
+
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("{ERROR_MESSAGE}: {0}")]
     ReadContractError(#[from] ReadContractParametersBuilderError),
-    #[error(transparent)]
+    #[error("{ERROR_MESSAGE}: {0}")]
     ReadableClientError(#[from] ReadableClientError),
-    #[error(transparent)]
+    #[error("{ERROR_MESSAGE}: {0}")]
     AbiDecodedErrorType(#[from] AbiDecodedErrorType),
-    #[error(transparent)]
+    #[error("{ERROR_MESSAGE}: {0}")]
     AbiDecodeError(#[from] AbiDecodeFailedErrors),
-    #[error(transparent)]
+    #[error("{ERROR_MESSAGE}: {0}")]
     SolTypesError(#[from] alloy::sol_types::Error),
 }
