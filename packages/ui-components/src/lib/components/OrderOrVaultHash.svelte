@@ -26,7 +26,7 @@
 	data-testid="vault-order-input"
 	data-id={slug}
 	on:click={() => {
-		updateActiveNetworkAndOrderbook(network);
+		updateActiveNetworkAndOrderbook?.(network);
 		goto(`/${type}/${network}-${slug}`);
 	}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button
 >
