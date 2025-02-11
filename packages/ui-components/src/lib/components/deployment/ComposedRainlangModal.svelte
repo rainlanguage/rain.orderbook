@@ -19,7 +19,7 @@
 	}
 </script>
 
-<Button size="lg" on:click={generateRainlang}>Show Rainlang</Button>
+<Button color="light" size="lg" on:click={generateRainlang}>Show Rainlang</Button>
 
 <Modal size="xl" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="modal">
 	<div data-testid="modal-content">

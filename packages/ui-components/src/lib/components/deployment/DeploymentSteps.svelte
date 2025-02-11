@@ -24,7 +24,7 @@
 	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-
+	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -283,20 +283,14 @@
 						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
-					<div class="flex flex-col gap-2">
-						<Button
-							size="lg"
-							class="flex gap-2"
-							color="alternative"
-							data-testid="review-choices-button"
-							on:click={handleShareChoices}>Share these choices</Button
-						>
+					<div class="flex gap-2">
 						{#if $wagmiConnected}
-							<ComposedRainlangModal {composeRainlang} />
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+							<ComposedRainlangModal {composeRainlang} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
+						<ShareChoicesButton {handleShareChoices} />
 
 						<div class="flex flex-col">
 							{#if error}
