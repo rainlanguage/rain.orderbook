@@ -55,8 +55,6 @@
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
-	let inputVaultIds: string[] = [];
-	let outputVaultIds: string[] = [];
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
@@ -200,11 +198,6 @@
 		if ($page.url.searchParams) {
 			if (stateFromUrl) {
 				await handleGetStateFromUrl();
-				// if we have deposits or vault ids set, show advanced options
-				const deposits = gui?.getDeposits();
-				if (deposits) {
-					showAdvancedOptions = true;
-				}
 			}
 		}
 	});
@@ -220,6 +213,17 @@
 				selectTokens = await gui.getSelectTokens();
 				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
 					allTokensSelected = true;
+				}
+				// if we have deposits or vault ids set, show advanced options
+				const deposits = gui?.getDeposits();
+				const inputVaultIds = gui
+					?.getCurrentDeployment()
+					?.deployment?.order?.inputs.map((input) => input.vaultId);
+				const outputVaultIds = gui
+					?.getCurrentDeployment()
+					?.deployment?.order?.outputs.map((output) => output.vaultId);
+				if (deposits || inputVaultIds || outputVaultIds) {
+					showAdvancedOptions = true;
 				}
 			} catch (e) {
 				error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -276,14 +280,7 @@
 					{/if}
 
 					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection
-							bind:allTokenInputs
-							bind:allTokenOutputs
-							{gui}
-							bind:inputVaultIds
-							bind:outputVaultIds
-							{handleUpdateGuiState}
-						/>
+						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
 					<div class="flex flex-col gap-2">
