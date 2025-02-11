@@ -31,6 +31,7 @@
 				action: 'deposit' | 'withdraw';
 				chainId: number;
 				rpcUrl: string;
+				subgraphUrl: string;
 		  }) => void)
 		| undefined = undefined;
 	export let handleOrderRemoveModal:
@@ -146,6 +147,7 @@
 									{rpcUrl}
 									query={orderDetailQuery}
 									{handleDepositOrWithdrawModal}
+									{subgraphUrl}
 								/>
 							{/if}
 						{/each}
@@ -169,6 +171,7 @@
 									{rpcUrl}
 									query={orderDetailQuery}
 									{handleDepositOrWithdrawModal}
+									{subgraphUrl}
 								/>
 							{/if}
 						{/each}

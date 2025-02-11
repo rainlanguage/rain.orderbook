@@ -21,6 +21,7 @@
 	export let vault: Vault;
 	export let chainId: number;
 	export let rpcUrl: string;
+	export let subgraphUrl: string;
 	export let onDepositOrWithdraw: () => void;
 
 	function handleSuccess() {
@@ -71,7 +72,8 @@
 				action,
 				approvalCalldata,
 				chainId,
-				vault
+				vault,
+				subgraphUrl
 			});
 		} else if (action === 'withdraw') {
 			const withdrawCalldata: WithdrawCalldataResult = await getVaultWithdrawCalldata(
@@ -84,7 +86,8 @@
 				transactionCalldata: withdrawCalldata,
 				action,
 				chainId,
-				vault
+				vault,
+				subgraphUrl
 			});
 		}
 	}

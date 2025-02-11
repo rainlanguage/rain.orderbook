@@ -10,12 +10,14 @@
 		action: 'deposit' | 'withdraw';
 		chainId: number;
 		rpcUrl: string;
+		subgraphUrl: string;
 	}) => void;
 
 	export let vault: Vault;
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let query: CreateQueryResult;
+	export let subgraphUrl: string;
 </script>
 
 <Button
@@ -27,7 +29,8 @@
 			onDepositOrWithdraw: $query.refetch,
 			action: 'deposit',
 			chainId,
-			rpcUrl
+			rpcUrl,
+			subgraphUrl
 		})}><ArrowUpOutline size="sm" /></Button
 >
 <Button
@@ -39,6 +42,7 @@
 			onDepositOrWithdraw: $query.refetch,
 			action: 'withdraw',
 			chainId,
-			rpcUrl
+			rpcUrl,
+			subgraphUrl
 		})}><ArrowDownOutline size="sm" /></Button
 >

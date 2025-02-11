@@ -26,6 +26,8 @@ pub enum OrderbookSubgraphClientError {
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
     Empty,
+    #[error("Request timed out")]
+    RequestTimedOut,
     #[error(transparent)]
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]

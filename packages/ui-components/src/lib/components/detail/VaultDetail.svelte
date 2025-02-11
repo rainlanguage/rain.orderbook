@@ -30,6 +30,7 @@
 				action: 'deposit' | 'withdraw';
 				chainId: number;
 				rpcUrl: string;
+				subgraphUrl: string
 		  }) => void)
 		| undefined = undefined;
 	export let id: string;
@@ -97,6 +98,7 @@
 					{rpcUrl}
 					query={vaultDetailQuery}
 					{handleDepositOrWithdrawModal}
+					{subgraphUrl}
 				/>
 			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
 				<Button

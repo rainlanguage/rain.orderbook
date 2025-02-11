@@ -7,7 +7,8 @@ import type {
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Vault,
-	WithdrawCalldataResult
+	WithdrawCalldataResult,
+	getTransaction
 } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
@@ -19,6 +20,7 @@ export enum TransactionStatus {
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
 	PENDING_DEPLOYMENT = 'Deploying your strategy...',
+	PENDING_SUBGRAPH = 'Awaiting subgraph...',
 	SUCCESS = 'Success! Transaction confirmed',
 	ERROR = 'Something went wrong'
 }
@@ -53,6 +55,7 @@ export type DepositOrWithdrawTransactionArgs = {
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	vault: Vault;
+	subgraphUrl: string;
 };
 
 export type TransactionState = {
@@ -88,6 +91,34 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
+	const awaitTransactionIndexing = (subgraphUrl: string, txHash: string, successMessage: string) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Checking for transaction indexing...'
+		}));
+		let interval: NodeJS.Timeout;
+		let attempts = 0;
+		try {
+			interval = setInterval(async () => {
+				attempts++;
+				const newTx = await getTransaction(subgraphUrl, txHash);
+				if (newTx) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, successMessage);
+				} else if (attempts >= 5) {
+					update((state) => ({
+						...state,
+						message: 'Please check again later.'
+					}));
+					clearInterval(interval);
+				}
+			}, 1000);
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({
 			...state,
@@ -112,7 +143,7 @@ const transactionStore = () => {
 			...state,
 			hash: hash,
 			status: TransactionStatus.PENDING_DEPLOYMENT,
-			message: ''
+			message: 'Confirming transaction...'
 		}));
 	const transactionSuccess = (hash: string, message?: string) =>
 		update((state) => ({
@@ -187,7 +218,8 @@ const transactionStore = () => {
 		transactionCalldata,
 		action,
 		chainId,
-		vault
+		vault,
+		subgraphUrl
 	}: DepositOrWithdrawTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -227,10 +259,8 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(
-				hash,
-				`${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`
-			);
+			return awaitTransactionIndexing(subgraphUrl, hash, `${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`);
+
 		} catch {
 			return transactionError(
 				action === 'deposit'
@@ -249,7 +279,8 @@ const transactionStore = () => {
 		awaitWalletConfirmation,
 		awaitApprovalTx,
 		transactionSuccess,
-		transactionError
+		transactionError,
+		awaitTransactionIndexing
 	};
 };
 

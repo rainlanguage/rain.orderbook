@@ -20,6 +20,7 @@ export type DepositOrWithdrawModalProps = {
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	rpcUrl: string;
+	subgraphUrl: string;
 };
 
 export const handleDeployModal = (args: DeployModalProps) => {
