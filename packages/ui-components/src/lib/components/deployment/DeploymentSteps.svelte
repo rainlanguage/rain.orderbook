@@ -17,7 +17,7 @@
 		DotrainOrder
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button } from 'flowbite-svelte';
+	import { Button, Toggle } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -57,7 +57,7 @@
 	let allTokensSelected: boolean = false;
 	let inputVaultIds: string[] = [];
 	let outputVaultIds: string[] = [];
-
+	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -196,10 +196,15 @@
 		navigator.clipboard.writeText($page.url.toString());
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		if ($page.url.searchParams) {
 			if (stateFromUrl) {
-				handleGetStateFromUrl();
+				await handleGetStateFromUrl();
+				// if we have deposits or vault ids set, show advanced options
+				const deposits = gui?.getDeposits();
+				if (deposits) {
+					showAdvancedOptions = true;
+				}
 			}
 		}
 	});
@@ -264,11 +269,13 @@
 						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
 					{/if}
 
-					{#if allDepositFields.length > 0}
+					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+					{#if allDepositFields.length > 0 && showAdvancedOptions}
 						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
 						<TokenIOSection
 							bind:allTokenInputs
 							bind:allTokenOutputs

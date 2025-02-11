@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { page } from '$app/stores';
-	import { OrdersListTable } from '@rainlanguage/ui-components';
+	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { connected } from '$lib/stores/wagmi.ts';
@@ -22,6 +22,8 @@
 	$: currentRoute = $page.url.pathname;
 	$: showMyItemsOnly.set($connected);
 </script>
+
+<PageHeader title={'Orders'} pathname={$page.url.pathname} />
 
 <OrdersListTable
 	{activeNetworkRef}
