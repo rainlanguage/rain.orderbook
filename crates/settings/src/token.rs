@@ -1,5 +1,6 @@
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use crate::*;
 use alloy::primitives::{hex::FromHexError, Address};
@@ -62,16 +63,25 @@ impl Token {
                         StrictYaml::String(address.to_string());
                     self.address = address;
                 } else {
-                    return Err(YamlError::ParseError(format!(
-                        "missing field: {} in tokens",
-                        self.key
-                    )));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "tokens".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("missing field: tokens".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("tokens".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(self.clone())
@@ -150,10 +160,19 @@ impl Token {
                     StrictYaml::Hash(token_hash),
                 );
             } else {
-                return Err(YamlError::ParseError("missing field: token".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("tokens".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(())
@@ -192,15 +211,18 @@ impl Token {
                 if let Some(token_yaml) =
                     tokens_hash.get(&StrictYaml::String(token_key.to_string()))
                 {
-                    return require_string(token_yaml, Some("network"), None);
+                    let location = format!("token '{}'", token_key);
+                    return require_string(token_yaml, Some("network"), Some(location));
                 }
             }
         }
-        Err(YamlError::ParseError(format!(
-            "network key not found for token: {token_key}"
-        )))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(format!("network for token '{}'", token_key)),
+            location: "root".to_string(),
+        })
     }
 }
+
 impl YamlParsableHash for Token {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
@@ -208,35 +230,47 @@ impl YamlParsableHash for Token {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
 
+        let networks = Network::parse_all_from_yaml(documents.clone(), None)?;
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Ok(tokens_hash) = require_hash(&document_read, Some("tokens"), None) {
                 for (key_yaml, token_yaml) in tokens_hash {
                     let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("token '{}'", token_key);
 
-                    let network = Network::parse_from_yaml(
-                        documents.clone(),
-                        &require_string(
-                            token_yaml,
-                            Some("network"),
-                            Some(format!("network string missing in token: {token_key}")),
-                        )?,
-                        None,
-                    )
-                    .map_err(|_| {
-                        ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
+                    let network_key =
+                        require_string(token_yaml, Some("network"), Some(location.clone()))?;
+                    let network = networks.get(&network_key).ok_or_else(|| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "network".to_string(),
+                            reason: format!("Network '{}' not found", network_key),
+                        },
+                        location: location.clone(),
                     })?;
 
-                    let address = Token::validate_address(&require_string(
-                        token_yaml,
-                        Some("address"),
-                        Some(format!("address string missing in token: {token_key}")),
-                    )?)?;
+                    let address_str =
+                        require_string(token_yaml, Some("address"), Some(location.clone()))?;
+                    let address =
+                        Token::validate_address(&address_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "address".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let decimals = optional_string(token_yaml, "decimals")
                         .map(|d| Token::validate_decimals(&d))
-                        .transpose()?;
+                        .transpose()
+                        .map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "decimals".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let label = optional_string(token_yaml, "label");
                     let symbol = optional_string(token_yaml, "symbol");
@@ -244,7 +278,7 @@ impl YamlParsableHash for Token {
                     let token = Token {
                         document: document.clone(),
                         key: token_key.clone(),
-                        network: Arc::new(network),
+                        network: Arc::new(network.clone()),
                         address,
                         decimals,
                         label,
@@ -260,7 +294,10 @@ impl YamlParsableHash for Token {
         }
 
         if tokens.is_empty() {
-            return Err(YamlError::ParseError("missing field: tokens".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(tokens)
@@ -430,7 +467,31 @@ test: test
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: tokens".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let error = Token::parse_all_from_yaml(
+            vec![get_document(
+                r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+test: test
+"#,
+            )],
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let error = Token::parse_all_from_yaml(
@@ -450,7 +511,10 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("network string missing in token: token1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("network".to_string()),
+                location: "token 'token1'".to_string(),
+            }
         );
 
         let error = Token::parse_all_from_yaml(
@@ -471,9 +535,13 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseTokenConfigSourceError(
-                ParseTokenConfigSourceError::NetworkNotFoundError("token1".to_string())
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "network".to_string(),
+                    reason: "Network 'nonexistent' not found".to_string(),
+                },
+                location: "token 'token1'".to_string(),
+            }
         );
 
         let error = Token::parse_all_from_yaml(
@@ -493,7 +561,10 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("address string missing in token: token1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("address".to_string()),
+                location: "token 'token1'".to_string(),
+            }
         );
 
         let error = Token::parse_all_from_yaml(
@@ -510,8 +581,15 @@ tokens:
 "#,
             )],
             None,
-        );
-        assert!(error.is_err());
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
 
         let error = Token::parse_all_from_yaml(
             vec![get_document(
@@ -528,8 +606,15 @@ tokens:
 "#,
             )],
             None,
-        );
-        assert!(error.is_err());
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
     }
 
     #[test]
