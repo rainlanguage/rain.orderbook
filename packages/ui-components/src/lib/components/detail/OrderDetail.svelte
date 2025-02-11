@@ -16,14 +16,12 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Config } from 'wagmi';
 
-	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
-		undefined;
 	export let handleDepositOrWithdrawModal:
 		| ((args: {
 				vault: Vault;
@@ -35,7 +33,13 @@
 		  }) => void)
 		| undefined = undefined;
 	export let handleOrderRemoveModal:
-		| ((order: OrderSubgraph, refetch: () => void) => void)
+		| ((args: {
+				order: OrderSubgraph;
+				onRemove: () => void;
+				wagmiConfig: Config;
+				chainId: number;
+				orderbookAddress: string;
+		  }) => void)
 		| undefined = undefined;
 	export let handleQuoteDebugModal:
 		| undefined
@@ -97,11 +101,18 @@
 			</div>
 			<BadgeActive active={data.active} large />
 		</div>
-		{#if data && $walletAddressMatchesOrBlank?.(data.owner) && data.active && handleOrderRemoveModal}
+		{#if data && $signerAddress === data.owner && data.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 			<Button
 				data-testid="remove-button"
 				color="dark"
-				on:click={() => handleOrderRemoveModal(data, $orderDetailQuery.refetch)}
+				on:click={() =>
+					handleOrderRemoveModal({
+						order: data,
+						onRemove: $orderDetailQuery.refetch,
+						wagmiConfig: $wagmiConfig,
+						chainId,
+						orderbookAddress
+					})}
 				disabled={!handleOrderRemoveModal}
 			>
 				Remove

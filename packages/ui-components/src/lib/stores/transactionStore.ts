@@ -7,6 +7,7 @@ import type {
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	Transaction,
+	RemoveOrderCalldata,
 	Vault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
@@ -36,7 +37,8 @@ export enum TransactionErrorMessage {
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
 	DEPOSIT_FAILED = 'Failed to deposit tokens.',
-	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.'
+	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
+	REMOVE_ORDER_FAILED = 'Failed to remove order.'
 }
 
 type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
@@ -60,6 +62,13 @@ export type DepositOrWithdrawTransactionArgs = {
 	subgraphUrl: string;
 };
 
+export type RemoveOrderTransactionArgs = {
+	config: Config;
+	orderbookAddress: Hex;
+	removeOrderCalldata: RemoveOrderCalldata;
+	chainId: number;
+};
+
 export type TransactionState = {
 	status: TransactionStatus;
 	error: string;
@@ -73,6 +82,8 @@ export type TransactionStore = {
 	subscribe: (run: (value: TransactionState) => void) => () => void;
 	reset: () => void;
 	handleDeploymentTransaction: (args: DeploymentTransactionArgs) => Promise<void>;
+	handleDepositOrWithdrawTransaction: (args: DepositOrWithdrawTransactionArgs) => Promise<void>;
+	handleRemoveOrderTransaction: (args: RemoveOrderTransactionArgs) => Promise<void>;
 	checkingWalletAllowance: (message?: string) => void;
 	awaitWalletConfirmation: (message?: string) => void;
 	awaitApprovalTx: (hash: string) => void;
@@ -284,11 +295,44 @@ const transactionStore = () => {
 		}
 	};
 
+	const handleRemoveOrderTransaction = async ({
+		config,
+		orderbookAddress,
+		removeOrderCalldata,
+		chainId
+	}: RemoveOrderTransactionArgs) => {
+		try {
+			await switchChain(config, { chainId });
+		} catch {
+			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+		}
+
+		let hash: Hex;
+		try {
+			awaitWalletConfirmation('Please confirm order removal in your wallet...');
+			hash = await sendTransaction(config, {
+				to: orderbookAddress,
+				data: removeOrderCalldata as `0x${string}`
+			});
+		} catch {
+			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
+		}
+
+		try {
+			awaitDeployTx(hash);
+			await waitForTransactionReceipt(config, { hash });
+			return transactionSuccess(hash, 'Order removed successfully.');
+		} catch {
+			return transactionError(TransactionErrorMessage.REMOVE_ORDER_FAILED);
+		}
+	};
+
 	return {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
 		handleDepositOrWithdrawTransaction,
+		handleRemoveOrderTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,
