@@ -70,8 +70,6 @@
 	let networkKey: string | null = null;
 	let subgraphUrl: string = '';
 
-	$: console.log(subgraphUrl);
-
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;

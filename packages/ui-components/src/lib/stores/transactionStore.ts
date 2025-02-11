@@ -93,7 +93,11 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
-	const awaitTransactionIndexing = (subgraphUrl: string, txHash: string, successMessage: string) => {
+	const awaitTransactionIndexing = async (
+		subgraphUrl: string,
+		txHash: string,
+		successMessage: string
+	) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
@@ -103,22 +107,21 @@ const transactionStore = () => {
 		let attempts = 0;
 		let newTx: Transaction;
 
-			const interval: NodeJS.Timeout = setInterval(async () => {
-				attempts++;
-				newTx = await getTransaction(subgraphUrl, txHash);
-				if (newTx) {
-					console.log("new tx!", newTx)
-					clearInterval(interval);
-					return transactionSuccess(txHash, successMessage);
-				} else if (attempts >= 5) {
-					update((state) => ({
-						...state,
-						message: 'The subgraph took too long to respond. Please check again later.'
-					}));
-					clearInterval(interval);
-				}
-			}, 1000);
+		const interval: NodeJS.Timeout = setInterval(async () => {
+			attempts++;
 
+			newTx = await getTransaction(subgraphUrl, txHash);
+			if (newTx) {
+				clearInterval(interval);
+				return transactionSuccess(txHash, successMessage);
+			} else if (attempts >= 5) {
+				update((state) => ({
+					...state,
+					message: 'The subgraph took too long to respond. Please check again later.'
+				}));
+				clearInterval(interval);
+			}
+		}, 1000);
 	};
 
 	const checkingWalletAllowance = (message?: string) =>
@@ -147,13 +150,14 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_DEPLOYMENT,
 			message: 'Confirming transaction...'
 		}));
-	const transactionSuccess = (hash: string, message?: string) =>
+	const transactionSuccess = (hash: string, message?: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
 			hash: hash,
 			message: message || ''
 		}));
+	};
 	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
@@ -212,7 +216,7 @@ const transactionStore = () => {
 			if (subgraphUrl === '') {
 				return transactionSuccess(hash, `Strategy deployed successfully.`);
 			} else {
-			return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
+				return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
 			}
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
@@ -266,8 +270,11 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitTransactionIndexing(subgraphUrl, hash, `The ${action === 'deposit' ? 'deposit' : 'withdrawal'} was successful.`);
-
+			return awaitTransactionIndexing(
+				subgraphUrl,
+				hash,
+				`The ${action === 'deposit' ? 'deposit' : 'withdrawal'} was successful.`
+			);
 		} catch {
 			return transactionError(
 				action === 'deposit'

@@ -30,7 +30,7 @@
 				action: 'deposit' | 'withdraw';
 				chainId: number;
 				rpcUrl: string;
-				subgraphUrl: string
+				subgraphUrl: string;
 		  }) => void)
 		| undefined = undefined;
 	export let id: string;

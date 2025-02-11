@@ -6,6 +6,7 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
+import type { ConfigSource } from '../lib/typeshare/config';
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
@@ -592,7 +593,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource)
 			}
 		});
 
@@ -619,7 +621,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource)
 			}
 		});
 
@@ -644,7 +647,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource)
 			}
 		});
 
@@ -679,7 +683,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource)
 			}
 		});
 
@@ -712,7 +717,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource)
 			}
 		});
 
