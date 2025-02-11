@@ -97,4 +97,20 @@ impl DotrainOrderGui {
             .ok_or(GuiError::DepositTokenNotFound(key.clone()))?;
         Ok(gui_deposit.presets.clone().unwrap_or(vec![]))
     }
+
+    pub fn check_deposits(&self) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
+
+        for deposit in deployment.deposits.iter() {
+            if deposit.token.is_none() {
+                return Err(GuiError::TokenMustBeSelected("deposit".to_string()));
+            }
+
+            let token = deposit.token.as_ref().unwrap();
+            if !self.deposits.contains_key(&token.key) {
+                return Err(GuiError::DepositNotSet(token.key.clone()));
+            }
+        }
+        Ok(())
+    }
 }

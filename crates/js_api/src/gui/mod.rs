@@ -183,8 +183,12 @@ pub enum GuiError {
     DeploymentNotFound(String),
     #[error("Field binding not found: {0}")]
     FieldBindingNotFound(String),
+    #[error("Field value not set: {0}")]
+    FieldValueNotSet(String),
     #[error("Deposit token not found in gui config: {0}")]
     DepositTokenNotFound(String),
+    #[error("Deposit not set: {0}")]
+    DepositNotSet(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
     #[error("Deserialized dotrain mismatch")]
