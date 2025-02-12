@@ -11,7 +11,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
-        is-main:
+        is-not-main:
           - ${{ github.ref != 'refs/heads/main' }}
         include:
           # Solidity doesn't need to be tested on multiple platforms
@@ -36,7 +36,7 @@ jobs:
           - os: ubuntu-latest
             task: rainix-sol-legal
         exclude:
-          - is-main: true
+          - is-not-main: true
             os: macos-latest
       fail-fast: false
     runs-on: ${{ matrix.os }}
