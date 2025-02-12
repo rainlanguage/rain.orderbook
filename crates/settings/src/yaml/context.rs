@@ -26,6 +26,8 @@ pub enum ContextError {
     NoOrder,
     #[error("No network in context")]
     NoNetwork,
+    #[error("No gui context in context")]
+    NoGuiContext,
     #[error("Invalid path: {0}")]
     InvalidPath(String),
     #[error("Invalid index: {0}")]
@@ -50,7 +52,9 @@ pub trait OrderContext {
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
 }
 
-pub trait NetworkBindingsContext: GuiContextTrait {
+pub trait NetworkBindingsContext {
+    fn current_network(&self) -> Option<&String>;
+
     fn resolve_network_binding_path(&self, parts: &[&str]) -> Result<String, ContextError> {
         match parts.first() {
             Some(&binding) => self.resolve_binding(binding),
@@ -138,6 +142,12 @@ impl OrderContext for Context {
 }
 
 impl NetworkBindingsContext for Context {
+    fn current_network(&self) -> Option<&String> {
+        self.gui_context
+            .as_ref()
+            .and_then(|gui_context| gui_context.current_network.as_ref())
+    }
+
     fn resolve_binding(&self, binding: &str) -> Result<String, ContextError> {
         let network = self.get_current_network().ok_or(ContextError::NoNetwork)?;
         self.network_bindings
@@ -220,20 +230,28 @@ impl Context {
     }
 
     pub fn add_current_deployment(&mut self, deployment: String) -> &mut Self {
-        self.gui_context = Some(GuiContext {
-            current_deployment: Some(deployment),
-            current_order: None,
-            current_network: None,
-        });
+        if let Some(ref mut gui_context) = self.gui_context {
+            gui_context.current_deployment = Some(deployment);
+        } else {
+            self.gui_context = Some(GuiContext {
+                current_deployment: Some(deployment),
+                current_order: None,
+                current_network: None,
+            });
+        }
         self
     }
 
     pub fn add_current_order(&mut self, order: String) -> &mut Self {
-        self.gui_context = Some(GuiContext {
-            current_deployment: None,
-            current_order: Some(order),
-            current_network: None,
-        });
+        if let Some(ref mut gui_context) = self.gui_context {
+            gui_context.current_order = Some(order);
+        } else {
+            self.gui_context = Some(GuiContext {
+                current_deployment: None,
+                current_order: Some(order),
+                current_network: None,
+            });
+        }
         self
     }
 
