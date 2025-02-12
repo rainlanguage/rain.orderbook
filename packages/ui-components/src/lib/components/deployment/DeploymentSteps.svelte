@@ -14,7 +14,8 @@
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder
+		DotrainOrder,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle } from 'flowbite-svelte';
@@ -50,7 +51,7 @@
 		chainId: number;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
-	let selectTokens: string[] | null = null;
+	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
@@ -132,7 +133,6 @@
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
-			console.error(e);
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}

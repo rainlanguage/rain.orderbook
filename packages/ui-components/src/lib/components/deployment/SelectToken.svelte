@@ -5,7 +5,7 @@
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
-	export let token: GuiSelectTokens[0];
+	export let token: GuiSelectTokens;
 	export let gui: DotrainOrderGui;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let inputValue: string | null = null;
@@ -25,8 +25,7 @@
 		try {
 			tokenInfo = await gui.getTokenInfo(token.key);
 			error = '';
-		} catch (e) {
-			console.error(e);
+		} catch {
 			return (error = 'No token exists at this address.');
 		}
 	}
@@ -49,7 +48,6 @@
 				}
 				await getInfoForSelectedToken();
 			} catch (e) {
-				console.error(e);
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
 				error = errorMessage;
 			}
