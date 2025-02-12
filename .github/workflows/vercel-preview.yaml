@@ -6,6 +6,11 @@ on:
   push:
     branches-ignore:
       - main
+# concurrency group
+concurrency:
+  group: ${{ github.ref }}-vercel-preview
+  cancel-in-progress: true
+
 jobs:
   Deploy-Preview:
     runs-on: ubuntu-latest
