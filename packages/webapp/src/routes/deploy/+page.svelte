@@ -79,7 +79,7 @@
 	</div>
 
 	<div
-		class="bg-primary-100 dark:bg-primary-900 mb-14 mt-8 flex max-w-6xl flex-col rounded-3xl p-12"
+		class="mb-14 mt-8 flex max-w-6xl flex-col rounded-3xl bg-primary-100 p-12 dark:bg-primary-900"
 	>
 		<div class="flex flex-col gap-y-4">
 			<h1 class="text-xl font-semibold text-gray-900 dark:text-white">
