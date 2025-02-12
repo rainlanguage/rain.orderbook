@@ -119,9 +119,22 @@ impl DotrainOrderGui {
 
         for field in deployment.fields.iter() {
             if !self.field_values.contains_key(&field.binding) {
-                return Err(GuiError::FieldValueNotSet(field.binding.clone()));
+                return Err(GuiError::FieldValueNotSet(field.name.clone()));
             }
         }
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "getMissingFieldValues")]
+    pub fn get_missing_field_values(&self) -> Result<Vec<String>, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let mut missing_field_values = Vec::new();
+
+        for field in deployment.fields.iter() {
+            if !self.field_values.contains_key(&field.binding) {
+                missing_field_values.push(field.name.clone());
+            }
+        }
+        Ok(missing_field_values)
     }
 }

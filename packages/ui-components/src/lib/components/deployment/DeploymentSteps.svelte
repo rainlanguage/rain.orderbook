@@ -15,7 +15,8 @@
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder
+		DotrainOrder,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Accordion, Button } from 'flowbite-svelte';
@@ -53,7 +54,7 @@
 		chainId: number;
 	}) => void;
 
-	let selectTokens: string[] | null = null;
+	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
@@ -240,7 +241,7 @@
 			await gui.getCurrentDeployment();
 			try {
 				selectTokens = await gui.getSelectTokens();
-				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
+				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
 					allTokensSelected = true;
 				}
 			} catch (e) {
