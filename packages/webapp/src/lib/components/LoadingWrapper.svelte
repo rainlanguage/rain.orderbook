@@ -36,7 +36,7 @@
 </script>
 
 {#if $isNavigating}
-	<div class="fixed left-0 top-0 z-50 w-full">
+	<div class="fixed left-0 top-0 z-50 w-full" data-testId="progressbar">
 		<Progressbar {progress} color="blue" animate size="h-1" />
 	</div>
 {/if}
