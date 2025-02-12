@@ -12,12 +12,28 @@
 
 {#if allTokenInputs.length > 0}
 	{#each allTokenInputs as input, i}
-		<TokenIOInput {i} label="Input" vault={input} vaultIds={inputVaultIds} {gui} {open} />
+		<TokenIOInput
+			isInput={true}
+			{i}
+			label="Input"
+			vault={input}
+			vaultIds={inputVaultIds}
+			{gui}
+			{open}
+		/>
 	{/each}
 {/if}
 
 {#if allTokenOutputs.length > 0}
 	{#each allTokenOutputs as output, i}
-		<TokenIOInput {i} label="Output" vault={output} vaultIds={outputVaultIds} {gui} {open} />
+		<TokenIOInput
+			isInput={false}
+			{i}
+			label="Output"
+			vault={output}
+			vaultIds={outputVaultIds}
+			{gui}
+			{open}
+		/>
 	{/each}
 {/if}
