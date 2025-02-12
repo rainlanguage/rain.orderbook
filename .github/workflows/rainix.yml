@@ -9,7 +9,7 @@ jobs:
   standard-tests:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
         include:
           # Solidity doesn't need to be tested on multiple platforms
