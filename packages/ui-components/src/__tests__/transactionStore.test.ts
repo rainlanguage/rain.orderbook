@@ -250,15 +250,12 @@ describe('transactionStore', () => {
 		const mockTxHash = 'mockHash';
 		const mockSuccessMessage = 'Success message';
 
-
 		(getTransaction as Mock).mockResolvedValue(null);
 
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
-
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Checking for transaction indexing...');
-
 
 		await waitFor(
 			() => {
