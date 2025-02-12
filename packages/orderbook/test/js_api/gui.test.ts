@@ -13,6 +13,7 @@ import {
 	Gui,
 	GuiDeployment,
 	NameAndDescription,
+	SelectNetworks,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
@@ -75,6 +76,9 @@ gui:
           min: 100
           presets:
             - value: "0"
+  select-networks:
+    some-network:
+      name: Some network
 `;
 const guiConfig2 = `
 gui:
@@ -126,6 +130,9 @@ gui:
       select-tokens:
         - token1
         - token2
+  select-networks:
+    some-network:
+      name: Some network
 `;
 
 const dotrain = `
@@ -670,7 +677,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOz0rDQBDGs1UqiAcRr4Lg1ZjdDQm11Eu1EIoYC0HEi9Rk04Rsd2OyMRYfwqNXX6D4BF69-TzirZTutk3ptXOZP9_MfD-gzWJPZkFyoT_FLIjZAMgZ1HaX1Zc-LUhNTupK4QlhSFOxLbMFz-zKCp6vbMmMIFz_rNopwJwPic6IKHmWHMlZJETaNAzK_T6NeC6aDdiwjCz19SKjb8oQqAoo647nHMoyXBOgDnak7E0ZjhFQpF6VDle7DbO-t_7GJ7-t8feH9fV_X8PnP58-OFhhxQtWrKqld6ZpgkVn2_ap8ukEbtl-eOzFz8hxSS8qu7fO5Y1z93o9KrA76IZhAttXYYCSi315w0VEMj0gKeWjIWFiAlOpXOtVAgAA';
+			'H4sIAAAAAAAA_7WQz0rDQBDGs1UqiAcRr4Lg1ZjNhsRa6kVoqVDxYMQ_F6nptgnZ7sbNtjH1ITx69QWKT-DVm88j3kSctU3JtXOZb-abnfmxyPiLDciKpsq8j3gv4gMEPWysz7vjLhvRCnSq2hEx5bahYxWyiw-8wgj5H1mBbGNcvqxYacBUDKnJqcqEjHegFyqV1C2LiaDLQpGqeg3XXEsmgTmS7EkfRFohfbrpt7dB9ksCVdEa2P4vw66NNKlfpCPFasmsz42v6d5nY_r-4r59X1fI0cdrgLYWWMmMlWg1t85xHDSrPM_bB3kyyW4mnShvnncOr1ietUPRat3KOHuk-YBEeHxxyu9wP3o4uzzehDdChVSaPZowkQ8pV6jsA34AJRn0HGoCAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -710,6 +717,7 @@ ${dotrain}`;
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			gui.setVaultId(true, 0, '666');
 			gui.setVaultId(false, 0, '333');
+			gui.saveSelectNetwork('some-network');
 		});
 
 		it('should serialize gui state', async () => {
@@ -741,6 +749,10 @@ ${dotrain}`;
 			assert.equal(deposits[1].token, 'token2');
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+
+			assert.equal(gui.isSelectNetworkSet(), true);
+			const selectNetworks: SelectNetworks = gui.getSelectNetworks();
+			assert.equal(selectNetworks.get('some-network')?.name, 'Some network');
 
 			let guiDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
@@ -1339,6 +1351,48 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(gui.isSelectTokenSet('token1'), false);
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
 				"Missing required field 'tokens' in root"
+			);
+		});
+	});
+
+	describe('select networks tests', async () => {
+		let gui: DotrainOrderGui;
+		beforeAll(async () => {
+			let testDotrain = `
+      ${guiConfig}
+
+      ${dotrain}
+      `;
+			gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'some-deployment');
+		});
+
+		it('should get select networks', async () => {
+			const selectNetworks: SelectNetworks = gui.getSelectNetworks();
+			assert.equal(selectNetworks.size, 1);
+			assert.notDeepEqual(selectNetworks.get('some-network'), { name: 'some-network' });
+		});
+
+		it('should check select network', async () => {
+			assert.equal(gui.isSelectNetworkSet(), false);
+		});
+
+		it('should throw error if select network not set', async () => {
+			await expect(async () => gui.getSelectedNetwork()).rejects.toThrow(
+				'Select network not selected'
+			);
+		});
+
+		it('should save select network', async () => {
+			gui.saveSelectNetwork('some-network');
+			assert.equal(gui.getSelectedNetwork(), 'some-network');
+		});
+
+		it('should reset select network', async () => {
+			gui.saveSelectNetwork('some-network');
+			assert.equal(gui.getSelectedNetwork(), 'some-network');
+			gui.resetSelectNetwork();
+			await expect(async () => gui.getSelectedNetwork()).rejects.toThrow(
+				'Select network not selected'
 			);
 		});
 	});

@@ -26,6 +26,7 @@ use thiserror::Error;
 mod deposits;
 mod field_values;
 mod order_operations;
+mod select_networks;
 mod select_tokens;
 mod state_management;
 
@@ -51,6 +52,7 @@ impl_all_wasm_traits!(DeploymentDetails);
 pub struct DotrainOrderGui {
     dotrain_order: DotrainOrder,
     selected_deployment: String,
+    selected_network: Option<String>,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
 }
@@ -78,6 +80,7 @@ impl DotrainOrderGui {
         Ok(Self {
             dotrain_order,
             selected_deployment: deployment_name.clone(),
+            selected_network: None,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
         })
@@ -251,6 +254,14 @@ pub enum GuiError {
     DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error("Select network not found: {0}")]
+    SelectNetworkNotFound(String),
+    #[error("Select network not selected")]
+    SelectNetworkNotSelected,
+    #[error("Select networks not set")]
+    SelectNetworksNotSet,
+    #[error("Network not found: {0}")]
+    NetworkNotFound(String),
 }
 impl From<GuiError> for JsValue {
     fn from(value: GuiError) -> Self {

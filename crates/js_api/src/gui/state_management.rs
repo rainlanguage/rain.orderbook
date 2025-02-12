@@ -10,6 +10,7 @@ struct SerializedGuiState {
     vault_ids: BTreeMap<(bool, u8), Option<String>>,
     dotrain_hash: String,
     selected_deployment: String,
+    selected_network: Option<String>,
 }
 
 #[wasm_bindgen]
@@ -109,6 +110,7 @@ impl DotrainOrderGui {
             vault_ids: vault_ids.clone(),
             dotrain_hash: DotrainOrderGui::get_dotrain_hash(&self.dotrain_order.dotrain())?,
             selected_deployment: self.selected_deployment.clone(),
+            selected_network: self.selected_network.clone(),
         };
         let bytes = bincode::serialize(&state)?;
 
@@ -181,6 +183,7 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            selected_network: state.selected_network.clone(),
         };
 
         let deployment_select_tokens = Gui::parse_select_tokens(

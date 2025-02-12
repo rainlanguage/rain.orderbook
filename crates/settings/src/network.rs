@@ -137,6 +137,26 @@ impl Network {
             location: "root".to_string(),
         })
     }
+
+    pub fn parse_network_keys(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<Vec<String>, YamlError> {
+        let mut networks = Vec::new();
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(networks_hash) =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))
+            {
+                for (key_yaml, _) in networks_hash {
+                    let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    networks.push(network_key);
+                }
+            }
+        }
+
+        Ok(networks)
+    }
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Network);
@@ -461,5 +481,20 @@ networks:
 "#;
         let res = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, Url::parse("https://rpc.com").unwrap());
+    }
+
+    #[test]
+    fn test_parse_network_keys() {
+        let yaml = r#"
+networks:
+  mainnet:
+    rpc: https://mainnet.infura.io
+    chain-id: 1
+  testnet:
+    rpc: https://testnet.infura.io
+    chain-id: 2
+"#;
+        let networks = Network::parse_network_keys(vec![get_document(yaml)]).unwrap();
+        assert_eq!(networks, vec!["mainnet", "testnet"]);
     }
 }
