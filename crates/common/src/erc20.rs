@@ -41,14 +41,12 @@ impl ERC20 {
     }
 
     async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        Ok(
-            ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
-                Error::ReadableClientError {
-                    msg: format!("rpc url: {}", self.rpc_url.to_string()),
-                    source: err,
-                }
-            })?,
-        )
+        ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
+            Error::ReadableClientError {
+                msg: format!("rpc url: {}", self.rpc_url),
+                source: err,
+            }
+        })
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
@@ -63,7 +61,7 @@ impl ERC20 {
             .read(parameters)
             .await
             .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address.to_string()),
+                msg: format!("address: {}", self.address),
                 source: err,
             })?
             ._0)
@@ -81,7 +79,7 @@ impl ERC20 {
             .read(parameters)
             .await
             .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address.to_string()),
+                msg: format!("address: {}", self.address),
                 source: err,
             })?
             ._0)
@@ -99,7 +97,7 @@ impl ERC20 {
             .read(parameters)
             .await
             .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address.to_string()),
+                msg: format!("address: {}", self.address),
                 source: err,
             })?
             ._0)
@@ -138,26 +136,26 @@ impl ERC20 {
             })
             .await
             .map_err(|err| Error::ReadableClientError {
-                msg: format!("address: {}", self.address.to_string()),
+                msg: format!("address: {}", self.address),
                 source: err,
             })?;
 
         Ok(TokenInfo {
             decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData, true)
                 .map_err(|err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address.to_string()),
+                    msg: format!("address: {}", self.address),
                     source: err,
                 })?
                 ._0,
             name: nameCall::abi_decode_returns(&results.returnData[1].returnData, true)
                 .map_err(|err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address.to_string()),
+                    msg: format!("address: {}", self.address),
                     source: err,
                 })?
                 ._0,
             symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData, true)
                 .map_err(|err| Error::SolTypesError {
-                    msg: format!("address: {}", self.address.to_string()),
+                    msg: format!("address: {}", self.address),
                     source: err,
                 })?
                 ._0,
