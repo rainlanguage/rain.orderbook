@@ -592,7 +592,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -619,7 +620,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -644,7 +646,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -679,7 +682,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -712,7 +716,8 @@ describe('DeploymentSteps', () => {
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn()
+				handleDeployModal: vi.fn(),
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 

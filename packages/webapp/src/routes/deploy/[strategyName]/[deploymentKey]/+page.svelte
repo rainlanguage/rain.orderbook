@@ -4,6 +4,7 @@
 	import { DeploymentPage } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal } from '$lib/services/modal';
+	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
 	const { dotrain, key, name, description } = $page.data;
 
 	if (!dotrain || !key) {
@@ -25,5 +26,6 @@
 		wagmiConnected={connected}
 		{appKitModal}
 		{handleDeployModal}
+		{handleUpdateGuiState}
 	/>
 {/if}
