@@ -67,4 +67,5 @@ jobs:
       cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
+      - run: sleep 30
       - run: echo "Blocking mac jobs"
