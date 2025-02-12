@@ -5,6 +5,17 @@ import ShareChoicesButton from '../lib/components/deployment/ShareChoicesButton.
 describe('ShareChoicesButton', () => {
 	const mockHandleShareChoices = vi.fn();
 
+	it('calls handleShareChoices when clicked', async () => {
+		render(ShareChoicesButton, {
+			props: {
+				handleShareChoices: mockHandleShareChoices
+			}
+		});
+
+		await fireEvent.click(screen.getByTestId('review-choices-button'));
+		expect(mockHandleShareChoices).toHaveBeenCalledTimes(1);
+	});
+
 	it('shows and hides copied message when clicked', async () => {
 		render(ShareChoicesButton, {
 			props: {
@@ -37,16 +48,5 @@ describe('ShareChoicesButton', () => {
 
 		expect(screen.getByText('Share these choices')).toBeInTheDocument();
 		expect(screen.getByTestId('review-choices-button')).toBeInTheDocument();
-	});
-
-	it('calls handleShareChoices when clicked', async () => {
-		render(ShareChoicesButton, {
-			props: {
-				handleShareChoices: mockHandleShareChoices
-			}
-		});
-
-		await fireEvent.click(screen.getByTestId('review-choices-button'));
-		expect(mockHandleShareChoices).toHaveBeenCalledTimes(1);
 	});
 });
