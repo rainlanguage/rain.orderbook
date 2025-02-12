@@ -1,17 +1,11 @@
-name: Rainix CI (macOS)
+name: Rainix CI
 on: [push]
 
-jobs:
-  # Add blocker job first
-  block:
-    if: github.ref != 'refs/heads/main'
-    concurrency:
-      group: mac-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Blocking mac jobs"
+concurrency:
+  group: ${{ github.ref }}-rainix
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+jobs:
   standard-tests:
     strategy:
       matrix:

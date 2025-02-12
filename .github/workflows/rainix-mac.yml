@@ -1,18 +1,29 @@
 name: Rainix CI (macOS)
 on: [push]
 
-concurrency:
-  group: mac-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
+  # Add blocker job first
+  block:
+    if: github.ref != 'refs/heads/main'
+    concurrency:
+      group: mac-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Blocking mac jobs"
+
+  # Then the actual mac jobs
   standard-tests:
+    needs: block # Make sure blocker runs first
     strategy:
       matrix:
         os: [macos-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
       fail-fast: false
     runs-on: ${{ matrix.os }}
+    concurrency:
+      group: mac-${{ github.ref }}
+      cancel-in-progress: true
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
