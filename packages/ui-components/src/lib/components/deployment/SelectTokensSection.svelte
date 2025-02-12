@@ -1,10 +1,10 @@
 <script lang="ts">
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui, type SelectTokens } from '@rainlanguage/orderbook/js_api';
 
 	export let gui: DotrainOrderGui;
-	export let selectTokens: string[];
+	export let selectTokens: SelectTokens;
 	export let allTokensSelected: boolean;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 </script>

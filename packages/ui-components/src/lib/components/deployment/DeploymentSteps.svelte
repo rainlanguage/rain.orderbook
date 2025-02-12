@@ -14,7 +14,8 @@
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder
+		DotrainOrder,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button } from 'flowbite-svelte';
@@ -211,7 +212,7 @@
 		if (gui) {
 			try {
 				selectTokens = await gui.getSelectTokens();
-				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
+				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
 					allTokensSelected = true;
 				}
 			} catch (e) {

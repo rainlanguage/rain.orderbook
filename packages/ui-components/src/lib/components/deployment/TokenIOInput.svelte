@@ -7,6 +7,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
+
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIO;

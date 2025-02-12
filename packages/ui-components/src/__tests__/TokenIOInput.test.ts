@@ -33,11 +33,20 @@ describe('TokenInput', () => {
 
 	const mockProps: TokenIOInputComponentProps = {
 		i: 0,
+		isInput: true,
 		label: 'Input',
 		vault: mockInput,
 		vaultIds: ['vault1'],
 		gui: mockGui,
 		handleUpdateGuiState: vi.fn()
+	} as unknown as TokenIOInputComponentProps;
+	const outputMockProps: TokenIOInputComponentProps = {
+		i: 0,
+		isInput: false,
+		label: 'Output',
+		vault: mockInput,
+		vaultIds: ['vault2'],
+		gui: mockGui
 	} as unknown as TokenIOInputComponentProps;
 
 	beforeEach(() => {
@@ -46,12 +55,12 @@ describe('TokenInput', () => {
 	});
 
 	it('renders with correct label and no token symbol', () => {
-		const { getByText } = render(TokenIOInput, mockProps);
+		const { getByText } = render(TokenIOInput, inputMockProps);
 		expect(getByText('Input 1')).toBeInTheDocument();
 	});
 
 	it('renders input field with correct placeholder', () => {
-		const { getByPlaceholderText } = render(TokenIOInput, mockProps);
+		const { getByPlaceholderText } = render(TokenIOInput, inputMockProps);
 		const input = getByPlaceholderText('Enter vault ID');
 		expect(input).toBeInTheDocument();
 	});
@@ -73,9 +82,15 @@ describe('TokenInput', () => {
 		});
 	});
 
+	it('calls setVaultId on output vault when input changes', async () => {
+		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
+		await fireEvent.change(input, { target: { value: 'vault2' } });
+		expect(mockGui.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+	});
+
 	it('does not call setVaultId when gui is undefined', async () => {
 		const propsWithoutGui = {
-			...mockProps,
+			...inputMockProps,
 			gui: undefined
 		} as unknown as TokenIOInputComponentProps;
 		const { getByPlaceholderText } = render(TokenIOInput, propsWithoutGui);
@@ -88,7 +103,7 @@ describe('TokenInput', () => {
 
 	it('handles missing token info gracefully', () => {
 		const propsWithUnknownToken = {
-			...mockProps,
+			...inputMockProps,
 			vault: { token: { address: '0x789' } }
 		};
 		const { getByText } = render(
@@ -100,7 +115,7 @@ describe('TokenInput', () => {
 
 	it('fetches and displays token symbol when token key is present', async () => {
 		const propsWithTokenKey = {
-			...mockProps,
+			...inputMockProps,
 			vault: {
 				token: {
 					key: '0x456'
