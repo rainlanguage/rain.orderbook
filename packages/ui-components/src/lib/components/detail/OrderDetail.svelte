@@ -196,7 +196,7 @@
 		<Tabs
 			style="underline"
 			contentClass="mt-4"
-			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
 			<TabItem open title="Rainlang source">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">

@@ -1,3 +1,37 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+
+
+@layer base {
+  h1 {
+    @apply text-4xl font-bold mb-4;
+  }
+  h2 {
+    @apply text-3xl font-semibold mb-3;
+  }
+  h3 {
+    @apply text-2xl font-medium mb-2;
+  }
+  p {
+    @apply text-base mb-4 text-gray-700 dark:text-gray-300;
+  }
+  a {
+    @apply text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200;
+  }
+  ul {
+    @apply list-disc list-inside mb-4;
+  }
+  ol {
+    @apply list-decimal list-inside mb-4;
+  }
+  li {
+    @apply mb-2;
+  }
+  blockquote {
+    @apply pl-4 border-l-4 border-gray-300 italic my-4;
+  }
+  code {
+    @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded;
+  }
+}

@@ -22,8 +22,7 @@
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`Failed to fetch markdown: ${response.statusText}`);
 			return await response.text();
-		} catch (e) {
-			console.error('Error fetching markdown:', e);
+		} catch {
 			return null;
 		}
 	};
@@ -40,11 +39,12 @@
 				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 				console.log(strategyDetails);
 				if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
-					console.log('fetching markdown');
 					const content = await fetchMarkdownContent(strategyDetails.description);
 					if (content) {
 						markdownContent = content;
-						console.log('markdownContent', markdownContent);
+					} else {
+						error = 'Error fetching markdown';
+						errorDetails = 'Failed to fetch markdown content';
 					}
 				}
 			} catch (e: unknown) {
