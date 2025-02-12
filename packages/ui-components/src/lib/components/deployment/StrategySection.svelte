@@ -37,7 +37,6 @@
 			}
 			try {
 				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
-				console.log(strategyDetails);
 				if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
 					const content = await fetchMarkdownContent(strategyDetails.description);
 					if (content) {
