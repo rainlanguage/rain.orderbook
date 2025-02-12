@@ -9,9 +9,19 @@ jobs:
   standard-tests:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         task: [ob-rs-test, rainix-rs-artifacts, rainix-sol-legal]
         include:
+          # Add macos jobs only on main branch
+          - os: macos-latest
+            task: ob-rs-test
+            if: github.ref == 'refs/heads/main'
+          - os: macos-latest
+            task: rainix-rs-artifacts
+            if: github.ref == 'refs/heads/main'
+          - os: macos-latest
+            task: rainix-sol-legal
+            if: github.ref == 'refs/heads/main'
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
             task: rainix-sol-test

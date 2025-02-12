@@ -10,7 +10,12 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref != 'refs/heads/main' }}
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04]
+        os: [ubuntu-22.04]
+        include:
+          - os: macos-13
+            if: github.ref == 'refs/heads/main'
+          - os: macos-14
+            if: github.ref == 'refs/heads/main'
 
     runs-on: ${{ matrix.os }}
     env:
