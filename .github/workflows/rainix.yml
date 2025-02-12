@@ -1,29 +1,44 @@
-name: Rainix CI (Ubuntu)
+name: Rainix CI
 on: [push]
 
 concurrency:
-  group: ${{ github.ref }}-rainix-ubuntu
+  group: ${{ github.ref }}-rainix
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  ubuntu-tests:
+  standard-tests:
     strategy:
       matrix:
-        task:
-          [
-            ob-rs-test,
-            rainix-rs-artifacts,
-            rainix-sol-test,
-            rainix-sol-static,
-            rainix-sol-artifacts,
-            rainix-rs-static,
-            rainix-wasm-artifacts,
-            rainix-wasm-test,
-            test-js-bindings,
-            rainix-sol-legal,
-          ]
+        os: [ubuntu-latest, macos-latest]
+        task: [ob-rs-test, rainix-rs-artifacts]
+        include:
+          # Solidity doesn't need to be tested on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-sol-test
+          - os: ubuntu-latest
+            task: rainix-sol-static
+          - os: ubuntu-latest
+            task: rainix-sol-artifacts
+          # We don't need to do rust static analysis on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-rs-static
+          # Wasm target doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-wasm-artifacts
+          - os: ubuntu-latest
+            task: rainix-wasm-test
+          # Testing JS/TS bindings doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: test-js-bindings
+          # Legal doesn't need to run on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-sol-legal
       fail-fast: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    # Add concurrency group for mac jobs
+    concurrency:
+      group: ${{ matrix.os == 'macos-latest' && format('mac-{0}', github.ref) || format('ubuntu-{0}', github.ref) }}
+      cancel-in-progress: true
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
@@ -41,6 +56,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      # https://github.com/actions/runner-images/issues/2840#issuecomment-2272410832
       - run: |
           sudo rm -rf \
             "$AGENT_TOOLSDIRECTORY" \

@@ -1,0 +1,14 @@
+name: Mac Blocker
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  block:
+    concurrency:
+      group: mac-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Blocking mac jobs"
