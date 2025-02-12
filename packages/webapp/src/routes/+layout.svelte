@@ -74,8 +74,8 @@
 
 <QueryClientProvider client={queryClient}>
 	{#if $isNavigating}
-		<div class="fixed top-0 left-0 w-full z-50">
-			<Progressbar {progress} color="blue" animate size="h-1"/>
+		<div class="fixed left-0 top-0 z-50 w-full">
+			<Progressbar {progress} color="blue" animate size="h-1" />
 		</div>
 	{/if}
 
