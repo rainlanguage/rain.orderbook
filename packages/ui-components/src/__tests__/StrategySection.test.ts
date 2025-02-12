@@ -15,6 +15,11 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}
 }));
 
+vi.mock('svelte-markdown', async () => {
+	const mockSvelteMarkdown = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: mockSvelteMarkdown };
+});
+
 describe('StrategySection', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -109,6 +114,41 @@ describe('StrategySection', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Error fetching strategy')).toBeInTheDocument();
 			expect(screen.getByText('Failed to fetch')).toBeInTheDocument();
+		});
+	});
+
+	it('renders markdown if description is a markdown url', async () => {
+		const mockDotrain = 'mock dotrain content';
+		const mockStrategyDetails = {
+			name: 'Test Strategy',
+			description: 'https://example.com/description.md'
+		};
+		const mockMarkdownContent = 'mock markdown content';
+
+		mockFetch
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve(mockDotrain)
+			})
+
+			.mockResolvedValueOnce({
+				ok: true,
+				text: () => Promise.resolve(mockMarkdownContent)
+			});
+
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+
+		render(StrategySection, {
+			props: {
+				strategyUrl: 'http://example.com/strategy',
+				strategyName: 'TestStrategy'
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
+			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
 		});
 	});
 });

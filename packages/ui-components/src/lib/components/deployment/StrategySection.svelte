@@ -2,6 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import { DotrainOrderGui, type NameAndDescription } from '@rainlanguage/orderbook/js_api';
 	import DeploymentsSection from './DeploymentsSection.svelte';
+	import SvelteMarkdown from 'svelte-markdown';
 
 	export let strategyUrl: string = '';
 	export let strategyName: string = '';
@@ -10,6 +11,22 @@
 	let dotrain: string;
 	let error: string;
 	let errorDetails: string;
+	let markdownContent: string = '';
+
+	const isMarkdownUrl = (url: string): boolean => {
+		return url.trim().toLowerCase().endsWith('.md');
+	};
+
+	const fetchMarkdownContent = async (url: string) => {
+		try {
+			const response = await fetch(url);
+			if (!response.ok) throw new Error(`Failed to fetch markdown: ${response.statusText}`);
+			return await response.text();
+		} catch (e) {
+			console.error('Error fetching markdown:', e);
+			return null;
+		}
+	};
 
 	const getStrategy = async () => {
 		try {
@@ -21,6 +38,15 @@
 			}
 			try {
 				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
+				console.log(strategyDetails);
+				if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
+					console.log('fetching markdown');
+					const content = await fetchMarkdownContent(strategyDetails.description);
+					if (content) {
+						markdownContent = content;
+						console.log('markdownContent', markdownContent);
+					}
+				}
 			} catch (e: unknown) {
 				error = 'Error getting strategy details';
 				errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -41,9 +67,18 @@
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 					{strategyDetails.name}
 				</h1>
-				<p class="text-base text-gray-600 lg:text-lg dark:text-gray-400">
-					{strategyDetails.description}
-				</p>
+				{#if isMarkdownUrl(strategyDetails.description) && markdownContent}
+					<div data-testId="markdown-content">
+						<SvelteMarkdown source={markdownContent} />
+					</div>
+				{:else}
+					<p
+						data-testId="plain-description"
+						class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
+					>
+						{strategyDetails.description}
+					</p>
+				{/if}
 			</div>
 			<DeploymentsSection {dotrain} {strategyName} />
 		</div>

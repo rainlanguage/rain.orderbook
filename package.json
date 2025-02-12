@@ -83,6 +83,7 @@
         "flowbite": "^2.2.1",
         "flowbite-svelte": "^0.44.21",
         "flowbite-svelte-icons": "^0.4.5",
+        "svelte-markdown": "^0.4.1",
         "wagmi": "^2.14.7"
     }
 }
