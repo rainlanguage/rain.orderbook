@@ -1,10 +1,6 @@
 name: Tauri builds
 on: [push]
 
-concurrency:
-  group: ${{ github.ref }}-tauri-build
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
   build-tauri:
     strategy:
@@ -13,6 +9,9 @@ jobs:
         os: [macos-13, macos-14, ubuntu-22.04]
 
     runs-on: ${{ matrix.os }}
+    concurrency:
+      group: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' && format('mac-{0}-tauri-build', github.ref) || format('ubuntu-{0}-tauri-build', github.ref) }}
+      cancel-in-progress: true
     env:
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
       CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
@@ -72,3 +71,12 @@ jobs:
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
       - run: nix develop .#tauri-shell --command tauri-rs-test
+
+  block:
+    if: github.ref != 'refs/heads/main'
+    concurrency:
+      group: mac-${{ github.ref }}-tauri-build
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Blocking tauri jobs"
