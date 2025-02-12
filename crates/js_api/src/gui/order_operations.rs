@@ -161,6 +161,7 @@ impl DotrainOrderGui {
     ) -> Result<ApprovalCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_deposits()?;
 
         let calldatas = self
             .dotrain_order
@@ -201,6 +202,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_deposits()?;
         self.populate_vault_ids(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
@@ -236,6 +238,7 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;
         self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
@@ -253,6 +256,8 @@ impl DotrainOrderGui {
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_deposits()?;
+        self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;
         self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
