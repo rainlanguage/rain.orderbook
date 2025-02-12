@@ -20,9 +20,12 @@ describe('SelectToken', () => {
 
 	const mockProps: SelectTokenComponentProps = {
 		allTokensSelected: false,
-		tokenKey: 'input',
 		gui: mockGui,
-		selectTokens: ['input', 'output']
+		selectToken: { key: 'input', name: 'test input', description: 'test description' },
+		selectTokens: [
+			{ key: 'input', name: 'test input', description: 'test description' },
+			{ key: 'output', name: 'test output', description: 'test description' }
+		]
 	};
 
 	beforeEach(() => {
@@ -31,7 +34,7 @@ describe('SelectToken', () => {
 
 	it('renders token label correctly', () => {
 		const { getByText } = render(SelectToken, mockProps);
-		expect(getByText('input')).toBeInTheDocument();
+		expect(getByText('test input')).toBeInTheDocument();
 	});
 
 	it('renders input field', () => {

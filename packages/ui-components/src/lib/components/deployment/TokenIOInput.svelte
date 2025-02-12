@@ -4,6 +4,7 @@
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 
+	export let isInput: boolean;
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIO;
@@ -47,7 +48,7 @@
 			type="text"
 			placeholder="Enter vault ID"
 			bind:value={vaultIds[i]}
-			on:change={() => gui?.setVaultId(true, i, vaultIds[i])}
+			on:change={() => gui?.setVaultId(isInput, i, vaultIds[i])}
 		/>
 
 		{#if error}
