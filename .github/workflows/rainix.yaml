@@ -9,14 +9,9 @@ jobs:
   standard-tests:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        task: [ob-rs-test, rainix-rs-artifacts, rainix-sol-legal]
+        os: [ubuntu-latest, macos-latest]
+        task: [ob-rs-test, rainix-rs-artifacts]
         include:
-          # Add macos jobs only on main branch
-          - os: macos-latest
-            task: ob-rs-test
-          - os: macos-latest
-            task: rainix-rs-artifacts
           - os: macos-latest
             task: rainix-sol-legal
           # Solidity doesn't need to be tested on multiple platforms
@@ -37,6 +32,9 @@ jobs:
           # Testing JS/TS bindings doesnt need to run on multiple platforms
           - os: ubuntu-latest
             task: test-js-bindings
+          # Legal doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-sol-legal
       fail-fast: false
     runs-on: ${{ matrix.os }}
     if: ${{ !contains(matrix.os, 'macos') || github.ref == 'refs/heads/main' }}
