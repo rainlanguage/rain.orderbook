@@ -13,7 +13,7 @@
 <Button
 	data-testid="wallet-connect"
 	on:click={handleClick}
-	class="flex w-full border border-gray-700 dark:border-gray-200"
+	class="flex w-full border border-gray-700 px-2 md:px-4 dark:border-gray-200 "
 	color={$connected ? 'alternative' : 'primary'}
 >
 	{#if $connected}
