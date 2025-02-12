@@ -9,9 +9,46 @@
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
-
+	import { Progressbar } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
+	import { beforeNavigate, afterNavigate } from '$app/navigation';
+	import { isNavigating } from '$lib/stores/loading';
+	import { tick } from 'svelte';
+
+	let progress = 0;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let interval: any;
+
+	// Gradually increase progress while navigating
+	const startLoading = () => {
+		isNavigating.set(true);
+		progress = 10; // Start at 10% so it's visible
+
+		clearInterval(interval);
+		interval = setInterval(() => {
+			if (progress < 90) {
+				progress += 5;
+			}
+		}, 300);
+	};
+
+	// Stop loading and reset progress
+	const stopLoading = async () => {
+		clearInterval(interval);
+		progress = 100;
+		await tick();
+		setTimeout(() => {
+			progress = 0; // Reset for next navigation
+			isNavigating.set(false);
+		}, 500);
+	};
+
+	// Track navigation state
+	beforeNavigate(() => startLoading());
+	afterNavigate(() => stopLoading());
+
+	// Query client for caching
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -36,6 +73,12 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
+	{#if $isNavigating}
+		<div class="fixed top-0 left-0 w-full z-50">
+			<Progressbar {progress} color="blue" animate size="h-1"/>
+		</div>
+	{/if}
+
 	{#if $page.url.pathname === '/'}
 		<Homepage {colorTheme} />
 	{:else}
