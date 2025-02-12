@@ -5,7 +5,7 @@ use crate::{
         require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    Deployment, Token, TokenRef,
+    Deployment, Network, Token, TokenRef,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -500,6 +500,8 @@ impl Gui {
     pub fn parse_select_networks(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<Option<HashMap<String, SelectNetwork>>, YamlError> {
+        let network_keys = Network::parse_network_keys(documents.clone())?;
+
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -512,6 +514,16 @@ impl Gui {
                     for (network_key, network_yaml) in select_networks_hash {
                         let network_key = network_key.as_str().unwrap_or_default().to_string();
                         let location = format!("select-networks '{network_key}'");
+
+                        if !network_keys.contains(&network_key) {
+                            return Err(YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "networks".to_string(),
+                                    reason: format!("Network '{}' not found", network_key),
+                                },
+                                location: location.clone(),
+                            });
+                        }
 
                         let name =
                             require_string(network_yaml, Some("name"), Some(location.clone()))?;
@@ -1858,6 +1870,33 @@ gui:
         network2:
             name: Network Two
 "#;
+        let error = Gui::parse_select_networks(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "networks".to_string(),
+                    reason: "Network 'network1' not found".to_string(),
+                },
+                location: "select-networks 'network1'".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+    network2:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+gui:
+    select-networks:
+        network1:
+            name: Network One
+        network2:
+            name: Network Two
+"#;
         let networks = Gui::parse_select_networks(vec![get_document(yaml)])
             .unwrap()
             .unwrap();
@@ -1866,6 +1905,10 @@ gui:
         assert_eq!(networks.get("network2").unwrap().name, "Network Two");
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
 gui:
     select-networks:
         network1:
@@ -1885,6 +1928,10 @@ gui:
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
 gui:
     select-networks:
         network1:
@@ -1904,6 +1951,10 @@ gui:
         );
 
         let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
 gui:
     select-networks:
         network1:
