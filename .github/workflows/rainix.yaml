@@ -10,34 +10,28 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        task: [ob-rs-test, rainix-rs-artifacts]
-        is-main:
-          - ${{ github.ref == 'refs/heads/main' }}
+        task:
+          [
+            ob-rs-test,
+            rainix-rs-artifacts,
+            rainix-sol-test,
+            rainix-sol-static,
+            rainix-sol-artifacts,
+            rainix-rs-static,
+            rainix-wasm-artifacts,
+            rainix-wasm-test,
+            test-js-bindings,
+            rainix-sol-legal,
+          ]
+        is-main: ${{ github.ref == 'refs/heads/main' }}
         include:
-          # Solidity doesn't need to be tested on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-sol-test
-          - os: ubuntu-latest
-            task: rainix-sol-static
-          - os: ubuntu-latest
-            task: rainix-sol-artifacts
-          # We don't need to do rust static analysis on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-rs-static
-          # Wasm target doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-wasm-artifacts
-          - os: ubuntu-latest
-            task: rainix-wasm-test
-          # Testing JS/TS bindings doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: test-js-bindings
-          # Legal doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-sol-legal
-        exclude:
+          # Add macos jobs only for these tasks
           - os: macos-latest
-            is-main: false
+            task: ob-rs-test
+            is-main: true
+          - os: macos-latest
+            task: rainix-rs-artifacts
+            is-main: true
 
       fail-fast: false
     runs-on: ${{ matrix.os }}
