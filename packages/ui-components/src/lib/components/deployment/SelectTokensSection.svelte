@@ -5,7 +5,6 @@
 
 	export let gui: DotrainOrderGui;
 	export let selectTokens: SelectTokens;
-	export let allTokensSelected: boolean;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 </script>
 
@@ -14,13 +13,7 @@
 		title="Select Tokens"
 		description="Select the tokens that you want to use in your order."
 	/>
-	{#each selectTokens as tokenKey}
-		<SelectToken
-			{tokenKey}
-			bind:gui
-			bind:selectTokens
-			bind:allTokensSelected
-			{handleUpdateGuiState}
-		/>
+	{#each selectTokens as token}
+		<SelectToken {token} bind:gui {handleUpdateGuiState} />
 	{/each}
 </div>
