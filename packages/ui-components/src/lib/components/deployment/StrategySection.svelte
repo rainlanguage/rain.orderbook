@@ -57,8 +57,6 @@
 	};
 
 	$: getStrategy();
-
-	$: console.log(strategyDetails);
 </script>
 
 {#if dotrain && strategyDetails}
@@ -68,9 +66,8 @@
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 					{strategyDetails.name}
 				</h1>
-				<div>{strategyDetails.short_description}</div>
 				{#if isMarkdownUrl(strategyDetails.description) && markdownContent}
-					<div data-testId="markdown-content">
+					<div data-testId="markdown-content" class="prose dark:prose-invert">
 						<SvelteMarkdown source={markdownContent} />
 					</div>
 				{:else}

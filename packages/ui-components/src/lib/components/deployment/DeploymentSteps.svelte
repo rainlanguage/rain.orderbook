@@ -9,12 +9,13 @@
 		DotrainOrderGui,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder
+		DotrainOrder,
+		type GuiSelectTokens,
+		type NameAndDescription
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle } from 'flowbite-svelte';
@@ -41,8 +42,7 @@
 	}
 
 	export let dotrain: string;
-	export let deployment: string;
-	export let deploymentDetails: NameAndDescription;
+	export let deployment: GuiDeployment;
 	export let handleDeployModal: (args: {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
@@ -50,7 +50,9 @@
 		chainId: number;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
-	let selectTokens: string[] | null = null;
+
+	let deploymentDetails: NameAndDescription | null = null;
+	let selectTokens: GuiSelectTokens[] | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
@@ -66,7 +68,7 @@
 	export let stateFromUrl: string | null = null;
 
 	$: if (deployment) {
-		handleDeploymentChange(deployment);
+		handleDeploymentChange(deployment.key);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -76,6 +78,7 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			deploymentDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 
 			if (gui) {
 				try {
@@ -265,10 +268,10 @@
 				{#if deploymentDetails}
 					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{deploymentDetails.name}
+							{deployment.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deploymentDetails.description}
+							{deployment.description}
 						</p>
 					</div>
 				{/if}

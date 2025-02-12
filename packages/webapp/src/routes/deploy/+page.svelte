@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { StrategySection, PageHeader } from '@rainlanguage/ui-components';
 	import { Button, Input, Spinner, Toggle, Textarea } from 'flowbite-svelte';
-	import { registryUrl } from '$lib/stores/registry';
-	import { getFileRegistry } from './getFileRegistry';
+	import { getFileRegistry } from '../../lib/services/getFileRegistry';
 	import { onMount } from 'svelte';
 	import { rawDotrain } from '$lib/stores/raw-dotrain';
 	import { page } from '$app/stores';
+
+	const { registry } = $page.data;
 
 	let files: { name: string; url: string }[] = [];
 	let inputDotrain = '';
@@ -15,7 +16,7 @@
 	let advancedMode = false;
 
 	onMount(() => {
-		fetchFilesFromRegistry($registryUrl);
+		fetchFilesFromRegistry(registry);
 	});
 
 	const fetchFilesFromRegistry = async (url: string) => {
@@ -37,10 +38,13 @@
 		}
 	};
 
+	let newRegistryUrl = '';
+
 	const loadRegistryUrl = () => {
-		fetchFilesFromRegistry($registryUrl);
 		// add the registry url to the url params
-		window.history.pushState({}, '', window.location.pathname + '?registry=' + $registryUrl);
+		window.history.pushState({}, '', window.location.pathname + '?registry=' + newRegistryUrl);
+		// reload the page
+		window.location.reload();
 	};
 </script>
 
@@ -61,7 +65,7 @@
 						id="strategy-url"
 						type="url"
 						placeholder="Enter URL to raw strategy registry file"
-						bind:value={$registryUrl}
+						bind:value={newRegistryUrl}
 					/>
 					<Button class="text-nowrap" on:click={loadRegistryUrl}>Load Registry URL</Button>
 				</div>
@@ -79,7 +83,7 @@
 	</div>
 
 	<div
-		class="mb-14 mt-8 flex max-w-6xl flex-col rounded-3xl bg-primary-100 p-12 dark:bg-primary-900"
+		class="bg-primary-100 dark:bg-primary-900 mb-14 mt-8 flex max-w-6xl flex-col rounded-3xl p-12"
 	>
 		<div class="flex flex-col gap-y-4">
 			<h1 class="text-xl font-semibold text-gray-900 dark:text-white">

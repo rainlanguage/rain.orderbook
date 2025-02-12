@@ -1,3 +1,16 @@
+/**
+ * Fetches and parses a file registry from a given URL.
+ * The registry is expected to be a text file where each line contains a file name and URL separated by a space.
+ *
+ * @param url - The URL of the registry file to fetch
+ * @returns A Promise that resolves to an array of objects containing file names and their corresponding URLs
+ * @throws Will throw an error if the fetch fails, if the response is not ok, or if the registry format is invalid
+ *
+ * @example
+ * const files = await getFileRegistry('https://example.com/registry');
+ * // Returns: [{ name: 'file1', url: 'https://example.com/file1.rain' }, ...]
+ */
+
 export const getFileRegistry = async (url: string) => {
 	try {
 		const response = await fetch(url);

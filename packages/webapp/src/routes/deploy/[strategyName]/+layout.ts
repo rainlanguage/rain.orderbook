@@ -1,32 +1,20 @@
-import { registryUrl } from '$lib/stores/registry';
 import { rawDotrain } from '$lib/stores/raw-dotrain';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { get } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import { getFileRegistry } from '$lib/services/getFileRegistry';
 
 export const load: LayoutLoad = async ({ fetch, params, parent }) => {
-	const { strategyName, deploymentKey } = params;
+	const { strategyName } = params;
 	const { registry } = await parent();
-	if (registry) {
-		registryUrl.set(registry);
-	}
+
+	let dotrain;
+
 	try {
-		let dotrain;
 		if (strategyName === 'raw' && get(rawDotrain)) {
 			dotrain = get(rawDotrain);
 		} else {
-			const _registryUrl = get(registryUrl);
-			const response = await fetch(_registryUrl);
-			const files = await response.text();
-
-			const fileList = files
-				.split('\n')
-				.filter(Boolean)
-				.map((line: string) => {
-					const [name, url] = line.split(' ');
-					return { name, url };
-				});
+			const fileList = await getFileRegistry(registry);
 
 			const strategy = fileList.find((file: { name: string }) => file.name === strategyName);
 			if (!strategy) {
@@ -36,33 +24,12 @@ export const load: LayoutLoad = async ({ fetch, params, parent }) => {
 			const dotrainResponse = await fetch(strategy.url);
 			dotrain = await dotrainResponse.text();
 		}
-
-		// Process deployments for both raw and registry strategies
-		const deploymentWithDetails = await DotrainOrderGui.getDeploymentDetails(dotrain);
-		const deployments = Array.from(deploymentWithDetails, ([key, details]) => ({
-			key,
-			...details
-		}));
-
-		const deployment = deployments.find(
-			(deployment: { key: string }) => deployment.key === deploymentKey
-		);
-
-		if (!deployment) {
-			throw new Error(`Deployment ${deploymentKey} not found`);
-		}
-
-		const { key, name, description } = deployment;
-
-		return {
-			dotrain,
-			strategyName,
-			key,
-			name,
-			description,
-			deployment
-		};
 	} catch {
 		throw redirect(307, '/deploy');
 	}
+
+	return {
+		dotrain,
+		strategyName
+	};
 };
