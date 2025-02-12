@@ -41,7 +41,12 @@ impl ERC20 {
     }
 
     async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        Ok(ReadableClientHttp::new_from_url(self.rpc_url.to_string())?)
+        ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
+            Error::ReadableClientError {
+                msg: format!("rpc url: {}", self.rpc_url),
+                source: err,
+            }
+        })
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
@@ -52,7 +57,14 @@ impl ERC20 {
             block_number: None,
             gas: None,
         };
-        Ok(client.read(parameters).await?._0)
+        Ok(client
+            .read(parameters)
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("address: {}", self.address),
+                source: err,
+            })?
+            ._0)
     }
 
     pub async fn name(&self) -> Result<String, Error> {
@@ -63,7 +75,14 @@ impl ERC20 {
             block_number: None,
             gas: None,
         };
-        Ok(client.read(parameters).await?._0)
+        Ok(client
+            .read(parameters)
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("address: {}", self.address),
+                source: err,
+            })?
+            ._0)
     }
 
     pub async fn symbol(&self) -> Result<String, Error> {
@@ -74,7 +93,14 @@ impl ERC20 {
             block_number: None,
             gas: None,
         };
-        Ok(client.read(parameters).await?._0)
+        Ok(client
+            .read(parameters)
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("address: {}", self.address),
+                source: err,
+            })?
+            ._0)
     }
 
     pub async fn token_info(&self, multicall_address: Option<String>) -> Result<TokenInfo, Error> {
@@ -108,26 +134,67 @@ impl ERC20 {
                 },
                 block_number: None,
             })
-            .await?;
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("address: {}", self.address),
+                source: err,
+            })?;
 
         Ok(TokenInfo {
-            decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData, true)?._0,
-            name: nameCall::abi_decode_returns(&results.returnData[1].returnData, true)?._0,
-            symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData, true)?._0,
+            decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData, true)
+                .map_err(|err| Error::SolTypesError {
+                    msg: format!("address: {}", self.address),
+                    source: err,
+                })?
+                ._0,
+            name: nameCall::abi_decode_returns(&results.returnData[1].returnData, true)
+                .map_err(|err| Error::SolTypesError {
+                    msg: format!("address: {}", self.address),
+                    source: err,
+                })?
+                ._0,
+            symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData, true)
+                .map_err(|err| Error::SolTypesError {
+                    msg: format!("address: {}", self.address),
+                    source: err,
+                })?
+                ._0,
         })
     }
 }
 
+const ERROR_MESSAGE: &str = "Failed to get token information: ";
+
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error(transparent)]
-    ReadContractError(#[from] ReadContractParametersBuilderError),
-    #[error(transparent)]
-    ReadableClientError(#[from] ReadableClientError),
-    #[error(transparent)]
-    AbiDecodedErrorType(#[from] AbiDecodedErrorType),
-    #[error(transparent)]
-    AbiDecodeError(#[from] AbiDecodeFailedErrors),
-    #[error(transparent)]
-    SolTypesError(#[from] alloy::sol_types::Error),
+    #[error("{ERROR_MESSAGE} {msg} - {source}")]
+    ReadContractError {
+        msg: String,
+        #[source]
+        source: ReadContractParametersBuilderError,
+    },
+    #[error("{ERROR_MESSAGE} {msg} - {source}")]
+    ReadableClientError {
+        msg: String,
+        #[source]
+        source: ReadableClientError,
+    },
+    #[error("{ERROR_MESSAGE} {msg} - {source}")]
+    AbiDecodedErrorType {
+        msg: String,
+        #[source]
+        source: AbiDecodedErrorType,
+    },
+    #[error("{ERROR_MESSAGE} {msg} - {source}")]
+    AbiDecodeError {
+        msg: String,
+        #[source]
+        source: AbiDecodeFailedErrors,
+    },
+    #[error("{ERROR_MESSAGE} {msg} - {source}")]
+    SolTypesError {
+        msg: String,
+        #[source]
+        source: alloy::sol_types::Error,
+    },
 }
