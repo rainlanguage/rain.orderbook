@@ -11,12 +11,12 @@ jobs:
       fail-fast: ${{ github.ref != 'refs/heads/main' }}
       matrix:
         os: [ubuntu-22.04, macos-13, macos-14]
-        is-main:
+        is-not-main:
           - ${{ github.ref != 'refs/heads/main' }}
         exclude:
-          - is-main: true
+          - is-not-main: true
             os: macos-13
-          - is-main: true
+          - is-not-main: true
             os: macos-14
 
     runs-on: ${{ matrix.os }}
