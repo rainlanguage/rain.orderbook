@@ -26,7 +26,6 @@
 			tokenInfo = await gui.getTokenInfo(token.key);
 			error = '';
 		} catch (e) {
-			console.error(e);
 			return (error = 'No token exists at this address.');
 		}
 	}
@@ -49,7 +48,6 @@
 				}
 				await getInfoForSelectedToken();
 			} catch (e) {
-				console.error(e);
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
 				error = errorMessage;
 			}

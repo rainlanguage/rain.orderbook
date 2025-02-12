@@ -132,7 +132,6 @@
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
-			console.error(e);
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
