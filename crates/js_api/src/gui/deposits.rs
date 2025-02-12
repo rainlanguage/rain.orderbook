@@ -108,9 +108,29 @@ impl DotrainOrderGui {
 
             let token = deposit.token.as_ref().unwrap();
             if !self.deposits.contains_key(&token.key) {
-                return Err(GuiError::DepositNotSet(token.key.clone()));
+                return Err(GuiError::DepositNotSet(
+                    token
+                        .symbol
+                        .clone()
+                        .unwrap_or(token.label.clone().unwrap_or(token.key.clone())),
+                ));
             }
         }
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "getMissingDeposits")]
+    pub fn get_missing_deposits(&self) -> Result<Vec<String>, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let mut missing_deposits = Vec::new();
+
+        for deposit in deployment.deposits.iter() {
+            if let Some(token) = &deposit.token {
+                if !self.deposits.contains_key(&token.key) {
+                    missing_deposits.push(token.key.clone());
+                }
+            }
+        }
+        Ok(missing_deposits)
     }
 }

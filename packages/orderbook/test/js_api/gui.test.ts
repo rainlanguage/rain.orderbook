@@ -128,8 +128,8 @@ gui:
           presets:
             - value: "test-value"
       select-tokens:
-        - token1
-        - token2
+        - key: token1
+        - key: token2
   select-networks:
     some-network:
       name: Some network
@@ -677,7 +677,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WQz0rDQBDGs1UqiAcRr4Lg1ZjNhsRa6kVoqVDxYMQ_F6nptgnZ7sbNtjH1ITx69QWKT-DVm88j3kSctU3JtXOZb-abnfmxyPiLDciKpsq8j3gv4gMEPWysz7vjLhvRCnSq2hEx5bahYxWyiw-8wgj5H1mBbGNcvqxYacBUDKnJqcqEjHegFyqV1C2LiaDLQpGqeg3XXEsmgTmS7EkfRFohfbrpt7dB9ksCVdEa2P4vw66NNKlfpCPFasmsz42v6d5nY_r-4r59X1fI0cdrgLYWWMmMlWg1t85xHDSrPM_bB3kyyW4mnShvnncOr1ietUPRat3KOHuk-YBEeHxxyu9wP3o4uzzehDdChVSaPZowkQ8pV6jsA34AJRn0HGoCAAA=';
+			'H4sIAAAAAAAA_7WQvU7DMBDH44KKhBgQYkVCYiXEcYjVVGVBqigRA0LhQ2zBcZoqjp0Pt1DxEIysvEDFE7Cy8TyIDSFs2qCsveX-d__z3U8Gxm9sqCxpJc27EY9GfAhUDxrri-4kZGPaUp22dkRKuW3oWFXZhQe4NoL-RlZUtiFsXlavNGAlMmpyKu9Fme6oXiJl3rUsJkjIElHJbgd2XKvMiTku2aM-CLQC-nQ_GGwrGTcEaIM1ZQc_DLs20KRBnQ7VqyWzPvU-Z3sfvdnbs_v6ddNC3vsLAVv_WNGcFWm1sM5xHDCvMMb7Soaxn-Fp-nB6jIvrCUbEu-0PipNhTA6rgp5HzD-78r0LLJ3Lo031RsiElmZEcyamGeUSNH3AN7k4hF1qAgAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1102,11 +1102,15 @@ ${dotrainWithoutVaultIds}`;
 			gui.saveDeposit('token2', '5000');
 
 			await expect(async () => await gui.generateAddOrderCalldata()).rejects.toThrow(
-				'Field value not set: test-binding'
+				'Missing field value: Test binding'
 			);
 			await expect(async () => await gui.generateDepositAndAddOrderCalldatas()).rejects.toThrow(
-				'Field value not set: test-binding'
+				'Missing field value: Test binding'
 			);
+
+			let missingFieldValues = gui.getMissingFieldValues();
+			assert.equal(missingFieldValues.length, 1);
+			assert.equal(missingFieldValues[0], 'Test binding');
 		});
 
 		it('should throw error if deposit value not set', async () => {
@@ -1133,13 +1137,18 @@ ${dotrainWithoutVaultIds}`;
 			await expect(
 				async () =>
 					await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
-			).rejects.toThrow('Deposit not set: token1');
+			).rejects.toThrow('Missing deposit with token: T1');
 			await expect(async () => await gui.generateDepositCalldatas()).rejects.toThrow(
-				'Deposit not set: token1'
+				'Missing deposit with token: T1'
 			);
 			await expect(async () => await gui.generateDepositAndAddOrderCalldatas()).rejects.toThrow(
-				'Deposit not set: token1'
+				'Missing deposit with token: T1'
 			);
+
+			let missingDeposits = gui.getMissingDeposits();
+			assert.equal(missingDeposits.length, 2);
+			assert.equal(missingDeposits[0], 'token1');
+			assert.equal(missingDeposits[1], 'token2');
 		});
 
 		it('should set vault ids', async () => {
@@ -1211,10 +1220,10 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get select tokens', async () => {
-			const selectTokens: string[] = gui.getSelectTokens();
+			const selectTokens = gui.getSelectTokens();
 			assert.equal(selectTokens.length, 2);
-			assert.equal(selectTokens[0], 'token1');
-			assert.equal(selectTokens[1], 'token2');
+			assert.equal(selectTokens[0].key, 'token1');
+			assert.equal(selectTokens[1].key, 'token2');
 		});
 
 		it('should throw error if select tokens not set', async () => {
