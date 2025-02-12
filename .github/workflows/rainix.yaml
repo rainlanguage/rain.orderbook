@@ -12,8 +12,6 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
         include:
-          - os: macos-latest
-            task: rainix-sol-legal
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
             task: rainix-sol-test
