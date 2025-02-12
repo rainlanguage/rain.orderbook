@@ -13,11 +13,10 @@ jobs:
         os: [ubuntu-22.04]
         include:
           - os: macos-13
-            if: github.ref == 'refs/heads/main'
           - os: macos-14
-            if: github.ref == 'refs/heads/main'
 
     runs-on: ${{ matrix.os }}
+    if: ${{ !contains(matrix.os, 'macos') || github.ref == 'refs/heads/main' }}
     env:
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
       CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}

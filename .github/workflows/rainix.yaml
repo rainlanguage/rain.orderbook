@@ -15,13 +15,10 @@ jobs:
           # Add macos jobs only on main branch
           - os: macos-latest
             task: ob-rs-test
-            if: github.ref == 'refs/heads/main'
           - os: macos-latest
             task: rainix-rs-artifacts
-            if: github.ref == 'refs/heads/main'
           - os: macos-latest
             task: rainix-sol-legal
-            if: github.ref == 'refs/heads/main'
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
             task: rainix-sol-test
@@ -42,6 +39,7 @@ jobs:
             task: test-js-bindings
       fail-fast: false
     runs-on: ${{ matrix.os }}
+    if: ${{ !contains(matrix.os, 'macos') || github.ref == 'refs/heads/main' }}
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
