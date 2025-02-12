@@ -69,9 +69,13 @@ impl DotrainOrderGui {
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )? {
-            for key in st {
-                if let Ok(token) = self.dotrain_order.orderbook_yaml().get_token(&key) {
-                    select_tokens.insert(key, token);
+            for select_token in st {
+                if let Ok(token) = self
+                    .dotrain_order
+                    .orderbook_yaml()
+                    .get_token(&select_token.key)
+                {
+                    select_tokens.insert(select_token.key, token);
                 }
             }
         }
@@ -191,7 +195,7 @@ impl DotrainOrderGui {
             let select_tokens = deployment_select_tokens
                 .as_ref()
                 .ok_or(GuiError::SelectTokensNotSet)?;
-            if !select_tokens.contains(&key) {
+            if !select_tokens.iter().any(|token| token.key == key) {
                 return Err(GuiError::TokenNotInSelectTokens(key));
             }
             if dotrain_order_gui.is_select_token_set(key.clone())? {

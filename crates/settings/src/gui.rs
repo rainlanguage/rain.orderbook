@@ -1,8 +1,8 @@
 use crate::{
     yaml::{
         context::{Context, GuiContextTrait},
-        default_document, get_hash_value, optional_hash, optional_string, optional_vec,
-        require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
+        default_document, get_hash_value, get_hash_value_as_option, optional_hash, optional_string,
+        optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
     Deployment, Token, TokenRef,
@@ -60,7 +60,7 @@ pub struct GuiDeploymentSource {
     pub deposits: Vec<GuiDepositSource>,
     pub fields: Vec<GuiFieldDefinitionSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub select_tokens: Option<Vec<TokenRef>>,
+    pub select_tokens: Option<Vec<GuiSelectTokens>>,
 }
 
 #[typeshare]
@@ -197,6 +197,15 @@ pub struct GuiDeposit {
 impl_all_wasm_traits!(GuiDeposit);
 
 #[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct GuiSelectTokens {
+    pub key: TokenRef,
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiDeployment {
@@ -209,7 +218,7 @@ pub struct GuiDeployment {
     pub description: String,
     pub deposits: Vec<GuiDeposit>,
     pub fields: Vec<GuiFieldDefinition>,
-    pub select_tokens: Option<Vec<String>>,
+    pub select_tokens: Option<Vec<GuiSelectTokens>>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(GuiDeployment);
@@ -299,7 +308,7 @@ impl Gui {
     pub fn parse_select_tokens(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         deployment_key: &str,
-    ) -> Result<Option<Vec<String>>, YamlError> {
+    ) -> Result<Option<Vec<GuiSelectTokens>>, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -314,9 +323,24 @@ impl Gui {
                             deployment_hash.get(&StrictYaml::String("select-tokens".to_string()))
                         {
                             let mut result = Vec::new();
-                            for token in tokens {
-                                if let StrictYaml::String(token_str) = token {
-                                    result.push(token_str.clone());
+                            for (index, token) in tokens.iter().enumerate() {
+                                if let StrictYaml::Hash(token_hash) = token {
+                                    let key = get_hash_value(token_hash, "key", Some(format!("key string missing for select-token index: {index} in gui deployment: {deployment_key}")))?.as_str().ok_or(YamlError::Field {
+                                        kind: FieldErrorKind::Missing("key".to_string()),
+                                        location: format!("select-token index: {index} in gui deployment: {deployment_key}"),
+                                    })?;
+                                    let name = get_hash_value_as_option(token_hash, "name")
+                                        .map(|s| s.as_str())
+                                        .unwrap_or_default();
+                                    let description =
+                                        get_hash_value_as_option(token_hash, "description")
+                                            .map(|s| s.as_str())
+                                            .unwrap_or_default();
+                                    result.push(GuiSelectTokens {
+                                        key: key.to_string(),
+                                        name: name.map(|s| s.to_string()),
+                                        description: description.map(|s| s.to_string()),
+                                    });
                                 }
                             }
                             return Ok(Some(result));
@@ -570,20 +594,33 @@ impl YamlParseableValue for Gui {
                                     .iter()
                                     .enumerate()
                                     .map(|(select_token_index, select_token_value)| {
-                                        Ok(select_token_value.as_str().ok_or(YamlError::Field {
+                                        let location = format!("select-token index '{select_token_index}' in gui deployment '{deployment_name}'");
+
+                                        select_token_value.as_hash().ok_or(YamlError::Field{
                                             kind: FieldErrorKind::InvalidType {
                                                 field: "select-token".to_string(),
-                                                expected: "a string".to_string(),
+                                                expected: "a map".to_string(),
                                             },
-                                            location: format!("select-token index '{select_token_index}' in {location}"),
-                                        })?.to_string())
+                                            location: location.clone(),
+                                        })?;
+
+                                        Ok(GuiSelectTokens {
+                                            key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
+                                            name: optional_string(select_token_value, "name"),
+                                            description: optional_string(select_token_value, "description"),
                                     })
-                                    .collect::<Result<Vec<_>, YamlError>>()?,
-                            ),
-                            None => None,
-                        };
+                                })
+                                .collect::<Result<Vec<_>, YamlError>>()?,
+                        ),
+                        None => None,
+                    };
                     if let Some(ref select_tokens) = select_tokens {
-                        context.add_select_tokens(select_tokens.clone());
+                        context.add_select_tokens(
+                            select_tokens
+                                .iter()
+                                .map(|select_token| select_token.key.clone())
+                                .collect::<Vec<_>>(),
+                        );
                     }
 
                     let deployment = Deployment::parse_from_yaml(
@@ -807,7 +844,11 @@ mod tests {
                             ]),
                         },
                     ],
-                    select_tokens: Some(vec!["test-token".to_string()]),
+                    select_tokens: Some(vec![GuiSelectTokens {
+                        key: "test-token".to_string(),
+                        name: Some("Test name".to_string()),
+                        description: Some("Test description".to_string()),
+                    }]),
                 },
             )]),
         };
@@ -888,7 +929,11 @@ mod tests {
         assert_eq!(presets[2].value, "true".to_string());
         assert_eq!(
             deployment.select_tokens,
-            Some(vec!["test-token".to_string()])
+            Some(vec![GuiSelectTokens {
+                key: "test-token".to_string(),
+                name: Some("Test name".to_string()),
+                description: Some("Test description".to_string()),
+            }])
         );
     }
 
@@ -1467,7 +1512,7 @@ gui:
                   presets:
                     - value: test
             select-tokens:
-                - test: test
+                - test
 "#;
         let error = Gui::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
@@ -1479,8 +1524,41 @@ gui:
             YamlError::Field {
                 kind: FieldErrorKind::InvalidType {
                     field: "select-token".to_string(),
-                    expected: "a string".to_string()
+                    expected: "a map".to_string()
                 },
+                location: "select-token index '0' in gui deployment 'deployment1'".to_string(),
+            }
+        );
+
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        deployment1:
+            name: test
+            description: test
+            deposits:
+                - token: token1
+                  presets:
+                    - "1"
+            fields:
+                - binding: test
+                  name: test
+                  presets:
+                    - value: test
+            select-tokens:
+                - test: test
+"#;
+        let error = Gui::parse_from_yaml_optional(
+            vec![get_document(&format!("{yaml_prefix}{yaml}"))],
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("key".to_string()),
                 location: "select-token index '0' in gui deployment 'deployment1'".to_string(),
             }
         );
