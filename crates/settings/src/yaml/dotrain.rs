@@ -79,10 +79,17 @@ impl DotrainYaml {
         Deployment::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<Gui>, YamlError> {
+    pub fn get_gui(
+        &self,
+        current_deployment: Option<String>,
+        current_network: Option<String>,
+    ) -> Result<Option<Gui>, YamlError> {
         let mut context = Context::new();
         if let Some(deployment) = current_deployment {
             context.add_current_deployment(deployment);
+        }
+        if let Some(network) = current_network {
+            context.add_current_network(network);
         }
         Gui::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
@@ -260,6 +267,7 @@ mod tests {
                 scenario2:
                     bindings:
                         key2: ${order.outputs.0.token.address}
+                        key3: ${network-bindings.some-key}
     deployments:
         deployment1:
             order: order1
@@ -282,6 +290,9 @@ mod tests {
                       description: With token symbol ${order.inputs.0.token.symbol}
                       presets:
                         - value: value2
+    network-bindings:
+        mainnet:
+            some-key: some-value
     "#;
 
     #[test]
@@ -367,7 +378,7 @@ mod tests {
             "order1"
         );
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui(None, None).unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -630,7 +641,10 @@ mod tests {
     fn test_handlebars() {
         let dotrain_yaml = DotrainYaml::new(vec![HANDLEBARS_YAML.to_string()], false).unwrap();
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml
+            .get_gui(Some("deployment1".to_string()), Some("mainnet".to_string()))
+            .unwrap()
+            .unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
 
         assert_eq!(
@@ -646,6 +660,11 @@ mod tests {
         assert_eq!(
             deployment.fields[0].description,
             Some("With token symbol WETH".to_string())
+        );
+
+        assert_eq!(
+            deployment.deployment.scenario.bindings.get("key3").unwrap(),
+            "some-value"
         );
     }
 
@@ -721,7 +740,7 @@ orders:
         );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui(None, None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -734,7 +753,7 @@ orders:
         );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui(None, None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {

@@ -1,4 +1,5 @@
 use crate::{
+    network_bindings::NetworkBinding,
     yaml::{
         context::{Context, GuiContextTrait},
         default_document, get_hash_value, optional_hash, optional_string, optional_vec,
@@ -619,6 +620,15 @@ impl YamlParseableValue for Gui {
                     }
 
                     let mut context = Context::from_context(context);
+
+                    let network_bindings =
+                        NetworkBinding::parse_all_from_yaml(documents.clone(), Some(&context))?;
+                    context.add_network_bindings(
+                        network_bindings
+                            .iter()
+                            .map(|(k, v)| (k.clone(), Arc::new(v.clone())))
+                            .collect(),
+                    );
 
                     let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
                             Some(tokens) => Some(

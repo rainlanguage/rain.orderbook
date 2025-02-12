@@ -1,5 +1,8 @@
 use crate::{
-    yaml::{default_document, optional_hash, FieldErrorKind, YamlError, YamlParsableHash},
+    yaml::{
+        context::Context, default_document, optional_hash, FieldErrorKind, YamlError,
+        YamlParsableHash,
+    },
     Network,
 };
 use serde::{Deserialize, Serialize};
@@ -20,7 +23,7 @@ pub struct NetworkBinding {
 impl YamlParsableHash for NetworkBinding {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _context: Option<&crate::yaml::context::Context>,
+        _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut network_bindings = HashMap::new();
 
