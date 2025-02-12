@@ -6,12 +6,14 @@ use thiserror::Error;
 pub struct GuiContext {
     pub current_deployment: Option<String>,
     pub current_order: Option<String>,
+    pub current_network: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<Order>>,
     pub select_tokens: Option<Vec<String>>,
+    pub select_networks: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
 }
 
@@ -43,19 +45,30 @@ pub trait OrderContext {
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
 }
 
-pub trait SelectTokensContext {
+pub trait GuiSelectionsContext {
     fn select_tokens(&self) -> Option<&Vec<String>>;
+    fn select_networks(&self) -> Option<&Vec<String>>;
 
     fn is_select_token(&self, key: &str) -> bool {
         self.select_tokens()
             .map(|tokens| tokens.iter().any(|t| t == key))
             .unwrap_or(false)
     }
+
+    fn is_select_network(&self, key: &str) -> bool {
+        self.select_networks()
+            .map(|networks| networks.iter().any(|n| n == key))
+            .unwrap_or(false)
+    }
 }
 
-impl SelectTokensContext for Context {
+impl GuiSelectionsContext for Context {
     fn select_tokens(&self) -> Option<&Vec<String>> {
         self.select_tokens.as_ref()
+    }
+
+    fn select_networks(&self) -> Option<&Vec<String>> {
+        self.select_networks.as_ref()
     }
 }
 
@@ -133,6 +146,7 @@ impl Context {
         Self {
             order: None,
             select_tokens: None,
+            select_networks: None,
             gui_context: None,
         }
     }
@@ -142,6 +156,9 @@ impl Context {
         if let Some(context) = context {
             new_context.order.clone_from(&context.order);
             new_context.select_tokens.clone_from(&context.select_tokens);
+            new_context
+                .select_networks
+                .clone_from(&context.select_networks);
             new_context.gui_context.clone_from(&context.gui_context);
         }
         new_context
@@ -157,10 +174,16 @@ impl Context {
         self
     }
 
+    pub fn add_select_networks(&mut self, select_networks: Vec<String>) -> &mut Self {
+        self.select_networks = Some(select_networks);
+        self
+    }
+
     pub fn add_current_deployment(&mut self, deployment: String) -> &mut Self {
         self.gui_context = Some(GuiContext {
             current_deployment: Some(deployment),
             current_order: None,
+            current_network: None,
         });
         self
     }
@@ -169,7 +192,21 @@ impl Context {
         self.gui_context = Some(GuiContext {
             current_deployment: None,
             current_order: Some(order),
+            current_network: None,
         });
+        self
+    }
+
+    pub fn add_current_network(&mut self, network: String) -> &mut Self {
+        if let Some(ref mut gui_context) = self.gui_context {
+            gui_context.current_network = Some(network);
+        } else {
+            self.gui_context = Some(GuiContext {
+                current_deployment: None,
+                current_order: None,
+                current_network: Some(network),
+            });
+        }
         self
     }
 
