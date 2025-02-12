@@ -1,4 +1,6 @@
+use crate::network_bindings::NetworkBinding;
 use crate::{Order, OrderIO, Token};
+use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -15,12 +17,15 @@ pub struct Context {
     pub select_tokens: Option<Vec<String>>,
     pub select_networks: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
+    pub network_bindings: Option<HashMap<String, Arc<NetworkBinding>>>,
 }
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContextError {
     #[error("No order in context")]
     NoOrder,
+    #[error("No network in context")]
+    NoNetwork,
     #[error("Invalid path: {0}")]
     InvalidPath(String),
     #[error("Invalid index: {0}")]
@@ -43,6 +48,17 @@ pub trait OrderContext {
 
     fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError>;
     fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
+}
+
+pub trait NetworkBindingsContext: GuiContextTrait {
+    fn resolve_network_binding_path(&self, parts: &[&str]) -> Result<String, ContextError> {
+        match parts.first() {
+            Some(&binding) => self.resolve_binding(binding),
+            _ => Err(ContextError::InvalidPath(parts.join("."))),
+        }
+    }
+
+    fn resolve_binding(&self, binding: &str) -> Result<String, ContextError>;
 }
 
 pub trait GuiSelectionsContext {
@@ -121,10 +137,24 @@ impl OrderContext for Context {
     }
 }
 
+impl NetworkBindingsContext for Context {
+    fn resolve_binding(&self, binding: &str) -> Result<String, ContextError> {
+        let network = self.get_current_network().ok_or(ContextError::NoNetwork)?;
+        self.network_bindings
+            .as_ref()
+            .and_then(|bindings| bindings.get(network))
+            .and_then(|network_binding| network_binding.bindings.get(binding))
+            .ok_or_else(|| ContextError::PropertyNotFound(binding.to_string()))
+            .map(|s| s.to_string())
+    }
+}
+
 pub trait GuiContextTrait {
     fn get_current_deployment(&self) -> Option<&String>;
 
     fn get_current_order(&self) -> Option<&String>;
+
+    fn get_current_network(&self) -> Option<&String>;
 }
 
 impl GuiContextTrait for Context {
@@ -139,6 +169,12 @@ impl GuiContextTrait for Context {
             .as_ref()
             .and_then(|gui_context| gui_context.current_order.as_ref())
     }
+
+    fn get_current_network(&self) -> Option<&String> {
+        self.gui_context
+            .as_ref()
+            .and_then(|gui_context| gui_context.current_network.as_ref())
+    }
 }
 
 impl Context {
@@ -148,6 +184,7 @@ impl Context {
             select_tokens: None,
             select_networks: None,
             gui_context: None,
+            network_bindings: None,
         }
     }
 
@@ -160,6 +197,9 @@ impl Context {
                 .select_networks
                 .clone_from(&context.select_networks);
             new_context.gui_context.clone_from(&context.gui_context);
+            new_context
+                .network_bindings
+                .clone_from(&context.network_bindings);
         }
         new_context
     }
@@ -210,11 +250,20 @@ impl Context {
         self
     }
 
+    pub fn add_network_bindings(
+        &mut self,
+        bindings: HashMap<String, Arc<NetworkBinding>>,
+    ) -> &mut Self {
+        self.network_bindings = Some(bindings);
+        self
+    }
+
     fn resolve_path(&self, path: &str) -> Result<String, ContextError> {
         let parts: Vec<&str> = path.split('.').collect();
 
         match parts.first() {
             Some(&"order") => self.resolve_order_path(&parts[1..]),
+            Some(&"network-bindings") => self.resolve_network_binding_path(&parts[1..]),
             _ => Err(ContextError::InvalidPath(path.to_string())),
         }
     }
@@ -322,6 +371,55 @@ mod tests {
         // Test that missing vault-id returns error
         assert!(matches!(
             context.interpolate("${order.outputs.0.vault-id}"),
+            Err(ContextError::PropertyNotFound(_))
+        ));
+    }
+
+    fn setup_test_network_bindings() -> HashMap<String, Arc<NetworkBinding>> {
+        let mut bindings = HashMap::new();
+        let network_binding = NetworkBinding {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test_network".to_string(),
+            bindings: {
+                let mut b = HashMap::new();
+                b.insert("raindex-subparser".to_string(), "test-value".to_string());
+                b
+            },
+        };
+        bindings.insert("test_network".to_string(), Arc::new(network_binding));
+        bindings
+    }
+
+    #[test]
+    fn test_network_binding_interpolation() {
+        let mut context = Context::new();
+        context.add_network_bindings(setup_test_network_bindings());
+        context.add_current_network("test_network".to_string());
+
+        assert_eq!(
+            context
+                .interpolate("Value: ${network-bindings.raindex-subparser}")
+                .unwrap(),
+            "Value: test-value"
+        );
+
+        assert!(matches!(
+            context.interpolate("${network-bindings.non-existent}"),
+            Err(ContextError::PropertyNotFound(_))
+        ));
+
+        let mut context = Context::new();
+        context.add_network_bindings(setup_test_network_bindings());
+        assert!(matches!(
+            context.interpolate("${network-bindings.raindex-subparser}"),
+            Err(ContextError::NoNetwork)
+        ));
+
+        let mut context = Context::new();
+        context.add_network_bindings(setup_test_network_bindings());
+        context.add_current_network("non-existent-network".to_string());
+        assert!(matches!(
+            context.interpolate("${network-bindings.raindex-subparser}"),
             Err(ContextError::PropertyNotFound(_))
         ));
     }
