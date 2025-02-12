@@ -19,7 +19,7 @@
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Accordion, Button } from 'flowbite-svelte';
+	import { Accordion } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -28,7 +28,7 @@
 	import { goto } from '$app/navigation';
 	import { FileCopySolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
-
+	import Button from '../Button.svelte';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
