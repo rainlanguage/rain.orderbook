@@ -132,6 +132,7 @@
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
+			console.error(e);
 			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
@@ -208,10 +209,19 @@
 			dotrain,
 			$page.url.searchParams.get('state') || ''
 		);
+		areAllTokensSelected();
+	}
+
+	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
+		await areAllTokensSelected();
+		handleUpdateGuiState(gui);
+	}
+
+	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
 				selectTokens = await gui.getSelectTokens();
-				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
+				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
 					allTokensSelected = true;
 				}
 				// if we have deposits or vault ids set, show advanced options
@@ -230,7 +240,7 @@
 				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
 			}
 		}
-	}
+	};
 
 	async function composeRainlang() {
 		if (!gui) return;
@@ -265,7 +275,7 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} bind:allTokensSelected {handleUpdateGuiState} />
+					<SelectTokensSection {gui} {selectTokens} handleUpdateGuiState={_handleUpdateGuiState} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}

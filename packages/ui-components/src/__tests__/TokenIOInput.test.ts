@@ -33,9 +33,20 @@ describe('TokenInput', () => {
 
 	const mockProps: TokenIOInputComponentProps = {
 		i: 0,
+		isInput: true,
 		label: 'Input',
 		vault: mockInput,
 		vaultIds: ['vault1'],
+		gui: mockGui,
+		handleUpdateGuiState: vi.fn()
+	} as unknown as TokenIOInputComponentProps;
+
+	const outputMockProps: TokenIOInputComponentProps = {
+		i: 0,
+		isInput: false,
+		label: 'Output',
+		vault: mockInput,
+		vaultIds: ['vault2'],
 		gui: mockGui,
 		handleUpdateGuiState: vi.fn()
 	} as unknown as TokenIOInputComponentProps;
@@ -71,6 +82,12 @@ describe('TokenInput', () => {
 		await waitFor(() => {
 			expect(mockGui.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
 		});
+	});
+
+	it('calls setVaultId on output vault when input changes', async () => {
+		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
+		await fireEvent.input(input, { target: { value: 'vault2' } });
+		expect(mockGui.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
 	});
 
 	it('does not call setVaultId when gui is undefined', async () => {

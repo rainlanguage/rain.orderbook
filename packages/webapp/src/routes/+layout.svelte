@@ -9,9 +9,11 @@
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
-
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
+	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
+
+	// Query client for caching
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -36,16 +38,18 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-	{#if $page.url.pathname === '/'}
-		<Homepage {colorTheme} />
-	{:else}
-		<div
-			class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-		>
-			<Sidebar {colorTheme} page={$page} />
-			<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-				<slot />
-			</main>
-		</div>
-	{/if}
+	<LoadingWrapper>
+		{#if $page.url.pathname === '/'}
+			<Homepage {colorTheme} />
+		{:else}
+			<div
+				class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+			>
+				<Sidebar {colorTheme} page={$page} />
+				<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+					<slot />
+				</main>
+			</div>
+		{/if}
+	</LoadingWrapper>
 </QueryClientProvider>
