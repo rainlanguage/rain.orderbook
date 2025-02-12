@@ -38,7 +38,7 @@ jobs:
     # Add concurrency group for mac jobs
     concurrency:
       group: mac-${{ github.ref }}
-      cancel-in-progress: ${{ github.ref != 'refs/heads/main' && matrix.os == 'macos-latest' }}
+      cancel-in-progress: true
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
