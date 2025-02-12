@@ -250,16 +250,16 @@ describe('transactionStore', () => {
 		const mockTxHash = 'mockHash';
 		const mockSuccessMessage = 'Success message';
 
-		// Mock getTransaction to always return null to simulate timeout
+
 		(getTransaction as Mock).mockResolvedValue(null);
 
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
-		// First check that we enter pending state
+
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Checking for transaction indexing...');
 
-		// Wait for the timeout message
+
 		await waitFor(
 			() => {
 				expect(get(transactionStore).message).toBe(
@@ -267,6 +267,6 @@ describe('transactionStore', () => {
 				);
 			},
 			{ timeout: 6000 }
-		); // Increase timeout to allow for all retries
+		);
 	});
 });
