@@ -1,38 +1,16 @@
-name: Rainix CI
+name: Rainix CI (macOS)
 on: [push]
 
 concurrency:
-  group: ${{ github.ref }}-rainix
+  group: mac-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   standard-tests:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
         task: [ob-rs-test, rainix-rs-artifacts]
-        include:
-          # Solidity doesn't need to be tested on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-sol-test
-          - os: ubuntu-latest
-            task: rainix-sol-static
-          - os: ubuntu-latest
-            task: rainix-sol-artifacts
-          # We don't need to do rust static analysis on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-rs-static
-          # Wasm target doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-wasm-artifacts
-          - os: ubuntu-latest
-            task: rainix-wasm-test
-          # Testing JS/TS bindings doesnt need to run on multiple platforms
-          - os: ubuntu-latest
-            task: test-js-bindings
-          # Legal doesn't need to run on multiple platforms
-          - os: ubuntu-latest
-            task: rainix-sol-legal
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
