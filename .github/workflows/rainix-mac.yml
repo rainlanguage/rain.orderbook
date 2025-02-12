@@ -3,7 +3,6 @@ on: [push]
 
 jobs:
   standard-tests:
-    needs: block # Make sure blocker runs first
     strategy:
       matrix:
         os: [macos-latest]
