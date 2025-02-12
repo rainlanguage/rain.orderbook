@@ -12,12 +12,13 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-13, macos-14]
         is-main:
-          - ${{ github.ref == 'refs/heads/main' }}
+          - ${{ github.ref != 'refs/heads/main' }}
         exclude:
-          - os: macos-13
-            is-main: false
-          - os: macos-14
-            is-main: false
+          - is-main: true
+            os: macos-13
+          - is-main: true
+            os: macos-14
+
     runs-on: ${{ matrix.os }}
     env:
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
