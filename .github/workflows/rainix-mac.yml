@@ -2,17 +2,6 @@ name: Rainix CI (macOS)
 on: [push]
 
 jobs:
-  # Add blocker job first
-  block:
-    if: github.ref != 'refs/heads/main'
-    concurrency:
-      group: mac-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Blocking mac jobs"
-
-  # Then the actual mac jobs
   standard-tests:
     needs: block # Make sure blocker runs first
     strategy:
@@ -71,3 +60,12 @@ jobs:
           ETHERSCAN_API_KEY: ${{ secrets.EXPLORER_VERIFICATION_KEY }}
           DEPLOY_VERIFIER: ""
         run: nix develop -c ${{ matrix.task }}
+
+  block:
+    if: github.ref != 'refs/heads/main'
+    concurrency:
+      group: mac-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Blocking mac jobs"
