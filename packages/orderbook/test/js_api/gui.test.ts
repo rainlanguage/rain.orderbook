@@ -1095,6 +1095,10 @@ ${dotrainWithoutVaultIds}`;
 			await expect(async () => await gui.generateDepositAndAddOrderCalldatas()).rejects.toThrow(
 				'Missing field value: Test binding'
 			);
+
+			let missingFieldValues = gui.getMissingFieldValues();
+			assert.equal(missingFieldValues.length, 1);
+			assert.equal(missingFieldValues[0], 'Test binding');
 		});
 
 		it('should throw error if deposit value not set', async () => {
@@ -1128,6 +1132,11 @@ ${dotrainWithoutVaultIds}`;
 			await expect(async () => await gui.generateDepositAndAddOrderCalldatas()).rejects.toThrow(
 				'Missing deposit with token: T1'
 			);
+
+			let missingDeposits = gui.getMissingDeposits();
+			assert.equal(missingDeposits.length, 2);
+			assert.equal(missingDeposits[0], 'token1');
+			assert.equal(missingDeposits[1], 'token2');
 		});
 
 		it('should set vault ids', async () => {
