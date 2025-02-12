@@ -2,10 +2,10 @@ import { registryUrl } from '$lib/stores/registry';
 import { rawDotrain } from '$lib/stores/raw-dotrain';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { get } from 'svelte/store';
-import type { PageLoad } from './$types';
+import type { LayoutLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 
-export const load: PageLoad = async ({ fetch, params, parent }) => {
+export const load: LayoutLoad = async ({ fetch, params, parent }) => {
 	const { strategyName, deploymentKey } = params;
 	const { registry } = await parent();
 	if (registry) {
@@ -59,7 +59,8 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
 			strategyName,
 			key,
 			name,
-			description
+			description,
+			deployment
 		};
 	} catch {
 		throw redirect(307, '/deploy');
