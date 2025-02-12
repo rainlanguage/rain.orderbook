@@ -30,7 +30,8 @@ describe('DepositInput', () => {
 				gui: {
 					...mockGui,
 					getTokenInfo: vi.fn().mockReturnValue({ name: 'Test Token', symbol: 'TEST' })
-				}
+				},
+				handleUpdateGuiState: vi.fn()
 			} as unknown as DepositInputProps
 		});
 		await waitFor(() => {
@@ -45,7 +46,8 @@ describe('DepositInput', () => {
 		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: mockGui
+				gui: mockGui,
+				handleUpdateGuiState: vi.fn()
 			} as unknown as DepositInputProps
 		});
 
@@ -59,7 +61,8 @@ describe('DepositInput', () => {
 		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: mockGui
+				gui: mockGui,
+				handleUpdateGuiState: vi.fn()
 			} as unknown as DepositInputProps
 		});
 

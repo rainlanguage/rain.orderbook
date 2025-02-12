@@ -5,11 +5,11 @@
 	import type { AppKit } from '@reown/appkit';
 	import type {
 		ApprovalCalldataResult,
-		DepositAndAddOrderCalldataResult
+		DepositAndAddOrderCalldataResult,
+		DotrainOrderGui
 	} from '@rainlanguage/orderbook/js_api';
 	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
-
 	export let dotrain: string;
 	export let key: string;
 	export let name: string;
@@ -23,6 +23,7 @@
 		orderbookAddress: Hex;
 		chainId: number;
 	}) => void;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	const stateFromUrl = $page.url.searchParams.get('state') || '';
 </script>
 
@@ -35,4 +36,5 @@
 	{appKitModal}
 	{handleDeployModal}
 	{stateFromUrl}
+	{handleUpdateGuiState}
 />

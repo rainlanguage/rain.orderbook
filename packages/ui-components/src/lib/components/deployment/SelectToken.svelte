@@ -1,52 +1,32 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type {
-		DotrainOrderGui,
-		GuiSelectTokens,
-		SelectTokens,
-		TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, GuiSelectTokens, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
-	export let selectToken: GuiSelectTokens;
-	export let selectTokens: SelectTokens;
+	export let token: GuiSelectTokens[0];
 	export let gui: DotrainOrderGui;
-	export let allTokensSelected: boolean;
-
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 
 	onMount(async () => {
-		try {
-			const currentToken = await gui?.getTokenInfo(selectToken.key);
-			if (currentToken?.address) {
-				inputValue = currentToken.address;
-				getInfoForSelectedToken();
-			}
-		} catch {
-			// do nothing
+		tokenInfo = await gui?.getTokenInfo(token.key);
+		if (tokenInfo?.address) {
+			inputValue = tokenInfo.address;
 		}
 	});
-
-	function checkIfAllTokensAreSelected() {
-		allTokensSelected = false;
-		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
-			allTokensSelected = true;
-		} else {
-			allTokensSelected = false;
-		}
-	}
 
 	async function getInfoForSelectedToken() {
 		error = '';
 		try {
-			tokenInfo = await gui.getTokenInfo(selectToken.key);
+			tokenInfo = await gui.getTokenInfo(token.key);
 			error = '';
-		} catch {
+		} catch (e) {
+			console.error(e);
 			return (error = 'No token exists at this address.');
 		}
 	}
@@ -62,35 +42,37 @@
 			}
 			checking = true;
 			try {
-				if (gui.isSelectTokenSet(selectToken.key)) {
-					await gui.replaceSelectToken(selectToken.key, currentTarget.value);
+				if (gui.isSelectTokenSet(token.key)) {
+					await gui.replaceSelectToken(token.key, currentTarget.value);
 				} else {
-					await gui.saveSelectToken(selectToken.key, currentTarget.value);
+					await gui.saveSelectToken(token.key, currentTarget.value);
 				}
 				await getInfoForSelectedToken();
 			} catch (e) {
+				console.error(e);
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
 				error = errorMessage;
 			}
 		}
-		checkIfAllTokensAreSelected();
+
 		checking = false;
+		handleUpdateGuiState(gui);
 	}
 </script>
 
 <div class="flex w-full flex-col">
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-row items-center gap-4">
-			{#if selectToken.name || selectToken.description}
+			{#if token.name || token.description}
 				<div class="flex flex-col">
-					{#if selectToken.name}
+					{#if token.name}
 						<h1 class="break-words text-xl font-semibold text-gray-900 lg:text-xl dark:text-white">
-							{selectToken.name}
+							{token.name}
 						</h1>
 					{/if}
-					{#if selectToken.description}
+					{#if token.description}
 						<p class="text-sm font-light text-gray-600 lg:text-base dark:text-gray-400">
-							{selectToken.description}
+							{token.description}
 						</p>
 					{/if}
 				</div>

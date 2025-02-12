@@ -92,31 +92,31 @@
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
 		<div
-			class="flex w-full justify-between gap-x-4 text-3xl font-medium lg:justify-normal dark:text-white"
+			class="flex w-full flex-wrap justify-between gap-4 text-3xl font-medium lg:justify-normal dark:text-white"
 		>
 			<div class="flex gap-x-2">
 				<span class="font-light">Order</span>
 				<Hash shorten value={data.orderHash} />
 			</div>
 			<BadgeActive active={data.active} large />
+			{#if data && $signerAddress === data.owner && data.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				<Button
+					data-testid="remove-button"
+					color="dark"
+					on:click={() =>
+						handleOrderRemoveModal({
+							order: data,
+							onRemove: $orderDetailQuery.refetch,
+							wagmiConfig: $wagmiConfig,
+							chainId,
+							orderbookAddress
+						})}
+					disabled={!handleOrderRemoveModal}
+				>
+					Remove
+				</Button>
+			{/if}
 		</div>
-		{#if data && $signerAddress === data.owner && data.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
-			<Button
-				data-testid="remove-button"
-				color="dark"
-				on:click={() =>
-					handleOrderRemoveModal({
-						order: data,
-						onRemove: $orderDetailQuery.refetch,
-						wagmiConfig: $wagmiConfig,
-						chainId,
-						orderbookAddress
-					})}
-				disabled={!handleOrderRemoveModal}
-			>
-				Remove
-			</Button>
-		{/if}
 	</svelte:fragment>
 	<svelte:fragment slot="card" let:data>
 		<div class="flex flex-col gap-y-6">
@@ -144,21 +144,21 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Input vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 hidden justify-end md:flex">
-						<span>Balance</span>
-					</div>
-					<div class="space-y-2">
+					<div class="mt-2 space-y-2">
 						{#each data.inputs || [] as vault}
-							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
-								<DepositOrWithdrawButtons
-									{vault}
-									{chainId}
-									{rpcUrl}
-									query={orderDetailQuery}
-									{handleDepositOrWithdrawModal}
-								/>
-							{/if}
+							<ButtonVaultLink tokenVault={vault} {subgraphName}>
+								<svelte:fragment slot="buttons">
+									{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
+										<DepositOrWithdrawButtons
+											{vault}
+											{chainId}
+											{rpcUrl}
+											query={orderDetailQuery}
+											{handleDepositOrWithdrawModal}
+										/>
+									{/if}
+								</svelte:fragment>
+							</ButtonVaultLink>
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -167,21 +167,21 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Output vaults</svelte:fragment>
 				<svelte:fragment slot="value">
-					<div class="mb-2 flex justify-end">
-						<span>Balance</span>
-					</div>
-					<div class="space-y-2">
+					<div class="mt-2 space-y-2">
 						{#each data.outputs || [] as vault}
-							<ButtonVaultLink tokenVault={vault} {subgraphName} />
-							{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner && chainId}
-								<DepositOrWithdrawButtons
-									{vault}
-									{chainId}
-									{rpcUrl}
-									query={orderDetailQuery}
-									{handleDepositOrWithdrawModal}
-								/>
-							{/if}
+							<ButtonVaultLink tokenVault={vault} {subgraphName}>
+								<svelte:fragment slot="buttons">
+									{#if handleDepositOrWithdrawModal && $wagmiConfig && $signerAddress === vault.owner && chainId}
+										<DepositOrWithdrawButtons
+											{vault}
+											{chainId}
+											{rpcUrl}
+											query={orderDetailQuery}
+											{handleDepositOrWithdrawModal}
+										/>
+									{/if}
+								</svelte:fragment>
+							</ButtonVaultLink>
 						{/each}
 					</div>
 				</svelte:fragment>
@@ -198,7 +198,7 @@
 			contentClass="mt-4"
 			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
-			<TabItem open title="Rainlang source">
+			<TabItem title="Rainlang source">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
 					<CodeMirrorRainlang
 						order={data}
@@ -208,7 +208,7 @@
 					></CodeMirrorRainlang>
 				</div>
 			</TabItem>
-			<TabItem title="Trades">
+			<TabItem open title="Trades">
 				<OrderTradesListTable {id} {subgraphUrl} />
 			</TabItem>
 			<TabItem title="Volume">

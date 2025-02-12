@@ -81,6 +81,7 @@
 			</div>
 			<DeploymentsSection {dotrain} {strategyName} />
 		</div>
+		<DeploymentsSection {dotrain} {strategyName} />
 	</div>
 {:else if error}
 	<div>
