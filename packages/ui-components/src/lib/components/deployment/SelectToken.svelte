@@ -5,7 +5,7 @@
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
-	export let token: GuiSelectTokens[0];
+	export let token: GuiSelectTokens;
 	export let gui: DotrainOrderGui;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let inputValue: string | null = null;
