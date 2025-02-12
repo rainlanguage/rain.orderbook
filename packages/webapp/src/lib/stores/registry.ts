@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
 
 export const registryUrl = writable<string>(
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/ebde1801fe4a1cb5e6ce76778d5f7852cf1af634/ports/registry'
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/3b4ef719fc60064d62fff1366afd97d5715ddd4a/ports/registry'
 );
