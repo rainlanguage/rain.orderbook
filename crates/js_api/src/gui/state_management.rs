@@ -220,13 +220,13 @@ impl DotrainOrderGui {
             &state.selected_deployment,
         )?;
         for ((is_input, index), vault_id) in state.vault_ids {
-            dotrain_order_gui
-                .dotrain_order
-                .dotrain_yaml()
-                .get_order(&order_key)
-                .and_then(|mut order| {
-                    order.update_vault_id(is_input, index, vault_id.unwrap_or_default())
-                })?;
+            if let Some(vault_id) = vault_id {
+                dotrain_order_gui
+                    .dotrain_order
+                    .dotrain_yaml()
+                    .get_order(&order_key)
+                    .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
+            }
         }
 
         Ok(dotrain_order_gui)
