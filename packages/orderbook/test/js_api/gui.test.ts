@@ -12,6 +12,7 @@ import {
 	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
+	IOVaultIds,
 	NameAndDescription,
 	TokenDeposit,
 	TokenInfo
@@ -1183,17 +1184,18 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(currentDeployment.deployment.order.outputs[0].vaultId, undefined);
 
-			gui.setVaultId(true, 0, '0x123123123456456456');
-			gui.setVaultId(false, 0, '0x123123123456456456');
+			gui.setVaultId(true, 0, '0x123');
+			gui.setVaultId(false, 0, '0x234');
 
 			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
-			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123123123456456456');
-			assert.equal(
-				newCurrentDeployment.deployment.order.outputs[0].vaultId,
-				'0x123123123456456456'
-			);
+			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
+			assert.equal(newCurrentDeployment.deployment.order.outputs[0].vaultId, '0x234');
+
+			const vaultIds: IOVaultIds = gui.getVaultIds();
+			assert.equal(vaultIds.get('input')?.[0], '0x123');
+			assert.equal(vaultIds.get('output')?.[0], '0x234');
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {
@@ -1280,6 +1282,7 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(gui.isSelectTokenSet('token1'), false);
 			assert.equal(gui.isSelectTokenSet('token2'), false);
+			assert.equal(gui.areAllTokensSelected(), false);
 
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
 				"Missing required field 'tokens' in root"
@@ -1293,6 +1296,7 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(gui.isSelectTokenSet('token1'), true);
 			assert.equal(gui.isSelectTokenSet('token2'), true);
+			assert.equal(gui.areAllTokensSelected(), true);
 
 			let tokenInfo: TokenInfo = await gui.getTokenInfo('token1');
 			assert.equal(tokenInfo.name, 'Token 1');
