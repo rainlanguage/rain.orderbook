@@ -13,8 +13,21 @@
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
-	import { readContract } from '@wagmi/core';
+	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
+	import * as all from 'viem/chains';
+
+	const { ...chains } = all;
+
+	function getTargetChain(chainId: number) {
+		for (const chain of Object.values(chains)) {
+			if (chain.id === chainId) {
+				return chain;
+			}
+		}
+
+		throw new Error(`Chain with id ${chainId} not found`);
+	}
 
 	export let open: boolean;
 	export let action: 'deposit' | 'withdraw';
@@ -32,6 +45,7 @@
 	let currentStep = 1;
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
+	let switchChainError = '';
 
 	const messages = {
 		success: 'Your transaction was successful.',
@@ -44,6 +58,12 @@
 	}
 
 	const getUserBalance = async () => {
+		const targetChain = getTargetChain(chainId);
+		try {
+			await switchChain($wagmiConfig, { chainId });
+		} catch {
+			return (error = `Switch to ${targetChain.name} to check your balance.`);
+		}
 		userBalance = await readContract($wagmiConfig, {
 			abi: erc20Abi,
 			address: vault.token.address as Hex,
@@ -131,6 +151,9 @@
 						<WalletConnect {appKitModal} {connected} />
 					{/if}
 				</div>
+				{#if switchChainError}
+					<p data-tesitd="chain-error">{switchChainError}</p>
+				{/if}
 				{#if amountGreaterThanBalance[action]}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
 				{/if}

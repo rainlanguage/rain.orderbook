@@ -3,7 +3,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import { signerAddress } from '$lib/stores/wagmi';
-import { readContract } from '@wagmi/core';
+import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
@@ -15,7 +15,8 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 }));
 
 vi.mock('@wagmi/core', () => ({
-	readContract: vi.fn()
+	readContract: vi.fn(),
+	switchChain: vi.fn()
 }));
 
 describe('DepositOrWithdrawModal', () => {
@@ -143,5 +144,13 @@ describe('DepositOrWithdrawModal', () => {
 		await fireEvent.click(cancelButton);
 
 		expect(screen.queryByText('Enter Amount')).not.toBeInTheDocument();
+	});
+
+	it('shows an error if you fail to connect to the target chain', async () => {
+		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
+		render(DepositOrWithdrawModal, defaultProps);
+		await waitFor(() => {
+		expect(screen.getByTestId('chain-error')).toBeInTheDocument();
+		});
 	});
 });
