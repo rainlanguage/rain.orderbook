@@ -725,9 +725,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 			assert.equal(outputs.length, 1);
 			assert.equal(inputsOutputs.length, 1);
 
-			assert.equal(inputs[0].vaultId, '0x1');
-			assert.equal(outputs[0].vaultId, '0x2');
-			assert.equal(inputsOutputs[0].vaultId, '0x3');
+			assert.equal(inputs[0].id, '0x0000000000000000000000000000000000000001');
+			assert.equal(outputs[0].id, '0x0000000000000000000000000000000000000002');
+			assert.equal(inputsOutputs[0].id, '0x0000000000000000000000000000000000000003');
 		} catch (e) {
 			console.log(e);
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
