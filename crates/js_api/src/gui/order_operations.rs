@@ -323,15 +323,12 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getVaultIds")]
     pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
         let deployment = self.get_current_deployment()?;
-        let order = self
-            .dotrain_order
-            .dotrain_yaml()
-            .get_order(&deployment.deployment.order.key)?;
-
         let map = HashMap::from([
             (
                 "input".to_string(),
-                order
+                deployment
+                    .deployment
+                    .order
                     .inputs
                     .iter()
                     .map(|input| input.vault_id.clone())
@@ -339,14 +336,15 @@ impl DotrainOrderGui {
             ),
             (
                 "output".to_string(),
-                order
+                deployment
+                    .deployment
+                    .order
                     .outputs
                     .iter()
                     .map(|output| output.vault_id.clone())
                     .collect(),
             ),
         ]);
-
         Ok(IOVaultIds(map))
     }
 
