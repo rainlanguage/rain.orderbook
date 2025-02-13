@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       network:
-        description: 'Network to deploy to'
+        description: "Network to deploy to"
         required: true
         type: choice
         options:
@@ -23,6 +23,9 @@ on:
 
 jobs:
   deploy:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +34,9 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: nix develop -c rainix-sol-prelude
 
