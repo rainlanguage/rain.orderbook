@@ -7,6 +7,9 @@ concurrency:
 
 jobs:
   git-clean:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +18,9 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       # Build metas etc. required to do a correct pointer build.
       - run: ./pointers.sh
