@@ -4,7 +4,6 @@
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
 
-	export let strategyUrl: string = '';
 	export let strategyName: string = '';
 	export let dotrain: string = '';
 	let strategyDetails: NameAndDescription;
