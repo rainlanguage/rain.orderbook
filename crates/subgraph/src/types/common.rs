@@ -380,6 +380,7 @@ pub struct Transaction {
 #[typeshare]
 pub struct AddOrder {
     pub transaction: Transaction,
+    pub order: Order,
 }
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]

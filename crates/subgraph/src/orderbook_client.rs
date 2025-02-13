@@ -2,6 +2,7 @@ use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 use crate::performance::OrderPerformance;
+use crate::types::add_order::{GetTransactionAddOrders, GetTransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
     BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
@@ -394,5 +395,25 @@ impl OrderbookSubgraphClient {
             .transaction
             .ok_or(OrderbookSubgraphClientError::Empty)?;
         Ok(transaction)
+    }
+
+    /// Fetch all add orders for a given transaction
+    pub async fn transaction_add_orders(
+        &self,
+        id: Id,
+    ) -> Result<Vec<AddOrder>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<GetTransactionAddOrders, GetTransactionAddOrdersVariables>(
+                GetTransactionAddOrdersVariables {
+                    id: &id.inner().to_string(),
+                },
+            )
+            .await?;
+
+        if data.add_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.add_orders)
     }
 }
