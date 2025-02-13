@@ -6,9 +6,8 @@
 
 	export let strategyUrl: string = '';
 	export let strategyName: string = '';
-	export let rawDotrain: string = '';
+	export let dotrain: string = '';
 	let strategyDetails: NameAndDescription;
-	let dotrain: string;
 	let error: string;
 	let errorDetails: string;
 	let markdownContent: string = '';
@@ -29,34 +28,23 @@
 
 	const getStrategy = async () => {
 		try {
-			if (rawDotrain) {
-				dotrain = rawDotrain;
-			} else {
-				const response = await fetch(strategyUrl);
-				dotrain = await response.text();
-			}
-			try {
-				strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
-				if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
-					const content = await fetchMarkdownContent(strategyDetails.description);
-					if (content) {
-						markdownContent = content;
-					} else {
-						error = 'Error fetching markdown';
-						errorDetails = 'Failed to fetch markdown content';
-					}
+			strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
+			if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
+				const content = await fetchMarkdownContent(strategyDetails.description);
+				if (content) {
+					markdownContent = content;
+				} else {
+					error = 'Error fetching markdown';
+					errorDetails = 'Failed to fetch markdown content';
 				}
-			} catch (e: unknown) {
-				error = 'Error getting strategy details';
-				errorDetails = e instanceof Error ? e.message : 'Unknown error';
 			}
 		} catch (e: unknown) {
-			error = 'Error fetching strategy';
+			error = 'Error getting strategy details';
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
 		}
 	};
 
-	$: getStrategy();
+	getStrategy();
 </script>
 
 {#if dotrain && strategyDetails}
@@ -79,7 +67,10 @@
 					</p>
 				{/if}
 			</div>
-			<DeploymentsSection {dotrain} {strategyName} />
+			<div class="flex flex-col gap-4">
+				<h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
+				<DeploymentsSection {dotrain} {strategyName} />
+			</div>
 		</div>
 	</div>
 {:else if error}

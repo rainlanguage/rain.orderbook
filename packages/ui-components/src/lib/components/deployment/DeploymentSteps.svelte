@@ -26,6 +26,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',

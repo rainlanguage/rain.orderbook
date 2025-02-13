@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import StrategySection from '../lib/components/deployment/StrategySection.svelte';
+import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -33,7 +33,7 @@ describe('StrategySection', () => {
 		};
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
-		render(StrategySection, {
+		render(StrategyPage, {
 			props: {
 				rawDotrain: mockDotrain
 			}
@@ -60,7 +60,7 @@ describe('StrategySection', () => {
 		// Mock DotrainOrderGui methods
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
-		render(StrategySection, {
+		render(StrategyPage, {
 			props: {
 				strategyUrl: 'http://example.com/strategy',
 				strategyName: 'TestStrategy'
@@ -85,7 +85,7 @@ describe('StrategySection', () => {
 		// Mock DotrainOrderGui methods
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(mockError);
 
-		render(StrategySection, {
+		render(StrategyPage, {
 			props: {
 				strategyUrl: 'http://example.com/strategy',
 				strategyName: 'TestStrategy'
@@ -104,7 +104,7 @@ describe('StrategySection', () => {
 		// Mock fetch to reject
 		mockFetch.mockRejectedValueOnce(mockError);
 
-		render(StrategySection, {
+		render(StrategyPage, {
 			props: {
 				strategyUrl: 'http://example.com/strategy',
 				strategyName: 'TestStrategy'

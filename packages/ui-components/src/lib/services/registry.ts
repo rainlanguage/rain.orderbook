@@ -1,3 +1,13 @@
+export type RegistryFile = {
+	name: string;
+	url: string;
+};
+
+export type RegistryDotrain = {
+	name: string;
+	dotrain: string;
+};
+
 /**
  * Fetches and parses a file registry from a given URL.
  * The registry is expected to be a text file where each line contains a file name and URL separated by a space.
@@ -7,11 +17,11 @@
  * @throws Will throw an error if the fetch fails, if the response is not ok, or if the registry format is invalid
  *
  * @example
- * const files = await getFileRegistry('https://example.com/registry');
+ * const files = await fetchParseRegistryFile('https://example.com/registry');
  * // Returns: [{ name: 'file1', url: 'https://example.com/file1.rain' }, ...]
  */
 
-export const getFileRegistry = async (url: string) => {
+export const fetchParseRegistry = async (url: string): Promise<{ name: string; url: string }[]> => {
 	try {
 		const response = await fetch(url);
 		if (!response.ok) {
@@ -34,6 +44,29 @@ export const getFileRegistry = async (url: string) => {
 	}
 };
 
+export const fetchRegistryDotrains = async (url: string): Promise<RegistryDotrain[]> => {
+	const files = await fetchParseRegistry(url);
+	const dotrains = await Promise.all(
+		files.map(async (file) => {
+			try {
+				const response = await fetch(file.url);
+				if (!response.ok) {
+					throw new Error(`Failed to fetch dotrain for ${file.name}`);
+				}
+				const dotrain = await response.text();
+				return { name: file.name, dotrain };
+			} catch (e) {
+				throw new Error(
+					e instanceof Error
+						? `Error fetching dotrain for ${file.name}: ${e.message}`
+						: `Unknown error fetching dotrain for ${file.name}`
+				);
+			}
+		})
+	);
+	return dotrains;
+};
+
 if (import.meta.vitest) {
 	const { describe, it, expect, vi } = import.meta.vitest;
 
@@ -47,7 +80,7 @@ file2.js https://example.com/file2.js`;
 				text: () => Promise.resolve(mockResponse)
 			});
 
-			const result = await getFileRegistry('https://example.com/registry');
+			const result = await fetchParseRegistry('https://example.com/registry');
 			expect(result).toEqual([
 				{ name: 'file1.js', url: 'https://example.com/file1.js' },
 				{ name: 'file2.js', url: 'https://example.com/file2.js' }
@@ -59,7 +92,7 @@ file2.js https://example.com/file2.js`;
 				ok: false
 			});
 
-			await expect(getFileRegistry('https://example.com/registry')).rejects.toThrow(
+			await expect(fetchParseRegistry('https://example.com/registry')).rejects.toThrow(
 				'Failed to fetch registry'
 			);
 		});
@@ -67,7 +100,7 @@ file2.js https://example.com/file2.js`;
 		it('should handle network errors', async () => {
 			global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-			await expect(getFileRegistry('https://example.com/registry')).rejects.toThrow(
+			await expect(fetchParseRegistry('https://example.com/registry')).rejects.toThrow(
 				'Network error'
 			);
 		});
