@@ -43,6 +43,10 @@ impl_all_wasm_traits!(AddOrderCalldataResult);
 pub struct DepositAndAddOrderCalldataResult(Bytes);
 impl_all_wasm_traits!(DepositAndAddOrderCalldataResult);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct IOVaultIds(HashMap<String, Vec<Option<U256>>>);
+impl_all_wasm_traits!(IOVaultIds);
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     fn get_orderbook(&self) -> Result<Arc<Orderbook>, GuiError> {
@@ -314,6 +318,36 @@ impl DotrainOrderGui {
             .get_order(&deployment.deployment.order.key)?
             .update_vault_id(is_input, index, vault_id)?;
         Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "getVaultIds")]
+    pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let order = self
+            .dotrain_order
+            .dotrain_yaml()
+            .get_order(&deployment.deployment.order.key)?;
+
+        let map = HashMap::from([
+            (
+                "input".to_string(),
+                order
+                    .inputs
+                    .iter()
+                    .map(|input| input.vault_id.clone())
+                    .collect(),
+            ),
+            (
+                "output".to_string(),
+                order
+                    .outputs
+                    .iter()
+                    .map(|output| output.vault_id.clone())
+                    .collect(),
+            ),
+        ]);
+
+        Ok(IOVaultIds(map))
     }
 
     #[wasm_bindgen(js_name = "updateScenarioBindings")]
