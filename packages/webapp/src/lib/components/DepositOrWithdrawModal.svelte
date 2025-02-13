@@ -15,9 +15,9 @@
 	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
-	import * as all from 'viem/chains';
+	import * as allChains from 'viem/chains';
 
-	const { ...chains } = all;
+	const { ...chains } = allChains;
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {
@@ -25,7 +25,6 @@
 				return chain;
 			}
 		}
-
 		throw new Error(`Chain with id ${chainId} not found`);
 	}
 
