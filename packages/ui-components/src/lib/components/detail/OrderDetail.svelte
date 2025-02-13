@@ -69,7 +69,10 @@
 
 	$: orderDetailQuery = createQuery<OrderSubgraph>({
 		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id),
+		queryFn: () => {
+			console.log('querying order', id);
+			return getOrder(subgraphUrl, id);
+		},
 		enabled: !!subgraphUrl
 	});
 
@@ -155,6 +158,7 @@
 											{chainId}
 											{rpcUrl}
 											query={orderDetailQuery}
+											{subgraphUrl}
 											{handleDepositOrWithdrawModal}
 										/>
 									{/if}
@@ -178,6 +182,7 @@
 											{chainId}
 											{rpcUrl}
 											query={orderDetailQuery}
+											{subgraphUrl}
 											{handleDepositOrWithdrawModal}
 										/>
 									{/if}
