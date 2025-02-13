@@ -14,7 +14,6 @@
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder,
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
@@ -241,16 +240,6 @@
 			}
 		}
 	};
-
-	async function composeRainlang() {
-		if (!gui) return;
-		gui.updateScenarioBindings();
-		const deployment = gui.getCurrentDeployment();
-		const dotrain = gui.generateDotrainText();
-		const dotrainOrder = await DotrainOrder.create(dotrain);
-		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
-		return composedRainlang;
-	}
 </script>
 
 <div>
@@ -296,7 +285,7 @@
 					<div class="flex gap-2">
 						{#if $wagmiConnected}
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-							<ComposedRainlangModal {composeRainlang} />
+							<ComposedRainlangModal {gui} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
