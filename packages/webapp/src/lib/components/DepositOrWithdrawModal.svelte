@@ -62,7 +62,7 @@
 		try {
 			await switchChain($wagmiConfig, { chainId });
 		} catch {
-			return (error = `Switch to ${targetChain.name} to check your balance.`);
+			return (switchChainError = `Switch to ${targetChain.name} to check your balance.`);
 		}
 		userBalance = await readContract($wagmiConfig, {
 			abi: erc20Abi,
