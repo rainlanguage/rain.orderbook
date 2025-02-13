@@ -35,18 +35,16 @@
 </script>
 
 {#if dotrain && strategyDetails}
-	<div>
-		<div in:fade class="flex flex-col gap-12">
-			<div class="flex max-w-2xl flex-col gap-0 text-start lg:gap-6">
-				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-					{strategyDetails.name}
-				</h1>
-				<p class="text-base text-gray-600 lg:text-lg dark:text-gray-400">
-					{strategyDetails.description}
-				</p>
-			</div>
-			<DeploymentsSection {dotrain} {strategyName} />
+	<div in:fade class="flex flex-col gap-8">
+		<div class="flex max-w-prose flex-col gap-6 text-start">
+			<h1 class="text-3xl font-semibold text-gray-900 lg:text-5xl dark:text-white">
+				{strategyDetails.name}
+			</h1>
+			<p class="text-base text-gray-600 lg:text-lg dark:text-gray-400">
+				{strategyDetails.description}
+			</p>
 		</div>
+		<DeploymentsSection {dotrain} {strategyName} />
 	</div>
 {:else if error}
 	<div>

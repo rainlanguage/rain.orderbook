@@ -18,7 +18,7 @@
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button } from 'flowbite-svelte';
+	import { Button, Toggle } from 'flowbite-svelte';
 	import { getAccount, type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -56,7 +56,7 @@
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
 	let allTokensSelected: boolean = false;
-
+	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
@@ -195,10 +195,10 @@
 		navigator.clipboard.writeText($page.url.toString());
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		if ($page.url.searchParams) {
 			if (stateFromUrl) {
-				handleGetStateFromUrl();
+				await handleGetStateFromUrl();
 			}
 		}
 	});
@@ -223,6 +223,17 @@
 				selectTokens = await gui.getSelectTokens();
 				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
 					allTokensSelected = true;
+				}
+				// if we have deposits or vault ids set, show advanced options
+				const deposits = gui?.getDeposits();
+				const inputVaultIds = gui
+					?.getCurrentDeployment()
+					?.deployment?.order?.inputs.map((input) => input.vaultId);
+				const outputVaultIds = gui
+					?.getCurrentDeployment()
+					?.deployment?.order?.outputs.map((output) => output.vaultId);
+				if (deposits || inputVaultIds || outputVaultIds) {
+					showAdvancedOptions = true;
 				}
 			} catch (e) {
 				error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -272,11 +283,13 @@
 						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
 					{/if}
 
-					{#if allDepositFields.length > 0}
+					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+					{#if allDepositFields.length > 0 && showAdvancedOptions}
 						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0}
+					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
 						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
