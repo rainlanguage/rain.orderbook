@@ -34,7 +34,7 @@ describe('FieldDefinitionInput', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				open: true
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -47,7 +47,7 @@ describe('FieldDefinitionInput', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				open: true
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -60,7 +60,7 @@ describe('FieldDefinitionInput', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				open: true
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -77,7 +77,7 @@ describe('FieldDefinitionInput', () => {
 			props: {
 				fieldDefinition: mockFieldDefinition,
 				gui: mockGui,
-				open: true
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 
@@ -100,7 +100,7 @@ describe('FieldDefinitionInput', () => {
 			props: {
 				fieldDefinition: fastExitFieldDef,
 				gui: mockGui,
-				open: true
+				handleUpdateGuiState: vi.fn()
 			}
 		});
 

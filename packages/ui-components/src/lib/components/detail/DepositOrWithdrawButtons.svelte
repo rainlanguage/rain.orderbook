@@ -20,7 +20,8 @@
 
 <Button
 	data-testid="depositOrWithdrawButton"
-	color="dark"
+	color="light"
+	size="xs"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
 			vault,
@@ -28,11 +29,12 @@
 			action: 'deposit',
 			chainId,
 			rpcUrl
-		})}><ArrowUpOutline size="sm" /></Button
+		})}><ArrowUpOutline size="xs" /></Button
 >
 <Button
 	data-testid="depositOrWithdrawButton"
-	color="dark"
+	color="light"
+	size="xs"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
 			vault,
@@ -40,5 +42,5 @@
 			action: 'withdraw',
 			chainId,
 			rpcUrl
-		})}><ArrowDownOutline size="sm" /></Button
+		})}><ArrowDownOutline size="xs" /></Button
 >

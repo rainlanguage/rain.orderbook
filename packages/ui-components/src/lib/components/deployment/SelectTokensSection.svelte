@@ -5,17 +5,15 @@
 
 	export let gui: DotrainOrderGui;
 	export let selectTokens: SelectTokens;
-	export let allTokensSelected: boolean;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 </script>
 
 <div class="flex w-full flex-col gap-4">
 	<DeploymentSectionHeader
 		title="Select Tokens"
 		description="Select the tokens that you want to use in your order."
-		open={true}
-		value={undefined}
 	/>
-	{#each selectTokens as selectToken}
-		<SelectToken bind:selectToken bind:gui bind:selectTokens bind:allTokensSelected />
+	{#each selectTokens as token}
+		<SelectToken {token} bind:gui {handleUpdateGuiState} />
 	{/each}
 </div>

@@ -77,7 +77,7 @@
 						href: '/',
 						img: $colorTheme === 'light' ? logoLight : logoDark
 					}}
-					imgClass="m-auto"
+					imgClass="m-auto px-4"
 					aClass="mb-0"
 				></SidebarBrand>
 			</SidebarGroup>

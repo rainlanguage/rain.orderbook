@@ -19,13 +19,13 @@ describe('SelectToken', () => {
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
-		allTokensSelected: false,
 		gui: mockGui,
-		selectToken: { key: 'input', name: 'test input', description: 'test description' },
-		selectTokens: [
-			{ key: 'input', name: 'test input', description: 'test description' },
-			{ key: 'output', name: 'test output', description: 'test description' }
-		]
+		token: {
+			key: 'input',
+			name: 'test input',
+			description: 'test description'
+		},
+		handleUpdateGuiState: vi.fn()
 	};
 
 	beforeEach(() => {
