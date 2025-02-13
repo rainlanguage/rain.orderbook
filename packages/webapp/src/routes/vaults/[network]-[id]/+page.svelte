@@ -4,10 +4,10 @@
 	import { VaultDetail } from '@rainlanguage/ui-components';
 	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	const queryClient = useQueryClient();
 
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
