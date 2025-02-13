@@ -220,18 +220,12 @@
 	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
-				selectTokens = await gui.getSelectTokens();
-				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
-					allTokensSelected = true;
-				}
+				allTokensSelected = gui?.areAllTokensSelected();
+				const vaultIds = gui?.getVaultIds();
+				const inputVaultIds = vaultIds?.get('input');
+				const outputVaultIds = vaultIds?.get('output');
 				// if we have deposits or vault ids set, show advanced options
 				const deposits = gui?.getDeposits();
-				const inputVaultIds = gui
-					?.getCurrentDeployment()
-					?.deployment?.order?.inputs.map((input) => input.vaultId);
-				const outputVaultIds = gui
-					?.getCurrentDeployment()
-					?.deployment?.order?.outputs.map((output) => output.vaultId);
 				if (deposits || inputVaultIds || outputVaultIds) {
 					showAdvancedOptions = true;
 				}

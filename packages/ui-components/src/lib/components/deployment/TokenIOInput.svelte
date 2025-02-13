@@ -19,10 +19,12 @@
 	let error: string = '';
 
 	onMount(() => {
+		if (!gui) return;
+		const vaultIds = gui.getVaultIds();
 		if (label === 'Input') {
-			inputValue = gui?.getCurrentDeployment()?.deployment?.order?.inputs[i]?.vaultId;
+			inputValue = vaultIds.get('input')?.[i];
 		} else if (label === 'Output') {
-			inputValue = gui?.getCurrentDeployment()?.deployment?.order?.outputs[i]?.vaultId;
+			inputValue = vaultIds.get('output')?.[i];
 		}
 	});
 
