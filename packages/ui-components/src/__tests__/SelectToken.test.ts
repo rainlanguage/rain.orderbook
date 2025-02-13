@@ -19,10 +19,13 @@ describe('SelectToken', () => {
 	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
-		allTokensSelected: false,
-		tokenKey: 'input',
 		gui: mockGui,
-		selectTokens: ['input', 'output']
+		token: {
+			key: 'input',
+			name: 'test input',
+			description: 'test description'
+		},
+		handleUpdateGuiState: vi.fn()
 	};
 
 	beforeEach(() => {
@@ -31,7 +34,7 @@ describe('SelectToken', () => {
 
 	it('renders token label correctly', () => {
 		const { getByText } = render(SelectToken, mockProps);
-		expect(getByText('input')).toBeInTheDocument();
+		expect(getByText('test input')).toBeInTheDocument();
 	});
 
 	it('renders input field', () => {

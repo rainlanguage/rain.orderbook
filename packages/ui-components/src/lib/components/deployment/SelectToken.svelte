@@ -1,45 +1,29 @@
 <script lang="ts">
-	import { Label, Input } from 'flowbite-svelte';
-	import type { DotrainOrderGui, TokenInfo } from '@rainlanguage/orderbook/js_api';
+	import { Input } from 'flowbite-svelte';
+	import type { DotrainOrderGui, GuiSelectTokens, TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
-	export let tokenKey: string;
+	export let token: GuiSelectTokens;
 	export let gui: DotrainOrderGui;
-	export let selectTokens: string[];
-	export let allTokensSelected: boolean;
-
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 
 	onMount(async () => {
-		try {
-			const currentToken = await gui?.getTokenInfo(tokenKey);
-			if (currentToken?.address) {
-				inputValue = currentToken.address;
-				getInfoForSelectedToken();
-			}
-		} catch {
-			// do nothing
+		tokenInfo = await gui?.getTokenInfo(token.key);
+		if (tokenInfo?.address) {
+			inputValue = tokenInfo.address;
 		}
 	});
-
-	function checkIfAllTokensAreSelected() {
-		allTokensSelected = false;
-		if (selectTokens?.every((t) => gui?.isSelectTokenSet(t))) {
-			allTokensSelected = true;
-		} else {
-			allTokensSelected = false;
-		}
-	}
 
 	async function getInfoForSelectedToken() {
 		error = '';
 		try {
-			tokenInfo = await gui.getTokenInfo(tokenKey);
+			tokenInfo = await gui.getTokenInfo(token.key);
 			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');
@@ -57,10 +41,10 @@
 			}
 			checking = true;
 			try {
-				if (gui.isSelectTokenSet(tokenKey)) {
-					await gui.replaceSelectToken(tokenKey, currentTarget.value);
+				if (gui.isSelectTokenSet(token.key)) {
+					await gui.replaceSelectToken(token.key, currentTarget.value);
 				} else {
-					await gui.saveSelectToken(tokenKey, currentTarget.value);
+					await gui.saveSelectToken(token.key, currentTarget.value);
 				}
 				await getInfoForSelectedToken();
 			} catch (e) {
@@ -68,15 +52,29 @@
 				error = errorMessage;
 			}
 		}
-		checkIfAllTokensAreSelected();
+
 		checking = false;
+		handleUpdateGuiState(gui);
 	}
 </script>
 
 <div class="flex w-full flex-col">
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-row items-center gap-4">
-			<Label class="whitespace-nowrap text-lg">{tokenKey}</Label>
+			{#if token.name || token.description}
+				<div class="flex flex-col">
+					{#if token.name}
+						<h1 class="break-words text-xl font-semibold text-gray-900 lg:text-xl dark:text-white">
+							{token.name}
+						</h1>
+					{/if}
+					{#if token.description}
+						<p class="text-sm font-light text-gray-600 lg:text-base dark:text-gray-400">
+							{token.description}
+						</p>
+					{/if}
+				</div>
+			{/if}
 			{#if checking}
 				<div class="flex h-5 flex-row items-center gap-2">
 					<Spinner class="h-5 w-5" />

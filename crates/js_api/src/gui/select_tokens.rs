@@ -1,18 +1,22 @@
 use super::*;
 use rain_orderbook_app_settings::{
-    deployment::Deployment, network::Network, order::Order, token::Token,
+    deployment::Deployment, gui::GuiSelectTokens, network::Network, order::Order, token::Token,
 };
 use std::str::FromStr;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct SelectTokens(Vec<GuiSelectTokens>);
+impl_all_wasm_traits!(SelectTokens);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getSelectTokens")]
-    pub fn get_select_tokens(&self) -> Result<Vec<String>, GuiError> {
+    pub fn get_select_tokens(&self) -> Result<SelectTokens, GuiError> {
         let select_tokens = Gui::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
-        Ok(select_tokens.unwrap_or(vec![]))
+        Ok(SelectTokens(select_tokens.unwrap_or(vec![])))
     }
 
     #[wasm_bindgen(js_name = "isSelectTokenSet")]
@@ -28,9 +32,14 @@ impl DotrainOrderGui {
         )?;
 
         if let Some(select_tokens) = select_tokens {
-            for key in select_tokens {
-                if self.dotrain_order.orderbook_yaml().get_token(&key).is_err() {
-                    return Err(GuiError::TokenMustBeSelected(key.clone()));
+            for select_token in select_tokens {
+                if self
+                    .dotrain_order
+                    .orderbook_yaml()
+                    .get_token(&select_token.key)
+                    .is_err()
+                {
+                    return Err(GuiError::TokenMustBeSelected(select_token.key.clone()));
                 }
             }
         }
@@ -60,7 +69,7 @@ impl DotrainOrderGui {
             &self.selected_deployment,
         )?
         .ok_or(GuiError::SelectTokensNotSet)?;
-        if !select_tokens.contains(&key) {
+        if !select_tokens.iter().any(|token| token.key == key) {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
 
@@ -108,7 +117,7 @@ impl DotrainOrderGui {
             &self.selected_deployment,
         )?
         .ok_or(GuiError::SelectTokensNotSet)?;
-        if !select_tokens.contains(&key) {
+        if !select_tokens.iter().any(|token| token.key == key) {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
 

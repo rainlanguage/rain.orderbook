@@ -4,9 +4,9 @@
 
 	export let allFieldDefinitions: GuiFieldDefinition[];
 	export let gui: DotrainOrderGui;
-	export let open: boolean;
+	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 </script>
 
 {#each allFieldDefinitions as fieldDefinition}
-	<FieldDefinitionInput {fieldDefinition} {gui} {open} />
+	<FieldDefinitionInput {fieldDefinition} {gui} {handleUpdateGuiState} />
 {/each}
