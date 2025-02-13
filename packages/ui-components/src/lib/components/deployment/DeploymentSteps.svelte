@@ -14,8 +14,8 @@
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		DotrainOrder,
-		type GuiSelectTokens,
-		type NameAndDescription
+		type NameAndDescription,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle } from 'flowbite-svelte';
@@ -52,7 +52,7 @@
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let deploymentDetails: NameAndDescription | null = null;
-	let selectTokens: GuiSelectTokens[] | null = null;
+	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
