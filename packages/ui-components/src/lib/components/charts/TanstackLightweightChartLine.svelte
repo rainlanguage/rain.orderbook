@@ -26,6 +26,8 @@
 
 	$: data = transformAndSortData($query.data ?? []);
 
+	$: console.log('data changed in chart', data);
+
 	const createSeries = (chart: IChartApi) => chart.addLineSeries({ lineWidth: 1 });
 </script>
 

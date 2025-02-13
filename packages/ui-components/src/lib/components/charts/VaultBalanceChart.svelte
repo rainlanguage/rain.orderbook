@@ -14,12 +14,14 @@
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
 	export let vault: Vault;
+	export let id: string;
 	export let subgraphUrl: string;
 	export let lightweightChartsTheme;
 
 	$: query = createQuery({
-		queryKey: [QKEY_VAULT_CHANGES, vault],
+		queryKey: [id, QKEY_VAULT_CHANGES + id, QKEY_VAULT_CHANGES],
 		queryFn: () => {
+			console.log('✅ geting vault balance chart');
 			return getVaultBalanceChanges(subgraphUrl || '', vault.id, {
 				page: 1,
 				pageSize: 1000

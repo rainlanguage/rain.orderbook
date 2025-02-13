@@ -193,7 +193,7 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="chart" let:data>
-		<VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} />
+		<VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} {id} />
 	</svelte:fragment>
 
 	<svelte:fragment slot="below"><VaultBalanceChangesTable {id} {subgraphUrl} /></svelte:fragment>
