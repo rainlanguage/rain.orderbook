@@ -150,7 +150,7 @@ describe('DepositOrWithdrawModal', () => {
 		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
 		render(DepositOrWithdrawModal, defaultProps);
 		await waitFor(() => {
-		expect(screen.getByTestId('chain-error')).toBeInTheDocument();
+			expect(screen.getByTestId('chain-error')).toBeInTheDocument();
 		});
 	});
 });
