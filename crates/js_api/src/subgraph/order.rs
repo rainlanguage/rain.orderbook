@@ -43,15 +43,15 @@ pub async fn get_orders(
 fn sort_vaults(order: &Order) -> HashMap<String, Vec<Vault>> {
     let mut sorted_vaults: HashMap<String, Vec<Vault>> = HashMap::new();
 
-    let input_ids: HashSet<_> = order.inputs.iter().map(|v| &v.vault_id).collect();
-    let output_ids: HashSet<_> = order.outputs.iter().map(|v| &v.vault_id).collect();
+    let input_ids: HashSet<_> = order.inputs.iter().map(|v| &v.id).collect();
+    let output_ids: HashSet<_> = order.outputs.iter().map(|v| &v.id).collect();
 
     sorted_vaults.insert("inputs".to_string(), Vec::new());
     sorted_vaults.insert("outputs".to_string(), Vec::new());
     sorted_vaults.insert("inputs_outputs".to_string(), Vec::new());
 
     for vault in &order.inputs {
-        if output_ids.contains(&vault.vault_id) {
+        if output_ids.contains(&vault.id) {
             sorted_vaults
                 .get_mut("inputs_outputs")
                 .unwrap()
@@ -62,7 +62,7 @@ fn sort_vaults(order: &Order) -> HashMap<String, Vec<Vault>> {
     }
 
     for vault in &order.outputs {
-        if !input_ids.contains(&vault.vault_id) {
+        if !input_ids.contains(&vault.id) {
             sorted_vaults
                 .get_mut("outputs")
                 .unwrap()
