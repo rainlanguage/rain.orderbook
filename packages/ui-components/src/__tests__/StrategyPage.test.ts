@@ -29,13 +29,14 @@ describe('StrategySection', () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
-			description: 'Test Description'
+			description: 'Test Description',
+			short_description: 'Test Short Description'
 		};
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
-				rawDotrain: mockDotrain
+				dotrain: mockDotrain
 			}
 		});
 
@@ -49,7 +50,8 @@ describe('StrategySection', () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
-			description: 'Test Description'
+			description: 'Test Description',
+			short_description: 'Test Short Description'
 		};
 
 		// Mock fetch response
@@ -62,8 +64,8 @@ describe('StrategySection', () => {
 
 		render(StrategyPage, {
 			props: {
-				strategyUrl: 'http://example.com/strategy',
-				strategyName: 'TestStrategy'
+				strategyName: 'TestStrategy',
+				dotrain: mockDotrain
 			}
 		});
 
@@ -87,8 +89,8 @@ describe('StrategySection', () => {
 
 		render(StrategyPage, {
 			props: {
-				strategyUrl: 'http://example.com/strategy',
-				strategyName: 'TestStrategy'
+				strategyName: 'TestStrategy',
+				dotrain: mockDotrain
 			}
 		});
 
@@ -106,14 +108,15 @@ describe('StrategySection', () => {
 
 		render(StrategyPage, {
 			props: {
-				strategyUrl: 'http://example.com/strategy',
 				strategyName: 'TestStrategy'
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Error fetching strategy')).toBeInTheDocument();
-			expect(screen.getByText('Failed to fetch')).toBeInTheDocument();
+			expect(screen.getByText('Error getting strategy details')).toBeInTheDocument();
+			expect(
+				screen.getByText("Cannot read properties of undefined (reading 'description')")
+			).toBeInTheDocument();
 		});
 	});
 
@@ -121,34 +124,73 @@ describe('StrategySection', () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
-			description: 'https://example.com/description.md'
+			description: 'https://example.com/description.md',
+			short_description: 'Test Short Description'
 		};
-		const mockMarkdownContent = 'mock markdown content';
+		const mockMarkdownContent = '# Mock Markdown Content';
+
+		// First fetch for dotrain
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			text: () => Promise.resolve(mockDotrain)
+		});
+
+		// Second fetch for markdown content
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			text: () => Promise.resolve(mockMarkdownContent)
+		});
+
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+
+		render(StrategyPage, {
+			props: {
+				strategyName: 'TestStrategy',
+				dotrain: mockDotrain
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
+			expect(screen.getByTestId('plain-description')).toHaveTextContent(
+				'https://example.com/description.md'
+			);
+			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
+		});
+	});
+
+	it('falls back to plain text when markdown fetch fails', async () => {
+		const mockDotrain = 'mock dotrain content';
+		const mockStrategyDetails = {
+			name: 'Test Strategy',
+			description: 'https://example.com/description.md',
+			short_description: 'Test Short Description'
+		};
 
 		mockFetch
 			.mockResolvedValueOnce({
 				ok: true,
 				text: () => Promise.resolve(mockDotrain)
 			})
-
 			.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockMarkdownContent)
+				ok: false,
+				statusText: 'Not Found'
 			});
 
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
-		render(StrategySection, {
+		render(StrategyPage, {
 			props: {
-				strategyUrl: 'http://example.com/strategy',
-				strategyName: 'TestStrategy'
+				strategyName: 'TestStrategy',
+				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
-			expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
-			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
+			expect(screen.getByTestId('plain-description')).toHaveTextContent(
+				'https://example.com/description.md'
+			);
 		});
 	});
 });

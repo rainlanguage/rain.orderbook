@@ -14,7 +14,6 @@
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		DotrainOrder,
-		type NameAndDescription,
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
@@ -52,7 +51,6 @@
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
-	let deploymentDetails: NameAndDescription | null = null;
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
@@ -79,7 +77,6 @@
 
 		try {
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
-			deploymentDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
 
 			if (gui) {
 				try {
@@ -266,7 +263,7 @@
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deploymentDetails}
+				{#if deployment}
 					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 							{deployment.name}

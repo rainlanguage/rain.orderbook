@@ -105,4 +105,69 @@ file2.js https://example.com/file2.js`;
 			);
 		});
 	});
+
+	describe('fetchRegistryDotrains', () => {
+		it('should fetch and parse dotrains correctly', async () => {
+			const mockRegistry = `file1.rain https://example.com/file1.rain
+file2.rain https://example.com/file2.rain`;
+
+			const mockDotrain1 = 'content of file1';
+			const mockDotrain2 = 'content of file2';
+
+			global.fetch = vi
+				.fn()
+				.mockResolvedValueOnce({
+					ok: true,
+					text: () => Promise.resolve(mockRegistry)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					text: () => Promise.resolve(mockDotrain1)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					text: () => Promise.resolve(mockDotrain2)
+				});
+
+			const result = await fetchRegistryDotrains('https://example.com/registry');
+			expect(result).toEqual([
+				{ name: 'file1.rain', dotrain: mockDotrain1 },
+				{ name: 'file2.rain', dotrain: mockDotrain2 }
+			]);
+		});
+
+		it('should handle failed dotrain fetch', async () => {
+			const mockRegistry = `file1.rain https://example.com/file1.rain`;
+
+			global.fetch = vi
+				.fn()
+				.mockResolvedValueOnce({
+					ok: true,
+					text: () => Promise.resolve(mockRegistry)
+				})
+				.mockResolvedValueOnce({
+					ok: false
+				});
+
+			await expect(fetchRegistryDotrains('https://example.com/registry')).rejects.toThrow(
+				'Failed to fetch dotrain for file1.rain'
+			);
+		});
+
+		it('should handle network errors during dotrain fetch', async () => {
+			const mockRegistry = `file1.rain https://example.com/file1.rain`;
+
+			global.fetch = vi
+				.fn()
+				.mockResolvedValueOnce({
+					ok: true,
+					text: () => Promise.resolve(mockRegistry)
+				})
+				.mockRejectedValueOnce(new Error('Network error'));
+
+			await expect(fetchRegistryDotrains('https://example.com/registry')).rejects.toThrow(
+				'Error fetching dotrain for file1.rain: Network error'
+			);
+		});
+	});
 }
