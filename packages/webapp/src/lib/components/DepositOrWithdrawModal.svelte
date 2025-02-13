@@ -151,7 +151,7 @@
 					{/if}
 				</div>
 				{#if switchChainError}
-					<p data-tesitd="chain-error">{switchChainError}</p>
+					<p data-testid="chain-error">{switchChainError}</p>
 				{/if}
 				{#if amountGreaterThanBalance[action]}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
