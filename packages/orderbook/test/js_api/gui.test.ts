@@ -1185,6 +1185,10 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(currentDeployment.deployment.order.outputs[0].vaultId, undefined);
 
 			gui.setVaultId(true, 0, '0x123');
+
+			assert.equal(gui.getVaultIds().get('input')?.[0], '0x123');
+			assert.equal(gui.getVaultIds().get('output')?.[0], undefined);
+
 			gui.setVaultId(false, 0, '0x234');
 
 			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
