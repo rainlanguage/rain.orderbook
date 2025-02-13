@@ -18,12 +18,9 @@
 	export let id: string;
 	export let subgraphUrl: string;
 
-	$: console.log('ID in table', id);
-
 	$: balanceChangesQuery = createInfiniteQuery({
-		queryKey: [id, QKEY_VAULT_CHANGES + id, QKEY_VAULT_CHANGES],
+		queryKey: [id, QKEY_VAULT_CHANGES + id],
 		queryFn: ({ pageParam }) => {
-			console.log('GETTING VAULT BALANCE CHANGES');
 			return getVaultBalanceChanges(subgraphUrl || '', id, {
 				page: pageParam + 1,
 				pageSize: DEFAULT_PAGE_SIZE
@@ -31,7 +28,7 @@
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
-			return lastPage?.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
+			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		enabled: !!subgraphUrl
 	});

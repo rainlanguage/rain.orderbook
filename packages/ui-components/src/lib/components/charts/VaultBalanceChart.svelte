@@ -21,7 +21,6 @@
 	$: query = createQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id, QKEY_VAULT_CHANGES],
 		queryFn: () => {
-			console.log('✅ geting vault balance chart');
 			return getVaultBalanceChanges(subgraphUrl || '', vault.id, {
 				page: 1,
 				pageSize: 1000
