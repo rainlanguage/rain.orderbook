@@ -11,9 +11,9 @@ const transaction1 = {
 	timestamp: '1'
 } as unknown as Transaction;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function () {
+describe('Rain Orderbook JS API Package Bindgen Tests - Transaction', async function () {
 	const mockServer = getLocal();
-	beforeEach(() => mockServer.start(8090));
+	beforeEach(() => mockServer.start(8093));
 	afterEach(() => mockServer.stop());
 
 	it('should fetch a single transaction', async () => {
