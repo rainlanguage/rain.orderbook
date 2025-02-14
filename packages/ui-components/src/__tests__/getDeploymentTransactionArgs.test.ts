@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
 	getDeploymentTransactionArgs,
 	AddOrderErrors
@@ -42,7 +42,7 @@ describe('getDeploymentTransactionArgs', () => {
 		} as unknown as DotrainOrderGui;
 
 		mockWagmiConfig = {} as Config;
-		(getAccount as any).mockReturnValue({ address: '0xuser' });
+		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
 
 		mockTokenOutputs = [{ token: { key: 'token1' } }] as OrderIO[];
 	});
@@ -80,7 +80,7 @@ describe('getDeploymentTransactionArgs', () => {
 		});
 
 		it('should throw NO_WALLET when wallet address is not found', async () => {
-			(getAccount as any).mockReturnValue({ address: null });
+			(getAccount as Mock).mockReturnValue({ address: null });
 			await expect(
 				getDeploymentTransactionArgs(mockGui, mockWagmiConfig, mockTokenOutputs)
 			).rejects.toThrow(AddOrderErrors.NO_WALLET);

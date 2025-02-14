@@ -1,16 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import DisclaimerModal from '../lib/components/deployment/DisclaimerModal.svelte';
 import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { writable } from 'svelte/store';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { OrderIO } from '@rainlanguage/orderbook/js_api';
 
 vi.mock('./getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
 
 describe('DisclaimerModal', () => {
-	const mockGui = {} as any;
-	const mockOutputs = [] as any[];
+	const mockGui = {} as DotrainOrderGui;
+	const mockOutputs = [] as OrderIO[];
 	const mockWagmiConfig = writable(undefined);
 	const mockHandleDeployModal = vi.fn();
 
@@ -25,7 +27,7 @@ describe('DisclaimerModal', () => {
 			orderbookAddress: '0x123',
 			chainId: 1
 		};
-		(getDeploymentTransactionArgs as any).mockResolvedValue(mockResult);
+		(getDeploymentTransactionArgs as Mock).mockResolvedValue(mockResult);
 
 		render(DisclaimerModal, {
 			props: {
@@ -42,7 +44,7 @@ describe('DisclaimerModal', () => {
 
 	it('shows error message when getDeploymentTransactionArgs fails', async () => {
 		const errorMessage = 'Test error message';
-		(getDeploymentTransactionArgs as any).mockRejectedValue(new Error(errorMessage));
+		(getDeploymentTransactionArgs as Mock).mockRejectedValue(new Error(errorMessage));
 
 		render(DisclaimerModal, {
 			props: {
@@ -67,7 +69,7 @@ describe('DisclaimerModal', () => {
 			orderbookAddress: '0x123',
 			chainId: 1
 		};
-		(getDeploymentTransactionArgs as any).mockResolvedValue(mockResult);
+		(getDeploymentTransactionArgs as Mock).mockResolvedValue(mockResult);
 
 		render(DisclaimerModal, {
 			props: {

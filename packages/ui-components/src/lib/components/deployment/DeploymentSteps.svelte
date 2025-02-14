@@ -163,17 +163,6 @@
 		showDisclaimerModal = true;
 	}
 
-	async function handleAcceptDisclaimer() {
-		try {
-			showDisclaimerModal = false;
-			const result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
-			handleDeployModal(result);
-		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
 	async function handleShareChoices() {
 		// copy the current url to the clipboard
 		navigator.clipboard.writeText($page.url.toString());
