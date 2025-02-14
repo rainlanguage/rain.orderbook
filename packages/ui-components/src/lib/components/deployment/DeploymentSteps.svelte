@@ -190,8 +190,12 @@
 	}
 
 	async function handleShareChoices() {
-		// copy the current url to the clipboard
-		navigator.clipboard.writeText($page.url.toString());
+		// get the current url
+		const url = $page.url;
+		// get the current state
+		const state = gui?.serializeState();
+		url.searchParams.set('state', state || '');
+		navigator.clipboard.writeText(url.toString());
 	}
 
 	onMount(async () => {

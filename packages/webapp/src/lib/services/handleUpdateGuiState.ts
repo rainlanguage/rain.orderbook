@@ -1,3 +1,4 @@
+import { pushState } from '$app/navigation';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { debounce } from 'lodash';
 
@@ -8,6 +9,6 @@ export function handleUpdateGuiState(gui: DotrainOrderGui) {
 const pushGuiStateToUrlHistory = debounce((gui: DotrainOrderGui) => {
 	const serializedState = gui.serializeState();
 	if (serializedState) {
-		window.history.pushState({}, '', `?state=${serializedState}`);
+		pushState(`?state=${serializedState}`, { serializedState });
 	}
 }, 1000);
