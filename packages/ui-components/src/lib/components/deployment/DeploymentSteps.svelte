@@ -87,7 +87,7 @@
 				networkKey = await gui.getNetworkKey();
 				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 				try {
-					selectTokens = await gui.getSelectTokens();
+					selectTokens = gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -231,6 +231,8 @@
 		if (gui) {
 			try {
 				allTokensSelected = gui?.areAllTokensSelected();
+				if (!allTokensSelected) return;
+
 				const vaultIds = gui?.getVaultIds();
 				const inputVaultIds = vaultIds?.get('input');
 				const outputVaultIds = vaultIds?.get('output');
