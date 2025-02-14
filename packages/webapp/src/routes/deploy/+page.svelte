@@ -43,14 +43,6 @@
 		// add the registry url to the url params
 		window.history.pushState({}, '', window.location.pathname + '?registry=' + $registryUrl);
 	};
-
-	const handleGetAddOrders = async () => {
-		const addOrders = await getTransactionAddOrders(
-			'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/2024-12-13-9dc7/gn',
-			'0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af'
-		);
-		console.log(addOrders);
-	};
 </script>
 
 <PageHeader title={$page.data.name || 'Deploy'} pathname={$page.url.pathname}>
@@ -60,7 +52,6 @@
 		</Toggle></svelte:fragment
 	>
 </PageHeader>
-<Button on:click={handleGetAddOrders}>Get Add Orders</Button>
 <div class="container flex w-full flex-col">
 	<div class="flex items-start justify-end gap-4">
 		{#if advancedMode}
