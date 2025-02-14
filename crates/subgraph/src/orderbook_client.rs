@@ -2,7 +2,7 @@ use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 use crate::performance::OrderPerformance;
-use crate::types::add_order::{GetTransactionAddOrders, GetTransactionAddOrdersVariables};
+use crate::types::add_order::{TransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
     BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
@@ -403,10 +403,8 @@ impl OrderbookSubgraphClient {
         id: Id,
     ) -> Result<Vec<AddOrder>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<GetTransactionAddOrders, GetTransactionAddOrdersVariables>(
-                GetTransactionAddOrdersVariables {
-                    id: &id.inner().to_string(),
-                },
+            .query::<TransactionAddOrdersQuery, TransactionAddOrdersVariables>(
+                TransactionAddOrdersVariables { id: &id },
             )
             .await?;
 

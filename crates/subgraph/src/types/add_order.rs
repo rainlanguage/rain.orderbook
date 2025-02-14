@@ -1,15 +1,16 @@
-use super::common::AddOrder;
+use super::common::{AddOrder, Bytes};
 use crate::schema;
 use typeshare::typeshare;
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetTransactionAddOrdersVariables<'a> {
-    pub id: &'a str,
+pub struct TransactionAddOrdersVariables<'a> {
+    pub id: &'a cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "GetTransactionAddOrdersVariables")]
-pub struct GetTransactionAddOrders {
+#[cynic(graphql_type = "Query", variables = "TransactionAddOrdersVariables")]
+#[typeshare]
+pub struct TransactionAddOrdersQuery {
     #[arguments(where: { transaction_: { id: $id } })]
     pub add_orders: Vec<AddOrder>,
 }
@@ -19,7 +20,3 @@ pub struct GetTransactionAddOrders {
 pub struct Order {
     pub id: Bytes,
 }
-
-#[derive(cynic::Scalar, Debug, Clone)]
-#[typeshare]
-pub struct Bytes(pub String);
