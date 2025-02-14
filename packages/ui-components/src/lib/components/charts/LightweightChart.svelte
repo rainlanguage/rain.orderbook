@@ -72,17 +72,14 @@
 	}
 
 	function updateNewDataPoints() {
-		console.log('updating new data points');
 		if (series === undefined || data.length === 0) return;
 
 		// If this is the first data set, set all the data
 		if (previousDataLength === 0) {
 			series.setData(data);
-			console.log(data.length, previousDataLength);
 		}
 		// If we have new data points, only update the new ones
 		else if (data.length > previousDataLength) {
-			console.log('new data points!');
 			const newPoints = data.slice(previousDataLength);
 			newPoints.forEach((point) => {
 				series?.update(point);
