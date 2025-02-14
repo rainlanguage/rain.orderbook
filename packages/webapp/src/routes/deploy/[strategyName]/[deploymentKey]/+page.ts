@@ -37,27 +37,12 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
 			dotrain = await dotrainResponse.text();
 		}
 
-		// Process deployments for both raw and registry strategies
-		const deploymentWithDetails = await DotrainOrderGui.getDeploymentDetails(dotrain);
-		const deployments = Array.from(deploymentWithDetails, ([key, details]) => ({
-			key,
-			...details
-		}));
-
-		const deployment = deployments.find(
-			(deployment: { key: string }) => deployment.key === deploymentKey
-		);
-
-		if (!deployment) {
-			throw new Error(`Deployment ${deploymentKey} not found`);
-		}
-
-		const { key, name, description } = deployment;
+		const { name, description } = await DotrainOrderGui.getDeploymentDetail(dotrain, deploymentKey);
 
 		return {
 			dotrain,
 			strategyName,
-			key,
+			key: deploymentKey,
 			name,
 			description
 		};
