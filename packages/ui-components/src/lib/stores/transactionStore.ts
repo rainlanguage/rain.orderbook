@@ -128,7 +128,6 @@ const transactionStore = () => {
 
 			newTx = await getTransaction(subgraphUrl, txHash);
 			if (newTx) {
-				console.log("NEW TX", newTx)
 				clearInterval(interval);
 				transactionSuccess(txHash, successMessage);
 
@@ -149,13 +148,10 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_SUBGRAPH,
 			message: 'Waiting for new Order to be indexed...'
 		}));
-		console.log(network);
 
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			console.log('attempts', attempts);
-
 			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
 			if (attempts >= 10) {
 				update((state) => ({
@@ -164,8 +160,7 @@ const transactionStore = () => {
 				}));
 				clearInterval(interval);
 				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (addOrders.length > 0) {
-				console.log(addOrders);
+			} else if (addOrders?.length > 0) {
 				clearInterval(interval);
 				return transactionSuccess(txHash, '', addOrders[0].order.id, network);
 			}
@@ -379,7 +374,8 @@ const transactionStore = () => {
 		awaitApprovalTx,
 		transactionSuccess,
 		transactionError,
-		awaitTransactionIndexing
+		awaitTransactionIndexing,
+		awaitNewOrderIndexing
 	};
 };
 

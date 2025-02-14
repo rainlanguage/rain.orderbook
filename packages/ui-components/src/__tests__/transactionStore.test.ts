@@ -5,7 +5,7 @@ import transactionStore, {
 	TransactionErrorMessage
 } from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction } from '@rainlanguage/orderbook/js_api';
+import { getTransaction, getTransactionAddOrders } from '@rainlanguage/orderbook/js_api';
 import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({
@@ -15,7 +15,8 @@ vi.mock('@wagmi/core', () => ({
 }));
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	getTransaction: vi.fn()
+	getTransaction: vi.fn(),
+	getTransactionAddOrders: vi.fn()
 }));
 
 describe('transactionStore', () => {
@@ -30,7 +31,8 @@ describe('transactionStore', () => {
 		awaitApprovalTx,
 		transactionSuccess,
 		transactionError,
-		awaitTransactionIndexing
+		awaitTransactionIndexing,
+		awaitNewOrderIndexing
 	} = transactionStore;
 
 	beforeEach(() => {
@@ -49,7 +51,9 @@ describe('transactionStore', () => {
 			hash: '',
 			data: null,
 			functionName: '',
-			message: ''
+			message: '',
+			newOrderId: '',
+			network: ''
 		});
 	});
 
@@ -236,7 +240,7 @@ describe('transactionStore', () => {
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 	});
 
-	it.only('should handle waiting for subgraph indexing', async () => {
+	it('should handle successful waiting for subgraph indexing', async () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
 		const mockSuccessMessage = 'Success! Transaction confirmed';
@@ -271,6 +275,53 @@ describe('transactionStore', () => {
 		expect(get(transactionStore).message).toBe(
 			'The subgraph took too long to respond. Please check again later.'
 		);
+
+		vi.useRealTimers();
+	});
+
+	it('should handle successful new order indexing', async () => {
+		const mockSubgraphUrl = 'test.com';
+		const mockTxHash = 'mockHash';
+		const mockNetwork = 'flare';
+		const mockOrderId = 'order123';
+
+		(getTransactionAddOrders as Mock).mockResolvedValue([{
+			order: {
+				id: mockOrderId
+			}
+		}]);
+
+		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+
+		await waitFor(() => {
+			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+			expect(get(transactionStore).hash).toBe(mockTxHash);
+			expect(get(transactionStore).newOrderId).toBe(mockOrderId);
+			expect(get(transactionStore).network).toBe(mockNetwork);
+		});
+	});
+
+	it('should handle new order indexing timeout', async () => {
+		vi.useFakeTimers();
+		const mockSubgraphUrl = 'test.com';
+		const mockTxHash = 'mockHash';
+		const mockNetwork = 'flare';
+
+		(getTransactionAddOrders as Mock).mockResolvedValue([]);
+
+		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+
+		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(get(transactionStore).message).toBe('Waiting for new Order to be indexed...');
+
+		await vi.advanceTimersByTime(10000);
+		await indexingPromise;
+
+		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).message).toBe(
+			'The subgraph took too long to respond. Please check again later.'
+		);
+		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
 
 		vi.useRealTimers();
 	});
