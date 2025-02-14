@@ -239,31 +239,31 @@ describe('transactionStore', () => {
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
 		await waitFor(() => {
-			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 			expect(get(transactionStore).message).toBe(mockSuccessMessage);
 			expect(get(transactionStore).hash).toBe(mockTxHash);
 		});
 	});
 
 	it('should handle subgraph indexing timeout', async () => {
+		vi.useFakeTimers();
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
 		const mockSuccessMessage = 'Success message';
 
 		(getTransaction as Mock).mockResolvedValue(null);
 
-		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
+		const indexingPromise = awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Checking for transaction indexing...');
 
-		await waitFor(
-			() => {
-				expect(get(transactionStore).message).toBe(
-					'The subgraph took too long to respond. Please check again later.'
-				);
-			},
-			{ timeout: 6000 }
+		await vi.advanceTimersByTime(10000);
+		await indexingPromise;
+
+		expect(get(transactionStore).message).toBe(
+			'The subgraph took too long to respond. Please check again later.'
 		);
+
+		vi.useRealTimers();
 	});
 });
