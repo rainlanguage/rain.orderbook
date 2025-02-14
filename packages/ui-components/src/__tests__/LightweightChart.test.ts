@@ -105,8 +105,6 @@ test('updates data correctly when new data points are added', async () => {
 	const priceSymbol = '$';
 	const createSeries = (chart: IChartApi) => chart.addLineSeries();
 
-
-
 	const initialData = [
 		{ value: 10, time: 1529899200 as UTCTimestamp },
 		{ value: 20, time: 1529899300 as UTCTimestamp }
@@ -140,13 +138,13 @@ test('updates data correctly when new data points are added', async () => {
 	// Should call update for each new point
 	await waitFor(() => {
 		expect(updateMock).toHaveBeenCalledTimes(2);
-		expect(updateMock).toHaveBeenCalledWith({ 
-			value: 30, 
-			time: 1529899400 as UTCTimestamp 
+		expect(updateMock).toHaveBeenCalledWith({
+			value: 30,
+			time: 1529899400 as UTCTimestamp
 		});
-		expect(updateMock).toHaveBeenCalledWith({ 
-			value: 40, 
-			time: 1529899500 as UTCTimestamp 
+		expect(updateMock).toHaveBeenCalledWith({
+			value: 40,
+			time: 1529899500 as UTCTimestamp
 		});
 	});
 });

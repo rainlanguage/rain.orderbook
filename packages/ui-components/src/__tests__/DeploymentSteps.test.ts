@@ -578,8 +578,7 @@ describe('DeploymentSteps', () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
 			getTokenInfo: vi.fn(),
-      getNetworkKey: vi.fn()
-
+			getNetworkKey: vi.fn()
 		});
 
 		const deploymentDetails = {
@@ -614,7 +613,7 @@ describe('DeploymentSteps', () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => mockSelectTokens,
 			getTokenInfo: vi.fn(),
-      getNetworkKey: vi.fn()
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -679,8 +678,7 @@ describe('DeploymentSteps', () => {
 			}),
 			getAllFieldDefinitions: () => [],
 			getTokenInfo: vi.fn(),
-            getNetworkKey: vi.fn()
-
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -716,8 +714,7 @@ describe('DeploymentSteps', () => {
 			}),
 			getAllFieldDefinitions: () => [],
 			getTokenInfo: vi.fn(),
-            getNetworkKey: vi.fn()
-
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
