@@ -4,6 +4,8 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
+	import { type ConfigSource } from '../../typeshare/config';
+
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -39,7 +41,7 @@
 		SERIALIZE_ERROR = 'Error serializing state',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
-
+	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: GuiDeployment;
 	export let handleDeployModal: (args: {
@@ -47,6 +49,7 @@
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
@@ -59,6 +62,8 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let networkKey: string | null = null;
+	let subgraphUrl: string = '';
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -78,6 +83,8 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
+				networkKey = await gui.getNetworkKey();
+				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 				try {
 					selectTokens = gui.getSelectTokens();
 					return selectTokens;
@@ -181,7 +188,8 @@
 				approvals,
 				deploymentCalldata,
 				orderbookAddress,
-				chainId
+				chainId,
+				subgraphUrl
 			});
 		} catch (e) {
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;

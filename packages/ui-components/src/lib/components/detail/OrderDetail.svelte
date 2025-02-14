@@ -34,6 +34,7 @@
 				action: 'deposit' | 'withdraw';
 				chainId: number;
 				rpcUrl: string;
+				subgraphUrl: string;
 		  }) => void)
 		| undefined = undefined;
 	export let handleOrderRemoveModal:
@@ -73,7 +74,9 @@
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id),
+		queryFn: () => {
+			return getOrder(subgraphUrl, id);
+		},
 		enabled: !!subgraphUrl
 	});
 
@@ -162,6 +165,7 @@
 													{rpcUrl}
 													query={orderDetailQuery}
 													{handleDepositOrWithdrawModal}
+													{subgraphUrl}
 												/>
 											{/if}
 										</svelte:fragment>

@@ -1386,5 +1386,10 @@ ${dotrainWithoutVaultIds}`;
 				"Missing required field 'tokens' in root"
 			);
 		});
+
+		it('should get network key', async () => {
+			const networkKey = gui.getNetworkKey();
+			assert.equal(networkKey, 'some-network');
+		});
 	});
 });

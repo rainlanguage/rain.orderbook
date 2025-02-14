@@ -15,6 +15,7 @@ export type DeployModalProps = {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+	subgraphUrl: string;
 };
 
 export type DepositOrWithdrawModalProps = {
@@ -23,6 +24,7 @@ export type DepositOrWithdrawModalProps = {
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	rpcUrl: string;
+	subgraphUrl: string;
 };
 
 export type OrderRemoveModalProps = {
