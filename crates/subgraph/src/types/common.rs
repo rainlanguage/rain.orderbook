@@ -385,9 +385,9 @@ pub struct AddOrder {
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "AddOrder")]
-#[typeshare]
 pub struct AddOrderWithOrder {
     pub transaction: Transaction,
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
     pub order: Order,
 }
 

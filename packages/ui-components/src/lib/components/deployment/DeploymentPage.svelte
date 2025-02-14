@@ -24,6 +24,7 @@
 		orderbookAddress: Hex;
 		chainId: number;
 		subgraphUrl: string;
+		network: string;
 	}) => void;
 	export let settings: Writable<ConfigSource>;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;

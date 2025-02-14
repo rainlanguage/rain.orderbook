@@ -58,18 +58,26 @@
 					>
 						{messages.success}
 					</p>
-					{#if $transactionStore.message}
-						<p
-							class="w-full whitespace-pre-wrap break-words text-center text-sm font-normal text-gray-900 dark:text-white"
-						>
-							{$transactionStore.message}
-						</p>
-					{/if}
+					<div class="flex flex-col gap-2">
+						{#if $transactionStore.message}
+							<p
+								class="w-full whitespace-pre-wrap break-words text-center text-sm font-normal text-gray-900 dark:text-white"
+							>
+								{$transactionStore.message}
+							</p>
+						{/if}
+						{#if $transactionStore.newOrderId && $transactionStore.network}
+							<a
+								href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderId}`}
+								class="w-full whitespace-pre-wrap break-words text-center text-sm font-normal text-gray-900 dark:text-white"
+							>
+							</a>{/if}
+					</div>
 				</div>
 				<Button on:click={handleClose} class="mt-4">Dismiss</Button>
 			{:else}
 				<div
-					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900"
+					class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"
 				>
 					<Spinner color="blue" size={10} />
 				</div>

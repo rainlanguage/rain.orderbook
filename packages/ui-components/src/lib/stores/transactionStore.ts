@@ -11,7 +11,7 @@ import type {
 	Vault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
-import { getTransaction } from '@rainlanguage/orderbook/js_api';
+import { getTransaction, getTransactionAddOrders } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -50,6 +50,7 @@ export type DeploymentTransactionArgs = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
+	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -76,6 +77,8 @@ export type TransactionState = {
 	data: null;
 	functionName: string;
 	message: string;
+	newOrderId: string;
+	network: string;
 };
 
 export type TransactionStore = {
@@ -97,7 +100,9 @@ const initialState: TransactionState = {
 	hash: '',
 	data: null,
 	functionName: '',
-	message: ''
+	message: '',
+	newOrderId: '',
+	network: ''
 };
 
 const transactionStore = () => {
@@ -135,6 +140,31 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network: string) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Waiting for new Order to be indexed...'
+		}));
+
+		let attempts = 0;
+		const interval: NodeJS.Timeout = setInterval(async () => {
+			attempts++;
+
+			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
+			if (addOrders.length > 0) {
+				clearInterval(interval);
+				return transactionSuccess(txHash, 'New order indexed successfully.', addOrders[0].order.id, network);
+			} else if (attempts >= 5) {
+				update((state) => ({
+					...state,
+					message: 'The subgraph took too long to respond. Please check again later.',
+				}));
+				clearInterval(interval);
+			}
+		}, 1000);
+	};
+
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({
 			...state,
@@ -161,12 +191,14 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_DEPLOYMENT,
 			message: 'Confirming transaction...'
 		}));
-	const transactionSuccess = (hash: string, message?: string) => {
+	const transactionSuccess = (hash: string, message?: string, newOrderId?: string, network?: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
 			hash: hash,
-			message: message || ''
+			message: message || '',
+			newOrderId: newOrderId || '',
+			network: network || ''
 		}));
 	};
 	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
@@ -183,7 +215,8 @@ const transactionStore = () => {
 		deploymentCalldata,
 		orderbookAddress,
 		chainId,
-		subgraphUrl
+		subgraphUrl,
+		network	
 	}: DeploymentTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -224,11 +257,7 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			if (subgraphUrl === '') {
-				return transactionSuccess(hash, `Strategy deployed successfully.`);
-			} else {
-				return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
-			}
+				return awaitNewOrderIndexing(subgraphUrl, hash, network);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
