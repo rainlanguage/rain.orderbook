@@ -3,15 +3,17 @@
 	import { RainlangLR } from 'codemirror-rainlang';
 	import { lightCodeMirrorTheme } from '../../utils/codeMirrorThemes';
 	import { Button, Modal } from 'flowbite-svelte';
+	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
-	export let composeRainlang: () => Promise<string | undefined>;
+	export let gui: DotrainOrderGui;
 	export let codeMirrorStyles = {};
 
 	let rainlangText: string | null = null;
 	let open = false;
 
 	async function generateRainlang() {
-		const rainlang = await composeRainlang();
+		if (!gui) return;
+		const rainlang = await gui.getComposedRainlang();
 		if (rainlang) {
 			rainlangText = rainlang;
 			open = true;

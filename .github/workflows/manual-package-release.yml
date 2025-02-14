@@ -3,21 +3,24 @@ on:
   workflow_dispatch:
     inputs:
       version-level:
-        description: 'Select Version Level'
+        description: "Select Version Level"
         required: true
         type: choice
         options:
-          - alpha   # Increase the alpha pre-version (x.y.z-alpha.M)
-          - beta    # Increase the beta pre-version (x.y.z-beta.M)
-          - patch   # Increase the patch version (x.y.z)
-          - minor   # Increase the minor version (x.y.0)
-          - major   # Increase the major version (x.0.0)
+          - alpha # Increase the alpha pre-version (x.y.z-alpha.M)
+          - beta # Increase the beta pre-version (x.y.z-beta.M)
+          - patch # Increase the patch version (x.y.z)
+          - minor # Increase the minor version (x.y.0)
+          - major # Increase the major version (x.0.0)
           - release # Remove the pre-version, ie remove alpha/beta/rc (x.y.z)
-          - rc      # Increase the rc pre-version (x.y.z-rc.M)
+          - rc # Increase the rc pre-version (x.y.z-rc.M)
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
       DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
@@ -36,14 +39,16 @@ jobs:
         with:
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
 
-      - uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - name: Install NodeJS v22
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
 
       - run: nix develop -c rainix-sol-prelude
         working-directory: lib/rain.interpreter
@@ -56,7 +61,7 @@ jobs:
       - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
       - run: nix develop -c raindex-prelude
-      
+
       - name: Test JS/TS Binding 1/2
         run: nix develop -c rainix-wasm-test
 
@@ -88,7 +93,7 @@ jobs:
 
       # Push the commit to remote
       - name: Push Changes To Remote
-        run: | 
+        run: |
           git push origin 
           git push -u origin ${{ env.NEW_VERSION }}
         env:
