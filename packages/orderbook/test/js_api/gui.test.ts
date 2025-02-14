@@ -388,6 +388,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
+	it('should get deployment detail', async () => {
+		const deploymentDetail: NameAndDescription = await DotrainOrderGui.getDeploymentDetail(
+			dotrainWithGui,
+			'other-deployment'
+		);
+		assert.equal(deploymentDetail.name, 'Test test');
+		assert.equal(deploymentDetail.description, 'Test test test');
+	});
+
 	it('should get token infos', async () => {
 		mockServer
 			.forPost('/rpc-url')
