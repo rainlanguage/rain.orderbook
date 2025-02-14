@@ -71,13 +71,30 @@ impl Order {
         index: u8,
         vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
-        let new_vault_id = vault_id.and_then(|v| {
+        let new_vault_id = if let Some(ref v) = vault_id {
             if v.is_empty() {
                 None
             } else {
-                Some(Order::validate_vault_id(&v).ok()?)
+                match Order::validate_vault_id(&v) {
+                    Ok(id) => Some(id),
+                    Err(e) => {
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "vault-id".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: format!(
+                                "index '{index}' of {} in order '{}'",
+                                if is_input { "inputs" } else { "outputs" },
+                                self.key
+                            ),
+                        });
+                    }
+                }
             }
-        });
+        } else {
+            None
+        };
 
         let mut document = self
             .document
@@ -782,7 +799,7 @@ pub enum ParseOrderConfigSourceError {
         expected: String,
         found: String,
     },
-    #[error("Failed to parse vault {}", 0)]
+    #[error("Failed to parse vault id")]
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
