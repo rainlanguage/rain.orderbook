@@ -6,7 +6,7 @@ import { writable } from 'svelte/store';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { OrderIO } from '@rainlanguage/orderbook/js_api';
 
-vi.mock('./getDeploymentTransactionArgs', () => ({
+vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
 
