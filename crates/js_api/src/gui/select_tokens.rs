@@ -124,4 +124,15 @@ impl DotrainOrderGui {
         Token::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = "areAllTokensSelected")]
+    pub fn are_all_tokens_selected(&self) -> Result<bool, GuiError> {
+        let select_tokens = self.get_select_tokens()?;
+        for token in select_tokens.0 {
+            if !self.is_select_token_set(token.key)? {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
 }

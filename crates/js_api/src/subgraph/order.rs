@@ -1,12 +1,23 @@
+use std::collections::{HashMap, HashSet};
+
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
+use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::types::OrderDetailExtended;
 use rain_orderbook_subgraph_client::{
-    types::common::{Order, OrdersListFilterArgs},
+    types::common::{Order, OrdersListFilterArgs, Vault},
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError, PaginationArgs,
 };
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Tsify)]
+pub struct OrderWithSortedVaults {
+    #[tsify(type = "OrderSubgraph")]
+    pub order: Order,
+    pub vaults: HashMap<String, Vec<Vault>>,
+}
+impl_all_wasm_traits!(OrderWithSortedVaults);
 
 /// Internal function to fetch a single order
 /// Returns the Order struct
@@ -29,12 +40,48 @@ pub async fn get_orders(
     Ok(to_value(&orders)?)
 }
 
+fn sort_vaults(order: &Order) -> HashMap<String, Vec<Vault>> {
+    let mut sorted_vaults: HashMap<String, Vec<Vault>> = HashMap::new();
+
+    let input_ids: HashSet<_> = order.inputs.iter().map(|v| &v.id).collect();
+    let output_ids: HashSet<_> = order.outputs.iter().map(|v| &v.id).collect();
+
+    sorted_vaults.insert("inputs".to_string(), Vec::new());
+    sorted_vaults.insert("outputs".to_string(), Vec::new());
+    sorted_vaults.insert("inputs_outputs".to_string(), Vec::new());
+
+    for vault in &order.inputs {
+        if output_ids.contains(&vault.id) {
+            sorted_vaults
+                .get_mut("inputs_outputs")
+                .unwrap()
+                .push(vault.clone());
+        } else {
+            sorted_vaults.get_mut("inputs").unwrap().push(vault.clone());
+        }
+    }
+
+    for vault in &order.outputs {
+        if !input_ids.contains(&vault.id) {
+            sorted_vaults
+                .get_mut("outputs")
+                .unwrap()
+                .push(vault.clone());
+        }
+    }
+
+    sorted_vaults
+}
+
 /// Fetch a single order
-/// Returns the Order struct
+/// Returns the Order struct with sorted vaults
 #[wasm_bindgen(js_name = "getOrder")]
 pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order = get_sg_order(url, id).await?;
-    Ok(to_value(&order)?)
+    Ok(to_value(&OrderWithSortedVaults {
+        order: order.clone(),
+        vaults: sort_vaults(&order),
+    })?)
 }
 
 /// Extend an order to include Rainlang string

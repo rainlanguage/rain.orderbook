@@ -128,14 +128,17 @@ const transactionStore = () => {
 
 			newTx = await getTransaction(subgraphUrl, txHash);
 			if (newTx) {
+				console.log("NEW TX", newTx)
 				clearInterval(interval);
-				return transactionSuccess(txHash, successMessage);
-			} else if (attempts >= 5) {
+				transactionSuccess(txHash, successMessage);
+
+			} else if (attempts >= 10) {
 				update((state) => ({
 					...state,
 					message: 'The subgraph took too long to respond. Please check again later.'
 				}));
 				clearInterval(interval);
+				return transactionError(TransactionErrorMessage.TIMEOUT);
 			}
 		}, 1000);
 	};

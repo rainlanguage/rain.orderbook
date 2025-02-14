@@ -16,7 +16,6 @@
 		type OrderIO,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
-		DotrainOrder,
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
@@ -231,18 +230,12 @@
 	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
-				selectTokens = await gui.getSelectTokens();
-				if (selectTokens?.every((t) => gui?.isSelectTokenSet(t.key))) {
-					allTokensSelected = true;
-				}
+				allTokensSelected = gui?.areAllTokensSelected();
+				const vaultIds = gui?.getVaultIds();
+				const inputVaultIds = vaultIds?.get('input');
+				const outputVaultIds = vaultIds?.get('output');
 				// if we have deposits or vault ids set, show advanced options
 				const deposits = gui?.getDeposits();
-				const inputVaultIds = gui
-					?.getCurrentDeployment()
-					?.deployment?.order?.inputs.map((input) => input.vaultId);
-				const outputVaultIds = gui
-					?.getCurrentDeployment()
-					?.deployment?.order?.outputs.map((output) => output.vaultId);
 				if (deposits || inputVaultIds || outputVaultIds) {
 					showAdvancedOptions = true;
 				}
@@ -252,16 +245,6 @@
 			}
 		}
 	};
-
-	async function composeRainlang() {
-		if (!gui) return;
-		gui.updateScenarioBindings();
-		const deployment = gui.getCurrentDeployment();
-		const dotrain = gui.generateDotrainText();
-		const dotrainOrder = await DotrainOrder.create(dotrain);
-		const composedRainlang = await dotrainOrder.composeDeploymentToRainlang(deployment.key);
-		return composedRainlang;
-	}
 </script>
 
 <div>
@@ -307,7 +290,7 @@
 					<div class="flex gap-2">
 						{#if $wagmiConnected}
 							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-							<ComposedRainlangModal {composeRainlang} />
+							<ComposedRainlangModal {gui} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}

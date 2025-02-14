@@ -8,12 +8,14 @@ const setDataMock = vi.fn();
 const applyOptionsMock = vi.fn();
 const setVisibleRangeMock = vi.fn();
 const removeMock = vi.fn();
+const updateMock = vi.fn();
 
 vi.mock('lightweight-charts', async (importOriginal) => ({
 	...((await importOriginal()) as object),
 	createChart: vi.fn(() => ({
 		addLineSeries: vi.fn(() => ({
-			setData: setDataMock
+			setData: setDataMock,
+			update: updateMock
 		})),
 		remove: removeMock,
 		applyOptions: applyOptionsMock,
@@ -96,21 +98,16 @@ test('renders with data correctly', async () => {
 	});
 });
 
-test('updates data correctly when props change', async () => {
+test('updates data correctly when new data points are added', async () => {
 	const title = 'test title';
 	const emptyMessage = 'empty message';
 	const loading = false;
 	const priceSymbol = '$';
 	const createSeries = (chart: IChartApi) => chart.addLineSeries();
 
-	const initialData: { value: number; time: UTCTimestamp; color?: string }[] = [
+	const initialData = [
 		{ value: 10, time: 1529899200 as UTCTimestamp },
 		{ value: 20, time: 1529899300 as UTCTimestamp }
-	];
-
-	const newData: { value: number; time: UTCTimestamp; color?: string }[] = [
-		{ value: 15, time: 1529900000 as UTCTimestamp },
-		{ value: 25, time: 1529900300 as UTCTimestamp }
 	];
 
 	const { component } = render(LightweightChart, {
@@ -123,15 +120,32 @@ test('updates data correctly when props change', async () => {
 		lightweightChartsTheme: readable({ test: 'test' })
 	});
 
+	// First render should call setData with initial data
 	await waitFor(() => {
 		expect(setDataMock).toHaveBeenCalledWith(initialData);
 	});
 
-	// Update data prop
-	await act(() => component.$set({ data: newData }));
+	// Add new data points
+	const newDataPoints = [
+		...initialData,
+		{ value: 30, time: 1529899400 as UTCTimestamp },
+		{ value: 40, time: 1529899500 as UTCTimestamp }
+	];
 
+	// Update with new data that includes additional points
+	await act(() => component.$set({ data: newDataPoints }));
+
+	// Should call update for each new point
 	await waitFor(() => {
-		expect(setDataMock).toHaveBeenCalledWith(newData);
+		expect(updateMock).toHaveBeenCalledTimes(2);
+		expect(updateMock).toHaveBeenCalledWith({
+			value: 30,
+			time: 1529899400 as UTCTimestamp
+		});
+		expect(updateMock).toHaveBeenCalledWith({
+			value: 40,
+			time: 1529899500 as UTCTimestamp
+		});
 	});
 });
 

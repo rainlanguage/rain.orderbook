@@ -173,6 +173,17 @@ impl DotrainOrderGui {
         );
         Ok(dotrain)
     }
+
+    #[wasm_bindgen(js_name = "getComposedRainlang")]
+    pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
+        self.update_scenario_bindings()?;
+        let dotrain = self.generate_dotrain_text()?;
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let rainlang = dotrain_order
+            .compose_deployment_to_rainlang(self.selected_deployment.clone())
+            .await?;
+        Ok(rainlang)
+    }
 }
 
 #[derive(Error, Debug)]

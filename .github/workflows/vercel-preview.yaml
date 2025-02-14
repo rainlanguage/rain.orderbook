@@ -13,6 +13,9 @@ concurrency:
 jobs:
   Deploy-Preview:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
       COMMIT_SHA: ${{ github.sha }}
     steps:
@@ -22,7 +25,9 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./prep-all.sh
         env:

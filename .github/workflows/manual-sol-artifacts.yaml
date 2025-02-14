@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       network:
-        description: 'Network to deploy to'
+        description: "Network to deploy to"
         required: true
         type: choice
         options:
@@ -23,7 +23,7 @@ on:
           - matchain
 
       suite:
-        description: 'Suite to deploy'
+        description: "Suite to deploy"
         required: true
         type: choice
         options:
@@ -36,6 +36,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - run: |
           network=${{ inputs.network }}
@@ -54,7 +57,9 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: nix develop -c rainix-sol-prelude
       - run: nix develop -c rainix-rs-prelude
@@ -64,7 +69,7 @@ jobs:
         run: nix develop -c rainix-sol-artifacts
         env:
           DEPLOYMENT_SUITE: ${{ inputs.suite }}
-          DEPLOY_BROADCAST: '1'
+          DEPLOY_BROADCAST: "1"
           DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
           ETH_RPC_URL: ${{ secrets[env.rpc_secret_name] || vars[env.rpc_secret_name] || '' }}
           ETHERSCAN_API_KEY: ${{ secrets[env.etherscan_api_key_secret_name] || vars[env.etherscan_api_key_secret_name] || ''}}
