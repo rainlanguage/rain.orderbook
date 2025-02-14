@@ -3,8 +3,8 @@ use crate::schema;
 use typeshare::typeshare;
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct TransactionAddOrdersVariables<'a> {
-    pub id: &'a cynic::Id,
+pub struct TransactionAddOrdersVariables {
+    pub id: Bytes,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -12,7 +12,7 @@ pub struct TransactionAddOrdersVariables<'a> {
 #[typeshare]
 pub struct TransactionAddOrdersQuery {
     #[arguments(where: { transaction_: { id: $id } })]
-    pub add_orders: Vec<AddOrder>,
+    pub add_orders: Option<Vec<AddOrder>>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

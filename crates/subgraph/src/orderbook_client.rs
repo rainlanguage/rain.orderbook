@@ -404,14 +404,14 @@ impl OrderbookSubgraphClient {
     ) -> Result<Vec<AddOrder>, OrderbookSubgraphClientError> {
         let data = self
             .query::<TransactionAddOrdersQuery, TransactionAddOrdersVariables>(
-                TransactionAddOrdersVariables { id: &id },
+                TransactionAddOrdersVariables {
+                    id: Bytes(id.inner().to_string()),
+                },
             )
             .await?;
 
-        if data.add_orders.is_empty() {
-            return Err(OrderbookSubgraphClientError::Empty);
-        }
+        let add_orders = data.add_orders.ok_or(OrderbookSubgraphClientError::Empty)?;
 
-        Ok(data.add_orders)
+        Ok(add_orders)
     }
 }
