@@ -1,9 +1,13 @@
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { LayoutLoad } from '../$types';
 
+interface LayoutParentData {
+	dotrain: string;
+}
+
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { deploymentKey } = params;
-	const { dotrain } = await parent();
+	const { dotrain } = await parent() as unknown as LayoutParentData;
 
 	// Process deployments for both raw and registry strategies
 	const deploymentWithDetails = await DotrainOrderGui.getDeploymentDetails(dotrain);
