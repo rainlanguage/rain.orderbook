@@ -11,7 +11,6 @@
 		DotrainOrderGui,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO,
 		type ApprovalCalldataResult,
@@ -27,6 +26,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { handleShareChoices } from '$lib/services/handleShareChoices';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -43,8 +43,7 @@
 	}
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: string;
-	export let deploymentDetails: NameAndDescription;
+	export let deployment: GuiDeployment;
 	export let handleDeployModal: (args: {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
@@ -53,6 +52,7 @@
 		subgraphUrl: string;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
@@ -71,7 +71,7 @@
 	export let stateFromUrl: string | null = null;
 
 	$: if (deployment) {
-		handleDeploymentChange(deployment);
+		handleDeploymentChange(deployment.key);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -197,9 +197,9 @@
 		}
 	}
 
-	async function handleShareChoices() {
-		// copy the current url to the clipboard
-		navigator.clipboard.writeText($page.url.toString());
+	async function _handleShareChoices() {
+		if (!gui) return;
+		await handleShareChoices(gui);
 	}
 
 	onMount(async () => {
@@ -254,13 +254,13 @@
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deploymentDetails}
+				{#if deployment}
 					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{deploymentDetails.name}
+							{deployment.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deploymentDetails.description}
+							{deployment.description}
 						</p>
 					</div>
 				{/if}
@@ -291,7 +291,7 @@
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
-						<ShareChoicesButton {handleShareChoices} />
+						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
 
 						<div class="flex flex-col">
 							{#if error}

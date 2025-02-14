@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import { neutral, indigo } from 'tailwindcss/colors';
+import typography from '@tailwindcss/typography';
 
 export default {
 	content: [
@@ -15,7 +16,7 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['DM Sans', 'sans-serif'],
-'instrument-serif': ['Instrument Serif', 'serif']
+				'instrument-serif': ['Instrument Serif', 'serif']
 			},
 			colors: {
 				primary: { ...indigo },
@@ -27,5 +28,5 @@ export default {
 		}
 	},
 
-	plugins: []
+	plugins: [typography]
 } satisfies Config;
