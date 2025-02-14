@@ -58,6 +58,7 @@
 											rpcUrl="https://example.com"
 											query={orderDetailQuery}
 											handleDepositOrWithdrawModal={() => {}}
+											subgraphUrl="https://example.com"
 										/>
 									</svelte:fragment>
 								</ButtonVaultLink>

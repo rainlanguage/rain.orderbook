@@ -293,13 +293,19 @@ describe('transactionStore', () => {
 		const mockNetwork = 'flare';
 		const mockOrderId = 'order123';
 
-		(getTransactionAddOrders as Mock).mockResolvedValue([{
-			order: {
-				id: mockOrderId
+		(getTransactionAddOrders as Mock).mockResolvedValue([
+			{
+				order: {
+					id: mockOrderId
+				}
 			}
-		}]);
+		]);
+
+		vi.useFakeTimers({ shouldAdvanceTime: true });
 
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+
+		vi.runOnlyPendingTimers();
 
 		await waitFor(() => {
 			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);

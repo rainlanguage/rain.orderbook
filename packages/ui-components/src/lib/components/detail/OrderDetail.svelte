@@ -165,6 +165,7 @@
 													{rpcUrl}
 													query={orderDetailQuery}
 													{handleDepositOrWithdrawModal}
+													{subgraphUrl}
 												/>
 											{/if}
 										</svelte:fragment>

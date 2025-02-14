@@ -42,7 +42,8 @@ test('calls getVaultBalanceChanges with correct arguments', async () => {
 		props: {
 			vault: mockVault,
 			subgraphUrl: 'https://example.com',
-			lightweightChartsTheme: writable({})
+			lightweightChartsTheme: writable({}),
+			id: 'vault1'
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
