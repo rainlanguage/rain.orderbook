@@ -18,13 +18,16 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle } from 'flowbite-svelte';
-	import { getAccount, type Config } from '@wagmi/core';
+	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
+	import DisclaimerModal from './DisclaimerModal.svelte';
+
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -59,6 +62,7 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let showDisclaimerModal = false;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -155,34 +159,15 @@
 		}
 	}
 
-	async function handleAddOrder() {
+	async function handleAddOrderClick() {
+		showDisclaimerModal = true;
+	}
+
+	async function handleAcceptDisclaimer() {
 		try {
-			if (!gui || !$wagmiConfig) return;
-			const { address } = getAccount($wagmiConfig);
-			if (!address) return;
-			let approvals = await gui.generateApprovalCalldatas(address);
-			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
-			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
-			// @ts-expect-error orderbook is not typed
-			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
-			const outputTokenInfos = await Promise.all(
-				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
-			);
-
-			approvals = approvals.map((approval) => {
-				const token = outputTokenInfos.find((token) => token?.address === approval.token);
-				return {
-					...approval,
-					symbol: token?.symbol
-				};
-			});
-
-			handleDeployModal({
-				approvals,
-				deploymentCalldata,
-				orderbookAddress,
-				chainId
-			});
+			showDisclaimerModal = false;
+			const result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+			handleDeployModal(result);
 		} catch (e) {
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
 			errorDetails = e instanceof Error ? e.message : 'Unknown error';
@@ -278,7 +263,7 @@
 
 					<div class="flex gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
+							<Button size="lg" on:click={handleAddOrderClick}>Deploy Strategy</Button>
 							<ComposedRainlangModal {gui} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
@@ -299,3 +284,13 @@
 		{/if}
 	{/if}
 </div>
+
+{#if showDisclaimerModal && gui && allTokenOutputs && wagmiConfig}
+	<DisclaimerModal
+		bind:open={showDisclaimerModal}
+		{gui}
+		{allTokenOutputs}
+		{wagmiConfig}
+		{handleDeployModal}
+	/>
+{/if}
