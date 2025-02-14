@@ -69,9 +69,15 @@ impl Order {
         &mut self,
         is_input: bool,
         index: u8,
-        vault_id: String,
+        vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
-        let new_vault_id = Order::validate_vault_id(&vault_id)?;
+        let new_vault_id = vault_id.and_then(|v| {
+            if v.is_empty() {
+                None
+            } else {
+                Some(Order::validate_vault_id(&v).ok()?)
+            }
+        });
 
         let mut document = self
             .document
@@ -91,14 +97,23 @@ impl Order {
                     {
                         if let Some(item) = vec.get_mut(index as usize) {
                             if let StrictYaml::Hash(ref mut item_hash) = item {
-                                item_hash.insert(
-                                    StrictYaml::String("vault-id".to_string()),
-                                    StrictYaml::String(vault_id.to_string()),
-                                );
-                                if is_input {
-                                    self.inputs[index as usize].vault_id = Some(new_vault_id);
+                                if let Some(vault_id) = new_vault_id {
+                                    item_hash.insert(
+                                        StrictYaml::String("vault-id".to_string()),
+                                        StrictYaml::String(vault_id.to_string()),
+                                    );
+                                    if is_input {
+                                        self.inputs[index as usize].vault_id = Some(vault_id);
+                                    } else {
+                                        self.outputs[index as usize].vault_id = Some(vault_id);
+                                    }
                                 } else {
-                                    self.outputs[index as usize].vault_id = Some(new_vault_id);
+                                    item_hash.remove(&StrictYaml::String("vault-id".to_string()));
+                                    if is_input {
+                                        self.inputs[index as usize].vault_id = None;
+                                    } else {
+                                        self.outputs[index as usize].vault_id = None;
+                                    }
                                 }
                             } else {
                                 return Err(YamlError::Field {
