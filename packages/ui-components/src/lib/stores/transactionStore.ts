@@ -130,7 +130,6 @@ const transactionStore = () => {
 			if (newTx) {
 				clearInterval(interval);
 				transactionSuccess(txHash, successMessage);
-
 			} else if (attempts >= 10) {
 				update((state) => ({
 					...state,
