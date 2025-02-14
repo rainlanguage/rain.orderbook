@@ -223,9 +223,15 @@
 				const vaultIds = gui?.getVaultIds();
 				const inputVaultIds = vaultIds?.get('input');
 				const outputVaultIds = vaultIds?.get('output');
+
 				// if we have deposits or vault ids set, show advanced options
 				const deposits = gui?.getDeposits();
-				if (deposits || inputVaultIds || outputVaultIds) {
+				console.log(deposits);
+				if (
+					deposits.length > 0 ||
+					inputVaultIds?.some((id) => id !== undefined) ||
+					outputVaultIds?.some((id) => id !== undefined)
+				) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
