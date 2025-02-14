@@ -1,4 +1,4 @@
-use super::common::{AddOrder, Bytes};
+use super::common::{AddOrderWithOrder, Bytes};
 use crate::schema;
 use typeshare::typeshare;
 
@@ -12,11 +12,5 @@ pub struct TransactionAddOrdersVariables {
 #[typeshare]
 pub struct TransactionAddOrdersQuery {
     #[arguments(where: { transaction_: { id: $id } })]
-    pub add_orders: Option<Vec<AddOrder>>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-#[typeshare]
-pub struct Order {
-    pub id: Bytes,
+    pub add_orders: Vec<AddOrderWithOrder>,
 }

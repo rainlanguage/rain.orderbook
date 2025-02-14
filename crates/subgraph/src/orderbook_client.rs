@@ -401,7 +401,7 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_add_orders(
         &self,
         id: Id,
-    ) -> Result<Vec<AddOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<AddOrderWithOrder>, OrderbookSubgraphClientError> {
         let data = self
             .query::<TransactionAddOrdersQuery, TransactionAddOrdersVariables>(
                 TransactionAddOrdersVariables {
@@ -410,8 +410,10 @@ impl OrderbookSubgraphClient {
             )
             .await?;
 
-        let add_orders = data.add_orders.ok_or(OrderbookSubgraphClientError::Empty)?;
+        if data.add_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
 
-        Ok(add_orders)
+        Ok(data.add_orders)
     }
 }
