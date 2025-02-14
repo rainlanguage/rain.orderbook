@@ -208,6 +208,7 @@ mod tests {
             deployment1:
                 name: Test deployment
                 description: Test description
+                short-description: Test short description
                 deposits:
                     - token: token1
                       presets:
