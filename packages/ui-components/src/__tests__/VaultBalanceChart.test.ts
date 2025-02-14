@@ -5,6 +5,9 @@ import VaultBalanceChart from '../lib/components/charts/VaultBalanceChart.svelte
 import type { Vault } from '@rainlanguage/orderbook/js_api';
 import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
+import type { ComponentProps } from 'svelte';
+
+type VaultBalanceChartProps = ComponentProps<VaultBalanceChart>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultBalanceChanges: vi.fn()
@@ -44,7 +47,7 @@ test('calls getVaultBalanceChanges with correct arguments', async () => {
 			subgraphUrl: 'https://example.com',
 			lightweightChartsTheme: writable({}),
 			id: 'vault1'
-		},
+		} as VaultBalanceChartProps,
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 
