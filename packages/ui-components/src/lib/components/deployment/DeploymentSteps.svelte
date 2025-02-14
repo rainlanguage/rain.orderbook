@@ -24,7 +24,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-
+	import { handleShareChoices } from '$lib/services/handleShareChoices';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -189,13 +189,9 @@
 		}
 	}
 
-	async function handleShareChoices() {
-		// get the current url
-		const url = $page.url;
-		// get the current state
-		const state = gui?.serializeState();
-		url.searchParams.set('state', state || '');
-		navigator.clipboard.writeText(url.toString());
+	async function _handleShareChoices() {
+		if (!gui) return;
+		await handleShareChoices(gui);
 	}
 
 	onMount(async () => {
@@ -287,7 +283,7 @@
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
-						<ShareChoicesButton {handleShareChoices} />
+						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
 
 						<div class="flex flex-col">
 							{#if error}
