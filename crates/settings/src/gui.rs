@@ -1492,7 +1492,8 @@ gui:
                 - binding: test
                   name: test
                   presets:
-                    - value: test
+                    - value: 
+                        wrong: map
 "#;
         let error = Gui::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
