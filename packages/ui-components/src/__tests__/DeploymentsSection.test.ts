@@ -17,8 +17,11 @@ describe('DeploymentsSection', () => {
 
 	it('should render deployments when data is available', async () => {
 		const mockDeployments = new Map([
-			['key1', { name: 'Deployment 1', description: 'Description 1' }],
-			['key2', { name: 'Deployment 2', description: 'Description 2' }]
+			[
+				'key1',
+				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
+			],
+			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
 		]);
 
 		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockResolvedValue(mockDeployments);

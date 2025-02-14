@@ -204,6 +204,7 @@ mod tests {
     gui:
         name: Test gui
         description: Test description
+        short-description: Test short description
         deployments:
             deployment1:
                 name: Test deployment
