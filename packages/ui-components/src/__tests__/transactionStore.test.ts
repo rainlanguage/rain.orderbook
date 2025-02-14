@@ -236,7 +236,11 @@ describe('transactionStore', () => {
 
 		(getTransaction as Mock).mockResolvedValue({ id: mockTxHash });
 
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
+
+		vi.runOnlyPendingTimers();
 
 		await waitFor(() => {
 			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
@@ -253,7 +257,11 @@ describe('transactionStore', () => {
 
 		(getTransaction as Mock).mockResolvedValue(null);
 
-		const indexingPromise = awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
+		const indexingPromise = awaitTransactionIndexing(
+			mockSubgraphUrl,
+			mockTxHash,
+			mockSuccessMessage
+		);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Checking for transaction indexing...');
