@@ -66,15 +66,17 @@
 								{$transactionStore.message}
 							</p>
 						{/if}
-						{#if $transactionStore.newOrderId && $transactionStore.network}
-							<a
-								href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderId}`}
-								class="w-full whitespace-pre-wrap break-words text-center text-sm font-normal text-gray-900 dark:text-white"
-							>
-							</a>{/if}
+
+						<div class="flex flex-row justify-center gap-2">
+							{#if $transactionStore.newOrderId && $transactionStore.network}
+								<a href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderId}`}>
+									<Button color="alternative">View Order</Button>
+								</a>
+							{/if}
+							<Button on:click={handleClose}>Dismiss</Button>
+						</div>
 					</div>
 				</div>
-				<Button on:click={handleClose} class="mt-4">Dismiss</Button>
 			{:else}
 				<div
 					class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"

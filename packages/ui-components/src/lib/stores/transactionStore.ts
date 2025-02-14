@@ -146,21 +146,25 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_SUBGRAPH,
 			message: 'Waiting for new Order to be indexed...'
 		}));
+		console.log(network)
 
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
+			console.log("attempts", attempts)
 
 			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
-			if (addOrders.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash, 'New order indexed successfully.', addOrders[0].order.id, network);
-			} else if (attempts >= 5) {
+			if (attempts >= 10) {
 				update((state) => ({
 					...state,
 					message: 'The subgraph took too long to respond. Please check again later.',
 				}));
 				clearInterval(interval);
+				return transactionError(TransactionErrorMessage.TIMEOUT);
+			} else if (addOrders.length > 0) {
+				console.log(addOrders)
+				clearInterval(interval);
+				return transactionSuccess(txHash, '', addOrders[0].order.id, network);
 			}
 		}, 1000);
 	};
