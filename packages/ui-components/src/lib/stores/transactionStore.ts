@@ -146,23 +146,23 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_SUBGRAPH,
 			message: 'Waiting for new Order to be indexed...'
 		}));
-		console.log(network)
+		console.log(network);
 
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			console.log("attempts", attempts)
+			console.log('attempts', attempts);
 
 			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
 			if (attempts >= 10) {
 				update((state) => ({
 					...state,
-					message: 'The subgraph took too long to respond. Please check again later.',
+					message: 'The subgraph took too long to respond. Please check again later.'
 				}));
 				clearInterval(interval);
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (addOrders.length > 0) {
-				console.log(addOrders)
+				console.log(addOrders);
 				clearInterval(interval);
 				return transactionSuccess(txHash, '', addOrders[0].order.id, network);
 			}
@@ -195,7 +195,12 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_DEPLOYMENT,
 			message: 'Confirming transaction...'
 		}));
-	const transactionSuccess = (hash: string, message?: string, newOrderId?: string, network?: string) => {
+	const transactionSuccess = (
+		hash: string,
+		message?: string,
+		newOrderId?: string,
+		network?: string
+	) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
@@ -220,7 +225,7 @@ const transactionStore = () => {
 		orderbookAddress,
 		chainId,
 		subgraphUrl,
-		network	
+		network
 	}: DeploymentTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -261,7 +266,7 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-				return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			return awaitNewOrderIndexing(subgraphUrl, hash, network);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

@@ -106,7 +106,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: mockDeploymentCalldata,
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
@@ -122,7 +123,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -141,7 +143,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -161,7 +164,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -178,7 +182,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -196,7 +201,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -222,7 +228,8 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com'
+			subgraphUrl: 'test.com',
+			network: 'flare'
 		});
 
 		expect(sendTransaction).toHaveBeenCalledTimes(3); // 2 approvals + 1 deployment
