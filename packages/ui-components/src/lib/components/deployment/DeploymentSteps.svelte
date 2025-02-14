@@ -25,7 +25,6 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import DisclaimerModal from './DisclaimerModal.svelte';
 
 	enum DeploymentStepErrors {
