@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import DisclaimerModal from './DisclaimerModal.svelte';
-import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
+import DisclaimerModal from '../lib/components/deployment/DisclaimerModal.svelte';
+import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { writable } from 'svelte/store';
 
-// Mock the getDeploymentTransactionArgs module
 vi.mock('./getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
@@ -80,7 +79,6 @@ describe('DisclaimerModal', () => {
 			}
 		});
 
-		// Wait for the Deploy button to be enabled
 		const deployButton = await screen.findByText('Deploy');
 		await fireEvent.click(deployButton);
 
