@@ -229,7 +229,7 @@ describe('transactionStore', () => {
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 	});
 
-	it.only('should handle waiting for subgraph indexing', async () => {
+	it('should handle waiting for subgraph indexing', async () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
 		const mockSuccessMessage = 'Success! Transaction confirmed';
