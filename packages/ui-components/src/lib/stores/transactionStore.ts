@@ -125,7 +125,8 @@ const transactionStore = () => {
 			if (newTx) {
 				console.log("NEW TX", newTx)
 				clearInterval(interval);
-				return transactionSuccess(txHash, successMessage);
+				transactionSuccess(txHash, successMessage);
+
 			} else if (attempts >= 10) {
 				update((state) => ({
 					...state,
@@ -164,6 +165,7 @@ const transactionStore = () => {
 			message: 'Confirming transaction...'
 		}));
 	const transactionSuccess = (hash: string, message?: string) => {
+		console.log("TRANSACTION SUCCESS", hash, message)
 		update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
