@@ -42,8 +42,13 @@
 
 	const handleInput = async () => {
 		const isInput = label === 'Input';
-		gui?.setVaultId(isInput, i, inputValue);
-		handleUpdateGuiState(gui);
+		try {
+			gui?.setVaultId(isInput, i, inputValue);
+			handleUpdateGuiState(gui);
+		} catch (e) {
+			const errorMessage = (e as Error).message ? (e as Error).message : 'Error setting vault ID.';
+			error = errorMessage;
+		}
 	};
 
 	$: if (vault.token?.key) {
