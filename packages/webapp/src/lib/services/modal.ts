@@ -1,49 +1,26 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
-import type {
-	ApprovalCalldataResult,
-	DepositAndAddOrderCalldataResult,
-	OrderSubgraph,
-	Vault
-} from '@rainlanguage/orderbook/js_api';
-import type { Hex } from 'viem';
-import type { Config } from 'wagmi';
+import { DisclaimerModal } from '@rainlanguage/ui-components';
+import type { ComponentProps } from 'svelte';
 
-export type DeployModalProps = {
-	approvals: ApprovalCalldataResult;
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl: string;
-};
-
-export type DepositOrWithdrawModalProps = {
-	vault: Vault;
-	onDepositOrWithdraw: () => void;
-	action: 'deposit' | 'withdraw';
-	chainId: number;
-	rpcUrl: string;
-	subgraphUrl: string;
-};
-
-export type OrderRemoveModalProps = {
-	order: OrderSubgraph;
-	onRemove: () => void;
-	open?: boolean;
-	wagmiConfig: Config;
-	chainId: number;
-	orderbookAddress: string;
-};
+export type DisclaimerModalProps = ComponentProps<DisclaimerModal>;
+export type DepositOrWithdrawModalProps = ComponentProps<DepositOrWithdrawModal>;
+export type OrderRemoveModalProps = ComponentProps<OrderRemoveModal>;
+export type DeployModalProps = ComponentProps<DeployModal>;
 
 export const handleDeployModal = (args: DeployModalProps) => {
-	new DeployModal({ target: document.body, props: { open: true, ...args } });
+	new DeployModal({ target: document.body, props: { ...args, open: true } });
 };
 
 export const handleDepositOrWithdrawModal = (args: DepositOrWithdrawModalProps) => {
-	new DepositOrWithdrawModal({ target: document.body, props: { open: true, ...args } });
+	new DepositOrWithdrawModal({ target: document.body, props: { ...args, open: true } });
 };
 
 export const handleOrderRemoveModal = (args: OrderRemoveModalProps) => {
-	new OrderRemoveModal({ target: document.body, props: { open: true, ...args } });
+	new OrderRemoveModal({ target: document.body, props: { ...args, open: true } });
+};
+
+export const handleDisclaimerModal = (args: DisclaimerModalProps) => {
+	new DisclaimerModal({ target: document.body, props: { ...args, open: true } });
 };

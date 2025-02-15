@@ -26,7 +26,6 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import DisclaimerModal from './DisclaimerModal.svelte';
 	import { handleShareChoices } from '$lib/services/handleShareChoices';
 
 	enum DeploymentStepErrors {
@@ -53,6 +52,19 @@
 		chainId: number;
 		subgraphUrl: string;
 	}) => void;
+	export let handleDisclaimerModal: (args: {
+		gui: DotrainOrderGui;
+		allTokenOutputs: OrderIO[];
+		wagmiConfig: Writable<Config | undefined>;
+		subgraphUrl: string;
+		handleDeployModal: (args: {
+			approvals: ApprovalCalldataResult;
+			deploymentCalldata: DepositAndAddOrderCalldataResult;
+			orderbookAddress: Hex;
+			chainId: number;
+			subgraphUrl: string;
+		}) => void;
+	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
@@ -72,7 +84,6 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let stateFromUrl: string | null = null;
-
 	$: if (deployment) {
 		handleDeploymentChange(deployment.key);
 	}
@@ -165,42 +176,6 @@
 		}
 	}
 
-	async function handleAddOrderClick() {
-		showDisclaimerModal = true;
-		try {
-			if (!gui || !$wagmiConfig) return;
-			const { address } = getAccount($wagmiConfig);
-			if (!address) return;
-			let approvals = await gui.generateApprovalCalldatas(address);
-			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
-			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
-			// @ts-expect-error orderbook is not typed
-			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
-			const outputTokenInfos = await Promise.all(
-				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
-			);
-
-			approvals = approvals.map((approval) => {
-				const token = outputTokenInfos.find((token) => token?.address === approval.token);
-				return {
-					...approval,
-					symbol: token?.symbol
-				};
-			});
-
-			handleDeployModal({
-				approvals,
-				deploymentCalldata,
-				orderbookAddress,
-				chainId,
-				subgraphUrl
-			});
-		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
 	async function _handleShareChoices() {
 		if (!gui) return;
 		await handleShareChoices(gui);
@@ -226,6 +201,29 @@
 	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
 		await areAllTokensSelected();
 		handleUpdateGuiState(gui);
+	}
+
+	async function handleDeployButtonClick() {
+		if (!gui) {
+			error = DeploymentStepErrors.NO_GUI;
+			return;
+		}
+		if (!allTokenOutputs) {
+			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
+			return;
+		}
+		if (!wagmiConfig) {
+			error = DeploymentStepErrors.NO_CHAIN;
+			return;
+		}
+
+		handleDisclaimerModal({
+			gui,
+			allTokenOutputs,
+			wagmiConfig,
+			subgraphUrl,
+			handleDeployModal
+		});
 	}
 
 	const areAllTokensSelected = async () => {
@@ -292,7 +290,7 @@
 
 					<div class="flex gap-2">
 						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrderClick}>Deploy Strategy</Button>
+							<Button size="lg" on:click={handleDeployButtonClick}>Deploy Strategy</Button>
 							<ComposedRainlangModal {gui} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
@@ -313,13 +311,3 @@
 		{/if}
 	{/if}
 </div>
-
-{#if showDisclaimerModal && gui && allTokenOutputs && wagmiConfig}
-	<DisclaimerModal
-		bind:open={showDisclaimerModal}
-		{gui}
-		{allTokenOutputs}
-		{wagmiConfig}
-		{handleDeployModal}
-	/>
-{/if}

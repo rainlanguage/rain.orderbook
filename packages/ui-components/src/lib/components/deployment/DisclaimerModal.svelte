@@ -12,15 +12,17 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import type { Hex } from 'viem';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
-	export let open: boolean;
+	export let open: boolean = false;
 	export let gui: DotrainOrderGui;
 	export let allTokenOutputs: OrderIO[];
 	export let wagmiConfig: Writable<Config | undefined>;
+	export let subgraphUrl: string;
 	export let handleDeployModal: (args: {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string;
 	}) => void;
 	let result: HandleAddOrderResult | null = null;
 
@@ -49,7 +51,7 @@
 			return;
 		} else {
 			open = false;
-			handleDeployModal(result);
+			handleDeployModal({ ...result, subgraphUrl: subgraphUrl });
 		}
 	}
 </script>
