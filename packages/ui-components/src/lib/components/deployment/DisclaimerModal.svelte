@@ -1,52 +1,17 @@
 <script lang="ts">
 	import { Alert, Modal, Button } from 'flowbite-svelte';
 	import { ExclamationCircleSolid } from 'flowbite-svelte-icons';
-	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
-	import type { Config } from 'wagmi';
-	import type { Writable } from 'svelte/store';
-	import type { DotrainOrderGui, OrderIO } from '@rainlanguage/orderbook/js_api';
-	import type { DeploymentArgs } from '@rainlanguage/ui-components';
-	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	export let open: boolean = false;
-	export let gui: DotrainOrderGui;
-	export let allTokenOutputs: OrderIO[];
-	export let wagmiConfig: Writable<Config | undefined>;
-	export let subgraphUrl: string;
-	export let handleDeployModal: (args: DeploymentArgs) => void;
-	let result: HandleAddOrderResult | null = null;
-
-	let error: string | null = null;
-	let errorDetails: string | null = null;
-	let deployButtonText: 'Loading...' | 'Deploy' | 'Error' = 'Loading...';
-
-	const handleOpenModal = async () => {
-		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
-			deployButtonText = 'Deploy';
-		} catch (e) {
-			deployButtonText = 'Error';
-			error = 'Error getting deployment transaction data:';
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	};
-
-	$: if (open === true) {
-		handleOpenModal();
-	}
+	export let onAccept: () => void;
 
 	async function handleAcceptDisclaimer() {
-		if (!result) {
-			error = 'No result found';
-			return;
-		} else {
-			open = false;
-			handleDeployModal({ ...result, subgraphUrl: subgraphUrl });
-		}
+		open = false;
+		onAccept();
 	}
 </script>
 
-<Modal bind:open>
-	<div class="flex flex-col items-start gap-y-4">
+<Modal bind:open class="dark:border dark:border-gray-700 dark:bg-gray-900">
+	<div class="flex flex-col items-start gap-y-8 p-4">
 		<div class="space-y-4">
 			<Alert color="red" class="text-base">
 				<div class="flex items-center justify-center">
@@ -56,7 +21,7 @@
 					</span>
 				</div>
 			</Alert>
-			<ul class="list-outside list-disc space-y-2 text-gray-700">
+			<ul class="list-outside list-disc space-y-2">
 				<li class="ml-4">
 					This front end is provided as a tool to interact with the Raindex smart contracts.
 				</li>
@@ -74,25 +39,13 @@
 				<li class="ml-4">Do not invest unless you are prepared to lose all funds.</li>
 			</ul>
 		</div>
-		<div class="flex gap-2">
+		<div class="flex justify-center gap-2">
 			<Button
 				size="lg"
-				class="w-32"
-				color="green"
-				disabled={!result}
-				on:click={handleAcceptDisclaimer}
+				class="w-32 bg-gradient-to-br from-blue-600 to-violet-600"
+				on:click={handleAcceptDisclaimer}>Deploy</Button
 			>
-				{deployButtonText}
-			</Button>
-			<Button size="lg" class="w-32" color="red" on:click={() => (open = false)}>Cancel</Button>
-		</div>
-		<div class="flex flex-col">
-			{#if error}
-				<span class="ml-2 text-red-500">{error}</span>
-			{/if}
-			{#if errorDetails}
-				<span class="ml-2 text-red-500">{errorDetails}</span>
-			{/if}
+			<Button size="lg" class="w-32" color="light" on:click={() => (open = false)}>Cancel</Button>
 		</div>
 	</div>
 </Modal>

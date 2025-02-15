@@ -65,7 +65,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border lg:hidden dark:border-gray-700"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
@@ -104,7 +104,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<WalletConnect {appKitModal} {connected} />
+				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem

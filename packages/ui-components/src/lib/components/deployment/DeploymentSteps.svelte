@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { Alert } from 'flowbite-svelte';
 	import TokenIOSection from './TokenIOSection.svelte';
 	import DepositsSection from './DepositsSection.svelte';
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource } from '../../typeshare/config';
-
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -16,7 +16,7 @@
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button, Toggle } from 'flowbite-svelte';
+	import { Button, Toggle, Spinner } from 'flowbite-svelte';
 	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
@@ -27,7 +27,8 @@
 	import DisclaimerModal from './DisclaimerModal.svelte';
 	import type { ComponentProps } from 'svelte';
 	import type { DeploymentArgs } from '$lib/types/transaction';
-
+	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
+	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -47,7 +48,7 @@
 	export let deployment: GuiDeployment;
 
 	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: ComponentProps<DisclaimerModal>) => void;
+	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
@@ -57,6 +58,7 @@
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
+	let checkingDeployment: boolean = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let networkKey: string | null = null;
@@ -186,6 +188,9 @@
 	}
 
 	async function handleDeployButtonClick() {
+		error = null;
+		errorDetails = null;
+
 		if (!gui) {
 			error = DeploymentStepErrors.NO_GUI;
 			return;
@@ -199,13 +204,34 @@
 			return;
 		}
 
-		handleDisclaimerModal({
-			gui,
-			allTokenOutputs,
-			wagmiConfig,
-			subgraphUrl,
-			handleDeployModal
-		});
+		let result: HandleAddOrderResult | null = null;
+
+		checkingDeployment = true;
+
+		try {
+			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+		} catch (e) {
+			checkingDeployment = false;
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		}
+
+		if (!result) {
+			checkingDeployment = false;
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			return;
+		}
+
+		checkingDeployment = false;
+
+		const onAccept = () => {
+			handleDeployModal({
+				...result,
+				subgraphUrl: subgraphUrl
+			});
+		};
+
+		handleDisclaimerModal({ onAccept });
 	}
 
 	const areAllTokensSelected = async () => {
@@ -270,23 +296,36 @@
 						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
-					<div class="flex gap-2">
-						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleDeployButtonClick}>Deploy Strategy</Button>
-							<ComposedRainlangModal {gui} />
-						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
-						{/if}
-						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
-
-						<div class="flex flex-col">
+					{#if error || errorDetails}
+						<Alert color="red">
 							{#if error}
 								<p class="text-red-500">{error}</p>
 							{/if}
 							{#if errorDetails}
 								<p class="text-red-500">{errorDetails}</p>
 							{/if}
-						</div>
+						</Alert>
+					{/if}
+
+					<div class="flex items-start justify-start gap-2">
+						{#if $wagmiConnected}
+							<Button
+								size="lg"
+								on:click={handleDeployButtonClick}
+								class="bg-gradient-to-br from-blue-600 to-violet-600"
+							>
+								{#if checkingDeployment}
+									<Spinner size="4" color="white" />
+									<span class="ml-2">Checking deployment...</span>
+								{:else}
+									Deploy Strategy
+								{/if}
+							</Button>
+						{:else}
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
+						{/if}
+						<ComposedRainlangModal {gui} />
+						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
 					</div>
 				{/if}
 			</div>
