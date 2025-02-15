@@ -27,6 +27,8 @@
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '$lib/services/handleShareChoices';
+	import DisclaimerModal from './DisclaimerModal.svelte';
+	import type { ComponentProps } from 'svelte';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -55,13 +57,7 @@
 	};
 
 	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: {
-		gui: DotrainOrderGui;
-		allTokenOutputs: OrderIO[];
-		wagmiConfig: Writable<Config | undefined>;
-		subgraphUrl: string;
-		handleDeployModal: (args: DeploymentArgs) => void;
-	}) => void;
+	export let handleDisclaimerModal: (args: ComponentProps<DisclaimerModal>) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
