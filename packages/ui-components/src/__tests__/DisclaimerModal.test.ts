@@ -5,7 +5,7 @@ import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDe
 import { writable } from 'svelte/store';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { OrderIO } from '@rainlanguage/orderbook/js_api';
-
+import type { DeploymentArgs } from '../lib/types/transaction';
 vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
@@ -14,7 +14,7 @@ describe('DisclaimerModal', () => {
 	const mockGui = {} as DotrainOrderGui;
 	const mockOutputs = [] as OrderIO[];
 	const mockWagmiConfig = writable(undefined);
-	const mockHandleDeployModal = vi.fn();
+	const mockHandleDeployModal = vi.fn() as unknown as (args: DeploymentArgs) => void;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -35,6 +35,7 @@ describe('DisclaimerModal', () => {
 				gui: mockGui,
 				allTokenOutputs: mockOutputs,
 				wagmiConfig: mockWagmiConfig,
+				subgraphUrl: 'https://example.com',
 				handleDeployModal: mockHandleDeployModal
 			}
 		});
@@ -52,6 +53,7 @@ describe('DisclaimerModal', () => {
 				gui: mockGui,
 				allTokenOutputs: mockOutputs,
 				wagmiConfig: mockWagmiConfig,
+				subgraphUrl: 'https://example.com',
 				handleDeployModal: mockHandleDeployModal
 			}
 		});
@@ -67,7 +69,8 @@ describe('DisclaimerModal', () => {
 			approvals: {},
 			deploymentCalldata: {},
 			orderbookAddress: '0x123',
-			chainId: 1
+			chainId: 1,
+			subgraphUrl: 'https://example.com'
 		};
 		(getDeploymentTransactionArgs as Mock).mockResolvedValue(mockResult);
 
@@ -77,6 +80,7 @@ describe('DisclaimerModal', () => {
 				gui: mockGui,
 				allTokenOutputs: mockOutputs,
 				wagmiConfig: mockWagmiConfig,
+				subgraphUrl: 'https://example.com',
 				handleDeployModal: mockHandleDeployModal
 			}
 		});

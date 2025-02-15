@@ -7,7 +7,6 @@
 	import type { DotrainOrderGui, OrderIO } from '@rainlanguage/orderbook/js_api';
 	import type { DeploymentArgs } from '@rainlanguage/ui-components';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
-	import type { DeploymentArgs } from '$lib/types/transaction';
 	export let open: boolean = false;
 	export let gui: DotrainOrderGui;
 	export let allTokenOutputs: OrderIO[];
