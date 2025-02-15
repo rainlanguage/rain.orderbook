@@ -204,6 +204,11 @@
 			return;
 		}
 
+		if (!networkKey) {
+			error = DeploymentStepErrors.NO_CHAIN;
+			return;
+		}
+
 		let result: HandleAddOrderResult | null = null;
 
 		checkingDeployment = true;
@@ -225,9 +230,15 @@
 		checkingDeployment = false;
 
 		const onAccept = () => {
+			if (!networkKey) {
+				error = DeploymentStepErrors.NO_CHAIN;
+				return;
+			}
+
 			handleDeployModal({
 				...result,
-				subgraphUrl: subgraphUrl
+				subgraphUrl: subgraphUrl,
+				network: networkKey
 			});
 		};
 

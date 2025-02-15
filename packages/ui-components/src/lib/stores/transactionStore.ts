@@ -50,7 +50,7 @@ export type DeploymentTransactionArgs = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
-	network?: string;
+	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
