@@ -2,7 +2,7 @@
 	import { Alert, Modal, Button } from 'flowbite-svelte';
 	import { ExclamationCircleSolid } from 'flowbite-svelte-icons';
 	export let open: boolean = false;
-	export let onAccept: () => void;
+	export let onAccept: () => void = () => {};
 
 	async function handleAcceptDisclaimer() {
 		open = false;
