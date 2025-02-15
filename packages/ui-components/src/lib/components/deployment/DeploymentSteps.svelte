@@ -50,6 +50,7 @@
 		orderbookAddress: Hex;
 		chainId: number;
 		subgraphUrl: string;
+		network: string;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
@@ -164,7 +165,8 @@
 
 	async function handleAddOrder() {
 		try {
-			if (!gui || !$wagmiConfig) return;
+			if (!gui || !$wagmiConfig || !networkKey)
+				throw new Error(DeploymentStepErrors.ADD_ORDER_FAILED);
 			const { address } = getAccount($wagmiConfig);
 			if (!address) return;
 			let approvals = await gui.generateApprovalCalldatas(address);
@@ -189,7 +191,8 @@
 				deploymentCalldata,
 				orderbookAddress,
 				chainId,
-				subgraphUrl
+				subgraphUrl,
+				network: networkKey
 			});
 		} catch (e) {
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
