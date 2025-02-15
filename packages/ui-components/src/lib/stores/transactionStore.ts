@@ -50,7 +50,7 @@ export type DeploymentTransactionArgs = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
-	network: string;
+	network?: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -141,7 +141,7 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network: string) => {
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,

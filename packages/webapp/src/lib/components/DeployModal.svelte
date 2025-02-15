@@ -14,7 +14,7 @@
 	export let orderbookAddress: Hex;
 	export let chainId: number;
 	export let subgraphUrl: string;
-	export let network: string;
+	export let network: string | undefined = undefined;
 
 	const messages = {
 		success: 'Your strategy was successfully deployed.',
