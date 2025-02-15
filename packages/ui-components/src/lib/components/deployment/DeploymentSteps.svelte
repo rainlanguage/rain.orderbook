@@ -45,25 +45,22 @@
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: GuiDeployment;
-	export let handleDeployModal: (args: {
+
+	type DeploymentArgs = {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
 		subgraphUrl: string;
-	}) => void;
+	};
+
+	export let handleDeployModal: (args: DeploymentArgs) => void;
 	export let handleDisclaimerModal: (args: {
 		gui: DotrainOrderGui;
 		allTokenOutputs: OrderIO[];
 		wagmiConfig: Writable<Config | undefined>;
 		subgraphUrl: string;
-		handleDeployModal: (args: {
-			approvals: ApprovalCalldataResult;
-			deploymentCalldata: DepositAndAddOrderCalldataResult;
-			orderbookAddress: Hex;
-			chainId: number;
-			subgraphUrl: string;
-		}) => void;
+		handleDeployModal: (args: DeploymentArgs) => void;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
@@ -76,7 +73,6 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
-	let showDisclaimerModal = false;
 	let networkKey: string | null = null;
 	let subgraphUrl: string = '';
 
