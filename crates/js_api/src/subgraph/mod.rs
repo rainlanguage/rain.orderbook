@@ -8,6 +8,7 @@ use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
 
 pub mod order;
+pub mod transaction;
 pub mod vault;
 
 #[derive(Error, Debug)]

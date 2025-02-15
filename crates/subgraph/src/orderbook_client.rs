@@ -8,6 +8,7 @@ use crate::types::order::{
     OrdersListQuery,
 };
 use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
+use crate::types::transaction::TransactionDetailQuery;
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
@@ -25,6 +26,8 @@ pub enum OrderbookSubgraphClientError {
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
     Empty,
+    #[error("Request timed out")]
+    RequestTimedOut,
     #[error(transparent)]
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
@@ -378,5 +381,18 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
+    }
+
+    pub async fn transaction_detail(
+        &self,
+        id: Id,
+    ) -> Result<Transaction, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<TransactionDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .await?;
+        let transaction = data
+            .transaction
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        Ok(transaction)
     }
 }

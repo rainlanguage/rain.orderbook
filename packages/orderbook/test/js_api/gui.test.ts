@@ -23,10 +23,12 @@ const guiConfig = `
 gui:
   name: Fixed limit
   description: Fixed limit order strategy
+  short-description: Buy WETH with USDC on Base.
   deployments:
     some-deployment:
       name: Buy WETH with USDC on Base.
       description: Buy WETH with USDC for fixed price on Base network.
+      short-description: Buy WETH with USDC on Base.
       deposits:
         - token: token1
           min: 0
@@ -374,6 +376,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
 		assert.equal(strategyDetails.name, 'Fixed limit');
 		assert.equal(strategyDetails.description, 'Fixed limit order strategy');
+		assert.equal(strategyDetails.short_description, 'Buy WETH with USDC on Base.');
 	});
 
 	it('should get deployment details', async () => {
@@ -1391,6 +1394,11 @@ ${dotrainWithoutVaultIds}`;
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
 				"Missing required field 'tokens' in root"
 			);
+		});
+
+		it('should get network key', async () => {
+			const networkKey = gui.getNetworkKey();
+			assert.equal(networkKey, 'some-network');
 		});
 	});
 });

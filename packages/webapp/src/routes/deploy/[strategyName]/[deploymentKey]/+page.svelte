@@ -1,31 +1,37 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentPage } from '@rainlanguage/ui-components';
+	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal } from '$lib/services/modal';
 	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
-	const { dotrain, key, name, description } = $page.data;
+	const { settings } = $page.data.stores;
+	const { dotrain, deployment } = $page.data;
 
-	if (!dotrain || !key) {
+	if (!dotrain || !deployment) {
 		setTimeout(() => {
 			goto('/deploy');
 		}, 5000);
 	}
+
+	const stateFromUrl = $page.url.searchParams.get('state') || '';
 </script>
 
-{#if !dotrain || !key}
+<PageHeader title={$page.data.deployment.name || 'Deploy'} pathname={$page.url.pathname}
+></PageHeader>
+
+{#if !dotrain || !deployment}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else}
-	<DeploymentPage
+	<DeploymentSteps
 		{dotrain}
-		{key}
-		{name}
-		{description}
+		{deployment}
 		{wagmiConfig}
 		wagmiConnected={connected}
 		{appKitModal}
 		{handleDeployModal}
+		{settings}
+		{stateFromUrl}
 		{handleUpdateGuiState}
 	/>
 {/if}

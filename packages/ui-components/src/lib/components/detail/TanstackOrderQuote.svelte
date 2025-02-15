@@ -40,7 +40,7 @@
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
-		queryKey: [QKEY_ORDER_QUOTE + id],
+		queryKey: [QKEY_ORDER_QUOTE + id, id],
 		queryFn: () => getOrderQuote([order], rpcUrl),
 		enabled: !!id && enabled,
 		refetchInterval: 10000

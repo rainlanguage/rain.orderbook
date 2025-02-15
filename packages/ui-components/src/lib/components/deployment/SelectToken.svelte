@@ -14,9 +14,13 @@
 	let checking = false;
 
 	onMount(async () => {
-		tokenInfo = await gui?.getTokenInfo(token.key);
-		if (tokenInfo?.address) {
-			inputValue = tokenInfo.address;
+		try {
+			tokenInfo = await gui?.getTokenInfo(token.key);
+			if (tokenInfo?.address) {
+				inputValue = tokenInfo.address;
+			}
+		} catch {
+			// do nothing
 		}
 	});
 
