@@ -1212,6 +1212,16 @@ ${dotrainWithoutVaultIds}`;
 			const vaultIds: IOVaultIds = gui.getVaultIds();
 			assert.equal(vaultIds.get('input')?.[0], '0x123');
 			assert.equal(vaultIds.get('output')?.[0], '0x234');
+
+			gui.setVaultId(true, 0, undefined);
+			assert.equal(gui.getVaultIds().get('input')?.[0], undefined);
+
+			gui.setVaultId(false, 0, '');
+			assert.equal(gui.getVaultIds().get('output')?.[0], undefined);
+
+			expect(() => gui.setVaultId(true, 0, 'test')).toThrow(
+				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+			);
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {
