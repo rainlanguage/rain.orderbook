@@ -75,7 +75,7 @@ impl Order {
             if v.is_empty() {
                 None
             } else {
-                match Order::validate_vault_id(&v) {
+                match Order::validate_vault_id(v) {
                     Ok(id) => Some(id),
                     Err(e) => {
                         return Err(YamlError::Field {
