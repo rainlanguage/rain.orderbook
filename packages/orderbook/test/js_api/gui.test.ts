@@ -391,6 +391,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
 	});
 
+	it('should get deployment detail', async () => {
+		const deploymentDetail: NameAndDescription = await DotrainOrderGui.getDeploymentDetail(
+			dotrainWithGui,
+			'other-deployment'
+		);
+		assert.equal(deploymentDetail.name, 'Test test');
+		assert.equal(deploymentDetail.description, 'Test test test');
+	});
+
 	it('should get token infos', async () => {
 		mockServer
 			.forPost('/rpc-url')
@@ -1203,6 +1212,16 @@ ${dotrainWithoutVaultIds}`;
 			const vaultIds: IOVaultIds = gui.getVaultIds();
 			assert.equal(vaultIds.get('input')?.[0], '0x123');
 			assert.equal(vaultIds.get('output')?.[0], '0x234');
+
+			gui.setVaultId(true, 0, undefined);
+			assert.equal(gui.getVaultIds().get('input')?.[0], undefined);
+
+			gui.setVaultId(false, 0, '');
+			assert.equal(gui.getVaultIds().get('output')?.[0], undefined);
+
+			expect(() => gui.setVaultId(true, 0, 'test')).toThrow(
+				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+			);
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {

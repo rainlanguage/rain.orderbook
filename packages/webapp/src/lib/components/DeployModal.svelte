@@ -14,6 +14,7 @@
 	export let orderbookAddress: Hex;
 	export let chainId: number;
 	export let subgraphUrl: string;
+	export let network: string;
 
 	const messages = {
 		success: 'Your strategy was successfully deployed.',
@@ -27,7 +28,8 @@
 		deploymentCalldata,
 		orderbookAddress,
 		chainId,
-		subgraphUrl
+		subgraphUrl,
+		network
 	});
 </script>
 

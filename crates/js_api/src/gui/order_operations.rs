@@ -310,7 +310,7 @@ impl DotrainOrderGui {
         &mut self,
         is_input: bool,
         index: u8,
-        vault_id: String,
+        vault_id: Option<String>,
     ) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.dotrain_order

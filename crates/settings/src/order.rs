@@ -69,9 +69,32 @@ impl Order {
         &mut self,
         is_input: bool,
         index: u8,
-        vault_id: String,
+        vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
-        let new_vault_id = Order::validate_vault_id(&vault_id)?;
+        let new_vault_id = if let Some(ref v) = vault_id {
+            if v.is_empty() {
+                None
+            } else {
+                match Order::validate_vault_id(v) {
+                    Ok(id) => Some(id),
+                    Err(e) => {
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "vault-id".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: format!(
+                                "index '{index}' of {} in order '{}'",
+                                if is_input { "inputs" } else { "outputs" },
+                                self.key
+                            ),
+                        });
+                    }
+                }
+            }
+        } else {
+            None
+        };
 
         let mut document = self
             .document
@@ -91,14 +114,23 @@ impl Order {
                     {
                         if let Some(item) = vec.get_mut(index as usize) {
                             if let StrictYaml::Hash(ref mut item_hash) = item {
-                                item_hash.insert(
-                                    StrictYaml::String("vault-id".to_string()),
-                                    StrictYaml::String(vault_id.to_string()),
-                                );
-                                if is_input {
-                                    self.inputs[index as usize].vault_id = Some(new_vault_id);
+                                if let Some(vault_id) = new_vault_id {
+                                    item_hash.insert(
+                                        StrictYaml::String("vault-id".to_string()),
+                                        StrictYaml::String(vault_id.to_string()),
+                                    );
+                                    if is_input {
+                                        self.inputs[index as usize].vault_id = Some(vault_id);
+                                    } else {
+                                        self.outputs[index as usize].vault_id = Some(vault_id);
+                                    }
                                 } else {
-                                    self.outputs[index as usize].vault_id = Some(new_vault_id);
+                                    item_hash.remove(&StrictYaml::String("vault-id".to_string()));
+                                    if is_input {
+                                        self.inputs[index as usize].vault_id = None;
+                                    } else {
+                                        self.outputs[index as usize].vault_id = None;
+                                    }
                                 }
                             } else {
                                 return Err(YamlError::Field {
@@ -767,7 +799,7 @@ pub enum ParseOrderConfigSourceError {
         expected: String,
         found: String,
     },
-    #[error("Failed to parse vault {}", 0)]
+    #[error("Failed to parse vault id")]
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 

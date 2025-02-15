@@ -237,15 +237,19 @@
 	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
-				allTokensSelected = gui?.areAllTokensSelected();
+				allTokensSelected = gui.areAllTokensSelected();
 				if (!allTokensSelected) return;
 
-				const vaultIds = gui?.getVaultIds();
-				const inputVaultIds = vaultIds?.get('input');
-				const outputVaultIds = vaultIds?.get('output');
 				// if we have deposits or vault ids set, show advanced options
-				const deposits = gui?.getDeposits();
-				if (deposits || inputVaultIds || outputVaultIds) {
+				const vaultIds = gui.getVaultIds();
+				const inputVaultIds = vaultIds.get('input');
+				const outputVaultIds = vaultIds.get('output');
+				const deposits = gui.getDeposits();
+				if (
+					deposits.length > 0 ||
+					(inputVaultIds && inputVaultIds.some((v) => v)) ||
+					(outputVaultIds && outputVaultIds.some((v) => v))
+				) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
