@@ -13,8 +13,6 @@
 		type GuiFieldDefinition,
 		type GuiDeployment,
 		type OrderIO,
-		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult,
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
@@ -22,7 +20,6 @@
 	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
