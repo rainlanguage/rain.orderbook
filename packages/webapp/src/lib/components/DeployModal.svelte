@@ -8,7 +8,7 @@
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import TransactionModal from './TransactionModal.svelte';
 
-	export let open: boolean;
+	export let open: boolean = false;
 	export let approvals: ApprovalCalldataResult;
 	export let deploymentCalldata: DepositAndAddOrderCalldataResult;
 	export let orderbookAddress: Hex;

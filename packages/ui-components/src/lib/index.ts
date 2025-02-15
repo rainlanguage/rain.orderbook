@@ -62,6 +62,7 @@ export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
+export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -71,6 +72,7 @@ export {
 	TransactionErrorMessage,
 	type TransactionState
 } from './stores/transactionStore';
+export type { DeploymentArgs } from './types/transaction';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

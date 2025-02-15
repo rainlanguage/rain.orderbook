@@ -141,7 +141,7 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network: string) => {
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,

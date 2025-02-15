@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
-	import { handleDeployModal } from '$lib/services/modal';
+	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment } = $page.data;
@@ -33,5 +33,6 @@
 		{settings}
 		{stateFromUrl}
 		{handleUpdateGuiState}
+		{handleDisclaimerModal}
 	/>
 {/if}
