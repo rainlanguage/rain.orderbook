@@ -632,6 +632,11 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
 				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
@@ -661,6 +666,11 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
 				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
@@ -690,6 +700,11 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
 				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
@@ -730,6 +745,11 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
 				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
@@ -768,6 +788,11 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
 				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,

@@ -13,7 +13,8 @@
 		type GuiFieldDefinition,
 		type GuiDeployment,
 		type OrderIO,
-		type SelectTokens
+		type SelectTokens,
+		type NameAndDescription
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -46,6 +47,7 @@
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: GuiDeployment;
+	export let strategyDetail: NameAndDescription;
 
 	export let handleDeployModal: (args: DeploymentArgs) => void;
 	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
@@ -284,7 +286,7 @@
 				{#if deployment}
 					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{deployment.name}
+							{strategyDetail.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
 							{deployment.description}

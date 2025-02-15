@@ -6,7 +6,7 @@
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
 	const { settings } = $page.data.stores;
-	const { dotrain, deployment } = $page.data;
+	const { dotrain, deployment, strategyDetail } = $page.data;
 
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
@@ -24,6 +24,7 @@
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else}
 	<DeploymentSteps
+		{strategyDetail}
 		{dotrain}
 		{deployment}
 		{wagmiConfig}
