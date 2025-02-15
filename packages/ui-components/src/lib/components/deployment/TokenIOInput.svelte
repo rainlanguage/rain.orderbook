@@ -42,6 +42,7 @@
 
 	const handleInput = async () => {
 		const isInput = label === 'Input';
+		error = '';
 		try {
 			gui?.setVaultId(isInput, i, inputValue);
 			handleUpdateGuiState(gui);
