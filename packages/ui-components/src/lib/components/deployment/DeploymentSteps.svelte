@@ -29,6 +29,7 @@
 	import { handleShareChoices } from '$lib/services/handleShareChoices';
 	import DisclaimerModal from './DisclaimerModal.svelte';
 	import type { ComponentProps } from 'svelte';
+	import type { DeploymentArgs } from '$lib/types/transaction';
 
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
@@ -47,14 +48,6 @@
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: GuiDeployment;
-
-	type DeploymentArgs = {
-		approvals: ApprovalCalldataResult;
-		deploymentCalldata: DepositAndAddOrderCalldataResult;
-		orderbookAddress: Hex;
-		chainId: number;
-		subgraphUrl: string;
-	};
 
 	export let handleDeployModal: (args: DeploymentArgs) => void;
 	export let handleDisclaimerModal: (args: ComponentProps<DisclaimerModal>) => void;

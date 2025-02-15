@@ -72,6 +72,7 @@ export {
 	TransactionErrorMessage,
 	type TransactionState
 } from './stores/transactionStore';
+export type { DeploymentArgs } from './types/transaction';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

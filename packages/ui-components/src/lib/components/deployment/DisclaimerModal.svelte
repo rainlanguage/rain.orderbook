@@ -4,26 +4,16 @@
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { Config } from 'wagmi';
 	import type { Writable } from 'svelte/store';
-	import type {
-		ApprovalCalldataResult,
-		DepositAndAddOrderCalldataResult,
-		DotrainOrderGui,
-		OrderIO
-	} from '@rainlanguage/orderbook/js_api';
-	import type { Hex } from 'viem';
+	import type { DotrainOrderGui, OrderIO } from '@rainlanguage/orderbook/js_api';
+	import type { DeploymentArgs } from '@rainlanguage/ui-components';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
+	import type { DeploymentArgs } from '$lib/types/transaction';
 	export let open: boolean = false;
 	export let gui: DotrainOrderGui;
 	export let allTokenOutputs: OrderIO[];
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let subgraphUrl: string;
-	export let handleDeployModal: (args: {
-		approvals: ApprovalCalldataResult;
-		deploymentCalldata: DepositAndAddOrderCalldataResult;
-		orderbookAddress: Hex;
-		chainId: number;
-		subgraphUrl: string;
-	}) => void;
+	export let handleDeployModal: (args: DeploymentArgs) => void;
 	let result: HandleAddOrderResult | null = null;
 
 	let error: string | null = null;
