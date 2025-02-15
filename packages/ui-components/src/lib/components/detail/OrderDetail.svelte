@@ -34,6 +34,7 @@
 				action: 'deposit' | 'withdraw';
 				chainId: number;
 				rpcUrl: string;
+				subgraphUrl: string;
 		  }) => void)
 		| undefined = undefined;
 	export let handleOrderRemoveModal:
@@ -73,7 +74,9 @@
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id),
+		queryFn: () => {
+			return getOrder(subgraphUrl, id);
+		},
 		enabled: !!subgraphUrl
 	});
 
@@ -162,6 +165,7 @@
 													{rpcUrl}
 													query={orderDetailQuery}
 													{handleDepositOrWithdrawModal}
+													{subgraphUrl}
 												/>
 											{/if}
 										</svelte:fragment>
@@ -188,7 +192,7 @@
 		<Tabs
 			style="underline"
 			contentClass="mt-4"
-			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4"
+			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
 			<TabItem title="Rainlang source">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">

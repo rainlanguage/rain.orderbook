@@ -4,12 +4,13 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
+	import { type ConfigSource } from '../../typeshare/config';
+
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
 		type GuiDeposit,
 		type GuiFieldDefinition,
-		type NameAndDescription,
 		type GuiDeployment,
 		type OrderIO,
 		type ApprovalCalldataResult,
@@ -25,6 +26,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { handleShareChoices } from '$lib/services/handleShareChoices';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -39,17 +41,18 @@
 		SERIALIZE_ERROR = 'Error serializing state',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
-
+	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: string;
-	export let deploymentDetails: NameAndDescription;
+	export let deployment: GuiDeployment;
 	export let handleDeployModal: (args: {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
@@ -59,6 +62,8 @@
 	let gui: DotrainOrderGui | null = null;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let networkKey: string | null = null;
+	let subgraphUrl: string = '';
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -66,7 +71,7 @@
 	export let stateFromUrl: string | null = null;
 
 	$: if (deployment) {
-		handleDeploymentChange(deployment);
+		handleDeploymentChange(deployment.key);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -78,8 +83,10 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
+				networkKey = await gui.getNetworkKey();
+				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 				try {
-					selectTokens = await gui.getSelectTokens();
+					selectTokens = gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -181,7 +188,8 @@
 				approvals,
 				deploymentCalldata,
 				orderbookAddress,
-				chainId
+				chainId,
+				subgraphUrl
 			});
 		} catch (e) {
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
@@ -189,9 +197,9 @@
 		}
 	}
 
-	async function handleShareChoices() {
-		// copy the current url to the clipboard
-		navigator.clipboard.writeText($page.url.toString());
+	async function _handleShareChoices() {
+		if (!gui) return;
+		await handleShareChoices(gui);
 	}
 
 	onMount(async () => {
@@ -220,6 +228,8 @@
 		if (gui) {
 			try {
 				allTokensSelected = gui?.areAllTokensSelected();
+				if (!allTokensSelected) return;
+
 				const vaultIds = gui?.getVaultIds();
 				const inputVaultIds = vaultIds?.get('input');
 				const outputVaultIds = vaultIds?.get('output');
@@ -246,13 +256,13 @@
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deploymentDetails}
+				{#if deployment}
 					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
 						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{deploymentDetails.name}
+							{deployment.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deploymentDetails.description}
+							{deployment.description}
 						</p>
 					</div>
 				{/if}
@@ -283,7 +293,7 @@
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
-						<ShareChoicesButton {handleShareChoices} />
+						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
 
 						<div class="flex flex-col">
 							{#if error}
