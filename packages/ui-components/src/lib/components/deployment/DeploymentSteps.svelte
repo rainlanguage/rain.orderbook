@@ -4,6 +4,8 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
+	import { type ConfigSource } from '../../typeshare/config';
+
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -41,7 +43,7 @@
 		SERIALIZE_ERROR = 'Error serializing state',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
-
+	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: GuiDeployment;
 	export let handleDeployModal: (args: {
@@ -49,6 +51,7 @@
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
 		orderbookAddress: Hex;
 		chainId: number;
+		subgraphUrl: string;
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
@@ -62,6 +65,8 @@
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let showDisclaimerModal = false;
+	let networkKey: string | null = null;
+	let subgraphUrl: string = '';
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -81,8 +86,10 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
+				networkKey = await gui.getNetworkKey();
+				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 				try {
-					selectTokens = await gui.getSelectTokens();
+					selectTokens = gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -160,6 +167,38 @@
 
 	async function handleAddOrderClick() {
 		showDisclaimerModal = true;
+		try {
+			if (!gui || !$wagmiConfig) return;
+			const { address } = getAccount($wagmiConfig);
+			if (!address) return;
+			let approvals = await gui.generateApprovalCalldatas(address);
+			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
+			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
+			// @ts-expect-error orderbook is not typed
+			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
+			const outputTokenInfos = await Promise.all(
+				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
+			);
+
+			approvals = approvals.map((approval) => {
+				const token = outputTokenInfos.find((token) => token?.address === approval.token);
+				return {
+					...approval,
+					symbol: token?.symbol
+				};
+			});
+
+			handleDeployModal({
+				approvals,
+				deploymentCalldata,
+				orderbookAddress,
+				chainId,
+				subgraphUrl
+			});
+		} catch (e) {
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		}
 	}
 
 	async function _handleShareChoices() {
@@ -193,6 +232,8 @@
 		if (gui) {
 			try {
 				allTokensSelected = gui?.areAllTokensSelected();
+				if (!allTokensSelected) return;
+
 				const vaultIds = gui?.getVaultIds();
 				const inputVaultIds = vaultIds?.get('input');
 				const outputVaultIds = vaultIds?.get('output');

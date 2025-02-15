@@ -6,6 +6,7 @@ import { DotrainOrderGui, type Scenario } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
+import type { ConfigSource } from '../lib/typeshare/config';
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
@@ -622,7 +623,8 @@ describe('DeploymentSteps', () => {
 	it('shows deployment details when provided', async () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -633,6 +635,7 @@ describe('DeploymentSteps', () => {
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -646,7 +649,8 @@ describe('DeploymentSteps', () => {
 		const mockSelectTokens = ['token1', 'token2'];
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => mockSelectTokens,
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -657,6 +661,7 @@ describe('DeploymentSteps', () => {
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -682,6 +687,7 @@ describe('DeploymentSteps', () => {
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -706,7 +712,8 @@ describe('DeploymentSteps', () => {
 				deposits: []
 			}),
 			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -717,6 +724,7 @@ describe('DeploymentSteps', () => {
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -739,7 +747,8 @@ describe('DeploymentSteps', () => {
 				deposits: []
 			}),
 			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
@@ -750,6 +759,7 @@ describe('DeploymentSteps', () => {
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn(),
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});

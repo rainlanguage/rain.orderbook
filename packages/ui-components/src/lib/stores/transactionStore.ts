@@ -6,10 +6,12 @@ import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
+	Transaction,
 	RemoveOrderCalldata,
 	Vault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
+import { getTransaction } from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -20,6 +22,7 @@ export enum TransactionStatus {
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
 	PENDING_DEPLOYMENT = 'Deploying your strategy...',
+	PENDING_SUBGRAPH = 'Awaiting subgraph...',
 	SUCCESS = 'Success! Transaction confirmed',
 	ERROR = 'Something went wrong'
 }
@@ -46,6 +49,7 @@ export type DeploymentTransactionArgs = {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+	subgraphUrl: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -55,6 +59,7 @@ export type DepositOrWithdrawTransactionArgs = {
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	vault: Vault;
+	subgraphUrl: string;
 };
 
 export type RemoveOrderTransactionArgs = {
@@ -99,6 +104,38 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
+	const awaitTransactionIndexing = async (
+		subgraphUrl: string,
+		txHash: string,
+		successMessage: string
+	) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Checking for transaction indexing...'
+		}));
+
+		let attempts = 0;
+		let newTx: Transaction;
+
+		const interval: NodeJS.Timeout = setInterval(async () => {
+			attempts++;
+
+			newTx = await getTransaction(subgraphUrl, txHash);
+			if (newTx) {
+				clearInterval(interval);
+				transactionSuccess(txHash, successMessage);
+			} else if (attempts >= 10) {
+				update((state) => ({
+					...state,
+					message: 'The subgraph took too long to respond. Please check again later.'
+				}));
+				clearInterval(interval);
+				return transactionError(TransactionErrorMessage.TIMEOUT);
+			}
+		}, 1000);
+	};
+
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({
 			...state,
@@ -123,15 +160,16 @@ const transactionStore = () => {
 			...state,
 			hash: hash,
 			status: TransactionStatus.PENDING_DEPLOYMENT,
-			message: ''
+			message: 'Confirming transaction...'
 		}));
-	const transactionSuccess = (hash: string, message?: string) =>
+	const transactionSuccess = (hash: string, message?: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
 			hash: hash,
 			message: message || ''
 		}));
+	};
 	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
@@ -145,7 +183,8 @@ const transactionStore = () => {
 		approvals,
 		deploymentCalldata,
 		orderbookAddress,
-		chainId
+		chainId,
+		subgraphUrl
 	}: DeploymentTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -186,7 +225,11 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Strategy deployed successfully.');
+			if (subgraphUrl === '') {
+				return transactionSuccess(hash, `Strategy deployed successfully.`);
+			} else {
+				return awaitTransactionIndexing(subgraphUrl, hash, `Strategy deployed successfully.`);
+			}
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
@@ -198,7 +241,8 @@ const transactionStore = () => {
 		transactionCalldata,
 		action,
 		chainId,
-		vault
+		vault,
+		subgraphUrl
 	}: DepositOrWithdrawTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -238,9 +282,10 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(
+			return awaitTransactionIndexing(
+				subgraphUrl,
 				hash,
-				`${action === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`
+				`The ${action === 'deposit' ? 'deposit' : 'withdrawal'} was successful.`
 			);
 		} catch {
 			return transactionError(
@@ -293,7 +338,8 @@ const transactionStore = () => {
 		awaitWalletConfirmation,
 		awaitApprovalTx,
 		transactionSuccess,
-		transactionError
+		transactionError,
+		awaitTransactionIndexing
 	};
 };
 

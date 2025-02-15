@@ -5,6 +5,7 @@
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal } from '$lib/services/modal';
 	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
+	const { settings } = $page.data.stores;
 	const { dotrain, deployment } = $page.data;
 
 	if (!dotrain || !deployment) {
@@ -29,6 +30,7 @@
 		wagmiConnected={connected}
 		{appKitModal}
 		{handleDeployModal}
+		{settings}
 		{stateFromUrl}
 		{handleUpdateGuiState}
 	/>
