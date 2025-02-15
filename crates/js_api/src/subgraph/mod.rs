@@ -7,6 +7,7 @@ use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
 
+pub mod add_order;
 pub mod order;
 pub mod transaction;
 pub mod vault;

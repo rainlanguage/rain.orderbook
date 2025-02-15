@@ -16,6 +16,7 @@ export type DeployModalProps = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
+	network: string;
 };
 
 export type DepositOrWithdrawModalProps = {
