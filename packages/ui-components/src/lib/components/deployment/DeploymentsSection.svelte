@@ -27,7 +27,9 @@
 </script>
 
 {#if deployments.length > 0}
-	<div class="mr-auto grid grid-cols-1 justify-items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+	<div
+		class="mr-auto grid w-full grid-cols-1 justify-items-start gap-4 md:grid-cols-2 lg:w-auto lg:grid-cols-3"
+	>
 		{#each deployments as { key, name, description }}
 			<DeploymentTile {name} {description} {key} {strategyName} />
 		{/each}

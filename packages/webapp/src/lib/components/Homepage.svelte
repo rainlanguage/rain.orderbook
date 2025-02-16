@@ -16,7 +16,6 @@
 			<div class="flex h-full flex-row items-center gap-x-2 dark:text-gray-100 md:gap-x-6">
 				<a href="https://docs.rainlang.xyz/raindex/overview">Docs</a>
 				<a href="/deploy">Dashboard</a>
-				<WalletConnect {appKitModal} {connected} />
 			</div>
 		</div>
 	</div>
