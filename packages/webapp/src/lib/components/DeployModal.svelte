@@ -1,15 +1,12 @@
 <script lang="ts">
-	import { transactionStore } from '@rainlanguage/ui-components';
+	import { transactionStore, type ExtendedApprovalCalldata } from '@rainlanguage/ui-components';
 	import type { Hex } from 'viem';
-	import type {
-		ApprovalCalldataResult,
-		DepositAndAddOrderCalldataResult
-	} from '@rainlanguage/orderbook/js_api';
+	import type { DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import TransactionModal from './TransactionModal.svelte';
 
 	export let open: boolean = false;
-	export let approvals: ApprovalCalldataResult;
+	export let approvals: ExtendedApprovalCalldata[];
 	export let deploymentCalldata: DepositAndAddOrderCalldataResult;
 	export let orderbookAddress: Hex;
 	export let chainId: number;

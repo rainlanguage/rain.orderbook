@@ -70,7 +70,8 @@ export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typesh
 export {
 	TransactionStatus,
 	TransactionErrorMessage,
-	type TransactionState
+	type TransactionState,
+	type ExtendedApprovalCalldata
 } from './stores/transactionStore';
 export type { DeploymentArgs } from './types/transaction';
 

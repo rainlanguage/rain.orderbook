@@ -24,11 +24,17 @@ pub struct AllowancesResult(Vec<TokenAllowance>);
 impl_all_wasm_traits!(AllowancesResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct ApprovalCalldataResult(Vec<dotrain_order::calldata::ApprovalCalldata>);
+pub enum ApprovalCalldataResult {
+    NoDeposits,
+    Calldatas(Vec<dotrain_order::calldata::ApprovalCalldata>),
+}
 impl_all_wasm_traits!(ApprovalCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositCalldataResult(Vec<Bytes>);
+pub enum DepositCalldataResult {
+    NoDeposits,
+    Calldatas(Vec<Bytes>),
+}
 impl_all_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -167,15 +173,15 @@ impl DotrainOrderGui {
         self.check_select_tokens()?;
 
         let deposits_map = self.get_deposits_as_map().await?;
-        if deposits_map.len() == 0 {
-            return Ok(ApprovalCalldataResult(Vec::new()));
+        if deposits_map.is_empty() {
+            return Ok(ApprovalCalldataResult::NoDeposits);
         }
 
         let calldatas = self
             .dotrain_order
             .generate_approval_calldatas(&deployment.key, &owner, &deposits_map)
             .await?;
-        Ok(ApprovalCalldataResult(calldatas))
+        Ok(ApprovalCalldataResult::Calldatas(calldatas))
     }
 
     fn populate_vault_ids(&mut self, deployment: &GuiDeployment) -> Result<(), GuiError> {
@@ -228,14 +234,16 @@ impl DotrainOrderGui {
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
 
-        let mut calldatas = Vec::new();
-        if token_deposits.len() > 0 {
-            calldatas = self
-                .dotrain_order
-                .generate_deposit_calldatas(&deployment.key, &token_deposits)
-                .await?;
+        if token_deposits.is_empty() {
+            return Ok(DepositCalldataResult::NoDeposits);
         }
-        Ok(DepositCalldataResult(calldatas))
+
+        let calldatas = self
+            .dotrain_order
+            .generate_deposit_calldatas(&deployment.key, &token_deposits)
+            .await?;
+
+        Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
     /// Generate add order calldata
@@ -268,39 +276,22 @@ impl DotrainOrderGui {
         self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
-        let token_deposits = self
-            .get_vaults_and_deposits(&deployment)
-            .await?
-            .iter()
-            .enumerate()
-            .map(|(i, (order_io, amount))| {
-                let vault_id = order_io
-                    .vault_id
-                    .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
-
-                if order_io.token.is_none() {
-                    return Err(GuiError::SelectTokensNotSet);
-                }
-                let token = order_io.token.as_ref().unwrap();
-
-                Ok(((vault_id, token.address), *amount))
-            })
-            .collect::<Result<HashMap<_, _>, GuiError>>()?;
-
         let mut calls = Vec::new();
-        let mut deposit_calldatas = Vec::new();
-        if token_deposits.len() > 0 {
-            deposit_calldatas = self
-                .dotrain_order
-                .generate_deposit_calldatas(&deployment.key, &token_deposits)
-                .await?;
-        }
+
+        let deposit_calldatas = self.generate_deposit_calldatas().await?;
+
+        let deposit_calldatas = match deposit_calldatas {
+            DepositCalldataResult::Calldatas(calldatas) => calldatas,
+            DepositCalldataResult::NoDeposits => Vec::new(),
+        };
+
         let add_order_calldata = self
             .dotrain_order
             .generate_add_order_calldata(&deployment.key)
             .await?;
 
         calls.push(Bytes::copy_from_slice(&add_order_calldata));
+
         for calldata in deposit_calldatas.iter() {
             calls.push(Bytes::copy_from_slice(calldata));
         }
