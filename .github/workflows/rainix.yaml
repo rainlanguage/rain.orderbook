@@ -55,6 +55,12 @@ jobs:
       CI_DEPLOY_FLARE_RPC_URL: ${{ secrets.CI_DEPLOY_FLARE_RPC_URL }}
       COMMIT_SHA: ${{ github.sha }}
     steps:
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            ./tauri-app -> target
+
       - uses: actions/checkout@v4
         with:
           submodules: recursive
