@@ -468,12 +468,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should remove deposit', async () => {
 			gui.saveDeposit('token1', '50.6');
-			const deposits: TokenDeposit[] = gui.getDeposits();
+			let deposits: TokenDeposit[] = gui.getDeposits();
 			assert.equal(deposits.length, 1);
 
 			gui.removeDeposit('token1');
-			const depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
+			let depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
 			assert.equal(depositsAfterRemove.length, 0);
+
+			gui.saveDeposit('token1', '50.6');
+			assert.equal(gui.getDeposits().length, 1);
+			gui.saveDeposit('token1', '');
+			assert.equal(gui.getDeposits().length, 0);
 		});
 
 		it('should get deposit presets', async () => {
