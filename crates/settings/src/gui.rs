@@ -1,11 +1,12 @@
 use crate::{
+    network_bindings::NetworkBinding,
     yaml::{
         context::{Context, GuiContextTrait},
         default_document, get_hash_value, get_hash_value_as_option, optional_hash, optional_string,
         optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    Deployment, Token, TokenRef,
+    Deployment, Network, Token, TokenRef,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -65,11 +66,21 @@ pub struct GuiDeploymentSource {
 
 #[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SelectNetwork {
+    pub name: String,
+}
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(SelectNetwork);
+
+#[typeshare]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct GuiConfigSource {
     pub name: String,
     pub description: String,
     pub deployments: HashMap<String, GuiDeploymentSource>,
+    pub select_networks: Option<HashMap<String, SelectNetwork>>,
 }
 impl GuiConfigSource {
     pub fn try_into_gui(
@@ -155,6 +166,7 @@ impl GuiConfigSource {
             name: self.name,
             description: self.description,
             deployments: gui_deployments,
+            select_networks: self.select_networks,
         })
     }
 }
@@ -254,6 +266,7 @@ pub struct Gui {
     pub name: String,
     pub description: String,
     pub deployments: HashMap<String, GuiDeployment>,
+    pub select_networks: Option<HashMap<String, SelectNetwork>>,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(Gui);
@@ -526,6 +539,47 @@ impl Gui {
         }
         Ok(None)
     }
+
+    pub fn parse_select_networks(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<Option<HashMap<String, SelectNetwork>>, YamlError> {
+        let network_keys = Network::parse_network_keys(documents.clone())?;
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                if let Some(StrictYaml::Hash(select_networks_hash)) =
+                    gui.get(&StrictYaml::String("select-networks".to_string()))
+                {
+                    let mut result = HashMap::new();
+
+                    for (network_key, network_yaml) in select_networks_hash {
+                        let network_key = network_key.as_str().unwrap_or_default().to_string();
+                        let location = format!("select-networks '{network_key}'");
+
+                        if !network_keys.contains(&network_key) {
+                            return Err(YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: "networks".to_string(),
+                                    reason: format!("Network '{}' not found", network_key),
+                                },
+                                location: location.clone(),
+                            });
+                        }
+
+                        let name =
+                            require_string(network_yaml, Some("name"), Some(location.clone()))?;
+
+                        result.insert(network_key, SelectNetwork { name });
+                    }
+
+                    return Ok(Some(result));
+                }
+            }
+        }
+        Ok(None)
+    }
 }
 
 impl YamlParseableValue for Gui {
@@ -569,11 +623,14 @@ impl YamlParseableValue for Gui {
                         location: "gui".to_string(),
                     })?;
 
+                let select_networks = Gui::parse_select_networks(documents.clone())?;
+
                 if gui_res.is_none() {
                     gui_res = Some(Gui {
                         name: name.to_string(),
                         description: description.to_string(),
                         deployments: gui_deployments_res.clone(),
+                        select_networks,
                     });
                 }
 
@@ -605,6 +662,15 @@ impl YamlParseableValue for Gui {
                     }
 
                     let mut context = Context::from_context(context);
+
+                    let network_bindings =
+                        NetworkBinding::parse_all_from_yaml(documents.clone(), Some(&context))?;
+                    context.add_network_bindings(
+                        network_bindings
+                            .iter()
+                            .map(|(k, v)| (k.clone(), Arc::new(v.clone())))
+                            .collect(),
+                    );
 
                     let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
                             Some(tokens) => Some(
@@ -869,6 +935,7 @@ mod tests {
                     }]),
                 },
             )]),
+            select_networks: None,
         };
         let scenario = Scenario {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1897,5 +1964,115 @@ gui:
 
         let keys = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
         assert_eq!(keys, vec!["test".to_string(), "test2".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_select_networks() {
+        let yaml = r#"
+gui:
+    select-networks:
+        network1:
+            name: Network One
+        network2:
+            name: Network Two
+"#;
+        let error = Gui::parse_select_networks(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "networks".to_string(),
+                    reason: "Network 'network1' not found".to_string(),
+                },
+                location: "select-networks 'network1'".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+    network2:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+gui:
+    select-networks:
+        network1:
+            name: Network One
+        network2:
+            name: Network Two
+"#;
+        let networks = Gui::parse_select_networks(vec![get_document(yaml)])
+            .unwrap()
+            .unwrap();
+        assert_eq!(networks.len(), 2);
+        assert_eq!(networks.get("network1").unwrap().name, "Network One");
+        assert_eq!(networks.get("network2").unwrap().name, "Network Two");
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+gui:
+    select-networks:
+        network1:
+            name:
+                - invalid
+"#;
+        let error = Gui::parse_select_networks(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "name".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: "select-networks 'network1'".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+gui:
+    select-networks:
+        network1:
+            name:
+                - invalid: invalid
+"#;
+        let error = Gui::parse_select_networks(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "name".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: "select-networks 'network1'".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    network1:
+        rpc: https://eth.llamarpc.com
+        chain-id: 1
+gui:
+    select-networks:
+        network1:
+            wrong: value
+"#;
+        let error = Gui::parse_select_networks(vec![get_document(yaml)]).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("name".to_string()),
+                location: "select-networks 'network1'".to_string(),
+            }
+        );
     }
 }

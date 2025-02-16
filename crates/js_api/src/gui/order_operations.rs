@@ -130,6 +130,7 @@ impl DotrainOrderGui {
     pub async fn check_allowances(&self, owner: String) -> Result<AllowancesResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_select_network()?;
 
         let orderbook = self.get_orderbook()?;
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
@@ -165,6 +166,7 @@ impl DotrainOrderGui {
     ) -> Result<ApprovalCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_select_network()?;
         self.check_deposits()?;
 
         let calldatas = self
@@ -206,6 +208,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_select_network()?;
         self.check_deposits()?;
         self.populate_vault_ids(&deployment)?;
         let deployment = self.get_current_deployment()?;
@@ -242,6 +245,7 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_select_network()?;
         self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;
         self.update_bindings(&deployment)?;
@@ -260,6 +264,7 @@ impl DotrainOrderGui {
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
+        self.check_select_network()?;
         self.check_deposits()?;
         self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;

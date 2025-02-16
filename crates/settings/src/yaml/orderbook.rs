@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    metaboard::Metaboard, raindex_version::RaindexVersion, sentry::Sentry, subgraph::Subgraph,
-    Deployer, Network, Orderbook, Token,
+    metaboard::Metaboard, network_bindings::NetworkBinding, raindex_version::RaindexVersion,
+    sentry::Sentry, subgraph::Subgraph, Deployer, Network, Orderbook, Token,
 };
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -117,6 +117,15 @@ impl OrderbookYaml {
         let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
         Ok(value)
     }
+
+    pub fn get_network_binding_keys(&self) -> Result<Vec<String>, YamlError> {
+        let value = NetworkBinding::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(value.keys().cloned().collect())
+    }
+    pub fn get_network_binding(&self, key: &str) -> Result<NetworkBinding, YamlError> {
+        let value = NetworkBinding::parse_from_yaml(self.documents.clone(), key, None)?;
+        Ok(value)
+    }
 }
 
 impl Serialize for OrderbookYaml {
@@ -214,6 +223,10 @@ mod tests {
         user: 0x5678901234abcdef
     sentry: true
     raindex-version: 1.0.0
+    network-bindings:
+        mainnet:
+            binding1: value1
+            binding2: value2
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -319,6 +332,13 @@ mod tests {
             ob_yaml.get_raindex_version().unwrap(),
             Some("1.0.0".to_string())
         );
+
+        let network_bindings = ob_yaml.get_network_binding_keys().unwrap();
+        assert_eq!(network_bindings.len(), 1);
+        let network_binding = ob_yaml.get_network_binding("mainnet").unwrap();
+        assert_eq!(network_binding.bindings.len(), 2);
+        assert_eq!(network_binding.bindings.get("binding1").unwrap(), "value1");
+        assert_eq!(network_binding.bindings.get("binding2").unwrap(), "value2");
     }
 
     #[test]

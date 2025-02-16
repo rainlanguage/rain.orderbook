@@ -1,4 +1,7 @@
-use crate::{yaml::FieldErrorKind, *};
+use crate::{
+    yaml::{context::GuiSelectionsContext, FieldErrorKind},
+    *,
+};
 use alloy::primitives::{private::rand, U256};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -10,7 +13,7 @@ use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use typeshare::typeshare;
 use yaml::{
-    context::{Context, GuiContextTrait, SelectTokensContext},
+    context::{Context, GuiContextTrait},
     default_document, optional_string, require_hash, require_string, require_vec, YamlError,
     YamlParsableHash,
 };

@@ -320,6 +320,7 @@ mod tests {
             name: "Some name".to_string(),
             description: "Some description".to_string(),
             deployments: HashMap::new(),
+            select_networks: None,
         });
 
         let config_string = ConfigSource {
