@@ -1,12 +1,12 @@
 import type { Config } from '@wagmi/core';
 import { getAccount } from '@wagmi/core';
 import type {
-	ApprovalCalldataResult,
 	DepositAndAddOrderCalldataResult,
 	DotrainOrderGui
 } from '@rainlanguage/orderbook/js_api';
 import type { OrderIO } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
+import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
 export enum AddOrderErrors {
 	ADD_ORDER_FAILED = 'Failed to add order',
@@ -21,7 +21,7 @@ export enum AddOrderErrors {
 }
 
 export interface HandleAddOrderResult {
-	approvals: ApprovalCalldataResult;
+	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
@@ -45,9 +45,9 @@ export async function getDeploymentTransactionArgs(
 		throw new Error(AddOrderErrors.NO_WALLET);
 	}
 
-	let approvals;
+	let approvalResults;
 	try {
-		approvals = await gui.generateApprovalCalldatas(address);
+		approvalResults = await gui.generateApprovalCalldatas(address);
 	} catch (error) {
 		throw new Error(
 			`${AddOrderErrors.APPROVAL_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -75,6 +75,8 @@ export async function getDeploymentTransactionArgs(
 		throw new Error(AddOrderErrors.MISSING_ORDERBOOK);
 	}
 
+	let approvals: ExtendedApprovalCalldata[] = [];
+
 	try {
 		const outputTokenInfos = await Promise.all(
 			allTokenOutputs.map((token) => {
@@ -84,16 +86,18 @@ export async function getDeploymentTransactionArgs(
 			})
 		);
 
-		approvals = approvals.map((approval) => {
-			const token = outputTokenInfos.find((token) => token?.address === approval.token);
-			if (!token) {
-				throw new Error(`Token info not found for address: ${approval.token}`);
-			}
-			return {
-				...approval,
-				symbol: token.symbol
-			};
-		});
+		if (approvalResults !== 'NoDeposits') {
+			approvals = approvalResults.Calldatas.map((approval) => {
+				const token = outputTokenInfos.find((token) => token?.address === approval.token);
+				if (!token) {
+					throw new Error(`Token info not found for address: ${approval.token}`);
+				}
+				return {
+					...approval,
+					symbol: token.symbol
+				};
+			});
+		}
 	} catch (error) {
 		throw new Error(
 			`${AddOrderErrors.TOKEN_INFO_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`
