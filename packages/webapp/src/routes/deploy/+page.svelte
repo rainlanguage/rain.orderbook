@@ -19,7 +19,7 @@
 <PageHeader title={$page.data.name || 'Deploy'} pathname={$page.url.pathname}>
 	<svelte:fragment slot="actions">
 		<Toggle on:change={() => (advancedMode = !advancedMode)}>
-			{'Advanced Mode'}
+			<span class="whitespace-nowrap">Advanced mode</span>
 		</Toggle></svelte:fragment
 	>
 </PageHeader>

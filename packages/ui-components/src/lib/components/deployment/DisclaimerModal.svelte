@@ -10,7 +10,11 @@
 	}
 </script>
 
-<Modal bind:open class="dark:border dark:border-gray-700 dark:bg-gray-900">
+<Modal
+	bind:open
+	class="max-h-full dark:border dark:border-gray-700 dark:bg-gray-900"
+	dialogClass="fixed top-0 start-0 end-1 h-modal md:inset-0 md:h-full z-50 w-full p-4 flex justify-center items-center h-full"
+>
 	<div class="flex flex-col items-start gap-y-8 p-4">
 		<div class="space-y-4">
 			<Alert color="red" class="text-base">
