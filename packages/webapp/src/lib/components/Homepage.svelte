@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { WalletConnect, logoDark, logoLight } from '@rainlanguage/ui-components';
+	import { logoDark, logoLight } from '@rainlanguage/ui-components';
 	import { Button } from 'flowbite-svelte';
-	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import { goto } from '$app/navigation';
 
 	export let colorTheme;
