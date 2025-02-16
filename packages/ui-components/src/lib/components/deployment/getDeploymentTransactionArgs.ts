@@ -99,8 +99,6 @@ export async function getDeploymentTransactionArgs(
 			});
 		}
 	} catch (error) {
-		console.log('alltokenoutputs', allTokenOutputs);
-		console.log('approvalresults', approvalResults);
 		throw new Error(
 			`${AddOrderErrors.TOKEN_INFO_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`
 		);
