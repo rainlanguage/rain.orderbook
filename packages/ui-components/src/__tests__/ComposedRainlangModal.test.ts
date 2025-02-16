@@ -20,8 +20,7 @@ describe('ComposedRainlangModal', () => {
 	it('should open modal and display rainlang text when button is clicked', async () => {
 		const { getByText, getByTestId } = render(ComposedRainlangModal, {
 			props: {
-				gui: mockGui,
-				codeMirrorStyles: {}
+				gui: mockGui
 			}
 		});
 

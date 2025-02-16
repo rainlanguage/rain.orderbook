@@ -274,18 +274,22 @@
 </script>
 
 <div>
-	{#if error}
-		<p class="text-red-500">{error}</p>
-	{/if}
-	{#if errorDetails}
-		<p class="text-red-500">{errorDetails}</p>
+	{#if error || errorDetails}
+		<Alert color="red">
+			{#if error}
+				<p class="text-red-500">{error}</p>
+			{/if}
+			{#if errorDetails}
+				<p class="text-red-500">{errorDetails}</p>
+			{/if}
+		</Alert>
 	{/if}
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
 				{#if deployment}
-					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
-						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
+					<div class="flex max-w-2xl flex-col gap-4 text-start">
+						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 							{strategyDetail.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
@@ -324,7 +328,7 @@
 						</Alert>
 					{/if}
 
-					<div class="flex items-start justify-start gap-2">
+					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $wagmiConnected}
 							<Button
 								size="lg"

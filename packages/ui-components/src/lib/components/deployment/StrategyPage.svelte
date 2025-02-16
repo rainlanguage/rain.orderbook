@@ -48,8 +48,8 @@
 
 {#if dotrain && strategyDetails}
 	<div>
-		<div in:fade class="flex flex-col gap-12">
-			<div class="flex max-w-2xl flex-col gap-0 text-start lg:gap-6">
+		<div in:fade class="flex flex-col gap-8">
+			<div class="flex max-w-2xl flex-col gap-3 text-start lg:gap-6">
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 					{strategyDetails.name}
 				</h1>
@@ -66,7 +66,7 @@
 					</p>
 				{/if}
 			</div>
-			<div class="flex flex-col gap-4">
+			<div class="u flex flex-col gap-4">
 				<h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
 				<DeploymentsSection {dotrain} {strategyName} />
 			</div>
