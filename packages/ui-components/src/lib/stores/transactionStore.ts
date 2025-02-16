@@ -41,7 +41,7 @@ export enum TransactionErrorMessage {
 	REMOVE_ORDER_FAILED = 'Failed to remove order.'
 }
 
-type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
+export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
 export type DeploymentTransactionArgs = {
 	config: Config;
