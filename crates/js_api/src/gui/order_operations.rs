@@ -206,7 +206,6 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
-        self.check_deposits()?;
         self.populate_vault_ids(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
@@ -228,10 +227,14 @@ impl DotrainOrderGui {
                 Ok(((vault_id, token.address), *amount))
             })
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
-        let calldatas = self
-            .dotrain_order
-            .generate_deposit_calldatas(&deployment.key, &token_deposits)
-            .await?;
+
+        let mut calldatas = Vec::new();
+        if token_deposits.len() > 0 {
+            calldatas = self
+                .dotrain_order
+                .generate_deposit_calldatas(&deployment.key, &token_deposits)
+                .await?;
+        }
         Ok(DepositCalldataResult(calldatas))
     }
 
@@ -260,7 +263,6 @@ impl DotrainOrderGui {
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
-        self.check_deposits()?;
         self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;
         self.update_bindings(&deployment)?;
@@ -286,10 +288,13 @@ impl DotrainOrderGui {
             .collect::<Result<HashMap<_, _>, GuiError>>()?;
 
         let mut calls = Vec::new();
-        let deposit_calldatas = self
-            .dotrain_order
-            .generate_deposit_calldatas(&deployment.key, &token_deposits)
-            .await?;
+        let mut deposit_calldatas = Vec::new();
+        if token_deposits.len() > 0 {
+            deposit_calldatas = self
+                .dotrain_order
+                .generate_deposit_calldatas(&deployment.key, &token_deposits)
+                .await?;
+        }
         let add_order_calldata = self
             .dotrain_order
             .generate_add_order_calldata(&deployment.key)
