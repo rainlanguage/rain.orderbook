@@ -165,15 +165,15 @@ impl DotrainOrderGui {
     ) -> Result<ApprovalCalldataResult, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
-        self.check_deposits()?;
+
+        let deposits_map = self.get_deposits_as_map().await?;
+        if deposits_map.len() == 0 {
+            return Ok(ApprovalCalldataResult(Vec::new()));
+        }
 
         let calldatas = self
             .dotrain_order
-            .generate_approval_calldatas(
-                &deployment.key,
-                &owner,
-                &self.get_deposits_as_map().await?,
-            )
+            .generate_approval_calldatas(&deployment.key, &owner, &deposits_map)
             .await?;
         Ok(ApprovalCalldataResult(calldatas))
     }
