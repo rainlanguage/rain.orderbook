@@ -49,6 +49,9 @@ describe('getDeploymentTransactionArgs', () => {
 
 	describe('successful cases', () => {
 		it('should successfully return deployment transaction args', async () => {
+			mockGui.generateApprovalCalldatas = vi.fn().mockResolvedValue({
+				Calldatas: [{ token: '0x123', amount: '1000' }]
+			});
 			const result = await getDeploymentTransactionArgs(mockGui, mockWagmiConfig, mockTokenOutputs);
 
 			expect(result).toEqual({
@@ -160,6 +163,10 @@ describe('getDeploymentTransactionArgs', () => {
 			mockGui.getTokenInfo = vi.fn().mockResolvedValue({
 				address: '0x456', // Different address than the approval token
 				symbol: 'TEST'
+			});
+
+			mockGui.generateApprovalCalldatas = vi.fn().mockResolvedValue({
+				Calldatas: [{ token: '0x123', amount: '1000' }]
 			});
 
 			await expect(

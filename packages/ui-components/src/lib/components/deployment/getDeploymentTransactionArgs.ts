@@ -86,7 +86,7 @@ export async function getDeploymentTransactionArgs(
 			})
 		);
 
-		if (approvalResults != 'NoDeposits') {
+		if (approvalResults !== 'NoDeposits') {
 			approvals = approvalResults.Calldatas.map((approval) => {
 				const token = outputTokenInfos.find((token) => token?.address === approval.token);
 				if (!token) {
@@ -99,6 +99,8 @@ export async function getDeploymentTransactionArgs(
 			});
 		}
 	} catch (error) {
+		console.log('alltokenoutputs', allTokenOutputs);
+		console.log('approvalresults', approvalResults);
 		throw new Error(
 			`${AddOrderErrors.TOKEN_INFO_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`
 		);
