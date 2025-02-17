@@ -22,7 +22,7 @@
 	xmlns="http://www.w3.org/2000/svg"
 	fill="none"
 	{...$$restProps}
-	class={twMerge('shrink-0', sizes[size], $$props.class, spin ? 'animate-spin' : '')}
+	class={twMerge('shrink-0', sizes[size], $$props.class, spin ? 'animate-spin ease-out' : '')}
 	{role}
 	aria-label={ariaLabel}
 	viewBox="0 0 24 24"
