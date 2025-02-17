@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { transactionStore, type OrderRemoveArgs } from '@rainlanguage/ui-components';
 	import TransactionModal from './TransactionModal.svelte';
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 
@@ -19,6 +18,12 @@
 		open = false;
 	}
 
+	function handleSuccess() {
+		setTimeout(() => {
+			args.onRemove();
+		}, 5000);
+	}
+
 	async function handleTransaction() {
 		const removeOrderCalldata = await getRemoveOrderCalldata(args.order);
 		transactionStore.handleRemoveOrderTransaction({
@@ -31,4 +36,4 @@
 	handleTransaction();
 </script>
 
-<TransactionModal bind:open {messages} on:close={handleClose} />
+<TransactionModal bind:open {messages} on:close={handleClose} on:success={handleSuccess} />

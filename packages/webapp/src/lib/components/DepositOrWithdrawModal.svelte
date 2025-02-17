@@ -87,7 +87,10 @@
 				config: $wagmiConfig,
 				transactionCalldata: depositCalldata,
 				approvalCalldata,
-				...args
+				action,
+				chainId,
+				vault,
+				subgraphUrl
 			});
 		} else if (action === 'withdraw') {
 			const withdrawCalldata: WithdrawCalldataResult = await getVaultWithdrawCalldata(
@@ -98,7 +101,10 @@
 			transactionStore.handleDepositOrWithdrawTransaction({
 				config: $wagmiConfig,
 				transactionCalldata: withdrawCalldata,
-				...args
+				action,
+				chainId,
+				vault,
+				subgraphUrl
 			});
 		}
 	}

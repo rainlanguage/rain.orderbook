@@ -14,6 +14,11 @@
 	function handleClose() {
 		open = false;
 	}
+	const dispatch = createEventDispatcher();
+
+	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
+		dispatch('success');
+	}
 
 	$: if (!open) {
 		transactionStore.reset();
