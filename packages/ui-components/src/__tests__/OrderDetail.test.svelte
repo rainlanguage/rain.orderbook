@@ -9,16 +9,18 @@
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
-	import type { OrderRemoveModalArgs } from '../lib/types/transaction';
+	import type { OrderRemoveModalProps } from '../lib/types/modal';
+
 	import type { Config } from 'wagmi';
+	import type { Hex } from 'viem';
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal: ((args: OrderRemoveModalArgs) => void) | undefined = undefined;
+	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
+		undefined;
 	export let id: string;
 	export let subgraphUrl: string;
 	export let chainId: number;
-	export let orderbookAddress: string;
-	export let wagmiConfig: Config;
+	export let orderbookAddress: Hex;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -36,11 +38,13 @@
 				color="dark"
 				on:click={() =>
 					handleOrderRemoveModal({
-						order: data.order,
-						onRemove: $orderDetailQuery.refetch,
-						wagmiConfig,
-						chainId,
-						orderbookAddress
+						open: true,
+						args: {
+							order: data.order,
+							onRemove: $orderDetailQuery.refetch,
+							chainId,
+							orderbookAddress
+						}
 					})}
 				disabled={!handleOrderRemoveModal}
 			>

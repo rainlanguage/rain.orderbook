@@ -1,16 +1,12 @@
 <script lang="ts">
-	import { transactionStore } from '@rainlanguage/ui-components';
+	import { transactionStore, type OrderRemoveArgs } from '@rainlanguage/ui-components';
 	import TransactionModal from './TransactionModal.svelte';
 	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
 	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook/js_api';
-	import type { Config } from 'wagmi';
+	import { wagmiConfig } from '$lib/stores/wagmi';
 
 	export let open: boolean;
-	export let order: OrderSubgraph;
-	export let onRemove: () => void;
-	export let wagmiConfig: Config;
-	export let chainId: number;
-	export let orderbookAddress: string;
+	export let args: OrderRemoveArgs;
 
 	const messages = {
 		success: 'Order was successfully removed.',
@@ -18,28 +14,21 @@
 		error: 'Could not remove order.'
 	};
 
-	function handleSuccess() {
-		setTimeout(() => {
-			onRemove();
-		}, 5000);
-	}
-
 	function handleClose() {
 		transactionStore.reset();
 		open = false;
 	}
 
 	async function handleTransaction() {
-		const removeOrderCalldata = await getRemoveOrderCalldata(order);
+		const removeOrderCalldata = await getRemoveOrderCalldata(args.order);
 		transactionStore.handleRemoveOrderTransaction({
-			config: wagmiConfig,
-			removeOrderCalldata,
-			orderbookAddress: orderbookAddress as `0x${string}`,
-			chainId
+			config: $wagmiConfig,
+			...args,
+			removeOrderCalldata
 		});
 	}
 
 	handleTransaction();
 </script>
 
-<TransactionModal bind:open {messages} on:close={handleClose} on:success={handleSuccess} />
+<TransactionModal bind:open {messages} on:close={handleClose} />

@@ -1,11 +1,15 @@
 <script lang="ts">
-	import { transactionStore, InputTokenAmount, WalletConnect } from '@rainlanguage/ui-components';
+	import {
+		transactionStore,
+		InputTokenAmount,
+		WalletConnect,
+		type DepositOrWithdrawArgs
+	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type WithdrawCalldataResult,
-		type Vault,
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
@@ -29,18 +33,9 @@
 	}
 
 	export let open: boolean;
-	export let action: 'deposit' | 'withdraw';
-	export let vault: Vault;
-	export let chainId: number;
-	export let rpcUrl: string;
-	export let subgraphUrl: string;
-	export let onDepositOrWithdraw: () => void;
+	export let args: DepositOrWithdrawArgs;
 
-	function handleSuccess() {
-		setTimeout(() => {
-			onDepositOrWithdraw();
-		}, 5000);
-	}
+	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -163,5 +158,5 @@
 		</div>
 	</Modal>
 {:else}
-	<TransactionModal bind:open {messages} on:close={handleClose} on:success={handleSuccess} />
+	<TransactionModal bind:open {messages} on:close={handleClose} />
 {/if}

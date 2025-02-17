@@ -21,23 +21,24 @@
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Config } from 'wagmi';
+	import type { Hex } from 'viem';
 	import type {
-		DepositOrWithdrawModalArgs,
-		OrderRemoveModalArgs,
+		DepositOrWithdrawModalProps,
+		OrderRemoveModalProps,
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
-	} from '../../types/transaction';
-
+	} from '../../types/modal';
 	export let handleDepositOrWithdrawModal:
-		| ((args: DepositOrWithdrawModalArgs) => void)
+		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
-	export let handleOrderRemoveModal: ((args: OrderRemoveModalArgs) => void) | undefined = undefined;
+	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
+		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
-	export let orderbookAddress: string | undefined = undefined;
+	export let orderbookAddress: Hex | undefined = undefined;
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
@@ -88,11 +89,13 @@
 					color="dark"
 					on:click={() =>
 						handleOrderRemoveModal({
-							order: data.order,
-							onRemove: $orderDetailQuery.refetch,
-							wagmiConfig: $wagmiConfig,
-							chainId,
-							orderbookAddress
+							open: true,
+							args: {
+								order: data.order,
+								onRemove: $orderDetailQuery.refetch,
+								chainId,
+								orderbookAddress
+							}
 						})}
 					disabled={!handleOrderRemoveModal}
 				>

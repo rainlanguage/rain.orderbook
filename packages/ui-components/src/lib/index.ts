@@ -75,12 +75,17 @@ export {
 } from './stores/transactionStore';
 export type {
 	DeploymentArgs,
-	DepositOrWithdrawModalArgs,
-	OrderRemoveModalArgs,
+	DepositOrWithdrawArgs,
+	OrderRemoveArgs,
+} from './types/transaction';
+export type {
+	DepositOrWithdrawModalProps,
+	OrderRemoveModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
-	DisclaimerModalArgs
-} from './types/transaction';
+	DeployModalProps,
+	DisclaimerModalProps
+} from './types/modal';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
