@@ -9,6 +9,7 @@ use wasm_bindgen::{JsError, JsValue};
 
 pub mod add_order;
 pub mod order;
+pub mod remove_order;
 pub mod transaction;
 pub mod vault;
 
