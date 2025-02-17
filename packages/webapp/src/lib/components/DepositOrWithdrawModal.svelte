@@ -37,6 +37,9 @@
 
 	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
 
+	type Action = 'deposit' | 'withdraw';
+	const actionType = action as Action;
+
 	let currentStep = 1;
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
@@ -83,11 +86,8 @@
 			transactionStore.handleDepositOrWithdrawTransaction({
 				config: $wagmiConfig,
 				transactionCalldata: depositCalldata,
-				action,
 				approvalCalldata,
-				chainId,
-				vault,
-				subgraphUrl
+				...args
 			});
 		} else if (action === 'withdraw') {
 			const withdrawCalldata: WithdrawCalldataResult = await getVaultWithdrawCalldata(
@@ -98,10 +98,7 @@
 			transactionStore.handleDepositOrWithdrawTransaction({
 				config: $wagmiConfig,
 				transactionCalldata: withdrawCalldata,
-				action,
-				chainId,
-				vault,
-				subgraphUrl
+				...args
 			});
 		}
 	}
@@ -139,7 +136,7 @@
 							<Button
 								color="blue"
 								on:click={handleContinue}
-								disabled={amount <= 0n || amountGreaterThanBalance[action]}
+								disabled={amount <= 0n || amountGreaterThanBalance[actionType]}
 							>
 								{action === 'deposit' ? 'Deposit' : 'Withdraw'}
 							</Button>
@@ -151,7 +148,7 @@
 				{#if switchChainError}
 					<p data-testid="chain-error">{switchChainError}</p>
 				{/if}
-				{#if amountGreaterThanBalance[action]}
+				{#if amountGreaterThanBalance[actionType]}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
 				{/if}
 			</div>
