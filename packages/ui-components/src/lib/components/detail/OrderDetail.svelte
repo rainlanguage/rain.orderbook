@@ -38,7 +38,7 @@
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
-	export let orderbookAddress: Hex | undefined = undefined;
+	export let orderbookAddress: Hex;
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;

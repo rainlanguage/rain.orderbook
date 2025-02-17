@@ -54,7 +54,6 @@ describe('OrderDetail Component', () => {
 				id: 'mockId',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				wagmiConfig,
 				chainId,
 				orderbookAddress
 			}
@@ -87,7 +86,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				handleOrderRemoveModal,
-				wagmiConfig,
 				chainId,
 				orderbookAddress
 			}
@@ -108,7 +106,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				handleOrderRemoveModal: vi.fn(),
-				wagmiConfig,
 				chainId,
 				orderbookAddress
 			}
@@ -209,7 +206,6 @@ describe('OrderDetail Component', () => {
 				id: mockOrderWithVaults.id,
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				wagmiConfig,
 				chainId,
 				orderbookAddress
 			}

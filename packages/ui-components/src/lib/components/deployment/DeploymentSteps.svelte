@@ -25,7 +25,7 @@
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
-	import type { DeploymentArgs, DisclaimerModalArgs } from '../../types/transaction';
+	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
@@ -47,8 +47,8 @@
 	export let deployment: GuiDeployment;
 	export let strategyDetail: NameAndDescription;
 
-	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: DisclaimerModalArgs) => void;
+	export let handleDeployModal: (args: DeployModalProps) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
@@ -236,13 +236,19 @@
 			}
 
 			handleDeployModal({
-				...result,
-				subgraphUrl: subgraphUrl,
-				network: networkKey
+				open: true,
+				args: {
+					...result,
+					subgraphUrl: subgraphUrl,
+					network: networkKey
+				}
 			});
 		};
 
-		handleDisclaimerModal({ onAccept });
+		handleDisclaimerModal({
+			open: true,
+			onAccept
+		});
 	}
 
 	const areAllTokensSelected = async () => {
