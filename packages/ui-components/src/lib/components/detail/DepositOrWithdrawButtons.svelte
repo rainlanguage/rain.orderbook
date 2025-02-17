@@ -3,15 +3,8 @@
 	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-
-	export let handleDepositOrWithdrawModal: (args: {
-		vault: Vault;
-		onDepositOrWithdraw: () => void;
-		action: 'deposit' | 'withdraw';
-		chainId: number;
-		rpcUrl: string;
-		subgraphUrl: string;
-	}) => void;
+	import type { DepositOrWithdrawModalArgs } from '../../types/transaction';
+	export let handleDepositOrWithdrawModal: (args: DepositOrWithdrawModalArgs) => void;
 
 	export let vault: Vault;
 	export let chainId: number;

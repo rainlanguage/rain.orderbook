@@ -4,6 +4,7 @@ import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
+import type { Config } from 'wagmi';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -23,6 +24,17 @@ const mockOrder: OrderSubgraph = {
 
 vi.mock('@tanstack/svelte-query');
 
+
+const wagmiConfig = {
+	chains: [],
+	signer: {
+		address: '0x123'
+	}
+} as unknown as Config;
+
+const chainId = 1;
+const orderbookAddress = '0x123';
+
 describe('OrderDetail Component', () => {
 	it('shows the correct empty message when the query returns no data', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -41,7 +53,11 @@ describe('OrderDetail Component', () => {
 		render(OrderDetail, {
 			props: {
 				id: 'mockId',
-				subgraphUrl: 'https://example.com'
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				wagmiConfig,
+				chainId,
+				orderbookAddress
 			}
 		});
 
@@ -71,7 +87,10 @@ describe('OrderDetail Component', () => {
 				id: mockOrder.id,
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal
+				handleOrderRemoveModal,
+				wagmiConfig,
+				chainId,
+				orderbookAddress
 			}
 		});
 
@@ -89,7 +108,10 @@ describe('OrderDetail Component', () => {
 				id: mockOrder.id,
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal: vi.fn()
+				handleOrderRemoveModal: vi.fn(),
+				wagmiConfig,
+				chainId,
+				orderbookAddress
 			}
 		});
 
@@ -187,7 +209,10 @@ describe('OrderDetail Component', () => {
 			props: {
 				id: mockOrderWithVaults.id,
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				wagmiConfig,
+				chainId,
+				orderbookAddress
 			}
 		});
 

@@ -1,25 +1,26 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
-import { DisclaimerModal, type DeploymentArgs } from '@rainlanguage/ui-components';
-import type { ComponentProps } from 'svelte';
-
-export type DisclaimerModalProps = ComponentProps<DisclaimerModal>;
-export type DepositOrWithdrawModalProps = ComponentProps<DepositOrWithdrawModal>;
-export type OrderRemoveModalProps = ComponentProps<OrderRemoveModal>;
+import {
+	DisclaimerModal,
+	type DeploymentArgs,
+	type DepositOrWithdrawModalArgs,
+	type OrderRemoveModalArgs,
+	type DisclaimerModalArgs
+} from '@rainlanguage/ui-components';
 
 export const handleDeployModal = (args: Omit<DeploymentArgs, 'open'>) => {
 	new DeployModal({ target: document.body, props: { ...args, open: true } });
 };
 
-export const handleDepositOrWithdrawModal = (args: Omit<DepositOrWithdrawModalProps, 'open'>) => {
+export const handleDepositOrWithdrawModal = (args: Omit<DepositOrWithdrawModalArgs, 'open'>) => {
 	new DepositOrWithdrawModal({ target: document.body, props: { ...args, open: true } });
 };
 
-export const handleOrderRemoveModal = (args: Omit<OrderRemoveModalProps, 'open'>) => {
+export const handleOrderRemoveModal = (args: Omit<OrderRemoveModalArgs, 'open'>) => {
 	new OrderRemoveModal({ target: document.body, props: { ...args, open: true } });
 };
 
-export const handleDisclaimerModal = (args: Omit<DisclaimerModalProps, 'open'>) => {
+export const handleDisclaimerModal = (args: Omit<DisclaimerModalArgs, 'open'>) => {
 	new DisclaimerModal({ target: document.body, props: { ...args, open: true } });
 };
