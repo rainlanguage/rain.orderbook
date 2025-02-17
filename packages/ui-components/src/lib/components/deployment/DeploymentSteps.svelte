@@ -24,10 +24,8 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import { handleShareChoices } from '$lib/services/handleShareChoices';
-	import DisclaimerModal from './DisclaimerModal.svelte';
-	import type { ComponentProps } from 'svelte';
-	import type { DeploymentArgs } from '$lib/types/transaction';
+	import { handleShareChoices } from '../../services/handleShareChoices';
+	import type { DeploymentArgs, DisclaimerModalArgs } from '../../types/transaction';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
@@ -50,7 +48,7 @@
 	export let strategyDetail: NameAndDescription;
 
 	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalArgs) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
