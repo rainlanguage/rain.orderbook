@@ -3,7 +3,7 @@
 	import CardProperty from '../lib/components/CardProperty.svelte';
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderSubgraph, OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { getOrder } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';

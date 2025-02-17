@@ -12,12 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import {
-		getOrder,
-		type OrderSubgraph,
-		type OrderWithSortedVaults,
-		type Vault
-	} from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
