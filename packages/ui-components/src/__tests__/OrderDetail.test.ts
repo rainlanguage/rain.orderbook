@@ -197,4 +197,47 @@ describe('OrderDetail Component', () => {
 			expect(screen.getByText('Input & output vaults')).toBeInTheDocument();
 		});
 	});
+
+	it('refresh button triggers query invalidation when clicked', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		const mockInvalidateQueries = vi.fn();
+
+		// Mock the createQuery as in other tests
+		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { order: mockOrder, vaults: new Map() },
+					status: 'success',
+					isFetching: false,
+					refetch: () => {}
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		// Mock the useQueryClient hook
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockQuery.useQueryClient = vi.fn(() => ({
+			invalidateQueries: mockInvalidateQueries
+		})) as any;
+
+		render(OrderDetail, {
+			props: {
+				id: 'mockId',
+				subgraphUrl: 'https://example.com'
+			}
+		});
+
+		const refreshButton = screen.getByTestId('refresh-button');
+		refreshButton.click();
+
+		await waitFor(() => {
+			expect(mockInvalidateQueries).toHaveBeenCalledWith({
+				queryKey: ['mockId'],
+				refetchType: 'all',
+				exact: false
+			});
+		});
+	});
 });

@@ -9,6 +9,10 @@
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
+	import Refresh from '$lib/components/icon/Refresh.svelte';
+	import { useQueryClient } from '@tanstack/svelte-query';
+
+	const queryClient = useQueryClient();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -38,6 +42,19 @@
 				Remove
 			</Button>
 		{/if}
+		<Button
+			data-testid="refresh-button"
+			class="flex gap-1"
+			on:click={() =>
+				queryClient.invalidateQueries({
+					queryKey: [id],
+					refetchType: 'all',
+					exact: false
+				})}
+			>Refresh <Refresh
+				spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
+			/></Button
+		>
 	</svelte:fragment>
 
 	<svelte:fragment slot="card" let:data>

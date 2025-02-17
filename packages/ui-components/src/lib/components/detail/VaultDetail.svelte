@@ -117,6 +117,7 @@
 				>
 			{/if}
 			<Button
+				data-testid="refresh-button"
 				class="flex gap-1"
 				on:click={() =>
 					queryClient.invalidateQueries({

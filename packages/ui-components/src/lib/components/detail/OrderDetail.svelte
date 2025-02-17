@@ -78,7 +78,6 @@
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => {
-			console.log('getting orders!');
 			return getOrder(subgraphUrl, id);
 		},
 		enabled: !!subgraphUrl
