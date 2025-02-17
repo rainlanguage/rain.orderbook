@@ -10,9 +10,8 @@
 	import { Button } from 'flowbite-svelte';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
-
-	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
+
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
