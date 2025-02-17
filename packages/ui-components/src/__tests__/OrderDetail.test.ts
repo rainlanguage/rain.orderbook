@@ -24,7 +24,6 @@ const mockOrder: OrderSubgraph = {
 
 vi.mock('@tanstack/svelte-query');
 
-
 const wagmiConfig = {
 	chains: [],
 	signer: {

@@ -45,4 +45,3 @@ export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;
 export type DisclaimerModalArgs = {
 	onAccept: () => void;
 };
-
