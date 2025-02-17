@@ -217,9 +217,9 @@ describe('OrderDetail Component', () => {
 		})) as Mock;
 
 		// Mock the useQueryClient hook
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		mockQuery.useQueryClient = vi.fn(() => ({
 			invalidateQueries: mockInvalidateQueries
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		})) as any;
 
 		render(OrderDetail, {
