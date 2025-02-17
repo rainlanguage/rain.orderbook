@@ -131,7 +131,7 @@
 					</Button>
 				{/if}
 				<Refresh
-					onClick={() =>
+					on:click={() =>
 						queryClient.invalidateQueries({
 							queryKey: [id],
 							refetchType: 'all',

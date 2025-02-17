@@ -70,7 +70,7 @@
 			<span></span>
 			<Refresh
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
-				onClick={refreshQuotes}
+				on:click={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
 			/>
 			<PauseSolid

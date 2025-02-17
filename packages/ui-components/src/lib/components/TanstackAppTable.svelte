@@ -19,8 +19,9 @@
 	<slot name="title" />
 	<Refresh
 		class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+		data-testid="refreshButton"
 		spin={$query.isLoading || $query.isFetching}
-		onClick={() => {
+		on:click={() => {
 			$query.refetch();
 		}}
 	/>
