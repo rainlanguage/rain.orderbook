@@ -8,7 +8,7 @@ export type DepositOrWithdrawModalProps = {
 
 export type OrderRemoveModalProps = {
 	open: boolean;
-	args: OrderRemoveArgs
+	args: OrderRemoveArgs;
 };
 
 export type DeployModalProps = {
@@ -31,4 +31,3 @@ export type QuoteDebugModalHandler = (
 ) => void;
 
 export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;
-

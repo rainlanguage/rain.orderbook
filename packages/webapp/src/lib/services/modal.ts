@@ -15,11 +15,11 @@ export const handleDeployModal = (props: DeployModalProps) => {
 };
 
 export const handleDepositOrWithdrawModal = (props: DepositOrWithdrawModalProps) => {
-	new DepositOrWithdrawModal({ target: document.body, props});
+	new DepositOrWithdrawModal({ target: document.body, props });
 };
 
 export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {
-	new OrderRemoveModal({ target: document.body, props});
+	new OrderRemoveModal({ target: document.body, props });
 };
 
 export const handleDisclaimerModal = (props: DisclaimerModalProps) => {
