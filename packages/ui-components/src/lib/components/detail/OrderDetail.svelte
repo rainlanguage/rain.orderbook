@@ -112,7 +112,7 @@
 				<BadgeActive active={data.order.active} large />
 			</div>
 
-			<div class="flex gap-2">
+			<div class="flex items-center gap-2">
 				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
@@ -130,18 +130,15 @@
 						Remove
 					</Button>
 				{/if}
-				<Button
-					class="flex gap-1"
-					on:click={() =>
+				<Refresh
+					onClick={() =>
 						queryClient.invalidateQueries({
 							queryKey: [id],
 							refetchType: 'all',
 							exact: false
 						})}
-					>Refresh <Refresh
-						spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
-					/></Button
-				>
+					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
+				/>
 			</div>
 		</div>
 	</svelte:fragment>

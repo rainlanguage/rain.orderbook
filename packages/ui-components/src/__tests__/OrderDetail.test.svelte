@@ -42,19 +42,16 @@
 				Remove
 			</Button>
 		{/if}
-		<Button
-			data-testid="refresh-button"
-			class="flex gap-1"
-			on:click={() =>
+
+		<Refresh
+			onClick={() =>
 				queryClient.invalidateQueries({
 					queryKey: [id],
 					refetchType: 'all',
 					exact: false
 				})}
-			>Refresh <Refresh
-				spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
-			/></Button
-		>
+			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
+		/>
 	</svelte:fragment>
 
 	<svelte:fragment slot="card" let:data>

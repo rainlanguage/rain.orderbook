@@ -16,13 +16,21 @@
 	export let role = ctx.role || 'img';
 	export let ariaLabel = 'refresh';
 	export let spin = false;
+	export let onClick: () => void;
 </script>
 
 <svg
+	data-testid="refresh-button"
+	on:click={onClick}
 	xmlns="http://www.w3.org/2000/svg"
 	fill="none"
 	{...$$restProps}
-	class={twMerge('shrink-0', sizes[size], $$props.class, spin ? 'animate-spin ease-out' : '')}
+	class={twMerge(
+		'shrink-0 cursor-pointer outline-none',
+		sizes[size],
+		$$props.class,
+		spin ? 'animate-spin ease-out' : ''
+	)}
 	{role}
 	aria-label={ariaLabel}
 	viewBox="0 0 24 24"

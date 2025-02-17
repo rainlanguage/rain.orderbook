@@ -92,7 +92,7 @@
 		>
 			{data.token.name}
 		</div>
-		<div class="flex gap-2">
+		<div class="flex items-center gap-2">
 			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
 				<DepositOrWithdrawButtons
 					vault={data}
@@ -116,19 +116,16 @@
 					><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
 				>
 			{/if}
-			<Button
-				data-testid="refresh-button"
-				class="flex gap-1"
-				on:click={() =>
+
+			<Refresh
+				onClick={() =>
 					queryClient.invalidateQueries({
 						queryKey: [id],
 						refetchType: 'all',
 						exact: false
 					})}
-				>Refresh <Refresh
-					spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
-				/></Button
-			>
+				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
+			/>
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="card" let:data>

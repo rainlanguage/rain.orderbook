@@ -4,6 +4,7 @@ import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
+import userEvent from '@testing-library/user-event';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -230,7 +231,7 @@ describe('OrderDetail Component', () => {
 		});
 
 		const refreshButton = screen.getByTestId('refresh-button');
-		refreshButton.click();
+		await userEvent.click(refreshButton);
 
 		await waitFor(() => {
 			expect(mockInvalidateQueries).toHaveBeenCalledWith({
