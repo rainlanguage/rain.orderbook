@@ -664,7 +664,9 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
-			expect(screen.getByText('Select the tokens that you want to use in your order.')).toBeInTheDocument();
+			expect(
+				screen.getByText('Select the tokens that you want to use in your order.')
+			).toBeInTheDocument();
 		});
 	});
 
