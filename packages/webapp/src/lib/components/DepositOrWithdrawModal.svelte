@@ -46,7 +46,7 @@
 	let switchChainError = '';
 
 	const messages = {
-		success: 'Your transaction was successful.',
+		success: 'Transaction successful.',
 		pending: 'Processing your transaction...',
 		error: 'Transaction failed.'
 	};
