@@ -102,7 +102,7 @@ test('refreshes the quote when the refresh icon is clicked', async () => {
 		}
 	]);
 
-	const refreshButton = screen.getByTestId('refreshButton');
+	const refreshButton = screen.getByTestId('refresh-button');
 	fireEvent.click(refreshButton);
 
 	await waitFor(() => {

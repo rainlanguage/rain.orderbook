@@ -232,11 +232,10 @@ test('refresh button triggers query invalidation when clicked', async () => {
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
-	let refreshButton: HTMLButtonElement;
-	await waitFor(() => {
-		refreshButton = screen.getByTestId('refresh-button');
-		userEvent.click(refreshButton);
 
+	await waitFor(async () => {
+		const refreshButton = await screen.findAllByTestId('refresh-button');
+		await userEvent.click(refreshButton[0]);
 		expect(invalidateQueries).toHaveBeenCalledWith({
 			queryKey: ['100'],
 			refetchType: 'all',

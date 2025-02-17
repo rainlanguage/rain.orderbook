@@ -69,9 +69,8 @@
 			{/if}
 			<span></span>
 			<Refresh
-				data-testid="refreshButton"
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
-				on:click={refreshQuotes}
+				onClick={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
 			/>
 			<PauseSolid

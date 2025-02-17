@@ -149,7 +149,7 @@ test('shows refresh icon', async () => {
 
 	resolve();
 
-	await waitFor(() => expect(screen.getByTestId('refreshButton')).toBeInTheDocument());
+	await waitFor(() => expect(screen.getByTestId('refresh-button')).toBeInTheDocument());
 });
 
 test('refetches data when refresh button is clicked', async () => {
@@ -170,7 +170,7 @@ test('refetches data when refresh button is clicked', async () => {
 		head: 'Test head'
 	});
 
-	const refreshButton = screen.getByTestId('refreshButton');
+	const refreshButton = screen.getByTestId('refresh-button');
 	await userEvent.click(refreshButton);
 
 	expect(mockRefetch).toHaveBeenCalled();

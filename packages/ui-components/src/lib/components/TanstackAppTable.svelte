@@ -18,10 +18,9 @@
 	<slot name="timeFilter" />
 	<slot name="title" />
 	<Refresh
-		data-testid="refreshButton"
 		class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 		spin={$query.isLoading || $query.isFetching}
-		on:click={() => {
+		onClick={() => {
 			$query.refetch();
 		}}
 	/>
