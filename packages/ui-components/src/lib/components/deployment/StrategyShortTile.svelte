@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { type NameAndDescription } from '@rainlanguage/orderbook/js_api';
+	import { type NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 	import { page } from '$app/stores';
 
-	export let strategyDetails: NameAndDescription;
+	export let strategyDetails: NameAndDescriptionCfg;
 	export let registryName: string;
 	let customRegistryParam = '';
 

@@ -5,7 +5,7 @@ import {
 } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { getAccount } from '@wagmi/core';
 import type { Config } from '@wagmi/core';
-import type { DotrainOrderGui, OrderIO } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui, OrderIOCfg } from '@rainlanguage/orderbook/js_api';
 
 // Mock wagmi/core
 vi.mock('@wagmi/core', () => ({
@@ -15,7 +15,7 @@ vi.mock('@wagmi/core', () => ({
 describe('getDeploymentTransactionArgs', () => {
 	let mockGui: DotrainOrderGui;
 	let mockWagmiConfig: Config;
-	let mockTokenOutputs: OrderIO[];
+	let mockTokenOutputs: OrderIOCfg[];
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -44,7 +44,7 @@ describe('getDeploymentTransactionArgs', () => {
 		mockWagmiConfig = {} as Config;
 		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
 
-		mockTokenOutputs = [{ token: { key: 'token1' } }] as OrderIO[];
+		mockTokenOutputs = [{ token: { key: 'token1' } }] as OrderIOCfg[];
 	});
 
 	describe('successful cases', () => {
@@ -144,7 +144,7 @@ describe('getDeploymentTransactionArgs', () => {
 
 	describe('token info errors', () => {
 		it('should throw TOKEN_INFO_FAILED when token key is missing', async () => {
-			const invalidTokenOutputs = [{ token: {} }] as OrderIO[];
+			const invalidTokenOutputs = [{ token: {} }] as OrderIOCfg[];
 
 			await expect(
 				getDeploymentTransactionArgs(mockGui, mockWagmiConfig, invalidTokenOutputs)

@@ -4,7 +4,7 @@ import type {
 	DepositAndAddOrderCalldataResult,
 	DotrainOrderGui
 } from '@rainlanguage/orderbook/js_api';
-import type { OrderIO } from '@rainlanguage/orderbook/js_api';
+import type { OrderIOCfg } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
@@ -30,7 +30,7 @@ export interface HandleAddOrderResult {
 export async function getDeploymentTransactionArgs(
 	gui: DotrainOrderGui | null,
 	wagmiConfig: Config | undefined,
-	allTokenOutputs: OrderIO[]
+	allTokenOutputs: OrderIOCfg[]
 ): Promise<HandleAddOrderResult> {
 	if (!gui) {
 		throw new Error(AddOrderErrors.MISSING_GUI);
@@ -69,8 +69,8 @@ export async function getDeploymentTransactionArgs(
 		throw new Error(AddOrderErrors.INVALID_CHAIN_ID);
 	}
 
-	// @ts-expect-error orderbook is not typed
-	const orderbookAddress = currentDeployment?.deployment?.order?.orderbook?.address;
+	const orderbookAddress = currentDeployment?.deployment?.order?.orderbook
+		?.address as `0x${string}`;
 	if (!orderbookAddress) {
 		throw new Error(AddOrderErrors.MISSING_ORDERBOOK);
 	}
