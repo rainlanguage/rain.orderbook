@@ -9,6 +9,14 @@ use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
+pub enum CalldataFunction {
+    Allowance,
+    Approval,
+    Deposit,
+    AddOrder,
+    DepositAndAddOrder,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 
 pub struct TokenAllowance {
@@ -52,6 +60,10 @@ impl_all_wasm_traits!(DepositAndAddOrderCalldataResult);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct IOVaultIds(HashMap<String, Vec<Option<U256>>>);
 impl_all_wasm_traits!(IOVaultIds);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct DeploymentTransactionArgs {}
+impl_all_wasm_traits!(DeploymentTransactionArgs);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -129,13 +141,32 @@ impl DotrainOrderGui {
         })
     }
 
+    fn prepare_calldata_generation(
+        &mut self,
+        calldata_function: CalldataFunction,
+    ) -> Result<GuiDeployment, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        self.check_select_tokens()?;
+        match calldata_function {
+            CalldataFunction::Deposit => {
+                self.populate_vault_ids(&deployment)?;
+            }
+            CalldataFunction::AddOrder | CalldataFunction::DepositAndAddOrder => {
+                self.check_field_values()?;
+                self.populate_vault_ids(&deployment)?;
+                self.update_bindings(&deployment)?;
+            }
+            _ => {}
+        }
+        Ok(self.get_current_deployment()?)
+    }
+
     /// Check allowances for all inputs and outputs of the order
     ///
     /// Returns a vector of [`TokenAllowance`] objects
     #[wasm_bindgen(js_name = "checkAllowances")]
-    pub async fn check_allowances(&self, owner: String) -> Result<AllowancesResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        self.check_select_tokens()?;
+    pub async fn check_allowances(&mut self, owner: String) -> Result<AllowancesResult, GuiError> {
+        let deployment = self.prepare_calldata_generation(CalldataFunction::Allowance)?;
 
         let orderbook = self.get_orderbook()?;
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
@@ -166,11 +197,10 @@ impl DotrainOrderGui {
     /// Returns a vector of [`ApprovalCalldata`] objects
     #[wasm_bindgen(js_name = "generateApprovalCalldatas")]
     pub async fn generate_approval_calldatas(
-        &self,
+        &mut self,
         owner: String,
     ) -> Result<ApprovalCalldataResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        self.check_select_tokens()?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::Approval)?;
 
         let deposits_map = self.get_deposits_as_map().await?;
         if deposits_map.is_empty() {
@@ -210,10 +240,7 @@ impl DotrainOrderGui {
     /// Returns a vector of bytes
     #[wasm_bindgen(js_name = "generateDepositCalldatas")]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        self.check_select_tokens()?;
-        self.populate_vault_ids(&deployment)?;
-        let deployment = self.get_current_deployment()?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::Deposit)?;
 
         let token_deposits = self
             .get_vaults_and_deposits(&deployment)
@@ -251,13 +278,7 @@ impl DotrainOrderGui {
     pub async fn generate_add_order_calldata(
         &mut self,
     ) -> Result<AddOrderCalldataResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        self.check_select_tokens()?;
-        self.check_field_values()?;
-        self.populate_vault_ids(&deployment)?;
-        self.update_bindings(&deployment)?;
-        let deployment = self.get_current_deployment()?;
-
+        let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
         let calldata = self
             .dotrain_order
             .generate_add_order_calldata(&deployment.key)
@@ -269,12 +290,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        self.check_select_tokens()?;
-        self.check_field_values()?;
-        self.populate_vault_ids(&deployment)?;
-        self.update_bindings(&deployment)?;
-        let deployment = self.get_current_deployment()?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
 
@@ -350,4 +366,7 @@ impl DotrainOrderGui {
         self.update_bindings(&deployment)?;
         Ok(())
     }
+
+    // #[wasm_bindgen(js_name = "getDeploymentTransactionArgs")]
+    // pub fn get_deployment_transaction_args(&self) -> Result<DeploymentTransactionArgs, GuiError> {}
 }
