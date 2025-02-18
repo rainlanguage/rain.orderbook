@@ -62,7 +62,19 @@ pub struct IOVaultIds(HashMap<String, Vec<Option<U256>>>);
 impl_all_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DeploymentTransactionArgs {}
+pub struct ExtendedApprovalCalldata {
+    calldata: Bytes,
+    symbol: String,
+}
+impl_all_wasm_traits!(ExtendedApprovalCalldata);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct DeploymentTransactionArgs {
+    approvals: Vec<ExtendedApprovalCalldata>,
+    deployment_calldata: Bytes,
+    orderbook_address: Address,
+    chain_id: u64,
+}
 impl_all_wasm_traits!(DeploymentTransactionArgs);
 
 #[wasm_bindgen]
@@ -367,6 +379,54 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    // #[wasm_bindgen(js_name = "getDeploymentTransactionArgs")]
-    // pub fn get_deployment_transaction_args(&self) -> Result<DeploymentTransactionArgs, GuiError> {}
+    #[wasm_bindgen(js_name = "getDeploymentTransactionArgs")]
+    pub async fn get_deployment_transaction_args(
+        &mut self,
+        owner: String,
+    ) -> Result<DeploymentTransactionArgs, GuiError> {
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+
+        let mut approvals = Vec::new();
+        let approval_calldata = self.generate_approval_calldatas(owner).await?;
+        match approval_calldata {
+            ApprovalCalldataResult::Calldatas(calldatas) => {
+                let mut output_token_infos = HashMap::new();
+                for output in deployment.deployment.order.outputs.clone() {
+                    if output.token.is_none() {
+                        return Err(GuiError::SelectTokensNotSet);
+                    }
+                    let token = output.token.as_ref().unwrap();
+                    let token_info = self.get_token_info(token.key.clone()).await?;
+                    output_token_infos.insert(token.address.clone(), token_info);
+                }
+
+                for calldata in calldatas.iter() {
+                    let token_info = output_token_infos
+                        .get(&calldata.token)
+                        .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
+                    approvals.push(ExtendedApprovalCalldata {
+                        calldata: calldata.calldata.clone(),
+                        symbol: token_info.symbol.clone(),
+                    });
+                }
+            }
+            _ => {}
+        }
+
+        let deposit_and_add_order_calldata =
+            self.generate_deposit_and_add_order_calldatas().await?;
+
+        Ok(DeploymentTransactionArgs {
+            approvals,
+            deployment_calldata: deposit_and_add_order_calldata.0,
+            orderbook_address: deployment
+                .deployment
+                .order
+                .orderbook
+                .as_ref()
+                .ok_or(GuiError::OrderbookNotFound)?
+                .address,
+            chain_id: deployment.deployment.order.network.chain_id,
+        })
+    }
 }
