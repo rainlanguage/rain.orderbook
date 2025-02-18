@@ -16,7 +16,6 @@ pub mod remote;
 pub mod scenario;
 pub mod sentry;
 pub mod subgraph;
-pub mod tauri;
 pub mod token;
 pub mod unit_test;
 pub mod yaml;

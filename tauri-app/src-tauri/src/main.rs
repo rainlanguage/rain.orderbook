@@ -4,6 +4,7 @@
 pub mod error;
 pub mod toast;
 pub mod transaction_status;
+pub mod types;
 
 mod commands;
 use commands::app::get_app_commit_sha;

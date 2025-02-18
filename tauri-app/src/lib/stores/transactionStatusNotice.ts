@@ -2,7 +2,7 @@ import { derived, writable } from 'svelte/store';
 import { listen } from '@tauri-apps/api/event';
 import sortBy from 'lodash/sortBy';
 
-import type { TransactionStatusNotice } from '@rainlanguage/orderbook/js_api';
+import type { TransactionStatusNotice } from '../types/tauriBindings';
 
 export type TransactionStatusNoticeStore = { [id: string]: TransactionStatusNotice };
 

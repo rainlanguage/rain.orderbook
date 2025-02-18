@@ -3,7 +3,7 @@
   import { IconError, IconSuccess, IconWarning, IconInfo } from '@rainlanguage/ui-components';
   import CloseSolid from 'flowbite-svelte-icons/CloseSolid.svelte';
   import type { ToastData } from '$lib/stores/toasts';
-  import { ToastMessageType } from '@rainlanguage/orderbook/js_api';
+  import { ToastMessageType } from '$lib/types/tauriBindings';
 
   export let toast: ToastData;
   let toastColor:

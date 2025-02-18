@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Spinner, Toast } from 'flowbite-svelte';
-  import type { TransactionStatusNotice } from '@rainlanguage/orderbook/js_api';
+  import type { TransactionStatusNotice } from '$lib/types/tauriBindings';
   import {
     CheckCircleSolid,
     CloseCircleSolid,

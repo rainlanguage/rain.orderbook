@@ -1,21 +1,10 @@
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::WriteTransactionStatus;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::Utc;
+use crate::types::{TransactionStatus, TransactionStatusNotice};
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "type", content = "payload")]
-pub enum TransactionStatus {
-    Initialized,
-    PendingPrepare,
-    PendingSign,
-    PendingSend,
-    Confirmed(String),
-    Failed(String),
-}
 
 impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
     fn from(val: WriteTransactionStatus<T>) -> Self {
@@ -28,16 +17,6 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
             }
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TransactionStatusNotice {
-    pub id: Uuid,
-    pub status: TransactionStatus,
-    pub created_at: DateTime<Utc>,
-
-    /// Human-readable label to display in the UI, describing the transaction i.e. "Approving ERC20 Token Spend"
-    pub label: String,
 }
 
 pub struct TransactionStatusNoticeRwLock(RwLock<TransactionStatusNotice>);

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { listen } from '@tauri-apps/api/event';
 import sortBy from 'lodash/sortBy';
 
-import { ToastMessageType, type ToastPayload } from '@rainlanguage/orderbook/js_api';
+import { ToastMessageType, type ToastPayload } from '../types/tauriBindings';
 
 export type ToastData = ToastPayload & { timestamp: Date; id: string };
 
