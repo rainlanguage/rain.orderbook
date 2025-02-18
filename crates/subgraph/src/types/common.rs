@@ -97,7 +97,7 @@ pub struct Order {
     pub meta: Option<RainMetaV1>,
     pub add_events: Vec<AddOrder>,
     pub trades: Vec<OrderStructPartialTrade>,
-    pub remove_events: Option<Vec<RemoveOrder>>,
+    pub remove_events: Vec<RemoveOrder>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
