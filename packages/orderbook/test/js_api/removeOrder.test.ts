@@ -136,7 +136,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Remove Order', async fun
 				mockServer.url + '/sg1',
 				transaction1.id
 			);
-			console.log(JSON.stringify(result, null, 2));
 			assert.equal(result[0].order.id, mockRemoveOrder.order.id);
 		} catch (e) {
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
