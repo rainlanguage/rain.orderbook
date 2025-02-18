@@ -14,7 +14,8 @@
 		type GuiDeployment,
 		type OrderIO,
 		type SelectTokens,
-		type NameAndDescription
+		type NameAndDescription,
+		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -65,6 +66,7 @@
 	let errorDetails: string | null = null;
 	let networkKey: string | null = null;
 	let subgraphUrl: string = '';
+	let allTokenInfos: AllTokenInfos = [];
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -186,6 +188,15 @@
 
 	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
 		await areAllTokensSelected();
+
+		if (allTokensSelected) {
+			let newAllTokenInfos = await gui.getAllTokenInfos();
+			if (newAllTokenInfos !== allTokenInfos) {
+				allTokenInfos = newAllTokenInfos;
+				updateFields();
+			}
+		}
+
 		handleUpdateGuiState(gui);
 	}
 
@@ -252,6 +263,8 @@
 			try {
 				allTokensSelected = gui.areAllTokensSelected();
 				if (!allTokensSelected) return;
+
+				allTokenInfos = await gui.getAllTokenInfos();
 
 				// if we have deposits or vault ids set, show advanced options
 				const vaultIds = gui.getVaultIds();
