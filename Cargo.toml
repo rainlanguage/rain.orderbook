@@ -35,8 +35,8 @@ cynic = "3.7.3"
 chrono = "0.4.31"
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = "6.0.1-alpha.23"
-dotrain-lsp = "6.0.1-alpha.23"
+dotrain = "6.0.1-alpha.24"
+dotrain-lsp = "6.0.1-alpha.24"
 rain-metadata = { path = "lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 rain-metadata-bindings = { path = "lib/rain.interpreter/lib/rain.metadata/crates/bindings" }
 rain-metaboard-subgraph = { path = "lib/rain.interpreter/lib/rain.metadata/crates/metaboard" }
