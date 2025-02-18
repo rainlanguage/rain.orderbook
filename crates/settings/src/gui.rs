@@ -180,7 +180,6 @@ pub enum ParseGuiConfigSourceError {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiPresetCfg {
     pub id: String,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -192,7 +191,6 @@ impl_wasm_traits!(GuiPresetCfg);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiDepositCfg {
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -203,7 +201,6 @@ impl_wasm_traits!(GuiDepositCfg);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiSelectTokensCfg {
     pub key: CfgTokenRef,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -214,7 +211,6 @@ pub struct GuiSelectTokensCfg {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiDeploymentCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
@@ -244,7 +240,6 @@ impl PartialEq for GuiDeploymentCfg {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiFieldDefinitionCfg {
     pub binding: String,
     pub name: String,
@@ -258,7 +253,6 @@ impl_wasm_traits!(GuiFieldDefinitionCfg);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct GuiCfg {
     pub name: String,
     pub description: String,
@@ -274,7 +268,6 @@ impl_wasm_traits!(GuiCfg);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
 pub struct NameAndDescriptionCfg {
     pub name: String,
     pub description: String,

@@ -2,15 +2,15 @@ use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationClient, PaginationClientError, SgPaginationArgs};
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 use crate::performance::OrderPerformance;
-use crate::types::add_order::{TransactionAddOrdersQuery, TransactionAddOrdersVariables};
+use crate::types::add_order::{SgTransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
     SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables, SgOrderDetailQuery, SgOrderIdList,
     SgOrdersListQuery,
 };
 use crate::types::order_trade::{SgOrderTradeDetailQuery, SgOrderTradesListQuery};
+use crate::types::transaction::SgTransactionDetailQuery;
 use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
-use crate::types::transaction::TransactionDetailQuery;
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
@@ -391,9 +391,9 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_detail(
         &self,
         id: Id,
-    ) -> Result<Transaction, OrderbookSubgraphClientError> {
+    ) -> Result<SgTransaction, OrderbookSubgraphClientError> {
         let data = self
-            .query::<TransactionDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .query::<SgTransactionDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let transaction = data
             .transaction
@@ -405,11 +405,11 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_add_orders(
         &self,
         id: Id,
-    ) -> Result<Vec<AddOrderWithOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgAddOrderWithOrder>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<TransactionAddOrdersQuery, TransactionAddOrdersVariables>(
+            .query::<SgTransactionAddOrdersQuery, TransactionAddOrdersVariables>(
                 TransactionAddOrdersVariables {
-                    id: Bytes(id.inner().to_string()),
+                    id: SgBytes(id.inner().to_string()),
                 },
             )
             .await?;

@@ -156,11 +156,11 @@ describe('OrderDetail Component', () => {
 				id: '0x00'
 			}
 		} as unknown as SgVault;
-		const mockOrderWithVaults: OrderSubgraph = {
+		const mockOrderWithVaults: SgOrder = {
 			...mockOrder,
 			inputs: [vault1, vault2],
 			outputs: [vault2, vault3]
-		} as unknown as OrderSubgraph;
+		} as unknown as SgOrder;
 		const sortedVaults = new Map([
 			['inputs', [vault1]],
 			['outputs', [vault3]],

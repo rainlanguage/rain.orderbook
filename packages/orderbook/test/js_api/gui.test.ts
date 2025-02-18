@@ -5,11 +5,9 @@ import {
 	AddOrderCalldataResult,
 	AllFieldValuesResult,
 	AllowancesResult,
-	ApprovalCalldataResult,
 	DeploymentDetails,
 	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
-	DepositCalldataResult,
 	GuiCfg,
 	GuiDeploymentCfg,
 	IOVaultIds,
@@ -392,7 +390,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment detail', async () => {
-		const deploymentDetail: NameAndDescription = await DotrainOrderGui.getDeploymentDetail(
+		const deploymentDetail: NameAndDescriptionCfg = await DotrainOrderGui.getDeploymentDetail(
 			dotrainWithGui,
 			'other-deployment'
 		);

@@ -170,7 +170,7 @@ impl DotrainOrderGui {
     pub async fn get_deployment_detail(
         dotrain: String,
         key: String,
-    ) -> Result<NameAndDescription, GuiError> {
+    ) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
         let deployment_detail = deployment_details
             .0

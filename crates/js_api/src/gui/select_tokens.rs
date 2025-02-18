@@ -50,12 +50,12 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "getNetworkKey")]
     pub fn get_network_key(&self) -> Result<String, GuiError> {
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
         let network_key =
-            Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
         Ok(network_key)
     }
 

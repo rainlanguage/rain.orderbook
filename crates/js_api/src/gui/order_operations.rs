@@ -31,14 +31,14 @@ pub enum ApprovalCalldataResult {
     NoDeposits,
     Calldatas(Vec<dotrain_order::calldata::ApprovalCalldata>),
 }
-impl_all_wasm_traits!(ApprovalCalldataResult);
+impl_wasm_traits!(ApprovalCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum DepositCalldataResult {
     NoDeposits,
     Calldatas(#[tsify(type = "string[]")] Vec<Bytes>),
 }
-impl_all_wasm_traits!(DepositCalldataResult);
+impl_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);

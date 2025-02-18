@@ -14,8 +14,6 @@
 		type NameAndDescriptionCfg,
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
-		type ApprovalCalldataResult,
-		type DepositAndAddOrderCalldataResult,
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';

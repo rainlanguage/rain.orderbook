@@ -6,7 +6,7 @@ import {
 	SgOrder,
 	OrderPerformance,
 	SgOrderWithSubgraphName,
-	SgOrderWithSortedVaults
+	OrderWithSortedVaults
 } from '../../dist/types/js_api.js';
 import {
 	getOrder,
@@ -379,7 +379,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order: order1 } }));
 
 		try {
-			const result: SgOrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
+			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
 			assert.equal(result.order.id, order1.id);
 		} catch (e) {
 			console.log(e);
@@ -712,7 +712,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			.thenReply(200, JSON.stringify({ data: { order: { ...order1, inputs, outputs } } }));
 
 		try {
-			const result: SgOrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
+			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
 
 			const inputs = result.vaults.get('inputs');
 			const outputs = result.vaults.get('outputs');

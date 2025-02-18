@@ -8,7 +8,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use reqwest::Url;
-use wasm_bindgen_utils::{prelude::*, impl_wasm_traits};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +40,7 @@ pub async fn get_orders(
     Ok(to_js_value(&orders)?)
 }
 
-fn sort_vaults(order: &Order) -> HashMap<String, Vec<SgVault>> {
+fn sort_vaults(order: &SgOrder) -> HashMap<String, Vec<SgVault>> {
     let mut sorted_vaults: HashMap<String, Vec<SgVault>> = HashMap::new();
 
     let input_ids: HashSet<_> = order.inputs.iter().map(|v| &v.id).collect();

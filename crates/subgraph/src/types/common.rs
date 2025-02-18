@@ -367,10 +367,9 @@ pub struct SgAddOrder {
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "AddOrder")]
-pub struct AddOrderWithOrder {
-    pub transaction: Transaction,
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
-    pub order: Order,
+pub struct SgAddOrderWithOrder {
+    pub transaction: SgTransaction,
+    pub order: SgOrder,
 }
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
@@ -593,4 +592,5 @@ mod impls {
     impl_wasm_traits!(SgTrade);
     impl_wasm_traits!(SgTradeStructPartialOrder);
     impl_wasm_traits!(SgTradeEvent);
+    impl_wasm_traits!(SgAddOrderWithOrder);
 }

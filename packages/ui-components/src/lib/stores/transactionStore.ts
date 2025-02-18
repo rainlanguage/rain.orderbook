@@ -6,7 +6,7 @@ import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
-	Transaction,
+	SgTransaction,
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
@@ -121,7 +121,7 @@ const transactionStore = () => {
 		}));
 
 		let attempts = 0;
-		let newTx: Transaction;
+		let newTx: SgTransaction;
 
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
