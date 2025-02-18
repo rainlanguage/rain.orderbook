@@ -187,7 +187,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_take_order_config_v3_tsify() {
         let js_take_order_config = to_js_value(&TakeOrderConfigV3::default()).unwrap();
-        // check serialized props match the tsify definition
+        // validate serialized props match the tsify definition
         assert!(JsString::from_str("order")
             .unwrap()
             .js_in(&js_take_order_config));
@@ -205,7 +205,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_take_orders_config_v3_tsify() {
         let js_take_orders_config = to_js_value(&TakeOrdersConfigV3::default()).unwrap();
-        // check serialized props match the tsify definition
+        // validate serialized props match the tsify definition
         assert!(JsString::from_str("minimumInput")
             .unwrap()
             .js_in(&js_take_orders_config));
