@@ -6,8 +6,7 @@ import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { ConfigSource } from '../lib/typeshare/config';
-import type { DeploymentArgs } from '$lib/types/transaction';
-import type { DisclaimerModal } from '$lib';
+import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -572,22 +571,31 @@ min-trade-amount: mul(min-amount 0.9),
   "Min trade amount."),
 :call<'set-cost-basis-io-ratio>();`;
 
-describe('DeploymentSteps', () => {
-	const mockDeployment = {
+const mockDeployment = {
+	key: 'flare-sflr-wflr',
+	name: 'SFLR<>WFLR on Flare',
+	description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+	deposits: [],
+	fields: [],
+	select_tokens: [],
+	deployment: {
 		key: 'flare-sflr-wflr',
-		name: 'SFLR<>WFLR on Flare',
-		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-		deposits: [],
-		fields: [],
-		select_tokens: [],
-		deployment: {
+		scenario: {
+			key: 'flare',
+			bindings: {}
+		} as Scenario,
+		order: {
 			key: 'flare-sflr-wflr',
-			scenario: {
+			network: {
 				key: 'flare',
-				bindings: {}
-			} as Scenario,
-			order: {
-				key: 'flare-sflr-wflr',
+				'chain-id': 14,
+				'network-id': 14,
+				rpc: 'https://rpc.ankr.com/flare',
+				label: 'Flare',
+				currency: 'FLR'
+			},
+			deployer: {
+				key: 'flare',
 				network: {
 					key: 'flare',
 					'chain-id': 14,
@@ -596,28 +604,36 @@ describe('DeploymentSteps', () => {
 					label: 'Flare',
 					currency: 'FLR'
 				},
-				deployer: {
-					key: 'flare',
-					network: {
-						key: 'flare',
-						'chain-id': 14,
-						'network-id': 14,
-						rpc: 'https://rpc.ankr.com/flare',
-						label: 'Flare',
-						currency: 'FLR'
-					},
-					address: '0x0'
-				},
-				orderbook: {
-					id: 'flare',
-					address: '0x0'
-				},
-				inputs: [],
-				outputs: []
-			}
+				address: '0x0'
+			},
+			orderbook: {
+				id: 'flare',
+				address: '0x0'
+			},
+			inputs: [],
+			outputs: []
 		}
-	};
+	}
+};
 
+const defaultProps: DeploymentStepsProps = {
+	dotrain,
+	strategyDetail: {
+		name: 'SFLR<>WFLR on Flare',
+		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+	},
+	deployment: mockDeployment,
+	wagmiConfig: mockWagmiConfigStore,
+	wagmiConnected: mockConnectedStore,
+	appKitModal: writable({} as AppKit),
+	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+	settings: writable({} as ConfigSource),
+	handleUpdateGuiState: vi.fn()
+};
+
+describe('DeploymentSteps', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -629,26 +645,7 @@ describe('DeploymentSteps', () => {
 			getNetworkKey: vi.fn()
 		});
 
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (
-					args: ComponentProps<DisclaimerModal>
-				) => void,
-				settings: writable({} as ConfigSource),
-				handleUpdateGuiState: vi.fn()
-			}
-		});
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
@@ -663,26 +660,7 @@ describe('DeploymentSteps', () => {
 			getNetworkKey: vi.fn()
 		});
 
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (
-					args: ComponentProps<DisclaimerModal>
-				) => void,
-				settings: writable({} as ConfigSource),
-				handleUpdateGuiState: vi.fn()
-			}
-		});
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
@@ -697,26 +675,7 @@ describe('DeploymentSteps', () => {
 			new Error('Failed to initialize GUI')
 		);
 
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (
-					args: ComponentProps<DisclaimerModal>
-				) => void,
-				settings: writable({} as ConfigSource),
-				handleUpdateGuiState: vi.fn()
-			}
-		});
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('Error loading GUI')).toBeInTheDocument();
@@ -742,31 +701,13 @@ describe('DeploymentSteps', () => {
 			getNetworkKey: vi.fn()
 		});
 
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (
-					args: ComponentProps<DisclaimerModal>
-				) => void,
-				settings: writable({} as ConfigSource),
-				handleUpdateGuiState: vi.fn()
-			}
-		});
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
 	});
+
 	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
@@ -785,26 +726,7 @@ describe('DeploymentSteps', () => {
 			getNetworkKey: vi.fn()
 		});
 
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (
-					args: ComponentProps<DisclaimerModal>
-				) => void,
-				settings: writable({} as ConfigSource),
-				handleUpdateGuiState: vi.fn()
-			}
-		});
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();

@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
-import type { ComponentProps } from 'svelte';
-
-export type ModalProps = ComponentProps<OrderRemoveModal>;
+import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
@@ -21,12 +19,14 @@ describe('OrderRemoveModal', () => {
 
 	const defaultProps = {
 		open: true,
-		order: mockOrder,
-		onRemove: vi.fn(),
-		wagmiConfig: {},
-		chainId: 1,
-		orderbookAddress: '0x789'
-	} as unknown as ModalProps;
+		args: {
+			order: mockOrder,
+			chainId: 1,
+			orderbookAddress: '0x789',
+			config: {},
+			onRemove: vi.fn()
+		}
+	} as unknown as OrderRemoveModalProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -43,7 +43,8 @@ describe('OrderRemoveModal', () => {
 			expect.objectContaining({
 				chainId: 1,
 				orderbookAddress: '0x789',
-				config: {}
+				config: {},
+				removeOrderCalldata: '0x123'
 			})
 		);
 	});
@@ -64,6 +65,6 @@ describe('OrderRemoveModal', () => {
 		transactionStore.transactionSuccess('0x123');
 		await vi.runAllTimersAsync();
 
-		expect(defaultProps.onRemove).toHaveBeenCalled();
+		expect(defaultProps.args.onRemove).toHaveBeenCalled();
 	});
 });

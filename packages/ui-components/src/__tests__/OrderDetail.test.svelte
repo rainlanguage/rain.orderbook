@@ -3,20 +3,23 @@
 	import CardProperty from '../lib/components/CardProperty.svelte';
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderSubgraph, OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { getOrder } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
+	import type { OrderRemoveModalProps } from '../lib/types/modal';
+	import type { Hex } from 'viem';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal:
-		| ((order: OrderSubgraph, refetch: () => void) => void)
-		| undefined = undefined;
+	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
+		undefined;
 	export let id: string;
 	export let subgraphUrl: string;
+	export let chainId: number;
+	export let orderbookAddress: Hex;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
@@ -32,7 +35,16 @@
 			<Button
 				data-testid="remove-button"
 				color="dark"
-				on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
+				on:click={() =>
+					handleOrderRemoveModal({
+						open: true,
+						args: {
+							order: data.order,
+							onRemove: $orderDetailQuery.refetch,
+							chainId,
+							orderbookAddress
+						}
+					})}
 				disabled={!handleOrderRemoveModal}
 			>
 				Remove
