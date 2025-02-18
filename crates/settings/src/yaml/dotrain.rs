@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Deployment, Gui, Order, Scenario};
+use crate::{DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, SeqAccess, Visitor},
     ser::SerializeSeq,
@@ -9,17 +9,17 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
-
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DotrainYaml {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(DotrainYaml);
+impl_wasm_traits!(DotrainYaml);
 
 impl YamlParsable for DotrainYaml {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
@@ -37,9 +37,9 @@ impl YamlParsable for DotrainYaml {
         }
 
         if validate {
-            Order::parse_all_from_yaml(documents.clone(), None)?;
-            Scenario::parse_all_from_yaml(documents.clone(), None)?;
-            Deployment::parse_all_from_yaml(documents.clone(), None)?;
+            OrderCfg::parse_all_from_yaml(documents.clone(), None)?;
+            ScenarioCfg::parse_all_from_yaml(documents.clone(), None)?;
+            DeploymentCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(DotrainYaml { documents })
@@ -52,39 +52,39 @@ impl YamlParsable for DotrainYaml {
 
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orders = Order::parse_all_from_yaml(self.documents.clone(), None)?;
+        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orders.keys().cloned().collect())
     }
-    pub fn get_order(&self, key: &str) -> Result<Order, YamlError> {
+    pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         context.add_current_order(key.to_string());
-        Order::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
-        let scenarios = Scenario::parse_all_from_yaml(self.documents.clone(), None)?;
+        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(scenarios.keys().cloned().collect())
     }
-    pub fn get_scenario(&self, key: &str) -> Result<Scenario, YamlError> {
-        Scenario::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
+        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployments = Deployment::parse_all_from_yaml(self.documents.clone(), None)?;
+        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(deployments.keys().cloned().collect())
     }
-    pub fn get_deployment(&self, key: &str) -> Result<Deployment, YamlError> {
+    pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
         context.add_current_deployment(key.to_string());
-        Deployment::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<Gui>, YamlError> {
+    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
         if let Some(deployment) = current_deployment {
             context.add_current_deployment(deployment);
         }
-        Gui::parse_from_yaml_optional(self.documents.clone(), Some(&context))
+        GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 }
 
@@ -142,7 +142,7 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 
 #[cfg(test)]
 mod tests {
-    use crate::GuiSelectTokens;
+    use crate::GuiSelectTokensCfg;
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
 
@@ -312,11 +312,11 @@ mod tests {
             ob_yaml.get_network("mainnet").unwrap()
         );
         let input_vault_ids =
-            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
+            OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
         assert_eq!(input_vault_ids.len(), 1);
         assert_eq!(input_vault_ids[0], Some("1".to_string()));
         let output_vault_ids =
-            Order::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
+            OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
         assert_eq!(output_vault_ids.len(), 1);
         assert_eq!(output_vault_ids[0], Some("2".to_string()));
 
@@ -362,11 +362,11 @@ mod tests {
             dotrain_yaml.get_scenario("scenario1").unwrap().into()
         );
         assert_eq!(
-            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment1").unwrap(),
+            DeploymentCfg::parse_order_key(dotrain_yaml.documents.clone(), "deployment1").unwrap(),
             "order1"
         );
         assert_eq!(
-            Deployment::parse_order_key(dotrain_yaml.documents.clone(), "deployment2").unwrap(),
+            DeploymentCfg::parse_order_key(dotrain_yaml.documents.clone(), "deployment2").unwrap(),
             "order1"
         );
 
@@ -402,12 +402,12 @@ mod tests {
             Some("Test description".to_string())
         );
 
-        let details = Gui::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
+        let details = GuiCfg::parse_strategy_details(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(details.name, "Test gui");
         assert_eq!(details.description, "Test description");
 
         let deployment_details =
-            Gui::parse_deployment_details(dotrain_yaml.documents.clone()).unwrap();
+            GuiCfg::parse_deployment_details(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(
             deployment_details.get("deployment1").unwrap().name,
             "Test deployment"
@@ -417,27 +417,28 @@ mod tests {
             "Test description"
         );
 
-        let deployment_keys = Gui::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
+        let deployment_keys =
+            GuiCfg::parse_deployment_keys(dotrain_yaml.documents.clone()).unwrap();
         assert_eq!(deployment_keys.len(), 1);
         assert_eq!(deployment_keys[0], "deployment1");
 
         let select_tokens =
-            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment1").unwrap();
+            GuiCfg::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment1").unwrap();
         assert!(select_tokens.is_some());
         assert_eq!(
             select_tokens.unwrap()[0],
-            GuiSelectTokens {
+            GuiSelectTokensCfg {
                 key: "token2".to_string(),
                 name: Some("Test token".to_string()),
                 description: Some("Test description".to_string())
             }
         );
         let select_tokens =
-            Gui::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
+            GuiCfg::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());
 
         let field_presets =
-            Gui::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
+            GuiCfg::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
                 .unwrap()
                 .unwrap();
         assert_eq!(field_presets[0].id, "0");

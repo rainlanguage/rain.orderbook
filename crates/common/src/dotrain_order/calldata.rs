@@ -8,7 +8,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{Bytes, U256},
 };
-use rain_orderbook_app_settings::{deployment::Deployment, orderbook::Orderbook};
+use rain_orderbook_app_settings::{deployment::DeploymentCfg, orderbook::OrderbookCfg};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -20,20 +20,20 @@ pub struct ApprovalCalldata {
     calldata: Bytes,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(ApprovalCalldata);
+impl_wasm_traits!(ApprovalCalldata);
 
 impl DotrainOrder {
     fn get_deployment(
         &self,
         deployment_name: &str,
-    ) -> Result<Deployment, DotrainOrderCalldataError> {
+    ) -> Result<DeploymentCfg, DotrainOrderCalldataError> {
         Ok(self.dotrain_yaml.get_deployment(deployment_name)?)
     }
 
     fn get_orderbook(
         &self,
         deployment_name: &str,
-    ) -> Result<Arc<Orderbook>, DotrainOrderCalldataError> {
+    ) -> Result<Arc<OrderbookCfg>, DotrainOrderCalldataError> {
         self.get_deployment(deployment_name)?
             .order
             .orderbook

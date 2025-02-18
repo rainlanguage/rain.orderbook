@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TanstackPageContentDetail from '../lib/components/detail/TanstackPageContentDetail.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import { getOrder } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
@@ -9,13 +9,12 @@
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal:
-		| ((order: OrderSubgraph, refetch: () => void) => void)
-		| undefined = undefined;
+	export let handleOrderRemoveModal: ((order: SgOrder, refetch: () => void) => void) | undefined =
+		undefined;
 	export let id: string;
 	export let subgraphUrl: string;
 
-	$: orderDetailQuery = createQuery<OrderSubgraph>({
+	$: orderDetailQuery = createQuery<SgOrder>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl && !!id

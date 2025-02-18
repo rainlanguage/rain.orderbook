@@ -7,7 +7,7 @@ pub struct TokenDeposit {
     #[tsify(type = "string")]
     pub address: Address,
 }
-impl_all_wasm_traits!(TokenDeposit);
+impl_wasm_traits!(TokenDeposit);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {

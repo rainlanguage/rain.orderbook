@@ -1,7 +1,7 @@
 use crate::error::CommandResult;
 use crate::toast::toast_error;
 use crate::transaction_status::TransactionStatusNoticeRwLock;
-use alloy::primitives::{Bytes, U256};
+use alloy::primitives::Bytes;
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,

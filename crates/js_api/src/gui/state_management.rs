@@ -1,12 +1,12 @@
 use super::*;
-use rain_orderbook_app_settings::token::Token;
+use rain_orderbook_app_settings::token::TokenCfg;
 use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
-    field_values: BTreeMap<String, GuiPreset>,
-    deposits: BTreeMap<String, GuiPreset>,
-    select_tokens: BTreeMap<String, Token>,
+    field_values: BTreeMap<String, GuiPresetCfg>,
+    deposits: BTreeMap<String, GuiPresetCfg>,
+    select_tokens: BTreeMap<String, TokenCfg>,
     vault_ids: BTreeMap<(bool, u8), Option<String>>,
     dotrain_hash: String,
     selected_deployment: String,
@@ -25,7 +25,7 @@ impl DotrainOrderGui {
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
-                let presets = Gui::parse_field_presets(
+                let presets = GuiCfg::parse_field_presets(
                     self.dotrain_order.dotrain_yaml().documents.clone(),
                     &self.selected_deployment,
                     k,
@@ -37,7 +37,7 @@ impl DotrainOrderGui {
                     .ok_or(GuiError::InvalidPreset)?
                     .clone()
             } else {
-                GuiPreset {
+                GuiPresetCfg {
                     id: "".to_string(),
                     name: None,
                     value: v.value.clone(),
@@ -49,13 +49,13 @@ impl DotrainOrderGui {
         let mut deposits = BTreeMap::new();
         for (k, v) in self.deposits.iter() {
             let preset = if v.is_preset {
-                GuiPreset {
+                GuiPresetCfg {
                     id: v.value.clone(),
                     name: None,
                     value: String::default(),
                 }
             } else {
-                GuiPreset {
+                GuiPresetCfg {
                     id: "".to_string(),
                     name: None,
                     value: v.value.clone(),
@@ -64,8 +64,8 @@ impl DotrainOrderGui {
             deposits.insert(k.clone(), preset);
         }
 
-        let mut select_tokens: BTreeMap<String, Token> = BTreeMap::new();
-        if let Some(st) = Gui::parse_select_tokens(
+        let mut select_tokens: BTreeMap<String, TokenCfg> = BTreeMap::new();
+        if let Some(st) = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )? {
@@ -80,12 +80,12 @@ impl DotrainOrderGui {
             }
         }
 
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
         let mut vault_ids = BTreeMap::new();
-        for (i, vault_id) in Order::parse_vault_ids(
+        for (i, vault_id) in OrderCfg::parse_vault_ids(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &order_key,
             true,
@@ -95,7 +95,7 @@ impl DotrainOrderGui {
         {
             vault_ids.insert((true, i as u8), vault_id.as_ref().map(|v| v.to_string()));
         }
-        for (i, vault_id) in Order::parse_vault_ids(
+        for (i, vault_id) in OrderCfg::parse_vault_ids(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &order_key,
             false,
@@ -187,7 +187,7 @@ impl DotrainOrderGui {
             selected_deployment: state.selected_deployment.clone(),
         };
 
-        let deployment_select_tokens = Gui::parse_select_tokens(
+        let deployment_select_tokens = GuiCfg::parse_select_tokens(
             dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
@@ -199,12 +199,12 @@ impl DotrainOrderGui {
                 return Err(GuiError::TokenNotInSelectTokens(key));
             }
             if dotrain_order_gui.is_select_token_set(key.clone())? {
-                Token::remove_record_from_yaml(
+                TokenCfg::remove_record_from_yaml(
                     dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                     &key,
                 )?;
             }
-            Token::add_record_to_yaml(
+            TokenCfg::add_record_to_yaml(
                 dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                 &key,
                 &token.network.key,
@@ -215,7 +215,7 @@ impl DotrainOrderGui {
             )?;
         }
 
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;

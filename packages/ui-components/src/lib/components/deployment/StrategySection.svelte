@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui, type NameAndDescription } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui, type NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 
 	export let strategyUrl: string = '';
 	export let strategyName: string = '';
 	export let rawDotrain: string = '';
-	let strategyDetails: NameAndDescription;
+	let strategyDetails: NameAndDescriptionCfg;
 	let dotrain: string;
 	let error: string;
 	let errorDetails: string;

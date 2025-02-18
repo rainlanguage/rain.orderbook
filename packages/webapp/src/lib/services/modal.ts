@@ -4,8 +4,8 @@ import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import type {
 	ApprovalCalldataResult,
 	DepositAndAddOrderCalldataResult,
-	OrderSubgraph,
-	Vault
+	SgOrder,
+	SgVault
 } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import type { Config } from 'wagmi';
@@ -18,7 +18,7 @@ export type DeployModalProps = {
 };
 
 export type DepositOrWithdrawModalProps = {
-	vault: Vault;
+	vault: SgVault;
 	onDepositOrWithdraw: () => void;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
@@ -26,7 +26,7 @@ export type DepositOrWithdrawModalProps = {
 };
 
 export type OrderRemoveModalProps = {
-	order: OrderSubgraph;
+	order: SgOrder;
 	onRemove: () => void;
 	open?: boolean;
 	wagmiConfig: Config;

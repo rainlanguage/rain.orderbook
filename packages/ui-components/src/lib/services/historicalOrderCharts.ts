@@ -1,4 +1,4 @@
-import type { Trade } from '@rainlanguage/orderbook/js_api';
+import type { SgTrade } from '@rainlanguage/orderbook/js_api';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../utils/time';
 import { sortBy } from 'lodash';
@@ -6,7 +6,7 @@ import { formatUnits } from 'viem';
 
 export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
-export function prepareHistoricalOrderChartData(takeOrderEntities: Trade[], colorTheme: string) {
+export function prepareHistoricalOrderChartData(takeOrderEntities: SgTrade[], colorTheme: string) {
 	const transformedData = takeOrderEntities.map((d) => ({
 		value: Math.abs(
 			Number(
@@ -58,7 +58,7 @@ if (import.meta.vitest) {
 	const { it, expect } = import.meta.vitest;
 
 	it('transforms and sorts data as expected', () => {
-		const takeOrderEntities: Trade[] = [
+		const takeOrderEntities: SgTrade[] = [
 			{
 				id: '1',
 				timestamp: '1632000000',
@@ -75,7 +75,7 @@ if (import.meta.vitest) {
 					amount: '100',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -104,7 +104,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -147,7 +147,7 @@ if (import.meta.vitest) {
 					amount: '100',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -176,7 +176,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -219,7 +219,7 @@ if (import.meta.vitest) {
 					amount: '100',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -248,7 +248,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -294,7 +294,7 @@ if (import.meta.vitest) {
 	});
 
 	it('handles the case where multiple trades have the same timestamp', () => {
-		const takeOrderEntities: Trade[] = [
+		const takeOrderEntities: SgTrade[] = [
 			{
 				id: '1',
 				timestamp: '1632000000',
@@ -311,7 +311,7 @@ if (import.meta.vitest) {
 					amount: '100',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -340,7 +340,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -383,7 +383,7 @@ if (import.meta.vitest) {
 					amount: '200',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -412,7 +412,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -455,7 +455,7 @@ if (import.meta.vitest) {
 					amount: '400',
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',
@@ -484,7 +484,7 @@ if (import.meta.vitest) {
 				inputVaultBalanceChange: {
 					vault: {
 						id: '1',
-						vault_id: 'vault-id1',
+						vaultId: 'vault-id1',
 						token: {
 							id: 'output_token',
 							address: 'output_token',

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import { extendOrder } from '@rainlanguage/orderbook/js_api';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { RainlangLR } from 'codemirror-rainlang';
 
-	export let order: OrderSubgraph | undefined = undefined;
+	export let order: SgOrder | undefined = undefined;
 	export let rainlangText: string | undefined = undefined;
 	export let codeMirrorTheme;
 	export let codeMirrorDisabled = true;

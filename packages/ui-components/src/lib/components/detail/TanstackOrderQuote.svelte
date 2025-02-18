@@ -5,7 +5,7 @@
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import {
 		Table,
 		TableBody,
@@ -18,13 +18,13 @@
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 
 	export let id: string;
-	export let order: OrderSubgraph;
+	export let order: SgOrder;
 	export let rpcUrl: string;
 	export let orderbookAddress: string = '';
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: OrderSubgraph,
+				order: SgOrder,
 				rpcUrl: string,
 				orderbookAddress: string,
 				inputIndex: number,

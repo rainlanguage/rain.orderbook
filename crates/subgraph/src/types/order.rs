@@ -1,46 +1,45 @@
 use super::common::*;
 use crate::schema;
 use serde::Serialize;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::*;
 
 #[derive(cynic::QueryVariables, Debug)]
-#[typeshare]
-pub struct BatchOrderDetailQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgBatchOrderDetailQueryVariables {
     #[cynic(rename = "id_list")]
-    pub id_list: OrderIdList,
+    pub id_list: SgOrderIdList,
 }
 
 #[derive(cynic::InputObject, Debug, Clone)]
 #[cynic(graphql_type = "Order_filter")]
-#[typeshare]
-pub struct OrderIdList {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrderIdList {
     #[cynic(rename = "id_in")]
-    pub id_in: Vec<Bytes>,
+    pub id_in: Vec<SgBytes>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "BatchOrderDetailQueryVariables")]
-#[typeshare]
-pub struct BatchOrderDetailQuery {
-    #[typeshare(typescript(type = "OrderSubgraph[]"))]
+#[cynic(graphql_type = "Query", variables = "SgBatchOrderDetailQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgBatchOrderDetailQuery {
     #[arguments(where: $id_list)]
-    pub orders: Vec<Order>,
+    pub orders: Vec<SgOrder>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "OrdersListQueryVariables")]
-#[typeshare]
-pub struct OrdersListQuery {
-    #[typeshare(typescript(type = "OrderSubgraph[]"))]
+#[cynic(graphql_type = "Query", variables = "SgOrdersListQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrdersListQuery {
     #[arguments(orderBy: "timestampAdded", orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
-    pub orders: Vec<Order>,
+    pub orders: Vec<SgOrder>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "IdQueryVariables")]
-#[typeshare]
-pub struct OrderDetailQuery {
+#[cynic(graphql_type = "Query", variables = "SgIdQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrderDetailQuery {
     #[arguments(id: $id)]
-    #[typeshare(typescript(type = "OrderSubgraph"))]
-    pub order: Option<Order>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub order: Option<SgOrder>,
 }

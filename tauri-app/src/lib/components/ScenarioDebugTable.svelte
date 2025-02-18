@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChartData } from '$lib/typeshare/config';
+  import type { ChartData } from '@rainlanguage/orderbook/js_api';
   import { transformData } from '$lib/utils/chartData';
   import {
     Table,
@@ -15,7 +15,7 @@
 
 {#if chartData}
   <div class="flex w-full gap-x-4 overflow-x-scroll">
-    {#each Object.values(chartData.scenarios_data) as scenario}
+    {#each Object.values(chartData.scenariosData) as scenario}
       {@const data = transformData(scenario)}
       <div class="flex flex-col gap-y-2">
         <span>{scenario.scenario}</span>

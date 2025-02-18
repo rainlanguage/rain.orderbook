@@ -4,7 +4,7 @@ use alloy::{
     primitives::{utils::parse_units, Bytes, U256},
     sol_types::SolCall,
 };
-use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
+use rain_orderbook_app_settings::{order::OrderIOCfg, orderbook::OrderbookCfg};
 use rain_orderbook_bindings::OrderBook::multicallCall;
 use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
@@ -17,39 +17,44 @@ pub struct TokenAllowance {
     #[tsify(type = "string")]
     allowance: U256,
 }
-impl_all_wasm_traits!(TokenAllowance);
+impl_wasm_traits!(TokenAllowance);
 
+// @todo: these wrapper types are redundant and bloat, and they
+// just increase the .wasm output size
+// remove them and use wasmbg attrs to achieve the desired result
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AllowancesResult(Vec<TokenAllowance>);
-impl_all_wasm_traits!(AllowancesResult);
+impl_wasm_traits!(AllowancesResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct ApprovalCalldataResult(Vec<dotrain_order::calldata::ApprovalCalldata>);
-impl_all_wasm_traits!(ApprovalCalldataResult);
+impl_wasm_traits!(ApprovalCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositCalldataResult(Vec<Bytes>);
-impl_all_wasm_traits!(DepositCalldataResult);
+pub struct DepositCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);
+impl_wasm_traits!(DepositCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct WithdrawCalldataResult(Vec<Bytes>);
-impl_all_wasm_traits!(WithdrawCalldataResult);
+pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);
+impl_wasm_traits!(WithdrawCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AddOrderCalldataResult(Bytes);
-impl_all_wasm_traits!(AddOrderCalldataResult);
+pub struct AddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+impl_wasm_traits!(AddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositAndAddOrderCalldataResult(Bytes);
-impl_all_wasm_traits!(DepositAndAddOrderCalldataResult);
+pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "string")] Bytes);
+impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct IOVaultIds(HashMap<String, Vec<Option<U256>>>);
-impl_all_wasm_traits!(IOVaultIds);
+pub struct IOVaultIds(
+    #[tsify(type = "Map<string, (string[] | undefined)>")] HashMap<String, Vec<Option<U256>>>,
+);
+impl_wasm_traits!(IOVaultIds);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    fn get_orderbook(&self) -> Result<Arc<Orderbook>, GuiError> {
+    fn get_orderbook(&self) -> Result<Arc<OrderbookCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
         deployment
             .deployment
@@ -74,8 +79,8 @@ impl DotrainOrderGui {
 
     async fn get_vaults_and_deposits(
         &self,
-        deployment: &GuiDeployment,
-    ) -> Result<Vec<(OrderIO, U256)>, GuiError> {
+        deployment: &GuiDeploymentCfg,
+    ) -> Result<Vec<(OrderIOCfg, U256)>, GuiError> {
         let deposits_map = self.get_deposits_as_map().await?;
         let results = deployment
             .deployment
@@ -103,7 +108,7 @@ impl DotrainOrderGui {
 
     async fn check_allowance(
         &self,
-        orderbook: &Orderbook,
+        orderbook: &OrderbookCfg,
         deposit_args: &DepositArgs,
         owner: &str,
     ) -> Result<TokenAllowance, GuiError> {
@@ -178,7 +183,7 @@ impl DotrainOrderGui {
         Ok(ApprovalCalldataResult(calldatas))
     }
 
-    fn populate_vault_ids(&mut self, deployment: &GuiDeployment) -> Result<(), GuiError> {
+    fn populate_vault_ids(&mut self, deployment: &GuiDeploymentCfg) -> Result<(), GuiError> {
         self.dotrain_order
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
@@ -186,7 +191,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    fn update_bindings(&mut self, deployment: &GuiDeployment) -> Result<(), GuiError> {
+    fn update_bindings(&mut self, deployment: &GuiDeploymentCfg) -> Result<(), GuiError> {
         self.dotrain_order
             .dotrain_yaml()
             .get_scenario(&deployment.deployment.scenario.key)?

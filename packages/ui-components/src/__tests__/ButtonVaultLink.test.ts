@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
-import type { Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 describe('ButtonVaultLink', () => {
 	const mockVault = {
@@ -13,7 +13,7 @@ describe('ButtonVaultLink', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		}
-	} as unknown as Vault;
+	} as unknown as SgVault;
 
 	it('should render vault information correctly', () => {
 		render(ButtonVaultLink, {

@@ -10,10 +10,10 @@ import {
 	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
-	Gui,
-	GuiDeployment,
+	GuiCfg,
+	GuiDeploymentCfg,
 	IOVaultIds,
-	NameAndDescription,
+	NameAndDescriptionCfg,
 	TokenDeposit,
 	TokenInfo
 } from '../../dist/types/js_api.js';
@@ -364,13 +364,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		const gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
 
-		const guiConfig = gui.getGuiConfig() as Gui;
+		const guiConfig = gui.getGuiConfig() as GuiCfg;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
 	});
 
 	it('should get strategy details', async () => {
-		const strategyDetails: NameAndDescription =
+		const strategyDetails: NameAndDescriptionCfg =
 			await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
 		assert.equal(strategyDetails.name, 'Fixed limit');
 		assert.equal(strategyDetails.description, 'Fixed limit order strategy');
@@ -743,7 +743,7 @@ ${dotrain}`;
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
 
-			let guiDeployment: GuiDeployment = gui.getCurrentDeployment();
+			let guiDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
 			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
@@ -799,7 +799,7 @@ ${guiConfig2}
 ${dotrainWithoutVaultIds}
 	  `;
 			gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
-			let deployment: GuiDeployment = gui.getCurrentDeployment();
+			let deployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.equal(deployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(deployment.deployment.order.outputs[0].vaultId, undefined);
 
@@ -949,14 +949,11 @@ ${dotrainWithoutVaultIds}
 			const addOrderCalldata: AddOrderCalldataResult = await gui.generateAddOrderCalldata();
 			assert.equal(addOrderCalldata.length, 2314);
 
-			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.deepEqual(
-				currentDeployment.deployment.scenario.bindings,
-				new Map([
-					['test-binding', '10'],
-					['another-binding', '300']
-				])
-			);
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '10',
+				'another-binding': '300'
+			});
 		});
 
 		it('should generate multicalldata for deposit and add order with existing vault ids', async () => {
@@ -995,14 +992,11 @@ ${dotrainWithoutVaultIds}
 				await gui.generateDepositAndAddOrderCalldatas();
 			assert.equal(calldata.length, 3146);
 
-			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
-			assert.deepEqual(
-				currentDeployment.deployment.scenario.bindings,
-				new Map([
-					['test-binding', '0xbeef'],
-					['another-binding', '300']
-				])
-			);
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '0xbeef',
+				'another-binding': '300'
+			});
 		});
 
 		it('should generate multicalldata for deposit and add order with without vault ids', async () => {
@@ -1058,7 +1052,7 @@ ${dotrainWithoutVaultIds}`;
 				await gui.generateDepositAndAddOrderCalldatas();
 			assert.equal(calldata.length, 3146);
 
-			const currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.equal(
 				currentDeployment.deployment.order.inputs[0].vaultId,
 				currentDeployment.deployment.order.outputs[0].vaultId
@@ -1180,7 +1174,7 @@ ${dotrainWithoutVaultIds}`;
           `;
 			gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
 
-			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
+			let currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(currentDeployment.deployment.order.outputs[0].vaultId, undefined);
 
@@ -1191,7 +1185,7 @@ ${dotrainWithoutVaultIds}`;
 
 			gui.setVaultId(false, 0, '0x234');
 
-			let newCurrentDeployment: GuiDeployment = gui.getCurrentDeployment();
+			let newCurrentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
 			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');

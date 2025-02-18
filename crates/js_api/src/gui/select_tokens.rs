@@ -1,18 +1,19 @@
 use super::*;
 use rain_orderbook_app_settings::{
-    deployment::Deployment, gui::GuiSelectTokens, network::Network, order::Order, token::Token,
+    deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
+    token::TokenCfg,
 };
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct SelectTokens(Vec<GuiSelectTokens>);
-impl_all_wasm_traits!(SelectTokens);
+pub struct SelectTokens(Vec<GuiSelectTokensCfg>);
+impl_wasm_traits!(SelectTokens);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getSelectTokens")]
     pub fn get_select_tokens(&self) -> Result<SelectTokens, GuiError> {
-        let select_tokens = Gui::parse_select_tokens(
+        let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
@@ -26,7 +27,7 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "checkSelectTokens")]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
-        let select_tokens = Gui::parse_select_tokens(
+        let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
@@ -53,7 +54,7 @@ impl DotrainOrderGui {
         key: String,
         address: String,
     ) -> Result<(), GuiError> {
-        let select_tokens = Gui::parse_select_tokens(
+        let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?
@@ -64,19 +65,19 @@ impl DotrainOrderGui {
 
         let address = Address::from_str(&address)?;
 
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
         let network_key =
-            Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
         let rpc_url =
-            Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+            NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
         let erc20 = ERC20::new(rpc_url.clone(), address);
         let token_info = erc20.token_info(None).await?;
 
-        Token::add_record_to_yaml(
+        TokenCfg::add_record_to_yaml(
             self.dotrain_order.orderbook_yaml().documents,
             &key,
             &network_key,
@@ -101,7 +102,7 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "removeSelectToken")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
-        let select_tokens = Gui::parse_select_tokens(
+        let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?
@@ -110,7 +111,7 @@ impl DotrainOrderGui {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
 
-        Token::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
+        TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
         Ok(())
     }
 

@@ -3,7 +3,7 @@ import { test, vi } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
-import type { VaultBalanceChange } from '@rainlanguage/orderbook/js_api';
+import type { SgVaultBalanceChangeType } from '@rainlanguage/orderbook/js_api';
 import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -13,7 +13,7 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 test('renders the vault list table with correct data', async () => {
 	const queryClient = new QueryClient();
 
-	const mockVaultBalanceChanges: VaultBalanceChange[] = [
+	const mockVaultBalanceChanges: SgVaultBalanceChangeType[] = [
 		{
 			__typename: 'Withdrawal',
 			amount: '1000',
@@ -42,7 +42,7 @@ test('renders the vault list table with correct data', async () => {
 			}
 		}
 		// ... other mock data
-	] as unknown as VaultBalanceChange[];
+	] as unknown as SgVaultBalanceChangeType[];
 
 	// Mock the getVaultBalanceChanges function
 	const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook/js_api');
@@ -65,7 +65,7 @@ test('renders the vault list table with correct data', async () => {
 test('it shows the correct data in the table', async () => {
 	const queryClient = new QueryClient();
 
-	const mockVaultBalanceChanges: VaultBalanceChange[] = [
+	const mockVaultBalanceChanges: SgVaultBalanceChangeType[] = [
 		{
 			__typename: 'Withdrawal',
 			amount: '1000',
@@ -93,7 +93,7 @@ test('it shows the correct data in the table', async () => {
 				id: '0x00'
 			}
 		}
-	] as unknown as VaultBalanceChange[];
+	] as unknown as SgVaultBalanceChangeType[];
 
 	// Mock the getVaultBalanceChanges function
 	const { getVaultBalanceChanges } = await import('@rainlanguage/orderbook/js_api');

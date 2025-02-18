@@ -12,7 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import { getOrder, type OrderSubgraph, type Vault } from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type SgOrder, type SgVault } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -24,7 +24,7 @@
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: {
-				vault: Vault;
+				vault: SgVault;
 				onDepositOrWithdraw: () => void;
 				action: 'deposit' | 'withdraw';
 				chainId: number;
@@ -33,7 +33,7 @@
 		| undefined = undefined;
 	export let handleOrderRemoveModal:
 		| ((args: {
-				order: OrderSubgraph;
+				order: SgOrder;
 				onRemove: () => void;
 				wagmiConfig: Config;
 				chainId: number;
@@ -43,7 +43,7 @@
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: OrderSubgraph,
+				order: SgOrder,
 				rpcUrl: string,
 				orderbook: string,
 				inputIOIndex: number,
@@ -66,7 +66,7 @@
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
-	$: orderDetailQuery = createQuery<OrderSubgraph>({
+	$: orderDetailQuery = createQuery<SgOrder>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl

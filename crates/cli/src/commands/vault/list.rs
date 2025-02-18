@@ -10,7 +10,7 @@ use rain_orderbook_common::{
     subgraph::SubgraphArgs,
     types::{FlattenError, TokenVaultFlattened, NO_SYMBOL},
 };
-use rain_orderbook_subgraph_client::PaginationArgs;
+use rain_orderbook_subgraph_client::SgPaginationArgs;
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -43,7 +43,7 @@ impl Execute for CliVaultListArgs {
             let csv_text = vaults_flattened.try_into_csv()?;
             println!("{}", csv_text);
         } else {
-            let pagination_args: PaginationArgs = self.pagination_args.clone().into();
+            let pagination_args: SgPaginationArgs = self.pagination_args.clone().into();
             let filter_args = self.filter_args.clone().into();
             let vaults = subgraph_args
                 .to_subgraph_client()

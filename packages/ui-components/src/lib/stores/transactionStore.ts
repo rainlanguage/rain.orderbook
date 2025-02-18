@@ -7,7 +7,7 @@ import type {
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	RemoveOrderCalldata,
-	Vault,
+	SgVault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 
@@ -54,7 +54,7 @@ export type DepositOrWithdrawTransactionArgs = {
 	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
-	vault: Vault;
+	vault: SgVault;
 };
 
 export type RemoveOrderTransactionArgs = {

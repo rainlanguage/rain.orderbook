@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
 	import { bigintToFloat } from '../../utils/number';
-	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import {
 		getVaultBalanceChanges,
-		type ClearBounty,
-		type Deposit,
-		type TradeVaultBalanceChange,
-		type Withdrawal
+		type SgClearBounty,
+		type SgDeposit,
+		type SgTradeVaultBalanceChange,
+		type SgWithdrawal
 	} from '@rainlanguage/orderbook/js_api';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
-	export let vault: Vault;
+	export let vault: SgVault;
 	export let subgraphUrl: string;
 	export let lightweightChartsTheme;
 
@@ -29,7 +29,7 @@
 	});
 
 	const Chart = TanstackLightweightChartLine<
-		Withdrawal | Deposit | TradeVaultBalanceChange | ClearBounty
+		SgWithdrawal | SgDeposit | SgTradeVaultBalanceChange | SgClearBounty
 	>;
 </script>
 

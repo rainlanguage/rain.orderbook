@@ -2,7 +2,7 @@ import { derived, get, writable, type Invalidator, type Subscriber } from 'svelt
 import { toasts } from '../stores/toasts';
 import { save } from '@tauri-apps/api/dialog';
 import dayjs from 'dayjs';
-import { ToastMessageType } from '$lib/typeshare/toast';
+import { ToastMessageType } from '@rainlanguage/orderbook/js_api';
 import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import { flatten } from 'lodash';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';

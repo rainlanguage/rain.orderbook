@@ -13,7 +13,6 @@ homepage.workspace = true
 cynic = { workspace = true }
 reqwest = { workspace = true }
 thiserror = { workspace = true }
-typeshare = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 alloy = { workspace = true, features = ["rand"] }
@@ -26,10 +25,7 @@ once_cell = { workspace = true }
 futures = "0.3.17"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-js-sys = { version = "0.3.69" }
-wasm-bindgen = { version = "0.2.92" }
-serde-wasm-bindgen = { version = "0.6.5" }
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+wasm-bindgen-utils = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 insta = { workspace = true }

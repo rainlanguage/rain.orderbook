@@ -1,16 +1,16 @@
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_common::types::OrderDetailExtended;
 use rain_orderbook_subgraph_client::{
-    types::common::{Order, OrdersListFilterArgs},
+    types::common::{SgOrder, SgOrdersListFilterArgs},
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
-    OrderbookSubgraphClientError, PaginationArgs,
+    OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use reqwest::Url;
+use wasm_bindgen_utils::prelude::*;
 
 /// Internal function to fetch a single order
-/// Returns the Order struct
-pub async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgraphClientError> {
+/// Returns the SgOrder struct
+pub async fn get_sg_order(url: &str, id: &str) -> Result<SgOrder, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let order = client.order_detail(Id::new(id)).await?;
     Ok(order)
@@ -21,30 +21,30 @@ pub async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgrap
 #[wasm_bindgen(js_name = "getOrders")]
 pub async fn get_orders(
     subgraphs: Vec<MultiSubgraphArgs>,
-    filter_args: OrdersListFilterArgs,
-    pagination_args: PaginationArgs,
+    filter_args: SgOrdersListFilterArgs,
+    pagination_args: SgPaginationArgs,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     let orders = client.orders_list(filter_args, pagination_args).await?;
-    Ok(to_value(&orders)?)
+    Ok(to_js_value(&orders)?)
 }
 
 /// Fetch a single order
-/// Returns the Order struct
+/// Returns the SgOrder struct
 #[wasm_bindgen(js_name = "getOrder")]
 pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order = get_sg_order(url, id).await?;
-    Ok(to_value(&order)?)
+    Ok(to_js_value(&order)?)
 }
 
 /// Extend an order to include Rainlang string
 /// Returns an OrderDetailExtended struct
 #[wasm_bindgen(js_name = "extendOrder")]
-pub fn order_detail_extended(order: Order) -> Result<JsValue, OrderbookSubgraphClientError> {
+pub fn order_detail_extended(order: SgOrder) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order_extended: OrderDetailExtended = order
         .try_into()
         .map_err(|_| OrderbookSubgraphClientError::OrderDetailExtendError)?;
-    Ok(to_value(&order_extended)?)
+    Ok(to_js_value(&order_extended)?)
 }
 
 /// Fetch trades for a specific order
@@ -53,7 +53,7 @@ pub fn order_detail_extended(order: Order) -> Result<JsValue, OrderbookSubgraphC
 pub async fn get_order_trades_list(
     url: &str,
     order_id: &str,
-    pagination_args: PaginationArgs,
+    pagination_args: SgPaginationArgs,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
@@ -66,7 +66,7 @@ pub async fn get_order_trades_list(
             end_timestamp,
         )
         .await?;
-    Ok(to_value(&trades)?)
+    Ok(to_js_value(&trades)?)
 }
 
 /// Get details for a specific trade
@@ -78,7 +78,7 @@ pub async fn get_order_trade_detail(
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let trade = client.order_trade_detail(Id::new(trade_id)).await?;
-    Ok(to_value(&trade)?)
+    Ok(to_js_value(&trade)?)
 }
 
 /// Fetch the count of trades for a specific order
@@ -100,7 +100,7 @@ pub async fn get_order_trades_count(
         .len();
 
     // Convert the count to a JavaScript-compatible value and return
-    Ok(to_value(&trades_count)?)
+    Ok(to_js_value(&trades_count)?)
 }
 
 /// Fetch volume information for vaults associated with an order
@@ -115,7 +115,7 @@ pub async fn order_vaults_volume(
     let volumes = client
         .order_vaults_volume(Id::new(order_id), start_timestamp, end_timestamp)
         .await?;
-    Ok(to_value(&volumes)?)
+    Ok(to_js_value(&volumes)?)
 }
 
 /// Measures an order's performance (including vaults apy and vol and total apy and vol)
@@ -130,5 +130,5 @@ pub async fn order_performance(
     let performance = client
         .order_performance(Id::new(order_id), start_timestamp, end_timestamp)
         .await?;
-    Ok(to_value(&performance)?)
+    Ok(to_js_value(&performance)?)
 }

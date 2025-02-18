@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { transactionStore } from '@rainlanguage/ui-components';
 	import TransactionModal from './TransactionModal.svelte';
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook/js_api';
 	import type { Config } from 'wagmi';
 
 	export let open: boolean;
-	export let order: OrderSubgraph;
+	export let order: SgOrder;
 	export let onRemove: () => void;
 	export let wagmiConfig: Config;
 	export let chainId: number;

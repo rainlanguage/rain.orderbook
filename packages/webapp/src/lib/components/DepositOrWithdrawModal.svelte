@@ -5,7 +5,7 @@
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type WithdrawCalldataResult,
-		type Vault,
+		type SgVault,
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
@@ -30,7 +30,7 @@
 
 	export let open: boolean;
 	export let action: 'deposit' | 'withdraw';
-	export let vault: Vault;
+	export let vault: SgVault;
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let onDepositOrWithdraw: () => void;

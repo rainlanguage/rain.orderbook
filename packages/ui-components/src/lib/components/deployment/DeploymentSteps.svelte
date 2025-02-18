@@ -7,11 +7,11 @@
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type GuiDeposit,
-		type GuiFieldDefinition,
-		type NameAndDescription,
-		type GuiDeployment,
-		type OrderIO,
+		type GuiDepositCfg,
+		type GuiFieldDefinitionCfg,
+		type NameAndDescriptionCfg,
+		type GuiDeploymentCfg,
+		type OrderIOCfg,
 		type ApprovalCalldataResult,
 		type DepositAndAddOrderCalldataResult,
 		type SelectTokens
@@ -42,7 +42,7 @@
 
 	export let dotrain: string;
 	export let deployment: string;
-	export let deploymentDetails: NameAndDescription;
+	export let deploymentDetails: NameAndDescriptionCfg;
 	export let handleDeployModal: (args: {
 		approvals: ApprovalCalldataResult;
 		deploymentCalldata: DepositAndAddOrderCalldataResult;
@@ -51,9 +51,9 @@
 	}) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let selectTokens: SelectTokens | null = null;
-	let allDepositFields: GuiDeposit[] = [];
-	let allTokenOutputs: OrderIO[] = [];
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
+	let allDepositFields: GuiDepositCfg[] = [];
+	let allTokenOutputs: OrderIOCfg[] = [];
+	let allFieldDefinitions: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
@@ -105,8 +105,8 @@
 	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
-			let dep: GuiDeployment = gui.getCurrentDeployment();
-			let depositFields: GuiDeposit[] = dep.deposits;
+			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
+			let depositFields: GuiDepositCfg[] = dep.deposits;
 
 			allDepositFields = depositFields;
 		} catch (e) {
@@ -115,7 +115,7 @@
 		}
 	}
 
-	let allTokenInputs: OrderIO[] = [];
+	let allTokenInputs: OrderIOCfg[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
 
@@ -164,7 +164,8 @@
 			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
 			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
 			// @ts-expect-error orderbook is not typed
-			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook.address;
+			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook
+				.address as `0x${string}`;
 			const outputTokenInfos = await Promise.all(
 				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
 			);

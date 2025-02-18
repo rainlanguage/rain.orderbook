@@ -6,32 +6,40 @@ use crate::{
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::transaction::ReadableClient;
 use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
-use rain_orderbook_subgraph_client::types::common::Order;
+use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct BatchOrderQuotesResponse {
     pub pair: Pair,
-    #[typeshare(typescript(type = "string"))]
-    pub block_number: U256,
+    pub block_number: u64,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub data: Option<OrderQuoteValue>,
     pub success: bool,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub error: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(BatchOrderQuotesResponse);
 
-#[typeshare]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct Pair {
     pub pair_name: String,
     pub input_index: u32,
     pub output_index: u32,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(Pair);
 
 pub async fn get_order_quotes(
-    orders: Vec<Order>,
+    orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpc_url: String,
     gas: Option<U256>,
@@ -109,7 +117,7 @@ pub async fn get_order_quotes(
                     Ok(quote_value) => {
                         results.push(BatchOrderQuotesResponse {
                             pair,
-                            block_number: U256::from(req_block_number),
+                            block_number: req_block_number,
                             success: true,
                             data: Some(quote_value),
                             error: None,
@@ -118,7 +126,7 @@ pub async fn get_order_quotes(
                     Err(e) => {
                         results.push(BatchOrderQuotesResponse {
                             pair,
-                            block_number: U256::from(req_block_number),
+                            block_number: req_block_number,
                             success: false,
                             data: None,
                             error: Some(e.to_string()),
@@ -130,7 +138,7 @@ pub async fn get_order_quotes(
             for pair in pairs {
                 results.push(BatchOrderQuotesResponse {
                     pair,
-                    block_number: U256::from(req_block_number),
+                    block_number: req_block_number,
                     success: false,
                     data: None,
                     error: Some(e.to_string()),
@@ -152,7 +160,9 @@ mod tests {
         sol_types::{SolCall, SolValue},
     };
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_subgraph_client::types::common::{BigInt, Bytes, Erc20, Orderbook, Vault};
+    use rain_orderbook_subgraph_client::types::common::{
+        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+    };
     use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test]
@@ -259,39 +269,39 @@ amount price: context<3 0>() context<4 0>();
             .deposit(owner, *token2.address(), U256::MAX, U256::from(1))
             .await;
 
-        let vault1 = Vault {
-            id: Bytes(B256::random().to_string()),
-            token: Erc20 {
-                id: Bytes(token1.address().to_string()),
-                address: Bytes(token1.address().to_string()),
+        let vault1 = SgVault {
+            id: SgBytes(B256::random().to_string()),
+            token: SgErc20 {
+                id: SgBytes(token1.address().to_string()),
+                address: SgBytes(token1.address().to_string()),
                 name: Some("Token1".to_string()),
                 symbol: Some("Token1".to_string()),
-                decimals: Some(BigInt(18.to_string())),
+                decimals: Some(SgBigInt(18.to_string())),
             },
-            balance: BigInt("123".to_string()),
-            vault_id: BigInt(B256::random().to_string()),
-            owner: Bytes(local_evm.anvil.addresses()[0].to_string()),
-            orderbook: Orderbook {
-                id: Bytes(orderbook.address().to_string()),
+            balance: SgBigInt("123".to_string()),
+            vault_id: SgBigInt(B256::random().to_string()),
+            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(orderbook.address().to_string()),
             },
             orders_as_input: vec![],
             orders_as_output: vec![],
             balance_changes: vec![],
         };
-        let vault2 = Vault {
-            id: Bytes(B256::random().to_string()),
-            token: Erc20 {
-                id: Bytes(token2.address().to_string()),
-                address: Bytes(token2.address().to_string()),
+        let vault2 = SgVault {
+            id: SgBytes(B256::random().to_string()),
+            token: SgErc20 {
+                id: SgBytes(token2.address().to_string()),
+                address: SgBytes(token2.address().to_string()),
                 name: Some("Token2".to_string()),
                 symbol: Some("Token2".to_string()),
-                decimals: Some(BigInt(6.to_string())),
+                decimals: Some(SgBigInt(6.to_string())),
             },
-            balance: BigInt("123".to_string()),
-            vault_id: BigInt(B256::random().to_string()),
-            owner: Bytes(local_evm.anvil.addresses()[0].to_string()),
-            orderbook: Orderbook {
-                id: Bytes(orderbook.address().to_string()),
+            balance: SgBigInt("123".to_string()),
+            vault_id: SgBigInt(B256::random().to_string()),
+            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(orderbook.address().to_string()),
             },
             orders_as_input: vec![],
             orders_as_output: vec![],
@@ -302,20 +312,20 @@ amount price: context<3 0>() context<4 0>();
         let inputs = vec![vault2.clone(), vault1.clone()];
         let outputs = vec![vault2.clone(), vault1.clone()];
 
-        let order = Order {
-            id: Bytes(B256::random().to_string()),
-            orderbook: Orderbook {
-                id: Bytes(orderbook.address().to_string()),
+        let order = SgOrder {
+            id: SgBytes(B256::random().to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(orderbook.address().to_string()),
             },
-            order_bytes: Bytes(order),
-            order_hash: Bytes(B256::random().to_string()),
-            owner: Bytes(local_evm.anvil.addresses()[0].to_string()),
+            order_bytes: SgBytes(order),
+            order_hash: SgBytes(B256::random().to_string()),
+            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
             outputs,
             inputs,
             active: true,
             add_events: vec![],
             meta: None,
-            timestamp_added: BigInt(0.to_string()),
+            timestamp_added: SgBigInt(0.to_string()),
             trades: vec![],
         };
 
@@ -325,7 +335,7 @@ amount price: context<3 0>() context<4 0>();
 
         let token1_as_u256 = U256::from_str(&token1.address().to_string()).unwrap();
         let token2_as_u256 = U256::from_str(&token2.address().to_string()).unwrap();
-        let block_number = U256::from(local_evm.provider.get_block_number().await.unwrap());
+        let block_number = local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![
             BatchOrderQuotesResponse {
                 pair: Pair {

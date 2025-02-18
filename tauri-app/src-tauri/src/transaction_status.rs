@@ -4,10 +4,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager};
-use typeshare::typeshare;
 use uuid::Uuid;
 
-#[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type", content = "payload")]
 pub enum TransactionStatus {
@@ -32,7 +30,6 @@ impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
     }
 }
 
-#[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionStatusNotice {
     pub id: Uuid,

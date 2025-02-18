@@ -8,59 +8,48 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
     context::{Context, GuiContextTrait, SelectTokensContext},
     default_document, optional_string, require_hash, require_string, require_vec, YamlError,
     YamlParsableHash,
 };
 
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct OrderIO {
-    #[typeshare(typescript(type = "Token | undefined"))]
-    pub token: Option<Arc<Token>>,
-    #[typeshare(typescript(type = "string"))]
+pub struct OrderIOCfg {
+    pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
-        tsify(type = "string"),
-        serde(rename = "vaultId")
+        serde(rename = "vaultId"),
+        tsify(optional, type = "string")
     )]
     pub vault_id: Option<U256>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(OrderIO);
+impl_wasm_traits!(OrderIOCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct Order {
+pub struct OrderCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "OrderIO[]"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderIO[]"))]
-    pub inputs: Vec<OrderIO>,
-    #[typeshare(typescript(type = "OrderIO[]"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderIO[]"))]
-    pub outputs: Vec<OrderIO>,
-    #[typeshare(typescript(type = "Network"))]
-    pub network: Arc<Network>,
-    #[typeshare(typescript(type = "Deployer"))]
-    pub deployer: Option<Arc<Deployer>>,
-    #[typeshare(typescript(type = "Orderbook"))]
-    pub orderbook: Option<Arc<Orderbook>>,
+    pub inputs: Vec<OrderIOCfg>,
+    pub outputs: Vec<OrderIOCfg>,
+    pub network: Arc<NetworkCfg>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub deployer: Option<Arc<DeployerCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub orderbook: Option<Arc<OrderbookCfg>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Order);
+impl_wasm_traits!(OrderCfg);
 
-impl Order {
+impl OrderCfg {
     pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
         U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
     }
@@ -71,7 +60,7 @@ impl Order {
         index: u8,
         vault_id: String,
     ) -> Result<Self, YamlError> {
-        let new_vault_id = Order::validate_vault_id(&vault_id)?;
+        let new_vault_id = OrderCfg::validate_vault_id(&vault_id)?;
 
         let mut document = self
             .document
@@ -270,7 +259,7 @@ impl Order {
                     let location = format!("order '{}'", order_key);
 
                     if let Some(deployer_key) = optional_string(order_yaml, "deployer") {
-                        let key = Deployer::parse_network_key(documents.clone(), &deployer_key)?;
+                        let key = DeployerCfg::parse_network_key(documents.clone(), &deployer_key)?;
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
@@ -287,7 +276,8 @@ impl Order {
                     }
 
                     if let Some(orderbook_key) = optional_string(order_yaml, "orderbook") {
-                        let key = Orderbook::parse_network_key(documents.clone(), &orderbook_key)?;
+                        let key =
+                            OrderbookCfg::parse_network_key(documents.clone(), &orderbook_key)?;
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
@@ -311,7 +301,7 @@ impl Order {
 
                         let token_key =
                             require_string(input, Some("token"), Some(location.clone()))?;
-                        let res = Token::parse_network_key(documents.clone(), &token_key);
+                        let res = TokenCfg::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
@@ -338,7 +328,7 @@ impl Order {
 
                         let token_key =
                             require_string(output, Some("token"), Some(location.clone()))?;
-                        let res = Token::parse_network_key(documents.clone(), &token_key);
+                        let res = TokenCfg::parse_network_key(documents.clone(), &token_key);
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
@@ -414,16 +404,16 @@ impl Order {
     }
 }
 
-impl YamlParsableHash for Order {
+impl YamlParsableHash for OrderCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
-        let deployers = Deployer::parse_all_from_yaml(documents.clone(), None);
-        let orderbooks = Orderbook::parse_all_from_yaml(documents.clone(), None);
-        let tokens = Token::parse_all_from_yaml(documents.clone(), None);
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None);
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), None);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -441,7 +431,7 @@ impl YamlParsableHash for Order {
                         }
                     }
 
-                    let mut network: Option<Arc<Network>> = None;
+                    let mut network: Option<Arc<NetworkCfg>> = None;
 
                     let deployer = match optional_string(order_yaml, "deployer") {
                         Some(deployer_name) => {
@@ -576,7 +566,7 @@ impl YamlParsableHash for Order {
                         }
 
                         let vault_id = match optional_string(input, "vault-id") {
-                            Some(id) => Some(Order::validate_vault_id(&id).map_err(|e| {
+                            Some(id) => Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
                                 YamlError::Field {
                                     kind: FieldErrorKind::InvalidValue {
                                         field: "vault-id".to_string(),
@@ -588,7 +578,7 @@ impl YamlParsableHash for Order {
                             None => None,
                         };
 
-                        Ok(OrderIO {
+                        Ok(OrderIOCfg {
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -660,7 +650,7 @@ impl YamlParsableHash for Order {
                         }
 
                         let vault_id = match optional_string(output, "vault-id") {
-                            Some(id) => Some(Order::validate_vault_id(&id).map_err(|e| {
+                            Some(id) => Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
                                 YamlError::Field {
                                     kind: FieldErrorKind::InvalidValue {
                                         field: "vault-id".to_string(),
@@ -672,14 +662,14 @@ impl YamlParsableHash for Order {
                             None => None,
                         };
 
-                        Ok(OrderIO {
+                        Ok(OrderIOCfg {
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
                     })
                     .collect::<Result<Vec<_>, YamlError>>()?;
 
-                    let order = Order {
+                    let order = OrderCfg {
                         document: document.clone(),
                         key: order_key.clone(),
                         inputs,
@@ -710,21 +700,21 @@ impl YamlParsableHash for Order {
     }
 }
 
-impl Default for Order {
+impl Default for OrderCfg {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: String::new(),
             inputs: vec![],
             outputs: vec![],
-            network: Arc::new(Network::default()),
+            network: Arc::new(NetworkCfg::default()),
             deployer: None,
             orderbook: None,
         }
     }
 }
 
-impl PartialEq for Order {
+impl PartialEq for OrderCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
             && self.inputs == other.inputs
@@ -774,10 +764,10 @@ pub enum ParseOrderConfigSourceError {
 impl OrderConfigSource {
     pub fn try_into_order(
         self,
-        deployers: &HashMap<String, Arc<Deployer>>,
-        orderbooks: &HashMap<String, Arc<Orderbook>>,
-        tokens: &HashMap<String, Arc<Token>>,
-    ) -> Result<Order, ParseOrderConfigSourceError> {
+        deployers: &HashMap<String, Arc<DeployerCfg>>,
+        orderbooks: &HashMap<String, Arc<OrderbookCfg>>,
+        tokens: &HashMap<String, Arc<TokenCfg>>,
+    ) -> Result<OrderCfg, ParseOrderConfigSourceError> {
         let mut network = None;
 
         let deployer = self
@@ -840,7 +830,7 @@ impl OrderConfigSource {
                     .map(|v| {
                         if let Some(n) = &network {
                             if v.network == *n {
-                                Ok(OrderIO {
+                                Ok(OrderIOCfg {
                                     token: Some(v.clone()),
                                     vault_id: input.vault_id,
                                 })
@@ -849,7 +839,7 @@ impl OrderConfigSource {
                             }
                         } else {
                             network = Some(v.network.clone());
-                            Ok(OrderIO {
+                            Ok(OrderIOCfg {
                                 token: Some(v.clone()),
                                 vault_id: input.vault_id,
                             })
@@ -870,7 +860,7 @@ impl OrderConfigSource {
                     .map(|v| {
                         if let Some(n) = &network {
                             if v.network == *n {
-                                Ok(OrderIO {
+                                Ok(OrderIOCfg {
                                     token: Some(v.clone()),
                                     vault_id: output.vault_id,
                                 })
@@ -879,7 +869,7 @@ impl OrderConfigSource {
                             }
                         } else {
                             network = Some(v.network.clone());
-                            Ok(OrderIO {
+                            Ok(OrderIOCfg {
                                 token: Some(v.clone()),
                                 vault_id: output.vault_id,
                             })
@@ -888,7 +878,7 @@ impl OrderConfigSource {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Order {
+        Ok(OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: String::new(),
             inputs,
@@ -932,11 +922,11 @@ mod tests {
         let order_string = OrderConfigSource {
             deployer: Some("Deployer1".to_string()),
             orderbook: Some("Orderbook1".to_string()),
-            inputs: vec![IOString {
+            inputs: vec![IOStringConfigSource {
                 token: "Token1".to_string(),
                 vault_id: Some(U256::from(1)),
             }],
-            outputs: vec![IOString {
+            outputs: vec![IOStringConfigSource {
                 token: "Token2".to_string(),
                 vault_id: Some(U256::from(2)),
             }],
@@ -1026,7 +1016,7 @@ mod tests {
         let order_string = OrderConfigSource {
             deployer: None,
             orderbook: None,
-            inputs: vec![IOString {
+            inputs: vec![IOStringConfigSource {
                 token: "Nonexistent Token".to_string(),
                 vault_id: Some(U256::from(1)),
             }],
@@ -1045,7 +1035,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1058,7 +1048,7 @@ test: test
 orders:
     order1:
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1073,7 +1063,7 @@ orders:
         inputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1096,7 +1086,7 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1121,7 +1111,7 @@ orders:
         outputs:
             - test: test
 "#;
-        let error = Order::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1168,7 +1158,7 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let orders = Order::parse_all_from_yaml(documents, None).unwrap();
+        let orders = OrderCfg::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(orders.len(), 2);
         assert!(orders.contains_key("OrderOne"));
@@ -1215,7 +1205,7 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Order::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
     }
@@ -1225,7 +1215,7 @@ orders:
         let yaml = r#"
 orders: test
 "#;
-        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1241,7 +1231,7 @@ orders: test
 orders:
   - test
 "#;
-        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1257,7 +1247,7 @@ orders:
 orders:
   - test: test
 "#;
-        let error = Order::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = OrderCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {

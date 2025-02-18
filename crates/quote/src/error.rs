@@ -6,9 +6,8 @@ use rain_orderbook_subgraph_client::{
 };
 use thiserror::Error;
 use url::ParseError;
-
 #[cfg(target_family = "wasm")]
-use wasm_bindgen::prelude::*;
+use wasm_bindgen_utils::prelude::*;
 
 #[derive(Debug, Error)]
 pub enum FailedQuote {

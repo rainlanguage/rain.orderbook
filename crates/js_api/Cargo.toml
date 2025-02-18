@@ -21,11 +21,7 @@ rain_orderbook_app_settings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 alloy-ethers-typecast = { workspace = true }
-js-sys = { version = "0.3.69" }
-wasm-bindgen = { version = "0.2.92" }
-serde-wasm-bindgen = { version = "0.6.5" }
-wasm-bindgen-futures = { version = "0.4.42" }
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+wasm-bindgen-utils = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 alloy = { workspace = true, features = [ "dyn-abi" ] }
 flate2 = "1.0.34"

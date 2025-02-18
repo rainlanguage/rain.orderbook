@@ -16,7 +16,7 @@ crate-type = ["rlib", "cdylib"]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
-alloy = { workspace = true, features = [ "dyn-abi" ] }
+alloy = { workspace = true, features = [ "dyn-abi", "rand" ] }
 alloy-ethers-typecast = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
@@ -36,23 +36,18 @@ rain_interpreter_bindings = { workspace = true }
 rain_interpreter_dispair = { workspace = true }
 rain_interpreter_parser = { workspace = true }
 serde_bytes = { workspace = true }
-typeshare = { workspace = true }
 csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
+rain-interpreter-eval = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
-rain-interpreter-eval = { workspace = true }
 proptest = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-js-sys = { version = "0.3.69" }
-wasm-bindgen = { version = "0.2.92" }
-serde-wasm-bindgen = { version = "0.6.5" }
-wasm-bindgen-futures = { version = "0.4.42" }
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+wasm-bindgen-utils = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [dev-dependencies]

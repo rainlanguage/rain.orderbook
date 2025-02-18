@@ -33,11 +33,10 @@ comfy-table = "7.1.0"
 cynic-codegen = { version = "3.4.0", features = ["rkyv"] }
 cynic = "3.7.3"
 chrono = "0.4.31"
-typeshare = { git = "https://github.com/tomjw64/typeshare", rev = "556b44aafd5304eedf17206800f69834e3820b7c" }
 thiserror = "1.0.56"
 strict-yaml-rust = "0.1.2"
-dotrain = "6.0.1-alpha.18"
-dotrain-lsp = "6.0.1-alpha.18"
+dotrain = "6.0.1-alpha.23"
+dotrain-lsp = "6.0.1-alpha.23"
 rain-metadata = { path = "lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 rain-metadata-bindings = { path = "lib/rain.interpreter/lib/rain.metadata/crates/bindings" }
 rain-metaboard-subgraph = { path = "lib/rain.interpreter/lib/rain.metadata/crates/metaboard" }
@@ -54,6 +53,7 @@ test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
+wasm-bindgen-utils = "0.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
-import type { GuiDeposit } from '@rainlanguage/orderbook/js_api';
+import type { GuiDepositCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 
 type DepositInputProps = ComponentProps<DepositInput>;
@@ -14,10 +14,10 @@ describe('DepositInput', () => {
 		getDeposits: vi.fn().mockReturnValue([{ token: 'output', amount: '10', address: '0x1234' }])
 	};
 
-	const mockDeposit: GuiDeposit = {
+	const mockDeposit: GuiDepositCfg = {
 		token: { address: '0x123', key: 'TEST', symbol: 'TEST' },
 		presets: ['100', '200', '300']
-	} as unknown as GuiDeposit;
+	} as unknown as GuiDepositCfg;
 
 	beforeEach(() => {
 		vi.clearAllMocks();

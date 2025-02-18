@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
 	import {
-		type OrderIO,
+		type OrderIOCfg,
 		type TokenInfo,
 		type DotrainOrderGui
 	} from '@rainlanguage/orderbook/js_api';
@@ -10,7 +10,7 @@
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
-	export let vault: OrderIO;
+	export let vault: OrderIOCfg;
 	export let gui: DotrainOrderGui;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
@@ -22,9 +22,9 @@
 		if (!gui) return;
 		const vaultIds = gui.getVaultIds();
 		if (label === 'Input') {
-			inputValue = vaultIds.get('input')?.[i];
+			inputValue = vaultIds.get('input')?.[i] as unknown as string;
 		} else if (label === 'Output') {
-			inputValue = vaultIds.get('output')?.[i];
+			inputValue = vaultIds.get('output')?.[i] as unknown as string;
 		}
 	});
 

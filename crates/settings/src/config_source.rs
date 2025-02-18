@@ -1,118 +1,190 @@
-use crate::blocks::Blocks;
+use crate::blocks::BlocksCfg;
 use crate::remote::chains::{chainid::ChainIdError, RemoteNetworkError, RemoteNetworks};
-use crate::{GuiConfigSource, Metric, Plot};
+use crate::{GuiConfigSourceCfg, MetricCfg, PlotCfg};
 use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-use typeshare::typeshare;
 use url::Url;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{
+    impl_wasm_traits, prelude::*, serialize_hashmap_as_object, serialize_opt_hashmap_as_object,
+};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct ConfigSource {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, RemoteNetworksConfigSource>")
+    )]
     pub using_networks_from: HashMap<String, RemoteNetworksConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, NetworkConfigSource>")
+    )]
     pub networks: HashMap<String, NetworkConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, string>")
+    )]
     pub subgraphs: HashMap<String, Url>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, OrderbookConfigSource>")
+    )]
     pub orderbooks: HashMap<String, OrderbookConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, TokenConfigSource>")
+    )]
     pub tokens: HashMap<String, TokenConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, DeployerConfigSource>")
+    )]
     pub deployers: HashMap<String, DeployerConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, OrderConfigSource>")
+    )]
     pub orders: HashMap<String, OrderConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, ScenarioConfigSource>")
+    )]
     pub scenarios: HashMap<String, ScenarioConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, ChartConfigSource>")
+    )]
     pub charts: HashMap<String, ChartConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, DeploymentConfigSource>")
+    )]
     pub deployments: HashMap<String, DeploymentConfigSource>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, string>")
+    )]
     pub metaboards: HashMap<String, Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raindex_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_opt_hashmap_as_object"),
+        tsify(optional, type = "Record<string, string>")
+    )]
     pub accounts: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub gui: Option<GuiConfigSource>,
+    pub gui: Option<GuiConfigSourceCfg>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ConfigSource);
 
-#[typeshare]
-pub type SubgraphRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgSubgraphRef = String;
 
-#[typeshare]
-pub type ScenarioRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgScenarioRef = String;
 
-#[typeshare]
-pub type NetworkRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgNetworkRef = String;
 
-#[typeshare]
-pub type DeployerRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgDeployerRef = String;
 
-#[typeshare]
-pub type OrderRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgOrderRef = String;
 
-#[typeshare]
-pub type OrderbookRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgOrderbookRef = String;
 
-#[typeshare]
-pub type TokenRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgTokenRef = String;
 
-#[typeshare]
-pub type MetaboardRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgMetaboardRef = String;
 
-#[typeshare]
-pub type DeploymentRef = String;
+#[cfg_attr(target_family = "wasm", tsify::declare)]
+pub type CfgDeploymentRef = String;
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct NetworkConfigSource {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub rpc: Url,
-    #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    #[typeshare(typescript(type = "number"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub network_id: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(NetworkConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct RemoteNetworksConfigSource {
     pub url: String,
     pub format: String,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(RemoteNetworksConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookConfigSource {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<NetworkRef>,
+    pub network: Option<CfgNetworkRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subgraph: Option<SubgraphRef>,
+    pub subgraph: Option<CfgSubgraphRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderbookConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TokenConfigSource {
-    pub network: NetworkRef,
+    pub network: CfgNetworkRef,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decimals: Option<u8>,
@@ -121,77 +193,105 @@ pub struct TokenConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub symbol: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(TokenConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DeployerConfigSource {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<NetworkRef>,
+    pub network: Option<CfgNetworkRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeployerConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DeploymentConfigSource {
-    pub scenario: ScenarioRef,
-    pub order: OrderRef,
+    pub scenario: CfgScenarioRef,
+    pub order: CfgOrderRef,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeploymentConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct IOString {
-    pub token: TokenRef,
-    #[typeshare(typescript(type = "bigint"))]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct IOStringConfigSource {
+    pub token: CfgTokenRef,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
     pub vault_id: Option<U256>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(IOStringConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderConfigSource {
-    pub inputs: Vec<IOString>,
-    pub outputs: Vec<IOString>,
+    pub inputs: Vec<IOStringConfigSource>,
+    pub outputs: Vec<IOStringConfigSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deployer: Option<DeployerRef>,
+    pub deployer: Option<CfgDeployerRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub orderbook: Option<OrderbookRef>,
+    pub orderbook: Option<CfgOrderbookRef>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct ScenarioConfigSource {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, string>")
+    )]
     pub bindings: HashMap<String, String>,
-    #[typeshare(typescript(type = "number"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub runs: Option<u64>,
-    #[typeshare(skip)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub blocks: Option<Blocks>,
+    pub blocks: Option<BlocksCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deployer: Option<DeployerRef>,
+    pub deployer: Option<CfgDeployerRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_opt_hashmap_as_object"),
+        tsify(optional, type = "Record<string, ScenarioConfigSource>")
+    )]
     pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ScenarioConfigSource);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct ChartConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scenario: Option<ScenarioRef>,
+    pub scenario: Option<CfgScenarioRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub plots: Option<HashMap<String, Plot>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_opt_hashmap_as_object"),
+        tsify(optional, type = "Record<string, PlotCfg>")
+    )]
+    pub plots: Option<HashMap<String, PlotCfg>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metrics: Option<Vec<Metric>>,
+    pub metrics: Option<Vec<MetricCfg>>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ChartConfigSource);
 
 #[derive(Error, Debug)]
 pub enum ConfigSourceError {
@@ -611,16 +711,16 @@ gui:
 
         let expected_order = OrderConfigSource {
             inputs: vec![
-                IOString {
+                IOStringConfigSource {
                     token: "eth".to_string(),
                     vault_id: None,
                 },
-                IOString {
+                IOStringConfigSource {
                     token: "dai".to_string(),
                     vault_id: None,
                 },
             ],
-            outputs: vec![IOString {
+            outputs: vec![IOStringConfigSource {
                 token: "dai".to_string(),
                 vault_id: Some(U256::from(3)),
             }],

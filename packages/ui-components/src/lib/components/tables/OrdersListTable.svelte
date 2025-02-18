@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { type OrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
@@ -83,7 +83,7 @@
 		enabled: true
 	});
 
-	const AppTable = TanstackAppTable<OrderWithSubgraphName>;
+	const AppTable = TanstackAppTable<SgOrderWithSubgraphName>;
 
 	$: isVaultsPage = currentRoute.startsWith('/vaults');
 	$: isOrdersPage = currentRoute.startsWith('/orders');
