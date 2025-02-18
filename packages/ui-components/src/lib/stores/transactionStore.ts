@@ -73,7 +73,6 @@ export type RemoveOrderTransactionArgs = {
 	removeOrderCalldata: RemoveOrderCalldata;
 	chainId: number;
 	subgraphUrl: string;
-	network: string;
 };
 
 export type TransactionState = {
