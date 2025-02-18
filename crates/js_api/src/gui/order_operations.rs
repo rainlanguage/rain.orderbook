@@ -54,7 +54,7 @@ impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct IOVaultIds(
-    #[tsify(type = "Map<string, (string[] | undefined)>")] HashMap<String, Vec<Option<U256>>>,
+    #[tsify(type = "Map<string, (string | undefined)[]>")] HashMap<String, Vec<Option<U256>>>,
 );
 impl_wasm_traits!(IOVaultIds);
 
