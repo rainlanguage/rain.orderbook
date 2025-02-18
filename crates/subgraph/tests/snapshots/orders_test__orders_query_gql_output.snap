@@ -22,7 +22,7 @@ query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
         decimals
       }
       orderbook {
-          id
+        id
       }
       ordersAsOutput(orderBy: timestampAdded, orderDirection: desc) {
         id
