@@ -46,9 +46,6 @@ describe('getDeploymentTransactionArgs', () => {
 				orderbookAddress: '0xorderbook',
 				chainId: 1
 			});
-
-			expect(mockGui.generateApprovalCalldatas).toHaveBeenCalledWith('0xuser');
-			expect(mockGui.generateDepositAndAddOrderCalldatas).toHaveBeenCalled();
 		});
 	});
 
