@@ -8,7 +8,7 @@
 	import { defaultConfig } from '$lib/stores/wagmi';
 	import { injected } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
-	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
+	// import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
@@ -27,7 +27,7 @@
 			appName: 'Rain Language',
 			connectors: [injected()],
 			chains: supportedChainsList as unknown as Chain[],
-			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
+			projectId: ''
 		});
 		await erckit.init();
 	};

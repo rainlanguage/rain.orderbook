@@ -292,7 +292,7 @@ _ _: 0 0;
             ));
             if let WordsResult::Error(e) = &result.pragma_words[0].words {
                 assert_eq!(
-                    e, 
+                    e,
                     &format!(
                         "Error fetching authoring meta for contract {}, RPC URL {}, Metaboard URL {}: Subgraph query returned no data for metahash {}",
                         pragma_addresses[0],

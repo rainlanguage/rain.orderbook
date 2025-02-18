@@ -8,7 +8,7 @@ import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import {
   type ConfigSource,
-  type CfgOrderbookRef,
+  type OrderbookCfgRef,
   type OrderbookConfigSource,
 } from '@rainlanguage/orderbook/js_api';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
@@ -73,8 +73,8 @@ export const activeNetworkOrderbooks = derived(
       ? (pickBy(
           $settings.orderbooks,
           (orderbook) => orderbook.network === $activeNetworkRef,
-        ) as Record<CfgOrderbookRef, OrderbookConfigSource>)
-      : ({} as Record<CfgOrderbookRef, OrderbookConfigSource>),
+        ) as Record<OrderbookCfgRef, OrderbookConfigSource>)
+      : ({} as Record<OrderbookCfgRef, OrderbookConfigSource>),
 );
 export const activeOrderbook = derived(
   [settings, activeOrderbookRef],

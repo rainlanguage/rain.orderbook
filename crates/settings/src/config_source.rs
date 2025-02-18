@@ -110,31 +110,31 @@ pub struct ConfigSource {
 impl_wasm_traits!(ConfigSource);
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgSubgraphRef = String;
+pub type SubgraphCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgScenarioRef = String;
+pub type ScenarioCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgNetworkRef = String;
+pub type NetworkCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgDeployerRef = String;
+pub type DeployerCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgOrderRef = String;
+pub type OrderCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgOrderbookRef = String;
+pub type OrderbookCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgTokenRef = String;
+pub type TokenCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgMetaboardRef = String;
+pub type MetaboardCfgRef = String;
 
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type CfgDeploymentRef = String;
+pub type DeploymentCfgRef = String;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -170,9 +170,9 @@ pub struct OrderbookConfigSource {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<CfgNetworkRef>,
+    pub network: Option<NetworkCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subgraph: Option<CfgSubgraphRef>,
+    pub subgraph: Option<SubgraphCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
@@ -183,7 +183,7 @@ impl_wasm_traits!(OrderbookConfigSource);
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TokenConfigSource {
-    pub network: CfgNetworkRef,
+    pub network: NetworkCfgRef,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -203,7 +203,7 @@ pub struct DeployerConfigSource {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<CfgNetworkRef>,
+    pub network: Option<NetworkCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
@@ -214,8 +214,8 @@ impl_wasm_traits!(DeployerConfigSource);
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct DeploymentConfigSource {
-    pub scenario: CfgScenarioRef,
-    pub order: CfgOrderRef,
+    pub scenario: ScenarioCfgRef,
+    pub order: OrderCfgRef,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DeploymentConfigSource);
@@ -224,7 +224,7 @@ impl_wasm_traits!(DeploymentConfigSource);
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct IOStringConfigSource {
-    pub token: CfgTokenRef,
+    pub token: TokenCfgRef,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
     pub vault_id: Option<U256>,
@@ -239,9 +239,9 @@ pub struct OrderConfigSource {
     pub inputs: Vec<IOStringConfigSource>,
     pub outputs: Vec<IOStringConfigSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deployer: Option<CfgDeployerRef>,
+    pub deployer: Option<DeployerCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub orderbook: Option<CfgOrderbookRef>,
+    pub orderbook: Option<OrderbookCfgRef>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderConfigSource);
@@ -262,7 +262,7 @@ pub struct ScenarioConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blocks: Option<BlocksCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deployer: Option<CfgDeployerRef>,
+    pub deployer: Option<DeployerCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(
         target_family = "wasm",
@@ -279,7 +279,7 @@ impl_wasm_traits!(ScenarioConfigSource);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct ChartConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scenario: Option<CfgScenarioRef>,
+    pub scenario: Option<ScenarioCfgRef>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(
         target_family = "wasm",
