@@ -5,11 +5,9 @@ import {
 	AddOrderCalldataResult,
 	AllFieldValuesResult,
 	AllowancesResult,
-	ApprovalCalldataResult,
 	DeploymentDetails,
 	DeploymentKeys,
 	DepositAndAddOrderCalldataResult,
-	DepositCalldataResult,
 	Gui,
 	GuiDeployment,
 	IOVaultIds,
@@ -447,9 +445,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should add deposit', async () => {
+			assert.equal(gui.hasAnyDeposit(), false);
+
 			gui.saveDeposit('token1', '50.6');
 			const deposits: TokenDeposit[] = gui.getDeposits();
 			assert.equal(deposits.length, 1);
+
+			assert.equal(gui.hasAnyDeposit(), true);
 		});
 
 		it('should update deposit', async () => {
@@ -1178,7 +1180,11 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(currentDeployment.deployment.order.outputs[0].vaultId, undefined);
 
+			assert.equal(gui.hasAnyVaultId(), false);
+
 			gui.setVaultId(true, 0, '0x123');
+
+			assert.equal(gui.hasAnyVaultId(), true);
 
 			assert.equal(gui.getVaultIds().get('input')?.[0], '0x123');
 			assert.equal(gui.getVaultIds().get('output')?.[0], undefined);
