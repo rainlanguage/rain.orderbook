@@ -3,7 +3,6 @@ import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelt
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import {
 	DisclaimerModal,
-	type DeploymentArgs,
 	type DepositOrWithdrawModalProps,
 	type OrderRemoveModalProps,
 	type DisclaimerModalProps,

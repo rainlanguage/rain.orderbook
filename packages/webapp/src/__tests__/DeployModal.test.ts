@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import DeployModal from '../lib/components/DeployModal.svelte';
 import { get } from 'svelte/store';
