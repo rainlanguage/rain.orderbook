@@ -63,12 +63,14 @@ impl_all_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct ExtendedApprovalCalldata {
-    calldata: Bytes,
-    symbol: String,
+    pub token: Address,
+    pub calldata: Bytes,
+    pub symbol: String,
 }
 impl_all_wasm_traits!(ExtendedApprovalCalldata);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct DeploymentTransactionArgs {
     approvals: Vec<ExtendedApprovalCalldata>,
     deployment_calldata: Bytes,
@@ -405,6 +407,7 @@ impl DotrainOrderGui {
                         .get(&calldata.token)
                         .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
                     approvals.push(ExtendedApprovalCalldata {
+                        token: calldata.token,
                         calldata: calldata.calldata.clone(),
                         symbol: token_info.symbol.clone(),
                     });
