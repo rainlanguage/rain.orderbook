@@ -366,8 +366,7 @@ const transactionStore = () => {
 		orderbookAddress,
 		removeOrderCalldata,
 		chainId,
-		subgraphUrl,
-		network
+		subgraphUrl
 	}: RemoveOrderTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
