@@ -172,11 +172,7 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitRemoveOrderIndexing = async (
-		subgraphUrl: string,
-		txHash: string,
-		network?: string
-	) => {
+	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
@@ -393,7 +389,7 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitRemoveOrderIndexing(subgraphUrl, hash, network);
+			return awaitRemoveOrderIndexing(subgraphUrl, hash);
 		} catch {
 			return transactionError(TransactionErrorMessage.REMOVE_ORDER_FAILED);
 		}

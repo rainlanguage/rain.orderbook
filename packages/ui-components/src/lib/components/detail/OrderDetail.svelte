@@ -95,8 +95,7 @@
 								onRemove: $orderDetailQuery.refetch,
 								chainId,
 								orderbookAddress,
-								subgraphUrl,
-								network: subgraphName
+								subgraphUrl
 							}
 						})}
 					disabled={!handleOrderRemoveModal}
