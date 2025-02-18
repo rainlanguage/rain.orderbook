@@ -5,7 +5,11 @@ import transactionStore, {
 	TransactionErrorMessage
 } from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, getTransactionAddOrders, getTransactionRemoveOrders } from '@rainlanguage/orderbook/js_api';
+import {
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders
+} from '@rainlanguage/orderbook/js_api';
 import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({

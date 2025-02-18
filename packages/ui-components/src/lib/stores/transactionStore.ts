@@ -11,7 +11,11 @@ import type {
 	Vault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
-import { getTransaction, getTransactionAddOrders, getTransactionRemoveOrders } from '@rainlanguage/orderbook/js_api';
+import {
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders
+} from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -168,7 +172,11 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
+	const awaitRemoveOrderIndexing = async (
+		subgraphUrl: string,
+		txHash: string,
+		network?: string
+	) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
