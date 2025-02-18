@@ -31,6 +31,8 @@ url = "2.5.0"
 serde_yaml = "0.9.32"
 dotrain = "6.0.1-alpha.24"
 futures = "0.3.17"
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
+rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
@@ -41,5 +43,4 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-cli = "1.5"
 tokio = { version = "1.28.0", features = ["full"] }
 httpmock = "0.7.0"
-rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
