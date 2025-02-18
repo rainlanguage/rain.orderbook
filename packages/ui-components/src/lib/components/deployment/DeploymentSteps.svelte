@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { Alert } from 'flowbite-svelte';
 	import TokenIOSection from './TokenIOSection.svelte';
 	import DepositsSection from './DepositsSection.svelte';
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
+	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
@@ -17,14 +19,19 @@
 		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button, Toggle } from 'flowbite-svelte';
-	import { getAccount, type Config } from '@wagmi/core';
+	import { Button, Toggle, Spinner } from 'flowbite-svelte';
+	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import type { Hex } from 'viem';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { handleShareChoices } from '$lib/services/handleShareChoices';
+	import DisclaimerModal from './DisclaimerModal.svelte';
+	import type { ComponentProps } from 'svelte';
+	import type { DeploymentArgs } from '$lib/types/transaction';
+	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
+	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
 		NO_GUI = 'Error loading GUI',
 		NO_STRATEGY = 'No valid strategy exists at this URL',
@@ -39,17 +46,15 @@
 		SERIALIZE_ERROR = 'Error serializing state',
 		ADD_ORDER_FAILED = 'Failed to add order'
 	}
-
+	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: string;
-	export let deploymentDetails: NameAndDescriptionCfg;
-	export let handleDeployModal: (args: {
-		approvals: ApprovalCalldataResult;
-		deploymentCalldata: DepositAndAddOrderCalldataResult;
-		orderbookAddress: Hex;
-		chainId: number;
-	}) => void;
+	export let deployment: GuiDeploymentCfg;
+	export let strategyDetail: NameAndDescriptionCfg;
+
+	export let handleDeployModal: (args: DeploymentArgs) => void;
+	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -57,16 +62,18 @@
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
+	let checkingDeployment: boolean = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
+	let networkKey: string | null = null;
+	let subgraphUrl: string = '';
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let stateFromUrl: string | null = null;
-
 	$: if (deployment) {
-		handleDeploymentChange(deployment);
+		handleDeploymentChange(deployment.key);
 	}
 
 	async function handleDeploymentChange(deployment: string) {
@@ -78,8 +85,10 @@
 			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
 
 			if (gui) {
+				networkKey = await gui.getNetworkKey();
+				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 				try {
-					selectTokens = await gui.getSelectTokens();
+					selectTokens = gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
 					error = DeploymentStepErrors.NO_SELECT_TOKENS;
@@ -155,44 +164,9 @@
 		}
 	}
 
-	async function handleAddOrder() {
-		try {
-			if (!gui || !$wagmiConfig) return;
-			const { address } = getAccount($wagmiConfig);
-			if (!address) return;
-			let approvals = await gui.generateApprovalCalldatas(address);
-			const deploymentCalldata = await gui.generateDepositAndAddOrderCalldatas();
-			const chainId = gui.getCurrentDeployment().deployment.order.network['chain-id'] as number;
-			// @ts-expect-error orderbook is not typed
-			const orderbookAddress = gui.getCurrentDeployment().deployment.order.orderbook
-				.address as `0x${string}`;
-			const outputTokenInfos = await Promise.all(
-				allTokenOutputs.map((token) => gui?.getTokenInfo(token.token?.key as string))
-			);
-
-			approvals = approvals.map((approval) => {
-				const token = outputTokenInfos.find((token) => token?.address === approval.token);
-				return {
-					...approval,
-					symbol: token?.symbol
-				};
-			});
-
-			handleDeployModal({
-				approvals,
-				deploymentCalldata,
-				orderbookAddress,
-				chainId
-			});
-		} catch (e) {
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
-	}
-
-	async function handleShareChoices() {
-		// copy the current url to the clipboard
-		navigator.clipboard.writeText($page.url.toString());
+	async function _handleShareChoices() {
+		if (!gui) return;
+		await handleShareChoices(gui);
 	}
 
 	onMount(async () => {
@@ -217,16 +191,80 @@
 		handleUpdateGuiState(gui);
 	}
 
+	async function handleDeployButtonClick() {
+		error = null;
+		errorDetails = null;
+
+		if (!gui) {
+			error = DeploymentStepErrors.NO_GUI;
+			return;
+		}
+		if (!allTokenOutputs) {
+			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
+			return;
+		}
+		if (!wagmiConfig) {
+			error = DeploymentStepErrors.NO_CHAIN;
+			return;
+		}
+
+		if (!networkKey) {
+			error = DeploymentStepErrors.NO_CHAIN;
+			return;
+		}
+
+		let result: HandleAddOrderResult | null = null;
+
+		checkingDeployment = true;
+
+		try {
+			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+		} catch (e) {
+			checkingDeployment = false;
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+		}
+
+		if (!result) {
+			checkingDeployment = false;
+			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			return;
+		}
+
+		checkingDeployment = false;
+
+		const onAccept = () => {
+			if (!networkKey) {
+				error = DeploymentStepErrors.NO_CHAIN;
+				return;
+			}
+
+			handleDeployModal({
+				...result,
+				subgraphUrl: subgraphUrl,
+				network: networkKey
+			});
+		};
+
+		handleDisclaimerModal({ onAccept });
+	}
+
 	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
-				allTokensSelected = gui?.areAllTokensSelected();
-				const vaultIds = gui?.getVaultIds();
-				const inputVaultIds = vaultIds?.get('input');
-				const outputVaultIds = vaultIds?.get('output');
+				allTokensSelected = gui.areAllTokensSelected();
+				if (!allTokensSelected) return;
+
 				// if we have deposits or vault ids set, show advanced options
-				const deposits = gui?.getDeposits();
-				if (deposits || inputVaultIds || outputVaultIds) {
+				const vaultIds = gui.getVaultIds();
+				const inputVaultIds = vaultIds.get('input');
+				const outputVaultIds = vaultIds.get('output');
+				const deposits = gui.getDeposits();
+				if (
+					deposits.length > 0 ||
+					(inputVaultIds && inputVaultIds.some((v) => v)) ||
+					(outputVaultIds && outputVaultIds.some((v) => v))
+				) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
@@ -238,22 +276,26 @@
 </script>
 
 <div>
-	{#if error}
-		<p class="text-red-500">{error}</p>
-	{/if}
-	{#if errorDetails}
-		<p class="text-red-500">{errorDetails}</p>
+	{#if error || errorDetails}
+		<Alert color="red">
+			{#if error}
+				<p class="text-red-500">{error}</p>
+			{/if}
+			{#if errorDetails}
+				<p class="text-red-500">{errorDetails}</p>
+			{/if}
+		</Alert>
 	{/if}
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deploymentDetails}
-					<div class="mt-8 flex max-w-2xl flex-col gap-4 text-start">
-						<h1 class=" text-3xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{deploymentDetails.name}
+				{#if deployment}
+					<div class="flex max-w-2xl flex-col gap-4 text-start">
+						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
+							{strategyDetail.name}
 						</h1>
 						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deploymentDetails.description}
+							{deployment.description}
 						</p>
 					</div>
 				{/if}
@@ -277,23 +319,36 @@
 						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
 					{/if}
 
-					<div class="flex gap-2">
-						{#if $wagmiConnected}
-							<Button size="lg" on:click={handleAddOrder}>Deploy Strategy</Button>
-							<ComposedRainlangModal {gui} />
-						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
-						{/if}
-						<ShareChoicesButton {handleShareChoices} />
-
-						<div class="flex flex-col">
+					{#if error || errorDetails}
+						<Alert color="red">
 							{#if error}
 								<p class="text-red-500">{error}</p>
 							{/if}
 							{#if errorDetails}
 								<p class="text-red-500">{errorDetails}</p>
 							{/if}
-						</div>
+						</Alert>
+					{/if}
+
+					<div class="flex flex-wrap items-start justify-start gap-2">
+						{#if $wagmiConnected}
+							<Button
+								size="lg"
+								on:click={handleDeployButtonClick}
+								class="bg-gradient-to-br from-blue-600 to-violet-600"
+							>
+								{#if checkingDeployment}
+									<Spinner size="4" color="white" />
+									<span class="ml-2">Checking deployment...</span>
+								{:else}
+									Deploy Strategy
+								{/if}
+							</Button>
+						{:else}
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
+						{/if}
+						<ComposedRainlangModal {gui} />
+						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
 					</div>
 				{/if}
 			</div>

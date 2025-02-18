@@ -2,6 +2,7 @@ use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PaginationClient, PaginationClientError, SgPaginationArgs};
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 use crate::performance::OrderPerformance;
+use crate::types::add_order::{TransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
     SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables, SgOrderDetailQuery, SgOrderIdList,
@@ -9,6 +10,7 @@ use crate::types::order::{
 };
 use crate::types::order_trade::{SgOrderTradeDetailQuery, SgOrderTradesListQuery};
 use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
+use crate::types::transaction::TransactionDetailQuery;
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
@@ -25,6 +27,8 @@ pub enum OrderbookSubgraphClientError {
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
     Empty,
+    #[error("Request timed out")]
+    RequestTimedOut,
     #[error(transparent)]
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
@@ -382,5 +386,38 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
+    }
+
+    pub async fn transaction_detail(
+        &self,
+        id: Id,
+    ) -> Result<Transaction, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<TransactionDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .await?;
+        let transaction = data
+            .transaction
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        Ok(transaction)
+    }
+
+    /// Fetch all add orders for a given transaction
+    pub async fn transaction_add_orders(
+        &self,
+        id: Id,
+    ) -> Result<Vec<AddOrderWithOrder>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<TransactionAddOrdersQuery, TransactionAddOrdersVariables>(
+                TransactionAddOrdersVariables {
+                    id: Bytes(id.inner().to_string()),
+                },
+            )
+            .await?;
+
+        if data.add_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.add_orders)
     }
 }

@@ -278,7 +278,9 @@ impl_wasm_traits!(GuiCfg);
 pub struct NameAndDescriptionCfg {
     pub name: String,
     pub description: String,
+    pub short_description: Option<String>,
 }
+
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(NameAndDescriptionCfg);
 
@@ -391,7 +393,17 @@ impl GuiCfg {
                     Some("gui".to_string()),
                 )?;
 
-                return Ok(NameAndDescriptionCfg { name, description });
+                let short_description = require_string(
+                    get_hash_value(gui, "short-description", Some("gui".to_string()))?,
+                    None,
+                    Some("gui".to_string()),
+                )?;
+
+                return Ok(NameAndDescriptionCfg {
+                    name,
+                    description,
+                    short_description: Some(short_description),
+                });
             }
         }
         Err(YamlError::Field {
@@ -437,8 +449,14 @@ impl GuiCfg {
                         Some(location.clone()),
                     )?;
 
-                    deployment_details
-                        .insert(deployment_key, NameAndDescriptionCfg { name, description });
+                    deployment_details.insert(
+                        deployment_key,
+                        NameAndDescriptionCfg {
+                            name,
+                            description,
+                            short_description: None,
+                        },
+                    );
                 }
             }
         }
@@ -1489,8 +1507,8 @@ gui:
                 - binding: test
                   name: test
                   presets:
-                    - value:
-                        - test
+                    - value: 
+                        wrong: map
 "#;
         let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],

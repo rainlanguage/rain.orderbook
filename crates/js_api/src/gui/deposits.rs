@@ -61,6 +61,11 @@ impl DotrainOrderGui {
             .find(|dg| dg.token.as_ref().map_or(false, |t| t.key == token))
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
+        if amount.is_empty() {
+            self.remove_deposit(token);
+            return Ok(());
+        }
+
         let value = match gui_deposit.presets.as_ref() {
             Some(presets) => match presets.iter().position(|p| **p == amount) {
                 Some(index) => field_values::PairValue {

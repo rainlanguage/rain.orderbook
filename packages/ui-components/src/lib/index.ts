@@ -1,5 +1,3 @@
-import './app.css';
-
 // Components
 export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
@@ -59,11 +57,12 @@ export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.sve
 export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
 export { default as License } from './components/License.svelte';
 export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
-export { default as StrategySection } from './components/deployment/StrategySection.svelte';
-export { default as DeploymentPage } from './components/deployment/DeploymentPage.svelte';
+export { default as StrategyPage } from './components/deployment/StrategyPage.svelte';
 export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
+export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
+export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -71,8 +70,10 @@ export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typesh
 export {
 	TransactionStatus,
 	TransactionErrorMessage,
-	type TransactionState
+	type TransactionState,
+	type ExtendedApprovalCalldata
 } from './stores/transactionStore';
+export type { DeploymentArgs } from './types/transaction';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -87,7 +88,6 @@ export { prepareHistoricalOrderChartData } from './services/historicalOrderChart
 export { bigintToFloat } from './utils/number';
 
 // Constants
-
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,

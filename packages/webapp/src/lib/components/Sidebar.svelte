@@ -70,7 +70,7 @@
 			/>
 		{/if}
 		<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
-			<SidebarGroup ulClass="">
+			<SidebarGroup ulClass="list-none">
 				<SidebarBrand
 					site={{
 						name: '',
@@ -81,7 +81,7 @@
 					aClass="mb-0"
 				></SidebarBrand>
 			</SidebarGroup>
-			<SidebarGroup border>
+			<SidebarGroup border ulClass="list-none">
 				<SidebarItem label="Deploy" href="/deploy" on:click={toggleSide}>
 					<svelte:fragment slot="icon">
 						<PlusOutline class="h-5 w-5" />
@@ -89,7 +89,7 @@
 					</svelte:fragment>
 				</SidebarItem>
 			</SidebarGroup>
-			<SidebarGroup border>
+			<SidebarGroup border ulClass="list-none">
 				<SidebarItem label="Orders" href="/orders" on:click={toggleSide}>
 					<svelte:fragment slot="icon">
 						<ReceiptSolid class="h-5 w-5" />
@@ -103,10 +103,10 @@
 					</svelte:fragment>
 				</SidebarItem>
 			</SidebarGroup>
-			<SidebarGroup border>
-				<WalletConnect {appKitModal} {connected} />
+			<SidebarGroup border ulClass="list-none">
+				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
-			<SidebarGroup border>
+			<SidebarGroup border ulClass="list-none">
 				<SidebarItem
 					on:click={toggleSide}
 					label="Documentation"
@@ -136,7 +136,7 @@
 					</svelte:fragment>
 				</SidebarItem>
 			</SidebarGroup>
-			<SidebarGroup border class="flex justify-start">
+			<SidebarGroup border class="flex justify-start" ulClass="list-none">
 				<ButtonDarkMode {colorTheme} />
 			</SidebarGroup>
 		</SidebarWrapper>

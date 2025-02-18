@@ -364,6 +364,15 @@ pub struct SgAddOrder {
     pub transaction: SgTransaction,
 }
 
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[cynic(graphql_type = "AddOrder")]
+pub struct AddOrderWithOrder {
+    pub transaction: Transaction,
+    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
+    pub order: Order,
+}
+
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "BigInt")]

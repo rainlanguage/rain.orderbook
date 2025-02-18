@@ -1,11 +1,14 @@
 <script lang="ts">
 	import TanstackPageContentDetail from '../lib/components/detail/TanstackPageContentDetail.svelte';
+	import CardProperty from '../lib/components/CardProperty.svelte';
+	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder, OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { getOrder } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
+	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -14,7 +17,7 @@
 	export let id: string;
 	export let subgraphUrl: string;
 
-	$: orderDetailQuery = createQuery<SgOrder>({
+	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => getOrder(subgraphUrl, id),
 		enabled: !!subgraphUrl && !!id
@@ -23,12 +26,12 @@
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
-		<div>Order {data.orderHash}</div>
-		{#if data && $walletAddressMatchesOrBlank?.(data.owner) && data.active && handleOrderRemoveModal}
+		<div>Order {data.order.orderHash}</div>
+		{#if data && $walletAddressMatchesOrBlank?.(data.order.owner) && data.order.active && handleOrderRemoveModal}
 			<Button
 				data-testid="remove-button"
 				color="dark"
-				on:click={() => handleOrderRemoveModal(data, $orderDetailQuery.refetch)}
+				on:click={() => handleOrderRemoveModal(data.order, $orderDetailQuery.refetch)}
 				disabled={!handleOrderRemoveModal}
 			>
 				Remove
@@ -37,7 +40,33 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="card" let:data>
-		<div>Owner: {data.owner}</div>
+		<div>Owner: {data.order.owner}</div>
+
+		{#each [{ key: 'Input vaults', type: 'inputs' }, { key: 'Output vaults', type: 'outputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
+			{#if data.vaults.get(type)?.length !== 0}
+				<CardProperty>
+					<svelte:fragment slot="key">{key}</svelte:fragment>
+					<svelte:fragment slot="value">
+						<div class="mt-2 space-y-2">
+							{#each data.vaults.get(type) || [] as vault}
+								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
+									<svelte:fragment slot="buttons">
+										<DepositOrWithdrawButtons
+											{vault}
+											chainId={1}
+											rpcUrl="https://example.com"
+											query={orderDetailQuery}
+											handleDepositOrWithdrawModal={() => {}}
+											{subgraphUrl}
+										/>
+									</svelte:fragment>
+								</ButtonVaultLink>
+							{/each}
+						</div>
+					</svelte:fragment>
+				</CardProperty>
+			{/if}
+		{/each}
 	</svelte:fragment>
 
 	<svelte:fragment slot="chart">
@@ -45,6 +74,6 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="below" let:data>
-		<div>Below content: {data.id}</div>
+		<div>Below content: {data.order.id}</div>
 	</svelte:fragment>
 </TanstackPageContentDetail>

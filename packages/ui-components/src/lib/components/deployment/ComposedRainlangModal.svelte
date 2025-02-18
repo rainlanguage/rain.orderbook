@@ -6,7 +6,6 @@
 	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 	export let gui: DotrainOrderGui;
-	export let codeMirrorStyles = {};
 
 	let rainlangText: string | null = null;
 	let open = false;
@@ -23,8 +22,9 @@
 
 <Button color="light" size="lg" on:click={generateRainlang}>Show Rainlang</Button>
 
-<Modal size="xl" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="modal">
+<Modal size="xl" class="bg-opacity-90  backdrop-blur-sm" bind:open data-testid="modal">
 	<div data-testid="modal-content">
+		<h3 class="mb-2 text-2xl font-semibold text-gray-900 dark:text-white">Generated Rainlang</h3>
 		<CodeMirror
 			value={rainlangText}
 			extensions={[RainlangLR]}
@@ -33,9 +33,8 @@
 			styles={{
 				'&': {
 					height: '70vh',
-					width: '70vw'
-				},
-				...codeMirrorStyles
+					width: '100%'
+				}
 			}}
 		/>
 	</div>

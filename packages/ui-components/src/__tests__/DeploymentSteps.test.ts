@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
+import { DotrainOrderGui, type Scenario } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
+import type { ConfigSource } from '../lib/typeshare/config';
+import type { DeploymentArgs } from '$lib/types/transaction';
+import type { DisclaimerModal } from '$lib';
+
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
@@ -14,7 +17,8 @@ export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
-		chooseDeployment: vi.fn()
+		chooseDeployment: vi.fn(),
+		getStrategyDetails: vi.fn()
 	}
 }));
 
@@ -288,7 +292,8 @@ subgraphs:
 
 orderbooks:
   flare:
-    address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
+    id: 'flare',
+    address: '0x0'
 
 deployers:
   flare:
@@ -493,7 +498,6 @@ val:
     multiplier
     multiplier
     multiplier
-    multiplier
   );
 
 #set-last-trade
@@ -569,6 +573,51 @@ min-trade-amount: mul(min-amount 0.9),
 :call<'set-cost-basis-io-ratio>();`;
 
 describe('DeploymentSteps', () => {
+	const mockDeployment = {
+		key: 'flare-sflr-wflr',
+		name: 'SFLR<>WFLR on Flare',
+		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+		deposits: [],
+		fields: [],
+		select_tokens: [],
+		deployment: {
+			key: 'flare-sflr-wflr',
+			scenario: {
+				key: 'flare',
+				bindings: {}
+			} as Scenario,
+			order: {
+				key: 'flare-sflr-wflr',
+				network: {
+					key: 'flare',
+					'chain-id': 14,
+					'network-id': 14,
+					rpc: 'https://rpc.ankr.com/flare',
+					label: 'Flare',
+					currency: 'FLR'
+				},
+				deployer: {
+					key: 'flare',
+					network: {
+						key: 'flare',
+						'chain-id': 14,
+						'network-id': 14,
+						rpc: 'https://rpc.ankr.com/flare',
+						label: 'Flare',
+						currency: 'FLR'
+					},
+					address: '0x0'
+				},
+				orderbook: {
+					id: 'flare',
+					address: '0x0'
+				},
+				inputs: [],
+				outputs: []
+			}
+		}
+	};
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -576,32 +625,33 @@ describe('DeploymentSteps', () => {
 	it('shows deployment details when provided', async () => {
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
-
-		const deploymentDetails = {
-			name: 'SFLR<>WFLR on Flare',
-			description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-		};
 
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn(),
+				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (
+					args: ComponentProps<DisclaimerModal>
+				) => void,
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-			expect(
-				screen.getByText('Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.')
-			).toBeInTheDocument();
 		});
 	});
 
@@ -609,18 +659,27 @@ describe('DeploymentSteps', () => {
 		const mockSelectTokens = ['token1', 'token2'];
 		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
 			getSelectTokens: () => mockSelectTokens,
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn(),
+				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (
+					args: ComponentProps<DisclaimerModal>
+				) => void,
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -641,12 +700,20 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn(),
+				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (
+					args: ComponentProps<DisclaimerModal>
+				) => void,
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -671,18 +738,27 @@ describe('DeploymentSteps', () => {
 				deposits: []
 			}),
 			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn(),
+				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (
+					args: ComponentProps<DisclaimerModal>
+				) => void,
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});
@@ -705,18 +781,27 @@ describe('DeploymentSteps', () => {
 				deposits: []
 			}),
 			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn()
+			getTokenInfo: vi.fn(),
+			getNetworkKey: vi.fn()
 		});
 
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
-				deployment: 'flare-sflr-wflr',
-				deploymentDetails: { name: 'Deployment 1', description: 'Description 1' },
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn(),
+				handleDeployModal: vi.fn() as unknown as (args: DeploymentArgs) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (
+					args: ComponentProps<DisclaimerModal>
+				) => void,
+				settings: writable({} as ConfigSource),
 				handleUpdateGuiState: vi.fn()
 			}
 		});

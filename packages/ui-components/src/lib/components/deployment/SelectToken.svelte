@@ -18,9 +18,13 @@
 	let checking = false;
 
 	onMount(async () => {
-		tokenInfo = await gui?.getTokenInfo(token.key);
-		if (tokenInfo?.address) {
-			inputValue = tokenInfo.address;
+		try {
+			tokenInfo = await gui?.getTokenInfo(token.key);
+			if (tokenInfo?.address) {
+				inputValue = tokenInfo.address;
+			}
+		} catch {
+			// do nothing
 		}
 	});
 
@@ -64,7 +68,7 @@
 
 <div class="flex w-full flex-col">
 	<div class="flex flex-col gap-2">
-		<div class="flex flex-row items-center gap-4">
+		<div class="flex flex-col justify-start gap-4 lg:flex-row lg:items-center lg:justify-between">
 			{#if token.name || token.description}
 				<div class="flex flex-col">
 					{#if token.name}

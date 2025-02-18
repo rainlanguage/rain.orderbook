@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { WalletConnect, logoDark, logoLight } from '@rainlanguage/ui-components';
+	import { logoDark, logoLight } from '@rainlanguage/ui-components';
 	import { Button } from 'flowbite-svelte';
-	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import { goto } from '$app/navigation';
 
 	export let colorTheme;
@@ -16,7 +15,6 @@
 			<div class="flex h-full flex-row items-center gap-x-2 dark:text-gray-100 md:gap-x-6">
 				<a href="https://docs.rainlang.xyz/raindex/overview">Docs</a>
 				<a href="/deploy">Dashboard</a>
-				<WalletConnect {appKitModal} {connected} />
 			</div>
 		</div>
 	</div>
