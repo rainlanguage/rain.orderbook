@@ -44,6 +44,10 @@
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
 	let switchChainError = '';
+	let depositCalldata: DepositCalldataResult | undefined = undefined;
+	let approvalCalldata: ApprovalCalldata | undefined = undefined;
+	let withdrawCalldata: WithdrawCalldataResult | undefined = undefined;
+	let isCheckingCalldata = false;
 
 	const messages = {
 		success: 'Transaction successful.',
@@ -70,42 +74,45 @@
 		});
 	};
 
+	async function handleTransaction(
+		transactionCalldata: DepositCalldataResult | WithdrawCalldataResult,
+		approvalCalldata?: ApprovalCalldata | undefined
+	) {
+		transactionStore.handleDepositOrWithdrawTransaction({
+			config: $wagmiConfig,
+			transactionCalldata,
+			approvalCalldata,
+			action,
+			chainId,
+			vault,
+			subgraphUrl
+		});
+	}
+
 	async function handleContinue() {
-		if (action === 'deposit') {
-			let approvalCalldata: ApprovalCalldata | undefined = undefined;
-			try {
-				approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
-			} catch {
-				approvalCalldata = undefined;
+		isCheckingCalldata = true;
+		try {
+			if (action === 'deposit') {
+				try {
+					approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+				} catch {
+					approvalCalldata = undefined;
+				}
+				depositCalldata = await getVaultDepositCalldata(vault, amount.toString());
+				if (depositCalldata) {
+					handleTransaction(depositCalldata, approvalCalldata);
+				}
+			} else if (action === 'withdraw') {
+				withdrawCalldata = await getVaultWithdrawCalldata(vault, amount.toString());
+				if (withdrawCalldata) {
+					handleTransaction(withdrawCalldata);
+				}
 			}
-			const depositCalldata: DepositCalldataResult = await getVaultDepositCalldata(
-				vault,
-				amount.toString()
-			);
 			currentStep = 2;
-			transactionStore.handleDepositOrWithdrawTransaction({
-				config: $wagmiConfig,
-				transactionCalldata: depositCalldata,
-				approvalCalldata,
-				action,
-				chainId,
-				vault,
-				subgraphUrl
-			});
-		} else if (action === 'withdraw') {
-			const withdrawCalldata: WithdrawCalldataResult = await getVaultWithdrawCalldata(
-				vault,
-				amount.toString()
-			);
-			currentStep = 2;
-			transactionStore.handleDepositOrWithdrawTransaction({
-				config: $wagmiConfig,
-				transactionCalldata: withdrawCalldata,
-				action,
-				chainId,
-				vault,
-				subgraphUrl
-			});
+		} catch (error) {
+			console.error('Failed to get calldata:', error);
+		} finally {
+			isCheckingCalldata = false;
 		}
 	}
 
@@ -142,9 +149,15 @@
 							<Button
 								color="blue"
 								on:click={handleContinue}
-								disabled={amount <= 0n || amountGreaterThanBalance[actionType]}
+								disabled={amount <= 0n ||
+									amountGreaterThanBalance[actionType] ||
+									isCheckingCalldata}
 							>
-								{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+								{#if isCheckingCalldata}
+									Checking...
+								{:else}
+									{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+								{/if}
 							</Button>
 						</div>
 					{:else}

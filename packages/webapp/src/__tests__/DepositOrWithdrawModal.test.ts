@@ -6,6 +6,8 @@ import { signerAddress } from '$lib/stores/wagmi';
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
+import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
+import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -172,5 +174,59 @@ describe('DepositOrWithdrawModal', () => {
 
 		const continueButton = screen.getByText('Deposit');
 		expect(continueButton).toBeDisabled();
+	});
+
+	it('shows loading state while checking calldata', async () => {
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		expect(screen.getByText('Checking...')).toBeInTheDocument();
+	});
+
+	it('handles failed calldata fetch', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(getVaultDepositCalldata).mockRejectedValueOnce(new Error('Failed to fetch'));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		await waitFor(() => {
+			expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to get calldata:', expect.any(Error));
+		});
+
+		consoleErrorSpy.mockRestore();
+	});
+
+	it('handles deposit without approval when approval fails', async () => {
+		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
+		vi.mocked(getVaultApprovalCalldata).mockRejectedValueOnce(new Error('Approval not needed'));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			action: 'deposit',
+			chainId: 1,
+			vault: mockVault,
+			config: undefined,
+			subgraphUrl: undefined,
+			approvalCalldata: undefined,
+			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
 	});
 });
