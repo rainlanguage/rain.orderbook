@@ -6,7 +6,9 @@ use alloy::{
 };
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
 use rain_orderbook_bindings::OrderBook::multicallCall;
-use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
+use rain_orderbook_common::{
+    add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
+};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -141,19 +143,11 @@ impl DotrainOrderGui {
 
     async fn check_allowance(
         &self,
-        orderbook: &Orderbook,
         deposit_args: &DepositArgs,
         owner: &str,
     ) -> Result<TokenAllowance, GuiError> {
         let allowance = deposit_args
-            .read_allowance(
-                Address::from_str(owner)?,
-                TransactionArgs {
-                    orderbook_address: orderbook.address,
-                    rpc_url: orderbook.network.rpc.to_string(),
-                    ..Default::default()
-                },
-            )
+            .read_allowance(Address::from_str(owner)?, self.get_transaction_args()?)
             .await?;
         Ok(TokenAllowance {
             token: deposit_args.token,
@@ -169,7 +163,6 @@ impl DotrainOrderGui {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
 
-        let orderbook = self.get_orderbook()?;
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
 
         let mut results = Vec::new();
@@ -181,7 +174,6 @@ impl DotrainOrderGui {
         {
             let allowance = self
                 .check_allowance(
-                    &orderbook,
                     &DepositArgs {
                         token: order_io
                             .token
@@ -225,11 +217,8 @@ impl DotrainOrderGui {
                 vault_id: U256::default(),
             };
 
-            let allowance = deposit_args
-                .read_allowance(Address::from_str(&owner)?, transaction_args.clone())
-                .await?;
-
-            if allowance < deposit_amount {
+            let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
+            if token_allowance.allowance < deposit_amount {
                 let approve_call = deposit_args
                     .get_approve_calldata(transaction_args.clone())
                     .await?;
@@ -322,11 +311,15 @@ impl DotrainOrderGui {
         self.update_bindings(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
-        let calldata = self
-            .dotrain_order
-            .generate_add_order_calldata(&deployment.key)
-            .await?;
-        Ok(AddOrderCalldataResult(calldata))
+        let calldata = AddOrderArgs::new_from_deployment(
+            self.dotrain_order.dotrain().to_string(),
+            deployment.deployment.as_ref().clone(),
+        )
+        .await?
+        .get_add_order_calldata(self.get_transaction_args()?)
+        .await?;
+
+        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
     }
 
     #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
@@ -338,7 +331,6 @@ impl DotrainOrderGui {
         self.check_field_values()?;
         self.populate_vault_ids(&deployment)?;
         self.update_bindings(&deployment)?;
-        let deployment = self.get_current_deployment()?;
 
         let mut calls = Vec::new();
 
@@ -349,12 +341,9 @@ impl DotrainOrderGui {
             DepositCalldataResult::NoDeposits => Vec::new(),
         };
 
-        let add_order_calldata = self
-            .dotrain_order
-            .generate_add_order_calldata(&deployment.key)
-            .await?;
+        let add_order_calldata = self.generate_add_order_calldata().await?;
 
-        calls.push(Bytes::copy_from_slice(&add_order_calldata));
+        calls.push(Bytes::copy_from_slice(&add_order_calldata.0));
 
         for calldata in deposit_calldatas.iter() {
             calls.push(Bytes::copy_from_slice(calldata));
