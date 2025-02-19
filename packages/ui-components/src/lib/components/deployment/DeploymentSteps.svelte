@@ -156,19 +156,7 @@
 	async function handleDeployButtonClick() {
 		error = null;
 		errorDetails = null;
-		if (!allTokenOutputs) {
-			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
-			return;
-		}
-		if (!wagmiConfig) {
-			error = DeploymentStepErrors.NO_CHAIN;
-			return;
-		}
 
-		if (!networkKey) {
-			error = DeploymentStepErrors.NO_CHAIN;
-			return;
-		}
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
@@ -185,10 +173,6 @@
 		}
 		checkingDeployment = false;
 		const onAccept = () => {
-			if (!networkKey) {
-				error = DeploymentStepErrors.NO_CHAIN;
-				return;
-			}
 			handleDeployModal({
 				...result,
 				subgraphUrl: subgraphUrl,
