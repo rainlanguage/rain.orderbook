@@ -17,7 +17,7 @@
     "format-bindings": "prettier --write src/lib/types",
     "format-check": "prettier --list-different src",
     "svelte-lint-format-check": "npm run check && npm run lint-check && npm run format-check",
-    "build-bindings": "npm run rm-temp && npm run build-wasm && node ./scripts/build.cjs && npm run format-bindings",
+    "build-bindings": "npm run rm-temp && npm run build-wasm && node ./scripts/build && npm run format-bindings",
     "build-wasm": "cd src-tauri && cargo build --target wasm32-unknown-unknown --lib -r && cd ..",
     "rm-temp": "rimraf ./temp"
   },
