@@ -119,22 +119,15 @@ impl DotrainOrderGui {
             .clone()
             .into_iter()
             .enumerate()
-            .filter(|(_, output)| {
-                output
-                    .token
-                    .as_ref()
-                    .map_or(false, |token| deposits_map.contains_key(&token.address))
-            })
-            .map(|(index, output)| {
-                if output.token.is_none() {
-                    return Err(GuiError::SelectTokensNotSet);
-                }
-                let token = output.token.as_ref().unwrap();
-
-                Ok(VaultAndDeposit {
-                    order_io: output.clone(),
-                    deposit_amount: *deposits_map.get(&token.address).unwrap(),
-                    index,
+            .filter_map(|(index, output)| {
+                output.token.as_ref().and_then(|token| {
+                    deposits_map.get(&token.address).map(|amount| {
+                        Ok(VaultAndDeposit {
+                            order_io: output.clone(),
+                            deposit_amount: *amount,
+                            index,
+                        })
+                    })
                 })
             })
             .collect::<Result<Vec<_>, GuiError>>()?;
