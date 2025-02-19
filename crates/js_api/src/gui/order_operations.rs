@@ -6,7 +6,7 @@ use alloy::{
 };
 use rain_orderbook_app_settings::{order::OrderIO, orderbook::Orderbook};
 use rain_orderbook_bindings::OrderBook::multicallCall;
-use rain_orderbook_common::{deposit::DepositArgs, dotrain_order, transaction::TransactionArgs};
+use rain_orderbook_common::{deposit::DepositArgs, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -26,7 +26,7 @@ impl_all_wasm_traits!(AllowancesResult);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum ApprovalCalldataResult {
     NoDeposits,
-    Calldatas(Vec<dotrain_order::calldata::ApprovalCalldata>),
+    Calldatas(Vec<ApprovalCalldata>),
 }
 impl_all_wasm_traits!(ApprovalCalldataResult);
 
@@ -53,6 +53,17 @@ impl_all_wasm_traits!(DepositAndAddOrderCalldataResult);
 pub struct IOVaultIds(HashMap<String, Vec<Option<U256>>>);
 impl_all_wasm_traits!(IOVaultIds);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct ApprovalCalldata {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub token: Address,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub calldata: Bytes,
+}
+#[cfg(target_family = "wasm")]
+impl_all_wasm_traits!(ApprovalCalldata);
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     fn get_orderbook(&self) -> Result<Arc<Orderbook>, GuiError> {
@@ -68,12 +79,21 @@ impl DotrainOrderGui {
             .cloned()
     }
 
-    async fn get_deposits_as_map(&self) -> Result<HashMap<String, U256>, GuiError> {
-        let mut map: HashMap<String, U256> = HashMap::new();
+    fn get_transaction_args(&self) -> Result<TransactionArgs, GuiError> {
+        let orderbook = self.get_orderbook()?;
+        Ok(TransactionArgs {
+            orderbook_address: orderbook.address,
+            rpc_url: orderbook.network.rpc.to_string(),
+            ..Default::default()
+        })
+    }
+
+    async fn get_deposits_as_map(&self) -> Result<HashMap<Address, U256>, GuiError> {
+        let mut map: HashMap<Address, U256> = HashMap::new();
         for d in self.get_deposits()? {
             let token_info = self.get_token_info(d.token.clone()).await?;
             let amount = parse_units(&d.amount, token_info.decimals)?.into();
-            map.insert(d.token, amount);
+            map.insert(token_info.address, amount);
         }
         Ok(map)
     }
@@ -93,7 +113,7 @@ impl DotrainOrderGui {
                 output
                     .token
                     .as_ref()
-                    .map_or(false, |token| deposits_map.contains_key(&token.key))
+                    .map_or(false, |token| deposits_map.contains_key(&token.address))
             })
             .map(|output| {
                 if output.token.is_none() {
@@ -101,7 +121,7 @@ impl DotrainOrderGui {
                 }
                 let token = output.token.as_ref().unwrap();
 
-                Ok((output.clone(), *deposits_map.get(&token.key).unwrap()))
+                Ok((output.clone(), *deposits_map.get(&token.address).unwrap()))
             })
             .collect::<Result<Vec<_>, GuiError>>()?;
         Ok(results)
@@ -169,7 +189,6 @@ impl DotrainOrderGui {
         &self,
         owner: String,
     ) -> Result<ApprovalCalldataResult, GuiError> {
-        let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
 
         let deposits_map = self.get_deposits_as_map().await?;
@@ -177,10 +196,31 @@ impl DotrainOrderGui {
             return Ok(ApprovalCalldataResult::NoDeposits);
         }
 
-        let calldatas = self
-            .dotrain_order
-            .generate_approval_calldatas(&deployment.key, &owner, &deposits_map)
-            .await?;
+        let transaction_args = self.get_transaction_args()?;
+
+        let mut calldatas = Vec::new();
+        for (token_address, deposit_amount) in deposits_map {
+            let deposit_args = DepositArgs {
+                token: token_address.clone(),
+                amount: deposit_amount,
+                vault_id: U256::default(),
+            };
+
+            let allowance = deposit_args
+                .read_allowance(Address::from_str(&owner)?, transaction_args.clone())
+                .await?;
+
+            if allowance < deposit_amount {
+                let approve_call = deposit_args
+                    .get_approve_calldata(transaction_args.clone())
+                    .await?;
+                calldatas.push(ApprovalCalldata {
+                    token: token_address,
+                    calldata: Bytes::copy_from_slice(&approve_call),
+                });
+            }
+        }
+
         Ok(ApprovalCalldataResult::Calldatas(calldatas))
     }
 
