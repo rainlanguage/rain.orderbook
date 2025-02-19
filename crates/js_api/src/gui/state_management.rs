@@ -1,6 +1,8 @@
 use super::*;
 use rain_orderbook_app_settings::token::Token;
 use sha2::{Digest, Sha256};
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::StrictYaml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
@@ -20,6 +22,40 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(hash))
     }
 
+    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPreset {
+        if value.is_preset {
+            GuiPreset {
+                id: value.value.clone(),
+                name: None,
+                value: default_value,
+            }
+        } else {
+            GuiPreset {
+                id: "".to_string(),
+                name: None,
+                value: value.value.clone(),
+            }
+        }
+    }
+
+    fn parse_vault_ids_for_order(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+        is_input: bool,
+    ) -> Result<BTreeMap<(bool, u8), Option<String>>, GuiError> {
+        let mut vault_ids = BTreeMap::new();
+        for (i, vault_id) in Order::parse_vault_ids(documents, order_key, is_input)?
+            .iter()
+            .enumerate()
+        {
+            vault_ids.insert(
+                (is_input, i as u8),
+                vault_id.as_ref().map(|v| v.to_string()),
+            );
+        }
+        Ok(vault_ids)
+    }
+
     #[wasm_bindgen(js_name = "serializeState")]
     pub fn serialize_state(&self) -> Result<String, GuiError> {
         let mut field_values = BTreeMap::new();
@@ -37,30 +73,14 @@ impl DotrainOrderGui {
                     .ok_or(GuiError::InvalidPreset)?
                     .clone()
             } else {
-                GuiPreset {
-                    id: "".to_string(),
-                    name: None,
-                    value: v.value.clone(),
-                }
+                Self::create_preset(v, String::default())
             };
             field_values.insert(k.clone(), preset);
         }
 
         let mut deposits = BTreeMap::new();
         for (k, v) in self.deposits.iter() {
-            let preset = if v.is_preset {
-                GuiPreset {
-                    id: v.value.clone(),
-                    name: None,
-                    value: String::default(),
-                }
-            } else {
-                GuiPreset {
-                    id: "".to_string(),
-                    name: None,
-                    value: v.value.clone(),
-                }
-            };
+            let preset = Self::create_preset(v, String::default());
             deposits.insert(k.clone(), preset);
         }
 
@@ -81,30 +101,20 @@ impl DotrainOrderGui {
         }
 
         let order_key = Deployment::parse_order_key(
-            self.dotrain_order.dotrain_yaml().documents,
+            self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )?;
         let mut vault_ids = BTreeMap::new();
-        for (i, vault_id) in Order::parse_vault_ids(
+        vault_ids.extend(Self::parse_vault_ids_for_order(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &order_key,
             true,
-        )?
-        .iter()
-        .enumerate()
-        {
-            vault_ids.insert((true, i as u8), vault_id.as_ref().map(|v| v.to_string()));
-        }
-        for (i, vault_id) in Order::parse_vault_ids(
+        )?);
+        vault_ids.extend(Self::parse_vault_ids_for_order(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &order_key,
             false,
-        )?
-        .iter()
-        .enumerate()
-        {
-            vault_ids.insert((false, i as u8), vault_id.as_ref().map(|v| v.to_string()));
-        }
+        )?);
 
         let state = SerializedGuiState {
             field_values: field_values.clone(),
