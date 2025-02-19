@@ -64,6 +64,13 @@ pub struct ApprovalCalldata {
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(ApprovalCalldata);
 
+#[derive(Debug)]
+pub struct VaultAndDeposit {
+    pub order_io: OrderIO,
+    pub deposit_amount: U256,
+    pub index: usize,
+}
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     fn get_orderbook(&self) -> Result<Arc<Orderbook>, GuiError> {
@@ -101,7 +108,7 @@ impl DotrainOrderGui {
     async fn get_vaults_and_deposits(
         &self,
         deployment: &GuiDeployment,
-    ) -> Result<Vec<(OrderIO, U256)>, GuiError> {
+    ) -> Result<Vec<VaultAndDeposit>, GuiError> {
         let deposits_map = self.get_deposits_as_map().await?;
         let results = deployment
             .deployment
@@ -109,19 +116,24 @@ impl DotrainOrderGui {
             .outputs
             .clone()
             .into_iter()
-            .filter(|output| {
+            .enumerate()
+            .filter(|(_, output)| {
                 output
                     .token
                     .as_ref()
                     .map_or(false, |token| deposits_map.contains_key(&token.address))
             })
-            .map(|output| {
+            .map(|(index, output)| {
                 if output.token.is_none() {
                     return Err(GuiError::SelectTokensNotSet);
                 }
                 let token = output.token.as_ref().unwrap();
 
-                Ok((output.clone(), *deposits_map.get(&token.address).unwrap()))
+                Ok(VaultAndDeposit {
+                    order_io: output.clone(),
+                    deposit_amount: *deposits_map.get(&token.address).unwrap(),
+                    index,
+                })
             })
             .collect::<Result<Vec<_>, GuiError>>()?;
         Ok(results)
@@ -161,19 +173,26 @@ impl DotrainOrderGui {
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
 
         let mut results = Vec::new();
-        for (order_io, amount) in vaults_and_deposits.iter() {
-            if order_io.token.is_none() {
-                return Err(GuiError::SelectTokensNotSet);
-            }
-            let token = order_io.token.as_ref().unwrap();
-
-            let deposit_args = DepositArgs {
-                token: token.address,
-                vault_id: rand::random(),
-                amount: *amount,
-            };
+        for VaultAndDeposit {
+            order_io,
+            deposit_amount,
+            index: _,
+        } in vaults_and_deposits
+        {
             let allowance = self
-                .check_allowance(&orderbook, &deposit_args, &owner)
+                .check_allowance(
+                    &orderbook,
+                    &DepositArgs {
+                        token: order_io
+                            .token
+                            .as_ref()
+                            .ok_or(GuiError::SelectTokensNotSet)?
+                            .address,
+                        vault_id: rand::random(),
+                        amount: deposit_amount,
+                    },
+                    &owner,
+                )
                 .await?;
             results.push(allowance);
         }
@@ -255,33 +274,38 @@ impl DotrainOrderGui {
         self.populate_vault_ids(&deployment)?;
         let deployment = self.get_current_deployment()?;
 
-        let token_deposits = self
-            .get_vaults_and_deposits(&deployment)
-            .await?
-            .iter()
-            .enumerate()
-            .map(|(i, (order_io, amount))| {
-                let vault_id = order_io
-                    .vault_id
-                    .ok_or(GuiError::VaultIdNotFound(i.to_string()))?;
-
-                if order_io.token.is_none() {
-                    return Err(GuiError::SelectTokensNotSet);
-                }
-                let token = order_io.token.as_ref().unwrap();
-
-                Ok(((vault_id, token.address), *amount))
-            })
-            .collect::<Result<HashMap<_, _>, GuiError>>()?;
-
-        if token_deposits.is_empty() {
+        let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
+        if vaults_and_deposits.is_empty() {
             return Ok(DepositCalldataResult::NoDeposits);
         }
 
-        let calldatas = self
-            .dotrain_order
-            .generate_deposit_calldatas(&deployment.key, &token_deposits)
-            .await?;
+        let mut calldatas = Vec::new();
+        for VaultAndDeposit {
+            order_io,
+            deposit_amount,
+            index,
+        } in vaults_and_deposits
+        {
+            let token = order_io
+                .token
+                .as_ref()
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            let vault_id = order_io
+                .vault_id
+                .ok_or(GuiError::VaultIdNotFound(index.to_string()))?;
+
+            if deposit_amount == U256::ZERO {
+                continue;
+            }
+
+            let deposit_args = DepositArgs {
+                token: token.address,
+                amount: deposit_amount,
+                vault_id,
+            };
+            let calldata = deposit_args.get_deposit_calldata().await?;
+            calldatas.push(Bytes::copy_from_slice(&calldata));
+        }
 
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
