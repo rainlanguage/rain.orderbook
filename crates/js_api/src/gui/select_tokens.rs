@@ -96,6 +96,8 @@ impl DotrainOrderGui {
             Some(&token_info.name),
             Some(&token_info.symbol),
         )?;
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
