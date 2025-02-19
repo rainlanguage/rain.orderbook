@@ -374,6 +374,12 @@ impl DotrainOrderGui {
         Ok(IOVaultIds(map))
     }
 
+    #[wasm_bindgen(js_name = "hasAnyVaultId")]
+    pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
+        let map = self.get_vault_ids()?;
+        Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
+    }
+
     #[wasm_bindgen(js_name = "updateScenarioBindings")]
     pub fn update_scenario_bindings(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;

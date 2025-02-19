@@ -1,17 +1,10 @@
 <script lang="ts">
-	import { transactionStore, type ExtendedApprovalCalldata } from '@rainlanguage/ui-components';
-	import type { Hex } from 'viem';
-	import type { DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
+	import { transactionStore, type DeploymentArgs } from '@rainlanguage/ui-components';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import TransactionModal from './TransactionModal.svelte';
 
 	export let open: boolean = false;
-	export let approvals: ExtendedApprovalCalldata[];
-	export let deploymentCalldata: DepositAndAddOrderCalldataResult;
-	export let orderbookAddress: Hex;
-	export let chainId: number;
-	export let subgraphUrl: string;
-	export let network: string;
+	export let args: DeploymentArgs;
 
 	const messages = {
 		success: 'Your strategy was successfully deployed.',
@@ -21,12 +14,7 @@
 
 	transactionStore.handleDeploymentTransaction({
 		config: $wagmiConfig,
-		approvals,
-		deploymentCalldata,
-		orderbookAddress,
-		chainId,
-		subgraphUrl,
-		network
+		...args
 	});
 </script>
 
