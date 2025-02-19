@@ -121,17 +121,12 @@
 	}
 
 	async function updateFields() {
-		try {
-			error = null;
-			errorDetails = null;
-			getAllDepositFields();
-			getAllFieldDefinitions();
-			getAllTokenInputs();
-			getAllTokenOutputs();
-		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
-		}
+		error = null;
+		errorDetails = null;
+		getAllDepositFields();
+		getAllFieldDefinitions();
+		getAllTokenInputs();
+		getAllTokenOutputs();
 	}
 
 	async function _handleShareChoices() {
@@ -149,7 +144,6 @@
 				updateFields();
 			}
 		}
-
 		handleUpdateGuiState(gui);
 	}
 
