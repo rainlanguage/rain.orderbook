@@ -58,24 +58,22 @@
 	export let handleDeployModal: (args: DeploymentArgs) => void;
 	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let wagmiConfig: Writable<Config | undefined>;
+	export let wagmiConnected: Writable<boolean>;
+	export let appKitModal: Writable<AppKit>;
 
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
-
 	let showAdvancedOptions: boolean = false;
 	let checkingDeployment: boolean = false;
 	let error: DeploymentStepErrors | null = null;
 	let errorDetails: string | null = null;
 	let allTokenInfos: AllTokenInfos = [];
-
-	export let wagmiConfig: Writable<Config | undefined>;
-	export let wagmiConnected: Writable<boolean>;
-	export let appKitModal: Writable<AppKit>;
+	let allTokensSelected = gui.areAllTokensSelected();
 
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
-	let allTokensSelected = gui.areAllTokensSelected();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	function getAllFieldDefinitions() {
