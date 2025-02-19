@@ -98,16 +98,20 @@
 	}
 
 	function setupChart() {
+		console.log('setupChart');
 		if (chartElement === undefined) return;
+		console.log('chartElement', chartElement);
 
 		chart = createChart(chartElement);
 		series = createSeries(chart);
 		setOptions();
+		updateNewDataPoints();
 	}
 
 	$: if (data || series) updateNewDataPoints();
 	$: if (timeDelta) setTimeScale();
 	$: if ($lightweightChartsTheme) setOptions();
+	$: if (chartElement && data.length > 0 && !chart) setupChart();
 
 	onMount(() => {
 		setupChart();
