@@ -1,8 +1,5 @@
 use alloy::{hex::FromHexError, primitives::ruint::ParseError};
-use rain_orderbook_common::{
-    deposit::DepositError, dotrain_order::calldata::DotrainOrderCalldataError,
-    transaction::WritableTransactionExecuteError,
-};
+use rain_orderbook_common::{deposit::DepositError, transaction::WritableTransactionExecuteError};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
 use wasm_bindgen::{JsError, JsValue};
@@ -22,8 +19,6 @@ pub enum SubgraphError {
     InvalidInputIndex,
     #[error(transparent)]
     OrderbookSubgraphClientError(#[from] OrderbookSubgraphClientError),
-    #[error(transparent)]
-    DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
     #[error(transparent)]
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]

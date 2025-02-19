@@ -13,12 +13,10 @@ use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::Orderbo
 use rain_orderbook_app_settings::yaml::{YamlError, YamlParsable};
 use rain_orderbook_app_settings::ParseConfigSourceError;
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use rain_orderbook_bindings::wasm_traits::prelude::*;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use typeshare::typeshare;
-
-pub mod calldata;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
