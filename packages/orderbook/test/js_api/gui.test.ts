@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DotrainOrderGui } from '../../dist/cjs/js_api.js';
 import {
 	AddOrderCalldataResult,
@@ -367,6 +367,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const guiConfig = gui.getGuiConfig() as Gui;
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
+	});
+
+	it('should initialize gui object with state update callback', async () => {
+		const stateUpdateCallback = vi.fn();
+		const gui = await DotrainOrderGui.chooseDeployment(
+			dotrainWithGui,
+			'some-deployment',
+			stateUpdateCallback
+		);
+
+		gui.executeStateUpdateCallback();
+		assert.equal(stateUpdateCallback.mock.calls.length, 1);
 	});
 
 	it('should get strategy details', async () => {

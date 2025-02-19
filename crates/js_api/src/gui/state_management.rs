@@ -127,6 +127,7 @@ impl DotrainOrderGui {
     pub async fn deserialize_state(
         dotrain: String,
         serialized: String,
+        state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
@@ -185,6 +186,7 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            state_update_callback,
         };
 
         let deployment_select_tokens = Gui::parse_select_tokens(
@@ -246,5 +248,16 @@ impl DotrainOrderGui {
     pub fn is_deposit_preset(&self, token: String) -> Option<bool> {
         let value = self.deposits.get(&token);
         value.map(|v| v.is_preset)
+    }
+
+    #[wasm_bindgen(js_name = "executeStateUpdateCallback")]
+    pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
+        if let Some(callback) = &self.state_update_callback {
+            let this = JsValue::null();
+            callback.call0(&this).map_err(|e| {
+                GuiError::JsError(format!("Failed to execute state update callback: {:?}", e))
+            })?;
+        }
+        Ok(())
     }
 }
