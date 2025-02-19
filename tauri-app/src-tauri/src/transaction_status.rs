@@ -1,7 +1,7 @@
+use crate::types::{TransactionStatus, TransactionStatusNotice};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::WriteTransactionStatus;
 use chrono::Utc;
-use crate::types::{TransactionStatus, TransactionStatusNotice};
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;

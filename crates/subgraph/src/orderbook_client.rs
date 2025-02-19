@@ -9,9 +9,11 @@ use crate::types::order::{
     SgOrdersListQuery,
 };
 use crate::types::order_trade::{SgOrderTradeDetailQuery, SgOrderTradesListQuery};
+use crate::types::remove_order::{
+    SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables,
+};
 use crate::types::transaction::SgTransactionDetailQuery;
 use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
-use crate::types::remove_order::{TransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
@@ -426,11 +428,11 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_remove_orders(
         &self,
         id: Id,
-    ) -> Result<Vec<RemoveOrderWithOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgRemoveOrderWithOrder>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<TransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables>(
+            .query::<SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables>(
                 TransactionRemoveOrdersVariables {
-                    id: Bytes(id.inner().to_string()),
+                    id: SgBytes(id.inner().to_string()),
                 },
             )
             .await?;

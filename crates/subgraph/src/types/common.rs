@@ -106,7 +106,7 @@ pub struct SgOrder {
     pub meta: Option<SgRainMetaV1>,
     pub add_events: Vec<SgAddOrder>,
     pub trades: Vec<SgOrderStructPartialTrade>,
-    pub remove_events: Vec<RemoveOrder>,
+    pub remove_events: Vec<SgRemoveOrder>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -366,9 +366,9 @@ pub struct SgAddOrder {
 }
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct RemoveOrder {
-    pub transaction: Transaction,
+#[cynic(graphql_type = "RemoveOrder")]
+pub struct SgRemoveOrder {
+    pub transaction: SgTransaction,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
@@ -382,10 +382,9 @@ pub struct SgAddOrderWithOrder {
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "RemoveOrder")]
-pub struct RemoveOrderWithOrder {
-    pub transaction: Transaction,
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
-    pub order: Order,
+pub struct SgRemoveOrderWithOrder {
+    pub transaction: SgTransaction,
+    pub order: SgOrder,
 }
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
