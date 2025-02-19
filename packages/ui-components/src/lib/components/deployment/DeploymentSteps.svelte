@@ -24,10 +24,8 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import { handleShareChoices } from '$lib/services/handleShareChoices';
-	import DisclaimerModal from './DisclaimerModal.svelte';
-	import type { ComponentProps } from 'svelte';
-	import type { DeploymentArgs } from '$lib/types/transaction';
+	import { handleShareChoices } from '../../services/handleShareChoices';
+	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
@@ -49,8 +47,8 @@
 	export let deployment: GuiDeploymentCfg;
 	export let strategyDetail: NameAndDescriptionCfg;
 
-	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
+	export let handleDeployModal: (args: DeployModalProps) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let selectTokens: SelectTokens | null = null;
@@ -238,13 +236,19 @@
 			}
 
 			handleDeployModal({
-				...result,
-				subgraphUrl: subgraphUrl,
-				network: networkKey
+				open: true,
+				args: {
+					...result,
+					subgraphUrl: subgraphUrl,
+					network: networkKey
+				}
 			});
 		};
 
-		handleDisclaimerModal({ onAccept });
+		handleDisclaimerModal({
+			open: true,
+			onAccept
+		});
 	}
 
 	const areAllTokensSelected = async () => {
@@ -254,15 +258,9 @@
 				if (!allTokensSelected) return;
 
 				// if we have deposits or vault ids set, show advanced options
-				const vaultIds = gui.getVaultIds();
-				const inputVaultIds = vaultIds.get('input');
-				const outputVaultIds = vaultIds.get('output');
-				const deposits = gui.getDeposits();
-				if (
-					deposits.length > 0 ||
-					(inputVaultIds && inputVaultIds.some((v) => v)) ||
-					(outputVaultIds && outputVaultIds.some((v) => v))
-				) {
+				const hasDeposits = gui.hasAnyDeposit();
+				const hasVaultIds = gui.hasAnyVaultId();
+				if (hasDeposits || hasVaultIds) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {

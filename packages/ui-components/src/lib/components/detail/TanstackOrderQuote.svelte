@@ -4,6 +4,7 @@
 	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook/quote';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
+	import type { Hex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import {
@@ -20,13 +21,13 @@
 	export let id: string;
 	export let order: SgOrder;
 	export let rpcUrl: string;
-	export let orderbookAddress: string = '';
+	export let orderbookAddress: Hex;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
 				order: SgOrder,
 				rpcUrl: string,
-				orderbookAddress: string,
+				orderbookAddress: Hex,
 				inputIndex: number,
 				outputIndex: number,
 				pairName: string,

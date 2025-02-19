@@ -77,7 +77,15 @@ export {
 	type TransactionState,
 	type ExtendedApprovalCalldata
 } from './stores/transactionStore';
-export type { DeploymentArgs } from './types/transaction';
+export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
+export type {
+	DepositOrWithdrawModalProps,
+	OrderRemoveModalProps,
+	QuoteDebugModalHandler,
+	DebugTradeModalHandler,
+	DeployModalProps,
+	DisclaimerModalProps
+} from './types/modal';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

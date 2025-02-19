@@ -12,12 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { queryClient } from '../../stores/queryClient';
-	import {
-		getOrder,
-		type SgOrder,
-		type SgVault,
-		type OrderWithSortedVaults
-	} from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -26,43 +21,24 @@
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Config } from 'wagmi';
-
+	import type { Hex } from 'viem';
+	import type {
+		DepositOrWithdrawModalProps,
+		OrderRemoveModalProps,
+		QuoteDebugModalHandler,
+		DebugTradeModalHandler
+	} from '../../types/modal';
 	export let handleDepositOrWithdrawModal:
-		| ((args: {
-				vault: SgVault;
-				onDepositOrWithdraw: () => void;
-				action: 'deposit' | 'withdraw';
-				chainId: number;
-				rpcUrl: string;
-				subgraphUrl: string;
-		  }) => void)
+		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
-	export let handleOrderRemoveModal:
-		| ((args: {
-				order: SgOrder;
-				onRemove: () => void;
-				wagmiConfig: Config;
-				chainId: number;
-				orderbookAddress: string;
-		  }) => void)
-		| undefined = undefined;
-	export let handleQuoteDebugModal:
-		| undefined
-		| ((
-				order: SgOrder,
-				rpcUrl: string,
-				orderbook: string,
-				inputIOIndex: number,
-				outputIOIndex: number,
-				pair: string,
-				blockNumber?: number
-		  ) => void) = undefined;
-	export const handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
+	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
+	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
+	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
-	export let orderbookAddress: string | undefined = undefined;
+	export let orderbookAddress: Hex;
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
@@ -113,11 +89,13 @@
 					color="dark"
 					on:click={() =>
 						handleOrderRemoveModal({
-							order: data.order,
-							onRemove: $orderDetailQuery.refetch,
-							wagmiConfig: $wagmiConfig,
-							chainId,
-							orderbookAddress
+							open: true,
+							args: {
+								order: data.order,
+								onRemove: $orderDetailQuery.refetch,
+								chainId,
+								orderbookAddress
+							}
 						})}
 					disabled={!handleOrderRemoveModal}
 				>
