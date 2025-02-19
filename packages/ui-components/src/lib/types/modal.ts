@@ -1,4 +1,4 @@
-import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 import type { DepositOrWithdrawArgs, OrderRemoveArgs, DeploymentArgs } from './transaction';
 
 export type DepositOrWithdrawModalProps = {
@@ -21,7 +21,7 @@ export type DisclaimerModalProps = {
 	onAccept: () => void;
 };
 export type QuoteDebugModalHandler = (
-	order: OrderSubgraph,
+	order: SgOrder,
 	rpcUrl: string,
 	orderbook: string,
 	inputIOIndex: number,
