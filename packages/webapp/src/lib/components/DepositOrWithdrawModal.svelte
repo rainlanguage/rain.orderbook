@@ -43,7 +43,7 @@
 	let currentStep = 1;
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
-	let switchChainError = '';
+	let errorMessage = '';
 	let depositCalldata: DepositCalldataResult | undefined = undefined;
 	let approvalCalldata: ApprovalCalldata | undefined = undefined;
 	let withdrawCalldata: WithdrawCalldataResult | undefined = undefined;
@@ -64,7 +64,7 @@
 		try {
 			await switchChain($wagmiConfig, { chainId });
 		} catch {
-			return (switchChainError = `Switch to ${targetChain.name} to check your balance.`);
+			return (errorMessage = `Switch to ${targetChain.name} to check your balance.`);
 		}
 		userBalance = await readContract($wagmiConfig, {
 			abi: erc20Abi,
@@ -109,8 +109,8 @@
 				}
 			}
 			currentStep = 2;
-		} catch (error) {
-			console.error('Failed to get calldata:', error);
+		} catch {
+			errorMessage = 'Failed to get calldata.';
 		} finally {
 			isCheckingCalldata = false;
 		}
@@ -164,8 +164,8 @@
 						<WalletConnect {appKitModal} {connected} />
 					{/if}
 				</div>
-				{#if switchChainError}
-					<p data-testid="chain-error">{switchChainError}</p>
+				{#if errorMessage}
+					<p data-testid="error-message">{errorMessage}</p>
 				{/if}
 				{#if amountGreaterThanBalance[actionType]}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>

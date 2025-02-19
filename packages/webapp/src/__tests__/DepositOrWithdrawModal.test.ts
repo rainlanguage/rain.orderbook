@@ -149,7 +149,7 @@ describe('DepositOrWithdrawModal', () => {
 		render(DepositOrWithdrawModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByTestId('chain-error')).toHaveTextContent(
+			expect(screen.getByTestId('error-message')).toHaveTextContent(
 				'Switch to Ethereum to check your balance.'
 			);
 		});
@@ -189,7 +189,6 @@ describe('DepositOrWithdrawModal', () => {
 	});
 
 	it('handles failed calldata fetch', async () => {
-		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		vi.mocked(getVaultDepositCalldata).mockRejectedValueOnce(new Error('Failed to fetch'));
 
 		render(DepositOrWithdrawModal, defaultProps);
@@ -201,10 +200,8 @@ describe('DepositOrWithdrawModal', () => {
 		await fireEvent.click(depositButton);
 
 		await waitFor(() => {
-			expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to get calldata:', expect.any(Error));
+			expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to get calldata.');
 		});
-
-		consoleErrorSpy.mockRestore();
 	});
 
 	it('handles deposit without approval when approval fails', async () => {
