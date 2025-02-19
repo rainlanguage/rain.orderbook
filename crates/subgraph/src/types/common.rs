@@ -387,8 +387,10 @@ pub struct SgBytes(pub String);
 #[cynic(graphql_type = "OrderDirection")]
 pub enum SgOrderDirection {
     #[cynic(rename = "asc")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "asc"))]
     Asc,
     #[cynic(rename = "desc")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "desc"))]
     Desc,
 }
 
@@ -397,34 +399,49 @@ pub enum SgOrderDirection {
 #[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
 pub enum SgOrderOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "active"))]
     Active,
     #[cynic(rename = "orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderHash"))]
     OrderHash,
     #[cynic(rename = "owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "owner"))]
     Owner,
     #[cynic(rename = "inputs")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputs"))]
     Inputs,
     #[cynic(rename = "outputs")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputs"))]
     Outputs,
     #[cynic(rename = "nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "nonce"))]
     Nonce,
     #[cynic(rename = "orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderBytes"))]
     OrderBytes,
     #[cynic(rename = "addEvents")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "addEvents"))]
     AddEvents,
     #[cynic(rename = "removeEvents")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "removeEvents"))]
     RemoveEvents,
     #[cynic(rename = "trades")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "trades"))]
     Trades,
     #[cynic(rename = "meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "meta"))]
     Meta,
     #[cynic(rename = "timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "timestampAdded"))]
     TimestampAdded,
 }
 
@@ -433,40 +450,58 @@ pub enum SgOrderOrderBy {
 #[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
 pub enum SgAddOrderOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "order")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order"))]
     Order,
     #[cynic(rename = "order__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__id"))]
     OrderId,
     #[cynic(rename = "order__active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__active"))]
     OrderActive,
     #[cynic(rename = "order__orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderHash"))]
     OrderOrderHash,
     #[cynic(rename = "order__owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__owner"))]
     OrderOwner,
     #[cynic(rename = "order__nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__nonce"))]
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderBytes"))]
     OrderOrderBytes,
     #[cynic(rename = "order__meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__meta"))]
     OrderMeta,
     #[cynic(rename = "order__timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__timestampAdded"))]
     OrderTimestampAdded,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "transaction")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction"))]
     Transaction,
     #[cynic(rename = "transaction__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__id"))]
     TransactionId,
     #[cynic(rename = "transaction__timestamp")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__timestamp"))]
     TransactionTimestamp,
     #[cynic(rename = "transaction__blockNumber")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__blockNumber"))]
     TransactionBlockNumber,
     #[cynic(rename = "transaction__from")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__from"))]
     TransactionFrom,
     #[cynic(rename = "sender")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "sender"))]
     Sender,
 }
 
@@ -475,60 +510,112 @@ pub enum SgAddOrderOrderBy {
 #[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
 pub enum SgTradeOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "order")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order"))]
     Order,
     #[cynic(rename = "order__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__id"))]
     OrderId,
     #[cynic(rename = "order__active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__active"))]
     OrderActive,
     #[cynic(rename = "order__orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderHash"))]
     OrderOrderHash,
     #[cynic(rename = "order__owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__owner"))]
     OrderOwner,
     #[cynic(rename = "order__nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__nonce"))]
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderBytes"))]
     OrderOrderBytes,
     #[cynic(rename = "order__meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__meta"))]
     OrderMeta,
     #[cynic(rename = "order__timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__timestampAdded"))]
     OrderTimestampAdded,
     #[cynic(rename = "inputVaultBalanceChange")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputVaultBalanceChange"))]
     InputVaultBalanceChange,
     #[cynic(rename = "inputVaultBalanceChange__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputVaultBalanceChange__id"))]
     InputVaultBalanceChangeId,
     #[cynic(rename = "inputVaultBalanceChange__amount")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__amount")
+    )]
     InputVaultBalanceChangeAmount,
     #[cynic(rename = "inputVaultBalanceChange__oldVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__oldVaultBalance")
+    )]
     InputVaultBalanceChangeOldVaultBalance,
     #[cynic(rename = "inputVaultBalanceChange__newVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__newVaultBalance")
+    )]
     InputVaultBalanceChangeNewVaultBalance,
     #[cynic(rename = "inputVaultBalanceChange__timestamp")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__timestamp")
+    )]
     InputVaultBalanceChangeTimestamp,
     #[cynic(rename = "outputVaultBalanceChange")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputVaultBalanceChange"))]
     OutputVaultBalanceChange,
     #[cynic(rename = "outputVaultBalanceChange__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputVaultBalanceChange__id"))]
     OutputVaultBalanceChangeId,
     #[cynic(rename = "outputVaultBalanceChange__amount")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__amount")
+    )]
     OutputVaultBalanceChangeAmount,
     #[cynic(rename = "outputVaultBalanceChange__oldVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__oldVaultBalance")
+    )]
     OutputVaultBalanceChangeOldVaultBalance,
     #[cynic(rename = "outputVaultBalanceChange__newVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__newVaultBalance")
+    )]
     OutputVaultBalanceChangeNewVaultBalance,
     #[cynic(rename = "outputVaultBalanceChange__timestamp")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__timestamp")
+    )]
     OutputVaultBalanceChangeTimestamp,
     #[cynic(rename = "tradeEvent")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent"))]
     TradeEvent,
     #[cynic(rename = "tradeEvent__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent__id"))]
     TradeEventId,
     #[cynic(rename = "tradeEvent__sender")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent__sender"))]
     TradeEventSender,
     #[cynic(rename = "timestamp")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "timestamp"))]
     Timestamp,
 }
 
@@ -537,34 +624,49 @@ pub enum SgTradeOrderBy {
 #[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
 pub enum SgVaultOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "token")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token"))]
     Token,
     #[cynic(rename = "token__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__id"))]
     TokenId,
     #[cynic(rename = "token__address")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__address"))]
     TokenAddress,
     #[cynic(rename = "token__name")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__name"))]
     TokenName,
     #[cynic(rename = "token__symbol")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__symbol"))]
     TokenSymbol,
     #[cynic(rename = "token__decimals")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__decimals"))]
     TokenDecimals,
     #[cynic(rename = "owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "owner"))]
     Owner,
     #[cynic(rename = "vaultId")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "vaultId"))]
     VaultId,
     #[cynic(rename = "ordersAsInput")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "ordersAsInput"))]
     OrdersAsInput,
     #[cynic(rename = "ordersAsOutput")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "ordersAsOutput"))]
     OrdersAsOutput,
     #[cynic(rename = "balance")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "balance"))]
     Balance,
     #[cynic(rename = "balanceChanges")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "balanceChanges"))]
     BalanceChanges,
 }
 
