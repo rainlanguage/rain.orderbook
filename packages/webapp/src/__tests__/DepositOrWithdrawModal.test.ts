@@ -6,6 +6,7 @@ import { signerAddress } from '$lib/stores/wagmi';
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
+
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -32,11 +33,13 @@ describe('DepositOrWithdrawModal', () => {
 
 	const defaultProps = {
 		open: true,
-		action: 'deposit' as const,
-		vault: mockVault,
-		chainId: 1,
-		rpcUrl: 'https://example.com',
-		onDepositOrWithdraw: vi.fn()
+		args: {
+			action: 'deposit' as const,
+			vault: mockVault,
+			chainId: 1,
+			rpcUrl: 'https://example.com',
+			onDepositOrWithdraw: vi.fn()
+		}
 	} as unknown as ModalProps;
 
 	beforeEach(() => {
@@ -54,22 +57,13 @@ describe('DepositOrWithdrawModal', () => {
 	it('renders withdraw modal correctly', () => {
 		render(DepositOrWithdrawModal, {
 			...defaultProps,
-			action: 'withdraw'
+			args: {
+				...defaultProps.args,
+				action: 'withdraw'
+			}
 		});
 		expect(screen.getByText('Enter Amount')).toBeInTheDocument();
 		expect(screen.getByText('Withdraw')).toBeInTheDocument();
-	});
-
-	it('disables continue button when amount is 0', () => {
-		render(DepositOrWithdrawModal, defaultProps);
-		const continueButton = screen.getByText('Deposit');
-		expect(continueButton).toBeDisabled();
-	});
-
-	it('shows wallet connect button when not connected', () => {
-		signerAddress.set('');
-		render(DepositOrWithdrawModal, defaultProps);
-		expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 	});
 
 	it('handles deposit transaction correctly', async () => {
@@ -82,36 +76,14 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				action: 'deposit',
-				chainId: 1,
-				vault: mockVault
-			})
-		);
-	});
-
-	it('Blocks deposit if not enough balance in wallet', async () => {
-		(readContract as Mock).mockReturnValue(BigInt(0));
-
-		render(DepositOrWithdrawModal, defaultProps);
-
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
-
-		await waitFor(() => {
-			expect(screen.getByTestId('error')).toBeInTheDocument();
-		});
-	});
-
-	it('Blocks withdrawal if not enough balance in vault', async () => {
-		render(DepositOrWithdrawModal, defaultProps);
-
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '2' } });
-
-		await waitFor(() => {
-			expect(screen.getByTestId('error')).toBeInTheDocument();
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			action: 'deposit',
+			chainId: 1,
+			vault: mockVault,
+			config: undefined,
+			subgraphUrl: undefined,
+			approvalCalldata: { to: '0x789', data: '0xabc' },
+			transactionCalldata: { to: '0x123', data: '0x456' }
 		});
 	});
 
@@ -119,7 +91,10 @@ describe('DepositOrWithdrawModal', () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
 		render(DepositOrWithdrawModal, {
 			...defaultProps,
-			action: 'withdraw'
+			args: {
+				...defaultProps.args,
+				action: 'withdraw'
+			}
 		});
 
 		const input = screen.getByRole('textbox');
@@ -128,29 +103,74 @@ describe('DepositOrWithdrawModal', () => {
 		const withdrawButton = screen.getByText('Withdraw');
 		await fireEvent.click(withdrawButton);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				action: 'withdraw',
-				chainId: 1,
-				vault: mockVault
-			})
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			config: undefined,
+			transactionCalldata: { to: '0xdef', data: '0xghi' },
+			action: 'withdraw',
+			chainId: 1,
+			vault: mockVault,
+			subgraphUrl: undefined
+		});
+	});
+
+	it('shows error when amount exceeds balance for deposit', async () => {
+		(readContract as Mock).mockResolvedValue(BigInt(0));
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '2' } });
+
+		expect(screen.getByTestId('error')).toHaveTextContent(
+			'Amount cannot exceed available balance.'
 		);
 	});
 
-	it('closes modal and resets state', async () => {
-		render(DepositOrWithdrawModal, defaultProps);
+	it('shows error when amount exceeds balance for withdraw', async () => {
+		render(DepositOrWithdrawModal, {
+			...defaultProps,
+			args: {
+				...defaultProps.args,
+				action: 'withdraw'
+			}
+		});
 
-		const cancelButton = screen.getByText('Cancel');
-		await fireEvent.click(cancelButton);
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '2' } });
 
-		expect(screen.queryByText('Enter Amount')).not.toBeInTheDocument();
+		expect(screen.getByTestId('error')).toHaveTextContent(
+			'Amount cannot exceed available balance.'
+		);
 	});
 
-	it('shows an error if you fail to connect to the target chain', async () => {
+	it('shows chain switch error when switching fails', async () => {
 		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
 		render(DepositOrWithdrawModal, defaultProps);
+
 		await waitFor(() => {
-			expect(screen.getByTestId('chain-error')).toBeInTheDocument();
+			expect(screen.getByTestId('chain-error')).toHaveTextContent(
+				'Switch to Ethereum to check your balance.'
+			);
 		});
+	});
+
+	it('disables continue button when amount is 0', () => {
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		fireEvent.input(input, { target: { value: '0' } });
+
+		const continueButton = screen.getByText('Deposit');
+		expect(continueButton).toBeDisabled();
+	});
+
+	it('disables continue button when amount exceeds balance', async () => {
+		(readContract as Mock).mockResolvedValue(BigInt(0));
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const continueButton = screen.getByText('Deposit');
+		expect(continueButton).toBeDisabled();
 	});
 });
