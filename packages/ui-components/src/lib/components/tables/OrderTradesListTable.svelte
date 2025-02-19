@@ -57,7 +57,12 @@
 	});
 </script>
 
-<TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+<TanstackAppTable
+	query={orderTradesQuery}
+	emptyMessage="No trades found"
+	rowHoverable={false}
+	queryKey={id}
+>
 	<svelte:fragment slot="info">
 		{#if tradesCount !== undefined}
 			<div class="px-2">{tradesCount} Trades</div>

@@ -15,7 +15,8 @@ test('shows head and title', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	resolve();
@@ -33,7 +34,8 @@ test('renders rows', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	resolve();
@@ -49,7 +51,8 @@ test('shows empty message', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	resolve();
@@ -66,7 +69,8 @@ test('loads more rows', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	resolve();
@@ -115,7 +119,8 @@ test('load more button message changes when loading', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'	
 	});
 
 	resolve();
@@ -144,7 +149,8 @@ test('shows refresh icon', async () => {
 		query,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	resolve();
@@ -167,7 +173,8 @@ test('refetches data when refresh button is clicked', async () => {
 		>,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
-		head: 'Test head'
+		head: 'Test head',
+		queryKey: 'test'
 	});
 
 	const refreshButton = screen.getByTestId('refreshButton');
@@ -175,3 +182,6 @@ test('refetches data when refresh button is clicked', async () => {
 
 	expect(mockRefetch).toHaveBeenCalled();
 });
+
+
+// TODO, add test that invalidate works

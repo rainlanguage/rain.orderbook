@@ -4,10 +4,14 @@
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { useQueryClient } from '@tanstack/svelte-query';
+
+	const queryClient = useQueryClient();
 
 	const dispatch = createEventDispatcher();
 
 	// eslint-disable-next-line no-undef
+	export let queryKey: string;
 	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
 	export let emptyMessage: string = 'None found';
 	export let rowHoverable = true;
@@ -22,6 +26,11 @@
 		data-testid="refreshButton"
 		spin={$query.isLoading || $query.isFetching}
 		on:click={() => {
+			queryClient.invalidateQueries({
+				queryKey: [queryKey],
+				refetchType: 'all',
+				exact: false
+			});
 			$query.refetch();
 		}}
 	/>
