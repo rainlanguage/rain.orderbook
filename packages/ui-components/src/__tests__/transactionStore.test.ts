@@ -349,7 +349,6 @@ describe('transactionStore', () => {
 	it('should handle successful remove order indexing', async () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 
 		(getTransactionRemoveOrders as Mock).mockResolvedValue([
 			{
@@ -361,7 +360,7 @@ describe('transactionStore', () => {
 
 		vi.useFakeTimers({ shouldAdvanceTime: true });
 
-		await awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+		await awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash);
 
 		vi.runOnlyPendingTimers();
 
@@ -375,11 +374,10 @@ describe('transactionStore', () => {
 		vi.useFakeTimers();
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 
 		(getTransactionRemoveOrders as Mock).mockResolvedValue([]);
 
-		const indexingPromise = awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+		const indexingPromise = awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Waiting for order removal to be indexed...');
