@@ -62,7 +62,7 @@
 	let allDepositFields: GuiDeposit[] = [];
 	let allTokenOutputs: OrderIO[] = [];
 	let allFieldDefinitions: GuiFieldDefinition[] = [];
-	let allTokensSelected: boolean = false;
+
 	let showAdvancedOptions: boolean = false;
 	let checkingDeployment: boolean = false;
 	let error: DeploymentStepErrors | null = null;
@@ -75,6 +75,7 @@
 
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
+	let allTokensSelected = gui.areAllTokensSelected();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	function getAllFieldDefinitions() {
