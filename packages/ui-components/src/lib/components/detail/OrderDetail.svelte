@@ -11,12 +11,7 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import {
-		getOrder,
-		type OrderSubgraph,
-		type OrderWithSortedVaults,
-		type Vault
-	} from '@rainlanguage/orderbook/js_api';
+	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -100,11 +95,13 @@
 						color="dark"
 						on:click={() =>
 							handleOrderRemoveModal({
-								order: data.order,
-								onRemove: $orderDetailQuery.refetch,
-								wagmiConfig: $wagmiConfig,
-								chainId,
-								orderbookAddress
+								open: true,
+								args: {
+									order: data.order,
+									onRemove: $orderDetailQuery.refetch,
+									chainId,
+									orderbookAddress
+								}
 							})}
 						disabled={!handleOrderRemoveModal}
 					>
