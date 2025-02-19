@@ -7,6 +7,7 @@
 	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
+	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
@@ -22,18 +23,13 @@
 	}
 
 	onMount(async () => {
-		try {
-			if (stateFromUrl) {
-				return (gui = await DotrainOrderGui.deserializeState(
-					dotrain,
-					$page.url.searchParams.get('state') || ''
-				));
-			} else {
-				gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment.key);
-			}
-		} catch (err) {
-			getGuiError = 'Could not get deployment form.';
-		}
+		const { gui: initializedGui, error } = await handleGuiInitialization(
+			dotrain,
+			deployment.key,
+			stateFromUrl
+		);
+		gui = initializedGui;
+		getGuiError = error;
 	});
 </script>
 
