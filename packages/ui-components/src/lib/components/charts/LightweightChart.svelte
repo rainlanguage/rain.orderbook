@@ -98,10 +98,7 @@
 	}
 
 	function setupChart() {
-		console.log('setupChart');
 		if (chartElement === undefined) return;
-		console.log('chartElement', chartElement);
-
 		chart = createChart(chartElement);
 		series = createSeries(chart);
 		setOptions();
