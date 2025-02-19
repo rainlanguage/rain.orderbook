@@ -25,43 +25,24 @@
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Config } from 'wagmi';
-
+	import type { Hex } from 'viem';
+	import type {
+		DepositOrWithdrawModalProps,
+		OrderRemoveModalProps,
+		QuoteDebugModalHandler,
+		DebugTradeModalHandler
+	} from '../../types/modal';
 	export let handleDepositOrWithdrawModal:
-		| ((args: {
-				vault: Vault;
-				onDepositOrWithdraw: () => void;
-				action: 'deposit' | 'withdraw';
-				chainId: number;
-				rpcUrl: string;
-				subgraphUrl: string;
-		  }) => void)
+		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
-	export let handleOrderRemoveModal:
-		| ((args: {
-				order: OrderSubgraph;
-				onRemove: () => void;
-				wagmiConfig: Config;
-				chainId: number;
-				orderbookAddress: string;
-		  }) => void)
-		| undefined = undefined;
-	export let handleQuoteDebugModal:
-		| undefined
-		| ((
-				order: OrderSubgraph,
-				rpcUrl: string,
-				orderbook: string,
-				inputIOIndex: number,
-				outputIOIndex: number,
-				pair: string,
-				blockNumber?: number
-		  ) => void) = undefined;
-	export const handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
+	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
+	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
+	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
-	export let orderbookAddress: string | undefined = undefined;
+	export let orderbookAddress: Hex;
 	export let id: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
