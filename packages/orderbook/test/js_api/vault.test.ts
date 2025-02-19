@@ -231,7 +231,8 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		orderbook: {
 			id: '0x0000000000000000000000000000000000000000'
 		},
-		trades: []
+		trades: [],
+		removeEvents: []
 	};
 
 	it('should get deposit calldata for a vault', async () => {

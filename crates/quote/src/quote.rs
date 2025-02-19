@@ -455,7 +455,8 @@ mod tests {
             }],
             "meta": null,
             "timestampAdded": "0",
-            "trades": []
+            "trades": [],
+            "removeEvents": []
         });
         let retrun_sg_data = if batch {
             json!({

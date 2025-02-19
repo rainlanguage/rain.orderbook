@@ -26,4 +26,5 @@ export type OrderRemoveArgs = {
 	onRemove: () => void;
 	chainId: number;
 	orderbookAddress: Hex;
+	subgraphUrl: string;
 };

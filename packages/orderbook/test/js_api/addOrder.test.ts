@@ -352,7 +352,8 @@ const mockAddOrder: SgAddOrderWithOrder = {
 				}
 			}
 		],
-		trades: []
+		trades: [],
+		removeEvents: []
 	}
 };
 

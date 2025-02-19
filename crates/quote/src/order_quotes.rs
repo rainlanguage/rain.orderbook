@@ -327,6 +327,7 @@ amount price: context<3 0>() context<4 0>();
             meta: None,
             timestamp_added: SgBigInt(0.to_string()),
             trades: vec![],
+            remove_events: vec![],
         };
 
         let result = get_order_quotes(vec![order], None, local_evm.url(), None)

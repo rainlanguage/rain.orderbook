@@ -158,6 +158,7 @@ amount price: 16 52;
             meta: None,
             timestamp_added: SgBigInt(0.to_string()),
             trades: vec![],
+            remove_events: vec![],
         };
 
         let input_io_index = 0;
