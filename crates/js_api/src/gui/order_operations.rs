@@ -68,21 +68,25 @@ impl_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct ExtendedApprovalCalldata {
+    #[tsify(type = "string")]
     pub token: Address,
+    #[tsify(type = "string")]
     pub calldata: Bytes,
     pub symbol: String,
 }
-impl_all_wasm_traits!(ExtendedApprovalCalldata);
+impl_wasm_traits!(ExtendedApprovalCalldata);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentTransactionArgs {
     approvals: Vec<ExtendedApprovalCalldata>,
+    #[tsify(type = "string")]
     deployment_calldata: Bytes,
+    #[tsify(type = "string")]
     orderbook_address: Address,
     chain_id: u64,
 }
-impl_all_wasm_traits!(DeploymentTransactionArgs);
+impl_wasm_traits!(DeploymentTransactionArgs);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -163,7 +167,7 @@ impl DotrainOrderGui {
     fn prepare_calldata_generation(
         &mut self,
         calldata_function: CalldataFunction,
-    ) -> Result<GuiDeployment, GuiError> {
+    ) -> Result<GuiDeploymentCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
         match calldata_function {
