@@ -6,21 +6,21 @@ const { execSync } = require('node:child_process');
 fs.mkdirSync('./temp', { recursive: true });
 fs.mkdirSync('./src/lib/types', { recursive: true });
 
-// generate bindgens
+// generate bindings
 execSync(
-  `wasm-bindgen --target nodejs ./src-tauri/target/wasm32-unknown-unknown/release/tauri_app.wasm --out-dir ./temp --out-name tauriBindings`,
+  'wasm-bindgen --target nodejs ./src-tauri/target/wasm32-unknown-unknown/release/tauri_app.wasm --out-dir ./temp --out-name tauriBindings',
 );
 
-// prepare and move to src/lib/types
-let dts = fs.readFileSync(`./temp/tauriBindings.d.ts`, {
+// prepare and move to src/lib/types as we only need the generated typings
+let ts = fs.readFileSync(`./temp/tauriBindings.d.ts`, {
   encoding: 'utf-8',
 });
-dts = dts.replace(
+ts = ts.replace(
   `/* tslint:disable */
 /* eslint-disable */`,
   '',
 );
-dts = '/* this file is auto-generated, do not modify */\n' + dts;
-fs.writeFileSync(`./src/lib/types/tauriBindings.ts`, dts);
+ts = '/* this file is auto-generated, do not modify */\n' + ts;
+fs.writeFileSync('./src/lib/types/tauriBindings.ts', ts);
 
 execSync('npm run rm-temp');
