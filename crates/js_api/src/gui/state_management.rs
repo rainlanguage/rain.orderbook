@@ -38,6 +38,20 @@ impl DotrainOrderGui {
         }
     }
 
+    fn preset_to_pair_value(preset: GuiPreset) -> field_values::PairValue {
+        if preset.id != "" {
+            field_values::PairValue {
+                is_preset: true,
+                value: preset.id,
+            }
+        } else {
+            field_values::PairValue {
+                is_preset: false,
+                value: preset.value,
+            }
+        }
+    }
+
     fn parse_vault_ids_for_order(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
@@ -155,39 +169,13 @@ impl DotrainOrderGui {
         let field_values = state
             .field_values
             .into_iter()
-            .map(|(k, v)| {
-                let pair_value = if v.id != "" {
-                    field_values::PairValue {
-                        is_preset: true,
-                        value: v.id,
-                    }
-                } else {
-                    field_values::PairValue {
-                        is_preset: false,
-                        value: v.value,
-                    }
-                };
-                (k, pair_value)
-            })
+            .map(|(k, v)| (k, Self::preset_to_pair_value(v)))
             .collect::<BTreeMap<_, _>>();
 
         let deposits = state
             .deposits
             .into_iter()
-            .map(|(k, v)| {
-                let pair_value = if v.id != "" {
-                    field_values::PairValue {
-                        is_preset: true,
-                        value: v.id,
-                    }
-                } else {
-                    field_values::PairValue {
-                        is_preset: false,
-                        value: v.value,
-                    }
-                };
-                (k, pair_value)
-            })
+            .map(|(k, v)| (k, Self::preset_to_pair_value(v)))
             .collect::<BTreeMap<_, _>>();
 
         let dotrain_order_gui = DotrainOrderGui {
@@ -246,15 +234,21 @@ impl DotrainOrderGui {
         self.deposits.clear();
     }
 
+    fn is_preset<K: AsRef<str>>(
+        &self,
+        key: K,
+        map: &BTreeMap<String, field_values::PairValue>,
+    ) -> Option<bool> {
+        map.get(key.as_ref()).map(|v| v.is_preset)
+    }
+
     #[wasm_bindgen(js_name = "isFieldPreset")]
     pub fn is_field_preset(&self, binding: String) -> Option<bool> {
-        let value = self.field_values.get(&binding);
-        value.map(|v| v.is_preset)
+        self.is_preset(binding, &self.field_values)
     }
 
     #[wasm_bindgen(js_name = "isDepositPreset")]
     pub fn is_deposit_preset(&self, token: String) -> Option<bool> {
-        let value = self.deposits.get(&token);
-        value.map(|v| v.is_preset)
+        self.is_preset(token, &self.deposits)
     }
 }
