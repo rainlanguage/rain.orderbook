@@ -258,15 +258,9 @@
 				if (!allTokensSelected) return;
 
 				// if we have deposits or vault ids set, show advanced options
-				const vaultIds = gui.getVaultIds();
-				const inputVaultIds = vaultIds.get('input');
-				const outputVaultIds = vaultIds.get('output');
-				const deposits = gui.getDeposits();
-				if (
-					deposits.length > 0 ||
-					(inputVaultIds && inputVaultIds.some((v) => v)) ||
-					(outputVaultIds && outputVaultIds.some((v) => v))
-				) {
+				const hasDeposits = gui.hasAnyDeposit();
+				const hasVaultIds = gui.hasAnyVaultId();
+				if (hasDeposits || hasVaultIds) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
