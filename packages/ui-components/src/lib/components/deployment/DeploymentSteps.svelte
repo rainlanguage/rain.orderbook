@@ -25,10 +25,8 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import { handleShareChoices } from '$lib/services/handleShareChoices';
-	import DisclaimerModal from './DisclaimerModal.svelte';
-	import type { ComponentProps } from 'svelte';
-	import type { DeploymentArgs } from '$lib/types/transaction';
+	import { handleShareChoices } from '../../services/handleShareChoices';
+	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
@@ -50,9 +48,9 @@
 	export let deployment: GuiDeployment;
 	export let strategyDetail: NameAndDescription;
 
-	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let handleDeployModal: (args: DeployModalProps) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
+	export let pushGuiStateToUrlHistory: (serializedState: string) => void;
 
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
@@ -82,7 +80,7 @@
 		errorDetails = null;
 
 		try {
-			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment, pushGuiStateToUrlHistory);
 
 			if (gui) {
 				networkKey = await gui.getNetworkKey();
@@ -181,23 +179,38 @@
 		if (!$page.url.searchParams.get('state')) return;
 		gui = await DotrainOrderGui.deserializeState(
 			dotrain,
-			$page.url.searchParams.get('state') || ''
+			$page.url.searchParams.get('state') || '',
+			pushGuiStateToUrlHistory
 		);
 		areAllTokensSelected();
 	}
 
-	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
+	function areTokenInfosEqual(a: AllTokenInfos, b: AllTokenInfos): boolean {
+		if (a.length !== b.length) return false;
+		return a.every((tokenInfo, index) => {
+			const bTokenInfo = b[index];
+			return (
+				tokenInfo.address === bTokenInfo.address &&
+				tokenInfo.decimals === bTokenInfo.decimals &&
+				tokenInfo.name === bTokenInfo.name &&
+				tokenInfo.symbol === bTokenInfo.symbol
+			);
+		});
+	}
+
+	async function onSelectTokenSelect() {
+		if (!gui) return;
+
 		await areAllTokensSelected();
 
 		if (allTokensSelected) {
 			let newAllTokenInfos = await gui.getAllTokenInfos();
-			if (newAllTokenInfos !== allTokenInfos) {
+			if (!areTokenInfosEqual(newAllTokenInfos, allTokenInfos)) {
 				allTokenInfos = newAllTokenInfos;
-				updateFields();
+				getAllDepositFields();
+				getAllFieldDefinitions();
 			}
 		}
-
-		handleUpdateGuiState(gui);
 	}
 
 	async function handleDeployButtonClick() {
@@ -227,7 +240,7 @@
 		checkingDeployment = true;
 
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
 		} catch (e) {
 			checkingDeployment = false;
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
@@ -249,13 +262,19 @@
 			}
 
 			handleDeployModal({
-				...result,
-				subgraphUrl: subgraphUrl,
-				network: networkKey
+				open: true,
+				args: {
+					...result,
+					subgraphUrl: subgraphUrl,
+					network: networkKey
+				}
 			});
 		};
 
-		handleDisclaimerModal({ onAccept });
+		handleDisclaimerModal({
+			open: true,
+			onAccept
+		});
 	}
 
 	const areAllTokensSelected = async () => {
@@ -267,15 +286,9 @@
 				allTokenInfos = await gui.getAllTokenInfos();
 
 				// if we have deposits or vault ids set, show advanced options
-				const vaultIds = gui.getVaultIds();
-				const inputVaultIds = vaultIds.get('input');
-				const outputVaultIds = vaultIds.get('output');
-				const deposits = gui.getDeposits();
-				if (
-					deposits.length > 0 ||
-					(inputVaultIds && inputVaultIds.some((v) => v)) ||
-					(outputVaultIds && outputVaultIds.some((v) => v))
-				) {
+				const hasDeposits = gui.hasAnyDeposit();
+				const hasVaultIds = gui.hasAnyVaultId();
+				if (hasDeposits || hasVaultIds) {
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
@@ -312,22 +325,22 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} handleUpdateGuiState={_handleUpdateGuiState} />
+					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitions.length > 0}
-						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
+						<FieldDefinitionsSection {allFieldDefinitions} {gui} />
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
+						<DepositsSection bind:allDepositFields {gui} />
 					{/if}
 
 					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
+						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
 					{/if}
 
 					{#if error || errorDetails}

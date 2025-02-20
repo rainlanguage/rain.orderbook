@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/orders_test.rs
+assertion_line: 15
 expression: request_body.query
 ---
 query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
@@ -308,6 +309,14 @@ query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
     }
     trades {
       id
+    }
+    removeEvents {
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
     }
   }
 }

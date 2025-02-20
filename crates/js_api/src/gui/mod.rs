@@ -57,6 +57,8 @@ pub struct DotrainOrderGui {
     selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
+    #[serde(skip)]
+    state_update_callback: Option<js_sys::Function>,
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -71,6 +73,7 @@ impl DotrainOrderGui {
     pub async fn choose_deployment(
         dotrain: String,
         deployment_name: String,
+        state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
@@ -84,6 +87,7 @@ impl DotrainOrderGui {
             selected_deployment: deployment_name.clone(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
+            state_update_callback,
         })
     }
 
@@ -249,6 +253,8 @@ pub enum GuiError {
     BindingHasNoPresets(String),
     #[error("Token not in select tokens: {0}")]
     TokenNotInSelectTokens(String),
+    #[error("JavaScript error: {0}")]
+    JsError(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
