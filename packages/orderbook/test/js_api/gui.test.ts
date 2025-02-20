@@ -1201,6 +1201,7 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should set vault ids', async () => {
+			let stateUpdateCallback = vi.fn();
 			mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0x82ad56cb')
@@ -1213,7 +1214,11 @@ ${dotrainWithoutVaultIds}`;
           
           ${dotrainWithoutVaultIds}
           `;
-			gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				testDotrain,
+				'other-deployment',
+				stateUpdateCallback
+			);
 
 			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
@@ -1249,6 +1254,9 @@ ${dotrainWithoutVaultIds}`;
 			expect(() => gui.setVaultId(true, 0, 'test')).toThrow(
 				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {
