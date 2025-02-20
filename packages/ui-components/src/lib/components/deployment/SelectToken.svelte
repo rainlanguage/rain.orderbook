@@ -7,7 +7,7 @@
 
 	export let token: GuiSelectTokens;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let onSelectTokenSelect: () => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
@@ -54,11 +54,12 @@
 			} catch (e) {
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
 				error = errorMessage;
+				console.error(errorMessage);
 			}
 		}
 
 		checking = false;
-		handleUpdateGuiState(gui);
+		onSelectTokenSelect();
 	}
 </script>
 
