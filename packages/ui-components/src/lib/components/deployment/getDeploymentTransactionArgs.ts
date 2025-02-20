@@ -22,13 +22,9 @@ export interface HandleAddOrderResult {
 }
 
 export async function getDeploymentTransactionArgs(
-	gui: DotrainOrderGui | null,
+	gui: DotrainOrderGui,
 	wagmiConfig: Config | undefined
 ): Promise<HandleAddOrderResult> {
-	if (!gui) {
-		throw new Error(AddOrderErrors.MISSING_GUI);
-	}
-
 	if (!wagmiConfig) {
 		throw new Error(AddOrderErrors.MISSING_CONFIG);
 	}
