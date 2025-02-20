@@ -185,19 +185,6 @@
 		areAllTokensSelected();
 	}
 
-	function areTokenInfosEqual(a: AllTokenInfos, b: AllTokenInfos): boolean {
-		if (a.length !== b.length) return false;
-		return a.every((tokenInfo, index) => {
-			const bTokenInfo = b[index];
-			return (
-				tokenInfo.address === bTokenInfo.address &&
-				tokenInfo.decimals === bTokenInfo.decimals &&
-				tokenInfo.name === bTokenInfo.name &&
-				tokenInfo.symbol === bTokenInfo.symbol
-			);
-		});
-	}
-
 	async function onSelectTokenSelect() {
 		if (!gui) return;
 
@@ -205,7 +192,7 @@
 
 		if (allTokensSelected) {
 			let newAllTokenInfos = await gui.getAllTokenInfos();
-			if (!areTokenInfosEqual(newAllTokenInfos, allTokenInfos)) {
+			if (allTokenInfos !== newAllTokenInfos) {
 				allTokenInfos = newAllTokenInfos;
 				getAllDepositFields();
 				getAllFieldDefinitions();
