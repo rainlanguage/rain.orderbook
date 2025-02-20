@@ -343,6 +343,8 @@ impl DotrainOrderGui {
             .dotrain_yaml()
             .get_order(&deployment.deployment.order.key)?
             .update_vault_id(is_input, index, vault_id)?;
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
