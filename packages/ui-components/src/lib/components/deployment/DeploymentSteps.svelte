@@ -210,7 +210,7 @@
 		checkingDeployment = true;
 
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
 		} catch (e) {
 			checkingDeployment = false;
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
