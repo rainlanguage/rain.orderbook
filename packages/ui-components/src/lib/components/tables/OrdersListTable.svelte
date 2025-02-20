@@ -105,6 +105,7 @@
 
 <AppTable
 	{query}
+	queryKey={undefined}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
 		activeNetworkRef.set(e.detail.item.subgraphName);
