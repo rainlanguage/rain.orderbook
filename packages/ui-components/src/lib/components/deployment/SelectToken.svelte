@@ -54,7 +54,6 @@
 			} catch (e) {
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
 				error = errorMessage;
-				console.error(errorMessage);
 			}
 		}
 
