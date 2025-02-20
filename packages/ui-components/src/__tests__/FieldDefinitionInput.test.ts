@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
@@ -15,6 +15,8 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 
 describe('FieldDefinitionInput', () => {
 	let mockGui: DotrainOrderGui;
+	let mockStateUpdateCallback: Mock;
+
 	const mockFieldDefinition = {
 		binding: 'test-binding',
 		name: 'Test Field',
@@ -26,15 +28,18 @@ describe('FieldDefinitionInput', () => {
 	};
 
 	beforeEach(() => {
+		mockStateUpdateCallback = vi.fn();
 		mockGui = new DotrainOrderGui();
+		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
+			mockStateUpdateCallback();
+		});
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				handleUpdateGuiState: vi.fn()
+				gui: mockGui
 			}
 		});
 
@@ -46,8 +51,7 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				handleUpdateGuiState: vi.fn()
+				gui: mockGui
 			}
 		});
 
@@ -55,12 +59,11 @@ describe('FieldDefinitionInput', () => {
 		expect(getByText('Preset 2')).toBeTruthy();
 	});
 
-	it('handles preset button clicks', async () => {
+	it('handles preset button clicks and triggers state update', async () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				handleUpdateGuiState: vi.fn()
+				gui: mockGui
 			}
 		});
 
@@ -70,14 +73,14 @@ describe('FieldDefinitionInput', () => {
 			isPreset: true,
 			value: 'preset1'
 		});
+		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
-	it('handles custom input changes', async () => {
+	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui,
-				handleUpdateGuiState: vi.fn()
+				gui: mockGui
 			}
 		});
 
@@ -88,6 +91,7 @@ describe('FieldDefinitionInput', () => {
 			isPreset: false,
 			value: 'custom value'
 		});
+		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
 	it('does not show Custom button for is-fast-exit binding', () => {
@@ -99,8 +103,7 @@ describe('FieldDefinitionInput', () => {
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
-				gui: mockGui,
-				handleUpdateGuiState: vi.fn()
+				gui: mockGui
 			}
 		});
 

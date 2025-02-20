@@ -63,7 +63,7 @@ impl DotrainOrderGui {
         let gui_deposit = self.get_gui_deposit(&token)?;
 
         if amount.is_empty() {
-            self.remove_deposit(token);
+            self.remove_deposit(token)?;
             return Ok(());
         }
 
@@ -85,12 +85,16 @@ impl DotrainOrderGui {
         };
 
         self.deposits.insert(token, value);
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
     #[wasm_bindgen(js_name = "removeDeposit")]
-    pub fn remove_deposit(&mut self, token: String) {
+    pub fn remove_deposit(&mut self, token: String) -> Result<(), GuiError> {
         self.deposits.remove(&token);
+        self.execute_state_update_callback()?;
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getDepositPresets")]

@@ -7,7 +7,7 @@
 
 	export let token: GuiSelectTokens;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let onSelectTokenSelect: () => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
@@ -58,7 +58,7 @@
 		}
 
 		checking = false;
-		handleUpdateGuiState(gui);
+		onSelectTokenSelect();
 	}
 </script>
 
