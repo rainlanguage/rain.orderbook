@@ -6,6 +6,8 @@ import { signerAddress } from '$lib/stores/wagmi';
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
+import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
+import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -147,7 +149,7 @@ describe('DepositOrWithdrawModal', () => {
 		render(DepositOrWithdrawModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByTestId('chain-error')).toHaveTextContent(
+			expect(screen.getByTestId('error-message')).toHaveTextContent(
 				'Switch to Ethereum to check your balance.'
 			);
 		});
@@ -172,5 +174,56 @@ describe('DepositOrWithdrawModal', () => {
 
 		const continueButton = screen.getByText('Deposit');
 		expect(continueButton).toBeDisabled();
+	});
+
+	it('shows loading state while checking calldata', async () => {
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		expect(screen.getByText('Checking...')).toBeInTheDocument();
+	});
+
+	it('handles failed calldata fetch', async () => {
+		vi.mocked(getVaultDepositCalldata).mockRejectedValueOnce(new Error('Failed to fetch'));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to get calldata.');
+		});
+	});
+
+	it('handles deposit without approval when approval fails', async () => {
+		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
+		vi.mocked(getVaultApprovalCalldata).mockRejectedValueOnce(new Error('Approval not needed'));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		await fireEvent.click(depositButton);
+
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			action: 'deposit',
+			chainId: 1,
+			vault: mockVault,
+			config: undefined,
+			subgraphUrl: undefined,
+			approvalCalldata: undefined,
+			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
 	});
 });

@@ -97,6 +97,8 @@ impl DotrainOrderGui {
             Some(&token_info.name),
             Some(&token_info.symbol),
         )?;
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
@@ -123,6 +125,8 @@ impl DotrainOrderGui {
         }
 
         TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 

@@ -13,7 +13,6 @@
 
 	export let deposit: GuiDepositCfg;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -51,7 +50,6 @@
 			gui = gui;
 			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 		}
-		handleUpdateGuiState(gui);
 	}
 
 	function handleInput(e: Event) {
@@ -63,7 +61,6 @@
 				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 			}
 		}
-		handleUpdateGuiState(gui);
 	}
 
 	$: if (deposit.token?.key) {

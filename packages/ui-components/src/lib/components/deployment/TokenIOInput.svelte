@@ -12,7 +12,6 @@
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
@@ -45,7 +44,6 @@
 		error = '';
 		try {
 			gui?.setVaultId(isInput, i, inputValue);
-			handleUpdateGuiState(gui);
 		} catch (e) {
 			const errorMessage = (e as Error).message ? (e as Error).message : 'Error setting vault ID.';
 			error = errorMessage;

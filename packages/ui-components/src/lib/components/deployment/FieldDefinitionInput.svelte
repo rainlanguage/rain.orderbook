@@ -12,7 +12,6 @@
 
 	export let fieldDefinition: GuiFieldDefinitionCfg;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 
 	let currentValue: GuiPresetCfg | undefined;
 	let inputValue: string | null = currentValue?.value || null;
@@ -33,7 +32,6 @@
 			value: preset.id
 		});
 		currentValue = gui.getFieldValue(fieldDefinition.binding);
-		handleUpdateGuiState(gui);
 	}
 
 	async function handleCustomInputChange(value: string) {
@@ -43,7 +41,6 @@
 			value: value
 		});
 		currentValue = gui.getFieldValue(fieldDefinition.binding);
-		handleUpdateGuiState(gui);
 	}
 </script>
 

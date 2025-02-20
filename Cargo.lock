@@ -6448,6 +6448,7 @@ dependencies = [
  "reqwest 0.12.5",
  "serde",
  "sha2",
+ "strict-yaml-rust",
  "thiserror",
  "tokio",
  "wasm-bindgen-utils",
