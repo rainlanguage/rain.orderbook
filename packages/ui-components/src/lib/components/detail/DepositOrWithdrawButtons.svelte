@@ -3,15 +3,8 @@
 	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-
-	export let handleDepositOrWithdrawModal: (args: {
-		vault: Vault;
-		onDepositOrWithdraw: () => void;
-		action: 'deposit' | 'withdraw';
-		chainId: number;
-		rpcUrl: string;
-		subgraphUrl: string;
-	}) => void;
+	import type { DepositOrWithdrawModalProps } from '../../types/modal';
+	export let handleDepositOrWithdrawModal: (props: DepositOrWithdrawModalProps) => void;
 
 	export let vault: Vault;
 	export let chainId: number;
@@ -26,12 +19,15 @@
 	size="xs"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
-			vault,
-			onDepositOrWithdraw: $query.refetch,
-			action: 'deposit',
-			chainId,
-			rpcUrl,
-			subgraphUrl
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: $query.refetch,
+				action: 'deposit',
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
 		})}><ArrowUpOutline size="xs" /></Button
 >
 <Button
@@ -40,11 +36,14 @@
 	size="xs"
 	on:click={() =>
 		handleDepositOrWithdrawModal({
-			vault,
-			onDepositOrWithdraw: $query.refetch,
-			action: 'withdraw',
-			chainId,
-			rpcUrl,
-			subgraphUrl
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: $query.refetch,
+				action: 'withdraw',
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
 		})}><ArrowDownOutline size="xs" /></Button
 >

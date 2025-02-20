@@ -22,16 +22,10 @@
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Config } from 'wagmi';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 
 	export let handleDepositOrWithdrawModal:
-		| ((args: {
-				vault: Vault;
-				onDepositOrWithdraw: () => void;
-				action: 'deposit' | 'withdraw';
-				chainId: number;
-				rpcUrl: string;
-				subgraphUrl: string;
-		  }) => void)
+		| ((args: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
 	export let id: string;
 	export let network: string;

@@ -13,7 +13,6 @@
 		type GuiFieldDefinition,
 		type GuiDeployment,
 		type OrderIO,
-		type SelectTokens,
 		type NameAndDescription,
 		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
@@ -23,10 +22,8 @@
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
-	import { handleShareChoices } from '$lib/services/handleShareChoices';
-	import DisclaimerModal from './DisclaimerModal.svelte';
-	import type { ComponentProps } from 'svelte';
-	import type { DeploymentArgs } from '$lib/types/transaction';
+	import { handleShareChoices } from '../../services/handleShareChoices';
+	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	enum DeploymentStepErrors {
@@ -55,8 +52,8 @@
 	export let gui: DotrainOrderGui;
 	export let deployment: Deployment;
 	export let dotrain: string;
-	export let handleDeployModal: (args: DeploymentArgs) => void;
-	export let handleDisclaimerModal: (args: Omit<ComponentProps<DisclaimerModal>, 'open'>) => void;
+	export let handleDeployModal: (args: DeployModalProps) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -129,7 +126,6 @@
 	}
 
 	async function _handleShareChoices() {
-		if (!gui) return;
 		await handleShareChoices(gui);
 	}
 
@@ -167,13 +163,19 @@
 		checkingDeployment = false;
 		const onAccept = () => {
 			handleDeployModal({
-				...result,
-				subgraphUrl: subgraphUrl,
-				network: networkKey
+				open: true,
+				args: {
+					...result,
+					subgraphUrl: subgraphUrl,
+					network: networkKey
+				}
 			});
 		};
 
-		handleDisclaimerModal({ onAccept });
+		handleDisclaimerModal({
+			open: true,
+			onAccept
+		});
 	}
 
 	const areAllTokensSelected = async () => {

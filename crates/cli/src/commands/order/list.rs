@@ -264,7 +264,8 @@ mod tests {
                             "from": encode_prefixed(alloy::primitives::Address::random())
                         }
                     }],
-                    "trades": []
+                    "trades": [],
+                    "removeEvents": []
                 }]
             }
         })

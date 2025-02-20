@@ -1,11 +1,15 @@
 <script lang="ts">
-	import { transactionStore, InputTokenAmount, WalletConnect } from '@rainlanguage/ui-components';
+	import {
+		transactionStore,
+		InputTokenAmount,
+		WalletConnect,
+		type DepositOrWithdrawArgs
+	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type WithdrawCalldataResult,
-		type Vault,
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
@@ -29,18 +33,12 @@
 	}
 
 	export let open: boolean;
-	export let action: 'deposit' | 'withdraw';
-	export let vault: Vault;
-	export let chainId: number;
-	export let rpcUrl: string;
-	export let subgraphUrl: string;
-	export let onDepositOrWithdraw: () => void;
+	export let args: DepositOrWithdrawArgs;
 
-	function handleSuccess() {
-		setTimeout(() => {
-			onDepositOrWithdraw();
-		}, 5000);
-	}
+	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
+
+	type Action = 'deposit' | 'withdraw';
+	const actionType = action as Action;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -48,7 +46,7 @@
 	let switchChainError = '';
 
 	const messages = {
-		success: 'Your transaction was successful.',
+		success: 'Transaction successful.',
 		pending: 'Processing your transaction...',
 		error: 'Transaction failed.'
 	};
@@ -88,8 +86,8 @@
 			transactionStore.handleDepositOrWithdrawTransaction({
 				config: $wagmiConfig,
 				transactionCalldata: depositCalldata,
-				action,
 				approvalCalldata,
+				action,
 				chainId,
 				vault,
 				subgraphUrl
@@ -144,7 +142,7 @@
 							<Button
 								color="blue"
 								on:click={handleContinue}
-								disabled={amount <= 0n || amountGreaterThanBalance[action]}
+								disabled={amount <= 0n || amountGreaterThanBalance[actionType]}
 							>
 								{action === 'deposit' ? 'Deposit' : 'Withdraw'}
 							</Button>
@@ -156,12 +154,12 @@
 				{#if switchChainError}
 					<p data-testid="chain-error">{switchChainError}</p>
 				{/if}
-				{#if amountGreaterThanBalance[action]}
+				{#if amountGreaterThanBalance[actionType]}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
 				{/if}
 			</div>
 		</div>
 	</Modal>
 {:else}
-	<TransactionModal bind:open {messages} on:close={handleClose} on:success={handleSuccess} />
+	<TransactionModal bind:open {messages} on:close={handleClose} />
 {/if}
