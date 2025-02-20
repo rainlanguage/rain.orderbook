@@ -824,6 +824,7 @@ mod test {
             meta: None,
             add_events: vec![],
             trades: vec![],
+            remove_events: vec![],
         }
     }
 

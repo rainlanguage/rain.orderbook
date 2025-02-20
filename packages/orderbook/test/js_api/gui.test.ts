@@ -7,6 +7,7 @@ import {
 	AllowancesResult,
 	DeploymentDetails,
 	DeploymentKeys,
+	DeploymentTransactionArgs,
 	DepositAndAddOrderCalldataResult,
 	Gui,
 	GuiDeployment,
@@ -1234,6 +1235,60 @@ ${dotrainWithoutVaultIds}`;
 			gui.saveDeposit('token2', '0');
 			const calldatas = await gui.generateDepositCalldatas();
 			assert.equal(calldatas.Calldatas.length, 0);
+		});
+
+		it('should generate deployment transaction args', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
+				);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			gui.saveDeposit('token2', '5000');
+			gui.saveFieldValue('test-binding', {
+				isPreset: false,
+				value: '10'
+			});
+
+			let result: DeploymentTransactionArgs = await gui.getDeploymentTransactionArgs(
+				'0x1234567890abcdef1234567890abcdef12345678'
+			);
+
+			assert.equal(result.approvals.length, 1);
+			assert.equal(
+				result.approvals[0].calldata,
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
+			);
+			assert.equal(result.approvals[0].symbol, 'T2');
+			assert.equal(result.deploymentCalldata.length, 3146);
+			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.chainId, 123);
+
+			gui.removeDeposit('token2');
+			result = await gui.getDeploymentTransactionArgs('0x1234567890abcdef1234567890abcdef12345678');
+
+			assert.equal(result.approvals.length, 0);
+			assert.equal(result.deploymentCalldata.length, 2634);
+			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.chainId, 123);
 		});
 	});
 
