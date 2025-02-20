@@ -470,14 +470,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		let allTokenInfos: AllTokenInfos = await gui.getAllTokenInfos();
 		assert.equal(allTokenInfos.length, 2);
-		assert.equal(allTokenInfos[0].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
-		assert.equal(allTokenInfos[0].decimals, 18);
-		assert.equal(allTokenInfos[0].name, 'Token 2');
-		assert.equal(allTokenInfos[0].symbol, 'T2');
-		assert.equal(allTokenInfos[1].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
-		assert.equal(allTokenInfos[1].decimals, 6);
-		assert.equal(allTokenInfos[1].name, 'Token 1');
-		assert.equal(allTokenInfos[1].symbol, 'T1');
+		assert.equal(allTokenInfos[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
+		assert.equal(allTokenInfos[0].decimals, 6);
+		assert.equal(allTokenInfos[0].name, 'Token 1');
+		assert.equal(allTokenInfos[0].symbol, 'T1');
+		assert.equal(allTokenInfos[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+		assert.equal(allTokenInfos[1].decimals, 18);
+		assert.equal(allTokenInfos[1].name, 'Token 2');
+		assert.equal(allTokenInfos[1].symbol, 'T2');
 	});
 
 	describe('deposit tests', async () => {
