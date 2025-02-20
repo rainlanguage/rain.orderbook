@@ -11,7 +11,11 @@ import type {
 	Vault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
-import { getTransaction, getTransactionAddOrders } from '@rainlanguage/orderbook/js_api';
+import {
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders
+} from '@rainlanguage/orderbook/js_api';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -68,6 +72,7 @@ export type RemoveOrderTransactionArgs = {
 	orderbookAddress: Hex;
 	removeOrderCalldata: RemoveOrderCalldata;
 	chainId: number;
+	subgraphUrl: string;
 };
 
 export type TransactionState = {
@@ -162,6 +167,31 @@ const transactionStore = () => {
 			} else if (addOrders?.length > 0) {
 				clearInterval(interval);
 				return transactionSuccess(txHash, '', addOrders[0].order.id, network);
+			}
+		}, 1000);
+	};
+
+	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Waiting for order removal to be indexed...'
+		}));
+
+		let attempts = 0;
+		const interval: NodeJS.Timeout = setInterval(async () => {
+			attempts++;
+			const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
+			if (attempts >= 10) {
+				update((state) => ({
+					...state,
+					message: 'The subgraph took too long to respond. Please check again later.'
+				}));
+				clearInterval(interval);
+				return transactionError(TransactionErrorMessage.TIMEOUT);
+			} else if (removeOrders?.length > 0) {
+				clearInterval(interval);
+				return transactionSuccess(txHash);
 			}
 		}, 1000);
 	};
@@ -334,7 +364,8 @@ const transactionStore = () => {
 		config,
 		orderbookAddress,
 		removeOrderCalldata,
-		chainId
+		chainId,
+		subgraphUrl
 	}: RemoveOrderTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -356,7 +387,7 @@ const transactionStore = () => {
 		try {
 			awaitDeployTx(hash);
 			await waitForTransactionReceipt(config, { hash });
-			return transactionSuccess(hash, 'Order removed successfully.');
+			return awaitRemoveOrderIndexing(subgraphUrl, hash);
 		} catch {
 			return transactionError(TransactionErrorMessage.REMOVE_ORDER_FAILED);
 		}
@@ -374,7 +405,8 @@ const transactionStore = () => {
 		transactionSuccess,
 		transactionError,
 		awaitTransactionIndexing,
-		awaitNewOrderIndexing
+		awaitNewOrderIndexing,
+		awaitRemoveOrderIndexing
 	};
 };
 

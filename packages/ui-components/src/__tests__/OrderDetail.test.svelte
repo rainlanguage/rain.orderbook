@@ -46,7 +46,8 @@
 							order: data.order,
 							onRemove: $orderDetailQuery.refetch,
 							chainId,
-							orderbookAddress
+							orderbookAddress,
+							subgraphUrl
 						}
 					})}
 				disabled={!handleOrderRemoveModal}

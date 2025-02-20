@@ -15,9 +15,9 @@ use std::{collections::HashMap, str::FromStr, sync::Arc};
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct ApprovalCalldata {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    token: Address,
+    pub token: Address,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    calldata: Bytes,
+    pub calldata: Bytes,
 }
 #[cfg(target_family = "wasm")]
 impl_all_wasm_traits!(ApprovalCalldata);

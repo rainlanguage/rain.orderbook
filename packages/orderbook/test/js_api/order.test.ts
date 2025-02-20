@@ -81,7 +81,8 @@ const order1 = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
+	trades: [],
+	removeEvents: []
 };
 const order2 = {
 	id: 'order2',
@@ -147,7 +148,8 @@ const order2 = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
+	trades: [],
+	removeEvents: []
 } as unknown as OrderSubgraph;
 
 export const order3 = {
@@ -214,7 +216,8 @@ export const order3 = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
+	trades: [],
+	removeEvents: []
 };
 
 const mockOrderTradesList: Trade[] = [
