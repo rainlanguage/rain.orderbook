@@ -150,16 +150,19 @@ test('shows refresh icon', async () => {
 });
 
 test('refetches data when refresh button is clicked', async () => {
+	const mockRefetch = vi.fn();
 	const mockQuery = createMockQuery(createPages(), {
 		status: 'success',
 		fetchStatus: 'idle',
 		isLoading: false,
-		isFetching: false
+		isFetching: false,
+		refetch: mockRefetch
 	});
 	renderTable(mockQuery);
 
 	const refreshButton = screen.getByTestId('refreshButton');
 	await userEvent.click(refreshButton);
 
+	expect(mockRefetch).toHaveBeenCalled();
 	expect(mockInvalidateIdQuery).toHaveBeenCalledWith(expect.anything(), 'test');
 });
