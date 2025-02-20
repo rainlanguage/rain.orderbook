@@ -22,15 +22,15 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(hash))
     }
 
-    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPreset {
+    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPresetCfg {
         if value.is_preset {
-            GuiPreset {
+            GuiPresetCfg {
                 id: value.value.clone(),
                 name: None,
                 value: default_value,
             }
         } else {
-            GuiPreset {
+            GuiPresetCfg {
                 id: "".to_string(),
                 name: None,
                 value: value.value.clone(),
@@ -38,7 +38,7 @@ impl DotrainOrderGui {
         }
     }
 
-    fn preset_to_pair_value(preset: GuiPreset) -> field_values::PairValue {
+    fn preset_to_pair_value(preset: GuiPresetCfg) -> field_values::PairValue {
         if preset.id != "" {
             field_values::PairValue {
                 is_preset: true,
@@ -58,7 +58,7 @@ impl DotrainOrderGui {
         is_input: bool,
     ) -> Result<BTreeMap<(bool, u8), Option<String>>, GuiError> {
         let mut vault_ids = BTreeMap::new();
-        for (i, vault_id) in Order::parse_vault_ids(documents, order_key, is_input)?
+        for (i, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, is_input)?
             .iter()
             .enumerate()
         {
@@ -257,7 +257,7 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "executeStateUpdateCallback")]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
-            let state = to_value(&self.serialize_state()?)?;
+            let state = to_js_value(&self.serialize_state()?)?;
             callback.call1(&JsValue::UNDEFINED, &state).map_err(|e| {
                 GuiError::JsError(format!("Failed to execute state update callback: {:?}", e))
             })?;

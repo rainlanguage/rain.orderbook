@@ -1,5 +1,5 @@
 use super::*;
-use rain_orderbook_app_settings::gui::GuiDeposit;
+use rain_orderbook_app_settings::gui::GuiDepositCfg;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenDeposit {
@@ -12,7 +12,7 @@ impl_wasm_traits!(TokenDeposit);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    fn get_gui_deposit(&self, key: &str) -> Result<GuiDeposit, GuiError> {
+    fn get_gui_deposit(&self, key: &str) -> Result<GuiDepositCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let gui_deposit = deployment
             .deposits
