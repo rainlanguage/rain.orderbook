@@ -53,12 +53,12 @@
 					<h1 class="text-lg md:text-2xl">✅</h1>
 				</div>
 				<div class="flex flex-col gap-4 text-center">
-					<p
-						class="w-full whitespace-pre-wrap break-words text-center text-lg font-semibold text-gray-900 dark:text-white"
-					>
-						{messages.success}
-					</p>
-					<div class="flex flex-col gap-2">
+					<div class="flex flex-col">
+						<p
+							class="w-full whitespace-pre-wrap break-words text-center text-lg font-semibold text-gray-900 dark:text-white"
+						>
+							{messages.success}
+						</p>
 						{#if $transactionStore.message}
 							<p
 								class="w-full whitespace-pre-wrap break-words text-center text-sm font-normal text-gray-900 dark:text-white"
@@ -66,7 +66,8 @@
 								{$transactionStore.message}
 							</p>
 						{/if}
-
+					</div>
+					<div class="flex flex-col gap-2">
 						<div class="flex flex-row justify-center gap-2">
 							{#if $transactionStore.newOrderId && $transactionStore.network}
 								<a href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderId}`}>

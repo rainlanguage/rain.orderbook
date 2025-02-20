@@ -309,5 +309,13 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
     trades {
       id
     }
+    removeEvents {
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+    }
   }
 }

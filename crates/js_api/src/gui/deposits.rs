@@ -134,4 +134,9 @@ impl DotrainOrderGui {
         }
         Ok(missing_deposits)
     }
+
+    #[wasm_bindgen(js_name = "hasAnyDeposit")]
+    pub fn has_any_deposit(&self) -> bool {
+        !self.deposits.is_empty()
+    }
 }
