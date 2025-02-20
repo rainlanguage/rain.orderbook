@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type Scenario } from '@rainlanguage/orderbook/js_api';
@@ -630,7 +630,8 @@ const defaultProps: DeploymentStepsProps = {
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 	settings: writable({} as ConfigSource),
-	handleUpdateGuiState: vi.fn()
+	handleUpdateGuiState: vi.fn(),
+	gui: {} as unknown as DotrainOrderGui
 };
 
 describe('DeploymentSteps', () => {
@@ -638,12 +639,16 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 	});
 
-	it('shows deployment details when provided', async () => {
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
+	const setGui = (defaultProps: DeploymentStepsProps) => {
+		defaultProps.gui = {
+			areAllTokensSelected: vi.fn(),
 			getSelectTokens: () => [],
-			getTokenInfo: vi.fn(),
 			getNetworkKey: vi.fn()
-		});
+		} as unknown as DotrainOrderGui;
+	};
+
+	it('shows deployment details when provided', async () => {
+		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -653,12 +658,8 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
-		const mockSelectTokens = ['token1', 'token2'];
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => mockSelectTokens,
-			getTokenInfo: vi.fn(),
-			getNetworkKey: vi.fn()
-		});
+		setGui(defaultProps);
+		defaultProps.gui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -670,36 +671,9 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	it('shows error message when GUI initialization fails', async () => {
-		(DotrainOrderGui.chooseDeployment as Mock).mockRejectedValue(
-			new Error('Failed to initialize GUI')
-		);
-
-		render(DeploymentSteps, { props: defaultProps });
-
-		await waitFor(() => {
-			expect(screen.getByText('Error loading GUI')).toBeInTheDocument();
-			expect(screen.getByText('Failed to initialize GUI')).toBeInTheDocument();
-		});
-	});
-
 	it('shows deploy strategy button when all required fields are filled', async () => {
 		mockConnectedStore.mockSetSubscribeValue(true);
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => [],
-			getCurrentDeployment: () => ({
-				deployment: {
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				},
-				deposits: []
-			}),
-			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn(),
-			getNetworkKey: vi.fn()
-		});
+		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -710,21 +684,7 @@ describe('DeploymentSteps', () => {
 
 	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
-		(DotrainOrderGui.chooseDeployment as Mock).mockResolvedValue({
-			getSelectTokens: () => [],
-			getCurrentDeployment: () => ({
-				deployment: {
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				},
-				deposits: []
-			}),
-			getAllFieldDefinitions: () => [],
-			getTokenInfo: vi.fn(),
-			getNetworkKey: vi.fn()
-		});
+		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
 
