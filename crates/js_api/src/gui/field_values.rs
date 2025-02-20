@@ -42,6 +42,8 @@ impl DotrainOrderGui {
             }
         }
         self.field_values.insert(binding, value);
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
@@ -54,8 +56,10 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "removeFieldValue")]
-    pub fn remove_field_value(&mut self, binding: String) {
+    pub fn remove_field_value(&mut self, binding: String) -> Result<(), GuiError> {
         self.field_values.remove(&binding);
+        self.execute_state_update_callback()?;
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getFieldValue")]

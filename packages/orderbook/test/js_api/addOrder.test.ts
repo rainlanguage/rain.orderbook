@@ -352,7 +352,8 @@ const mockAddOrder: AddOrderWithOrder = {
 				}
 			}
 		],
-		trades: []
+		trades: [],
+		removeEvents: []
 	}
 };
 

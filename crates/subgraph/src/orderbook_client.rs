@@ -9,6 +9,7 @@ use crate::types::order::{
     OrdersListQuery,
 };
 use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
+use crate::types::remove_order::{TransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables};
 use crate::types::transaction::TransactionDetailQuery;
 use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
@@ -415,5 +416,25 @@ impl OrderbookSubgraphClient {
         }
 
         Ok(data.add_orders)
+    }
+
+    /// Fetch all remove orders for a given transaction
+    pub async fn transaction_remove_orders(
+        &self,
+        id: Id,
+    ) -> Result<Vec<RemoveOrderWithOrder>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<TransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables>(
+                TransactionRemoveOrdersVariables {
+                    id: Bytes(id.inner().to_string()),
+                },
+            )
+            .await?;
+
+        if data.remove_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.remove_orders)
     }
 }

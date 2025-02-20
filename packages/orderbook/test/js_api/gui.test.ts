@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { DotrainOrderGui } from '../../dist/cjs/js_api.js';
 import {
 	AddOrderCalldataResult,
@@ -7,6 +7,7 @@ import {
 	AllowancesResult,
 	DeploymentDetails,
 	DeploymentKeys,
+	DeploymentTransactionArgs,
 	DepositAndAddOrderCalldataResult,
 	Gui,
 	GuiDeployment,
@@ -369,6 +370,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
 	});
 
+	it('should initialize gui object with state update callback', async () => {
+		const stateUpdateCallback = vi.fn();
+		const gui = await DotrainOrderGui.chooseDeployment(
+			dotrainWithGui,
+			'some-deployment',
+			stateUpdateCallback
+		);
+
+		gui.executeStateUpdateCallback();
+		assert.equal(stateUpdateCallback.mock.calls.length, 1);
+	});
+
 	it('should get strategy details', async () => {
 		const strategyDetails: NameAndDescription =
 			await DotrainOrderGui.getStrategyDetails(dotrainWithGui);
@@ -434,14 +447,20 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('deposit tests', async () => {
 		let gui: DotrainOrderGui;
-		beforeAll(async () => {
+		let stateUpdateCallback: Mock;
+		beforeEach(async () => {
+			stateUpdateCallback = vi.fn();
 			mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0x82ad56cb')
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				dotrainWithGui,
+				'some-deployment',
+				stateUpdateCallback
+			);
 		});
 
 		it('should add deposit', async () => {
@@ -452,6 +471,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(deposits.length, 1);
 
 			assert.equal(gui.hasAnyDeposit(), true);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 1);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should update deposit', async () => {
@@ -460,6 +482,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const deposits: TokenDeposit[] = gui.getDeposits();
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].amount, '100.6');
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should throw error if deposit token is not found in gui config', () => {
@@ -481,6 +506,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(gui.getDeposits().length, 1);
 			gui.saveDeposit('token1', '');
 			assert.equal(gui.getDeposits().length, 0);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should get deposit presets', async () => {
@@ -502,14 +530,20 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('field value tests', async () => {
 		let gui: DotrainOrderGui;
-		beforeAll(async () => {
+		let stateUpdateCallback: Mock;
+		beforeEach(async () => {
+			stateUpdateCallback = vi.fn();
 			mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0x82ad56cb')
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			gui = await DotrainOrderGui.chooseDeployment(dotrainWithGui, 'some-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				dotrainWithGui,
+				'some-deployment',
+				stateUpdateCallback
+			);
 		});
 
 		it('should save the field value as presets', async () => {
@@ -529,6 +563,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				value: allFieldDefinitions[0].presets[2].id
 			});
 			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[2]);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 3);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should save field value as custom values', async () => {
@@ -582,6 +619,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 					value: 'true'
 				}
 			});
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should throw error during save if preset is not found in field definition', () => {
@@ -1162,6 +1202,7 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should set vault ids', async () => {
+			let stateUpdateCallback = vi.fn();
 			mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0x82ad56cb')
@@ -1174,7 +1215,11 @@ ${dotrainWithoutVaultIds}`;
           
           ${dotrainWithoutVaultIds}
           `;
-			gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				testDotrain,
+				'other-deployment',
+				stateUpdateCallback
+			);
 
 			let currentDeployment: GuiDeployment = gui.getCurrentDeployment();
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
@@ -1210,6 +1255,9 @@ ${dotrainWithoutVaultIds}`;
 			expect(() => gui.setVaultId(true, 0, 'test')).toThrow(
 				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {
@@ -1235,17 +1283,77 @@ ${dotrainWithoutVaultIds}`;
 			const calldatas = await gui.generateDepositCalldatas();
 			assert.equal(calldatas.Calldatas.length, 0);
 		});
+
+		it('should generate deployment transaction args', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
+				);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			gui.saveDeposit('token2', '5000');
+			gui.saveFieldValue('test-binding', {
+				isPreset: false,
+				value: '10'
+			});
+
+			let result: DeploymentTransactionArgs = await gui.getDeploymentTransactionArgs(
+				'0x1234567890abcdef1234567890abcdef12345678'
+			);
+
+			assert.equal(result.approvals.length, 1);
+			assert.equal(
+				result.approvals[0].calldata,
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
+			);
+			assert.equal(result.approvals[0].symbol, 'T2');
+			assert.equal(result.deploymentCalldata.length, 3146);
+			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.chainId, 123);
+
+			gui.removeDeposit('token2');
+			result = await gui.getDeploymentTransactionArgs('0x1234567890abcdef1234567890abcdef12345678');
+
+			assert.equal(result.approvals.length, 0);
+			assert.equal(result.deploymentCalldata.length, 2634);
+			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.chainId, 123);
+		});
 	});
 
 	describe('select tokens tests', async () => {
 		let gui: DotrainOrderGui;
-		beforeAll(async () => {
+		let stateUpdateCallback: Mock;
+		beforeEach(async () => {
+			stateUpdateCallback = vi.fn();
 			let dotrain3 = `
       ${guiConfig3}
 
       ${dotrainWithoutTokens}
       `;
-			gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'other-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				dotrain3,
+				'other-deployment',
+				stateUpdateCallback
+			);
 		});
 
 		it('should get select tokens', async () => {
@@ -1321,12 +1429,12 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.name, 'Teken 2');
 			assert.equal(tokenInfo.symbol, 'T2');
 			assert.equal(tokenInfo.decimals, 18);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should replace select token', async () => {
-			gui.removeSelectToken('token1');
-			gui.removeSelectToken('token2');
-
 			mockServer
 				.forPost('/rpc-url')
 				.once()
@@ -1355,15 +1463,23 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.name, 'Teken 2');
 			assert.equal(tokenInfo.symbol, 'T2');
 			assert.equal(tokenInfo.decimals, 18);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 3);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should remove select token', async () => {
+			stateUpdateCallback = vi.fn();
 			let dotrain3 = `
       ${guiConfig3}
 
       ${dotrainWithoutTokens}
       `;
-			gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'other-deployment');
+			gui = await DotrainOrderGui.chooseDeployment(
+				dotrain3,
+				'other-deployment',
+				stateUpdateCallback
+			);
 
 			mockServer
 				.forPost('/rpc-url')
@@ -1392,6 +1508,9 @@ ${dotrainWithoutVaultIds}`;
 			await expect(async () => await gui.getTokenInfo('token1')).rejects.toThrow(
 				"Missing required field 'tokens' in root"
 			);
+
+			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should get network key', async () => {

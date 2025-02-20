@@ -49,7 +49,7 @@
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let pushGuiStateToUrlHistory: (serializedState: string) => void;
 
 	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDeposit[] = [];
@@ -78,7 +78,7 @@
 		errorDetails = null;
 
 		try {
-			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment, pushGuiStateToUrlHistory);
 
 			if (gui) {
 				networkKey = await gui.getNetworkKey();
@@ -177,14 +177,10 @@
 		if (!$page.url.searchParams.get('state')) return;
 		gui = await DotrainOrderGui.deserializeState(
 			dotrain,
-			$page.url.searchParams.get('state') || ''
+			$page.url.searchParams.get('state') || '',
+			pushGuiStateToUrlHistory
 		);
 		areAllTokensSelected();
-	}
-
-	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
-		await areAllTokensSelected();
-		handleUpdateGuiState(gui);
 	}
 
 	async function handleDeployButtonClick() {
@@ -214,7 +210,7 @@
 		checkingDeployment = true;
 
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig, allTokenOutputs);
+			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
 		} catch (e) {
 			checkingDeployment = false;
 			error = DeploymentStepErrors.ADD_ORDER_FAILED;
@@ -251,7 +247,7 @@
 		});
 	}
 
-	const areAllTokensSelected = async () => {
+	const areAllTokensSelected = () => {
 		if (gui) {
 			try {
 				allTokensSelected = gui.areAllTokensSelected();
@@ -297,22 +293,22 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} handleUpdateGuiState={_handleUpdateGuiState} />
+					<SelectTokensSection {gui} {selectTokens} onSelectTokenSelect={areAllTokensSelected} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitions.length > 0}
-						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
+						<FieldDefinitionsSection {allFieldDefinitions} {gui} />
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
+						<DepositsSection bind:allDepositFields {gui} />
 					{/if}
 
 					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
+						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
 					{/if}
 
 					{#if error || errorDetails}
