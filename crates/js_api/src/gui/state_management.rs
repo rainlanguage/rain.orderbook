@@ -253,10 +253,8 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "executeStateUpdateCallback")]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
-            let this = JsValue::null();
-            let self_js = to_value(self)
-                .map_err(|e| GuiError::JsError(format!("Failed to serialize self: {:?}", e)))?;
-            callback.call1(&this, &self_js).map_err(|e| {
+            let state = to_value(&self.serialize_state()?)?;
+            callback.call1(&JsValue::UNDEFINED, &state).map_err(|e| {
                 GuiError::JsError(format!("Failed to execute state update callback: {:?}", e))
             })?;
         }

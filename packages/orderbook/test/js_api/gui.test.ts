@@ -472,6 +472,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(gui.hasAnyDeposit(), true);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 1);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should update deposit', async () => {
@@ -482,6 +483,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(deposits[0].amount, '100.6');
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should throw error if deposit token is not found in gui config', () => {
@@ -505,6 +507,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(gui.getDeposits().length, 0);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should get deposit presets', async () => {
@@ -561,6 +564,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[2]);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should save field value as custom values', async () => {
@@ -616,6 +620,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			});
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should throw error during save if preset is not found in field definition', () => {
@@ -1363,6 +1368,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.decimals, 18);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should replace select token', async () => {
@@ -1396,6 +1402,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.decimals, 18);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should remove select token', async () => {
@@ -1440,6 +1447,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
+			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should get network key', async () => {
