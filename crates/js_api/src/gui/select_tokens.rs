@@ -124,6 +124,8 @@ impl DotrainOrderGui {
         }
 
         Token::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 

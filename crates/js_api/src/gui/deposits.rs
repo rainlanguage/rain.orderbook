@@ -62,7 +62,7 @@ impl DotrainOrderGui {
             .ok_or(GuiError::DepositTokenNotFound(token.clone()))?;
 
         if amount.is_empty() {
-            self.remove_deposit(token);
+            self.remove_deposit(token)?;
             return Ok(());
         }
 
