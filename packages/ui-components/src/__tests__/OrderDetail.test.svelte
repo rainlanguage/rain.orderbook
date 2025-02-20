@@ -11,10 +11,11 @@
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-
-	const queryClient = useQueryClient();
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
 	import type { Hex } from 'viem';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
+
+	const queryClient = useQueryClient();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -57,12 +58,7 @@
 		{/if}
 
 		<Refresh
-			on:click={() =>
-				queryClient.invalidateQueries({
-					queryKey: [id],
-					refetchType: 'all',
-					exact: false
-				})}
+			on:click={async () => await invalidateIdQuery(queryClient, id)}
 			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 		/>
 	</svelte:fragment>

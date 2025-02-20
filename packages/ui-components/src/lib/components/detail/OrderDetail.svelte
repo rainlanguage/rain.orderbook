@@ -12,7 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
-	import { createQuery } from '@tanstack/svelte-query';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
@@ -27,6 +27,9 @@
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
 	} from '../../types/modal';
+	import Refresh from '../icon/Refresh.svelte';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
+
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
@@ -46,8 +49,6 @@
 	export let signerAddress: Writable<string | null> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
-	import { useQueryClient } from '@tanstack/svelte-query';
-	import Refresh from '../icon/Refresh.svelte';
 
 	const queryClient = useQueryClient();
 
@@ -60,12 +61,8 @@
 	});
 
 	const interval = setInterval(async () => {
-		await queryClient.invalidateQueries({
-			queryKey: [id],
-			refetchType: 'all',
-			exact: false
-		});
-	}, 5000);
+		await invalidateIdQuery(queryClient, id);
+	}, 10000);
 
 	onDestroy(() => {
 		clearInterval(interval);
@@ -110,12 +107,7 @@
 					</Button>
 				{/if}
 				<Refresh
-					on:click={() =>
-						queryClient.invalidateQueries({
-							queryKey: [id],
-							refetchType: 'all',
-							exact: false
-						})}
+					on:click={async () => await invalidateIdQuery(queryClient, id)}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
 			</div>

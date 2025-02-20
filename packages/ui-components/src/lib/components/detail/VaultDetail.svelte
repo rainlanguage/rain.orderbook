@@ -24,6 +24,7 @@
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -112,12 +113,7 @@
 			{/if}
 
 			<Refresh
-				on:click={() =>
-					queryClient.invalidateQueries({
-						queryKey: [id],
-						refetchType: 'all',
-						exact: false
-					})}
+				on:click={async () => await invalidateIdQuery(queryClient, id)}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
 			/>
 		</div>

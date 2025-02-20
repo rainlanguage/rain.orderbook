@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import Refresh from './icon/Refresh.svelte';
-
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
@@ -25,13 +25,8 @@
 		class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 		data-testid="refreshButton"
 		spin={$query.isLoading || $query.isFetching}
-		on:click={() => {
-			queryClient.invalidateQueries({
-				queryKey: [queryKey],
-				refetchType: 'all',
-				exact: false
-			});
-			$query.refetch();
+		on:click={async () => {
+			await invalidateIdQuery(queryClient, queryKey);
 		}}
 	/>
 </div>
