@@ -10,8 +10,8 @@
 
 	const dispatch = createEventDispatcher();
 
+	export let queryKey: string | undefined;
 	// eslint-disable-next-line no-undef
-	export let queryKey: string;
 	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
 	export let emptyMessage: string = 'None found';
 	export let rowHoverable = true;
@@ -26,7 +26,10 @@
 		data-testid="refreshButton"
 		spin={$query.isLoading || $query.isFetching}
 		on:click={async () => {
-			await invalidateIdQuery(queryClient, queryKey);
+			if (queryKey) {
+				await invalidateIdQuery(queryClient, queryKey);
+			}
+			$query.refetch();
 		}}
 	/>
 </div>
