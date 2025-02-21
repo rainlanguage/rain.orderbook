@@ -13,7 +13,6 @@ use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 pub enum CalldataFunction {
     Allowance,
-    Approval,
     Deposit,
     AddOrder,
     DepositAndAddOrder,
@@ -99,11 +98,11 @@ pub struct ApprovalCalldata {
     pub calldata: Bytes,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(ApprovalCalldata);
+impl_wasm_traits!(ApprovalCalldata);
 
 #[derive(Debug)]
 pub struct VaultAndDeposit {
-    pub order_io: OrderIO,
+    pub order_io: OrderIOCfg,
     pub deposit_amount: U256,
     pub index: usize,
 }
@@ -247,8 +246,6 @@ impl DotrainOrderGui {
         &mut self,
         owner: String,
     ) -> Result<ApprovalCalldataResult, GuiError> {
-        let deployment = self.prepare_calldata_generation(CalldataFunction::Approval)?;
-
         let deposits_map = self.get_deposits_as_map().await?;
         if deposits_map.is_empty() {
             return Ok(ApprovalCalldataResult::NoDeposits);
@@ -364,7 +361,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
-        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+        self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
 

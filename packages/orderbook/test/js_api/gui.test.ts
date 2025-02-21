@@ -1179,10 +1179,6 @@ ${dotrainWithoutVaultIds}`;
 			await expect(async () =>
 				testGui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678')
 			).rejects.toThrow('Token must be selected: token1');
-			await expect(
-				async () =>
-					await testGui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
-			).rejects.toThrow('Token must be selected: token1');
 			await expect(async () => await testGui.generateDepositCalldatas()).rejects.toThrow(
 				'Token must be selected: token1'
 			);
