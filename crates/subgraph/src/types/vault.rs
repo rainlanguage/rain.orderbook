@@ -1,28 +1,31 @@
 use super::common::*;
 use crate::schema;
 use serde::Serialize;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::*;
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "VaultsListQueryVariables")]
-#[typeshare]
-pub struct VaultsListQuery {
+#[cynic(graphql_type = "Query", variables = "SgVaultsListQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgVaultsListQuery {
     #[arguments(orderBy: "id", orderDirection: "desc", skip: $skip, first: $first, where: $filters)]
-    pub vaults: Vec<Vault>,
+    pub vaults: Vec<SgVault>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "IdQueryVariables")]
-#[typeshare]
-pub struct VaultDetailQuery {
+#[cynic(graphql_type = "Query", variables = "SgIdQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgVaultDetailQuery {
     #[arguments(id: $id)]
-    pub vault: Option<Vault>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub vault: Option<SgVault>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "PaginationWithIdQueryVariables")]
-#[typeshare]
-pub struct VaultBalanceChangesListQuery {
+#[cynic(graphql_type = "Query", variables = "SgPaginationWithIdQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgVaultBalanceChangesListQuery {
     #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
-    pub vault_balance_changes: Vec<VaultBalanceChangeUnwrapped>,
+    pub vault_balance_changes: Vec<SgVaultBalanceChangeUnwrapped>,
 }

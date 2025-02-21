@@ -6,7 +6,7 @@
   import { toasts } from '$lib/stores/toasts';
   import { reportErrorToSentry } from '$lib/services/sentry';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import type { OrderSubgraph as OrderDetailOrder } from '@rainlanguage/orderbook/js_api';
+  import type { SgOrder as OrderDetailOrder } from '@rainlanguage/orderbook/js_api';
 
   let openOrderRemoveModal = true;
   export let order: OrderDetailOrder;

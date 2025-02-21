@@ -3,17 +3,17 @@
 
 	import {
 		DotrainOrderGui,
-		type GuiFieldDefinition,
-		type GuiPreset
+		type GuiFieldDefinitionCfg,
+		type GuiPresetCfg
 	} from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 
-	export let fieldDefinition: GuiFieldDefinition;
+	export let fieldDefinition: GuiFieldDefinitionCfg;
 	export let gui: DotrainOrderGui;
 
-	let currentValue: GuiPreset | undefined;
+	let currentValue: GuiPresetCfg | undefined;
 	let inputValue: string | null = currentValue?.value || null;
 
 	onMount(() => {
@@ -25,7 +25,7 @@
 		}
 	});
 
-	async function handlePresetClick(preset: GuiPreset) {
+	async function handlePresetClick(preset: GuiPresetCfg) {
 		inputValue = preset.value;
 		gui?.saveFieldValue(fieldDefinition.binding, {
 			isPreset: true,

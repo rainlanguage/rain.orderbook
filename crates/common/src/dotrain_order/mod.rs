@@ -12,11 +12,10 @@ pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::OrderbookYaml};
 use rain_orderbook_app_settings::yaml::{YamlError, YamlParsable};
 use rain_orderbook_app_settings::ParseConfigSourceError;
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 pub mod calldata;
 
@@ -91,17 +90,19 @@ impl From<DotrainOrderError> for JsValue {
     }
 }
 
-#[typeshare]
 #[derive(Serialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub enum WordsResult {
     Success(AuthoringMetaV2),
     Error(String),
 }
 
-#[typeshare]
 #[derive(Serialize, Debug, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct ContractWords {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
     pub words: WordsResult,
 }
@@ -115,8 +116,9 @@ impl From<Result<AuthoringMetaV2, DotrainOrderError>> for WordsResult {
     }
 }
 
-#[typeshare]
 #[derive(Serialize, Debug, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct ScenarioWords {
     pub scenario: String,
     pub pragma_words: Vec<ContractWords>,

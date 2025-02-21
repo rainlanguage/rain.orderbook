@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { ConfigSource } from '../lib/typeshare/config';
+import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 import type { ComponentProps } from 'svelte';
 

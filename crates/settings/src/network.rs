@@ -12,33 +12,33 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use typeshare::typeshare;
 use url::{ParseError, Url};
-
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct Network {
+pub struct NetworkCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "string"))]
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub rpc: Url,
-    #[typeshare(typescript(type = "number"))]
     pub chain_id: u64,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
-    #[typeshare(typescript(type = "number"))]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub network_id: Option<u64>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub currency: Option<String>,
 }
-impl Network {
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(NetworkCfg);
+
+impl NetworkCfg {
     pub fn dummy() -> Self {
-        Network {
+        NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             rpc: Url::parse("http://rpc.com").unwrap(),
@@ -64,7 +64,7 @@ impl Network {
     }
 
     pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
-        let rpc = Network::validate_rpc(rpc)?;
+        let rpc = NetworkCfg::validate_rpc(rpc)?;
 
         let mut document = self
             .document
@@ -122,7 +122,7 @@ impl Network {
                 let location = format!("network '{}'", network_key);
                 let rpc_str = require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
 
-                return Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                return NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
                     kind: FieldErrorKind::InvalidValue {
                         field: "rpc".to_string(),
                         reason: e.to_string(),
@@ -138,10 +138,8 @@ impl Network {
         })
     }
 }
-#[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Network);
 
-impl YamlParsableHash for Network {
+impl YamlParsableHash for NetworkCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
@@ -162,7 +160,7 @@ impl YamlParsableHash for Network {
                         require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
 
                     let rpc_url =
-                        Network::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                        NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
                             kind: FieldErrorKind::InvalidValue {
                                 field: "rpc".to_string(),
                                 reason: e.to_string(),
@@ -183,7 +181,7 @@ impl YamlParsableHash for Network {
 
                     let label = optional_string(network_yaml, "label");
                     let network_id = optional_string(network_yaml, "network-id")
-                        .map(|id| Network::validate_network_id(&id))
+                        .map(|id| NetworkCfg::validate_network_id(&id))
                         .transpose()
                         .map_err(|e| YamlError::Field {
                             kind: FieldErrorKind::InvalidValue {
@@ -195,7 +193,7 @@ impl YamlParsableHash for Network {
 
                     let currency = optional_string(network_yaml, "currency");
 
-                    let network = Network {
+                    let network = NetworkCfg {
                         document: document.clone(),
                         key: network_key.clone(),
                         rpc: rpc_url,
@@ -224,12 +222,12 @@ impl YamlParsableHash for Network {
     }
 }
 
-impl Default for Network {
+impl Default for NetworkCfg {
     fn default() -> Self {
-        Network::dummy()
+        NetworkCfg::dummy()
     }
 }
-impl PartialEq for Network {
+impl PartialEq for NetworkCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
             && self.rpc == other.rpc
@@ -251,8 +249,11 @@ pub enum ParseNetworkConfigSourceError {
 }
 
 impl NetworkConfigSource {
-    pub fn try_into_network(self, key: String) -> Result<Network, ParseNetworkConfigSourceError> {
-        Ok(Network {
+    pub fn try_into_network(
+        self,
+        key: String,
+    ) -> Result<NetworkCfg, ParseNetworkConfigSourceError> {
+        Ok(NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key,
             rpc: self.rpc,
@@ -297,7 +298,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -310,7 +311,7 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -324,7 +325,7 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = Network::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -354,7 +355,7 @@ networks:
         rpc: https://network-two.infura.io
         chain-id: 4
 "#;
-        let networks = Network::parse_all_from_yaml(
+        let networks = NetworkCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -396,7 +397,7 @@ networks:
         rpc: https://mainnet.infura.io
         chain-id: 1
 "#;
-        let error = Network::parse_all_from_yaml(
+        let error = NetworkCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -409,7 +410,7 @@ networks:
         let yaml = r#"
 networks: test
 "#;
-        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -425,7 +426,7 @@ networks: test
 networks:
   - test
 "#;
-        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -441,7 +442,7 @@ networks:
 networks:
   - test: test
 "#;
-        let error = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -459,7 +460,7 @@ networks:
     rpc: https://rpc.com
     chain-id: 1
 "#;
-        let res = Network::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
+        let res = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, Url::parse("https://rpc.com").unwrap());
     }
 }

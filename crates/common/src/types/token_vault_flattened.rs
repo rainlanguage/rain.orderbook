@@ -8,26 +8,26 @@ use super::FlattenError;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TokenVaultFlattened {
     pub id: String,
-    pub owner: Bytes,
-    pub vault_id: BigInt,
+    pub owner: SgBytes,
+    pub vault_id: SgBigInt,
     pub token_name: Option<String>,
     pub token_symbol: Option<String>,
-    pub token_decimals: Option<BigInt>,
+    pub token_decimals: Option<SgBigInt>,
     pub token_address: String,
     pub balance_display: String,
-    pub balance: BigInt,
+    pub balance: SgBigInt,
 }
 
-impl TryFrom<Vault> for TokenVaultFlattened {
+impl TryFrom<SgVault> for TokenVaultFlattened {
     type Error = FlattenError;
 
-    fn try_from(val: Vault) -> Result<Self, Self::Error> {
+    fn try_from(val: SgVault) -> Result<Self, Self::Error> {
         let balance_parsed = val.balance.0.parse::<U256>()?;
         let decimals = val
             .token
             .decimals
             .clone()
-            .unwrap_or(BigInt("0".into()))
+            .unwrap_or(SgBigInt("0".into()))
             .0
             .parse::<u8>()?;
 

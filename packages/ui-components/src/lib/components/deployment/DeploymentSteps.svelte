@@ -5,16 +5,16 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-	import { type ConfigSource } from '../../typeshare/config';
+	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type GuiDeposit,
-		type GuiFieldDefinition,
-		type GuiDeployment,
-		type OrderIO,
-		type SelectTokens,
-		type NameAndDescription
+		type GuiDepositCfg,
+		type GuiFieldDefinitionCfg,
+		type NameAndDescriptionCfg,
+		type GuiDeploymentCfg,
+		type OrderIOCfg,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -32,17 +32,17 @@
 
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: GuiDeployment;
-	export let strategyDetail: NameAndDescription;
+	export let deployment: GuiDeploymentCfg;
+	export let strategyDetail: NameAndDescriptionCfg;
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let pushGuiStateToUrlHistory: (serializedState: string) => void;
 
 	let selectTokens: SelectTokens | null = null;
-	let allDepositFields: GuiDeposit[] = [];
-	let allTokenOutputs: OrderIO[] = [];
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
+	let allDepositFields: GuiDepositCfg[] = [];
+	let allTokenOutputs: OrderIOCfg[] = [];
+	let allFieldDefinitions: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
@@ -94,8 +94,8 @@
 	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
-			let dep: GuiDeployment = gui.getCurrentDeployment();
-			let depositFields: GuiDeposit[] = dep.deposits;
+			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
+			let depositFields: GuiDepositCfg[] = dep.deposits;
 
 			allDepositFields = depositFields;
 		} catch (e) {
@@ -103,7 +103,7 @@
 		}
 	}
 
-	let allTokenInputs: OrderIO[] = [];
+	let allTokenInputs: OrderIOCfg[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		DotrainOrderGui,
-		type GuiDeposit,
+		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
 	} from '@rainlanguage/orderbook/js_api';
@@ -11,7 +11,7 @@
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 
-	export let deposit: GuiDeposit;
+	export let deposit: GuiDepositCfg;
 	export let gui: DotrainOrderGui;
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;

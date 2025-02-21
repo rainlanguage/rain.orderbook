@@ -2,22 +2,22 @@ import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import {
+	SgTrade,
+	SgOrder,
 	OrderPerformance,
-	OrderSubgraph,
-	OrderWithSortedVaults,
-	OrderWithSubgraphName,
-	Trade
+	SgOrderWithSubgraphName,
+	OrderWithSortedVaults
 } from '../../dist/types/js_api.js';
 import {
-	getOrders,
 	getOrder,
+	getOrders,
 	getOrderTradesList,
 	getOrderTradeDetail,
 	getOrderTradesCount,
 	getOrderPerformance
 } from '../../dist/cjs/js_api.js';
 
-const order1 = {
+const order1: SgOrder = {
 	id: 'order1',
 	orderBytes:
 		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -82,8 +82,9 @@ const order1 = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-	removeEvents: []
-};
+  removeEvents: []
+} as unknown as SgOrder;
+
 const order2 = {
 	id: 'order2',
 	orderBytes:
@@ -149,8 +150,8 @@ const order2 = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-	removeEvents: []
-} as unknown as OrderSubgraph;
+  removeEvents: []
+} as unknown as SgOrder;
 
 export const order3 = {
 	id: 'order1',
@@ -217,10 +218,10 @@ export const order3 = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-	removeEvents: []
-};
+  removeEvents: []
+} as unknown as SgOrder;
 
-const mockOrderTradesList: Trade[] = [
+const mockOrderTradesList: SgTrade[] = [
 	{
 		id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
 		timestamp: '1632000000',
@@ -293,9 +294,9 @@ const mockOrderTradesList: Trade[] = [
 			id: 'orderbook-1'
 		}
 	}
-] as unknown as Trade[];
+] as unknown as SgTrade[];
 
-const mockTrade: Trade = {
+const mockTrade: SgTrade = {
 	id: 'trade1',
 	order: {
 		id: 'order1',
@@ -370,9 +371,9 @@ const mockTrade: Trade = {
 			id: '0x0000000000000000000000000000000000000000'
 		}
 	}
-} as unknown as Trade;
+} as unknown as SgTrade;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function () {
+describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function () {
 	const mockServer = getLocal();
 	beforeEach(() => mockServer.start(8082));
 	afterEach(() => mockServer.stop());
@@ -394,7 +395,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 		await mockServer.forPost('/sg2').thenReply(200, JSON.stringify({ data: { orders: [order2] } }));
 
 		try {
-			const result: OrderWithSubgraphName[] = await getOrders(
+			const result: SgOrderWithSubgraphName[] = await getOrders(
 				[
 					{ url: mockServer.url + '/sg1', name: 'network-one' },
 					{ url: mockServer.url + '/sg2', name: 'network-two' }
@@ -461,7 +462,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
 
 		try {
-			const result: Trade = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
+			const result: SgTrade = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
 			assert.equal(result.id, mockTrade.id);
 			assert.equal(result.order.id, mockTrade.order.id);
 			assert.equal(

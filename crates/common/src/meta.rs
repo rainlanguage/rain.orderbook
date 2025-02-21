@@ -1,6 +1,6 @@
 use alloy::primitives::hex::{decode, FromHexError};
 use rain_metadata::{Error as RainMetadataError, KnownMagic, RainMetaDocumentV1Item};
-use rain_orderbook_subgraph_client::types::common::RainMetaV1;
+use rain_orderbook_subgraph_client::types::common::SgRainMetaV1;
 use std::string::FromUtf8Error;
 use thiserror::Error;
 
@@ -22,7 +22,7 @@ pub trait TryDecodeRainlangSource {
     fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError>;
 }
 
-impl TryDecodeRainlangSource for RainMetaV1 {
+impl TryDecodeRainlangSource for SgRainMetaV1 {
     fn try_decode_rainlangsource(&self) -> Result<String, TryDecodeRainlangSourceError> {
         // Ensure meta has expected magic prefix
         let meta_bytes = decode(self.clone().0)?;

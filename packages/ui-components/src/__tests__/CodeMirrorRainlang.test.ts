@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, waitFor } from '@testing-library/svelte';
 import CodeMirrorRainlang from '../lib/components/CodeMirrorRainlang.svelte';
-import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 import { extendOrder } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
 
 // Mock the extendOrder function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	extendOrder: vi.fn((order: OrderSubgraph) => ({
+	extendOrder: vi.fn((order: SgOrder) => ({
 		rainlang: 'mocked rainlang text'
 	}))
 }));
@@ -28,7 +28,7 @@ describe('CodeMirrorRainlang', () => {
 	});
 
 	it('should use extendOrder when order prop is provided', () => {
-		const mockOrder: OrderSubgraph = {} as OrderSubgraph;
+		const mockOrder: SgOrder = {} as SgOrder;
 
 		render(CodeMirrorRainlang, {
 			props: {
@@ -59,7 +59,7 @@ describe('CodeMirrorRainlang', () => {
 	});
 
 	it('should pass through disabled prop', async () => {
-		const mockOrder: OrderSubgraph = {} as OrderSubgraph;
+		const mockOrder: SgOrder = {} as SgOrder;
 		const mockExtendedOrder = { order: {} };
 
 		(extendOrder as Mock).mockReturnValue(mockExtendedOrder);

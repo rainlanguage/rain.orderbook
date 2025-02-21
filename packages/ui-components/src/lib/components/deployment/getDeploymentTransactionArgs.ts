@@ -44,7 +44,7 @@ export async function getDeploymentTransactionArgs(
 	return {
 		approvals,
 		deploymentCalldata,
-		orderbookAddress,
+		orderbookAddress: orderbookAddress as Hex,
 		chainId
 	};
 }

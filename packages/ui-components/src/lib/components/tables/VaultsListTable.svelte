@@ -10,13 +10,13 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '../../typeshare/config';
-	import { type Vault } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook/js_api';
+	import { type SgVault } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
 		type MultiSubgraphArgs,
-		type VaultWithSubgraphName
+		type SgVaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
@@ -37,9 +37,9 @@
 	}>;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
-	export let handleDepositModal: ((vault: Vault, refetch: () => void) => void) | undefined =
+	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
-	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
+	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
@@ -94,7 +94,7 @@
 	$: isVaultsPage = currentRoute.startsWith('/vaults');
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 
-	const AppTable = TanstackAppTable<VaultWithSubgraphName>;
+	const AppTable = TanstackAppTable<SgVaultWithSubgraphName>;
 </script>
 
 {#if $query}

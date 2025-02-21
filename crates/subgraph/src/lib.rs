@@ -13,4 +13,4 @@ pub mod schema {}
 
 pub use multi_orderbook_client::{MultiOrderbookSubgraphClient, MultiSubgraphArgs};
 pub use orderbook_client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
-pub use pagination::{PageQueryClient, PaginationArgs};
+pub use pagination::{PageQueryClient, SgPaginationArgs};

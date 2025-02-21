@@ -4,6 +4,7 @@
 pub mod error;
 pub mod toast;
 pub mod transaction_status;
+pub mod types;
 
 mod commands;
 use commands::app::get_app_commit_sha;
@@ -17,7 +18,7 @@ use commands::order::{
     compose_from_scenario, order_add, order_add_calldata, order_remove, order_remove_calldata,
     orders_list_write_csv, validate_raindex_version,
 };
-use commands::order_quote::{batch_order_quotes, debug_order_quote};
+use commands::order_quote::debug_order_quote;
 use commands::order_take::order_trades_list_write_csv;
 use commands::trade_debug::debug_trade;
 use commands::vault::{
@@ -67,7 +68,6 @@ fn run_tauri_app() {
             vault_withdraw_calldata,
             get_authoring_meta_v2_for_scenarios,
             compose_from_scenario,
-            batch_order_quotes,
             debug_order_quote,
             debug_trade,
             get_app_commit_sha,

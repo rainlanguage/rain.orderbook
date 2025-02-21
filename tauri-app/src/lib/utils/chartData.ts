@@ -1,16 +1,16 @@
-import type { FuzzResultFlat } from '$lib/typeshare/config';
+import type { FuzzResultFlat } from '@rainlanguage/orderbook/js_api';
 import { hexToBigInt, type Hex, formatUnits } from 'viem';
 
 export type TransformedHexAndFormattedData = { [key: string]: [number, Hex] };
 
 // Transform the data from the backend to the format required by the plot library
 export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndFormattedData[] => {
-  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.column_names.length)) {
+  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.columnNames.length)) {
     throw new Error('Number of column names does not match data length');
   }
   return fuzzResult.data.rows.map((row) => {
     const rowObject: TransformedHexAndFormattedData = {};
-    fuzzResult.data.column_names.forEach((columnName, index) => {
+    fuzzResult.data.columnNames.forEach((columnName, index) => {
       rowObject[columnName] = [+formatUnits(hexToBigInt(row[index] as Hex), 18), row[index] as Hex];
     });
     return rowObject;
@@ -20,12 +20,12 @@ export const transformData = (fuzzResult: FuzzResultFlat): TransformedHexAndForm
 export type TransformedPlotData = { [key: string]: number };
 
 export const transformDataForPlot = (fuzzResult: FuzzResultFlat): TransformedPlotData[] => {
-  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.column_names.length)) {
+  if (fuzzResult.data.rows.some((row) => row.length !== fuzzResult.data.columnNames.length)) {
     throw new Error('Number of column names does not match data length');
   }
   return fuzzResult.data.rows.map((row) => {
     const rowObject: TransformedPlotData = {};
-    fuzzResult.data.column_names.forEach((columnName, index) => {
+    fuzzResult.data.columnNames.forEach((columnName, index) => {
       rowObject[columnName] = +formatUnits(hexToBigInt(row[index] as Hex), 18);
     });
     return rowObject;
@@ -45,7 +45,7 @@ if (import.meta.vitest) {
           ['0x29A2241AF62C0000', '0x5678'],
           ['0x1234', '0x5678'],
         ],
-        column_names: ['col1', 'col2'],
+        columnNames: ['col1', 'col2'],
       },
       scenario: 'test',
     };
@@ -72,7 +72,7 @@ if (import.meta.vitest) {
           ['0x1234', '0x5678'],
           ['0x1234', '0x5678'],
         ],
-        column_names: ['col1'],
+        columnNames: ['col1'],
       },
       scenario: 'test',
     };

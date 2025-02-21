@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import Hash, { HashType } from './Hash.svelte';
-	import type { OrderAsIO, OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrderAsIO, SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 
-	type OrderOrVault = OrderSubgraph | OrderAsIO | Vault;
+	type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
 
 	export let orderOrVault: OrderOrVault;
 	export let type: 'orders' | 'vaults';
@@ -13,9 +13,9 @@
 	let hash;
 
 	$: isOrder = 'orderHash' in (orderOrVault || {});
-	$: slug = isOrder ? (orderOrVault as OrderSubgraph).id : (orderOrVault as Vault)?.id;
-	$: hash = isOrder ? (orderOrVault as OrderSubgraph).id : (orderOrVault as Vault)?.id || '';
-	$: isActive = isOrder ? (orderOrVault as OrderAsIO).active : false;
+	$: slug = isOrder ? (orderOrVault as SgOrder).id : (orderOrVault as SgVault)?.id;
+	$: hash = isOrder ? (orderOrVault as SgOrder).id : (orderOrVault as SgVault)?.id || '';
+	$: isActive = isOrder ? (orderOrVault as SgOrderAsIO).active : false;
 </script>
 
 <a href={`/${type}/${network}-${slug}`}>

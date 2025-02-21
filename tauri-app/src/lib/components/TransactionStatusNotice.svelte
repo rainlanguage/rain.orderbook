@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Spinner, Toast } from 'flowbite-svelte';
-  import type { TransactionStatusNotice } from '$lib/typeshare/transactionStatus';
+  import type { TransactionStatusNotice } from '$lib/types/tauriBindings';
   import {
     CheckCircleSolid,
     CloseCircleSolid,

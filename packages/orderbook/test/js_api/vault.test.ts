@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, beforeAll, afterAll } from 'vitest';
-import { Vault, VaultWithSubgraphName, Deposit } from '../../dist/types/js_api.js';
+import { SgVault, SgVaultWithSubgraphName, SgDeposit } from '../../dist/types/js_api.js';
 import {
 	getVaults,
 	getVault,
@@ -12,7 +12,7 @@ import {
 	getVaultApprovalCalldata
 } from '../../dist/cjs/js_api.js';
 
-const vault1: Vault = {
+const vault1: SgVault = {
 	id: 'vault1',
 	owner: '0x0000000000000000000000000000000000000000',
 	vaultId: '0x10',
@@ -31,7 +31,7 @@ const vault1: Vault = {
 	ordersAsInput: [],
 	balanceChanges: []
 };
-const vault2: Vault = {
+const vault2: SgVault = {
 	id: 'vault2',
 	owner: '0x0000000000000000000000000000000000000000',
 	vaultId: '0x20',
@@ -67,7 +67,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
 
 		try {
-			const result: Vault = await getVault(mockServer.url + '/sg1', vault1.id);
+			const result: SgVault = await getVault(mockServer.url + '/sg1', vault1.id);
 			assert.equal(result.id, vault1.id);
 		} catch (e) {
 			console.log(e);
@@ -80,7 +80,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg2').thenReply(200, JSON.stringify({ data: { vaults: [vault2] } }));
 
 		try {
-			const result: VaultWithSubgraphName[] = await getVaults(
+			const result: SgVaultWithSubgraphName[] = await getVaults(
 				[
 					{ url: mockServer.url + '/sg1', name: 'network-one' },
 					{ url: mockServer.url + '/sg2', name: 'network-two' }
@@ -142,7 +142,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			.thenReply(200, JSON.stringify({ data: { vaultBalanceChanges: mockVaultBalanceChanges } }));
 
 		try {
-			const result: Deposit[] = await getVaultBalanceChanges(mockServer.url + '/sg3', vault1.id, {
+			const result: SgDeposit[] = await getVaultBalanceChanges(mockServer.url + '/sg3', vault1.id, {
 				page: 1,
 				pageSize: 1
 			});

@@ -8,25 +8,25 @@ use super::FlattenError;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OrderTakeFlattened {
     pub id: String,
-    pub timestamp: BigInt,
+    pub timestamp: SgBigInt,
     pub timestamp_display: String,
-    pub transaction: Bytes,
-    pub sender: Bytes,
-    pub order_id: Bytes,
-    pub input: BigInt,
+    pub transaction: SgBytes,
+    pub sender: SgBytes,
+    pub order_id: SgBytes,
+    pub input: SgBigInt,
     pub input_display: String,
-    pub input_token_id: Bytes,
+    pub input_token_id: SgBytes,
     pub input_token_symbol: Option<String>,
-    pub output: BigInt,
+    pub output: SgBigInt,
     pub output_display: String,
-    pub output_token_id: Bytes,
+    pub output_token_id: SgBytes,
     pub output_token_symbol: Option<String>,
 }
 
-impl TryFrom<Trade> for OrderTakeFlattened {
+impl TryFrom<SgTrade> for OrderTakeFlattened {
     type Error = FlattenError;
 
-    fn try_from(val: Trade) -> Result<Self, Self::Error> {
+    fn try_from(val: SgTrade) -> Result<Self, Self::Error> {
         let timestamp = val.timestamp.clone();
         let input_vault_balance_change = val.input_vault_balance_change.clone();
         let output_vault_balance_change = val.output_vault_balance_change.clone();
@@ -37,7 +37,7 @@ impl TryFrom<Trade> for OrderTakeFlattened {
             .token
             .decimals
             .clone()
-            .unwrap_or(BigInt("0".into()))
+            .unwrap_or(SgBigInt("0".into()))
             .0
             .parse::<u8>()?;
         let output_decimals = output_vault_balance_change
@@ -45,7 +45,7 @@ impl TryFrom<Trade> for OrderTakeFlattened {
             .token
             .decimals
             .clone()
-            .unwrap_or(BigInt("0".into()))
+            .unwrap_or(SgBigInt("0".into()))
             .0
             .parse::<u8>()?;
 
