@@ -332,7 +332,7 @@ describe('transactionStore', () => {
 		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
-		expect(get(transactionStore).message).toBe('Waiting for new Order to be indexed...');
+		expect(get(transactionStore).message).toBe('Waiting for new order to be indexed...');
 
 		await vi.advanceTimersByTime(10000);
 		await indexingPromise;
