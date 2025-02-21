@@ -14,7 +14,8 @@
 		type NameAndDescriptionCfg,
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
-		type SelectTokens
+		type SelectTokens,
+		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -49,6 +50,7 @@
 	let checkingDeployment: boolean = false;
 	let networkKey: string | null = null;
 	let subgraphUrl: string = '';
+	let allTokenInfos: AllTokenInfos = [];
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -163,6 +165,21 @@
 		areAllTokensSelected();
 	}
 
+	async function onSelectTokenSelect() {
+		if (!gui) return;
+
+		await areAllTokensSelected();
+
+		if (allTokensSelected) {
+			let newAllTokenInfos = await gui.getAllTokenInfos();
+			if (allTokenInfos !== newAllTokenInfos) {
+				allTokenInfos = newAllTokenInfos;
+				getAllDepositFields();
+				getAllFieldDefinitions();
+			}
+		}
+	}
+
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
 
@@ -225,11 +242,13 @@
 		});
 	}
 
-	const areAllTokensSelected = () => {
+	const areAllTokensSelected = async () => {
 		if (gui) {
 			try {
 				allTokensSelected = gui.areAllTokensSelected();
 				if (!allTokensSelected) return;
+
+				allTokenInfos = await gui.getAllTokenInfos();
 
 				// if we have deposits or vault ids set, show advanced options
 				const hasDeposits = gui.hasAnyDeposit();
@@ -268,7 +287,7 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} onSelectTokenSelect={areAllTokensSelected} />
+					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}

@@ -131,4 +131,17 @@ describe('SelectToken', () => {
 			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(2);
 		});
 	});
+
+	it('calls onSelectTokenSelect after input changes', async () => {
+		const user = userEvent.setup();
+		const { getByRole } = render(SelectToken, mockProps);
+		const input = getByRole('textbox');
+
+		await userEvent.clear(input);
+		await user.paste('0x456');
+
+		await waitFor(() => {
+			expect(mockProps.onSelectTokenSelect).toHaveBeenCalled();
+		});
+	});
 });
