@@ -1,11 +1,12 @@
 <script lang="ts" generics="T">
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook/quote';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import type { Hex } from 'viem';
-	import { createQuery } from '@tanstack/svelte-query';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import {
 		Table,
@@ -36,15 +37,16 @@
 
 	let enabled = true;
 
-	const refreshQuotes = () => {
-		$orderQuoteQuery.refetch();
+	const queryClient = useQueryClient();
+
+	const refreshQuotes = async () => {
+		await invalidateIdQuery(queryClient, id);
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
-		queryKey: [QKEY_ORDER_QUOTE + id, id],
+		queryKey: [id, QKEY_ORDER_QUOTE + id],
 		queryFn: () => getOrderQuote([order], rpcUrl),
-		enabled: !!id && enabled,
-		refetchInterval: 10000
+		enabled: !!id && enabled
 	});
 
 	let blockNumber: number | undefined;
@@ -70,7 +72,6 @@
 			{/if}
 			<span></span>
 			<Refresh
-				data-testid="refreshButton"
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 				on:click={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}

@@ -1,12 +1,16 @@
 <script lang="ts" generics="T">
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import Refresh from './icon/Refresh.svelte';
-
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { useQueryClient } from '@tanstack/svelte-query';
+
+	const queryClient = useQueryClient();
 
 	const dispatch = createEventDispatcher();
 
+	export let queryKey: string | undefined;
 	// eslint-disable-next-line no-undef
 	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
 	export let emptyMessage: string = 'None found';
@@ -18,10 +22,13 @@
 	<slot name="timeFilter" />
 	<slot name="title" />
 	<Refresh
-		data-testid="refreshButton"
 		class="ml-2 h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
+		data-testid="refreshButton"
 		spin={$query.isLoading || $query.isFetching}
-		on:click={() => {
+		on:click={async () => {
+			if (queryKey) {
+				await invalidateIdQuery(queryClient, queryKey);
+			}
 			$query.refetch();
 		}}
 	/>

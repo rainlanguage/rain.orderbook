@@ -4,6 +4,7 @@ import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import userEvent from '@testing-library/user-event';
 import type { Config } from 'wagmi';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
@@ -215,6 +216,52 @@ describe('OrderDetail Component', () => {
 			expect(screen.getByText('Input vaults')).toBeInTheDocument();
 			expect(screen.getByText('Output vaults')).toBeInTheDocument();
 			expect(screen.getByText('Input & output vaults')).toBeInTheDocument();
+		});
+	});
+
+	it('refresh button triggers query invalidation when clicked', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		const mockInvalidateQueries = vi.fn();
+
+		// Mock the createQuery as in other tests
+		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { order: mockOrder, vaults: new Map() },
+					status: 'success',
+					isFetching: false,
+					refetch: () => {}
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		// Mock the useQueryClient hook
+		mockQuery.useQueryClient = vi.fn(() => ({
+			invalidateQueries: mockInvalidateQueries
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		})) as any;
+
+		render(OrderDetail, {
+			props: {
+				id: 'mockId',
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				chainId,
+				orderbookAddress
+			}
+		});
+
+		const refreshButton = screen.getByTestId('refresh-button');
+		await userEvent.click(refreshButton);
+
+		await waitFor(() => {
+			expect(mockInvalidateQueries).toHaveBeenCalledWith({
+				queryKey: ['mockId'],
+				refetchType: 'all',
+				exact: false
+			});
 		});
 	});
 });

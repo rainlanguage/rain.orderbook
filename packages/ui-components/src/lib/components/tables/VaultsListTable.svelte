@@ -113,6 +113,7 @@
 	/>
 	<AppTable
 		{query}
+		queryKey={undefined}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
