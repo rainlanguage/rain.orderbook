@@ -3,28 +3,20 @@ use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
-use tsify::Tsify;
-use typeshare::typeshare;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct PaginationArgs {
+pub struct SgPaginationArgs {
     pub page: u16,
     pub page_size: u16,
 }
-
 #[cfg(target_family = "wasm")]
-mod wasm_impls {
-    use super::*;
-    use rain_orderbook_bindings::impl_all_wasm_traits;
-
-    impl_all_wasm_traits!(PaginationArgs);
-}
+impl_wasm_traits!(SgPaginationArgs);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct QueryPaginationVariables {
+pub struct SgQueryPaginationVariables {
     pub skip: Option<i32>,
     pub first: Option<i32>,
 }
@@ -46,11 +38,11 @@ pub enum PaginationClientError {
 /// After fetching the required pages, it retuns the desired page based
 /// the given 'skip' + 'first'.
 pub trait PaginationClient {
-    fn parse_pagination_args(pagination_args: PaginationArgs) -> QueryPaginationVariables {
+    fn parse_pagination_args(pagination_args: SgPaginationArgs) -> SgQueryPaginationVariables {
         let first: i32 = pagination_args.page_size.into();
         let skip: i32 = ((pagination_args.page - 1) * pagination_args.page_size).into();
 
-        QueryPaginationVariables {
+        SgQueryPaginationVariables {
             first: Some(first),
             skip: Some(skip),
         }
@@ -58,7 +50,7 @@ pub trait PaginationClient {
 
     async fn query_paginated<T: Clone, V: PageQueryVariables + Clone, Q: PageQueryClient<T, V>>(
         &self,
-        pagination_variables: QueryPaginationVariables,
+        pagination_variables: SgQueryPaginationVariables,
         page_query_client: Q,
         page_query_variables: V,
         page_query_limit: i32,
@@ -142,7 +134,7 @@ pub trait PageQueryVariables {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{pagination::QueryPaginationVariables, utils::slice_list, PageQueryClient};
+    use crate::{pagination::SgQueryPaginationVariables, utils::slice_list, PageQueryClient};
 
     #[derive(Clone)]
     struct MockPageQueryVariables {
@@ -190,7 +182,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: None,
                     first: None,
                 },
@@ -214,7 +206,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(100),
                     first: None,
                 },
@@ -239,7 +231,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: None,
                     first: Some(500),
                 },
@@ -263,7 +255,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals: Vec<_> = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -287,7 +279,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(2000),
                     first: None,
                 },
@@ -311,7 +303,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: None,
                     first: Some(2000),
                 },
@@ -335,7 +327,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(2000),
                     first: Some(500),
                 },
@@ -359,7 +351,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -374,7 +366,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -389,7 +381,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -404,7 +396,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -419,7 +411,7 @@ mod test {
         let pagination_client = MockPaginationClient {};
         let vals = pagination_client
             .query_paginated(
-                QueryPaginationVariables {
+                SgQueryPaginationVariables {
                     skip: Some(50),
                     first: Some(500),
                 },
@@ -434,35 +426,35 @@ mod test {
 
     #[test]
     fn parse_pagination_args() {
-        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(SgPaginationArgs {
             page: 1,
             page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(0));
         assert_eq!(query_pagination_vars.first, Some(25));
 
-        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(SgPaginationArgs {
             page: 2,
             page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(25));
         assert_eq!(query_pagination_vars.first, Some(25));
 
-        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(SgPaginationArgs {
             page: 3,
             page_size: 25,
         });
         assert_eq!(query_pagination_vars.skip, Some(50));
         assert_eq!(query_pagination_vars.first, Some(25));
 
-        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(SgPaginationArgs {
             page: 1,
             page_size: 5,
         });
         assert_eq!(query_pagination_vars.skip, Some(0));
         assert_eq!(query_pagination_vars.first, Some(5));
 
-        let query_pagination_vars = MockPaginationClient::parse_pagination_args(PaginationArgs {
+        let query_pagination_vars = MockPaginationClient::parse_pagination_args(SgPaginationArgs {
             page: 1,
             page_size: 10,
         });

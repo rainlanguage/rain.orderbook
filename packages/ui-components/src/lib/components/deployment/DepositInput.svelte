@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		DotrainOrderGui,
-		type GuiDeposit,
+		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
 	} from '@rainlanguage/orderbook/js_api';
@@ -11,9 +11,8 @@
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 
-	export let deposit: GuiDeposit;
+	export let deposit: GuiDepositCfg;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -51,7 +50,6 @@
 			gui = gui;
 			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 		}
-		handleUpdateGuiState(gui);
 	}
 
 	function handleInput(e: Event) {
@@ -63,7 +61,6 @@
 				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
 			}
 		}
-		handleUpdateGuiState(gui);
 	}
 
 	$: if (deposit.token?.key) {

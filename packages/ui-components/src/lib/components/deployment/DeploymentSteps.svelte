@@ -5,16 +5,16 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-	import { type ConfigSource } from '../../typeshare/config';
+	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		DotrainOrderGui,
-		type GuiDeposit,
-		type GuiFieldDefinition,
-		type GuiDeployment,
-		type OrderIO,
-		type SelectTokens,
-		type NameAndDescription
+		type GuiDepositCfg,
+		type GuiFieldDefinitionCfg,
+		type NameAndDescriptionCfg,
+		type GuiDeploymentCfg,
+		type OrderIOCfg,
+		type SelectTokens
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -28,41 +28,29 @@
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
-	enum DeploymentStepErrors {
-		NO_GUI = 'Error loading GUI',
-		NO_STRATEGY = 'No valid strategy exists at this URL',
-		NO_SELECT_TOKENS = 'Error loading tokens',
-		NO_TOKEN_INFO = 'Error loading token information',
-		NO_FIELD_DEFINITIONS = 'Error loading field definitions',
-		NO_DEPOSITS = 'Error loading deposits',
-		NO_TOKEN_INPUTS = 'Error loading token inputs',
-		NO_TOKEN_OUTPUTS = 'Error loading token outputs',
-		NO_GUI_DETAILS = 'Error getting GUI details',
-		NO_CHAIN = 'Unsupported chain ID',
-		SERIALIZE_ERROR = 'Error serializing state',
-		ADD_ORDER_FAILED = 'Failed to add order'
-	}
+	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
+
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: GuiDeployment;
-	export let strategyDetail: NameAndDescription;
+	export let deployment: GuiDeploymentCfg;
+	export let strategyDetail: NameAndDescriptionCfg;
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let pushGuiStateToUrlHistory: (serializedState: string) => void;
 
 	let selectTokens: SelectTokens | null = null;
-	let allDepositFields: GuiDeposit[] = [];
-	let allTokenOutputs: OrderIO[] = [];
-	let allFieldDefinitions: GuiFieldDefinition[] = [];
+	let allDepositFields: GuiDepositCfg[] = [];
+	let allTokenOutputs: OrderIOCfg[] = [];
+	let allFieldDefinitions: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let gui: DotrainOrderGui | null = null;
 	let checkingDeployment: boolean = false;
-	let error: DeploymentStepErrors | null = null;
-	let errorDetails: string | null = null;
 	let networkKey: string | null = null;
 	let subgraphUrl: string = '';
+
+	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
@@ -74,11 +62,10 @@
 
 	async function handleDeploymentChange(deployment: string) {
 		if (!deployment || !dotrain) return;
-		error = null;
-		errorDetails = null;
+		DeploymentStepsError.clear();
 
 		try {
-			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment);
+			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment, pushGuiStateToUrlHistory);
 
 			if (gui) {
 				networkKey = await gui.getNetworkKey();
@@ -87,13 +74,11 @@
 					selectTokens = gui.getSelectTokens();
 					return selectTokens;
 				} catch (e) {
-					error = DeploymentStepErrors.NO_SELECT_TOKENS;
-					return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+					DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 				}
 			}
 		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
-			return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
 		}
 	}
 
@@ -102,33 +87,30 @@
 		try {
 			allFieldDefinitions = gui.getAllFieldDefinitions();
 		} catch (e) {
-			error = DeploymentStepErrors.NO_FIELD_DEFINITIONS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
 	}
 
 	async function getAllDepositFields() {
 		if (!gui) return;
 		try {
-			let dep: GuiDeployment = gui.getCurrentDeployment();
-			let depositFields: GuiDeposit[] = dep.deposits;
+			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
+			let depositFields: GuiDepositCfg[] = dep.deposits;
 
 			allDepositFields = depositFields;
 		} catch (e) {
-			error = DeploymentStepErrors.NO_DEPOSITS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_DEPOSITS);
 		}
 	}
 
-	let allTokenInputs: OrderIO[] = [];
+	let allTokenInputs: OrderIOCfg[] = [];
 	function getAllTokenInputs() {
 		if (!gui) return;
 
 		try {
 			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
 		} catch (e) {
-			error = DeploymentStepErrors.NO_TOKEN_INPUTS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_INPUTS);
 		}
 	}
 
@@ -137,8 +119,7 @@
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
-			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 		}
 	}
 
@@ -148,15 +129,14 @@
 
 	async function updateFields() {
 		try {
-			error = null;
-			errorDetails = null;
+			DeploymentStepsError.clear();
+
 			getAllDepositFields();
 			getAllFieldDefinitions();
 			getAllTokenInputs();
 			getAllTokenOutputs();
 		} catch (e) {
-			error = DeploymentStepErrors.NO_GUI;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
 		}
 	}
 
@@ -177,35 +157,30 @@
 		if (!$page.url.searchParams.get('state')) return;
 		gui = await DotrainOrderGui.deserializeState(
 			dotrain,
-			$page.url.searchParams.get('state') || ''
+			$page.url.searchParams.get('state') || '',
+			pushGuiStateToUrlHistory
 		);
 		areAllTokensSelected();
 	}
 
-	async function _handleUpdateGuiState(gui: DotrainOrderGui) {
-		await areAllTokensSelected();
-		handleUpdateGuiState(gui);
-	}
-
 	async function handleDeployButtonClick() {
-		error = null;
-		errorDetails = null;
+		DeploymentStepsError.clear();
 
 		if (!gui) {
-			error = DeploymentStepErrors.NO_GUI;
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_GUI);
 			return;
 		}
 		if (!allTokenOutputs) {
-			error = DeploymentStepErrors.NO_TOKEN_OUTPUTS;
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 			return;
 		}
 		if (!wagmiConfig) {
-			error = DeploymentStepErrors.NO_CHAIN;
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 			return;
 		}
 
 		if (!networkKey) {
-			error = DeploymentStepErrors.NO_CHAIN;
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 			return;
 		}
 
@@ -217,13 +192,12 @@
 			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
 		} catch (e) {
 			checkingDeployment = false;
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		}
 
 		if (!result) {
 			checkingDeployment = false;
-			error = DeploymentStepErrors.ADD_ORDER_FAILED;
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 			return;
 		}
 
@@ -231,7 +205,7 @@
 
 		const onAccept = () => {
 			if (!networkKey) {
-				error = DeploymentStepErrors.NO_CHAIN;
+				DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 				return;
 			}
 
@@ -251,7 +225,7 @@
 		});
 	}
 
-	const areAllTokensSelected = async () => {
+	const areAllTokensSelected = () => {
 		if (gui) {
 			try {
 				allTokensSelected = gui.areAllTokensSelected();
@@ -264,21 +238,18 @@
 					showAdvancedOptions = true;
 				}
 			} catch (e) {
-				error = DeploymentStepErrors.NO_SELECT_TOKENS;
-				return (errorDetails = e instanceof Error ? e.message : 'Unknown error');
+				DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 			}
 		}
 	};
 </script>
 
 <div>
-	{#if error || errorDetails}
+	{#if $deploymentStepsError}
 		<Alert color="red">
-			{#if error}
-				<p class="text-red-500">{error}</p>
-			{/if}
-			{#if errorDetails}
-				<p class="text-red-500">{errorDetails}</p>
+			<p class="text-red-500">{$deploymentStepsError.code}</p>
+			{#if $deploymentStepsError.details}
+				<p class="text-red-500">{$deploymentStepsError.details}</p>
 			{/if}
 		</Alert>
 	{/if}
@@ -297,31 +268,29 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} handleUpdateGuiState={_handleUpdateGuiState} />
+					<SelectTokensSection {gui} {selectTokens} onSelectTokenSelect={areAllTokensSelected} />
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitions.length > 0}
-						<FieldDefinitionsSection {allFieldDefinitions} {gui} {handleUpdateGuiState} />
+						<FieldDefinitionsSection {allFieldDefinitions} {gui} />
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} {handleUpdateGuiState} />
+						<DepositsSection bind:allDepositFields {gui} />
 					{/if}
 
 					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} {handleUpdateGuiState} />
+						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
 					{/if}
 
-					{#if error || errorDetails}
+					{#if $deploymentStepsError}
 						<Alert color="red">
-							{#if error}
-								<p class="text-red-500">{error}</p>
-							{/if}
-							{#if errorDetails}
-								<p class="text-red-500">{errorDetails}</p>
+							<p class="text-red-500">{$deploymentStepsError.code}</p>
+							{#if $deploymentStepsError.details}
+								<p class="text-red-500">{$deploymentStepsError.details}</p>
 							{/if}
 						</Alert>
 					{/if}

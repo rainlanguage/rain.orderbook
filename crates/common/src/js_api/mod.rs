@@ -7,15 +7,15 @@ use crate::{
 use alloy::primitives::Bytes;
 use js_sys::Uint8Array;
 use rain_orderbook_app_settings::{Config, ParseConfigSourceError};
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-use rain_orderbook_subgraph_client::types::common::Order;
+use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use thiserror::Error;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct RemoveOrderCalldata(Bytes);
-impl_all_wasm_traits!(RemoveOrderCalldata);
+pub struct RemoveOrderCalldata(#[tsify(type = "string")] Bytes);
+impl_wasm_traits!(RemoveOrderCalldata);
 
 /// Represents all possible errors of this module
 #[derive(Debug, Error)]
@@ -61,7 +61,7 @@ pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<U
 
 /// Get removeOrder() calldata for a given order
 #[wasm_bindgen(js_name = "getRemoveOrderCalldata")]
-pub async fn get_remove_order_calldata(order: Order) -> Result<RemoveOrderCalldata, Error> {
+pub async fn get_remove_order_calldata(order: SgOrder) -> Result<RemoveOrderCalldata, Error> {
     let remove_order_args = RemoveOrderArgs { order };
     let calldata = remove_order_args.get_rm_order_calldata().await?;
     Ok(RemoveOrderCalldata(Bytes::copy_from_slice(&calldata)))

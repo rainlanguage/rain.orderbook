@@ -1,14 +1,15 @@
 use crate::{
     types::common::{
-        OrderWithSubgraphName, OrdersListFilterArgs, VaultWithSubgraphName, VaultsListFilterArgs,
+        SgOrderWithSubgraphName, SgOrdersListFilterArgs, SgVaultWithSubgraphName,
+        SgVaultsListFilterArgs,
     },
-    OrderbookSubgraphClient, OrderbookSubgraphClientError, PaginationArgs,
+    OrderbookSubgraphClient, OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use futures::future::join_all;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
-use tsify::Tsify;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -17,14 +18,8 @@ pub struct MultiSubgraphArgs {
     url: Url,
     name: String,
 }
-
 #[cfg(target_family = "wasm")]
-mod wasm_impls {
-    use super::*;
-    use rain_orderbook_bindings::impl_all_wasm_traits;
-
-    impl_all_wasm_traits!(MultiSubgraphArgs);
-}
+impl_wasm_traits!(MultiSubgraphArgs);
 
 pub struct MultiOrderbookSubgraphClient {
     subgraphs: Vec<MultiSubgraphArgs>,
@@ -40,9 +35,9 @@ impl MultiOrderbookSubgraphClient {
 
     pub async fn orders_list(
         &self,
-        filter_args: OrdersListFilterArgs,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<OrderWithSubgraphName>, OrderbookSubgraphClientError> {
+        filter_args: SgOrdersListFilterArgs,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgOrderWithSubgraphName>, OrderbookSubgraphClientError> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
@@ -50,9 +45,9 @@ impl MultiOrderbookSubgraphClient {
             async move {
                 let client = self.get_orderbook_subgraph_client(url);
                 let orders = client.orders_list(filter_args, pagination_args).await?;
-                let wrapped_orders: Vec<OrderWithSubgraphName> = orders
+                let wrapped_orders: Vec<SgOrderWithSubgraphName> = orders
                     .into_iter()
-                    .map(|order| OrderWithSubgraphName {
+                    .map(|order| SgOrderWithSubgraphName {
                         order,
                         subgraph_name: subgraph.name.clone(),
                     })
@@ -63,7 +58,7 @@ impl MultiOrderbookSubgraphClient {
 
         let results = join_all(futures).await;
 
-        let mut all_orders: Vec<OrderWithSubgraphName> = results
+        let mut all_orders: Vec<SgOrderWithSubgraphName> = results
             .into_iter()
             .filter_map(Result::ok)
             .flatten()
@@ -80,9 +75,9 @@ impl MultiOrderbookSubgraphClient {
 
     pub async fn vaults_list(
         &self,
-        filter_args: VaultsListFilterArgs,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<VaultWithSubgraphName>, OrderbookSubgraphClientError> {
+        filter_args: SgVaultsListFilterArgs,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgVaultWithSubgraphName>, OrderbookSubgraphClientError> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
@@ -90,9 +85,9 @@ impl MultiOrderbookSubgraphClient {
             async move {
                 let client = self.get_orderbook_subgraph_client(url);
                 let vaults = client.vaults_list(filter_args, pagination_args).await?;
-                let wrapped_vaults: Vec<VaultWithSubgraphName> = vaults
+                let wrapped_vaults: Vec<SgVaultWithSubgraphName> = vaults
                     .into_iter()
-                    .map(|vault| VaultWithSubgraphName {
+                    .map(|vault| SgVaultWithSubgraphName {
                         vault,
                         subgraph_name: subgraph.name.clone(),
                     })
@@ -103,7 +98,7 @@ impl MultiOrderbookSubgraphClient {
 
         let results = join_all(futures).await;
 
-        let all_vaults: Vec<VaultWithSubgraphName> = results
+        let all_vaults: Vec<SgVaultWithSubgraphName> = results
             .into_iter()
             .filter_map(Result::ok)
             .flatten()

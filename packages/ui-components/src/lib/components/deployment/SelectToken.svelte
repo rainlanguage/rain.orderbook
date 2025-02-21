@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type { DotrainOrderGui, GuiSelectTokens, TokenInfo } from '@rainlanguage/orderbook/js_api';
+	import type {
+		DotrainOrderGui,
+		GuiSelectTokensCfg,
+		TokenInfo
+	} from '@rainlanguage/orderbook/js_api';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
-	export let token: GuiSelectTokens;
+	export let token: GuiSelectTokensCfg;
 	export let gui: DotrainOrderGui;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let onSelectTokenSelect: () => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
@@ -58,7 +62,7 @@
 		}
 
 		checking = false;
-		handleUpdateGuiState(gui);
+		onSelectTokenSelect();
 	}
 </script>
 

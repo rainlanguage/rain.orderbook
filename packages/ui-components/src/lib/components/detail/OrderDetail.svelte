@@ -11,9 +11,8 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { queryClient } from '../../stores/queryClient';
 	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
-	import { createQuery } from '@tanstack/svelte-query';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
@@ -28,6 +27,9 @@
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
 	} from '../../types/modal';
+	import Refresh from '../icon/Refresh.svelte';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
+
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
@@ -48,6 +50,8 @@
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
+	const queryClient = useQueryClient();
+
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [id, QKEY_ORDER + id],
 		queryFn: () => {
@@ -57,14 +61,8 @@
 	});
 
 	const interval = setInterval(async () => {
-		// This invalidate function invalidates
-		// both order detail and order trades list queries
-		await queryClient.invalidateQueries({
-			queryKey: [id],
-			refetchType: 'active',
-			exact: false
-		});
-	}, 5000);
+		await invalidateIdQuery(queryClient, id);
+	}, 10000);
 
 	onDestroy(() => {
 		clearInterval(interval);
@@ -76,32 +74,43 @@
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
 		<div
-			class="flex w-full flex-wrap justify-between gap-4 text-3xl font-medium lg:justify-normal dark:text-white"
+			class="flex w-full flex-wrap items-center justify-between gap-4 text-3xl font-medium lg:justify-between dark:text-white"
 		>
-			<div class="flex gap-x-2">
-				<span class="font-light">Order</span>
-				<Hash shorten value={data.order.orderHash} />
+			<div class="flex items-center gap-x-2">
+				<div class="flex gap-x-2">
+					<span class="font-light">Order</span>
+					<Hash shorten value={data.order.orderHash} />
+				</div>
+
+				<BadgeActive active={data.order.active} large />
 			</div>
-			<BadgeActive active={data.order.active} large />
-			{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
-				<Button
-					data-testid="remove-button"
-					color="dark"
-					on:click={() =>
-						handleOrderRemoveModal({
-							open: true,
-							args: {
-								order: data.order,
-								onRemove: $orderDetailQuery.refetch,
-								chainId,
-								orderbookAddress
-							}
-						})}
-					disabled={!handleOrderRemoveModal}
-				>
-					Remove
-				</Button>
-			{/if}
+
+			<div class="flex items-center gap-2">
+				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+					<Button
+						data-testid="remove-button"
+						color="dark"
+						on:click={() =>
+							handleOrderRemoveModal({
+								open: true,
+								args: {
+									order: data.order,
+									onRemove: $orderDetailQuery.refetch,
+									chainId,
+									orderbookAddress,
+									subgraphUrl
+								}
+							})}
+						disabled={!handleOrderRemoveModal}
+					>
+						Remove
+					</Button>
+				{/if}
+				<Refresh
+					on:click={async () => await invalidateIdQuery(queryClient, id)}
+					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
+				/>
+			</div>
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="card" let:data>

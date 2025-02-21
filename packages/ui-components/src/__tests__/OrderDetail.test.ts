@@ -3,14 +3,15 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
-import type { OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import userEvent from '@testing-library/user-event';
 import type { Config } from 'wagmi';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-const mockOrder: OrderSubgraph = {
+const mockOrder: SgOrder = {
 	id: 'mockId',
 	owner: 'mockOwner',
 	orderHash: 'mockOrderHash',
@@ -20,7 +21,7 @@ const mockOrder: OrderSubgraph = {
 	orderbook: { id: '1' },
 	inputs: [],
 	outputs: []
-} as unknown as OrderSubgraph;
+} as unknown as SgOrder;
 
 vi.mock('@tanstack/svelte-query');
 
@@ -135,7 +136,7 @@ describe('OrderDetail Component', () => {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as Vault;
+		} as unknown as SgVault;
 		const vault2 = {
 			id: '2',
 			vaultId: '0xbcd',
@@ -154,7 +155,7 @@ describe('OrderDetail Component', () => {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as Vault;
+		} as unknown as SgVault;
 		const vault3 = {
 			id: '3',
 			vaultId: '0xdef',
@@ -173,12 +174,12 @@ describe('OrderDetail Component', () => {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as Vault;
-		const mockOrderWithVaults: OrderSubgraph = {
+		} as unknown as SgVault;
+		const mockOrderWithVaults: SgOrder = {
 			...mockOrder,
 			inputs: [vault1, vault2],
 			outputs: [vault2, vault3]
-		} as unknown as OrderSubgraph;
+		} as unknown as SgOrder;
 		const sortedVaults = new Map([
 			['inputs', [vault1]],
 			['outputs', [vault3]],
@@ -215,6 +216,52 @@ describe('OrderDetail Component', () => {
 			expect(screen.getByText('Input vaults')).toBeInTheDocument();
 			expect(screen.getByText('Output vaults')).toBeInTheDocument();
 			expect(screen.getByText('Input & output vaults')).toBeInTheDocument();
+		});
+	});
+
+	it('refresh button triggers query invalidation when clicked', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		const mockInvalidateQueries = vi.fn();
+
+		// Mock the createQuery as in other tests
+		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { order: mockOrder, vaults: new Map() },
+					status: 'success',
+					isFetching: false,
+					refetch: () => {}
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		// Mock the useQueryClient hook
+		mockQuery.useQueryClient = vi.fn(() => ({
+			invalidateQueries: mockInvalidateQueries
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		})) as any;
+
+		render(OrderDetail, {
+			props: {
+				id: 'mockId',
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				chainId,
+				orderbookAddress
+			}
+		});
+
+		const refreshButton = screen.getByTestId('refresh-button');
+		await userEvent.click(refreshButton);
+
+		await waitFor(() => {
+			expect(mockInvalidateQueries).toHaveBeenCalledWith({
+				queryKey: ['mockId'],
+				refetchType: 'all',
+				exact: false
+			});
 		});
 	});
 });

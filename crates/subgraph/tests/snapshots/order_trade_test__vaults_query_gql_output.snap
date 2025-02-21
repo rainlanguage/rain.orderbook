@@ -2,7 +2,7 @@
 source: crates/subgraph/tests/order_trade_test.rs
 expression: request_body.query
 ---
-query OrderTradeDetailQuery($id: ID!) {
+query SgOrderTradeDetailQuery($id: ID!) {
   trade(id: $id) {
     id
     tradeEvent {

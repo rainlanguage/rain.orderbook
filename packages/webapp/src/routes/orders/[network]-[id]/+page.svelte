@@ -38,7 +38,9 @@
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
 		queryClient.invalidateQueries({
-			queryKey: [$page.params.id]
+			queryKey: [$page.params.id],
+			refetchType: 'all',
+			exact: false
 		});
 		triggerToast();
 	}

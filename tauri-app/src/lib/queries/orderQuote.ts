@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api';
-import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { RainEvalResultsTable } from '$lib/typeshare/config';
+import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
 
 export async function debugOrderQuote(
-  order: OrderSubgraph,
+  order: SgOrder,
   inputIOIndex: number,
   outputIOIndex: number,
   orderbook: Hex,
@@ -24,7 +24,7 @@ export async function debugOrderQuote(
 
 export const mockQuoteDebug: [RainEvalResultsTable, string | undefined] = [
   {
-    column_names: ['1', '2', '3'],
+    columnNames: ['1', '2', '3'],
     rows: [['0x01', '0x02', '0x03']],
   },
   'some error msg',
@@ -53,7 +53,7 @@ if (import.meta.vitest) {
         addEvents: [],
         timestampAdded: '123',
         trades: [],
-      } as unknown as OrderSubgraph,
+      } as unknown as SgOrder,
       0,
       0,
       '0x123',

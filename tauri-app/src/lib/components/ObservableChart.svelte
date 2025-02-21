@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Mark, Plot as PlotT, Transform } from '$lib/typeshare/config';
+  import type { MarkCfg, PlotCfg as PlotT, TransformCfg } from '@rainlanguage/orderbook/js_api';
   import * as Plot from '@observablehq/plot';
   import camelcaseKeys from 'camelcase-keys';
   import type { TransformedPlotData } from '$lib/utils/chartData';
@@ -36,7 +36,7 @@
   };
 
   // Map the mark object to the plot library function
-  const buildMark = (data: TransformedPlotData[], markConfig: Mark) => {
+  const buildMark = (data: TransformedPlotData[], markConfig: MarkCfg) => {
     const options = fixKeys(markConfig.options);
     switch (markConfig.type) {
       case 'line':
@@ -52,7 +52,7 @@
   };
 
   // Map the transform object to the plot library function
-  const buildTransform = (transform: Transform) => {
+  const buildTransform = (transform: TransformCfg) => {
     switch (transform.type) {
       case 'binx':
         return Plot.binX(transform.content.outputs, transform.content.options);

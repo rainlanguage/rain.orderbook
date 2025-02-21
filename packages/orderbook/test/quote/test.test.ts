@@ -4,9 +4,9 @@ import { describe, it, beforeEach, afterEach } from 'vitest';
 import {
 	QuoteSpec,
 	QuoteTarget,
+	SgOrder,
 	OrderQuoteValue,
-	BatchOrderQuotesResponse,
-	Order
+	BatchOrderQuotesResponse
 } from '../../dist/types/quote';
 import {
 	getId,
@@ -14,6 +14,7 @@ import {
 	getQuoteTargetFromSubgraph,
 	getOrderQuote
 } from '../../dist/cjs/quote';
+import { OrderSubgraph } from '../../dist/types/js_api';
 
 describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 	const mockServer = getLocal();
@@ -98,7 +99,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 							orderbook: {
 								id: '0x0000000000000000000000000000000000000000'
 							},
-							trades: []
+							trades: [],
+							removeEvents: []
 						}
 					]
 				}
@@ -121,26 +123,26 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 						evaluable: {
 							interpreter: '0x0000000000000000000000000000000000000000',
 							store: '0x0000000000000000000000000000000000000000',
-							bytecode: Uint8Array.from([])
+							bytecode: '0x'
 						},
 						validInputs: [
 							{
 								token: '0x0000000000000000000000000000000000000000',
 								decimals: 0,
-								vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
+								vaultId: '0x0'
 							}
 						],
 						validOutputs: [
 							{
 								token: '0x0000000000000000000000000000000000000000',
 								decimals: 0,
-								vaultId: '0x0000000000000000000000000000000000000000000000000000000000000000'
+								vaultId: '0x0'
 							}
 						],
 						nonce: '0x0000000000000000000000000000000000000000000000000000000000000000'
 					},
-					inputIOIndex: 0,
-					outputIOIndex: 0,
+					inputIOIndex: '0x0',
+					outputIOIndex: '0x0',
 					signedContext: []
 				},
 				orderbook: '0x713180d188e1ff758f508d9f2e1d350d650fea5e'
@@ -166,7 +168,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					evaluable: {
 						interpreter: '0x0000000000000000000000000000000000000000',
 						store: '0x0000000000000000000000000000000000000000',
-						bytecode: Uint8Array.from([])
+						bytecode: '0x'
 					},
 					validInputs: [
 						{
@@ -184,16 +186,16 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					],
 					nonce: '0x0000000000000000000000000000000000000000000000000000000000000000'
 				},
-				inputIOIndex: 0,
-				outputIOIndex: 0,
+				inputIOIndex: '0x0',
+				outputIOIndex: '0x0',
 				signedContext: []
 			}
 		};
 		try {
 			const result = await doQuoteTargets([target], mockServer.url + '/rpc-url');
 			const expected: OrderQuoteValue = {
-				maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
-				ratio: '0x0000000000000000000000000000000000000000000000000000000000000002'
+				maxOutput: '0x1',
+				ratio: '0x2'
 			};
 			assert.deepEqual(result[0], expected);
 		} catch (error) {
@@ -208,7 +210,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			.thenSendJsonRpcResult(
 				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002'
 			);
-		const order: Order = {
+
+		const order = {
 			id: '0x46891c626a8a188610b902ee4a0ce8a7e81915e1b922584f8168d14525899dfb',
 			orderBytes:
 				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000222222222222222222222222222222222222222200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -267,21 +270,22 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					}
 				}
 			],
-			meta: null,
+			meta: undefined,
 			timestampAdded: '0',
 			orderbook: {
 				id: '0x0000000000000000000000000000000000000000'
 			},
-			trades: []
-		};
+			trades: [],
+			removeEvents: []
+		} as unknown as OrderSubgraph;
 		const result = await getOrderQuote([order], mockServer.url + '/rpc-url');
 		const expected: BatchOrderQuotesResponse[] = [
 			{
 				pair: { pairName: 'T2/T1', inputIndex: 0, outputIndex: 0 },
 				blockNumber: 1,
 				data: {
-					maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
-					ratio: '0x0000000000000000000000000000000000000000000000000000000000000002'
+					maxOutput: '0x1',
+					ratio: '0x2'
 				},
 				success: true,
 				error: undefined
@@ -307,7 +311,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					evaluable: {
 						interpreter: '0x0000000000000000000000000000000000000000',
 						store: '0x0000000000000000000000000000000000000000',
-						bytecode: Uint8Array.from([])
+						bytecode: '0x'
 					},
 					validInputs: [
 						{
@@ -325,8 +329,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 					],
 					nonce: '0x0000000000000000000000000000000000000000000000000000000000000000'
 				},
-				inputIOIndex: 0,
-				outputIOIndex: 0,
+				inputIOIndex: '0x0',
+				outputIOIndex: '0x0',
 				signedContext: []
 			}
 		};
@@ -348,8 +352,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 				BigInt(123456)
 			);
 			const expected: OrderQuoteValue = {
-				maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
-				ratio: '0x0000000000000000000000000000000000000000000000000000000000000002'
+				maxOutput: '0x1',
+				ratio: '0x2'
 			};
 			assert.deepEqual(result[0], expected);
 		} catch (error) {

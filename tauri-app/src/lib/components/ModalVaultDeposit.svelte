@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
+  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook/js_api';
   import {
     vaultDeposit,
     vaultDepositApproveCalldata,

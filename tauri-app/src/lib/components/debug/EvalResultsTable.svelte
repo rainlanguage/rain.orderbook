@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RainEvalResultsTable } from '$lib/typeshare/config';
+  import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
   import {
     Table,
     TableBody,
@@ -22,7 +22,7 @@
   <TableBody>
     {#each table.rows[0] as value, i}
       <TableBodyRow>
-        <TableBodyCell data-testid="debug-stack">{table.column_names[i]}</TableBodyCell>
+        <TableBodyCell data-testid="debug-stack">{table.columnNames[i]}</TableBodyCell>
         <TableBodyCell data-testid="debug-value"
           >{isHex(value) ? formatEther(hexToBigInt(value)) : ''}</TableBodyCell
         >

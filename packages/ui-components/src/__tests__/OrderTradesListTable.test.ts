@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { Trade } from '@rainlanguage/orderbook/js_api';
+import type { SgTrade } from '@rainlanguage/orderbook/js_api';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
-const mockTradeOrdersList: Trade[] = [
+const mockTradeOrdersList: SgTrade[] = [
 	{
 		id: '1',
 		timestamp: '1632000000',
@@ -152,7 +152,7 @@ const mockTradeOrdersList: Trade[] = [
 			id: '0x00'
 		}
 	}
-] as unknown as Trade[];
+] as unknown as SgTrade[];
 
 vi.mock('@tanstack/svelte-query');
 

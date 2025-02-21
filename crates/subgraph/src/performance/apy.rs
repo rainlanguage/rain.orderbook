@@ -1,15 +1,15 @@
 use super::{PerformanceError, YEAR18};
 use crate::{
     performance::vol::VaultVolume,
-    types::common::{Erc20, Trade},
+    types::common::{SgErc20, SgTrade},
 };
 use alloy::primitives::U256;
 use chrono::TimeDelta;
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
@@ -31,31 +31,29 @@ pub struct APYDetails {
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct VaultAPY {
     pub id: String,
-    pub token: Erc20,
+    pub token: SgErc20,
     pub apy_details: Option<APYDetails>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TokenPair {
-    pub input: Erc20,
-    pub output: Erc20,
+    pub input: SgErc20,
+    pub output: SgErc20,
 }
 
 #[cfg(target_family = "wasm")]
 mod impls {
     use super::*;
-    impl_all_wasm_traits!(TokenPair);
-    impl_all_wasm_traits!(VaultAPY);
-    impl_all_wasm_traits!(APYDetails);
+    impl_wasm_traits!(VaultAPY);
+    impl_wasm_traits!(APYDetails);
 }
 
 /// Calculates each token vault apy at the given timeframe
 /// Trades must be sorted in desc order by timestamp, this is
 /// the case if queried from subgraph using this lib functionalities
 pub fn get_vaults_apy(
-    trades: &[Trade],
+    trades: &[SgTrade],
     vols: &[VaultVolume],
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
@@ -72,7 +70,7 @@ pub fn get_vaults_apy(
                     || (v.output_vault_balance_change.vault.vault_id.0 == vol.id
                         && v.output_vault_balance_change.vault.token == vol.token)
             })
-            .collect::<Vec<&Trade>>();
+            .collect::<Vec<&SgTrade>>();
 
         if vault_trades.is_empty() {
             token_vaults_apy.push(VaultAPY {
@@ -96,7 +94,7 @@ pub fn get_vaults_apy(
                         trade_time <= first_trade_time + TimeDelta::days(1).num_seconds() as u64
                     })
             })
-            .collect::<Vec<&&Trade>>()[0];
+            .collect::<Vec<&&SgTrade>>()[0];
 
         // vaults starting capital at end of first day of its first ever trade
         // as 18 point decimals
@@ -167,8 +165,8 @@ mod test {
     use crate::{
         performance::vol::VolumeDetails,
         types::common::{
-            BigInt, Bytes, Orderbook, TradeEvent, TradeStructPartialOrder, TradeVaultBalanceChange,
-            Transaction, VaultBalanceChangeVault,
+            SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
+            SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
         },
     };
     use alloy::primitives::{Address, B256};
@@ -238,145 +236,145 @@ mod test {
             B256::from_slice(&[0x22u8; 32]),
         ]
     }
-    fn get_tokens() -> [Erc20; 2] {
+    fn get_tokens() -> [SgErc20; 2] {
         let token1_address = Address::from_slice(&[0x11u8; 20]);
         let token2_address = Address::from_slice(&[0x22u8; 20]);
-        let token1 = Erc20 {
-            id: Bytes(token1_address.to_string()),
-            address: Bytes(token1_address.to_string()),
+        let token1 = SgErc20 {
+            id: SgBytes(token1_address.to_string()),
+            address: SgBytes(token1_address.to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
-            decimals: Some(BigInt(18.to_string())),
+            decimals: Some(SgBigInt(18.to_string())),
         };
-        let token2 = Erc20 {
-            id: Bytes(token2_address.to_string()),
-            address: Bytes(token2_address.to_string()),
+        let token2 = SgErc20 {
+            id: SgBytes(token2_address.to_string()),
+            address: SgBytes(token2_address.to_string()),
             name: Some("Token2".to_string()),
             symbol: Some("Token2".to_string()),
-            decimals: Some(BigInt(18.to_string())),
+            decimals: Some(SgBigInt(18.to_string())),
         };
         [token1, token2]
     }
 
-    fn get_trades() -> Vec<Trade> {
-        let bytes = Bytes("".to_string());
-        let bigint = BigInt("".to_string());
+    fn get_trades() -> Vec<SgTrade> {
+        let bytes = SgBytes("".to_string());
+        let bigint = SgBigInt("".to_string());
         let [vault_id1, vault_id2] = get_vault_ids();
         let [token1, token2] = get_tokens();
-        let trade1 = Trade {
+        let trade1 = SgTrade {
             id: bytes.clone(),
-            order: TradeStructPartialOrder {
+            order: SgTradeStructPartialOrder {
                 id: bytes.clone(),
                 order_hash: bytes.clone(),
             },
-            trade_event: TradeEvent {
+            trade_event: SgTradeEvent {
                 sender: bytes.clone(),
-                transaction: Transaction {
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
                     timestamp: bigint.clone(),
                 },
             },
-            timestamp: BigInt("1".to_string()),
-            orderbook: Orderbook { id: bytes.clone() },
-            output_vault_balance_change: TradeVaultBalanceChange {
+            timestamp: SgBigInt("1".to_string()),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: BigInt("-2000000000000000000".to_string()),
-                new_vault_balance: BigInt("2000000000000000000".to_string()),
+                amount: SgBigInt("-2000000000000000000".to_string()),
+                new_vault_balance: SgBigInt("2000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
-                vault: VaultBalanceChangeVault {
+                vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token1.clone(),
-                    vault_id: BigInt(vault_id1.to_string()),
+                    vault_id: SgBigInt(vault_id1.to_string()),
                 },
-                timestamp: BigInt("1".to_string()),
-                transaction: Transaction {
+                timestamp: SgBigInt("1".to_string()),
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
-                    timestamp: BigInt("1".to_string()),
+                    timestamp: SgBigInt("1".to_string()),
                 },
-                orderbook: Orderbook { id: bytes.clone() },
+                orderbook: SgOrderbook { id: bytes.clone() },
             },
-            input_vault_balance_change: TradeVaultBalanceChange {
+            input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: BigInt("5000000000000000000".to_string()),
-                new_vault_balance: BigInt("2000000000000000000".to_string()),
+                amount: SgBigInt("5000000000000000000".to_string()),
+                new_vault_balance: SgBigInt("2000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
-                vault: VaultBalanceChangeVault {
+                vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token2.clone(),
-                    vault_id: BigInt(vault_id2.to_string()),
+                    vault_id: SgBigInt(vault_id2.to_string()),
                 },
-                timestamp: BigInt("1".to_string()),
-                transaction: Transaction {
+                timestamp: SgBigInt("1".to_string()),
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
-                    timestamp: BigInt("1".to_string()),
+                    timestamp: SgBigInt("1".to_string()),
                 },
-                orderbook: Orderbook { id: bytes.clone() },
+                orderbook: SgOrderbook { id: bytes.clone() },
             },
         };
-        let trade2 = Trade {
+        let trade2 = SgTrade {
             id: bytes.clone(),
-            order: TradeStructPartialOrder {
+            order: SgTradeStructPartialOrder {
                 id: bytes.clone(),
                 order_hash: bytes.clone(),
             },
-            trade_event: TradeEvent {
+            trade_event: SgTradeEvent {
                 sender: bytes.clone(),
-                transaction: Transaction {
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
                     timestamp: bigint.clone(),
                 },
             },
-            timestamp: BigInt("2".to_string()),
-            orderbook: Orderbook { id: bytes.clone() },
-            output_vault_balance_change: TradeVaultBalanceChange {
+            timestamp: SgBigInt("2".to_string()),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: BigInt("-2000000000000000000".to_string()),
-                new_vault_balance: BigInt("5000000000000000000".to_string()),
+                amount: SgBigInt("-2000000000000000000".to_string()),
+                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
-                vault: VaultBalanceChangeVault {
+                vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token2.clone(),
-                    vault_id: BigInt(vault_id2.to_string()),
+                    vault_id: SgBigInt(vault_id2.to_string()),
                 },
-                timestamp: BigInt("2".to_string()),
-                transaction: Transaction {
+                timestamp: SgBigInt("2".to_string()),
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
-                    timestamp: BigInt("1".to_string()),
+                    timestamp: SgBigInt("1".to_string()),
                 },
-                orderbook: Orderbook { id: bytes.clone() },
+                orderbook: SgOrderbook { id: bytes.clone() },
             },
-            input_vault_balance_change: TradeVaultBalanceChange {
+            input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                amount: BigInt("7000000000000000000".to_string()),
-                new_vault_balance: BigInt("5000000000000000000".to_string()),
+                amount: SgBigInt("7000000000000000000".to_string()),
+                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
-                vault: VaultBalanceChangeVault {
+                vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
                     token: token1.clone(),
-                    vault_id: BigInt(vault_id1.to_string()),
+                    vault_id: SgBigInt(vault_id1.to_string()),
                 },
-                timestamp: BigInt("2".to_string()),
-                transaction: Transaction {
+                timestamp: SgBigInt("2".to_string()),
+                transaction: SgTransaction {
                     id: bytes.clone(),
                     from: bytes.clone(),
                     block_number: bigint.clone(),
-                    timestamp: BigInt("1".to_string()),
+                    timestamp: SgBigInt("1".to_string()),
                 },
-                orderbook: Orderbook { id: bytes.clone() },
+                orderbook: SgOrderbook { id: bytes.clone() },
             },
         };
         vec![trade2, trade1]

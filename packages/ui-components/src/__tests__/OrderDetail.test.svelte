@@ -9,8 +9,13 @@
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
+	import Refresh from '$lib/components/icon/Refresh.svelte';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
 	import type { Hex } from 'viem';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
+
+	const queryClient = useQueryClient();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -42,7 +47,8 @@
 							order: data.order,
 							onRemove: $orderDetailQuery.refetch,
 							chainId,
-							orderbookAddress
+							orderbookAddress,
+							subgraphUrl
 						}
 					})}
 				disabled={!handleOrderRemoveModal}
@@ -50,6 +56,11 @@
 				Remove
 			</Button>
 		{/if}
+
+		<Refresh
+			on:click={async () => await invalidateIdQuery(queryClient, id)}
+			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
+		/>
 	</svelte:fragment>
 
 	<svelte:fragment slot="card" let:data>
