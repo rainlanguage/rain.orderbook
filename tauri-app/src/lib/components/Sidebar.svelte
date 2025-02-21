@@ -10,7 +10,7 @@
   import ReceiptSolid from 'flowbite-svelte-icons/ReceiptSolid.svelte';
   import GearSolid from 'flowbite-svelte-icons/GearSolid.svelte';
   import FileLinesSolid from 'flowbite-svelte-icons/FileLinesSolid.svelte';
-  import { IconExternalLink, IconTelegram } from '@rainlanguage/ui-components';
+  import { IconExternalLink, IconTelegram, logoDark, logoLight } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import ButtonDarkMode from '../../../../packages/ui-components/src/lib/components/ButtonDarkMode.svelte';
   import { PlusSolid } from 'flowbite-svelte-icons';
@@ -28,30 +28,15 @@
 <Sidebar activeUrl={$page.url.pathname} asideClass="w-64 fixed z-10">
   <SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
     <SidebarGroup ulClass="">
-      <div class="block dark:hidden">
-        <SidebarBrand
-          site={{
-            name: '',
-            href: '/',
-            img: '/logo-light.svg',
-          }}
-          imgClass="w-2/3 m-auto"
-          aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-          spanClass="hidden"
-        ></SidebarBrand>
-      </div>
-      <div class="hidden dark:block">
-        <SidebarBrand
-          site={{
-            name: '',
-            href: '/',
-            img: '/logo-dark.svg',
-          }}
-          imgClass="w-2/3 m-auto"
-          aClass="w-full flex items-center justify-start gap-x-3 mb-5"
-          spanClass="hidden"
-        ></SidebarBrand>
-      </div>
+      <SidebarBrand
+        site={{
+          name: '',
+          href: '/',
+          img: $colorTheme === 'light' ? logoLight : logoDark,
+        }}
+        imgClass="m-auto px-4"
+        aClass="mb-0"
+      ></SidebarBrand>
     </SidebarGroup>
     <SidebarGroup border>
       <SidebarItem label="New Order" href={'/orders/add'}>
