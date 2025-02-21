@@ -6,7 +6,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
-import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();
@@ -33,7 +33,7 @@ test('renders table with the correct data', async () => {
         addEvents: [],
         timestampAdded: '123',
         trades: [],
-      } as unknown as OrderSubgraph,
+      } as unknown as SgOrder,
       rpcUrl: 'https://rpc-url.com',
       inputIOIndex: 0,
       outputIOIndex: 0,
@@ -57,7 +57,7 @@ test('renders table with the correct data', async () => {
   expect(values).toHaveLength(3);
   const hexValues = await screen.findAllByTestId('debug-value-hex');
   for (let i = 0; i < 3; i++) {
-    expect(stacks[i]).toHaveTextContent(mockQuoteDebug[0].column_names[i]);
+    expect(stacks[i]).toHaveTextContent(mockQuoteDebug[0].columnNames[i]);
     expect(values[i]).toHaveTextContent(formatEther(BigInt(mockQuoteDebug[0].rows[0][i])));
     expect(hexValues[i]).toHaveTextContent(mockQuoteDebug[0].rows[0][i]);
   }

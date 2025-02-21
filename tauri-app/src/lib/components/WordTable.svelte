@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AuthoringMetaV2 } from '$lib/typeshare/authoringMeta';
+  import type { AuthoringMetaV2 } from '@rainlanguage/orderbook/common';
   import {
     Input,
     Table,

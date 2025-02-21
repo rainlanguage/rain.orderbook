@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type Scenario } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { ConfigSource } from '../lib/typeshare/config';
+import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
+import userEvent from '@testing-library/user-event';
 
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -583,7 +584,7 @@ const mockDeployment = {
 		scenario: {
 			key: 'flare',
 			bindings: {}
-		} as Scenario,
+		} as ScenarioCfg,
 		order: {
 			key: 'flare-sflr-wflr',
 			network: {
@@ -596,6 +597,10 @@ const mockDeployment = {
 			},
 			deployer: {
 				key: 'flare',
+				bindings: {}
+			} as ScenarioCfg,
+			order: {
+				key: 'flare-sflr-wflr',
 				network: {
 					key: 'flare',
 					'chain-id': 14,
@@ -614,7 +619,7 @@ const mockDeployment = {
 			outputs: []
 		}
 	}
-};
+} as unknown as GuiDeploymentCfg;
 
 const defaultProps: DeploymentStepsProps = {
 	dotrain,
@@ -630,8 +635,7 @@ const defaultProps: DeploymentStepsProps = {
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 	settings: writable({} as ConfigSource),
-	handleUpdateGuiState: vi.fn(),
-	gui: {} as unknown as DotrainOrderGui
+	gui: {} as DotrainOrderGui
 };
 
 describe('DeploymentSteps', () => {
@@ -643,7 +647,9 @@ describe('DeploymentSteps', () => {
 		defaultProps.gui = {
 			areAllTokensSelected: vi.fn(),
 			getSelectTokens: () => [],
-			getNetworkKey: vi.fn()
+			getNetworkKey: vi.fn(),
+			getCurrentDeployment: () => mockDeployment,
+			getAllFieldDefinitions: () => []
 		} as unknown as DotrainOrderGui;
 	};
 
@@ -690,6 +696,120 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
+		});
+	});
+
+	it('refreshes field descriptions when tokens change', async () => {
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
+		const getAllTokenInfos = vi.fn();
+		const getAllFieldDefinitions = vi.fn();
+		const getAllDepositFields = vi.fn();
+		const getTokenInfo = vi.fn();
+
+		defaultProps.gui = {
+			getSelectTokens: () => mockSelectTokens,
+			getTokenInfo,
+			getNetworkKey: vi.fn(),
+			getAllTokenInfos,
+			getAllFieldDefinitions,
+			getAllDepositFields,
+			isSelectTokenSet: () => false,
+			saveSelectToken: vi.fn(),
+			areAllTokensSelected: () => true,
+			hasAnyDeposit: vi.fn(),
+			hasAnyVaultId: vi.fn(),
+			getCurrentDeployment: () => ({
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			})
+		} as unknown as DotrainOrderGui;
+
+		getAllTokenInfos.mockResolvedValue([
+			{
+				address: '0x1',
+				decimals: 18,
+				name: 'Token 1',
+				symbol: 'TKN1'
+			},
+			{
+				address: '0x2',
+				decimals: 18,
+				name: 'Token 2',
+				symbol: 'TKN2'
+			}
+		]);
+		getAllFieldDefinitions.mockResolvedValue([]);
+		getAllDepositFields.mockResolvedValue([]);
+
+		const user = userEvent.setup();
+		render(DeploymentSteps, { props: defaultProps });
+
+		await waitFor(() => {
+			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
+			expect(screen.getByText('Token 1')).toBeInTheDocument();
+			expect(screen.getByText('Token 2')).toBeInTheDocument();
+		});
+
+		let selectTokenInput = screen.getAllByRole('textbox')[0];
+		getTokenInfo.mockResolvedValue({
+			address: '0x1',
+			decimals: 18,
+			name: 'Token 1',
+			symbol: 'TKN1'
+		});
+		await user.type(selectTokenInput, '0x1');
+
+		const selectTokenOutput = screen.getAllByRole('textbox')[1];
+		getTokenInfo.mockResolvedValue({
+			address: '0x2',
+			decimals: 18,
+			name: 'Token 2',
+			symbol: 'TKN2'
+		});
+		await user.type(selectTokenOutput, '0x2');
+
+		await waitFor(() => {
+			expect(getAllTokenInfos).toHaveBeenCalled();
+			expect(getAllFieldDefinitions).toHaveBeenCalled();
+		});
+
+		selectTokenInput = screen.getAllByRole('textbox')[0];
+		getTokenInfo.mockResolvedValue({
+			address: '0x3',
+			decimals: 18,
+			name: 'Token 3',
+			symbol: 'TKN3'
+		});
+		await user.type(selectTokenInput, '0x3');
+
+		getAllTokenInfos.mockReturnValue(
+			Promise.resolve([
+				{
+					address: '0x3',
+					decimals: 18,
+					name: 'Token 3',
+					symbol: 'TKN3'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			])
+		);
+
+		await waitFor(() => {
+			expect(getAllTokenInfos).toHaveBeenCalled();
+			expect(getAllFieldDefinitions).toHaveBeenCalled();
 		});
 	});
 });

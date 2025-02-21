@@ -6,7 +6,7 @@
   "author": "Rain Open Source Software Ltd",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run build-bindings && vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -14,8 +14,12 @@
     "test": "vitest run",
     "lint-check": "eslint src",
     "format": "prettier --write src",
+    "format-bindings": "prettier --write src/lib/types",
     "format-check": "prettier --list-different src",
-    "svelte-lint-format-check": "npm run check && npm run lint-check && npm run format-check"
+    "svelte-lint-format-check": "npm run check && npm run lint-check && npm run format-check",
+    "build-bindings": "npm run rm-temp && npm run build-wasm && node ./scripts/build && npm run format-bindings",
+    "build-wasm": "cd src-tauri && cargo build --target wasm32-unknown-unknown --lib -r && cd ..",
+    "rm-temp": "rimraf ./temp"
   },
   "devDependencies": {
     "postcss": "^8.4.32",
@@ -36,7 +40,7 @@
     "@walletconnect/modal": "^2.6.2",
     "@web3modal/ethers5": "^4.1.1",
     "camelcase-keys": "^9.1.3",
-    "codemirror-rainlang": "^3.0.11",
+    "codemirror-rainlang": "^3.0.13",
     "ethers": "^5.7.2",
     "flowbite-svelte": "^0.44.21",
     "fuse.js": "^7.0.0",

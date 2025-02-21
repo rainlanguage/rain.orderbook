@@ -1,5 +1,5 @@
 use super::*;
-use rain_orderbook_app_settings::gui::GuiDeposit;
+use rain_orderbook_app_settings::gui::GuiDepositCfg;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenDeposit {
@@ -8,11 +8,11 @@ pub struct TokenDeposit {
     #[tsify(type = "string")]
     pub address: Address,
 }
-impl_all_wasm_traits!(TokenDeposit);
+impl_wasm_traits!(TokenDeposit);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    fn get_gui_deposit(&self, key: &str) -> Result<GuiDeposit, GuiError> {
+    fn get_gui_deposit(&self, key: &str) -> Result<GuiDepositCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let gui_deposit = deployment
             .deposits
@@ -63,7 +63,7 @@ impl DotrainOrderGui {
         let gui_deposit = self.get_gui_deposit(&token)?;
 
         if amount.is_empty() {
-            self.remove_deposit(token);
+            self.remove_deposit(token)?;
             return Ok(());
         }
 
@@ -85,12 +85,16 @@ impl DotrainOrderGui {
         };
 
         self.deposits.insert(token, value);
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
     #[wasm_bindgen(js_name = "removeDeposit")]
-    pub fn remove_deposit(&mut self, token: String) {
+    pub fn remove_deposit(&mut self, token: String) -> Result<(), GuiError> {
         self.deposits.remove(&token);
+        self.execute_state_update_callback()?;
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getDepositPresets")]

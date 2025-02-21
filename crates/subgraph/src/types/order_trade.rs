@@ -1,15 +1,16 @@
 use super::common::*;
 use crate::schema;
 use serde::Serialize;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::prelude::*;
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(
     graphql_type = "Query",
-    variables = "PaginationWithTimestampQueryVariables"
+    variables = "SgPaginationWithTimestampQueryVariables"
 )]
-#[typeshare]
-pub struct OrderTradesListQuery {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrderTradesListQuery {
     #[arguments(
         skip: $skip,
         first: $first,
@@ -21,13 +22,14 @@ pub struct OrderTradesListQuery {
             timestamp_lte: $timestamp_lte
         }
     )]
-    pub trades: Vec<Trade>,
+    pub trades: Vec<SgTrade>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "IdQueryVariables")]
-#[typeshare]
-pub struct OrderTradeDetailQuery {
+#[cynic(graphql_type = "Query", variables = "SgIdQueryVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrderTradeDetailQuery {
     #[arguments(id: $id)]
-    pub trade: Option<Trade>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub trade: Option<SgTrade>,
 }

@@ -2,11 +2,11 @@ use crate::*;
 use alloy::primitives::Address;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
-use subgraph::Subgraph;
+use subgraph::SubgraphCfg;
 
 // Helper function to create a mock network
-pub fn mock_network() -> Arc<Network> {
-    Arc::new(Network {
+pub fn mock_network() -> Arc<NetworkCfg> {
+    Arc::new(NetworkCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "local".into(),
         rpc: ("http://127.0.0.1:8545").parse().unwrap(),
@@ -18,8 +18,8 @@ pub fn mock_network() -> Arc<Network> {
 }
 
 // Helper function to create a mock deployer
-pub fn mock_deployer() -> Arc<Deployer> {
-    Arc::new(Deployer {
+pub fn mock_deployer() -> Arc<DeployerCfg> {
+    Arc::new(DeployerCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "Deployer1".to_string(),
         address: Address::repeat_byte(0x03),
@@ -28,13 +28,13 @@ pub fn mock_deployer() -> Arc<Deployer> {
 }
 
 // Helper function to create a mock orderbook
-pub fn mock_orderbook() -> Arc<Orderbook> {
-    Arc::new(Orderbook {
+pub fn mock_orderbook() -> Arc<OrderbookCfg> {
+    Arc::new(OrderbookCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "".to_string(),
         label: Some("Orderbook1".into()),
         address: Address::repeat_byte(0x04),
-        subgraph: Arc::new(Subgraph {
+        subgraph: Arc::new(SubgraphCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             url: "https://subgraph.com".parse().unwrap(),
@@ -44,8 +44,8 @@ pub fn mock_orderbook() -> Arc<Orderbook> {
 }
 
 // Helper function to create a mock token
-pub fn mock_token(name: &str) -> Arc<Token> {
-    Arc::new(Token {
+pub fn mock_token(name: &str) -> Arc<TokenCfg> {
+    Arc::new(TokenCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "".to_string(),
         label: Some(name.into()),
@@ -56,10 +56,10 @@ pub fn mock_token(name: &str) -> Arc<Token> {
     })
 }
 
-pub fn mock_plot(name: &str) -> (String, Plot) {
+pub fn mock_plot(name: &str) -> (String, PlotCfg) {
     (
         name.to_string(),
-        Plot {
+        PlotCfg {
             title: Some("Title".to_string()),
             subtitle: Some("Subtitle".to_string()),
             inset: None,
@@ -70,7 +70,7 @@ pub fn mock_plot(name: &str) -> (String, Plot) {
             margin_top: None,
             x: None,
             y: None,
-            marks: vec![Mark::Dot(DotOptions {
+            marks: vec![MarkCfg::Dot(DotOptionsCfg {
                 transform: None,
                 r: None,
                 fill: None,
@@ -82,8 +82,8 @@ pub fn mock_plot(name: &str) -> (String, Plot) {
     )
 }
 
-pub fn mock_subgraph() -> Arc<Subgraph> {
-    Arc::new(Subgraph {
+pub fn mock_subgraph() -> Arc<SubgraphCfg> {
+    Arc::new(SubgraphCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "".to_string(),
         url: "https://subgraph.com".parse().unwrap(),

@@ -1,27 +1,27 @@
 use std::collections::{HashMap, HashSet};
 
 use cynic::Id;
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::types::OrderDetailExtended;
 use rain_orderbook_subgraph_client::{
-    types::common::{Order, OrdersListFilterArgs, Vault},
+    types::common::{SgOrder, SgOrdersListFilterArgs, SgVault},
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
-    OrderbookSubgraphClientError, PaginationArgs,
+    OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use reqwest::Url;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Tsify)]
 pub struct OrderWithSortedVaults {
-    #[tsify(type = "OrderSubgraph")]
-    pub order: Order,
-    pub vaults: HashMap<String, Vec<Vault>>,
+    pub order: SgOrder,
+    pub vaults: HashMap<String, Vec<SgVault>>,
 }
-impl_all_wasm_traits!(OrderWithSortedVaults);
+impl_wasm_traits!(OrderWithSortedVaults);
 
 /// Internal function to fetch a single order
-/// Returns the Order struct
-pub async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgraphClientError> {
+/// Returns the SgOrder struct
+pub async fn get_sg_order(url: &str, id: &str) -> Result<SgOrder, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let order = client.order_detail(Id::new(id)).await?;
     Ok(order)
@@ -32,16 +32,16 @@ pub async fn get_sg_order(url: &str, id: &str) -> Result<Order, OrderbookSubgrap
 #[wasm_bindgen(js_name = "getOrders")]
 pub async fn get_orders(
     subgraphs: Vec<MultiSubgraphArgs>,
-    filter_args: OrdersListFilterArgs,
-    pagination_args: PaginationArgs,
+    filter_args: SgOrdersListFilterArgs,
+    pagination_args: SgPaginationArgs,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     let orders = client.orders_list(filter_args, pagination_args).await?;
-    Ok(to_value(&orders)?)
+    Ok(to_js_value(&orders)?)
 }
 
-fn sort_vaults(order: &Order) -> HashMap<String, Vec<Vault>> {
-    let mut sorted_vaults: HashMap<String, Vec<Vault>> = HashMap::new();
+fn sort_vaults(order: &SgOrder) -> HashMap<String, Vec<SgVault>> {
+    let mut sorted_vaults: HashMap<String, Vec<SgVault>> = HashMap::new();
 
     let input_ids: HashSet<_> = order.inputs.iter().map(|v| &v.id).collect();
     let output_ids: HashSet<_> = order.outputs.iter().map(|v| &v.id).collect();
@@ -78,7 +78,7 @@ fn sort_vaults(order: &Order) -> HashMap<String, Vec<Vault>> {
 #[wasm_bindgen(js_name = "getOrder")]
 pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order = get_sg_order(url, id).await?;
-    Ok(to_value(&OrderWithSortedVaults {
+    Ok(to_js_value(&OrderWithSortedVaults {
         order: order.clone(),
         vaults: sort_vaults(&order),
     })?)
@@ -87,11 +87,11 @@ pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraph
 /// Extend an order to include Rainlang string
 /// Returns an OrderDetailExtended struct
 #[wasm_bindgen(js_name = "extendOrder")]
-pub fn order_detail_extended(order: Order) -> Result<JsValue, OrderbookSubgraphClientError> {
+pub fn order_detail_extended(order: SgOrder) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order_extended: OrderDetailExtended = order
         .try_into()
         .map_err(|_| OrderbookSubgraphClientError::OrderDetailExtendError)?;
-    Ok(to_value(&order_extended)?)
+    Ok(to_js_value(&order_extended)?)
 }
 
 /// Fetch trades for a specific order
@@ -100,7 +100,7 @@ pub fn order_detail_extended(order: Order) -> Result<JsValue, OrderbookSubgraphC
 pub async fn get_order_trades_list(
     url: &str,
     order_id: &str,
-    pagination_args: PaginationArgs,
+    pagination_args: SgPaginationArgs,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
@@ -113,7 +113,7 @@ pub async fn get_order_trades_list(
             end_timestamp,
         )
         .await?;
-    Ok(to_value(&trades)?)
+    Ok(to_js_value(&trades)?)
 }
 
 /// Get details for a specific trade
@@ -125,7 +125,7 @@ pub async fn get_order_trade_detail(
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let trade = client.order_trade_detail(Id::new(trade_id)).await?;
-    Ok(to_value(&trade)?)
+    Ok(to_js_value(&trade)?)
 }
 
 /// Fetch the count of trades for a specific order
@@ -147,7 +147,7 @@ pub async fn get_order_trades_count(
         .len();
 
     // Convert the count to a JavaScript-compatible value and return
-    Ok(to_value(&trades_count)?)
+    Ok(to_js_value(&trades_count)?)
 }
 
 /// Fetch volume information for vaults associated with an order
@@ -162,7 +162,7 @@ pub async fn order_vaults_volume(
     let volumes = client
         .order_vaults_volume(Id::new(order_id), start_timestamp, end_timestamp)
         .await?;
-    Ok(to_value(&volumes)?)
+    Ok(to_js_value(&volumes)?)
 }
 
 /// Measures an order's performance (including vaults apy and vol and total apy and vol)
@@ -177,5 +177,5 @@ pub async fn order_performance(
     let performance = client
         .order_performance(Id::new(order_id), start_timestamp, end_timestamp)
         .await?;
-    Ok(to_value(&performance)?)
+    Ok(to_js_value(&performance)?)
 }

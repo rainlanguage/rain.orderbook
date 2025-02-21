@@ -2,7 +2,7 @@
 source: crates/subgraph/tests/vault_test.rs
 expression: request_body.query
 ---
-query VaultDetailQuery($id: ID!) {
+query SgVaultDetailQuery($id: ID!) {
   vault(id: $id) {
     id
     owner

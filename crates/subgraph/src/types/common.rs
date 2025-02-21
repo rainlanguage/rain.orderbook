@@ -1,113 +1,119 @@
 use crate::schema;
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct IdQueryVariables<'a> {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgIdQueryVariables<'a> {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub id: &'a cynic::Id,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
-pub struct OrdersListFilterArgs {
-    pub owners: Vec<Bytes>,
+pub struct SgOrdersListFilterArgs {
+    pub owners: Vec<SgBytes>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub active: Option<bool>,
-    pub order_hash: Option<Bytes>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub order_hash: Option<SgBytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct PaginationQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgPaginationQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub skip: Option<i32>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone)]
 #[cynic(graphql_type = "Order_filter")]
-#[typeshare]
-pub struct OrdersListQueryFilters {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrdersListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
-    pub owner_in: Vec<Bytes>,
+    pub owner_in: Vec<SgBytes>,
     #[cynic(rename = "active", skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
     #[cynic(rename = "orderHash", skip_serializing_if = "Option::is_none")]
-    pub order_hash: Option<Bytes>,
+    pub order_hash: Option<SgBytes>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct OrdersListQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgOrdersListQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub skip: Option<i32>,
     #[cynic(rename = "filters")]
-    pub filters: Option<OrdersListQueryFilters>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub filters: Option<SgOrdersListQueryFilters>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct PaginationWithIdQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgPaginationWithIdQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
-    pub id: Bytes,
+    pub id: SgBytes,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub skip: Option<i32>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct PaginationWithTimestampQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgPaginationWithTimestampQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
-    pub id: Bytes,
+    pub id: SgBytes,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub skip: Option<i32>,
-    pub timestamp_gte: Option<BigInt>,
-    pub timestamp_lte: Option<BigInt>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub timestamp_gte: Option<SgBigInt>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub timestamp_lte: Option<SgBigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct Orderbook {
-    pub id: Bytes,
+#[cynic(graphql_type = "Orderbook")]
+pub struct SgOrderbook {
+    pub id: SgBytes,
 }
 
-#[typeshare]
 #[cfg_attr(target_family = "wasm", tsify::declare)]
-pub type RainMetaV1 = Bytes;
+pub type SgRainMetaV1 = SgBytes;
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-#[serde(rename = "OrderSubgraph")]
-pub struct Order {
-    pub id: Bytes,
-    pub order_bytes: Bytes,
-    pub order_hash: Bytes,
-    pub owner: Bytes,
-    pub outputs: Vec<Vault>,
-    pub inputs: Vec<Vault>,
-    pub orderbook: Orderbook,
+#[cynic(graphql_type = "Order")]
+pub struct SgOrder {
+    pub id: SgBytes,
+    pub order_bytes: SgBytes,
+    pub order_hash: SgBytes,
+    pub owner: SgBytes,
+    pub outputs: Vec<SgVault>,
+    pub inputs: Vec<SgVault>,
+    pub orderbook: SgOrderbook,
     pub active: bool,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp_added: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined | null"))]
-    pub meta: Option<RainMetaV1>,
-    pub add_events: Vec<AddOrder>,
-    pub trades: Vec<OrderStructPartialTrade>,
-    pub remove_events: Vec<RemoveOrder>,
+    pub timestamp_added: SgBigInt,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub meta: Option<SgRainMetaV1>,
+    pub add_events: Vec<SgAddOrder>,
+    pub trades: Vec<SgOrderStructPartialTrade>,
+    pub remove_events: Vec<SgRemoveOrder>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct OrderWithSubgraphName {
-    #[typeshare(typescript(type = "OrderSubgraph"))]
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
-    pub order: Order,
+pub struct SgOrderWithSubgraphName {
+    pub order: SgOrder,
     pub subgraph_name: String,
 }
 
@@ -115,490 +121,567 @@ pub struct OrderWithSubgraphName {
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
-pub struct TradeStructPartialOrder {
-    pub id: Bytes,
-    pub order_hash: Bytes,
+pub struct SgTradeStructPartialOrder {
+    pub id: SgBytes,
+    pub order_hash: SgBytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
-pub struct OrderAsIO {
-    pub id: Bytes,
-    pub order_hash: Bytes,
+pub struct SgOrderAsIO {
+    pub id: SgBytes,
+    pub order_hash: SgBytes,
     pub active: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
-pub struct VaultsListFilterArgs {
-    pub owners: Vec<Bytes>,
+pub struct SgVaultsListFilterArgs {
+    pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
 }
 
 #[derive(cynic::InputObject, Debug, Clone)]
 #[cynic(graphql_type = "Vault_filter")]
-#[typeshare]
-pub struct VaultsListQueryFilters {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgVaultsListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
-    pub owner_in: Vec<Bytes>,
+    pub owner_in: Vec<SgBytes>,
     #[cynic(rename = "balance_gt", skip_serializing_if = "Option::is_none")]
-    pub balance_gt: Option<BigInt>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub balance_gt: Option<SgBigInt>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
-#[typeshare]
-pub struct VaultsListQueryVariables {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgVaultsListQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub skip: Option<i32>,
     #[cynic(rename = "filters")]
-    pub filters: Option<VaultsListQueryFilters>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub filters: Option<SgVaultsListQueryFilters>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct Vault {
-    pub id: Bytes,
-    pub owner: Bytes,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub vault_id: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub balance: BigInt,
-    pub token: Erc20,
-    pub orderbook: Orderbook,
+#[cynic(graphql_type = "Vault")]
+pub struct SgVault {
+    pub id: SgBytes,
+    pub owner: SgBytes,
+    pub vault_id: SgBigInt,
+    pub balance: SgBigInt,
+    pub token: SgErc20,
+    pub orderbook: SgOrderbook,
     // latest orders
     #[arguments(orderBy: timestampAdded, orderDirection: desc)]
-    pub orders_as_output: Vec<OrderAsIO>,
+    pub orders_as_output: Vec<SgOrderAsIO>,
     // latest orders
     #[arguments(orderBy: timestampAdded, orderDirection: desc)]
-    pub orders_as_input: Vec<OrderAsIO>,
-    pub balance_changes: Vec<VaultBalanceChange>,
+    pub orders_as_input: Vec<SgOrderAsIO>,
+    pub balance_changes: Vec<SgVaultBalanceChangeType>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct VaultWithSubgraphName {
-    pub vault: Vault,
+pub struct SgVaultWithSubgraphName {
+    pub vault: SgVault,
     pub subgraph_name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Vault")]
-#[typeshare]
-pub struct VaultBalanceChangeVault {
-    pub id: Bytes,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub vault_id: BigInt,
-    pub token: Erc20,
+#[serde(rename_all = "camelCase")]
+pub struct SgVaultBalanceChangeVault {
+    pub id: SgBytes,
+    pub vault_id: SgBigInt,
+    pub token: SgErc20,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "VaultBalanceChange")]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct VaultBalanceChangeUnwrapped {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgVaultBalanceChangeUnwrapped {
     #[serde(rename = "__typename")]
     pub __typename: String,
-    pub amount: BigInt,
-    pub new_vault_balance: BigInt,
-    pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
-    pub orderbook: Orderbook,
+    pub amount: SgBigInt,
+    pub new_vault_balance: SgBigInt,
+    pub old_vault_balance: SgBigInt,
+    pub vault: SgVaultBalanceChangeVault,
+    pub timestamp: SgBigInt,
+    pub transaction: SgTransaction,
+    pub orderbook: SgOrderbook,
 }
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(tag = "__typename", content = "data")]
 #[serde(rename_all = "camelCase")]
-#[typeshare]
-pub enum VaultBalanceChange {
-    Withdrawal(Withdrawal),
-    TradeVaultBalanceChange(TradeVaultBalanceChange),
-    Deposit(Deposit),
-    ClearBounty(ClearBounty),
+#[cynic(graphql_type = "VaultBalanceChange")]
+pub enum SgVaultBalanceChangeType {
+    Withdrawal(SgWithdrawal),
+    TradeVaultBalanceChange(SgTradeVaultBalanceChange),
+    Deposit(SgDeposit),
+    ClearBounty(SgClearBounty),
     #[cynic(fallback)]
     Unknown,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct Deposit {
-    pub id: Bytes,
+#[cynic(graphql_type = "Deposit")]
+pub struct SgDeposit {
+    pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub amount: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub new_vault_balance: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
-    pub orderbook: Orderbook,
+    pub amount: SgBigInt,
+    pub new_vault_balance: SgBigInt,
+    pub old_vault_balance: SgBigInt,
+    pub vault: SgVaultBalanceChangeVault,
+    pub timestamp: SgBigInt,
+    pub transaction: SgTransaction,
+    pub orderbook: SgOrderbook,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct Withdrawal {
-    pub id: Bytes,
+#[cynic(graphql_type = "Withdrawal")]
+pub struct SgWithdrawal {
+    pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub amount: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub new_vault_balance: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
-    pub orderbook: Orderbook,
+    pub amount: SgBigInt,
+    pub new_vault_balance: SgBigInt,
+    pub old_vault_balance: SgBigInt,
+    pub vault: SgVaultBalanceChangeVault,
+    pub timestamp: SgBigInt,
+    pub transaction: SgTransaction,
+    pub orderbook: SgOrderbook,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct TradeVaultBalanceChange {
-    pub id: Bytes,
+#[cynic(graphql_type = "TradeVaultBalanceChange")]
+pub struct SgTradeVaultBalanceChange {
+    pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub amount: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub new_vault_balance: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
-    pub orderbook: Orderbook,
+    pub amount: SgBigInt,
+    pub new_vault_balance: SgBigInt,
+    pub old_vault_balance: SgBigInt,
+    pub vault: SgVaultBalanceChangeVault,
+    pub timestamp: SgBigInt,
+    pub transaction: SgTransaction,
+    pub orderbook: SgOrderbook,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct ClearBounty {
-    pub id: Bytes,
+#[cynic(graphql_type = "ClearBounty")]
+pub struct SgClearBounty {
+    pub id: SgBytes,
     #[serde(rename = "__typename")]
     pub __typename: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub amount: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub new_vault_balance: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub old_vault_balance: BigInt,
-    pub vault: VaultBalanceChangeVault,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-    pub transaction: Transaction,
-    pub orderbook: Orderbook,
-    pub sender: Bytes,
+    pub amount: SgBigInt,
+    pub new_vault_balance: SgBigInt,
+    pub old_vault_balance: SgBigInt,
+    pub vault: SgVaultBalanceChangeVault,
+    pub timestamp: SgBigInt,
+    pub transaction: SgTransaction,
+    pub orderbook: SgOrderbook,
+    pub sender: SgBytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct TradeEvent {
-    pub transaction: Transaction,
-    pub sender: Bytes,
+#[cynic(graphql_type = "TradeEvent")]
+pub struct SgTradeEvent {
+    pub transaction: SgTransaction,
+    pub sender: SgBytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct Trade {
-    pub id: Bytes,
-    pub trade_event: TradeEvent,
-    pub output_vault_balance_change: TradeVaultBalanceChange,
-    pub order: TradeStructPartialOrder,
-    pub input_vault_balance_change: TradeVaultBalanceChange,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-    pub orderbook: Orderbook,
+#[cynic(graphql_type = "Trade")]
+pub struct SgTrade {
+    pub id: SgBytes,
+    pub trade_event: SgTradeEvent,
+    pub output_vault_balance_change: SgTradeVaultBalanceChange,
+    pub order: SgTradeStructPartialOrder,
+    pub input_vault_balance_change: SgTradeVaultBalanceChange,
+    pub timestamp: SgBigInt,
+    pub orderbook: SgOrderbook,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "Trade")]
-#[typeshare]
-pub struct OrderStructPartialTrade {
-    pub id: Bytes,
+pub struct SgOrderStructPartialTrade {
+    pub id: SgBytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "ERC20")]
-#[typeshare]
-pub struct Erc20 {
-    pub id: Bytes,
-    pub address: Bytes,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
+pub struct SgErc20 {
+    pub id: SgBytes,
+    pub address: SgBytes,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string | undefined"))]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub symbol: Option<String>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt | undefined"))]
-    pub decimals: Option<BigInt>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub decimals: Option<SgBigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
 #[serde(rename_all = "camelCase")]
-pub struct Transaction {
-    pub id: Bytes,
-    pub from: Bytes,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub block_number: BigInt,
-    #[cfg_attr(target_family = "wasm", tsify(type = "SgBigInt"))]
-    pub timestamp: BigInt,
-}
-
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct AddOrder {
-    pub transaction: Transaction,
-}
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct RemoveOrder {
-    pub transaction: Transaction,
+#[cynic(graphql_type = "Transaction")]
+pub struct SgTransaction {
+    pub id: SgBytes,
+    pub from: SgBytes,
+    pub block_number: SgBigInt,
+    pub timestamp: SgBigInt,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "AddOrder")]
-pub struct AddOrderWithOrder {
-    pub transaction: Transaction,
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
-    pub order: Order,
+pub struct SgAddOrder {
+    pub transaction: SgTransaction,
+}
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[cynic(graphql_type = "RemoveOrder")]
+pub struct SgRemoveOrder {
+    pub transaction: SgTransaction,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[cynic(graphql_type = "AddOrder")]
+pub struct SgAddOrderWithOrder {
+    pub transaction: SgTransaction,
+    pub order: SgOrder,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[cynic(graphql_type = "RemoveOrder")]
-pub struct RemoveOrderWithOrder {
-    pub transaction: Transaction,
-    #[cfg_attr(target_family = "wasm", tsify(type = "OrderSubgraph"))]
-    pub order: Order,
+pub struct SgRemoveOrderWithOrder {
+    pub transaction: SgTransaction,
+    pub order: SgOrder,
 }
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(target_family = "wasm", derive(Tsify), serde(rename = "SgBigInt"))]
-#[typeshare]
-pub struct BigInt(pub String);
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[cynic(graphql_type = "BigInt")]
+pub struct SgBigInt(pub String);
 
 #[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[typeshare]
-pub struct Bytes(pub String);
+#[cynic(graphql_type = "Bytes")]
+pub struct SgBytes(pub String);
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
-#[typeshare]
-pub enum OrderDirection {
+#[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
+#[cynic(graphql_type = "OrderDirection")]
+pub enum SgOrderDirection {
     #[cynic(rename = "asc")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "asc"))]
     Asc,
     #[cynic(rename = "desc")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "desc"))]
     Desc,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Order_orderBy")]
-#[typeshare]
-pub enum OrderOrderBy {
+#[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
+pub enum SgOrderOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "active"))]
     Active,
     #[cynic(rename = "orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderHash"))]
     OrderHash,
     #[cynic(rename = "owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "owner"))]
     Owner,
     #[cynic(rename = "inputs")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputs"))]
     Inputs,
     #[cynic(rename = "outputs")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputs"))]
     Outputs,
     #[cynic(rename = "nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "nonce"))]
     Nonce,
     #[cynic(rename = "orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderBytes"))]
     OrderBytes,
     #[cynic(rename = "addEvents")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "addEvents"))]
     AddEvents,
     #[cynic(rename = "removeEvents")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "removeEvents"))]
     RemoveEvents,
     #[cynic(rename = "trades")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "trades"))]
     Trades,
     #[cynic(rename = "meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "meta"))]
     Meta,
     #[cynic(rename = "timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "timestampAdded"))]
     TimestampAdded,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "AddOrder_orderBy")]
-#[typeshare]
-pub enum AddOrderOrderBy {
+#[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
+pub enum SgAddOrderOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "order")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order"))]
     Order,
     #[cynic(rename = "order__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__id"))]
     OrderId,
     #[cynic(rename = "order__active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__active"))]
     OrderActive,
     #[cynic(rename = "order__orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderHash"))]
     OrderOrderHash,
     #[cynic(rename = "order__owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__owner"))]
     OrderOwner,
     #[cynic(rename = "order__nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__nonce"))]
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderBytes"))]
     OrderOrderBytes,
     #[cynic(rename = "order__meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__meta"))]
     OrderMeta,
     #[cynic(rename = "order__timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__timestampAdded"))]
     OrderTimestampAdded,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "transaction")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction"))]
     Transaction,
     #[cynic(rename = "transaction__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__id"))]
     TransactionId,
     #[cynic(rename = "transaction__timestamp")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__timestamp"))]
     TransactionTimestamp,
     #[cynic(rename = "transaction__blockNumber")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__blockNumber"))]
     TransactionBlockNumber,
     #[cynic(rename = "transaction__from")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "transaction__from"))]
     TransactionFrom,
     #[cynic(rename = "sender")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "sender"))]
     Sender,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Trade_orderBy")]
-#[typeshare]
-pub enum TradeOrderBy {
+#[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
+pub enum SgTradeOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "order")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order"))]
     Order,
     #[cynic(rename = "order__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__id"))]
     OrderId,
     #[cynic(rename = "order__active")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__active"))]
     OrderActive,
     #[cynic(rename = "order__orderHash")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderHash"))]
     OrderOrderHash,
     #[cynic(rename = "order__owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__owner"))]
     OrderOwner,
     #[cynic(rename = "order__nonce")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__nonce"))]
     OrderNonce,
     #[cynic(rename = "order__orderBytes")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__orderBytes"))]
     OrderOrderBytes,
     #[cynic(rename = "order__meta")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__meta"))]
     OrderMeta,
     #[cynic(rename = "order__timestampAdded")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "order__timestampAdded"))]
     OrderTimestampAdded,
     #[cynic(rename = "inputVaultBalanceChange")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputVaultBalanceChange"))]
     InputVaultBalanceChange,
     #[cynic(rename = "inputVaultBalanceChange__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "inputVaultBalanceChange__id"))]
     InputVaultBalanceChangeId,
     #[cynic(rename = "inputVaultBalanceChange__amount")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__amount")
+    )]
     InputVaultBalanceChangeAmount,
     #[cynic(rename = "inputVaultBalanceChange__oldVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__oldVaultBalance")
+    )]
     InputVaultBalanceChangeOldVaultBalance,
     #[cynic(rename = "inputVaultBalanceChange__newVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__newVaultBalance")
+    )]
     InputVaultBalanceChangeNewVaultBalance,
     #[cynic(rename = "inputVaultBalanceChange__timestamp")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "inputVaultBalanceChange__timestamp")
+    )]
     InputVaultBalanceChangeTimestamp,
     #[cynic(rename = "outputVaultBalanceChange")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputVaultBalanceChange"))]
     OutputVaultBalanceChange,
     #[cynic(rename = "outputVaultBalanceChange__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "outputVaultBalanceChange__id"))]
     OutputVaultBalanceChangeId,
     #[cynic(rename = "outputVaultBalanceChange__amount")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__amount")
+    )]
     OutputVaultBalanceChangeAmount,
     #[cynic(rename = "outputVaultBalanceChange__oldVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__oldVaultBalance")
+    )]
     OutputVaultBalanceChangeOldVaultBalance,
     #[cynic(rename = "outputVaultBalanceChange__newVaultBalance")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__newVaultBalance")
+    )]
     OutputVaultBalanceChangeNewVaultBalance,
     #[cynic(rename = "outputVaultBalanceChange__timestamp")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(rename = "outputVaultBalanceChange__timestamp")
+    )]
     OutputVaultBalanceChangeTimestamp,
     #[cynic(rename = "tradeEvent")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent"))]
     TradeEvent,
     #[cynic(rename = "tradeEvent__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent__id"))]
     TradeEventId,
     #[cynic(rename = "tradeEvent__sender")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "tradeEvent__sender"))]
     TradeEventSender,
     #[cynic(rename = "timestamp")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "timestamp"))]
     Timestamp,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
 #[cynic(graphql_type = "Vault_orderBy")]
-#[typeshare]
-pub enum VaultOrderBy {
+#[cfg_attr(target_family = "wasm", derive(Tsify), tsify(namespace))]
+pub enum SgVaultOrderBy {
     #[cynic(rename = "id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
     #[cynic(rename = "orderbook")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
     Orderbook,
     #[cynic(rename = "orderbook__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
     OrderbookId,
     #[cynic(rename = "token")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token"))]
     Token,
     #[cynic(rename = "token__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__id"))]
     TokenId,
     #[cynic(rename = "token__address")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__address"))]
     TokenAddress,
     #[cynic(rename = "token__name")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__name"))]
     TokenName,
     #[cynic(rename = "token__symbol")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__symbol"))]
     TokenSymbol,
     #[cynic(rename = "token__decimals")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "token__decimals"))]
     TokenDecimals,
     #[cynic(rename = "owner")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "owner"))]
     Owner,
     #[cynic(rename = "vaultId")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "vaultId"))]
     VaultId,
     #[cynic(rename = "ordersAsInput")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "ordersAsInput"))]
     OrdersAsInput,
     #[cynic(rename = "ordersAsOutput")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "ordersAsOutput"))]
     OrdersAsOutput,
     #[cynic(rename = "balance")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "balance"))]
     Balance,
     #[cynic(rename = "balanceChanges")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "balanceChanges"))]
     BalanceChanges,
 }
 
@@ -606,24 +689,25 @@ pub enum VaultOrderBy {
 mod impls {
     use super::*;
 
-    impl_all_wasm_traits!(Order);
-    impl_all_wasm_traits!(Vault);
-    impl_all_wasm_traits!(AddOrder);
-    impl_all_wasm_traits!(OrderAsIO);
-    impl_all_wasm_traits!(VaultBalanceChangeVault);
-    impl_all_wasm_traits!(VaultBalanceChange);
-    impl_all_wasm_traits!(Withdrawal);
-    impl_all_wasm_traits!(TradeVaultBalanceChange);
-    impl_all_wasm_traits!(Deposit);
-    impl_all_wasm_traits!(ClearBounty);
-    impl_all_wasm_traits!(OrderStructPartialTrade);
-    impl_all_wasm_traits!(Erc20);
-    impl_all_wasm_traits!(Transaction);
-    impl_all_wasm_traits!(BigInt);
-    impl_all_wasm_traits!(Bytes);
-    impl_all_wasm_traits!(OrdersListFilterArgs);
-    impl_all_wasm_traits!(VaultsListFilterArgs);
-    impl_all_wasm_traits!(Trade);
-    impl_all_wasm_traits!(TradeStructPartialOrder);
-    impl_all_wasm_traits!(TradeEvent);
+    impl_wasm_traits!(SgOrder);
+    impl_wasm_traits!(SgVault);
+    impl_wasm_traits!(SgAddOrder);
+    impl_wasm_traits!(SgOrderAsIO);
+    impl_wasm_traits!(SgVaultBalanceChangeVault);
+    impl_wasm_traits!(SgVaultBalanceChangeType);
+    impl_wasm_traits!(SgWithdrawal);
+    impl_wasm_traits!(SgTradeVaultBalanceChange);
+    impl_wasm_traits!(SgDeposit);
+    impl_wasm_traits!(SgClearBounty);
+    impl_wasm_traits!(SgOrderStructPartialTrade);
+    impl_wasm_traits!(SgErc20);
+    impl_wasm_traits!(SgTransaction);
+    impl_wasm_traits!(SgBigInt);
+    impl_wasm_traits!(SgBytes);
+    impl_wasm_traits!(SgOrdersListFilterArgs);
+    impl_wasm_traits!(SgVaultsListFilterArgs);
+    impl_wasm_traits!(SgTrade);
+    impl_wasm_traits!(SgTradeStructPartialOrder);
+    impl_wasm_traits!(SgTradeEvent);
+    impl_wasm_traits!(SgAddOrderWithOrder);
 }

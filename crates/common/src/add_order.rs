@@ -22,7 +22,7 @@ use rain_metadata::{
     ContentEncoding, ContentLanguage, ContentType, Error as RainMetaError, KnownMagic,
     RainMetaDocumentV1Item,
 };
-use rain_orderbook_app_settings::deployment::Deployment;
+use rain_orderbook_app_settings::deployment::DeploymentCfg;
 use rain_orderbook_bindings::{
     IOrderBookV4::{addOrder2Call, EvaluableV3, OrderConfigV3, TaskV1, IO},
     ERC20::decimalsCall,
@@ -80,7 +80,7 @@ impl AddOrderArgs {
     /// create a new  instance from Deployment
     pub async fn new_from_deployment(
         dotrain: String,
-        deployment: Deployment,
+        deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id: U256 = rand::random();
         let mut inputs = vec![];
@@ -336,11 +336,11 @@ mod tests {
 
     use super::*;
     use rain_orderbook_app_settings::{
-        deployer::Deployer,
-        network::Network,
-        order::{Order, OrderIO},
-        scenario::Scenario,
-        token::Token,
+        deployer::DeployerCfg,
+        network::NetworkCfg,
+        order::{OrderCfg, OrderIOCfg},
+        scenario::ScenarioCfg,
+        token::TokenCfg,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::sync::{Arc, RwLock};
@@ -442,7 +442,7 @@ price: 2e18;
 
     #[tokio::test]
     async fn test_add_order_random_vault_id_generation() {
-        let network = Network {
+        let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
             rpc: Url::parse("https://some-rpc.com").unwrap(),
@@ -452,14 +452,14 @@ price: 2e18;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let deployer = Deployer {
+        let deployer = DeployerCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
         };
         let deployer_arc = Arc::new(deployer);
-        let scenario = Scenario {
+        let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
@@ -467,7 +467,7 @@ price: 2e18;
             blocks: None,
             deployer: deployer_arc.clone(),
         };
-        let token1 = Token {
+        let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -476,7 +476,7 @@ price: 2e18;
             label: None,
             symbol: Some("Token1".to_string()),
         };
-        let token2 = Token {
+        let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -485,7 +485,7 @@ price: 2e18;
             label: None,
             symbol: Some("Token2".to_string()),
         };
-        let token3 = Token {
+        let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -498,20 +498,20 @@ price: 2e18;
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
-        let order = Order {
+        let order = OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             inputs: vec![
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
-            outputs: vec![OrderIO {
+            outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
@@ -519,7 +519,7 @@ price: 2e18;
             deployer: None,
             orderbook: None,
         };
-        let deployment = Deployment {
+        let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             scenario: Arc::new(scenario),
@@ -553,7 +553,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_into_add_order_call() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
-        let network = Network {
+        let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
             rpc: Url::parse(&local_evm.url()).unwrap(),
@@ -563,14 +563,14 @@ _ _: 0 0;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let deployer = Deployer {
+        let deployer = DeployerCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
             address: *local_evm.deployer.address(),
         };
         let deployer_arc = Arc::new(deployer);
-        let scenario = Scenario {
+        let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
@@ -578,7 +578,7 @@ _ _: 0 0;
             blocks: None,
             deployer: deployer_arc.clone(),
         };
-        let token1 = Token {
+        let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -587,7 +587,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token1".to_string()),
         };
-        let token2 = Token {
+        let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -596,7 +596,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token2".to_string()),
         };
-        let token3 = Token {
+        let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -608,20 +608,20 @@ _ _: 0 0;
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
-        let order = Order {
+        let order = OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             inputs: vec![
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
                 },
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
                 },
             ],
-            outputs: vec![OrderIO {
+            outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
             }],
@@ -629,7 +629,7 @@ _ _: 0 0;
             deployer: None,
             orderbook: None,
         };
-        let deployment = Deployment {
+        let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             scenario: Arc::new(scenario),
@@ -698,7 +698,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_add_order_post_action() {
-        let network = Network {
+        let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
             rpc: Url::parse("https://some-rpc.com").unwrap(),
@@ -708,14 +708,14 @@ _ _: 0 0;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let deployer = Deployer {
+        let deployer = DeployerCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
         };
         let deployer_arc = Arc::new(deployer);
-        let scenario = Scenario {
+        let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
@@ -723,7 +723,7 @@ _ _: 0 0;
             blocks: None,
             deployer: deployer_arc.clone(),
         };
-        let token1 = Token {
+        let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -732,7 +732,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token1".to_string()),
         };
-        let token2 = Token {
+        let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -741,7 +741,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token2".to_string()),
         };
-        let token3 = Token {
+        let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
@@ -754,20 +754,20 @@ _ _: 0 0;
         let token2_arc = Arc::new(token2);
         let token3_arc = Arc::new(token3);
         let known_vault_id = U256::from(1);
-        let order = Order {
+        let order = OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             inputs: vec![
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
-                OrderIO {
+                OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
-            outputs: vec![OrderIO {
+            outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
@@ -775,7 +775,7 @@ _ _: 0 0;
             deployer: None,
             orderbook: None,
         };
-        let deployment = Deployment {
+        let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             scenario: Arc::new(scenario),

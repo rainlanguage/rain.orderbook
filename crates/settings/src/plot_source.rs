@@ -1,19 +1,20 @@
 use serde::{Deserialize, Serialize};
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct Plot {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct PlotCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subtitle: Option<String>,
-    pub marks: Vec<Mark>,
+    pub marks: Vec<MarkCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub x: Option<AxisOptions>,
+    pub x: Option<AxisOptionsCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub y: Option<AxisOptions>,
+    pub y: Option<AxisOptionsCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub margin: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -27,36 +28,24 @@ pub struct Plot {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inset: Option<u32>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(PlotCfg);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[typeshare]
 #[serde(tag = "type", content = "options")]
 #[serde(rename_all = "lowercase")]
-pub enum Mark {
-    Dot(DotOptions),
-    Line(LineOptions),
-    RectY(RectYOptions),
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub enum MarkCfg {
+    Dot(DotOptionsCfg),
+    Line(LineOptionsCfg),
+    RectY(RectYOptionsCfg),
 }
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct DotOptions {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub x: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub y: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub r: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fill: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stroke: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transform: Option<Transform>,
-}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(MarkCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct LineOptions {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct DotOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,13 +57,34 @@ pub struct LineOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stroke: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub transform: Option<Transform>,
+    pub transform: Option<TransformCfg>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DotOptionsCfg);
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct LineOptionsCfg {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fill: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stroke: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transform: Option<TransformCfg>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(LineOptionsCfg);
 
 // RectY mark
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct RectYOptions {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct RectYOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x0: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -84,14 +94,16 @@ pub struct RectYOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub y1: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub transform: Option<Transform>,
+    pub transform: Option<TransformCfg>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(RectYOptionsCfg);
 
 // AxisX mark
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct AxisOptions {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct AxisOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -101,20 +113,24 @@ pub struct AxisOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label_arrow: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(AxisOptionsCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(tag = "type", content = "content")]
 #[serde(rename_all = "lowercase")]
-pub enum Transform {
-    HexBin(HexBinTransform),
-    BinX(BinXTransform),
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub enum TransformCfg {
+    HexBin(HexBinTransformCfg),
+    BinX(BinXTransformCfg),
     // Other transform types can be added here
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(TransformCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct TransformOutputs {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct TransformOutputsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -128,18 +144,22 @@ pub struct TransformOutputs {
     #[serde(skip_serializing_if = "Option::is_none")]
     fill: Option<String>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(TransformOutputsCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct HexBinTransform {
-    outputs: TransformOutputs,
-    options: HexBinOptions,
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct HexBinTransformCfg {
+    outputs: TransformOutputsCfg,
+    options: HexBinOptionsCfg,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(HexBinTransformCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct HexBinOptions {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct HexBinOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -147,26 +167,32 @@ pub struct HexBinOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     bin_width: Option<u32>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(HexBinOptionsCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BinXTransform {
-    outputs: TransformOutputs,
-    options: BinXOptions,
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct BinXTransformCfg {
+    outputs: TransformOutputsCfg,
+    options: BinXOptionsCfg,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(BinXTransformCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct BinXOptions {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct BinXOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     thresholds: Option<u32>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(BinXOptionsCfg);
 
-impl TryFrom<String> for Plot {
+impl TryFrom<String> for PlotCfg {
     type Error = serde_yaml::Error;
-    fn try_from(val: String) -> Result<Plot, Self::Error> {
+    fn try_from(val: String) -> Result<PlotCfg, Self::Error> {
         serde_yaml::from_str(&val)
     }
 }
@@ -199,11 +225,11 @@ marks:
                     bin-width: 10"#
             .to_string();
 
-        let plot: Plot = yaml_data.try_into().unwrap();
+        let plot: PlotCfg = yaml_data.try_into().unwrap();
 
         assert_eq!(
             plot,
-            Plot {
+            PlotCfg {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
                 x: None,
@@ -215,7 +241,7 @@ marks:
                 margin_bottom: None,
                 inset: None,
                 marks: vec![
-                    Mark::Dot(DotOptions {
+                    MarkCfg::Dot(DotOptionsCfg {
                         r: None,
                         fill: None,
                         x: Some("0.1".to_string()),
@@ -223,14 +249,14 @@ marks:
                         stroke: Some("black".to_string()),
                         transform: None,
                     },),
-                    Mark::Dot(DotOptions {
+                    MarkCfg::Dot(DotOptionsCfg {
                         r: None,
                         fill: None,
                         x: None,
                         y: None,
                         stroke: None,
-                        transform: Some(Transform::HexBin(HexBinTransform {
-                            outputs: TransformOutputs {
+                        transform: Some(TransformCfg::HexBin(HexBinTransformCfg {
+                            outputs: TransformOutputsCfg {
                                 x: None,
                                 y: None,
                                 r: None,
@@ -238,7 +264,7 @@ marks:
                                 stroke: None,
                                 fill: Some("count".to_string()),
                             },
-                            options: HexBinOptions {
+                            options: HexBinOptionsCfg {
                                 x: Some("0.1".to_string()),
                                 y: Some("0.2".to_string()),
                                 bin_width: Some(10),
@@ -263,11 +289,11 @@ marks:
         stroke: "black""#
             .to_string();
 
-        let plot: Plot = yaml_data.try_into().unwrap();
+        let plot: PlotCfg = yaml_data.try_into().unwrap();
 
         assert_eq!(
             plot,
-            Plot {
+            PlotCfg {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
                 x: None,
@@ -278,7 +304,7 @@ marks:
                 margin_top: None,
                 margin_bottom: None,
                 inset: None,
-                marks: vec![Mark::Line(LineOptions {
+                marks: vec![MarkCfg::Line(LineOptionsCfg {
                     transform: None,
                     r: None,
                     fill: None,
@@ -308,11 +334,11 @@ marks:
                     thresholds: 10"#
             .to_string();
 
-        let plot: Plot = yaml_data.try_into().unwrap();
+        let plot: PlotCfg = yaml_data.try_into().unwrap();
 
         assert_eq!(
             plot,
-            Plot {
+            PlotCfg {
                 title: Some("Title".to_string()),
                 subtitle: Some("Subtitle".to_string()),
                 x: None,
@@ -323,13 +349,13 @@ marks:
                 margin_top: None,
                 margin_bottom: None,
                 inset: None,
-                marks: vec![Mark::RectY(RectYOptions {
+                marks: vec![MarkCfg::RectY(RectYOptionsCfg {
                     x0: None,
                     x1: None,
                     y0: None,
                     y1: None,
-                    transform: Some(Transform::BinX(BinXTransform {
-                        outputs: TransformOutputs {
+                    transform: Some(TransformCfg::BinX(BinXTransformCfg {
+                        outputs: TransformOutputsCfg {
                             x: None,
                             y: Some("count".to_string()),
                             r: None,
@@ -337,7 +363,7 @@ marks:
                             stroke: None,
                             fill: None,
                         },
-                        options: BinXOptions {
+                        options: BinXOptionsCfg {
                             x: Some("0.1".to_string()),
                             thresholds: Some(10),
                         },

@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import EvalResultsTable from './EvalResultsTable.svelte';
-import type { RainEvalResultsTable } from '$lib/typeshare/config';
+import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
 import { formatEther, hexToBigInt, isHex } from 'viem';
 
 test('renders table with the correct data', async () => {
   const table: RainEvalResultsTable = {
-    column_names: ['Column1', 'Column2', 'Column3'],
+    columnNames: ['Column1', 'Column2', 'Column3'],
     rows: [
       ['0x01', '0x02', '0x03'],
       ['0x0a', '0x0b', '0x0c'],
@@ -26,7 +26,7 @@ test('renders table with the correct data', async () => {
 
   // Check if the table rows are rendered correctly
   await waitFor(() => {
-    table.column_names.forEach((columnName, index) => {
+    table.columnNames.forEach((columnName, index) => {
       expect(screen.getByText(columnName)).toBeInTheDocument();
       expect(screen.getByText(table.rows[0][index])).toBeInTheDocument();
 

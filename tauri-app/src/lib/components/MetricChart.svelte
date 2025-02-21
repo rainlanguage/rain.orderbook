@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Metric } from '$lib/typeshare/config';
+  import type { MetricCfg } from '@rainlanguage/orderbook/js_api';
   import type { TransformedPlotData } from '$lib/utils/chartData';
-  export let metric: Metric;
+  export let metric: MetricCfg;
   export let data: TransformedPlotData[];
 
   $: metricData = metric?.precision

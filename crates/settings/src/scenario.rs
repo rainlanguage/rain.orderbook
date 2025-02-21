@@ -1,5 +1,5 @@
 use crate::*;
-use blocks::Blocks;
+use blocks::BlocksCfg;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -8,44 +8,44 @@ use std::{
 };
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 use yaml::{
     context::Context, default_document, optional_hash, optional_string, require_hash,
     require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct Scenario {
+pub struct ScenarioCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "Record<string, string>"))]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, string>")
+    )]
     pub bindings: HashMap<String, String>,
-    #[typeshare(typescript(type = "number"))]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub runs: Option<u64>,
-    #[typeshare(skip)]
-    pub blocks: Option<Blocks>,
-    #[typeshare(typescript(type = "Deployer"))]
-    pub deployer: Arc<Deployer>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub blocks: Option<BlocksCfg>,
+    pub deployer: Arc<DeployerCfg>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Scenario);
+impl_wasm_traits!(ScenarioCfg);
 
-impl Scenario {
+impl ScenarioCfg {
     pub fn validate_runs(value: &str) -> Result<u64, ParseScenarioConfigSourceError> {
         value
             .parse::<u64>()
             .map_err(ParseScenarioConfigSourceError::RunsParseError)
     }
 
-    pub fn validate_blocks(value: &str) -> Result<Blocks, ParseScenarioConfigSourceError> {
-        match serde_yaml::from_str::<Blocks>(value) {
+    pub fn validate_blocks(value: &str) -> Result<BlocksCfg, ParseScenarioConfigSourceError> {
+        match serde_yaml::from_str::<BlocksCfg>(value) {
             Ok(blocks) => Ok(blocks),
             Err(_) => Err(ParseScenarioConfigSourceError::BlocksParseError(
                 value.to_string(),
@@ -57,9 +57,9 @@ impl Scenario {
     pub fn validate_scenario(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         current_document: Arc<RwLock<StrictYaml>>,
-        deployers: &HashMap<String, Deployer>,
-        deployer: &mut Option<Arc<Deployer>>,
-        scenarios: &mut HashMap<String, Scenario>,
+        deployers: &HashMap<String, DeployerCfg>,
+        deployer: &mut Option<Arc<DeployerCfg>>,
+        scenarios: &mut HashMap<String, ScenarioCfg>,
         parent_scenario: ScenarioParent,
         scenario_key: String,
         scenario_yaml: &StrictYaml,
@@ -109,13 +109,13 @@ impl Scenario {
         }
 
         let runs = optional_string(scenario_yaml, "runs")
-            .map(|runs| Scenario::validate_runs(&runs))
+            .map(|runs| ScenarioCfg::validate_runs(&runs))
             .transpose()?;
         let blocks = optional_string(scenario_yaml, "blocks")
-            .map(|blocks| Scenario::validate_blocks(&blocks))
+            .map(|blocks| ScenarioCfg::validate_blocks(&blocks))
             .transpose()?;
 
-        let mut current_deployer: Option<Deployer> = None;
+        let mut current_deployer: Option<DeployerCfg> = None;
 
         if let Ok(dep) = deployers
             .get(&scenario_key)
@@ -154,7 +154,7 @@ impl Scenario {
         };
         scenarios.insert(
             key.clone(),
-            Scenario {
+            ScenarioCfg {
                 document: current_document.clone(),
                 key: key.clone(),
                 bindings: bindings.clone(),
@@ -324,14 +324,14 @@ impl Scenario {
     }
 }
 
-impl YamlParsableHash for Scenario {
+impl YamlParsableHash for ScenarioCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = Deployer::parse_all_from_yaml(documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -340,7 +340,7 @@ impl YamlParsableHash for Scenario {
                 for (key_yaml, scenario_yaml) in scenarios_hash {
                     let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                    let mut deployer: Option<Arc<Deployer>> = None;
+                    let mut deployer: Option<Arc<DeployerCfg>> = None;
 
                     Self::validate_scenario(
                         documents.clone(),
@@ -378,7 +378,7 @@ impl YamlParsableHash for Scenario {
     }
 }
 
-impl Default for Scenario {
+impl Default for ScenarioCfg {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -386,12 +386,12 @@ impl Default for Scenario {
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            deployer: Arc::new(Deployer::default()),
+            deployer: Arc::new(DeployerCfg::default()),
         }
     }
 }
 
-impl PartialEq for Scenario {
+impl PartialEq for ScenarioCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
             && self.bindings == other.bindings
@@ -421,7 +421,7 @@ pub enum ParseScenarioConfigSourceError {
 pub struct ScenarioParent {
     key: String,
     bindings: Option<HashMap<String, String>>,
-    deployer: Option<Arc<Deployer>>,
+    deployer: Option<Arc<DeployerCfg>>,
 }
 
 // Shadowing is disallowed for deployers, orderbooks and specific bindings.
@@ -435,8 +435,8 @@ impl ScenarioConfigSource {
         &self,
         name: String,
         parent: &ScenarioParent,
-        deployers: &HashMap<String, Arc<Deployer>>,
-    ) -> Result<HashMap<String, Arc<Scenario>>, ParseScenarioConfigSourceError> {
+        deployers: &HashMap<String, Arc<DeployerCfg>>,
+    ) -> Result<HashMap<String, Arc<ScenarioCfg>>, ParseScenarioConfigSourceError> {
         // Determine the resolved name for the deployer, preferring the explicit deployer name if provided.
         let resolved_name = self.deployer.as_ref().unwrap_or(&name);
 
@@ -476,7 +476,7 @@ impl ScenarioConfigSource {
         }
 
         // Create and add the parent scenario for this level
-        let parent_scenario = Arc::new(Scenario {
+        let parent_scenario = Arc::new(ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: name.clone(),
             bindings: bindings.clone(),
@@ -689,7 +689,7 @@ deployers:
         network: mainnet
 test: test
 "#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -713,7 +713,7 @@ scenarios:
             key1:
                 - value1
 "#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -740,7 +740,7 @@ scenarios:
             key1:
                 - value1: value2
 "#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -771,7 +771,7 @@ scenarios:
                 bindings:
                     key1: value
 "#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -806,7 +806,7 @@ scenarios:
                     key2: value
                 deployer: testnet
 "#;
-        let error = Scenario::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -848,7 +848,7 @@ scenarios:
                 bindings:
                     key4: binding4
 "#;
-        let scenarios = Scenario::parse_all_from_yaml(
+        let scenarios = ScenarioCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -923,7 +923,7 @@ scenarios:
             key1: binding2
 "#;
 
-        let error = Scenario::parse_all_from_yaml(
+        let error = ScenarioCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )

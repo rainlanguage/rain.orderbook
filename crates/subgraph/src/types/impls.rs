@@ -4,7 +4,7 @@ use alloy::primitives::U256;
 use rain_orderbook_math::BigUintMath;
 use std::str::FromStr;
 
-impl Erc20 {
+impl SgErc20 {
     pub fn get_decimals(&self) -> Result<u8, PerformanceError> {
         Ok(self
             .decimals
@@ -15,7 +15,7 @@ impl Erc20 {
     }
 }
 
-impl Trade {
+impl SgTrade {
     /// Scales this trade's io to 18 point decimals in U256
     pub fn scale_18_io(&self) -> Result<(U256, U256), PerformanceError> {
         let input_amount = if self.input_vault_balance_change.amount.0.starts_with('-') {
@@ -65,28 +65,28 @@ impl Trade {
 mod test {
     use super::*;
     use crate::types::common::{
-        BigInt, Bytes, Orderbook, TradeEvent, TradeStructPartialOrder, TradeVaultBalanceChange,
-        Transaction, VaultBalanceChangeVault,
+        SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
+        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
     use alloy::primitives::Address;
 
     #[test]
     fn test_token_get_decimals() {
         // known decimals
-        let token = Erc20 {
-            id: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
-            address: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+        let token = SgErc20 {
+            id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
-            decimals: Some(BigInt(6.to_string())),
+            decimals: Some(SgBigInt(6.to_string())),
         };
         let result = token.get_decimals().unwrap();
         assert_eq!(result, 6);
 
         // unknown decimals, defaults to 18
-        let token = Erc20 {
-            id: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
-            address: Bytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+        let token = SgErc20 {
+            id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
             decimals: None,
@@ -114,7 +114,7 @@ mod test {
     #[test]
     fn test_ratio_unhappy() {
         let mut trade = get_trade();
-        trade.output_vault_balance_change.amount = BigInt("0".to_string());
+        trade.output_vault_balance_change.amount = SgBigInt("0".to_string());
         matches!(trade.ratio().unwrap_err(), PerformanceError::DivByZero);
     }
 
@@ -128,7 +128,7 @@ mod test {
     #[test]
     fn test_inverse_ratio_unhappy() {
         let mut trade = get_trade();
-        trade.input_vault_balance_change.amount = BigInt("0".to_string());
+        trade.input_vault_balance_change.amount = SgBigInt("0".to_string());
         matches!(
             trade.inverse_ratio().unwrap_err(),
             PerformanceError::DivByZero
@@ -136,79 +136,79 @@ mod test {
     }
 
     // helper to get trade struct
-    fn get_trade() -> Trade {
+    fn get_trade() -> SgTrade {
         let token_address = Address::from_slice(&[0x11u8; 20]);
-        let token = Erc20 {
-            id: Bytes(token_address.to_string()),
-            address: Bytes(token_address.to_string()),
+        let token = SgErc20 {
+            id: SgBytes(token_address.to_string()),
+            address: SgBytes(token_address.to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
-            decimals: Some(BigInt(6.to_string())),
+            decimals: Some(SgBigInt(6.to_string())),
         };
-        let input_trade_vault_balance_change = TradeVaultBalanceChange {
-            id: Bytes("".to_string()),
+        let input_trade_vault_balance_change = SgTradeVaultBalanceChange {
+            id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: BigInt("3000000".to_string()),
-            new_vault_balance: BigInt("".to_string()),
-            old_vault_balance: BigInt("".to_string()),
-            vault: VaultBalanceChangeVault {
-                id: Bytes("".to_string()),
-                vault_id: BigInt("".to_string()),
+            amount: SgBigInt("3000000".to_string()),
+            new_vault_balance: SgBigInt("".to_string()),
+            old_vault_balance: SgBigInt("".to_string()),
+            vault: SgVaultBalanceChangeVault {
+                id: SgBytes("".to_string()),
+                vault_id: SgBigInt("".to_string()),
                 token: token.clone(),
             },
-            timestamp: BigInt("".to_string()),
-            transaction: Transaction {
-                id: Bytes("".to_string()),
-                from: Bytes("".to_string()),
-                block_number: BigInt("".to_string()),
-                timestamp: BigInt("".to_string()),
+            timestamp: SgBigInt("".to_string()),
+            transaction: SgTransaction {
+                id: SgBytes("".to_string()),
+                from: SgBytes("".to_string()),
+                block_number: SgBigInt("".to_string()),
+                timestamp: SgBigInt("".to_string()),
             },
-            orderbook: Orderbook {
-                id: Bytes("".to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes("".to_string()),
             },
         };
-        let output_trade_vault_balance_change = TradeVaultBalanceChange {
-            id: Bytes("".to_string()),
+        let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
+            id: SgBytes("".to_string()),
             __typename: "".to_string(),
-            amount: BigInt("-6000000".to_string()),
-            new_vault_balance: BigInt("".to_string()),
-            old_vault_balance: BigInt("".to_string()),
-            vault: VaultBalanceChangeVault {
-                id: Bytes("".to_string()),
-                vault_id: BigInt("".to_string()),
+            amount: SgBigInt("-6000000".to_string()),
+            new_vault_balance: SgBigInt("".to_string()),
+            old_vault_balance: SgBigInt("".to_string()),
+            vault: SgVaultBalanceChangeVault {
+                id: SgBytes("".to_string()),
+                vault_id: SgBigInt("".to_string()),
                 token: token.clone(),
             },
-            timestamp: BigInt("".to_string()),
-            transaction: Transaction {
-                id: Bytes("".to_string()),
-                from: Bytes("".to_string()),
-                block_number: BigInt("".to_string()),
-                timestamp: BigInt("".to_string()),
+            timestamp: SgBigInt("".to_string()),
+            transaction: SgTransaction {
+                id: SgBytes("".to_string()),
+                from: SgBytes("".to_string()),
+                block_number: SgBigInt("".to_string()),
+                timestamp: SgBigInt("".to_string()),
             },
-            orderbook: Orderbook {
-                id: Bytes("".to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes("".to_string()),
             },
         };
-        Trade {
-            id: Bytes("".to_string()),
-            trade_event: TradeEvent {
-                transaction: Transaction {
-                    id: Bytes("".to_string()),
-                    from: Bytes("".to_string()),
-                    block_number: BigInt("".to_string()),
-                    timestamp: BigInt("".to_string()),
+        SgTrade {
+            id: SgBytes("".to_string()),
+            trade_event: SgTradeEvent {
+                transaction: SgTransaction {
+                    id: SgBytes("".to_string()),
+                    from: SgBytes("".to_string()),
+                    block_number: SgBigInt("".to_string()),
+                    timestamp: SgBigInt("".to_string()),
                 },
-                sender: Bytes("".to_string()),
+                sender: SgBytes("".to_string()),
             },
             output_vault_balance_change: output_trade_vault_balance_change,
             input_vault_balance_change: input_trade_vault_balance_change,
-            order: TradeStructPartialOrder {
-                id: Bytes("".to_string()),
-                order_hash: Bytes("".to_string()),
+            order: SgTradeStructPartialOrder {
+                id: SgBytes("".to_string()),
+                order_hash: SgBytes("".to_string()),
             },
-            timestamp: BigInt("".to_string()),
-            orderbook: Orderbook {
-                id: Bytes("".to_string()),
+            timestamp: SgBigInt("".to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes("".to_string()),
             },
         }
     }

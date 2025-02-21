@@ -8,36 +8,34 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
     context::Context, default_document, optional_string, require_hash, require_string,
     FieldErrorKind, YamlError, YamlParsableHash,
 };
 
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct Deployer {
+pub struct DeployerCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "string"))]
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
-    #[typeshare(typescript(type = "Network"))]
-    pub network: Arc<Network>,
+    pub network: Arc<NetworkCfg>,
 }
-impl Deployer {
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeployerCfg);
+
+impl DeployerCfg {
     pub fn dummy() -> Self {
-        Deployer {
+        DeployerCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             address: Address::default(),
-            network: Arc::new(Network::dummy()),
+            network: Arc::new(NetworkCfg::dummy()),
         }
     }
 
@@ -76,16 +74,13 @@ impl Deployer {
     }
 }
 
-#[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Deployer);
-
-impl Default for Deployer {
+impl Default for DeployerCfg {
     fn default() -> Self {
-        Deployer::dummy()
+        DeployerCfg::dummy()
     }
 }
 
-impl PartialEq for Deployer {
+impl PartialEq for DeployerCfg {
     fn eq(&self, other: &Self) -> bool {
         self.address == other.address && self.network == other.network
     }
@@ -103,8 +98,8 @@ impl DeployerConfigSource {
     pub fn try_into_deployer(
         self,
         name: String,
-        networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Deployer, ParseDeployerConfigSourceError> {
+        networks: &HashMap<String, Arc<NetworkCfg>>,
+    ) -> Result<DeployerCfg, ParseDeployerConfigSourceError> {
         let network_ref = match self.network {
             Some(network_name) => networks
                 .get(&network_name)
@@ -120,7 +115,7 @@ impl DeployerConfigSource {
                 .map(Arc::clone)?,
         };
 
-        Ok(Deployer {
+        Ok(DeployerCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: name,
             address: self.address,
@@ -129,14 +124,14 @@ impl DeployerConfigSource {
     }
 }
 
-impl YamlParsableHash for Deployer {
+impl YamlParsableHash for DeployerCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
-        let networks = Network::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -148,14 +143,15 @@ impl YamlParsableHash for Deployer {
 
                     let address_str =
                         require_string(deployer_yaml, Some("address"), Some(location.clone()))?;
-                    let address =
-                        Deployer::validate_address(&address_str).map_err(|e| YamlError::Field {
+                    let address = DeployerCfg::validate_address(&address_str).map_err(|e| {
+                        YamlError::Field {
                             kind: FieldErrorKind::InvalidValue {
                                 field: "address".to_string(),
                                 reason: e.to_string(),
                             },
                             location: location.clone(),
-                        })?;
+                        }
+                    })?;
 
                     let network_name = match optional_string(deployer_yaml, "network") {
                         Some(network_name) => network_name,
@@ -171,7 +167,7 @@ impl YamlParsableHash for Deployer {
                             location: location.clone(),
                         })?;
 
-                    let deployer = Deployer {
+                    let deployer = DeployerCfg {
                         document: document.clone(),
                         key: deployer_key.clone(),
                         address,
@@ -283,7 +279,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let deployers = Deployer::parse_all_from_yaml(documents, None).unwrap();
+        let deployers = DeployerCfg::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(deployers.len(), 2);
         assert!(deployers.contains_key("DeployerOne"));
@@ -319,7 +315,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Deployer::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = DeployerCfg::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,
@@ -341,7 +337,7 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml)];
-        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        let network_key = DeployerCfg::parse_network_key(documents, "mainnet").unwrap();
         assert_eq!(network_key, "mainnet");
 
         let yaml = r#"
@@ -354,7 +350,7 @@ deployers:
         address: 0x1234567890123456789012345678901234567890
 "#;
         let documents = vec![get_document(yaml)];
-        let network_key = Deployer::parse_network_key(documents, "mainnet").unwrap();
+        let network_key = DeployerCfg::parse_network_key(documents, "mainnet").unwrap();
         assert_eq!(network_key, "mainnet");
     }
 
@@ -367,7 +363,8 @@ networks:
         chain-id: 1
 deployers: test
 "#;
-        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error =
+            DeployerCfg::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -387,7 +384,8 @@ networks:
 deployers:
   - test
 "#;
-        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error =
+            DeployerCfg::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -407,7 +405,8 @@ networks:
 deployers:
   - test: test
 "#;
-        let error = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error =
+            DeployerCfg::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -428,7 +427,7 @@ deployers:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
 "#;
-        let res = Deployer::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap();
+        let res = DeployerCfg::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, "mainnet");
     }
 }

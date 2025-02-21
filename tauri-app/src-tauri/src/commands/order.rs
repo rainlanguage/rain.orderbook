@@ -1,7 +1,7 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
-use rain_orderbook_app_settings::{deployment::Deployment, scenario::Scenario};
+use rain_orderbook_app_settings::{deployment::DeploymentCfg, scenario::ScenarioCfg};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
@@ -35,7 +35,7 @@ pub async fn orders_list_write_csv(
 pub async fn order_add(
     app_handle: AppHandle,
     dotrain: String,
-    deployment: Deployment,
+    deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
 ) -> CommandResult<()> {
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Add order".into());
@@ -92,7 +92,7 @@ pub async fn order_remove(
 pub async fn order_add_calldata(
     app_handle: AppHandle,
     dotrain: String,
-    deployment: Deployment,
+    deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
 ) -> CommandResult<Bytes> {
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
@@ -142,7 +142,7 @@ pub async fn order_remove_calldata(
 pub async fn compose_from_scenario(
     dotrain: String,
     settings: Option<Vec<String>>,
-    scenario: Scenario,
+    scenario: ScenarioCfg,
 ) -> CommandResult<String> {
     let order = DotrainOrder::new(dotrain.clone(), settings).await?;
     Ok(order.compose_scenario_to_rainlang(scenario.key).await?)

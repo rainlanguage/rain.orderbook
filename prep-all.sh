@@ -50,6 +50,7 @@ nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
 
 # Temporarily disable command echoing
 set +x

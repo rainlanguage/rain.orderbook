@@ -4,7 +4,6 @@
 	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
-	import { handleUpdateGuiState } from '$lib/services/handleUpdateGuiState';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
@@ -49,7 +48,6 @@
 		{appKitModal}
 		{handleDeployModal}
 		{settings}
-		{handleUpdateGuiState}
 		{handleDisclaimerModal}
 	/>
 {:else if getGuiError}

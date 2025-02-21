@@ -5,7 +5,7 @@ import TanstackOrderQuote from '../lib/components/detail/TanstackOrderQuote.svel
 import { expect } from '../lib/test/matchers';
 import { mockOrderDetailsExtended } from '../lib/__fixtures__/orderDetail';
 import { getOrderQuote } from '@rainlanguage/orderbook/quote';
-import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 
 vi.mock('@rainlanguage/orderbook/quote', () => ({
 	getOrderQuote: vi.fn()
@@ -27,7 +27,7 @@ test('displays order quote data when query is successful', async () => {
 	render(TanstackOrderQuote, {
 		props: {
 			id: '0x123',
-			order: mockOrderDetailsExtended.order as OrderSubgraph,
+			order: mockOrderDetailsExtended.order as SgOrder,
 			rpcUrl: 'https://example.com',
 			orderbookAddress: '0x123',
 			handleQuoteDebugModal: vi.fn()
@@ -67,7 +67,7 @@ test('refreshes the quote when the refresh icon is clicked', async () => {
 	render(TanstackOrderQuote, {
 		props: {
 			id: '0x123',
-			order: mockOrderDetailsExtended.order as OrderSubgraph,
+			order: mockOrderDetailsExtended.order as SgOrder,
 			rpcUrl: 'https://example.com',
 			orderbookAddress: '0x123',
 			handleQuoteDebugModal: vi.fn()
@@ -102,7 +102,7 @@ test('refreshes the quote when the refresh icon is clicked', async () => {
 		}
 	]);
 
-	const refreshButton = screen.getByTestId('refreshButton');
+	const refreshButton = screen.getByTestId('refresh-button');
 	fireEvent.click(refreshButton);
 
 	await waitFor(() => {
@@ -136,7 +136,7 @@ test('displays error message when query fails', async () => {
 	render(TanstackOrderQuote, {
 		props: {
 			id: '0x123',
-			order: mockOrderDetailsExtended.order as OrderSubgraph,
+			order: mockOrderDetailsExtended.order as SgOrder,
 			rpcUrl: 'https://example.com',
 			orderbookAddress: '0x123',
 			handleQuoteDebugModal: vi.fn()
@@ -166,7 +166,7 @@ test('displays zero for price when io ratio is zero', async () => {
 	render(TanstackOrderQuote, {
 		props: {
 			id: '0x123',
-			order: mockOrderDetailsExtended.order as OrderSubgraph,
+			order: mockOrderDetailsExtended.order as SgOrder,
 			rpcUrl: 'https://example.com',
 			orderbookAddress: '0x123',
 			handleQuoteDebugModal: vi.fn()

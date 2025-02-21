@@ -4,9 +4,10 @@
 	export let emptyMessage: string;
 	export let title: string;
 	export let head: string;
+	export let queryKey: string;
 </script>
 
-<TanstackAppTable {query} {emptyMessage} rowHoverable>
+<TanstackAppTable {query} {emptyMessage} rowHoverable {queryKey}>
 	<svelte:fragment slot="title">
 		<h2>{title}</h2>
 	</svelte:fragment>

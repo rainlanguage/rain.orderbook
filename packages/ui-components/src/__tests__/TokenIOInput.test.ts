@@ -1,11 +1,13 @@
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
 
 export type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
 describe('TokenInput', () => {
+	let mockStateUpdateCallback: Mock;
+
 	const mockInput = {
 		token: {
 			address: '0x123',
@@ -40,20 +42,22 @@ describe('TokenInput', () => {
 		i: 0,
 		label: 'Input',
 		vault: mockInput,
-		gui: mockGui,
-		handleUpdateGuiState: vi.fn()
+		gui: mockGui
 	} as unknown as TokenIOInputComponentProps;
 
 	const outputMockProps: TokenIOInputComponentProps = {
 		i: 0,
 		label: 'Output',
 		vault: mockInput,
-		gui: mockGui,
-		handleUpdateGuiState: vi.fn()
+		gui: mockGui
 	} as unknown as TokenIOInputComponentProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockStateUpdateCallback = vi.fn();
+		mockGui.setVaultId.mockImplementation(() => {
+			mockStateUpdateCallback();
+		});
 		mockGui.getTokenInfo = vi.fn().mockResolvedValue(mockTokenInfo);
 	});
 
@@ -79,12 +83,14 @@ describe('TokenInput', () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
 		expect(mockGui.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
 		expect(mockGui.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('handles missing token info gracefully', () => {

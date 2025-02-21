@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	export let handleDepositOrWithdrawModal: (props: DepositOrWithdrawModalProps) => void;
 
-	export let vault: Vault;
+	export let vault: SgVault;
 	export let chainId: number;
 	export let rpcUrl: string;
 	export let query: CreateQueryResult;

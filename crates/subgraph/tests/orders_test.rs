@@ -1,12 +1,12 @@
 use insta::assert_snapshot;
 use rain_orderbook_subgraph_client::types::common::*;
-use rain_orderbook_subgraph_client::types::order::OrdersListQuery;
+use rain_orderbook_subgraph_client::types::order::SgOrdersListQuery;
 
 #[test]
 fn orders_query_gql_output() {
     use cynic::QueryBuilder;
 
-    let request_body = OrdersListQuery::build(OrdersListQueryVariables {
+    let request_body = SgOrdersListQuery::build(SgOrdersListQueryVariables {
         skip: Some(0),
         first: Some(10),
         filters: None,
