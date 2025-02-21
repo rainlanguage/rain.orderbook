@@ -150,7 +150,7 @@ const transactionStore = () => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
-			message: 'Waiting for new Order to be indexed...'
+			message: 'Waiting for new order to be indexed...'
 		}));
 
 		let attempts = 0;
