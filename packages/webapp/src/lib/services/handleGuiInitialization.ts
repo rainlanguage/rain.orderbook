@@ -16,7 +16,7 @@ export async function handleGuiInitialization(
 					stateFromUrl,
 					pushGuiStateToUrlHistory
 				);
-			} catch (deserializeErr) {
+			} catch {
 				gui = await DotrainOrderGui.chooseDeployment(
 					dotrain,
 					deploymentKey,
@@ -31,7 +31,7 @@ export async function handleGuiInitialization(
 			);
 		}
 		return { gui, error: null };
-	} catch (err) {
+	} catch {
 		return { gui: null, error: 'Could not get deployment form.' };
 	}
 }

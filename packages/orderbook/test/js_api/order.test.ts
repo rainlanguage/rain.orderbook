@@ -82,7 +82,7 @@ const order1: SgOrder = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-  removeEvents: []
+	removeEvents: []
 } as unknown as SgOrder;
 
 const order2 = {
@@ -150,7 +150,7 @@ const order2 = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-  removeEvents: []
+	removeEvents: []
 } as unknown as SgOrder;
 
 export const order3 = {
@@ -218,7 +218,7 @@ export const order3 = {
 		id: '0x0000000000000000000000000000000000000000'
 	},
 	trades: [],
-  removeEvents: []
+	removeEvents: []
 } as unknown as SgOrder;
 
 const mockOrderTradesList: SgTrade[] = [
