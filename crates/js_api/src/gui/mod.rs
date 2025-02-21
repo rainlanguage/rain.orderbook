@@ -44,6 +44,10 @@ pub struct TokenInfo {
 impl_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct AllTokenInfos(Vec<TokenInfo>);
+impl_wasm_traits!(AllTokenInfos);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct DeploymentDetails(BTreeMap<String, NameAndDescriptionCfg>);
 impl_wasm_traits!(DeploymentDetails);
 
@@ -152,6 +156,16 @@ impl DotrainOrderGui {
         };
 
         Ok(token_info)
+    }
+
+    #[wasm_bindgen(js_name = "getAllTokenInfos")]
+    pub async fn get_all_token_infos(&self) -> Result<AllTokenInfos, GuiError> {
+        let token_infos = self.dotrain_order.orderbook_yaml().get_token_keys()?;
+        let mut result = Vec::new();
+        for key in token_infos.iter() {
+            result.push(self.get_token_info(key.clone()).await?);
+        }
+        Ok(AllTokenInfos(result))
     }
 
     #[wasm_bindgen(js_name = "getStrategyDetails")]
