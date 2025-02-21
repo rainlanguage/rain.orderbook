@@ -3,16 +3,15 @@ use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
-    deployment::Deployment,
+    deployment::DeploymentCfg,
     gui::{
-        Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, NameAndDescription,
+        GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
         ParseGuiConfigSourceError,
     },
-    network::Network,
-    order::Order,
+    network::NetworkCfg,
+    order::OrderCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
 };
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
@@ -22,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 mod deposits;
 mod field_values;
@@ -31,24 +31,25 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct DeploymentKeys(Vec<String>);
-impl_all_wasm_traits!(DeploymentKeys);
+impl_wasm_traits!(DeploymentKeys);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
+    #[tsify(type = "string")]
     pub address: Address,
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
 }
-impl_all_wasm_traits!(TokenInfo);
+impl_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AllTokenInfos(Vec<TokenInfo>);
-impl_all_wasm_traits!(AllTokenInfos);
+impl_wasm_traits!(AllTokenInfos);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DeploymentDetails(BTreeMap<String, NameAndDescription>);
-impl_all_wasm_traits!(DeploymentDetails);
+pub struct DeploymentDetails(BTreeMap<String, NameAndDescriptionCfg>);
+impl_wasm_traits!(DeploymentDetails);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -65,7 +66,7 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeploymentKeys")]
     pub async fn get_deployment_keys(dotrain: String) -> Result<DeploymentKeys, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentKeys(keys))
     }
 
@@ -77,7 +78,7 @@ impl DotrainOrderGui {
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
-        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         if !keys.contains(&deployment_name) {
             return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
@@ -92,7 +93,7 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
-    pub fn get_gui_config(&self) -> Result<Gui, GuiError> {
+    pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
@@ -102,7 +103,7 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getCurrentDeployment")]
-    pub fn get_current_deployment(&self) -> Result<GuiDeployment, GuiError> {
+    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, GuiError> {
         let gui = self.get_gui_config()?;
         let (_, gui_deployment) = gui
             .deployments
@@ -132,14 +133,16 @@ impl DotrainOrderGui {
                 symbol: token.symbol.unwrap(),
             }
         } else {
-            let order_key = Deployment::parse_order_key(
+            let order_key = DeploymentCfg::parse_order_key(
                 self.dotrain_order.dotrain_yaml().documents,
                 &self.selected_deployment,
             )?;
-            let network_key =
-                Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+            let network_key = OrderCfg::parse_network_key(
+                self.dotrain_order.dotrain_yaml().documents,
+                &order_key,
+            )?;
             let rpc_url =
-                Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+                NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
             let erc20 = ERC20::new(rpc_url, token.address);
             let onchain_info = erc20.token_info(None).await?;
@@ -166,9 +169,10 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getStrategyDetails")]
-    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescription, GuiError> {
+    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescriptionCfg, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let details = Gui::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        let details =
+            GuiCfg::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(details)
     }
 
@@ -176,7 +180,7 @@ impl DotrainOrderGui {
     pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let deployment_details =
-            Gui::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
+            GuiCfg::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
     }
 
@@ -184,7 +188,7 @@ impl DotrainOrderGui {
     pub async fn get_deployment_detail(
         dotrain: String,
         key: String,
-    ) -> Result<NameAndDescription, GuiError> {
+    ) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
         let deployment_detail = deployment_details
             .0

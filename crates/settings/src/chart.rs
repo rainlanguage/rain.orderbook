@@ -2,22 +2,26 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct Chart {
-    #[typeshare(typescript(type = "Scenario"))]
-    pub scenario: Arc<Scenario>,
-    pub plots: Option<Vec<Plot>>,
-    pub metrics: Option<Vec<Metric>>,
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct ChartCfg {
+    pub scenario: Arc<ScenarioCfg>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub plots: Option<Vec<PlotCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub metrics: Option<Vec<MetricCfg>>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ChartCfg);
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
-pub struct Metric {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct MetricCfg {
     pub label: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -29,6 +33,8 @@ pub struct Metric {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub precision: Option<u8>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(MetricCfg);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseChartConfigSourceError {
@@ -40,8 +46,8 @@ impl ChartConfigSource {
     pub fn try_into_chart(
         self,
         name: String,
-        scenarios: &HashMap<String, Arc<Scenario>>,
-    ) -> Result<Chart, ParseChartConfigSourceError> {
+        scenarios: &HashMap<String, Arc<ScenarioCfg>>,
+    ) -> Result<ChartCfg, ParseChartConfigSourceError> {
         let scenario_ref = match self.scenario {
             Some(scenario_name) => scenarios
                 .get(&scenario_name)
@@ -66,10 +72,10 @@ impl ChartConfigSource {
                     plot.title.get_or_insert(name);
                     plot
                 })
-                .collect::<Vec<Plot>>()
+                .collect::<Vec<PlotCfg>>()
         });
 
-        Ok(Chart {
+        Ok(ChartCfg {
             scenario: scenario_ref,
             metrics: self.metrics,
             plots,
@@ -89,8 +95,8 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};
 
-    fn create_scenario(name: &str, runs: Option<u64>) -> (String, Arc<Scenario>) {
-        let scenario = Scenario {
+    fn create_scenario(name: &str, runs: Option<u64>) -> (String, Arc<ScenarioCfg>) {
+        let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: name.into(),
             bindings: HashMap::from([(String::from("key"), String::from("value"))]), // Example binding
@@ -153,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_scenario_not_found_error() {
-        let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
+        let scenarios = HashMap::<String, Arc<ScenarioCfg>>::new(); // No scenarios added
 
         let mut plots = HashMap::new();
         let (plot_name, plot) = mock_plot("plot1");
@@ -174,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_no_scenario_matching_chart_name() {
-        let scenarios = HashMap::<String, Arc<Scenario>>::new(); // No scenarios added
+        let scenarios = HashMap::<String, Arc<ScenarioCfg>>::new(); // No scenarios added
 
         let chart_string = ChartConfigSource {
             scenario: None,
@@ -202,7 +208,7 @@ mod tests {
         let (plot_name, plot) = mock_plot("plot2");
         plots.insert(plot_name, plot);
 
-        let metrics: Vec<Metric> = vec![Metric {
+        let metrics: Vec<MetricCfg> = vec![MetricCfg {
             label: "label".to_string(),
             description: Some("description".to_string()),
             unit_prefix: Some("unit_prefix".to_string()),

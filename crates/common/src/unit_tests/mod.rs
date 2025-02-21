@@ -14,7 +14,7 @@ use rain_interpreter_eval::{
     trace::{RainEvalResultError, RainEvalResults},
 };
 use rain_orderbook_app_settings::{
-    blocks::BlockError, config::*, deployer::Deployer, unit_test::TestConfig,
+    blocks::BlockError, config::*, deployer::DeployerCfg, unit_test::TestConfig,
 };
 use std::sync::Arc;
 use thiserror::Error;
@@ -31,7 +31,7 @@ pub struct TestRunner {
 #[derive(Clone)]
 pub struct TestSetup {
     pub block_number: u64,
-    pub deployer: Arc<Deployer>,
+    pub deployer: Arc<DeployerCfg>,
     pub scenario_name: String,
 }
 
@@ -86,7 +86,7 @@ impl TestRunner {
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
             test_setup: TestSetup {
                 block_number: 0,
-                deployer: Arc::new(Deployer::dummy()),
+                deployer: Arc::new(DeployerCfg::dummy()),
                 scenario_name: String::new(),
             },
         }

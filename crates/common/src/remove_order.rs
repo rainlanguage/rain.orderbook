@@ -7,7 +7,9 @@ use alloy_ethers_typecast::transaction::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
 use rain_orderbook_bindings::IOrderBookV4::removeOrder2Call;
-use rain_orderbook_subgraph_client::types::{common::Order, order_detail_traits::OrderDetailError};
+use rain_orderbook_subgraph_client::types::{
+    common::SgOrder, order_detail_traits::OrderDetailError,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -25,11 +27,11 @@ pub enum RemoveOrderArgsError {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RemoveOrderArgs {
-    pub order: Order,
+    pub order: SgOrder,
 }
 
-impl From<Order> for RemoveOrderArgs {
-    fn from(order: Order) -> Self {
+impl From<SgOrder> for RemoveOrderArgs {
+    fn from(order: SgOrder) -> Self {
         Self { order }
     }
 }

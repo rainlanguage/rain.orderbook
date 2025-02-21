@@ -1,17 +1,17 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Transaction, AddOrderWithOrder } from '../../dist/types/js_api.js';
+import { SgTransaction, SgAddOrderWithOrder } from '../../dist/types/js_api.js';
 import { getTransactionAddOrders } from '../../dist/cjs/js_api.js';
 
-const transaction1: Transaction = {
+const transaction1: SgTransaction = {
 	id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
 	from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
 	blockNumber: '37432554',
 	timestamp: '1739448802'
 };
 
-const mockAddOrder: AddOrderWithOrder = {
+const mockAddOrder: SgAddOrderWithOrder = {
 	transaction: {
 		id: '0xb5d715bc74b7a7f2aac8cca544c1c95e209ed4113b82269ac3285142324bc6af',
 		from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
@@ -59,7 +59,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '0',
 							vault: {
 								id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
@@ -91,7 +91,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '998000000000000000',
 							vault: {
 								id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
@@ -123,7 +123,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '999000000000000000',
 							vault: {
 								id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
@@ -155,7 +155,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '1000000000000000000',
 							vault: {
 								id: '0x49f6b665c395c7b975caa2fc167cb5119981bbb86798bcaf3c4570153d09dfcf',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
@@ -215,7 +215,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '799990000000000000',
 							vault: {
 								id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
@@ -247,7 +247,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '1000000000000000000',
 							vault: {
 								id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
@@ -279,7 +279,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '999990000000000000',
 							vault: {
 								id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
@@ -311,7 +311,7 @@ const mockAddOrder: AddOrderWithOrder = {
 							oldVaultBalance: '0',
 							vault: {
 								id: '0x538830b4f8cc03840cea5af799dc532be4363a3ee8f4c6123dbff7a0acc86dac',
-								vault_id:
+								vaultId:
 									'75486334982066122983501547829219246999490818941767825330875804445439814023987',
 								token: {
 									id: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d',
@@ -357,7 +357,7 @@ const mockAddOrder: AddOrderWithOrder = {
 	}
 };
 
-const addOrders: AddOrderWithOrder[] = [mockAddOrder];
+const addOrders: SgAddOrderWithOrder[] = [mockAddOrder];
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Add Order', async function () {
 	const mockServer = getLocal();
@@ -370,7 +370,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Add Order', async functi
 			.thenReply(200, JSON.stringify({ data: { addOrders: addOrders } }));
 
 		try {
-			const result: AddOrderWithOrder[] = await getTransactionAddOrders(
+			const result: SgAddOrderWithOrder[] = await getTransactionAddOrders(
 				mockServer.url + '/sg1',
 				transaction1.id
 			);

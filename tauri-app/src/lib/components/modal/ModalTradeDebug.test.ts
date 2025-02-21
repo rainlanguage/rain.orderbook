@@ -39,7 +39,7 @@ test('renders table with the correct data', async () => {
   expect(values).toHaveLength(3);
   const hexValues = await screen.findAllByTestId('debug-value-hex');
   for (let i = 0; i < 3; i++) {
-    expect(stacks[i]).toHaveTextContent(mockTradeDebug.column_names[i]);
+    expect(stacks[i]).toHaveTextContent(mockTradeDebug.columnNames[i]);
     expect(values[i]).toHaveTextContent(formatEther(BigInt(mockTradeDebug.rows[0][i])));
     expect(hexValues[i]).toHaveTextContent(mockTradeDebug.rows[0][i]);
   }

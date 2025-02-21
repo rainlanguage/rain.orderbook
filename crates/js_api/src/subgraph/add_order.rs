@@ -1,7 +1,7 @@
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_subgraph_client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
 use reqwest::Url;
+use wasm_bindgen_utils::prelude::*;
 
 /// Internal function to fetch Add Orders for a given transaction
 /// Returns an array of AddOrder structs
@@ -12,5 +12,5 @@ pub async fn get_transaction_add_orders(
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let add_orders = client.transaction_add_orders(Id::new(tx_hash)).await?;
-    Ok(to_value(&add_orders)?)
+    Ok(to_js_value(&add_orders)?)
 }

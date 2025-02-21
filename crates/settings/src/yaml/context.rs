@@ -1,4 +1,4 @@
-use crate::{Order, OrderIO, Token};
+use crate::{OrderCfg, OrderIOCfg, TokenCfg};
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -10,7 +10,7 @@ pub struct GuiContext {
 
 #[derive(Debug, Clone, Default)]
 pub struct Context {
-    pub order: Option<Arc<Order>>,
+    pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
 }
@@ -28,7 +28,7 @@ pub enum ContextError {
 }
 
 pub trait OrderContext {
-    fn order(&self) -> Option<&Arc<Order>>;
+    fn order(&self) -> Option<&Arc<OrderCfg>>;
 
     fn resolve_order_path(&self, parts: &[&str]) -> Result<String, ContextError> {
         let order = self.order().ok_or(ContextError::NoOrder)?;
@@ -39,8 +39,8 @@ pub trait OrderContext {
         }
     }
 
-    fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError>;
-    fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError>;
+    fn resolve_io_path(&self, ios: &[OrderIOCfg], parts: &[&str]) -> Result<String, ContextError>;
+    fn resolve_token_path(&self, token: &TokenCfg, parts: &[&str]) -> Result<String, ContextError>;
 }
 
 pub trait SelectTokensContext {
@@ -60,11 +60,11 @@ impl SelectTokensContext for Context {
 }
 
 impl OrderContext for Context {
-    fn order(&self) -> Option<&Arc<Order>> {
+    fn order(&self) -> Option<&Arc<OrderCfg>> {
         self.order.as_ref()
     }
 
-    fn resolve_io_path(&self, ios: &[OrderIO], parts: &[&str]) -> Result<String, ContextError> {
+    fn resolve_io_path(&self, ios: &[OrderIOCfg], parts: &[&str]) -> Result<String, ContextError> {
         let index = parts
             .first()
             .ok_or_else(|| ContextError::InvalidPath(parts.join(".")))?
@@ -88,7 +88,7 @@ impl OrderContext for Context {
         }
     }
 
-    fn resolve_token_path(&self, token: &Token, parts: &[&str]) -> Result<String, ContextError> {
+    fn resolve_token_path(&self, token: &TokenCfg, parts: &[&str]) -> Result<String, ContextError> {
         match parts.first() {
             Some(&"address") => Ok(format!("{:?}", token.address)),
             Some(&"symbol") => Ok(token
@@ -147,7 +147,7 @@ impl Context {
         new_context
     }
 
-    pub fn add_order(&mut self, order: Arc<Order>) -> &mut Self {
+    pub fn add_order(&mut self, order: Arc<OrderCfg>) -> &mut Self {
         self.order = Some(order);
         self
     }
@@ -208,12 +208,12 @@ mod tests {
     use super::*;
     use crate::test::*;
     use crate::yaml::RwLock;
-    use crate::Order;
+    use crate::OrderCfg;
     use alloy::primitives::{Address, U256};
     use strict_yaml_rust::StrictYaml;
 
-    fn setup_test_order_with_vault_id() -> Arc<Order> {
-        let token = Token {
+    fn setup_test_order_with_vault_id() -> Arc<OrderCfg> {
+        let token = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_token".to_string(),
             network: mock_network(),
@@ -223,14 +223,14 @@ mod tests {
             symbol: Some("TST".to_string()),
         };
 
-        Arc::new(Order {
+        Arc::new(OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_order".to_string(),
-            inputs: vec![OrderIO {
+            inputs: vec![OrderIOCfg {
                 token: Some(Arc::new(token.clone())),
                 vault_id: Some(U256::from(42)),
             }],
-            outputs: vec![OrderIO {
+            outputs: vec![OrderIOCfg {
                 token: Some(Arc::new(token.clone())),
                 vault_id: None,
             }],

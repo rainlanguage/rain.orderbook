@@ -3,12 +3,12 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import type { VaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 
-const mockVaultWithSubgraph: VaultWithSubgraphName = {
+const mockVaultWithSubgraph: SgVaultWithSubgraphName = {
 	vault: {
 		id: '0x1234567890abcdef1234567890abcdef12345678',
 		owner: '0xabcdef1234567890abcdef1234567890abcdef12',

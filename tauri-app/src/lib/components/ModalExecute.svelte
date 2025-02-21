@@ -7,7 +7,7 @@
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
   import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
-  import type { Network } from '$lib/typeshare/config';
+  import type { NetworkCfg } from '@rainlanguage/orderbook/js_api';
 
   export let open = false;
   export let title: string;
@@ -17,7 +17,7 @@
   export let isSubmitting = false;
   export let onBack: (() => void) | undefined = undefined;
 
-  export let overrideNetwork: Network | undefined = undefined;
+  export let overrideNetwork: NetworkCfg | undefined = undefined;
   $: chainId = overrideNetwork?.['chain-id'] || $globalChainId;
 
   let selectedLedger = false;

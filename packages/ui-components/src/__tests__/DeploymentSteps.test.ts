@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type Scenario } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { ConfigSource } from '../lib/typeshare/config';
+import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 
@@ -584,7 +584,7 @@ const mockDeployment = {
 		scenario: {
 			key: 'flare',
 			bindings: {}
-		} as Scenario,
+		} as ScenarioCfg,
 		order: {
 			key: 'flare-sflr-wflr',
 			network: {
@@ -597,6 +597,10 @@ const mockDeployment = {
 			},
 			deployer: {
 				key: 'flare',
+				bindings: {}
+			} as ScenarioCfg,
+			order: {
+				key: 'flare-sflr-wflr',
 				network: {
 					key: 'flare',
 					'chain-id': 14,
@@ -615,7 +619,7 @@ const mockDeployment = {
 			outputs: []
 		}
 	}
-};
+} as unknown as GuiDeploymentCfg;
 
 const defaultProps: DeploymentStepsProps = {
 	dotrain,

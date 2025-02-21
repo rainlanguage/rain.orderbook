@@ -1,38 +1,38 @@
 use super::SubgraphError;
 use alloy::primitives::{Address, Bytes, U256};
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_common::deposit::DepositArgs;
 use rain_orderbook_common::transaction::TransactionArgs;
 use rain_orderbook_common::withdraw::WithdrawArgs;
-use rain_orderbook_subgraph_client::types::common::{Order, Vault, VaultsListFilterArgs};
+use rain_orderbook_subgraph_client::types::common::{SgOrder, SgVault, SgVaultsListFilterArgs};
 use rain_orderbook_subgraph_client::{
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
-    OrderbookSubgraphClientError, PaginationArgs,
+    OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use reqwest::Url;
 use std::str::FromStr;
+use wasm_bindgen_utils::prelude::*;
 
 /// Fetch all vaults from multiple subgraphs
 /// Returns a list of VaultWithSubgraphName structs
 #[wasm_bindgen(js_name = "getVaults")]
 pub async fn get_vaults(
     subgraphs: Vec<MultiSubgraphArgs>,
-    filter_args: VaultsListFilterArgs,
-    pagination_args: PaginationArgs,
+    filter_args: SgVaultsListFilterArgs,
+    pagination_args: SgPaginationArgs,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     let vaults = client.vaults_list(filter_args, pagination_args).await?;
-    Ok(to_value(&vaults)?)
+    Ok(to_js_value(&vaults)?)
 }
 
 /// Fetch a single vault
-/// Returns the Vault struct
+/// Returns the SgVault struct
 #[wasm_bindgen(js_name = "getVault")]
 pub async fn get_vault(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let vault = client.vault_detail(Id::new(id)).await?;
-    Ok(to_value(&vault)?)
+    Ok(to_js_value(&vault)?)
 }
 
 /// Fetch balance changes for a vault
@@ -41,20 +41,20 @@ pub async fn get_vault(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraph
 pub async fn get_vault_balance_changes(
     url: &str,
     id: &str,
-    pagination_args: PaginationArgs,
+    pagination_args: SgPaginationArgs,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let changes = client
         .vault_balance_changes_list(Id::new(id), pagination_args)
         .await?;
-    Ok(to_value(&changes)?)
+    Ok(to_js_value(&changes)?)
 }
 
 /// Get deposit calldata for a vault
 /// Returns a string of the calldata
 #[wasm_bindgen(js_name = "getVaultDepositCalldata")]
 pub async fn get_vault_deposit_calldata(
-    vault: &Vault,
+    vault: &SgVault,
     deposit_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
@@ -65,7 +65,7 @@ pub async fn get_vault_deposit_calldata(
         amount: deposit_amount,
     };
 
-    Ok(to_value(&Bytes::copy_from_slice(
+    Ok(to_js_value(&Bytes::copy_from_slice(
         &deposit_args.get_deposit_calldata().await?,
     ))?)
 }
@@ -73,12 +73,12 @@ pub async fn get_vault_deposit_calldata(
 /// Get withdraw calldata for a vault
 #[wasm_bindgen(js_name = "getVaultWithdrawCalldata")]
 pub async fn get_vault_withdraw_calldata(
-    vault: &Vault,
+    vault: &SgVault,
     withdraw_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let withdraw_amount = validate_amount(withdraw_amount)?;
 
-    Ok(to_value(&Bytes::copy_from_slice(
+    Ok(to_js_value(&Bytes::copy_from_slice(
         &WithdrawArgs {
             token: Address::from_str(&vault.token.address.0)?,
             vault_id: U256::from_str(&vault.vault_id.0)?,
@@ -92,7 +92,7 @@ pub async fn get_vault_withdraw_calldata(
 #[wasm_bindgen(js_name = "getVaultApprovalCalldata")]
 pub async fn get_vault_approval_calldata(
     rpc_url: &str,
-    vault: &Vault,
+    vault: &SgVault,
     deposit_amount: &str,
 ) -> Result<JsValue, SubgraphError> {
     let deposit_amount = validate_amount(deposit_amount)?;
@@ -108,17 +108,20 @@ pub async fn get_vault_approval_calldata(
         return Err(SubgraphError::InvalidAmount);
     }
 
-    Ok(to_value(&Bytes::copy_from_slice(
+    Ok(to_js_value(&Bytes::copy_from_slice(
         &deposit_args.get_approve_calldata(transaction_args).await?,
     ))?)
 }
 
 #[wasm_bindgen(js_name = "checkVaultAllowance")]
-pub async fn check_vault_allowance(rpc_url: &str, vault: &Vault) -> Result<JsValue, SubgraphError> {
+pub async fn check_vault_allowance(
+    rpc_url: &str,
+    vault: &SgVault,
+) -> Result<JsValue, SubgraphError> {
     let (deposit_args, transaction_args) =
         get_deposit_and_transaction_args(rpc_url, &vault, U256::ZERO)?;
 
-    Ok(to_value(
+    Ok(to_js_value(
         &deposit_args
             .read_allowance(Address::from_str(&vault.owner.0)?, transaction_args.clone())
             .await?,
@@ -133,7 +136,11 @@ pub fn validate_amount(amount: &str) -> Result<U256, SubgraphError> {
     Ok(amount)
 }
 
-pub fn validate_io_index(order: &Order, is_input: bool, index: u8) -> Result<usize, SubgraphError> {
+pub fn validate_io_index(
+    order: &SgOrder,
+    is_input: bool,
+    index: u8,
+) -> Result<usize, SubgraphError> {
     let index = index as usize;
     if is_input {
         if order.inputs.len() <= index {
@@ -149,7 +156,7 @@ pub fn validate_io_index(order: &Order, is_input: bool, index: u8) -> Result<usi
 
 pub fn get_deposit_and_transaction_args(
     rpc_url: &str,
-    vault: &Vault,
+    vault: &SgVault,
     amount: U256,
 ) -> Result<(DepositArgs, TransactionArgs), SubgraphError> {
     let deposit_args = DepositArgs {

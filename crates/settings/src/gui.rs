@@ -5,7 +5,7 @@ use crate::{
         optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    Deployment, Token, TokenRef,
+    DeploymentCfg, TokenCfg, TokenCfgRef,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -15,68 +15,73 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use typeshare::typeshare;
-
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 
 // Config source for Gui
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiPresetSource {
+pub struct GuiPresetSourceCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub value: String,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(GuiPresetSource);
+impl_wasm_traits!(GuiPresetSourceCfg);
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiDepositSource {
-    pub token: TokenRef,
+pub struct GuiDepositSourceCfg {
+    pub token: TokenCfgRef,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
 }
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiFieldDefinitionSource {
+pub struct GuiFieldDefinitionSourceCfg {
     pub binding: String,
     pub name: String,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub description: Option<String>,
-    pub presets: Option<Vec<GuiPresetSource>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub presets: Option<Vec<GuiPresetSourceCfg>>,
 }
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiDeploymentSource {
+pub struct GuiDeploymentSourceCfg {
     pub name: String,
     pub description: String,
-    pub deposits: Vec<GuiDepositSource>,
-    pub fields: Vec<GuiFieldDefinitionSource>,
+    pub deposits: Vec<GuiDepositSourceCfg>,
+    pub fields: Vec<GuiFieldDefinitionSourceCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub select_tokens: Option<Vec<GuiSelectTokens>>,
+    pub select_tokens: Option<Vec<GuiSelectTokensCfg>>,
 }
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiConfigSource {
+pub struct GuiConfigSourceCfg {
     pub name: String,
     pub description: String,
-    pub deployments: HashMap<String, GuiDeploymentSource>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, GuiDeploymentSourceCfg>")
+    )]
+    pub deployments: HashMap<String, GuiDeploymentSourceCfg>,
 }
-impl GuiConfigSource {
+impl GuiConfigSourceCfg {
     pub fn try_into_gui(
         self,
-        deployments: &HashMap<String, Arc<Deployment>>,
-        tokens: &HashMap<String, Arc<Token>>,
-    ) -> Result<Gui, ParseGuiConfigSourceError> {
+        deployments: &HashMap<String, Arc<DeploymentCfg>>,
+        tokens: &HashMap<String, Arc<TokenCfg>>,
+    ) -> Result<GuiCfg, ParseGuiConfigSourceError> {
         let gui_deployments = self
             .deployments
             .iter()
@@ -99,7 +104,7 @@ impl GuiConfigSource {
                             ))
                             .map(Arc::clone)?;
 
-                        Ok(GuiDeposit {
+                        Ok(GuiDepositCfg {
                             token: Some(token.clone()),
                             presets: deposit_source.presets.clone(),
                         })
@@ -110,7 +115,7 @@ impl GuiConfigSource {
                     .fields
                     .iter()
                     .map(|field_source| {
-                        Ok(GuiFieldDefinition {
+                        Ok(GuiFieldDefinitionCfg {
                             binding: field_source.binding.clone(),
                             name: field_source.name.clone(),
                             description: field_source.description.clone(),
@@ -122,7 +127,7 @@ impl GuiConfigSource {
                                         .iter()
                                         .enumerate()
                                         .map(|(i, preset)| {
-                                            Ok(GuiPreset {
+                                            Ok(GuiPresetCfg {
                                                 id: i.to_string(),
                                                 name: preset.name.clone(),
                                                 value: preset.value.clone(),
@@ -137,7 +142,7 @@ impl GuiConfigSource {
 
                 Ok((
                     deployment_name.clone(),
-                    GuiDeployment {
+                    GuiDeploymentCfg {
                         document: default_document(),
                         key: deployment_name.to_string(),
                         deployment,
@@ -151,7 +156,7 @@ impl GuiConfigSource {
             })
             .collect::<Result<HashMap<_, _>, ParseGuiConfigSourceError>>()?;
 
-        Ok(Gui {
+        Ok(GuiCfg {
             name: self.name,
             description: self.description,
             deployments: gui_deployments,
@@ -173,57 +178,55 @@ pub enum ParseGuiConfigSourceError {
 
 // Config for Gui
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct GuiPreset {
+pub struct GuiPresetCfg {
     pub id: String,
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
     pub value: String,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(GuiPreset);
+impl_wasm_traits!(GuiPresetCfg);
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct GuiDeposit {
-    #[typeshare(typescript(type = "Token | undefined"))]
-    pub token: Option<Arc<Token>>,
+pub struct GuiDepositCfg {
+    pub token: Option<Arc<TokenCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(GuiDeposit);
+impl_wasm_traits!(GuiDepositCfg);
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct GuiSelectTokens {
-    pub key: TokenRef,
+pub struct GuiSelectTokensCfg {
+    pub key: TokenCfgRef,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub description: Option<String>,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct GuiDeployment {
+pub struct GuiDeploymentCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "Deployment"))]
-    pub deployment: Arc<Deployment>,
+    pub deployment: Arc<DeploymentCfg>,
     pub name: String,
     pub description: String,
-    pub deposits: Vec<GuiDeposit>,
-    pub fields: Vec<GuiFieldDefinition>,
-    pub select_tokens: Option<Vec<GuiSelectTokens>>,
+    pub deposits: Vec<GuiDepositCfg>,
+    pub fields: Vec<GuiFieldDefinitionCfg>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub select_tokens: Option<Vec<GuiSelectTokensCfg>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(GuiDeployment);
+impl_wasm_traits!(GuiDeploymentCfg);
 
-impl PartialEq for GuiDeployment {
+impl PartialEq for GuiDeploymentCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
             && self.deployment == other.deployment
@@ -235,41 +238,46 @@ impl PartialEq for GuiDeployment {
     }
 }
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct GuiFieldDefinition {
+pub struct GuiFieldDefinitionCfg {
     pub binding: String,
     pub name: String,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub description: Option<String>,
-    pub presets: Option<Vec<GuiPreset>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub presets: Option<Vec<GuiPresetCfg>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(GuiFieldDefinition);
+impl_wasm_traits!(GuiFieldDefinitionCfg);
 
-#[typeshare]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct Gui {
+pub struct GuiCfg {
     pub name: String,
     pub description: String,
-    pub deployments: HashMap<String, GuiDeployment>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, GuiDeploymentCfg>")
+    )]
+    pub deployments: HashMap<String, GuiDeploymentCfg>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Gui);
+impl_wasm_traits!(GuiCfg);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct NameAndDescription {
+pub struct NameAndDescriptionCfg {
     pub name: String,
     pub description: String,
     pub short_description: Option<String>,
 }
 
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(NameAndDescription);
+impl_wasm_traits!(NameAndDescriptionCfg);
 
-impl Gui {
+impl GuiCfg {
     pub fn parse_deployment_keys(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<Vec<String>, YamlError> {
@@ -310,7 +318,7 @@ impl Gui {
     pub fn parse_select_tokens(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         deployment_key: &str,
-    ) -> Result<Option<Vec<GuiSelectTokens>>, YamlError> {
+    ) -> Result<Option<Vec<GuiSelectTokensCfg>>, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -338,7 +346,7 @@ impl Gui {
                                         get_hash_value_as_option(token_hash, "description")
                                             .map(|s| s.as_str())
                                             .unwrap_or_default();
-                                    result.push(GuiSelectTokens {
+                                    result.push(GuiSelectTokensCfg {
                                         key: key.to_string(),
                                         name: name.map(|s| s.to_string()),
                                         description: description.map(|s| s.to_string()),
@@ -361,7 +369,7 @@ impl Gui {
 
     pub fn parse_strategy_details(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-    ) -> Result<NameAndDescription, YamlError> {
+    ) -> Result<NameAndDescriptionCfg, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -384,7 +392,7 @@ impl Gui {
                     Some("gui".to_string()),
                 )?;
 
-                return Ok(NameAndDescription {
+                return Ok(NameAndDescriptionCfg {
                     name,
                     description,
                     short_description: Some(short_description),
@@ -399,7 +407,7 @@ impl Gui {
 
     pub fn parse_deployment_details(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-    ) -> Result<HashMap<String, NameAndDescription>, YamlError> {
+    ) -> Result<HashMap<String, NameAndDescriptionCfg>, YamlError> {
         let mut deployment_details = HashMap::new();
 
         for document in documents {
@@ -436,7 +444,7 @@ impl Gui {
 
                     deployment_details.insert(
                         deployment_key,
-                        NameAndDescription {
+                        NameAndDescriptionCfg {
                             name,
                             description,
                             short_description: None,
@@ -453,7 +461,7 @@ impl Gui {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         deployment_key: &str,
         field_binding: &str,
-    ) -> Result<Option<Vec<GuiPreset>>, YamlError> {
+    ) -> Result<Option<Vec<GuiPresetCfg>>, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -486,7 +494,7 @@ impl Gui {
                                                                 ))
                                                             )?;
 
-                                                            Ok(GuiPreset {
+                                                            Ok(GuiPresetCfg {
                                                                 id: preset_index.to_string(),
                                                                 name,
                                                                 value,
@@ -528,7 +536,7 @@ impl Gui {
     }
 }
 
-impl YamlParseableValue for Gui {
+impl YamlParseableValue for GuiCfg {
     fn parse_from_yaml(
         _: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
@@ -540,10 +548,10 @@ impl YamlParseableValue for Gui {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
-        let mut gui_res: Option<Gui> = None;
-        let mut gui_deployments_res: HashMap<String, GuiDeployment> = HashMap::new();
+        let mut gui_res: Option<GuiCfg> = None;
+        let mut gui_deployments_res: HashMap<String, GuiDeploymentCfg> = HashMap::new();
 
-        let tokens = Token::parse_all_from_yaml(documents.clone(), None);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -570,7 +578,7 @@ impl YamlParseableValue for Gui {
                     })?;
 
                 if gui_res.is_none() {
-                    gui_res = Some(Gui {
+                    gui_res = Some(GuiCfg {
                         name: name.to_string(),
                         description: description.to_string(),
                         deployments: gui_deployments_res.clone(),
@@ -622,7 +630,7 @@ impl YamlParseableValue for Gui {
                                             location: location.clone(),
                                         })?;
 
-                                        Ok(GuiSelectTokens {
+                                        Ok(GuiSelectTokensCfg {
                                             key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
                                             name: optional_string(select_token_value, "name"),
                                             description: optional_string(select_token_value, "description"),
@@ -641,7 +649,7 @@ impl YamlParseableValue for Gui {
                         );
                     }
 
-                    let deployment = Deployment::parse_from_yaml(
+                    let deployment = DeploymentCfg::parse_from_yaml(
                         documents.clone(),
                         &deployment_name,
                         Some(&context),
@@ -694,7 +702,7 @@ impl YamlParseableValue for Gui {
                             None => None,
                         };
 
-                        let gui_deposit = GuiDeposit {
+                        let gui_deposit = GuiDepositCfg {
                             token: deposit_token,
                             presets,
                         };
@@ -738,7 +746,7 @@ impl YamlParseableValue for Gui {
                                     ))
                                 )?;
 
-                                let gui_preset = GuiPreset {
+                                let gui_preset = GuiPresetCfg {
                                     id: preset_index.to_string(),
                                     name,
                                     value,
@@ -749,7 +757,7 @@ impl YamlParseableValue for Gui {
                             None => None,
                         };
 
-                        let gui_field_definition = GuiFieldDefinition {
+                        let gui_field_definition = GuiFieldDefinitionCfg {
                             binding,
                             name: interpolated_name,
                             description: interpolated_description,
@@ -759,7 +767,7 @@ impl YamlParseableValue for Gui {
                     })
                     .collect::<Result<Vec<_>, YamlError>>()?;
 
-                    let gui_deployment = GuiDeployment {
+                    let gui_deployment = GuiDeploymentCfg {
                         document: document.clone(),
                         key: deployment_name.clone(),
                         deployment: Arc::new(deployment),
@@ -791,7 +799,7 @@ mod tests {
     use crate::{
         test::{mock_deployer, mock_network, mock_token},
         yaml::tests::get_document,
-        Order, Scenario,
+        OrderCfg, ScenarioCfg,
     };
     use alloy::primitives::Address;
     use std::sync::RwLock;
@@ -799,70 +807,70 @@ mod tests {
 
     #[test]
     fn test_gui_creation_success() {
-        let gui_config_source = GuiConfigSource {
+        let gui_config_source = GuiConfigSourceCfg {
             name: "test-gui".to_string(),
             description: "test-gui-description".to_string(),
             deployments: HashMap::from([(
                 "test-deployment".to_string(),
-                GuiDeploymentSource {
+                GuiDeploymentSourceCfg {
                     name: "test-deployment".to_string(),
                     description: "test-deployment-description".to_string(),
-                    deposits: vec![GuiDepositSource {
+                    deposits: vec![GuiDepositSourceCfg {
                         token: "test-token".to_string(),
                         presets: Some(vec!["1.3".to_string(), "2.7".to_string()]),
                     }],
                     fields: vec![
-                        GuiFieldDefinitionSource {
+                        GuiFieldDefinitionSourceCfg {
                             binding: "test-binding".to_string(),
                             name: "test-name".to_string(),
                             description: Some("test-description".to_string()),
                             presets: Some(vec![
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: Some("test-preset".to_string()),
                                     value: "0.015".to_string(),
                                 },
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: Some("test-preset-2".to_string()),
                                     value: "0.3".to_string(),
                                 },
                             ]),
                         },
-                        GuiFieldDefinitionSource {
+                        GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-2".to_string(),
                             name: "test-name-2".to_string(),
                             description: Some("test-description-2".to_string()),
                             presets: Some(vec![
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: None,
                                     value: "3.2".to_string(),
                                 },
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: None,
                                     value: "4.8".to_string(),
                                 },
                             ]),
                         },
-                        GuiFieldDefinitionSource {
+                        GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-3".to_string(),
                             name: "test-name-3".to_string(),
                             description: Some("test-description-3".to_string()),
                             presets: Some(vec![
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: None,
                                     value: Address::default().to_string(),
                                 },
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: None,
                                     value: "some-value".to_string(),
                                 },
-                                GuiPresetSource {
+                                GuiPresetSourceCfg {
                                     name: None,
                                     value: "true".to_string(),
                                 },
                             ]),
                         },
                     ],
-                    select_tokens: Some(vec![GuiSelectTokens {
+                    select_tokens: Some(vec![GuiSelectTokensCfg {
                         key: "test-token".to_string(),
                         name: Some("Test name".to_string()),
                         description: Some("Test description".to_string()),
@@ -870,7 +878,7 @@ mod tests {
                 },
             )]),
         };
-        let scenario = Scenario {
+        let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "scenario1".into(),
             bindings: HashMap::new(),
@@ -878,7 +886,7 @@ mod tests {
             runs: None,
             blocks: None,
         };
-        let order = Order {
+        let order = OrderCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: String::new(),
             inputs: vec![],
@@ -887,7 +895,7 @@ mod tests {
             deployer: None,
             orderbook: None,
         };
-        let deployment = Deployment {
+        let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-deployment".to_string(),
             scenario: Arc::new(scenario),
@@ -947,7 +955,7 @@ mod tests {
         assert_eq!(presets[2].value, "true".to_string());
         assert_eq!(
             deployment.select_tokens,
-            Some(vec![GuiSelectTokens {
+            Some(vec![GuiSelectTokensCfg {
                 key: "test-token".to_string(),
                 name: Some("Test name".to_string()),
                 description: Some("Test description".to_string()),
@@ -972,7 +980,7 @@ tokens:
 gui:
     test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -996,7 +1004,7 @@ gui:
     name:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1023,7 +1031,7 @@ gui:
     name:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1050,7 +1058,7 @@ tokens:
 gui:
     name: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1075,7 +1083,7 @@ gui:
     description:
       - test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1103,7 +1111,7 @@ gui:
     description:
       - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1131,7 +1139,7 @@ gui:
     name: test
     description: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1156,7 +1164,7 @@ gui:
     description: test
     deployments: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1185,7 +1193,7 @@ gui:
     deployments:
         - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1232,7 +1240,7 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1283,7 +1291,7 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1304,7 +1312,7 @@ gui:
         deployment1:
             name: deployment1
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1326,7 +1334,7 @@ gui:
             name: some name
             description: some description
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1350,7 +1358,7 @@ gui:
             deposits:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1376,7 +1384,7 @@ gui:
                   presets:
                     - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1407,7 +1415,7 @@ gui:
                   presets:
                     - "1"
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1435,7 +1443,7 @@ gui:
             fields:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1463,7 +1471,7 @@ gui:
             fields:
                 - binding: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1495,7 +1503,7 @@ gui:
                     - value: 
                         wrong: map
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1532,7 +1540,7 @@ gui:
             select-tokens:
                 - test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1568,7 +1576,7 @@ gui:
             select-tokens:
                 - test: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
@@ -1654,7 +1662,7 @@ gui:
                   presets:
                     - value: test
 "#;
-        let res = Gui::parse_from_yaml_optional(
+        let res = GuiCfg::parse_from_yaml_optional(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -1746,7 +1754,7 @@ gui:
                   presets:
                     - value: test
 "#;
-        let error = Gui::parse_from_yaml_optional(
+        let error = GuiCfg::parse_from_yaml_optional(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -1774,7 +1782,7 @@ gui:
     description: test
 "#;
 
-        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        let error = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1801,7 +1809,7 @@ gui:
     deployments: test
 "#;
 
-        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        let error = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1832,7 +1840,7 @@ gui:
       - test
 "#;
 
-        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        let error = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1863,7 +1871,7 @@ gui:
       - test: test
 "#;
 
-        let error = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
+        let error = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1895,7 +1903,7 @@ gui:
       test2: test2
 "#;
 
-        let keys = Gui::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
+        let keys = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
         assert_eq!(keys, vec!["test".to_string(), "test2".to_string()]);
     }
 }

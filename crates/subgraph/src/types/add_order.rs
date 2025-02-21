@@ -1,16 +1,21 @@
-use super::common::{AddOrderWithOrder, Bytes};
+use super::common::{SgAddOrderWithOrder, SgBytes};
 use crate::schema;
-use typeshare::typeshare;
+use serde::Serialize;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct TransactionAddOrdersVariables {
-    pub id: Bytes,
+    pub id: SgBytes,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Serialize)]
 #[cynic(graphql_type = "Query", variables = "TransactionAddOrdersVariables")]
-#[typeshare]
-pub struct TransactionAddOrdersQuery {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgTransactionAddOrdersQuery {
     #[arguments(where: { transaction_: { id: $id } })]
-    pub add_orders: Vec<AddOrderWithOrder>,
+    pub add_orders: Vec<SgAddOrderWithOrder>,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(SgTransactionAddOrdersQuery);

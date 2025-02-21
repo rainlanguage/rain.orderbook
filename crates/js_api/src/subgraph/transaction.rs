@@ -1,7 +1,7 @@
 use cynic::Id;
-use rain_orderbook_bindings::wasm_traits::prelude::*;
 use rain_orderbook_subgraph_client::{OrderbookSubgraphClient, OrderbookSubgraphClientError};
 use reqwest::Url;
+use wasm_bindgen_utils::prelude::*;
 
 /// Internal function to fetch a single transaction
 /// Returns the Transaction struct
@@ -12,5 +12,5 @@ pub async fn get_transaction(
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     let transaction = client.transaction_detail(Id::new(tx_hash)).await?;
-    Ok(to_value(&transaction)?)
+    Ok(to_js_value(&transaction)?)
 }

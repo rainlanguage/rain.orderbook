@@ -1,17 +1,17 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Transaction, RemoveOrderWithOrder } from '../../dist/types/js_api.js';
+import { SgTransaction, SgRemoveOrderWithOrder } from '../../dist/types/js_api.js';
 import { getTransactionRemoveOrders } from '../../dist/cjs/js_api.js';
 
-const transaction1: Transaction = {
+const transaction1: SgTransaction = {
 	id: '0x0da3659c0fd5258e962bf339afeaffddb06cc7a473802228b9586fe7503ed13a',
 	from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
 	blockNumber: '37623990',
 	timestamp: '1739815758'
 };
 
-const mockRemoveOrder: RemoveOrderWithOrder = {
+const mockRemoveOrder: SgRemoveOrderWithOrder = {
 	transaction: {
 		id: '0x0da3659c0fd5258e962bf339afeaffddb06cc7a473802228b9586fe7503ed13a',
 		from: '0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11',
@@ -120,7 +120,7 @@ const mockRemoveOrder: RemoveOrderWithOrder = {
 	}
 };
 
-const removeOrders: RemoveOrderWithOrder[] = [mockRemoveOrder];
+const removeOrders: SgRemoveOrderWithOrder[] = [mockRemoveOrder];
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Remove Order', async function () {
 	const mockServer = getLocal();
@@ -132,7 +132,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Remove Order', async fun
 			.forPost('/sg1')
 			.thenReply(200, JSON.stringify({ data: { removeOrders: removeOrders } }));
 		try {
-			const result: RemoveOrderWithOrder[] = await getTransactionRemoveOrders(
+			const result: SgRemoveOrderWithOrder[] = await getTransactionRemoveOrders(
 				mockServer.url + '/sg1',
 				transaction1.id
 			);

@@ -1,9 +1,9 @@
 import { describe, test, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ObservableChart from './ObservableChart.svelte';
-import type { Plot } from '$lib/typeshare/config';
+import type { PlotCfg } from '@rainlanguage/orderbook/js_api';
 
-const plot: Plot = {
+const plot: PlotCfg = {
   title: 'some title',
   subtitle: 'some subtitle',
   marks: [{ type: 'line', options: { x: '0.0', y: '0.0' } }],

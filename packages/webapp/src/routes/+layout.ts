@@ -2,7 +2,7 @@ import type {
 	AppStoresInterface,
 	ConfigSource,
 	OrderbookConfigSource,
-	OrderbookRef
+	OrderbookCfgRef
 } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
 import pkg from 'lodash';
@@ -36,8 +36,8 @@ export const load = async ({ fetch }) => {
 				? (pickBy(
 						$settings.orderbooks,
 						(orderbook) => orderbook.network === $activeNetworkRef
-					) as Record<OrderbookRef, OrderbookConfigSource>)
-				: ({} as Record<OrderbookRef, OrderbookConfigSource>)
+					) as Record<OrderbookCfgRef, OrderbookConfigSource>)
+				: ({} as Record<OrderbookCfgRef, OrderbookConfigSource>)
 	);
 
 	const accounts = derived(settings, ($settings) => $settings?.accounts);

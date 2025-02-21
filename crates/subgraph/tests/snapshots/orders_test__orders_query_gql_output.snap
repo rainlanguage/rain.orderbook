@@ -3,7 +3,7 @@ source: crates/subgraph/tests/orders_test.rs
 assertion_line: 15
 expression: request_body.query
 ---
-query OrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
+query SgOrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
   orders(orderBy: timestampAdded, orderDirection: desc, skip: $skip, first: $first, where: $filters) {
     id
     orderBytes

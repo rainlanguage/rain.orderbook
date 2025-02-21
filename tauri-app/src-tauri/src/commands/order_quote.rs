@@ -2,24 +2,12 @@ use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
 use rain_orderbook_bindings::IOrderBookV4::Quote;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
-use rain_orderbook_quote::{
-    get_order_quotes, BatchOrderQuotesResponse, NewQuoteDebugger, QuoteDebugger, QuoteTarget,
-};
+use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteTarget};
 use rain_orderbook_subgraph_client::types::common::*;
 
 #[tauri::command]
-pub async fn batch_order_quotes(
-    orders: Vec<Order>,
-    block_number: Option<u64>,
-    rpc_url: String,
-    gas: Option<U256>,
-) -> CommandResult<Vec<BatchOrderQuotesResponse>> {
-    Ok(get_order_quotes(orders, block_number, rpc_url, gas).await?)
-}
-
-#[tauri::command]
 pub async fn debug_order_quote(
-    order: Order,
+    order: SgOrder,
     input_io_index: u32,
     output_io_index: u32,
     orderbook: Address,
@@ -155,20 +143,20 @@ amount price: 16 52;
             .0
             .order;
 
-        let order = Order {
-            id: Bytes("0x01".to_string()),
-            orderbook: Orderbook {
-                id: Bytes(orderbook.address().to_string()),
+        let order = SgOrder {
+            id: SgBytes("0x01".to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(orderbook.address().to_string()),
             },
-            order_bytes: Bytes(encode_prefixed(order.abi_encode())),
-            order_hash: Bytes("0x01".to_string()),
-            owner: Bytes("0x01".to_string()),
+            order_bytes: SgBytes(encode_prefixed(order.abi_encode())),
+            order_hash: SgBytes("0x01".to_string()),
+            owner: SgBytes("0x01".to_string()),
             outputs: vec![],
             inputs: vec![],
             active: true,
             add_events: vec![],
             meta: None,
-            timestamp_added: BigInt(0.to_string()),
+            timestamp_added: SgBigInt(0.to_string()),
             trades: vec![],
             remove_events: vec![],
         };

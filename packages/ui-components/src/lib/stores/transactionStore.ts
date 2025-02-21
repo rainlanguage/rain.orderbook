@@ -6,9 +6,9 @@ import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
-	Transaction,
+	SgTransaction,
 	RemoveOrderCalldata,
-	Vault,
+	SgVault,
 	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 import {
@@ -63,7 +63,7 @@ export type DepositOrWithdrawTransactionArgs = {
 	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
-	vault: Vault;
+	vault: SgVault;
 	subgraphUrl: string;
 };
 
@@ -126,7 +126,7 @@ const transactionStore = () => {
 		}));
 
 		let attempts = 0;
-		let newTx: Transaction;
+		let newTx: SgTransaction;
 
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;

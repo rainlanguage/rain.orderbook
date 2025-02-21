@@ -1,7 +1,12 @@
 import { expect, test } from 'vitest';
 import type { Dictionary } from 'lodash';
 import { pickDeployments, pickScenarios } from '$lib/services/pickConfig';
-import type { Config, ConfigSource, DeploymentConfigSource, Scenario } from '$lib/typeshare/config';
+import type {
+  Config,
+  ConfigSource,
+  DeploymentConfigSource,
+  ScenarioCfg,
+} from '@rainlanguage/orderbook/js_api';
 
 export const config: Config = {
   networks: {
@@ -17,7 +22,10 @@ export const config: Config = {
     },
   },
   subgraphs: {
-    network1: 'some-url',
+    network1: {
+      key: 'some-key',
+      url: 'some-url',
+    },
   },
   metaboards: {
     network1: 'some-url',
@@ -31,7 +39,10 @@ export const config: Config = {
         rpc: 'rpc-url',
         'chain-id': 14,
       },
-      subgraph: 'some-url',
+      subgraph: {
+        key: 'some-key',
+        url: 'some-url',
+      },
     },
   },
   deployers: {
@@ -265,7 +276,7 @@ test('pick deployments when empty', () => {
 test('pick scenarios', () => {
   const activeNetwork = 'network1';
   const result = pickScenarios(config, activeNetwork);
-  const expectedPickedScenarios: Dictionary<Scenario> = {
+  const expectedPickedScenarios: Dictionary<ScenarioCfg> = {
     'network1.sell': {
       key: 'network1.sell',
       bindings: {},
@@ -313,7 +324,7 @@ test('pick scenarios', () => {
 test('pick scenarios when empty', () => {
   const activeNetwork = 'network2';
   const result = pickScenarios(config, activeNetwork);
-  const expectedPickedScenarios: Dictionary<Scenario> = {};
+  const expectedPickedScenarios: Dictionary<ScenarioCfg> = {};
 
   expect(result).toStrictEqual(expectedPickedScenarios);
 });
