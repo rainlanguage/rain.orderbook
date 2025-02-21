@@ -14,7 +14,7 @@ use rain_orderbook_app_settings::{
 };
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
-    dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
+    dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
@@ -295,8 +295,6 @@ pub enum GuiError {
     SolTypesError(#[from] alloy::sol_types::Error),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
-    #[error(transparent)]
-    DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
     #[error(transparent)]
     YamlError(#[from] YamlError),
 }

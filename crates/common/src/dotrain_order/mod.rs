@@ -15,9 +15,7 @@ use rain_orderbook_app_settings::ParseConfigSourceError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
-
-pub mod calldata;
+use wasm_bindgen_utils::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
