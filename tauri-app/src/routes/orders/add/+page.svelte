@@ -5,15 +5,15 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, Scenario } from '$lib/typeshare/config';
+  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook/js_api';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
-  import type { Config } from '$lib/typeshare/config';
+  import type { Config } from '@rainlanguage/orderbook/js_api';
   import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '$lib/typeshare/config';
+  import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import {
     orderAdd,
@@ -48,7 +48,7 @@
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
 
-  let composedRainlangForScenarios: Map<Scenario, string> = new Map();
+  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
@@ -177,8 +177,8 @@
 
   async function generateRainlangStrings(
     dotrainText: string,
-    scenarios?: Record<string, Scenario>,
-  ): Promise<Map<Scenario, string> | undefined> {
+    scenarios?: Record<string, ScenarioCfg>,
+  ): Promise<Map<ScenarioCfg, string> | undefined> {
     try {
       if (isEmpty(scenarios)) return;
       composedRainlangForScenarios = new Map();

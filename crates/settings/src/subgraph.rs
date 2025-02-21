@@ -8,21 +8,24 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::StrictYaml;
-use typeshare::typeshare;
 use url::{ParseError, Url};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct Subgraph {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SubgraphCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub url: Url,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(SubgraphCfg);
 
-impl Subgraph {
+impl SubgraphCfg {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
@@ -32,7 +35,7 @@ impl Subgraph {
         key: &str,
         value: &str,
     ) -> Result<(), YamlError> {
-        let url = Subgraph::validate_url(value).map_err(|e| YamlError::Field {
+        let url = SubgraphCfg::validate_url(value).map_err(|e| YamlError::Field {
             kind: FieldErrorKind::InvalidValue {
                 field: "url".to_string(),
                 reason: e.to_string(),
@@ -81,7 +84,7 @@ impl Subgraph {
     }
 }
 
-impl YamlParsableHash for Subgraph {
+impl YamlParsableHash for SubgraphCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
@@ -99,15 +102,16 @@ impl YamlParsableHash for Subgraph {
                     let location = format!("subgraph '{}'", subgraph_key);
 
                     let url_str = require_string(subgraph_yaml, None, Some(location.clone()))?;
-                    let url = Subgraph::validate_url(&url_str).map_err(|e| YamlError::Field {
-                        kind: FieldErrorKind::InvalidValue {
-                            field: "url".to_string(),
-                            reason: e.to_string(),
-                        },
-                        location: location.clone(),
-                    })?;
+                    let url =
+                        SubgraphCfg::validate_url(&url_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "url".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                    let subgraph = Subgraph {
+                    let subgraph = SubgraphCfg {
                         document: document.clone(),
                         key: subgraph_key.clone(),
                         url,
@@ -132,7 +136,7 @@ impl YamlParsableHash for Subgraph {
     }
 }
 
-impl Default for Subgraph {
+impl Default for SubgraphCfg {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -142,7 +146,7 @@ impl Default for Subgraph {
     }
 }
 
-impl PartialEq for Subgraph {
+impl PartialEq for SubgraphCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key && self.url == other.url
     }
@@ -158,7 +162,7 @@ mod tests {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -172,7 +176,7 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -189,7 +193,7 @@ subgraphs:
     TestSubgraph:
         - https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -205,7 +209,7 @@ subgraphs:
 subgraphs:
     TestSubgraph: not_a_valid_url
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert!(matches!(
             error,
             YamlError::Field {
@@ -218,7 +222,7 @@ subgraphs:
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let result = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
         assert_eq!(
@@ -239,7 +243,7 @@ subgraphs:
     subgraph-one: https://api.thegraph.com/subgraphs/name/one
     subgraph-two: https://api.thegraph.com/subgraphs/name/two
 "#;
-        let subgraphs = Subgraph::parse_all_from_yaml(
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -275,7 +279,7 @@ subgraphs:
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/mainnet
 "#;
-        let error = Subgraph::parse_all_from_yaml(
+        let error = SubgraphCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )

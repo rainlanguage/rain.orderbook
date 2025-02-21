@@ -1,54 +1,96 @@
 use super::config_source::ConfigSourceError;
 use crate::*;
-use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::{collections::HashMap, sync::RwLock};
 use strict_yaml_rust::StrictYaml;
-use subgraph::Subgraph;
+use subgraph::SubgraphCfg;
 use thiserror::Error;
-use typeshare::typeshare;
 use url::Url;
-
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use wasm_bindgen_utils::{
+    impl_wasm_traits, prelude::*, serialize_hashmap_as_object, serialize_opt_hashmap_as_object,
+};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Config {
-    #[typeshare(typescript(type = "Record<string, Network>"))]
-    pub networks: HashMap<String, Arc<Network>>,
-    #[typeshare(typescript(type = "Record<string, string>"))]
-    pub subgraphs: HashMap<String, Arc<Subgraph>>,
-    #[typeshare(typescript(type = "Record<string, string>"))]
-    pub metaboards: HashMap<String, Arc<Metaboard>>,
-    #[typeshare(typescript(type = "Record<string, Orderbook>"))]
-    pub orderbooks: HashMap<String, Arc<Orderbook>>,
-    #[typeshare(typescript(type = "Record<string, Token>"))]
-    pub tokens: HashMap<String, Arc<Token>>,
-    #[typeshare(typescript(type = "Record<string, Deployer>"))]
-    pub deployers: HashMap<String, Arc<Deployer>>,
-    #[typeshare(typescript(type = "Record<string, Order>"))]
-    pub orders: HashMap<String, Arc<Order>>,
-    #[typeshare(typescript(type = "Record<string, Scenario>"))]
-    pub scenarios: HashMap<String, Arc<Scenario>>,
-    #[typeshare(typescript(type = "Record<string, Chart>"))]
-    pub charts: HashMap<String, Arc<Chart>>,
-    #[typeshare(typescript(type = "Record<string, Deployment>"))]
-    pub deployments: HashMap<String, Arc<Deployment>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, NetworkCfg>")
+    )]
+    pub networks: HashMap<String, Arc<NetworkCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, SubgraphCfg>")
+    )]
+    pub subgraphs: HashMap<String, Arc<SubgraphCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, string>")
+    )]
+    pub metaboards: HashMap<String, Arc<Url>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, OrderbookCfg>")
+    )]
+    pub orderbooks: HashMap<String, Arc<OrderbookCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, TokenCfg>")
+    )]
+    pub tokens: HashMap<String, Arc<TokenCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, DeployerCfg>")
+    )]
+    pub deployers: HashMap<String, Arc<DeployerCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, OrderCfg>")
+    )]
+    pub orders: HashMap<String, Arc<OrderCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, ScenarioCfg>")
+    )]
+    pub scenarios: HashMap<String, Arc<ScenarioCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, ChartCfg>")
+    )]
+    pub charts: HashMap<String, Arc<ChartCfg>>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, DeploymentCfg>")
+    )]
+    pub deployments: HashMap<String, Arc<DeploymentCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub sentry: Option<bool>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub raindex_version: Option<String>,
-    #[typeshare(typescript(type = "Record<string, string>"))]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_opt_hashmap_as_object"),
+        tsify(type = "Record<string, string>", optional)
+    )]
     pub accounts: Option<HashMap<String, Arc<String>>>,
-    pub gui: Option<Gui>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub gui: Option<GuiCfg>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Config);
-
-pub type Metaboard = Url;
-pub type Vault = U256;
+impl_wasm_traits!(Config);
 
 #[derive(Error, Debug)]
 pub enum ParseConfigSourceError {
@@ -91,7 +133,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(network.try_into_network(name.clone())?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Network>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<NetworkCfg>>, ParseConfigSourceError>>()?;
 
         let subgraphs = item
             .subgraphs
@@ -99,20 +141,20 @@ impl TryFrom<ConfigSource> for Config {
             .map(|(name, subgraph)| {
                 Ok((
                     name.clone(),
-                    Arc::new(Subgraph {
+                    Arc::new(SubgraphCfg {
                         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
                         key: name.clone(),
                         url: subgraph.clone(),
                     }),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Subgraph>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<SubgraphCfg>>, ParseConfigSourceError>>()?;
 
         let metaboards = item
             .metaboards
             .into_iter()
             .map(|(name, metaboard)| Ok((name, Arc::new(metaboard))))
-            .collect::<Result<HashMap<String, Arc<Metaboard>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<Url>>, ParseConfigSourceError>>()?;
 
         let orderbooks = item
             .orderbooks
@@ -123,7 +165,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(orderbook.try_into_orderbook(name, &networks, &subgraphs)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Orderbook>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<OrderbookCfg>>, ParseConfigSourceError>>()?;
 
         let tokens = item
             .tokens
@@ -134,7 +176,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(token.try_into_token(&name, &networks)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Token>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<TokenCfg>>, ParseConfigSourceError>>()?;
 
         let deployers = item
             .deployers
@@ -145,7 +187,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(deployer.try_into_deployer(name, &networks)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Deployer>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<DeployerCfg>>, ParseConfigSourceError>>()?;
 
         let orders = item
             .orders
@@ -156,7 +198,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(order.try_into_order(&deployers, &orderbooks, &tokens)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Order>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<OrderCfg>>, ParseConfigSourceError>>()?;
 
         // Initialize an empty HashMap for all scenarios
         let mut scenarios = HashMap::new();
@@ -182,7 +224,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(deployment.try_into_deployment(&scenarios, &orders)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Deployment>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<DeploymentCfg>>, ParseConfigSourceError>>()?;
 
         let charts = item
             .charts
@@ -193,7 +235,7 @@ impl TryFrom<ConfigSource> for Config {
                     Arc::new(chart.try_into_chart(name, &scenarios)?),
                 ))
             })
-            .collect::<Result<HashMap<String, Arc<Chart>>, ParseConfigSourceError>>()?;
+            .collect::<Result<HashMap<String, Arc<ChartCfg>>, ParseConfigSourceError>>()?;
 
         let accounts = item.accounts.map(|wl| {
             wl.into_iter()
@@ -316,7 +358,7 @@ mod tests {
             "name-one".to_string(),
             "address-one".to_string(),
         )]));
-        let gui = Some(GuiConfigSource {
+        let gui = Some(GuiConfigSourceCfg {
             name: "Some name".to_string(),
             description: "Some description".to_string(),
             deployments: HashMap::new(),

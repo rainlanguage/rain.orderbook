@@ -5,7 +5,7 @@
 
 	export let gui: DotrainOrderGui;
 	export let selectTokens: SelectTokens;
-	export let handleUpdateGuiState: (gui: DotrainOrderGui) => void;
+	export let onSelectTokenSelect: () => void;
 </script>
 
 <div class="flex w-full flex-col gap-4">
@@ -14,6 +14,6 @@
 		description="Select the tokens that you want to use in your order."
 	/>
 	{#each selectTokens as token}
-		<SelectToken {token} bind:gui {handleUpdateGuiState} />
+		<SelectToken {token} bind:gui {onSelectTokenSelect} />
 	{/each}
 </div>

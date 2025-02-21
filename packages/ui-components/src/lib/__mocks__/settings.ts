@@ -1,4 +1,4 @@
-import type { ConfigSource } from '../typeshare/config';
+import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
 
 export const mockConfigSource: ConfigSource = {

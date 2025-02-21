@@ -14,11 +14,11 @@ use alloy_ethers_typecast::{
 };
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -28,7 +28,7 @@ pub struct TokenInfo {
     pub symbol: String,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(TokenInfo);
+impl_wasm_traits!(TokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {

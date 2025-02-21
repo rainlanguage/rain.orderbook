@@ -9,7 +9,7 @@
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
-	import type { Trade } from '@rainlanguage/orderbook/js_api';
+	import type { SgTrade } from '@rainlanguage/orderbook/js_api';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
 	export let id: string;
@@ -50,14 +50,19 @@
 			return trades;
 		},
 		initialPageParam: 0,
-		getNextPageParam: (lastPage: Trade[], _allPages: Trade[][], lastPageParam: number) => {
+		getNextPageParam: (lastPage: SgTrade[], _allPages: SgTrade[][], lastPageParam: number) => {
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		enabled: !!subgraphUrl
 	});
 </script>
 
-<TanstackAppTable query={orderTradesQuery} emptyMessage="No trades found" rowHoverable={false}>
+<TanstackAppTable
+	query={orderTradesQuery}
+	emptyMessage="No trades found"
+	rowHoverable={false}
+	queryKey={id}
+>
 	<svelte:fragment slot="info">
 		{#if tradesCount !== undefined}
 			<div class="px-2">{tradesCount} Trades</div>

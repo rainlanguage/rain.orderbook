@@ -1,4 +1,4 @@
-import type { ScenarioWords } from '$lib/typeshare/authoringMeta';
+import type { ScenarioWords } from '@rainlanguage/orderbook/js_api';
 import { invoke } from '@tauri-apps/api';
 
 export const getAuthoringMetaV2ForScenarios = async (

@@ -1,12 +1,12 @@
 import type { LayoutLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import type { NameAndDescription } from '@rainlanguage/orderbook/js_api';
+import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { strategyName } = params;
 	const { registryDotrains, strategyDetails } = await parent();
 
 	let dotrain: string;
-	let strategyDetail: NameAndDescription;
+	let strategyDetail: NameAndDescriptionCfg;
 
 	try {
 		const _dotrain = registryDotrains.find((dotrain) => dotrain.name === strategyName)?.dotrain;

@@ -27,7 +27,12 @@
 	});
 </script>
 
-<TanstackAppTable query={vaultsVol} emptyMessage="No trades found" rowHoverable={false}>
+<TanstackAppTable
+	query={vaultsVol}
+	emptyMessage="No trades found"
+	rowHoverable={false}
+	queryKey={id}
+>
 	<svelte:fragment slot="timeFilter">
 		<TableTimeFilters bind:startTimestamp bind:endTimestamp />
 	</svelte:fragment>

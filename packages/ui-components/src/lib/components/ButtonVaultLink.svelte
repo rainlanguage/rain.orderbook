@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import { bigintStringToHex } from '../utils/hex';
 	import { Tooltip } from 'flowbite-svelte';
 	import { formatUnits } from 'viem';
 
-	export let tokenVault: Vault;
+	export let tokenVault: SgVault;
 	export let subgraphName: string;
 </script>
 

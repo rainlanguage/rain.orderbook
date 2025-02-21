@@ -1,7 +1,7 @@
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 import type { DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
-import type { OrderSubgraph, Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
@@ -13,7 +13,7 @@ export type DeploymentArgs = {
 };
 
 export type DepositOrWithdrawArgs = {
-	vault: Vault;
+	vault: SgVault;
 	onDepositOrWithdraw: () => void;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
@@ -22,8 +22,9 @@ export type DepositOrWithdrawArgs = {
 };
 
 export type OrderRemoveArgs = {
-	order: OrderSubgraph;
+	order: SgOrder;
 	onRemove: () => void;
 	chainId: number;
 	orderbookAddress: Hex;
+	subgraphUrl: string;
 };

@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import Words from './Words.svelte';
-import type { ScenarioWords } from '$lib/typeshare/authoringMeta';
+import type { ScenarioWords } from '@rainlanguage/orderbook/js_api';
 import { expect } from '$lib/test/matchers';
 import userEvent from '@testing-library/user-event';
 
 const authoringMetas: ScenarioWords[] = [
   {
     scenario: 'scenario1',
-    deployer_words: {
+    deployerWords: {
       address: '0x4567',
       words: {
         type: 'Success',
@@ -21,7 +21,7 @@ const authoringMetas: ScenarioWords[] = [
         },
       },
     },
-    pragma_words: [
+    pragmaWords: [
       {
         address: '0x0123',
         words: {
@@ -39,7 +39,7 @@ const authoringMetas: ScenarioWords[] = [
   },
   {
     scenario: 'scenario2',
-    deployer_words: {
+    deployerWords: {
       address: '0x4567',
       words: {
         type: 'Success',
@@ -52,7 +52,7 @@ const authoringMetas: ScenarioWords[] = [
         },
       },
     },
-    pragma_words: [
+    pragmaWords: [
       {
         address: '0x89ab',
         words: {
@@ -133,7 +133,7 @@ test('shows error message when error is present', async () => {
 const authoringMetaWithPragmaError: ScenarioWords[] = [
   {
     scenario: 'scenario1',
-    deployer_words: {
+    deployerWords: {
       address: '0x4567',
       words: {
         type: 'Success',
@@ -146,7 +146,7 @@ const authoringMetaWithPragmaError: ScenarioWords[] = [
         },
       },
     },
-    pragma_words: [
+    pragmaWords: [
       {
         address: '0x0123',
         words: {
@@ -170,14 +170,14 @@ test('shows error message when error is present in pragma', async () => {
 const authoringMetaWithDeployerError: ScenarioWords[] = [
   {
     scenario: 'scenario1',
-    deployer_words: {
+    deployerWords: {
       address: '0x4567',
       words: {
         type: 'Error',
         data: 'Test error',
       },
     },
-    pragma_words: [],
+    pragmaWords: [],
   },
 ];
 

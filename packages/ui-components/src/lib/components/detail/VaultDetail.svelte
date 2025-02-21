@@ -14,15 +14,17 @@
 
 	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
-	import { queryClient } from '../../queries/queryClient';
+	import { useQueryClient } from '@tanstack/svelte-query';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import type { Vault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Config } from 'wagmi';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -32,9 +34,9 @@
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
 	// Tauri App modals
-	export let handleDepositModal: ((vault: Vault, onDeposit: () => void) => void) | undefined =
+	export let handleDepositModal: ((vault: SgVault, onDeposit: () => void) => void) | undefined =
 		undefined;
-	export let handleWithdrawModal: ((vault: Vault, onWithdraw: () => void) => void) | undefined =
+	export let handleWithdrawModal: ((vault: SgVault, onWithdraw: () => void) => void) | undefined =
 		undefined;
 
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
@@ -47,6 +49,7 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const queryClient = useQueryClient();
 
 	$: vaultDetailQuery = createQuery({
 		queryKey: [id, QKEY_VAULT + id],
@@ -84,7 +87,7 @@
 		>
 			{data.token.name}
 		</div>
-		<div>
+		<div class="flex items-center gap-2">
 			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
 				<DepositOrWithdrawButtons
 					vault={data}
@@ -108,6 +111,11 @@
 					><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
 				>
 			{/if}
+
+			<Refresh
+				on:click={async () => await invalidateIdQuery(queryClient, id)}
+				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
+			/>
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="card" let:data>

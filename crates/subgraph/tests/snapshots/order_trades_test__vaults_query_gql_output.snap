@@ -2,7 +2,7 @@
 source: crates/subgraph/tests/order_trades_test.rs
 expression: request_body.query
 ---
-query OrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: BigInt, $timestampLte: BigInt) {
+query SgOrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: BigInt, $timestampLte: BigInt) {
   trades(skip: $skip, first: $first, orderBy: timestamp, orderDirection: desc, where: {order_: {id: $id, }, timestamp_gte: $timestampGte, timestamp_lte: $timestampLte, }) {
     id
     tradeEvent {

@@ -9,27 +9,32 @@ use alloy::primitives::{
 use alloy::sol_types::SolValue;
 use rain_orderbook_bindings::IOrderBookV4::{quoteReturn, OrderV3, Quote, SignedContextV1};
 use rain_orderbook_subgraph_client::{
-    types::{common::Bytes, Id},
+    types::{common::SgBytes, Id},
     utils::make_order_id,
     OrderbookSubgraphClient,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, str::FromStr};
-use typeshare::typeshare;
 use url::Url;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{add_ts_content, impl_wasm_traits, prelude::*};
 
 pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
+#[cfg(target_family = "wasm")]
+add_ts_content!("export type QuoteResult = OrderQuoteValue | string");
 
 /// Holds quoted order max output and ratio
-#[typeshare]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderQuoteValue {
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub max_output: U256,
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub ratio: U256,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderQuoteValue);
 
 impl From<quoteReturn> for OrderQuoteValue {
     fn from(v: quoteReturn) -> Self {
@@ -43,10 +48,14 @@ impl From<quoteReturn> for OrderQuoteValue {
 /// A quote target
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct QuoteTarget {
     pub quote_config: Quote,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub orderbook: Address,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(QuoteTarget);
 
 impl QuoteTarget {
     /// Get the order hash of self
@@ -99,7 +108,11 @@ impl QuoteTarget {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
+
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(BatchQuoteTarget);
 
 impl BatchQuoteTarget {
     /// Quotes the targets in batch on the given rpc url
@@ -118,13 +131,20 @@ impl BatchQuoteTarget {
 /// source (such as subgraph) to build a [QuoteTarget] out of it
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct QuoteSpec {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub order_hash: U256,
+    #[serde(rename = "inputIOIndex")]
     pub input_io_index: u8,
+    #[serde(rename = "outputIOIndex")]
     pub output_io_index: u8,
     pub signed_context: Vec<SignedContextV1>,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub orderbook: Address,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(QuoteSpec);
 
 impl QuoteSpec {
     /// Get subgraph represented "order_id" of self
@@ -187,7 +207,11 @@ impl QuoteSpec {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
+
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(BatchQuoteSpec);
 
 impl BatchQuoteSpec {
     /// Given a subgraph url, will fetch orders details and returns their
@@ -204,7 +228,7 @@ impl BatchQuoteSpec {
             .batch_order_detail(
                 self.0
                     .iter()
-                    .map(|v| Bytes(encode_prefixed(v.get_id())))
+                    .map(|v| SgBytes(encode_prefixed(v.get_id())))
                     .collect(),
             )
             .await?;
@@ -431,7 +455,8 @@ mod tests {
             }],
             "meta": null,
             "timestampAdded": "0",
-            "trades": []
+            "trades": [],
+            "removeEvents": []
         });
         let retrun_sg_data = if batch {
             json!({

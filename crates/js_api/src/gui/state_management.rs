@@ -1,14 +1,14 @@
 use super::*;
-use rain_orderbook_app_settings::token::Token;
+use rain_orderbook_app_settings::token::TokenCfg;
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
-    field_values: BTreeMap<String, GuiPreset>,
-    deposits: BTreeMap<String, GuiPreset>,
-    select_tokens: BTreeMap<String, Token>,
+    field_values: BTreeMap<String, GuiPresetCfg>,
+    deposits: BTreeMap<String, GuiPresetCfg>,
+    select_tokens: BTreeMap<String, TokenCfg>,
     vault_ids: BTreeMap<(bool, u8), Option<String>>,
     dotrain_hash: String,
     selected_deployment: String,
@@ -22,15 +22,15 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(hash))
     }
 
-    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPreset {
+    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPresetCfg {
         if value.is_preset {
-            GuiPreset {
+            GuiPresetCfg {
                 id: value.value.clone(),
                 name: None,
                 value: default_value,
             }
         } else {
-            GuiPreset {
+            GuiPresetCfg {
                 id: "".to_string(),
                 name: None,
                 value: value.value.clone(),
@@ -38,7 +38,7 @@ impl DotrainOrderGui {
         }
     }
 
-    fn preset_to_pair_value(preset: GuiPreset) -> field_values::PairValue {
+    fn preset_to_pair_value(preset: GuiPresetCfg) -> field_values::PairValue {
         if preset.id != "" {
             field_values::PairValue {
                 is_preset: true,
@@ -58,7 +58,7 @@ impl DotrainOrderGui {
         is_input: bool,
     ) -> Result<BTreeMap<(bool, u8), Option<String>>, GuiError> {
         let mut vault_ids = BTreeMap::new();
-        for (i, vault_id) in Order::parse_vault_ids(documents, order_key, is_input)?
+        for (i, vault_id) in OrderCfg::parse_vault_ids(documents, order_key, is_input)?
             .iter()
             .enumerate()
         {
@@ -75,7 +75,7 @@ impl DotrainOrderGui {
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
-                let presets = Gui::parse_field_presets(
+                let presets = GuiCfg::parse_field_presets(
                     self.dotrain_order.dotrain_yaml().documents.clone(),
                     &self.selected_deployment,
                     k,
@@ -98,8 +98,8 @@ impl DotrainOrderGui {
             deposits.insert(k.clone(), preset);
         }
 
-        let mut select_tokens: BTreeMap<String, Token> = BTreeMap::new();
-        if let Some(st) = Gui::parse_select_tokens(
+        let mut select_tokens: BTreeMap<String, TokenCfg> = BTreeMap::new();
+        if let Some(st) = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )? {
@@ -114,7 +114,7 @@ impl DotrainOrderGui {
             }
         }
 
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )?;
@@ -151,6 +151,7 @@ impl DotrainOrderGui {
     pub async fn deserialize_state(
         dotrain: String,
         serialized: String,
+        state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
@@ -183,9 +184,10 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            state_update_callback,
         };
 
-        let deployment_select_tokens = Gui::parse_select_tokens(
+        let deployment_select_tokens = GuiCfg::parse_select_tokens(
             dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
@@ -197,12 +199,12 @@ impl DotrainOrderGui {
                 return Err(GuiError::TokenNotInSelectTokens(key));
             }
             if dotrain_order_gui.is_select_token_set(key.clone())? {
-                Token::remove_record_from_yaml(
+                TokenCfg::remove_record_from_yaml(
                     dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                     &key,
                 )?;
             }
-            Token::add_record_to_yaml(
+            TokenCfg::add_record_to_yaml(
                 dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
                 &key,
                 &token.network.key,
@@ -213,7 +215,7 @@ impl DotrainOrderGui {
             )?;
         }
 
-        let order_key = Deployment::parse_order_key(
+        let order_key = DeploymentCfg::parse_order_key(
             dotrain_order_gui.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
@@ -250,5 +252,16 @@ impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "isDepositPreset")]
     pub fn is_deposit_preset(&self, token: String) -> Option<bool> {
         self.is_preset(token, &self.deposits)
+    }
+
+    #[wasm_bindgen(js_name = "executeStateUpdateCallback")]
+    pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
+        if let Some(callback) = &self.state_update_callback {
+            let state = to_js_value(&self.serialize_state()?)?;
+            callback.call1(&JsValue::UNDEFINED, &state).map_err(|e| {
+                GuiError::JsError(format!("Failed to execute state update callback: {:?}", e))
+            })?;
+        }
+        Ok(())
     }
 }

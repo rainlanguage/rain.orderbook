@@ -66,7 +66,11 @@ export { default as DisclaimerModal } from './components/deployment/DisclaimerMo
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
+export type {
+	ConfigSource,
+	OrderbookConfigSource,
+	OrderbookCfgRef
+} from '@rainlanguage/orderbook/js_api';
 export {
 	TransactionStatus,
 	TransactionErrorMessage,

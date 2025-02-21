@@ -7,25 +7,25 @@ use super::FlattenError;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VaultBalanceChangeFlattened {
-    pub timestamp: BigInt,
+    pub timestamp: SgBigInt,
     pub timestamp_display: String,
-    pub from: Bytes,
-    pub amount: BigInt,
+    pub from: SgBytes,
+    pub amount: SgBigInt,
     pub amount_display_signed: String,
     pub change_type_display: String,
-    pub balance: BigInt,
+    pub balance: SgBigInt,
 }
 
-impl TryFrom<VaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
+impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
     type Error = FlattenError;
 
-    fn try_from(val: VaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
+    fn try_from(val: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         let amount_display_signed = format_units(
             val.amount.0.parse::<I256>()?,
             val.vault
                 .token
                 .decimals
-                .unwrap_or(BigInt("0".into()))
+                .unwrap_or(SgBigInt("0".into()))
                 .0
                 .parse::<u8>()?,
         )?;

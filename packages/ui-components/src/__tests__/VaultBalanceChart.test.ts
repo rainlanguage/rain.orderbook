@@ -2,7 +2,7 @@ import { render } from '@testing-library/svelte';
 import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChart from '../lib/components/charts/VaultBalanceChart.svelte';
-import type { Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook/js_api';
 import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
 import type { ComponentProps } from 'svelte';
@@ -18,7 +18,7 @@ vi.mock('../lib/components/charts/TanstackLightweightChartLine.svelte', async ()
 	return { default: MockLightweightChart };
 });
 
-const mockVault: Vault = {
+const mockVault: SgVault = {
 	id: 'vault1',
 	vaultId: 'vault1',
 	token: {

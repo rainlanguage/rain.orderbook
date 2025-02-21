@@ -1,4 +1,4 @@
-import type { RainEvalResultsTable } from '$lib/typeshare/config';
+import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
@@ -10,7 +10,7 @@ export const tradeDebug = async (txHash: string, rpcUrl: string) => {
 };
 
 export const mockTradeDebug: RainEvalResultsTable = {
-  column_names: ['1', '2', '3'],
+  columnNames: ['1', '2', '3'],
   rows: [['0x01', '0x02', '0x03']],
 };
 

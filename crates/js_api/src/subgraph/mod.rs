@@ -2,10 +2,11 @@ use alloy::{hex::FromHexError, primitives::ruint::ParseError};
 use rain_orderbook_common::{deposit::DepositError, transaction::WritableTransactionExecuteError};
 use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use thiserror::Error;
-use wasm_bindgen::{JsError, JsValue};
+use wasm_bindgen_utils::prelude::*;
 
 pub mod add_order;
 pub mod order;
+pub mod remove_order;
 pub mod transaction;
 pub mod vault;
 

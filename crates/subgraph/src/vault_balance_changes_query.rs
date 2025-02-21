@@ -1,7 +1,7 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
 use crate::pagination::{PageQueryClient, PageQueryVariables};
 use crate::types::common::*;
-use crate::types::vault::VaultBalanceChangesListQuery;
+use crate::types::vault::SgVaultBalanceChangesListQuery;
 use chrono::DateTime;
 use reqwest::Url;
 use std::cmp::Reverse;
@@ -22,24 +22,26 @@ impl CynicClient for VaultBalanceChangesListPageQueryClient {
     }
 }
 
-impl PageQueryClient<VaultBalanceChangeUnwrapped, PaginationWithIdQueryVariables>
+impl PageQueryClient<SgVaultBalanceChangeUnwrapped, SgPaginationWithIdQueryVariables>
     for VaultBalanceChangesListPageQueryClient
 {
     async fn query_page(
         &self,
-        variables: PaginationWithIdQueryVariables,
-    ) -> Result<Vec<VaultBalanceChangeUnwrapped>, CynicClientError> {
-        let res: Result<VaultBalanceChangesListQuery, CynicClientError> = self
-            .query::<VaultBalanceChangesListQuery, PaginationWithIdQueryVariables>(variables)
+        variables: SgPaginationWithIdQueryVariables,
+    ) -> Result<Vec<SgVaultBalanceChangeUnwrapped>, CynicClientError> {
+        let res: Result<SgVaultBalanceChangesListQuery, CynicClientError> = self
+            .query::<SgVaultBalanceChangesListQuery, SgPaginationWithIdQueryVariables>(variables)
             .await;
 
-        let list: Vec<VaultBalanceChangeUnwrapped> = res?.vault_balance_changes;
+        let list: Vec<SgVaultBalanceChangeUnwrapped> = res?.vault_balance_changes;
 
         Ok(list)
     }
 
     /// Sort by timestamp, descending
-    fn sort_results(results: Vec<VaultBalanceChangeUnwrapped>) -> Vec<VaultBalanceChangeUnwrapped> {
+    fn sort_results(
+        results: Vec<SgVaultBalanceChangeUnwrapped>,
+    ) -> Vec<SgVaultBalanceChangeUnwrapped> {
         let mut sorted_results = results.clone();
         sorted_results.sort_by_key(|r| {
             Reverse(DateTime::from_timestamp(
@@ -52,7 +54,7 @@ impl PageQueryClient<VaultBalanceChangeUnwrapped, PaginationWithIdQueryVariables
     }
 }
 
-impl PageQueryVariables for PaginationWithIdQueryVariables {
+impl PageQueryVariables for SgPaginationWithIdQueryVariables {
     fn with_pagination(&self, skip: Option<i32>, first: Option<i32>) -> Self {
         Self {
             skip,

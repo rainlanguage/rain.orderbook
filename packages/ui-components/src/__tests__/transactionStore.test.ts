@@ -5,7 +5,11 @@ import transactionStore, {
 	TransactionErrorMessage
 } from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, getTransactionAddOrders } from '@rainlanguage/orderbook/js_api';
+import {
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders
+} from '@rainlanguage/orderbook/js_api';
 import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({
@@ -16,7 +20,8 @@ vi.mock('@wagmi/core', () => ({
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getTransaction: vi.fn(),
-	getTransactionAddOrders: vi.fn()
+	getTransactionAddOrders: vi.fn(),
+	getTransactionRemoveOrders: vi.fn()
 }));
 
 describe('transactionStore', () => {
@@ -32,7 +37,8 @@ describe('transactionStore', () => {
 		transactionSuccess,
 		transactionError,
 		awaitTransactionIndexing,
-		awaitNewOrderIndexing
+		awaitNewOrderIndexing,
+		awaitRemoveOrderIndexing
 	} = transactionStore;
 
 	beforeEach(() => {
@@ -326,7 +332,55 @@ describe('transactionStore', () => {
 		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
-		expect(get(transactionStore).message).toBe('Waiting for new Order to be indexed...');
+		expect(get(transactionStore).message).toBe('Waiting for new order to be indexed...');
+
+		await vi.advanceTimersByTime(10000);
+		await indexingPromise;
+
+		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).message).toBe(
+			'The subgraph took too long to respond. Please check again later.'
+		);
+		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
+
+		vi.useRealTimers();
+	});
+
+	it('should handle successful remove order indexing', async () => {
+		const mockSubgraphUrl = 'test.com';
+		const mockTxHash = 'mockHash';
+
+		(getTransactionRemoveOrders as Mock).mockResolvedValue([
+			{
+				order: {
+					id: 'removedOrder123'
+				}
+			}
+		]);
+
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+
+		await awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash);
+
+		vi.runOnlyPendingTimers();
+
+		await waitFor(() => {
+			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+			expect(get(transactionStore).hash).toBe(mockTxHash);
+		});
+	});
+
+	it('should handle remove order indexing timeout', async () => {
+		vi.useFakeTimers();
+		const mockSubgraphUrl = 'test.com';
+		const mockTxHash = 'mockHash';
+
+		(getTransactionRemoveOrders as Mock).mockResolvedValue([]);
+
+		const indexingPromise = awaitRemoveOrderIndexing(mockSubgraphUrl, mockTxHash);
+
+		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(get(transactionStore).message).toBe('Waiting for order removal to be indexed...');
 
 		await vi.advanceTimersByTime(10000);
 		await indexingPromise;
