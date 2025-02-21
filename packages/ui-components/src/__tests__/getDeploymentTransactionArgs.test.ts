@@ -50,12 +50,6 @@ describe('getDeploymentTransactionArgs', () => {
 	});
 
 	describe('input validation errors', () => {
-		it('should throw MISSING_GUI when GUI is null', async () => {
-			await expect(getDeploymentTransactionArgs(null, mockWagmiConfig)).rejects.toThrow(
-				AddOrderErrors.MISSING_GUI
-			);
-		});
-
 		it('should throw MISSING_CONFIG when wagmiConfig is undefined', async () => {
 			await expect(getDeploymentTransactionArgs(mockGui, undefined)).rejects.toThrow(
 				AddOrderErrors.MISSING_CONFIG

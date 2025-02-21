@@ -14,11 +14,10 @@ import {
 	getQuoteTargetFromSubgraph,
 	getOrderQuote
 } from '../../dist/cjs/quote';
-import { OrderSubgraph } from '../../dist/types/js_api';
 
 describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 	const mockServer = getLocal();
-	beforeEach(() => mockServer.start(8081));
+	beforeEach(() => mockServer.start(8023));
 	afterEach(() => mockServer.stop());
 
 	it('should get correct id', async () => {
@@ -277,7 +276,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			},
 			trades: [],
 			removeEvents: []
-		} as unknown as OrderSubgraph;
+		} as unknown as SgOrder;
 		const result = await getOrderQuote([order], mockServer.url + '/rpc-url');
 		const expected: BatchOrderQuotesResponse[] = [
 			{

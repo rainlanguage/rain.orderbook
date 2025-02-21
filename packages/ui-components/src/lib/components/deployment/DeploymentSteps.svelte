@@ -14,7 +14,6 @@
 		type NameAndDescriptionCfg,
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
-		type SelectTokens,
 		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
@@ -22,8 +21,6 @@
 	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
@@ -31,61 +28,39 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 
+	interface Deployment {
+		key: string;
+		name: string;
+		description: string;
+	}
+
 	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
-	export let deployment: GuiDeploymentCfg;
+	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-
+	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
-	export let pushGuiStateToUrlHistory: (serializedState: string) => void;
 
-	let selectTokens: SelectTokens | null = null;
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
 	let allFieldDefinitions: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
-	let gui: DotrainOrderGui | null = null;
 	let checkingDeployment: boolean = false;
-	let networkKey: string | null = null;
-	let subgraphUrl: string = '';
 	let allTokenInfos: AllTokenInfos = [];
+
+	const selectTokens = gui.getSelectTokens();
+	const networkKey = gui.getNetworkKey();
+	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let stateFromUrl: string | null = null;
-	$: if (deployment) {
-		handleDeploymentChange(deployment.key);
-	}
-
-	async function handleDeploymentChange(deployment: string) {
-		if (!deployment || !dotrain) return;
-		DeploymentStepsError.clear();
-
-		try {
-			gui = await DotrainOrderGui.chooseDeployment(dotrain, deployment, pushGuiStateToUrlHistory);
-
-			if (gui) {
-				networkKey = await gui.getNetworkKey();
-				subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
-				try {
-					selectTokens = gui.getSelectTokens();
-					return selectTokens;
-				} catch (e) {
-					DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
-				}
-			}
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
-		}
-	}
 
 	function getAllFieldDefinitions() {
-		if (!gui) return;
 		try {
 			allFieldDefinitions = gui.getAllFieldDefinitions();
 		} catch (e) {
@@ -94,7 +69,6 @@
 	}
 
 	async function getAllDepositFields() {
-		if (!gui) return;
 		try {
 			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
 			let depositFields: GuiDepositCfg[] = dep.deposits;
@@ -107,8 +81,6 @@
 
 	let allTokenInputs: OrderIOCfg[] = [];
 	function getAllTokenInputs() {
-		if (!gui) return;
-
 		try {
 			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
 		} catch (e) {
@@ -117,7 +89,6 @@
 	}
 
 	function getAllTokenOutputs() {
-		if (!gui) return;
 		try {
 			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
 		} catch (e) {
@@ -143,31 +114,10 @@
 	}
 
 	async function _handleShareChoices() {
-		if (!gui) return;
 		await handleShareChoices(gui);
 	}
 
-	onMount(async () => {
-		if ($page.url.searchParams) {
-			if (stateFromUrl) {
-				await handleGetStateFromUrl();
-			}
-		}
-	});
-
-	async function handleGetStateFromUrl() {
-		if (!$page.url.searchParams.get('state')) return;
-		gui = await DotrainOrderGui.deserializeState(
-			dotrain,
-			$page.url.searchParams.get('state') || '',
-			pushGuiStateToUrlHistory
-		);
-		areAllTokensSelected();
-	}
-
 	async function onSelectTokenSelect() {
-		if (!gui) return;
-
 		await areAllTokensSelected();
 
 		if (allTokensSelected) {
@@ -183,10 +133,6 @@
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
 
-		if (!gui) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_GUI);
-			return;
-		}
 		if (!allTokenOutputs) {
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 			return;
@@ -202,24 +148,19 @@
 		}
 
 		let result: HandleAddOrderResult | null = null;
-
 		checkingDeployment = true;
-
 		try {
 			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
 		} catch (e) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		}
-
 		if (!result) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 			return;
 		}
-
 		checkingDeployment = false;
-
 		const onAccept = () => {
 			if (!networkKey) {
 				DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
@@ -243,22 +184,20 @@
 	}
 
 	const areAllTokensSelected = async () => {
-		if (gui) {
-			try {
-				allTokensSelected = gui.areAllTokensSelected();
-				if (!allTokensSelected) return;
+		try {
+			allTokensSelected = gui.areAllTokensSelected();
+			if (!allTokensSelected) return;
 
-				allTokenInfos = await gui.getAllTokenInfos();
+			allTokenInfos = await gui.getAllTokenInfos();
 
-				// if we have deposits or vault ids set, show advanced options
-				const hasDeposits = gui.hasAnyDeposit();
-				const hasVaultIds = gui.hasAnyVaultId();
-				if (hasDeposits || hasVaultIds) {
-					showAdvancedOptions = true;
-				}
-			} catch (e) {
-				DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
+			// if we have deposits or vault ids set, show advanced options
+			const hasDeposits = gui.hasAnyDeposit();
+			const hasVaultIds = gui.hasAnyVaultId();
+			if (hasDeposits || hasVaultIds) {
+				showAdvancedOptions = true;
 			}
+		} catch (e) {
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 		}
 	};
 </script>

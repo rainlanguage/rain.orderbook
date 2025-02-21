@@ -11,7 +11,6 @@
 	let open = false;
 
 	async function generateRainlang() {
-		if (!gui) return;
 		const rainlang = await gui.getComposedRainlang();
 		if (rainlang) {
 			rainlangText = rainlang;

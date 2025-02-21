@@ -18,7 +18,6 @@
 	let error: string = '';
 
 	onMount(() => {
-		if (!gui) return;
 		const vaultIds = gui.getVaultIds();
 		if (label === 'Input') {
 			inputValue = vaultIds.get('input')?.[i] as unknown as string;

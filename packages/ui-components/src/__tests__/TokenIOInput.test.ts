@@ -93,19 +93,6 @@ describe('TokenInput', () => {
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
-	it('does not call setVaultId when gui is undefined', async () => {
-		const propsWithoutGui = {
-			...mockProps,
-			gui: undefined
-		} as unknown as TokenIOInputComponentProps;
-		const { getByPlaceholderText } = render(TokenIOInput, propsWithoutGui);
-		const input = getByPlaceholderText('Enter vault ID');
-
-		await fireEvent.change(input, { target: { value: 'newVault' } });
-
-		expect(mockGui.setVaultId).not.toHaveBeenCalled();
-	});
-
 	it('handles missing token info gracefully', () => {
 		const propsWithUnknownToken = {
 			...mockProps,

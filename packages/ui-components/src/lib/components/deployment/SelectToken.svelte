@@ -43,7 +43,6 @@
 		const currentTarget = event.currentTarget;
 		if (currentTarget instanceof HTMLInputElement) {
 			inputValue = currentTarget.value;
-			if (!gui) return;
 			if (!inputValue) {
 				error = '';
 			}
