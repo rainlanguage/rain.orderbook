@@ -44,7 +44,8 @@
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
-	let allFieldDefinitions: GuiFieldDefinitionCfg[] = [];
+	let allFieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
+	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let checkingDeployment: boolean = false;
@@ -62,7 +63,8 @@
 
 	function getAllFieldDefinitions() {
 		try {
-			allFieldDefinitions = gui.getAllFieldDefinitions();
+			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
+			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
@@ -230,11 +232,18 @@
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
-					{#if allFieldDefinitions.length > 0}
-						<FieldDefinitionsSection {allFieldDefinitions} {gui} />
+					{#if allFieldDefinitionsWithoutDefaults.length > 0}
+						<FieldDefinitionsSection
+							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
+							{gui}
+						/>
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
+						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+					{/if}
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
 						<DepositsSection bind:allDepositFields {gui} />
