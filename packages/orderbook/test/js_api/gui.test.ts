@@ -720,6 +720,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should throw error during get if field binding is not found', () => {
 			expect(() => gui.getFieldValue('binding-3')).toThrow('Field binding not found: binding-3');
 		});
+
+		it('should correctly filter field definitions', async () => {
+			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
+			assert.equal(allFieldDefinitions.length, 2);
+
+			const fieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] =
+				gui.getAllFieldDefinitions(false);
+			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-1');
+
+			const fieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] =
+				gui.getAllFieldDefinitions(true);
+			assert.equal(fieldDefinitionsWithDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-2');
+		});
 	});
 
 	describe('field definition tests', async () => {
