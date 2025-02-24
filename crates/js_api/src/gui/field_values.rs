@@ -129,12 +129,25 @@ impl DotrainOrderGui {
         Ok(field_definitions)
     }
 
-    pub fn check_field_values(&self) -> Result<(), GuiError> {
+    pub fn check_field_values(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
 
         for field in deployment.fields.iter() {
-            if !self.field_values.contains_key(&field.binding) {
-                return Err(GuiError::FieldValueNotSet(field.name.clone()));
+            if self.field_values.contains_key(&field.binding) {
+                continue;
+            }
+
+            match &field.default {
+                Some(default_value) => {
+                    self.save_field_value(
+                        field.binding.clone(),
+                        PairValue {
+                            is_preset: false,
+                            value: default_value.clone(),
+                        },
+                    )?;
+                }
+                None => return Err(GuiError::FieldValueNotSet(field.name.clone())),
             }
         }
         Ok(())

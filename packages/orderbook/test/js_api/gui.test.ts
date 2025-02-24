@@ -105,6 +105,7 @@ gui:
           description: Test binding description
           presets:
             - value: "0xbeef"
+          default: 10
 `;
 const guiConfig3 = `
 gui:
@@ -1084,6 +1085,40 @@ ${dotrainWithoutVaultIds}
 			});
 		});
 
+		it('generates add order calldata without entering field value', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			// iStore() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			// iParser() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			// parse2() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				// 0x1234 encoded bytes
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			const addOrderCalldata: AddOrderCalldataResult = await gui.generateAddOrderCalldata();
+			assert.equal(addOrderCalldata.length, 2314);
+
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '10',
+				'another-binding': '300'
+			});
+		});
+
 		it('should generate multicalldata for deposit and add order with existing vault ids', async () => {
 			await mockServer
 				.forPost('/rpc-url')
@@ -1123,6 +1158,44 @@ ${dotrainWithoutVaultIds}
 			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '0xbeef',
+				'another-binding': '300'
+			});
+		});
+
+		it('should generate multicalldata for deposit and add order with missing field value', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			// iStore() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			// iParser() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			// parse2() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				// 0x1234 encoded bytes
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			gui.saveDeposit('token1', '1000');
+			gui.saveDeposit('token2', '5000');
+
+			const calldata: DepositAndAddOrderCalldataResult =
+				await gui.generateDepositAndAddOrderCalldatas();
+			assert.equal(calldata.length, 3146);
+
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '10',
 				'another-binding': '300'
 			});
 		});
@@ -1225,7 +1298,31 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			let testDotrain = `${guiConfig2}
+			let guiConfig = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    other-deployment:
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "0xbeef"
+`;
+			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutVaultIds}`;
 			let gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');
