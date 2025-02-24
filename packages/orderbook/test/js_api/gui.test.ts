@@ -12,6 +12,8 @@ import {
 	DepositAndAddOrderCalldataResult,
 	GuiCfg,
 	GuiDeploymentCfg,
+	GuiFieldDefinitionCfg,
+	GuiPresetCfg,
 	IOVaultIds,
 	NameAndDescriptionCfg,
 	TokenDeposit,
@@ -49,6 +51,7 @@ gui:
               value: "false"
             - name: Preset 3
               value: "some-string"
+          default: some-default-value
         - binding: binding-2
           name: Field 2 name
           description: Field 2 description
@@ -102,6 +105,7 @@ gui:
           description: Test binding description
           presets:
             - value: "0xbeef"
+          default: 10
 `;
 const guiConfig3 = `
 gui:
@@ -717,6 +721,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should throw error during get if field binding is not found', () => {
 			expect(() => gui.getFieldValue('binding-3')).toThrow('Field binding not found: binding-3');
 		});
+
+		it('should correctly filter field definitions', async () => {
+			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
+			assert.equal(allFieldDefinitions.length, 2);
+
+			const fieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] =
+				gui.getAllFieldDefinitions(true);
+			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-1');
+
+			const fieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] =
+				gui.getAllFieldDefinitions(false);
+			assert.equal(fieldDefinitionsWithDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-2');
+		});
 	});
 
 	describe('field definition tests', async () => {
@@ -732,28 +751,29 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should get field definition', async () => {
-			const allFieldDefinitions = gui.getAllFieldDefinitions();
+			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinition = gui.getFieldDefinition('binding-1');
+			const fieldDefinition: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-1');
 			assert.equal(fieldDefinition.name, 'Field 1 name');
 			assert.equal(fieldDefinition.description, 'Field 1 description');
-			assert.equal(fieldDefinition.presets.length, 3);
+			assert.equal(fieldDefinition.presets?.length, 3);
+			assert.equal(fieldDefinition.default, 'some-default-value');
 
-			const preset1 = fieldDefinition.presets[0];
-			assert.equal(preset1.name, 'Preset 1');
-			assert.equal(preset1.value, '0x1234567890abcdef1234567890abcdef12345678');
-			const preset2 = fieldDefinition.presets[1];
-			assert.equal(preset2.name, 'Preset 2');
-			assert.equal(preset2.value, 'false');
-			const preset3 = fieldDefinition.presets[2];
-			assert.equal(preset3.name, 'Preset 3');
-			assert.equal(preset3.value, 'some-string');
+			let presets = fieldDefinition.presets as GuiPresetCfg[];
+			assert.equal(presets[0].name, 'Preset 1');
+			assert.equal(presets[0].value, '0x1234567890abcdef1234567890abcdef12345678');
+			assert.equal(presets[1].name, 'Preset 2');
+			assert.equal(presets[1].value, 'false');
+			assert.equal(presets[2].name, 'Preset 3');
+			assert.equal(presets[2].value, 'some-string');
 
-			const fieldDefinition2 = gui.getFieldDefinition('binding-2');
-			assert.equal(fieldDefinition2.presets[0].value, '99.2');
-			assert.equal(fieldDefinition2.presets[1].value, '582.1');
-			assert.equal(fieldDefinition2.presets[2].value, '648.239');
+			const fieldDefinition2: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-2');
+			presets = fieldDefinition2.presets as GuiPresetCfg[];
+			assert.equal(presets[0].value, '99.2');
+			assert.equal(presets[1].value, '582.1');
+			assert.equal(presets[2].value, '648.239');
+			assert.equal(fieldDefinition2.default, undefined);
 		});
 
 		it('should throw error during get if field binding is not found', () => {
@@ -1065,6 +1085,40 @@ ${dotrainWithoutVaultIds}
 			});
 		});
 
+		it('generates add order calldata without entering field value', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			// iStore() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			// iParser() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			// parse2() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				// 0x1234 encoded bytes
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			const addOrderCalldata: AddOrderCalldataResult = await gui.generateAddOrderCalldata();
+			assert.equal(addOrderCalldata.length, 2314);
+
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '10',
+				'another-binding': '300'
+			});
+		});
+
 		it('should generate multicalldata for deposit and add order with existing vault ids', async () => {
 			await mockServer
 				.forPost('/rpc-url')
@@ -1104,6 +1158,44 @@ ${dotrainWithoutVaultIds}
 			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '0xbeef',
+				'another-binding': '300'
+			});
+		});
+
+		it('should generate multicalldata for deposit and add order with missing field value', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xf0cfdd37')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
+			// iStore() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xc19423bc')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
+			// iParser() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x24376855')
+				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
+			// parse2() call
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xa3869e14')
+				// 0x1234 encoded bytes
+				.thenSendJsonRpcResult(
+					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			gui.saveDeposit('token1', '1000');
+			gui.saveDeposit('token2', '5000');
+
+			const calldata: DepositAndAddOrderCalldataResult =
+				await gui.generateDepositAndAddOrderCalldatas();
+			assert.equal(calldata.length, 3146);
+
+			const currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
+				'test-binding': '10',
 				'another-binding': '300'
 			});
 		});
@@ -1206,7 +1298,31 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			let testDotrain = `${guiConfig2}
+			let guiConfig = `
+gui:
+  name: Test test
+  description: Test test test
+  deployments:
+    other-deployment:
+      name: Test test
+      description: Test test test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "0xbeef"
+`;
+			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutVaultIds}`;
 			let gui = await DotrainOrderGui.chooseDeployment(testDotrain, 'other-deployment');

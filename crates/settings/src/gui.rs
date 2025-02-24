@@ -49,6 +49,8 @@ pub struct GuiFieldDefinitionSourceCfg {
     pub description: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<GuiPresetSourceCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub default: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -136,6 +138,7 @@ impl GuiConfigSourceCfg {
                                         .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()
                                 })
                                 .transpose()?,
+                            default: field_source.default.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -247,6 +250,8 @@ pub struct GuiFieldDefinitionCfg {
     pub description: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<GuiPresetCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub default: Option<String>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(GuiFieldDefinitionCfg);
@@ -757,11 +762,14 @@ impl YamlParseableValue for GuiCfg {
                             None => None,
                         };
 
+                        let default = optional_string(field_yaml, "default");
+
                         let gui_field_definition = GuiFieldDefinitionCfg {
                             binding,
                             name: interpolated_name,
                             description: interpolated_description,
-                            presets
+                            presets,
+                            default
                         };
                         Ok(gui_field_definition)
                     })
@@ -834,6 +842,7 @@ mod tests {
                                     value: "0.3".to_string(),
                                 },
                             ]),
+                            default: None,
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-2".to_string(),
@@ -849,6 +858,7 @@ mod tests {
                                     value: "4.8".to_string(),
                                 },
                             ]),
+                            default: Some("0.015".to_string()),
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-3".to_string(),
@@ -868,6 +878,7 @@ mod tests {
                                     value: "true".to_string(),
                                 },
                             ]),
+                            default: Some("0.25".to_string()),
                         },
                     ],
                     select_tokens: Some(vec![GuiSelectTokensCfg {
@@ -929,6 +940,7 @@ mod tests {
         assert_eq!(field1.binding, "test-binding");
         assert_eq!(field1.name, "test-name");
         assert_eq!(field1.description, Some("test-description".to_string()));
+        assert_eq!(field1.default, None);
         let presets = field1.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, Some("test-preset".to_string()));
@@ -939,6 +951,7 @@ mod tests {
         assert_eq!(field2.binding, "test-binding-2");
         assert_eq!(field2.name, "test-name-2");
         assert_eq!(field2.description, Some("test-description-2".to_string()));
+        assert_eq!(field2.default, Some("0.015".to_string()));
         let presets = field2.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, None);
@@ -948,6 +961,7 @@ mod tests {
         assert_eq!(field3.binding, "test-binding-3");
         assert_eq!(field3.name, "test-name-3");
         assert_eq!(field3.description, Some("test-description-3".to_string()));
+        assert_eq!(field3.default, Some("0.25".to_string()));
         let presets = field3.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 3);
         assert_eq!(presets[0].value, Address::default().to_string());

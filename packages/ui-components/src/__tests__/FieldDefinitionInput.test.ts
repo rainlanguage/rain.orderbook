@@ -2,6 +2,7 @@ import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: vi.fn().mockImplementation(() => ({
@@ -108,5 +109,24 @@ describe('FieldDefinitionInput', () => {
 		});
 
 		expect(queryByText('Custom')).toBeNull();
+	});
+
+	it('renders default value if it exists', async () => {
+		const { getByPlaceholderText } = render(FieldDefinitionInput, {
+			props: {
+				fieldDefinition: { ...mockFieldDefinition, default: 'default value' },
+				gui: mockGui
+			}
+		});
+
+		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
+		expect(input.value).toBe('default value');
+
+		await userEvent.type(input, '@');
+
+		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+			isPreset: false,
+			value: 'default value@'
+		});
 	});
 });
