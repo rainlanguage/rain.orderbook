@@ -2,7 +2,7 @@ use crate::{yaml::FieldErrorKind, *};
 use alloy::primitives::{private::rand, U256};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     str::FromStr,
     sync::{Arc, RwLock},
 };
@@ -433,6 +433,41 @@ impl OrderCfg {
         }
 
         Ok(vault_ids)
+    }
+
+    pub fn parse_io_token_keys(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+    ) -> Result<Vec<String>, YamlError> {
+        let mut token_keys = BTreeSet::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
+                if let Some(order_yaml) =
+                    orders_hash.get(&StrictYaml::String(order_key.to_string()))
+                {
+                    let location = format!("order '{}'", order_key);
+
+                    let inputs = require_vec(order_yaml, "inputs", Some(location.clone()))?;
+                    let outputs = require_vec(order_yaml, "outputs", Some(location.clone()))?;
+
+                    for input in inputs {
+                        let token_key =
+                            require_string(input, Some("token"), Some(location.clone()))?;
+                        token_keys.insert(token_key);
+                    }
+                    for output in outputs {
+                        let token_key =
+                            require_string(output, Some("token"), Some(location.clone()))?;
+                        token_keys.insert(token_key);
+                    }
+                }
+            }
+        }
+
+        Ok(token_keys.into_iter().collect())
     }
 }
 

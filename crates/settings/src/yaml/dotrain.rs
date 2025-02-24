@@ -320,6 +320,11 @@ mod tests {
             OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, false).unwrap();
         assert_eq!(output_vault_ids.len(), 1);
         assert_eq!(output_vault_ids[0], Some("2".to_string()));
+        let io_token_keys =
+            OrderCfg::parse_io_token_keys(dotrain_yaml.documents.clone(), &order.key).unwrap();
+        assert_eq!(io_token_keys.len(), 2);
+        assert_eq!(io_token_keys[0], "token1");
+        assert_eq!(io_token_keys[1], "token2");
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
         assert_eq!(scenario_keys.len(), 3);
