@@ -160,9 +160,28 @@ impl DotrainOrderGui {
 
     #[wasm_bindgen(js_name = "getAllTokenInfos")]
     pub async fn get_all_token_infos(&self) -> Result<AllTokenInfos, GuiError> {
-        let token_infos = self.dotrain_order.orderbook_yaml().get_token_keys()?;
+        let select_tokens = self.get_select_tokens()?;
+
+        let token_keys = match select_tokens.0.is_empty() {
+            true => {
+                let order_key = DeploymentCfg::parse_order_key(
+                    self.dotrain_order.dotrain_yaml().documents,
+                    &self.selected_deployment,
+                )?;
+                OrderCfg::parse_io_token_keys(
+                    self.dotrain_order.dotrain_yaml().documents,
+                    &order_key,
+                )?
+            }
+            false => select_tokens
+                .0
+                .iter()
+                .map(|token| token.key.clone())
+                .collect(),
+        };
+
         let mut result = Vec::new();
-        for key in token_infos.iter() {
+        for key in token_keys.iter() {
             result.push(self.get_token_info(key.clone()).await?);
         }
         Ok(AllTokenInfos(result))
@@ -237,6 +256,8 @@ pub enum GuiError {
     DepositNotSet(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
+    #[error("Order not found: {0}")]
+    OrderNotFound(String),
     #[error("Deserialized dotrain mismatch")]
     DotrainMismatch,
     #[error("Vault id not found for output index: {0}")]
