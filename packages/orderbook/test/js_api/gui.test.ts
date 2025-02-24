@@ -726,12 +726,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(allFieldDefinitions.length, 2);
 
 			const fieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] =
-				gui.getAllFieldDefinitions(false);
+				gui.getAllFieldDefinitions(true);
 			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-1');
 
 			const fieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] =
-				gui.getAllFieldDefinitions(true);
+				gui.getAllFieldDefinitions(false);
 			assert.equal(fieldDefinitionsWithDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-2');
 		});
