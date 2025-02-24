@@ -27,6 +27,7 @@
 	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
+	import { onMount } from 'svelte';
 
 	interface Deployment {
 		key: string;
@@ -59,6 +60,10 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
+
+	onMount(async () => {
+		await areAllTokensSelected();
+	});
 
 	function getAllFieldDefinitions() {
 		try {
