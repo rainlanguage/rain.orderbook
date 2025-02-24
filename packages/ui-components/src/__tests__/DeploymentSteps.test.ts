@@ -708,6 +708,7 @@ describe('DeploymentSteps', () => {
 		const getAllFieldDefinitions = vi.fn();
 		const getAllDepositFields = vi.fn();
 		const getTokenInfo = vi.fn();
+		const areAllTokensSelected = vi.fn(() => true);
 
 		defaultProps.gui = {
 			getSelectTokens: () => mockSelectTokens,
@@ -718,7 +719,7 @@ describe('DeploymentSteps', () => {
 			getAllDepositFields,
 			isSelectTokenSet: () => false,
 			saveSelectToken: vi.fn(),
-			areAllTokensSelected: () => true,
+			areAllTokensSelected,
 			hasAnyDeposit: vi.fn(),
 			hasAnyVaultId: vi.fn(),
 			getCurrentDeployment: () => ({
@@ -751,6 +752,8 @@ describe('DeploymentSteps', () => {
 
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: defaultProps });
+
+		expect(areAllTokensSelected).toHaveBeenCalled();
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
