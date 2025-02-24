@@ -12,6 +12,8 @@ import {
 	DepositAndAddOrderCalldataResult,
 	GuiCfg,
 	GuiDeploymentCfg,
+	GuiFieldDefinitionCfg,
+	GuiPresetCfg,
 	IOVaultIds,
 	NameAndDescriptionCfg,
 	TokenDeposit,
@@ -49,6 +51,7 @@ gui:
               value: "false"
             - name: Preset 3
               value: "some-string"
+          default: some-default-value
         - binding: binding-2
           name: Field 2 name
           description: Field 2 description
@@ -732,28 +735,29 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should get field definition', async () => {
-			const allFieldDefinitions = gui.getAllFieldDefinitions();
+			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinition = gui.getFieldDefinition('binding-1');
+			const fieldDefinition: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-1');
 			assert.equal(fieldDefinition.name, 'Field 1 name');
 			assert.equal(fieldDefinition.description, 'Field 1 description');
-			assert.equal(fieldDefinition.presets.length, 3);
+			assert.equal(fieldDefinition.presets?.length, 3);
+			assert.equal(fieldDefinition.default, 'some-default-value');
 
-			const preset1 = fieldDefinition.presets[0];
-			assert.equal(preset1.name, 'Preset 1');
-			assert.equal(preset1.value, '0x1234567890abcdef1234567890abcdef12345678');
-			const preset2 = fieldDefinition.presets[1];
-			assert.equal(preset2.name, 'Preset 2');
-			assert.equal(preset2.value, 'false');
-			const preset3 = fieldDefinition.presets[2];
-			assert.equal(preset3.name, 'Preset 3');
-			assert.equal(preset3.value, 'some-string');
+			let presets = fieldDefinition.presets as GuiPresetCfg[];
+			assert.equal(presets[0].name, 'Preset 1');
+			assert.equal(presets[0].value, '0x1234567890abcdef1234567890abcdef12345678');
+			assert.equal(presets[1].name, 'Preset 2');
+			assert.equal(presets[1].value, 'false');
+			assert.equal(presets[2].name, 'Preset 3');
+			assert.equal(presets[2].value, 'some-string');
 
-			const fieldDefinition2 = gui.getFieldDefinition('binding-2');
-			assert.equal(fieldDefinition2.presets[0].value, '99.2');
-			assert.equal(fieldDefinition2.presets[1].value, '582.1');
-			assert.equal(fieldDefinition2.presets[2].value, '648.239');
+			const fieldDefinition2: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-2');
+			presets = fieldDefinition2.presets as GuiPresetCfg[];
+			assert.equal(presets[0].value, '99.2');
+			assert.equal(presets[1].value, '582.1');
+			assert.equal(presets[2].value, '648.239');
+			assert.equal(fieldDefinition2.default, undefined);
 		});
 
 		it('should throw error during get if field binding is not found', () => {
