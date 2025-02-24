@@ -6,7 +6,7 @@ use rain_orderbook_app_settings::{
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct SelectTokens(Vec<GuiSelectTokensCfg>);
+pub struct SelectTokens(pub Vec<GuiSelectTokensCfg>);
 impl_wasm_traits!(SelectTokens);
 
 #[wasm_bindgen]
