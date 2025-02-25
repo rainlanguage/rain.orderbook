@@ -51,6 +51,8 @@ pub struct GuiFieldDefinitionSourceCfg {
     pub presets: Option<Vec<GuiPresetSourceCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub default: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub show_custom_field: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -139,6 +141,7 @@ impl GuiConfigSourceCfg {
                                 })
                                 .transpose()?,
                             default: field_source.default.clone(),
+                            show_custom_field: field_source.show_custom_field.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
@@ -252,6 +255,8 @@ pub struct GuiFieldDefinitionCfg {
     pub presets: Option<Vec<GuiPresetCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub default: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub show_custom_field: Option<bool>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(GuiFieldDefinitionCfg);
@@ -763,13 +768,15 @@ impl YamlParseableValue for GuiCfg {
                         };
 
                         let default = optional_string(field_yaml, "default");
+                        let show_custom_field = optional_string(field_yaml, "show-custom-field").map(|v| v.eq("true"));
 
                         let gui_field_definition = GuiFieldDefinitionCfg {
                             binding,
                             name: interpolated_name,
                             description: interpolated_description,
                             presets,
-                            default
+                            default,
+                            show_custom_field
                         };
                         Ok(gui_field_definition)
                     })
@@ -843,6 +850,7 @@ mod tests {
                                 },
                             ]),
                             default: None,
+                            show_custom_field: None,
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-2".to_string(),
@@ -859,6 +867,7 @@ mod tests {
                                 },
                             ]),
                             default: Some("0.015".to_string()),
+                            show_custom_field: Some(true),
                         },
                         GuiFieldDefinitionSourceCfg {
                             binding: "test-binding-3".to_string(),
@@ -879,6 +888,7 @@ mod tests {
                                 },
                             ]),
                             default: Some("0.25".to_string()),
+                            show_custom_field: Some(false),
                         },
                     ],
                     select_tokens: Some(vec![GuiSelectTokensCfg {
@@ -941,6 +951,7 @@ mod tests {
         assert_eq!(field1.name, "test-name");
         assert_eq!(field1.description, Some("test-description".to_string()));
         assert_eq!(field1.default, None);
+        assert_eq!(field1.show_custom_field, None);
         let presets = field1.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, Some("test-preset".to_string()));
@@ -952,6 +963,7 @@ mod tests {
         assert_eq!(field2.name, "test-name-2");
         assert_eq!(field2.description, Some("test-description-2".to_string()));
         assert_eq!(field2.default, Some("0.015".to_string()));
+        assert_eq!(field2.show_custom_field, Some(true));
         let presets = field2.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
         assert_eq!(presets[0].name, None);
@@ -962,6 +974,7 @@ mod tests {
         assert_eq!(field3.name, "test-name-3");
         assert_eq!(field3.description, Some("test-description-3".to_string()));
         assert_eq!(field3.default, Some("0.25".to_string()));
+        assert_eq!(field3.show_custom_field, Some(false));
         let presets = field3.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 3);
         assert_eq!(presets[0].value, Address::default().to_string());
