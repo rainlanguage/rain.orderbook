@@ -80,7 +80,7 @@ describe('FieldDefinitionInput', () => {
 	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
+				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
 				gui: mockGui
 			}
 		});
@@ -114,7 +114,11 @@ describe('FieldDefinitionInput', () => {
 	it('renders default value if it exists', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: { ...mockFieldDefinition, default: 'default value' },
+				fieldDefinition: {
+					...mockFieldDefinition,
+					default: 'default value',
+					showCustomField: true
+				},
 				gui: mockGui
 			}
 		});

@@ -60,6 +60,7 @@ gui:
             - value: "99.2"
             - value: "582.1"
             - value: "648.239"
+          show-custom-field: true
     other-deployment:
       name: Test test
       description: Test test test
@@ -759,6 +760,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(fieldDefinition.description, 'Field 1 description');
 			assert.equal(fieldDefinition.presets?.length, 3);
 			assert.equal(fieldDefinition.default, 'some-default-value');
+			assert.equal(fieldDefinition.showCustomField, undefined);
 
 			let presets = fieldDefinition.presets as GuiPresetCfg[];
 			assert.equal(presets[0].name, 'Preset 1');
@@ -774,6 +776,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(presets[1].value, '582.1');
 			assert.equal(presets[2].value, '648.239');
 			assert.equal(fieldDefinition2.default, undefined);
+			assert.equal(fieldDefinition2.showCustomField, true);
 		});
 
 		it('should throw error during get if field binding is not found', () => {

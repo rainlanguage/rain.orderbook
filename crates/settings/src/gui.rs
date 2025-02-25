@@ -246,6 +246,7 @@ impl PartialEq for GuiDeploymentCfg {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct GuiFieldDefinitionCfg {
     pub binding: String,
     pub name: String,
