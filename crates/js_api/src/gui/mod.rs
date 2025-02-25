@@ -61,6 +61,23 @@ pub struct DotrainOrderGui {
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
 }
+
+use wasm_function_macro::wasm_function;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[wasm_bindgen]
+pub struct TestStruct {}
+impl TestStruct {
+    #[wasm_function]
+    pub fn test_function_original() {
+        println!("Hello, world!");
+    }
+}
+#[wasm_function]
+fn test_function_original() {
+    println!("Hello, world!");
+}
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeploymentKeys")]

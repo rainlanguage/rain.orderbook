@@ -6452,6 +6452,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "wasm-bindgen-utils",
+ "wasm_function_macro",
 ]
 
 [[package]]
@@ -8888,6 +8889,15 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "wasm_function_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]
 
 [[package]]
