@@ -141,7 +141,7 @@ impl GuiConfigSourceCfg {
                                 })
                                 .transpose()?,
                             default: field_source.default.clone(),
-                            show_custom_field: field_source.show_custom_field.clone(),
+                            show_custom_field: field_source.show_custom_field,
                         })
                     })
                     .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
