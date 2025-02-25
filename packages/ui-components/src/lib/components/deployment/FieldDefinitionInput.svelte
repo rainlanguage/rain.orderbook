@@ -60,15 +60,18 @@
 				{/each}
 			</div>
 		{/if}
-		<Input
-			size="lg"
-			placeholder="Enter custom value"
-			bind:value={inputValue}
-			on:input={({ currentTarget }) => {
-				if (currentTarget instanceof HTMLInputElement) {
-					handleCustomInputChange(currentTarget.value);
-				}
-			}}
-		/>
+
+		{#if !fieldDefinition.presets || fieldDefinition.showCustomField}
+			<Input
+				size="lg"
+				placeholder="Enter custom value"
+				bind:value={inputValue}
+				on:input={({ currentTarget }) => {
+					if (currentTarget instanceof HTMLInputElement) {
+						handleCustomInputChange(currentTarget.value);
+					}
+				}}
+			/>
+		{/if}
 	</div>
 </div>
