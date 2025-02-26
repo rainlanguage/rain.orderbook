@@ -63,7 +63,7 @@ export { default as InputTokenAmount } from './components/input/InputTokenAmount
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-
+export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type {
