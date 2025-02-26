@@ -8,5 +8,10 @@
 	const invalidStrategies = strategyDetails.filter((strategy) => strategy.error);
 </script>
 
-<ValidStrategiesSection {validStrategies} />
-<InvalidStrategiesSection {invalidStrategies} />
+{#if validStrategies.length > 0}
+	<ValidStrategiesSection {validStrategies} />
+{/if}
+
+{#if invalidStrategies.length > 0}
+	<InvalidStrategiesSection {invalidStrategies} />
+{/if}
