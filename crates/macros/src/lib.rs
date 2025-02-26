@@ -2,6 +2,9 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ImplItem, ItemImpl, Path, PathSegment, ReturnType, Type, TypePath};
 
+const WASM_EXPORT_SUFFIX: &str = "__wasm_export";
+const SKIP_WASM_EXPORT_ATTR: &str = "skip_wasm_export";
+
 #[proc_macro_attribute]
 pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse the input as an impl block
@@ -12,61 +15,75 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     for item in input.items {
         if let ImplItem::Fn(mut method) = item {
-            // Only process public functions that return Result
+            // Only process public functions that don't have skip_wasm_export attribute
             if let syn::Visibility::Public(_) = method.vis {
-                if let ReturnType::Type(_, return_type) = &method.sig.output {
-                    // Try to extract Result inner type (will skip non-Result functions)
-                    if let Some(inner_type) = try_extract_result_inner_type(return_type) {
-                        let fn_name = &method.sig.ident;
-                        let is_async = method.sig.asyncness.is_some();
-                        let args = collect_function_arguments(&method.sig.inputs);
+                // Check if the skip_wasm_export attribute is present
+                if !method
+                    .attrs
+                    .iter()
+                    .any(|attr| attr.path().is_ident(SKIP_WASM_EXPORT_ATTR))
+                {
+                    if let ReturnType::Type(_, return_type) = &method.sig.output {
+                        // Try to extract Result inner type (will skip non-Result functions)
+                        if let Some(inner_type) = try_extract_result_inner_type(return_type) {
+                            let fn_name = &method.sig.ident;
+                            let is_async = method.sig.asyncness.is_some();
+                            let args = collect_function_arguments(&method.sig.inputs);
 
-                        // New function logic
-                        {
-                            let export_fn_name = syn::Ident::new(
-                                &format!("{}__{}", fn_name, "wasm_export"),
-                                fn_name.span(),
-                            );
-                            let camel_case_name = to_camel_case(&fn_name.to_string());
+                            // New function logic
+                            {
+                                let export_fn_name = syn::Ident::new(
+                                    &format!("{}{}", fn_name, WASM_EXPORT_SUFFIX),
+                                    fn_name.span(),
+                                );
+                                let camel_case_name = to_camel_case(&fn_name.to_string());
 
-                            // Create a new function with __wasm_export suffix
-                            let mut export_method = method.clone();
-                            export_method.sig.ident = export_fn_name;
+                                // Create a new function with __wasm_export suffix
+                                let mut export_method = method.clone();
+                                export_method.sig.ident = export_fn_name;
 
-                            add_attributes_to_new_function(&mut export_method, &camel_case_name);
+                                add_attributes_to_new_function(
+                                    &mut export_method,
+                                    &camel_case_name,
+                                );
 
-                            // Create a new return type wrapped in CustomResult with the inner type
-                            let new_return_type = if is_async {
-                                syn::parse_quote!(-> std::pin::Pin<Box<dyn std::future::Future<Output = Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>>>>)
-                            } else {
-                                syn::parse_quote!(-> Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>)
-                            };
+                                // Create a new return type wrapped in CustomResult with the inner type
+                                let new_return_type = if is_async {
+                                    // For async functions, return a Promise that resolves to CustomResult
+                                    syn::parse_quote!(-> wasm_bindgen::JsValue)
+                                } else {
+                                    syn::parse_quote!(-> Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>)
+                                };
 
-                            export_method.sig.output = new_return_type;
+                                export_method.sig.output = new_return_type;
 
-                            let call_expr = create_new_function_call(&fn_name, &args);
+                                let call_expr = create_new_function_call(&fn_name, &args);
 
-                            if is_async {
-                                export_method.block = syn::parse_quote!({
-                                    Box::pin(async move {
-                                        let result: CustomResult<_> = #call_expr.await.into();
+                                if is_async {
+                                    export_method.block = syn::parse_quote!({
+                                        // Convert the Future to a Promise, but keep the Result structure
+                                        wasm_bindgen_futures::future_to_promise(async move {
+                                            match #call_expr.await {
+                                                Ok(value) => Ok(CustomResult::<_>::success(value).into()),
+                                                Err(err) => Ok(CustomResult::<#inner_type>::error(err.into()).into())
+                                            }
+                                        }).into()
+                                    });
+                                } else {
+                                    export_method.block = syn::parse_quote!({
+                                        let result: CustomResult<_> = #call_expr.into();
                                         Ok(result)
-                                    })
-                                });
-                            } else {
-                                export_method.block = syn::parse_quote!({
-                                    let result: CustomResult<_> = #call_expr.into();
-                                    Ok(result)
-                                });
+                                    });
+                                }
+
+                                new_items.push(ImplItem::Fn(export_method));
                             }
 
-                            new_items.push(ImplItem::Fn(export_method));
+                            // Add the skip_typescript attribute to the original method
+                            method
+                                .attrs
+                                .push(syn::parse_quote!(#[wasm_bindgen(skip_typescript)]));
                         }
-
-                        // Add the skip_typescript attribute to the original method
-                        method
-                            .attrs
-                            .push(syn::parse_quote!(#[wasm_bindgen(skip_typescript)]));
                     }
                 }
             }
@@ -88,6 +105,12 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     output.into()
+}
+
+#[proc_macro_attribute]
+pub fn skip_wasm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Simply return the item unchanged
+    item
 }
 
 fn to_camel_case(name: &str) -> String {
@@ -178,7 +201,15 @@ fn add_attributes_to_new_function(method: &mut syn::ImplItemFn, camel_case_name:
     if let ReturnType::Type(_, return_type) = &method.sig.output {
         if let Some(inner_type) = try_extract_result_inner_type(return_type) {
             let ts_type = rust_type_to_ts_type(inner_type);
-            let return_type = format!("CustomResult<{}>", ts_type);
+
+            // Check if the method is async and adjust the TypeScript return type accordingly
+            let is_async = method.sig.asyncness.is_some();
+            let return_type = if is_async {
+                format!("Promise<CustomResult<{}>>", ts_type)
+            } else {
+                format!("CustomResult<{}>", ts_type)
+            };
+
             method.attrs.push(syn::parse_quote!(
                 #[wasm_bindgen(unchecked_return_type = #return_type)]
             ));
@@ -197,10 +228,8 @@ fn rust_type_to_ts_type(rust_type: &Type) -> String {
                 match type_name.as_str() {
                     "String" | "str" => "string".to_string(),
                     "bool" => "boolean".to_string(),
-                    "u8" | "u16" | "u32" | "i8" | "i16" | "i32" | "f32" | "f64" => {
-                        "number".to_string()
-                    }
-                    "u64" | "u128" | "i64" | "i128" => "bigint".to_string(),
+                    "u8" | "u16" | "u32" | "i8" | "i16" | "i32" | "f32" | "f64" | "u64"
+                    | "u128" | "i64" | "i128" => "number".to_string(),
                     "Vec" => {
                         // Handle Vec<T> -> Array<T>
                         if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
@@ -234,11 +263,11 @@ fn rust_type_to_ts_type(rust_type: &Type) -> String {
                                 {
                                     let key_ts_type = rust_type_to_ts_type(key_type);
                                     let value_ts_type = rust_type_to_ts_type(value_type);
-                                    return format!("Record<{}, {}>", key_ts_type, value_ts_type);
+                                    return format!("Map<{}, {}>", key_ts_type, value_ts_type);
                                 }
                             }
                         }
-                        "Record<any, any>".to_string()
+                        "Map<any, any>".to_string()
                     }
                     // For custom types, use the type name directly
                     _ => type_name,
