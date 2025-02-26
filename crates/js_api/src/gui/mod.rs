@@ -25,6 +25,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 mod deposits;
 mod field_values;
+mod new;
 mod order_operations;
 mod select_tokens;
 mod state_management;
@@ -60,22 +61,6 @@ pub struct DotrainOrderGui {
     deposits: BTreeMap<String, field_values::PairValue>,
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
-}
-
-use wasm_function_macro::wasm_function;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[wasm_bindgen]
-pub struct TestStruct {}
-impl TestStruct {
-    #[wasm_function]
-    pub fn test_function_original() {
-        println!("Hello, world!");
-    }
-}
-#[wasm_function]
-fn test_function_original() {
-    println!("Hello, world!");
 }
 
 #[wasm_bindgen]

@@ -1,75 +1,59 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemFn};
+use syn::{parse_macro_input, ImplItem, ItemImpl};
 
-/// Converts a function with "_original" suffix into a WASM-compatible function.
-///
-/// This macro:
-/// 1. Keeps the original function
-/// 2. Creates a new function without the "_original" suffix
 #[proc_macro_attribute]
-pub fn wasm_function(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Parse the input function
-    let input_fn = parse_macro_input!(item as ItemFn);
+pub fn print_fn_names(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Parse the input as an impl block
+    let mut input = parse_macro_input!(item as ItemImpl);
 
-    // Get the function name and create a new name without "_original" suffix
-    let original_fn = &input_fn.sig.ident;
-    let original_fn_name = original_fn.to_string();
+    // Transform each method to add the wasm_function attribute
+    input.items = input
+        .items
+        .into_iter()
+        .map(|item| {
+            if let ImplItem::Fn(mut method) = item {
+                // Only process public functions
+                if let syn::Visibility::Public(_) = method.vis {
+                    let fn_name = &method.sig.ident;
+                    let camel_case_name = to_camel_case(&fn_name.to_string());
 
-    if !original_fn_name.ends_with("_original") {
-        return syn::Error::new_spanned(
-            original_fn,
-            "Function name must end with '_original' to use this macro",
-        )
-        .to_compile_error()
-        .into();
-    }
-
-    // Create the new name by removing "_original"
-    let new_fn_name = original_fn_name.trim_end_matches("_original").to_string();
-
-    // Convert snake_case to camelCase for JavaScript
-    let js_name = new_fn_name
-        .split('_')
-        .enumerate()
-        .map(|(i, part)| {
-            if i == 0 {
-                part.to_string()
-            } else {
-                let mut chars = part.chars();
-                match chars.next() {
-                    None => String::new(),
-                    Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+                    // Add the wasm_function attribute with the camelCase name
+                    method
+                        .attrs
+                        .push(syn::parse_quote!(#[wasm_bindgen(js_name = #camel_case_name)]));
                 }
+                ImplItem::Fn(method)
+            } else {
+                // Return non-method items unchanged
+                item
             }
         })
-        .collect::<String>();
+        .collect();
 
-    // Create the new function signature
-    let mut new_fn_sig = input_fn.sig.clone();
-    // Change the function name
-    new_fn_sig.ident = syn::Ident::new(&new_fn_name, original_fn.span());
-
-    let attrs = &input_fn.attrs;
-
-    // Generate the output with both the original function and the new function with wasm_bindgen attribute
+    // Generate the output with wasm_bindgen applied to the impl block
     let output = quote! {
-        // Keep the original function
-        #(#attrs)*
-        #input_fn
-
-        // Create the new function with wasm_bindgen attribute
-        #[wasm_bindgen(js_name = #js_name)]
-        pub #new_fn_sig {
-            #original_fn()
-        }
+        #[wasm_bindgen]
+        #input
     };
 
-    // Convert to string for debugging
-    let output_str = output.to_string();
-
-    // Print the generated code during compilation
-    println!("GENERATED CODE:\n{}", output_str);
-
     output.into()
+}
+
+fn to_camel_case(name: &str) -> String {
+    let mut result = String::new();
+    let mut capitalize_next = false;
+
+    for c in name.chars() {
+        if c == '_' {
+            capitalize_next = true;
+        } else if capitalize_next {
+            result.push(c.to_ascii_uppercase());
+            capitalize_next = false;
+        } else {
+            result.push(c);
+        }
+    }
+
+    result
 }

@@ -6453,6 +6453,7 @@ dependencies = [
  "tokio",
  "wasm-bindgen-utils",
  "wasm_function_macro",
+ "web-sys",
 ]
 
 [[package]]
