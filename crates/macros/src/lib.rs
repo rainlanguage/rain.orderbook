@@ -87,8 +87,6 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #input
     };
 
-    println!("{}", output);
-
     output.into()
 }
 
