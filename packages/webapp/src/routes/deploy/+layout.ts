@@ -13,7 +13,7 @@ export const load: LayoutLoad = async ({ url }) => {
 					const details = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
 					return { ...registryDotrain, details };
 				} catch (error) {
-					return { ...registryDotrain, error };
+					return { ...registryDotrain, details: null, error };
 				}
 			})
 		);
