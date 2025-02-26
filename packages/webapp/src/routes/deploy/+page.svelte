@@ -2,11 +2,22 @@
 	import { PageHeader, StrategyShortTile } from '@rainlanguage/ui-components';
 	import { Button, Input, Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 
 	const { strategyDetails, error } = $page.data;
 
 	let newRegistryUrl = '';
 	let advancedMode = false;
+
+	type StrategyDetail = {
+		details: NameAndDescriptionCfg;
+		name: string;
+		dotrain: string;
+		error?: unknown;
+	};
+
+	const validStrategies = strategyDetails.filter((strategy: StrategyDetail) => !strategy.error);
+	const invalidStrategies = strategyDetails.filter((strategy: StrategyDetail) => strategy.error);
 
 	const loadRegistryUrl = () => {
 		// add the registry url to the url params
@@ -57,10 +68,26 @@
 			</h1>
 		</div>
 
-		{#if strategyDetails.length > 0}
-			{#key strategyDetails}
+		{#if invalidStrategies.length > 0}
+			<div class="flex flex-col gap-4 rounded-xl bg-red-100 p-6 dark:bg-red-900">
+				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+					Invalid Strategies in registry
+				</h2>
+				<div class="flex flex-col gap-2">
+					{#each invalidStrategies as strategy}
+						<div class="flex flex-col gap-1">
+							<span class="font-medium">{strategy.name}</span>
+							<span class="text-red-600 dark:text-red-400">{strategy.error}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if validStrategies.length > 0}
+			{#key validStrategies}
 				<div class="mb-36 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each strategyDetails as strategyDetail}
+					{#each validStrategies as strategyDetail}
 						<StrategyShortTile
 							strategyDetails={strategyDetail.details}
 							registryName={strategyDetail.name}
