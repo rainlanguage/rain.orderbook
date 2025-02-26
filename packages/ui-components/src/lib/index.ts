@@ -63,7 +63,9 @@ export { default as InputTokenAmount } from './components/input/InputTokenAmount
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-
+export { default as StrategiesSection } from './components/deployment/StrategiesSection.svelte';
+export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
+export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type {
@@ -86,6 +88,7 @@ export type {
 	DeployModalProps,
 	DisclaimerModalProps
 } from './types/modal';
+export type { StrategyDetail } from './types/strategy';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

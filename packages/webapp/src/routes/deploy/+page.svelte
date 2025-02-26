@@ -1,23 +1,12 @@
 <script lang="ts">
-	import { PageHeader, StrategyShortTile } from '@rainlanguage/ui-components';
+	import { PageHeader, StrategiesSection } from '@rainlanguage/ui-components';
 	import { Button, Input, Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-	import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 
-	const { strategyDetails, error } = $page.data;
+	const { error, strategyDetails } = $page.data;
 
 	let newRegistryUrl = '';
 	let advancedMode = false;
-
-	type StrategyDetail = {
-		details: NameAndDescriptionCfg;
-		name: string;
-		dotrain: string;
-		error?: unknown;
-	};
-
-	const validStrategies = strategyDetails.filter((strategy: StrategyDetail) => !strategy.error);
-	const invalidStrategies = strategyDetails.filter((strategy: StrategyDetail) => strategy.error);
 
 	const loadRegistryUrl = () => {
 		// add the registry url to the url params
@@ -54,7 +43,7 @@
 	<div class="text-4xl font-semibold text-gray-900 dark:text-white">Strategies</div>
 
 	{#if error}
-		<div class="flex gap-2 text-xl">
+		<div class="flex gap-2 text-lg">
 			Error loading registry:<span class="text-red-500">{error}</span>
 		</div>
 	{:else}
@@ -64,37 +53,10 @@
 				here are non-custodial, perpetual, and automated strategies built with our open-source,
 				DeFi-native language <a class="underline" target="_blank" href="https://rainlang.xyz"
 					>Rainlang</a
-				>.
+				>
 			</h1>
 		</div>
 
-		{#if invalidStrategies.length > 0}
-			<div class="flex flex-col gap-4 rounded-xl bg-red-100 p-6 dark:bg-red-900">
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-					Invalid Strategies in registry
-				</h2>
-				<div class="flex flex-col gap-2">
-					{#each invalidStrategies as strategy}
-						<div class="flex flex-col gap-1">
-							<span class="font-medium">{strategy.name}</span>
-							<span class="text-red-600 dark:text-red-400">{strategy.error}</span>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		{#if validStrategies.length > 0}
-			{#key validStrategies}
-				<div class="mb-36 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-					{#each validStrategies as strategyDetail}
-						<StrategyShortTile
-							strategyDetails={strategyDetail.details}
-							registryName={strategyDetail.name}
-						/>
-					{/each}
-				</div>
-			{/key}
-		{/if}
+		<StrategiesSection {strategyDetails} />
 	{/if}
 </div>

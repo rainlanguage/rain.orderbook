@@ -6,6 +6,7 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 export const load: LayoutLoad = async ({ url }) => {
 	const registry = url.searchParams.get('registry');
 	try {
+		
 		const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
 		const strategyDetails = await Promise.all(
 			registryDotrains.map(async (registryDotrain) => {
