@@ -43,7 +43,7 @@ describe('InputRegistryUrl', () => {
 	});
 
 	it('should bind input value to newRegistryUrl prop', async () => {
-		const { component } = render(InputRegistryUrl, { props: { newRegistryUrl: '' } });
+		const screen = render(InputRegistryUrl, { props: { newRegistryUrl: '' } });
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		const testUrl = 'https://example.com/registry.json';
