@@ -66,6 +66,7 @@ export { default as DisclaimerModal } from './components/deployment/DisclaimerMo
 export { default as StrategiesSection } from './components/deployment/StrategiesSection.svelte';
 export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
+
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
 export type {
