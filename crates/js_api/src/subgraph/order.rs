@@ -18,14 +18,6 @@ pub struct OrderWithSortedVaults {
 }
 impl_wasm_traits!(OrderWithSortedVaults);
 
-/// Internal function to fetch a single order
-/// Returns the SgOrder struct
-pub async fn get_sg_order(url: &str, id: &str) -> Result<SgOrder, OrderbookSubgraphClientError> {
-    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
-    let order = client.order_detail(Id::new(id)).await?;
-    Ok(order)
-}
-
 /// Fetch all orders from multiple subgraphs
 /// Returns a list of OrderWithSubgraphName structs
 #[wasm_bindgen(js_name = "getOrders")]
@@ -93,17 +85,6 @@ pub async fn get_order_by_hash(
     hash: &str,
 ) -> Result<JsValue, OrderbookSubgraphClientError> {
     let order = get_sg_order_by_hash(url, hash).await?;
-    Ok(to_js_value(&OrderWithSortedVaults {
-        order: order.clone(),
-        vaults: sort_vaults(&order),
-    })?)
-}
-
-/// Fetch a single order
-/// Returns the Order struct with sorted vaults
-#[wasm_bindgen(js_name = "getOrder")]
-pub async fn get_order(url: &str, hash: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
-    let order = get_sg_order(url, hash).await?;
     Ok(to_js_value(&OrderWithSortedVaults {
         order: order.clone(),
         vaults: sort_vaults(&order),

@@ -21,15 +21,15 @@
 		undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
-	export let id: string;
+	export let orderHash: string;
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
-		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id),
-		enabled: !!subgraphUrl && !!id
+		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryFn: () => getOrder(subgraphUrl, orderHash),
+		enabled: !!subgraphUrl && !!orderHash
 	});
 </script>
 
@@ -58,7 +58,7 @@
 		{/if}
 
 		<Refresh
-			on:click={async () => await invalidateIdQuery(queryClient, id)}
+			on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
 			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 		/>
 	</svelte:fragment>

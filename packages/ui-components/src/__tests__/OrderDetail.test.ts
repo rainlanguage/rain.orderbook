@@ -5,7 +5,6 @@ import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
-import type { Config } from 'wagmi';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -24,13 +23,6 @@ const mockOrder: SgOrder = {
 } as unknown as SgOrder;
 
 vi.mock('@tanstack/svelte-query');
-
-const wagmiConfig = {
-	chains: [],
-	signer: {
-		address: '0x123'
-	}
-} as unknown as Config;
 
 const chainId = 1;
 const orderbookAddress = '0x123';
@@ -52,7 +44,7 @@ describe('OrderDetail Component', () => {
 
 		render(OrderDetail, {
 			props: {
-				id: 'mockId',
+				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
@@ -83,7 +75,7 @@ describe('OrderDetail Component', () => {
 
 		render(OrderDetail, {
 			props: {
-				id: mockOrder.id,
+				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				handleOrderRemoveModal,
@@ -103,7 +95,7 @@ describe('OrderDetail Component', () => {
 
 		render(OrderDetail, {
 			props: {
-				id: mockOrder.id,
+				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				handleOrderRemoveModal: vi.fn(),
@@ -120,6 +112,7 @@ describe('OrderDetail Component', () => {
 	it('correctly categorizes and displays vaults in input, output, and shared categories', async () => {
 		const vault1 = {
 			id: '1',
+			orderHash: 'mockHash',
 			vaultId: '0xabc',
 			owner: '0x123',
 			token: {
@@ -138,7 +131,8 @@ describe('OrderDetail Component', () => {
 			}
 		} as unknown as SgVault;
 		const vault2 = {
-			id: '2',
+				id: '2',
+			orderHash: 'mockHash',
 			vaultId: '0xbcd',
 			owner: '0x123',
 			token: {
@@ -160,6 +154,7 @@ describe('OrderDetail Component', () => {
 			id: '3',
 			vaultId: '0xdef',
 			owner: '0x123',
+			orderHash: 'mockHash',
 			token: {
 				id: '0x456',
 				address: '0x456',
@@ -204,7 +199,7 @@ describe('OrderDetail Component', () => {
 		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
 		render(OrderDetail, {
 			props: {
-				id: mockOrderWithVaults.id,
+				orderHash: mockOrderWithVaults.orderHash,
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
@@ -245,7 +240,7 @@ describe('OrderDetail Component', () => {
 
 		render(OrderDetail, {
 			props: {
-				id: 'mockId',
+				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
@@ -258,10 +253,12 @@ describe('OrderDetail Component', () => {
 
 		await waitFor(() => {
 			expect(mockInvalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['mockId'],
+				queryKey: ['mockHash'],
 				refetchType: 'all',
 				exact: false
 			});
 		});
 	});
 });
+
+
