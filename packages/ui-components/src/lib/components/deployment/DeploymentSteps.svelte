@@ -282,7 +282,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
+							<WalletConnect {appKitModal} connected={$wagmiConnected} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />

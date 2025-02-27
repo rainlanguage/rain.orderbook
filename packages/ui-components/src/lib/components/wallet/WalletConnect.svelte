@@ -5,7 +5,7 @@
 	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	export let appKitModal: Writable<AppKit>;
-	export let connected: Writable<boolean>;
+	export let connected: boolean;
 	export let classes: string = '';
 	function handleClick() {
 		$appKitModal.open();
@@ -17,9 +17,9 @@
 	on:click={handleClick}
 	size="lg"
 	class={twMerge('flex border border-gray-700 px-2 md:px-4 dark:border-gray-200', classes)}
-	color={$connected ? 'alternative' : 'primary'}
+	color={connected ? 'alternative' : 'primary'}
 >
-	{#if $connected}
+	{#if connected}
 		<span class="flex flex-row items-center gap-2"
 			><CheckCircleOutline color="green" size="md" />Connected</span
 		>
