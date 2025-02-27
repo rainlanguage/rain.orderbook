@@ -131,7 +131,7 @@ describe('OrderDetail Component', () => {
 			}
 		} as unknown as SgVault;
 		const vault2 = {
-				id: '2',
+			id: '2',
 			orderHash: 'mockHash',
 			vaultId: '0xbcd',
 			owner: '0x123',
@@ -260,5 +260,3 @@ describe('OrderDetail Component', () => {
 		});
 	});
 });
-
-

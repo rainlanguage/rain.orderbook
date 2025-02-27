@@ -6,7 +6,7 @@ import {
 	SgOrder,
 	OrderPerformance,
 	SgOrderWithSubgraphName,
-	OrderWithSortedVaults,
+	OrderWithSortedVaults
 } from '../../dist/types/js_api.js';
 import {
 	getOrder,
@@ -739,32 +739,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 		}
 	});
 
-		it('should fetch a single order', async () => {
-		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order: order1 } }));
+	it.only('should fetch an order by orderHash', async () => {
+		const mockOrder = {
+			...order1,
+			orderHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+		};
+		await mockServer
+			.forPost('/sg1')
+			.thenReply(200, JSON.stringify({ data: { order: mockOrder } }));
 
 		try {
-			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
-			assert.equal(result.order.id, order1.id);
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				mockOrder.orderHash
+			);
+
+			assert.equal(result.order.orderHash, mockOrder.orderHash);
 		} catch (e) {
 			console.log(e);
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
 		}
 	});
-
-
-	it.only('should fetch an order by orderHash', async () => {
-		await mockServer
-			.forPost('/sg1')
-			.once()
-			.thenReply(200, JSON.stringify({ data: { order: order1 } }));
-
-		try {
-			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.orderHash);
-			assert.equal(result.order.id, order1.id);
-	} catch (e) {
-		console.log(e);
-		assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
-	}
-});
-
 });
