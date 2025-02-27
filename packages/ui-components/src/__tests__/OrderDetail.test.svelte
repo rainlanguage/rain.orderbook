@@ -4,7 +4,7 @@
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
-	import { getOrder } from '@rainlanguage/orderbook/js_api';
+	import { getOrderByHash } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
@@ -28,8 +28,10 @@
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
-		queryFn: () => getOrder(subgraphUrl, orderHash),
-		enabled: !!subgraphUrl && !!orderHash
+		queryFn: () => {
+			return getOrderByHash(subgraphUrl, orderHash);
+		},
+		enabled: !!subgraphUrl
 	});
 </script>
 
