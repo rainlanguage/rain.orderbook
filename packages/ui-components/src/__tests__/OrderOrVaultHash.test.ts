@@ -34,7 +34,7 @@ describe('OrderOrVaultHash', () => {
 		const button = getByTestId('vault-order-input');
 		expect(button).toBeTruthy();
 		expect(button.classList.toString()).toContain('text-white bg-green');
-		expect(button.getAttribute('data-id')).toBe('123');
+		expect(button.getAttribute('data-id')).toBe('0x123abc');
 	});
 
 	it('renders with inactive order', () => {

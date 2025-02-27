@@ -5,8 +5,8 @@ use crate::performance::OrderPerformance;
 use crate::types::add_order::{SgTransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
-    SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables, SgOrderDetailQuery, SgOrderIdList,
-    SgOrdersListQuery,
+    SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables, SgOrderDetailByHashQuery,
+    SgOrderDetailByHashQueryVariables, SgOrderDetailByIdQuery, SgOrderIdList, SgOrdersListQuery,
 };
 use crate::types::order_trade::{SgOrderTradeDetailQuery, SgOrderTradesListQuery};
 use crate::types::remove_order::{
@@ -75,7 +75,7 @@ impl OrderbookSubgraphClient {
     /// Fetch single order
     pub async fn order_detail(&self, id: Id) -> Result<SgOrder, OrderbookSubgraphClientError> {
         let data = self
-            .query::<SgOrderDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
+            .query::<SgOrderDetailByIdQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -442,5 +442,22 @@ impl OrderbookSubgraphClient {
         }
 
         Ok(data.remove_orders)
+    }
+
+    /// Fetch single order given its hash
+    pub async fn order_detail_by_hash(
+        &self,
+        hash: SgBytes,
+    ) -> Result<SgOrder, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgOrderDetailByHashQuery, SgOrderDetailByHashQueryVariables>(
+                SgOrderDetailByHashQueryVariables { hash: hash },
+            )
+            .await?;
+        let order = data
+            .orders
+            .first()
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        Ok(order.clone())
     }
 }

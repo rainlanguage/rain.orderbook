@@ -35,10 +35,27 @@ pub struct SgOrdersListQuery {
     pub orders: Vec<SgOrder>,
 }
 
+#[derive(cynic::QueryVariables, Debug)]
+pub struct SgOrderDetailByHashQueryVariables {
+    pub hash: SgBytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(
+    graphql_type = "Query",
+    variables = "SgOrderDetailByHashQueryVariables"
+)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgOrderDetailByHashQuery {
+    #[arguments(where: { orderHash: $hash })]
+    pub orders: Vec<SgOrder>,
+}
+
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "SgIdQueryVariables")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct SgOrderDetailQuery {
+pub struct SgOrderDetailByIdQuery {
     #[arguments(id: $id)]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub order: Option<SgOrder>,

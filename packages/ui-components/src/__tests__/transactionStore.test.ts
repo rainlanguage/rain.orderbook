@@ -58,7 +58,7 @@ describe('transactionStore', () => {
 			data: null,
 			functionName: '',
 			message: '',
-			newOrderId: '',
+			newOrderHash: '',
 			network: ''
 		});
 	});
@@ -297,12 +297,12 @@ describe('transactionStore', () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
 		const mockNetwork = 'flare';
-		const mockOrderId = 'order123';
+		const mockOrderHash = 'order123';
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([
 			{
 				order: {
-					id: mockOrderId
+					orderHash: mockOrderHash
 				}
 			}
 		]);
@@ -316,7 +316,7 @@ describe('transactionStore', () => {
 		await waitFor(() => {
 			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 			expect(get(transactionStore).hash).toBe(mockTxHash);
-			expect(get(transactionStore).newOrderId).toBe(mockOrderId);
+			expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
 			expect(get(transactionStore).network).toBe(mockNetwork);
 		});
 	});

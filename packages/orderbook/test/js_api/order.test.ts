@@ -11,6 +11,7 @@ import {
 import {
 	getOrder,
 	getOrders,
+	getOrderByHash,
 	getOrderTradesList,
 	getOrderTradeDetail,
 	getOrderTradesCount,
@@ -732,6 +733,28 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			assert.equal(inputs[0].id, '0x0000000000000000000000000000000000000001');
 			assert.equal(outputs[0].id, '0x0000000000000000000000000000000000000002');
 			assert.equal(inputsOutputs[0].id, '0x0000000000000000000000000000000000000003');
+		} catch (e) {
+			console.log(e);
+			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+		}
+	});
+
+	it.only('should fetch an order by orderHash', async () => {
+		const mockOrder = {
+			...order1,
+			orderHash: '0xbf8075f73b0a6418d719e52189d59bf35a0949e5983b3edbbc0338c02ab17353'
+		};
+		await mockServer
+			.forPost('/sg1')
+			.thenReply(200, JSON.stringify({ data: { orders: [mockOrder] } }));
+
+		try {
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				mockOrder.orderHash
+			);
+
+			assert.equal(result.order.orderHash, mockOrder.orderHash);
 		} catch (e) {
 			console.log(e);
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
