@@ -98,6 +98,6 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="below" let:data>
-		<div>Below content: {data.order.id}</div>
+		<div>Below content: {data.order.orderHash}</div>
 	</svelte:fragment>
 </TanstackPageContentDetail>
