@@ -742,7 +742,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 	it.only('should fetch an order by orderHash', async () => {
 		const mockOrder = {
 			...order1,
-			orderHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+			orderHash: '0xbf8075f73b0a6418d719e52189d59bf35a0949e5983b3edbbc0338c02ab17353'
 		};
 		await mockServer
 			.forPost('/sg1')
@@ -750,9 +750,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 
 		try {
 			const result: OrderWithSortedVaults = await getOrderByHash(
-				mockServer.url + '/sg1',
-				mockOrder.orderHash
+				"https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/2024-12-13-9dc7/gn",
+				"0xbf8075f73b0a6418d719e52189d59bf35a0949e5983b3edbbc0338c02ab17353"
 			);
+			console.log(result)
 
 			assert.equal(result.order.orderHash, mockOrder.orderHash);
 		} catch (e) {
