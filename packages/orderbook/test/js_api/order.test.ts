@@ -6,11 +6,12 @@ import {
 	SgOrder,
 	OrderPerformance,
 	SgOrderWithSubgraphName,
-	OrderWithSortedVaults
+	OrderWithSortedVaults,
 } from '../../dist/types/js_api.js';
 import {
 	getOrder,
 	getOrders,
+	getOrderByHash,
 	getOrderTradesList,
 	getOrderTradeDetail,
 	getOrderTradesCount,
@@ -737,4 +738,33 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
 		}
 	});
+
+		it('should fetch a single order', async () => {
+		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order: order1 } }));
+
+		try {
+			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
+			assert.equal(result.order.id, order1.id);
+		} catch (e) {
+			console.log(e);
+			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+		}
+	});
+
+
+	it.only('should fetch an order by orderHash', async () => {
+		await mockServer
+			.forPost('/sg1')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { order: order1 } }));
+
+		try {
+			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.orderHash);
+			assert.equal(result.order.id, order1.id);
+	} catch (e) {
+		console.log(e);
+		assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+	}
+});
+
 });
