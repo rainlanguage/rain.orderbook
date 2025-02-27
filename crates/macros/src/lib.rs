@@ -4,7 +4,6 @@ use syn::{
     parse_macro_input, Attribute, ImplItem, ItemImpl, Path, PathSegment, ReturnType, Type, TypePath,
 };
 
-const WASM_EXPORT_SUFFIX: &str = "__wasm_export";
 const WASM_EXPORT_ATTR: &str = "wasm_export";
 const SKIP_PARAM: &str = "skip";
 const UNCHECKED_RETURN_TYPE_PARAM: &str = "unchecked_return_type";
@@ -34,7 +33,7 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             // New function logic
                             {
                                 let export_fn_name = syn::Ident::new(
-                                    &format!("{}{}", fn_name, WASM_EXPORT_SUFFIX),
+                                    &format!("{}__{}", fn_name, WASM_EXPORT_ATTR),
                                     fn_name.span(),
                                 );
                                 let camel_case_name = to_camel_case(&fn_name.to_string());

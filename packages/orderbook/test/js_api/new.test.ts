@@ -160,7 +160,7 @@ describe('TestStruct', () => {
 		}
 		let error = {
 			msg: 'JavaScript error: some error',
-			readableMsg: 'JavaScript error: some error'
+			readableMsg: 'Something went wrong: some error'
 		} as CustomError;
 		assert.deepEqual(result.error, error);
 	});
@@ -178,8 +178,8 @@ describe('TestStruct', () => {
 			assert.fail('result.data should be undefined');
 		}
 		let error = {
-			msg: 'JavaScript error: some error',
-			readableMsg: 'JavaScript error: some error'
+			msg: 'Test error',
+			readableMsg: 'An unexpected error occurred. Please try again.'
 		} as CustomError;
 		assert.deepEqual(result.error, error);
 	});
