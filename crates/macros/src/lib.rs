@@ -1,9 +1,13 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ImplItem, ItemImpl, Path, PathSegment, ReturnType, Type, TypePath};
+use syn::{
+    parse_macro_input, Attribute, ImplItem, ItemImpl, Path, PathSegment, ReturnType, Type, TypePath,
+};
 
 const WASM_EXPORT_SUFFIX: &str = "__wasm_export";
-const SKIP_WASM_EXPORT_ATTR: &str = "skip_wasm_export";
+const WASM_EXPORT_ATTR: &str = "wasm_export";
+const SKIP_PARAM: &str = "skip";
+const UNCHECKED_RETURN_TYPE_PARAM: &str = "unchecked_return_type";
 
 #[proc_macro_attribute]
 pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -17,12 +21,9 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
         if let ImplItem::Fn(mut method) = item {
             // Only process public functions that don't have skip_wasm_export attribute
             if let syn::Visibility::Public(_) = method.vis {
-                // Check if the skip_wasm_export attribute is present
-                if !method
-                    .attrs
-                    .iter()
-                    .any(|attr| attr.path().is_ident(SKIP_WASM_EXPORT_ATTR))
-                {
+                let should_skip = should_skip_wasm_export(&method.attrs);
+
+                if !should_skip {
                     if let ReturnType::Type(_, return_type) = &method.sig.output {
                         // Try to extract Result inner type (will skip non-Result functions)
                         if let Some(inner_type) = try_extract_result_inner_type(return_type) {
@@ -47,27 +48,15 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                                     &camel_case_name,
                                 );
 
-                                // Create a new return type wrapped in CustomResult with the inner type
-                                let new_return_type = if is_async {
-                                    // For async functions, return a Promise that resolves to CustomResult
-                                    syn::parse_quote!(-> wasm_bindgen::JsValue)
-                                } else {
-                                    syn::parse_quote!(-> Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>)
-                                };
-
+                                let new_return_type = syn::parse_quote!(-> Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>);
                                 export_method.sig.output = new_return_type;
 
                                 let call_expr = create_new_function_call(&fn_name, &args);
 
                                 if is_async {
                                     export_method.block = syn::parse_quote!({
-                                        // Convert the Future to a Promise, but keep the Result structure
-                                        wasm_bindgen_futures::future_to_promise(async move {
-                                            match #call_expr.await {
-                                                Ok(value) => Ok(CustomResult::<_>::success(value).into()),
-                                                Err(err) => Ok(CustomResult::<#inner_type>::error(err.into()).into())
-                                            }
-                                        }).into()
+                                        let result: CustomResult<_> = #call_expr.await.into();
+                                        Ok(result)
                                     });
                                 } else {
                                     export_method.block = syn::parse_quote!({
@@ -108,7 +97,7 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn skip_wasm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn wasm_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Simply return the item unchanged
     item
 }
@@ -192,29 +181,98 @@ fn add_attributes_to_new_function(method: &mut syn::ImplItemFn, camel_case_name:
         .attrs
         .push(syn::parse_quote!(#[allow(non_snake_case)]));
 
-    // Add the wasm_function attribute with the camelCase name
-    method
-        .attrs
-        .push(syn::parse_quote!(#[wasm_bindgen(js_name = #camel_case_name)]));
+    // Forward the wasm_bindgen attributes to the new function
+    let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
+    for attr in &method.attrs {
+        if attr.path().is_ident(WASM_EXPORT_ATTR) {
+            if let Ok(meta) = attr.meta.require_list() {
+                let tokens = meta.tokens.to_string();
 
-    // Extract the inner type from the Result return type
-    if let ReturnType::Type(_, return_type) = &method.sig.output {
-        if let Some(inner_type) = try_extract_result_inner_type(return_type) {
-            let ts_type = rust_type_to_ts_type(inner_type);
+                // Check if this attribute contains unchecked_return_type
+                if tokens.contains(UNCHECKED_RETURN_TYPE_PARAM) {
+                    // Extract the value from unchecked_return_type
+                    let mut unchecked_value = "";
+                    let mut other_params = Vec::new();
 
-            // Check if the method is async and adjust the TypeScript return type accordingly
-            let is_async = method.sig.asyncness.is_some();
-            let return_type = if is_async {
-                format!("Promise<CustomResult<{}>>", ts_type)
-            } else {
-                format!("CustomResult<{}>", ts_type)
-            };
+                    // Parse the tokens to extract individual parameters
+                    for param in tokens.split(',') {
+                        let param = param.trim();
+                        if param.starts_with(UNCHECKED_RETURN_TYPE_PARAM) {
+                            // Extract the value between quotes
+                            if let Some(value) = param.split('=').nth(1) {
+                                let value = value.trim();
+                                // Remove quotes if present
+                                if value.starts_with('"') && value.ends_with('"') {
+                                    unchecked_value = &value[1..value.len() - 1];
+                                } else if value.starts_with('\'') && value.ends_with('\'') {
+                                    unchecked_value = &value[1..value.len() - 1];
+                                } else {
+                                    unchecked_value = value;
+                                }
+                            }
+                        } else {
+                            // Keep other parameters
+                            other_params.push(param.to_string());
+                        }
+                    }
 
-            method.attrs.push(syn::parse_quote!(
-                #[wasm_bindgen(unchecked_return_type = #return_type)]
-            ));
+                    // Create the modified return type
+                    let return_type = if method.sig.asyncness.is_some() {
+                        format!("Promise<CustomResult<{}>>", unchecked_value)
+                    } else {
+                        format!("CustomResult<{}>", unchecked_value)
+                    };
+
+                    // Add other parameters
+                    for param in &other_params {
+                        // Parse the string parameter into a token stream
+                        if let Ok(param_tokens) = syn::parse_str::<proc_macro2::TokenStream>(param)
+                        {
+                            wasm_bindgen_attrs.push(syn::parse_quote!(
+                                #[wasm_bindgen(#param_tokens)]
+                            ));
+                        }
+                    }
+                    // Add the modified unchecked_return_type
+                    wasm_bindgen_attrs.push(syn::parse_quote!(
+                        #[wasm_bindgen(unchecked_return_type = #return_type)]
+                    ));
+                } else {
+                    // Forward other attributes unchanged
+                    let tokens = meta.tokens.clone();
+                    wasm_bindgen_attrs.push(syn::parse_quote!(#[wasm_bindgen(#tokens)]));
+                }
+            }
         }
     }
+
+    if !wasm_bindgen_attrs.is_empty() {
+        method.attrs.extend(wasm_bindgen_attrs);
+    }
+
+    // Add the wasm_function attribute with the camelCase name
+    // method
+    //     .attrs
+    //     .push(syn::parse_quote!(#[wasm_bindgen(js_name = #camel_case_name)]));
+
+    // Extract the inner type from the Result return type
+    // if let ReturnType::Type(_, return_type) = &method.sig.output {
+    //     if let Some(inner_type) = try_extract_result_inner_type(return_type) {
+    //         let ts_type = rust_type_to_ts_type(inner_type);
+
+    //         // Check if the method is async and adjust the TypeScript return type accordingly
+    //         let is_async = method.sig.asyncness.is_some();
+    //         let return_type = if is_async {
+    //             format!("Promise<CustomResult<{}>>", ts_type)
+    //         } else {
+    //             format!("CustomResult<{}>", ts_type)
+    //         };
+
+    //         method.attrs.push(syn::parse_quote!(
+    //             #[wasm_bindgen(unchecked_return_type = #return_type)]
+    //         ));
+    //     }
+    // }
 }
 
 /// Converts a Rust type to its TypeScript equivalent for wasm_bindgen
@@ -323,4 +381,20 @@ fn create_new_function_call(
         // No arguments at all, must be a static method
         quote::quote! { Self::#fn_name() }
     }
+}
+
+/// Checks if a method should skip WASM export generation
+fn should_skip_wasm_export(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attr| {
+        if attr.path().is_ident(WASM_EXPORT_ATTR) {
+            if let Ok(meta) = attr.meta.require_list() {
+                if let Ok(nested) = meta.parse_args::<syn::Meta>() {
+                    return nested.path().is_ident(SKIP_PARAM);
+                }
+            }
+            false
+        } else {
+            false
+        }
+    })
 }

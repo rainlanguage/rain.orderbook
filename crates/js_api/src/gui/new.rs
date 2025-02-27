@@ -4,7 +4,7 @@ use rain_orderbook_common::dotrain_order::DotrainOrder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
-use wasm_function_macro::{impl_wasm_exports, skip_wasm_export};
+use wasm_function_macro::{impl_wasm_exports, wasm_export};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -88,13 +88,13 @@ impl TestStruct {
         Self { field: value }
     }
 
-    #[skip_wasm_export]
+    #[wasm_export(skip)]
     #[wasm_bindgen(js_name = "newWithResult")]
     pub async fn new_with_result(value: String) -> Result<TestStruct, GuiError> {
         Ok(Self { field: value })
     }
 
-    #[skip_wasm_export]
+    #[wasm_export(skip)]
     #[wasm_bindgen(js_name = "newWithDotrainResult")]
     pub async fn new_with_dotrain_result(value: String) -> Result<TestStruct, GuiError> {
         let dotrain_order = DotrainOrder::new(value, None).await?;
@@ -103,54 +103,75 @@ impl TestStruct {
         Ok(Self { field: dotrain })
     }
 
+    #[wasm_export(js_name = "simpleFunction", unchecked_return_type = "string")]
     pub fn simple_function() -> Result<String, GuiError> {
         Ok("Hello, world!".to_string())
     }
 
+    #[wasm_export(js_name = "errFunction", unchecked_return_type = "string")]
     pub fn err_function() -> Result<String, GuiError> {
         Err(GuiError::JsError("some error".to_string()))
     }
 
+    #[wasm_export(js_name = "simpleFunctionWithSelf", unchecked_return_type = "string")]
     pub fn simple_function_with_self(&self) -> Result<String, GuiError> {
         Ok(format!("Hello, {}!", self.field))
     }
 
+    #[wasm_export(js_name = "errFunctionWithSelf", unchecked_return_type = "string")]
     pub fn err_function_with_self(&self) -> Result<String, GuiError> {
         Err(GuiError::JsError("some error".to_string()))
     }
 
+    #[wasm_export(
+        js_name = "simpleFunctionWithReturnType",
+        unchecked_return_type = "TestReturnType"
+    )]
     pub fn simple_function_with_return_type() -> Result<TestReturnType, GuiError> {
         Ok(TestReturnType {
             field: "Hello, world!".to_string(),
         })
     }
 
+    #[wasm_export(
+        js_name = "simpleFunctionWithReturnTypeWithSelf",
+        unchecked_return_type = "TestReturnType"
+    )]
     pub fn simple_function_with_return_type_with_self(&self) -> Result<TestReturnType, GuiError> {
         Ok(TestReturnType {
             field: format!("Hello, {}!", self.field),
         })
     }
 
+    #[wasm_export(js_name = "asyncFunction", unchecked_return_type = "number")]
     pub async fn async_function() -> Result<u64, GuiError> {
         Ok(123)
     }
 
+    #[wasm_export(js_name = "asyncFunctionWithSelf", unchecked_return_type = "number")]
     pub async fn async_function_with_self(self) -> Result<u64, GuiError> {
         Ok(234)
     }
 
+    #[wasm_export(js_name = "returnVec", unchecked_return_type = "VecReturnType")]
     pub fn return_vec() -> Result<VecReturnType, GuiError> {
         Ok(VecReturnType(vec![1, 2, 3]))
     }
 
+    #[wasm_export(js_name = "returnHashmap", unchecked_return_type = "HashMapReturnType")]
     pub fn return_hashmap() -> Result<HashMapReturnType, GuiError> {
         Ok(HashMapReturnType(HashMap::from([("key".to_string(), 123)])))
     }
 
+    #[wasm_export(js_name = "returnOption", unchecked_return_type = "number | undefined")]
     pub fn return_option() -> Result<Option<u64>, GuiError> {
         Ok(Some(123))
     }
 
+    #[wasm_export(
+        js_name = "returnOptionNone",
+        unchecked_return_type = "number | undefined"
+    )]
     pub fn return_option_none() -> Result<Option<u64>, GuiError> {
         Ok(None)
     }

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'vitest';
 import { TestStruct } from '../../dist/cjs/js_api.js';
-import { CustomError } from '../../dist/types/js_api';
+import { CustomError, TestStruct as TestStructType } from '../../dist/types/js_api';
 
 const guiConfig = `
 gui:
@@ -172,7 +172,7 @@ describe('TestStruct', () => {
 	});
 
 	it('should be able to call errFunctionWithSelf', async () => {
-		const testStruct = await TestStruct.newWithResult('beef');
+		const testStruct: TestStructType = await TestStruct.newWithResult('beef');
 		const result = testStruct.errFunctionWithSelf();
 		if (result.data) {
 			assert.fail('result.data should be undefined');
