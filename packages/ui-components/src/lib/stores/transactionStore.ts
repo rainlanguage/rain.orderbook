@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
-import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
+import { getConnections, sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
 	DepositAndAddOrderCalldataResult,
@@ -113,6 +113,17 @@ const initialState: TransactionState = {
 const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
+
+	const handleSwitchChain = async (config: Config, chainId: number) => {
+
+		const connections = await getConnections(config)
+		
+		try {
+			await switchChain(config, { chainId, connector: connections[0]?.connector });
+		} catch {
+			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+		}
+	}
 
 	const awaitTransactionIndexing = async (
 		subgraphUrl: string,
@@ -254,11 +265,7 @@ const transactionStore = () => {
 		subgraphUrl,
 		network
 	}: DeploymentTransactionArgs) => {
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
+		await handleSwitchChain(config, chainId)
 		for (const approval of approvals) {
 			let approvalHash: Hex;
 			try {
@@ -308,11 +315,8 @@ const transactionStore = () => {
 		vault,
 		subgraphUrl
 	}: DepositOrWithdrawTransactionArgs) => {
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
+		await handleSwitchChain(config, chainId)
+
 		if (approvalCalldata) {
 			let approvalHash: Hex;
 			try {
@@ -367,11 +371,7 @@ const transactionStore = () => {
 		chainId,
 		subgraphUrl
 	}: RemoveOrderTransactionArgs) => {
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
+		await handleSwitchChain(config, chainId)
 
 		let hash: Hex;
 		try {
