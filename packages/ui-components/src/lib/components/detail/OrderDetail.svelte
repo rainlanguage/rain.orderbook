@@ -12,7 +12,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
-	import { createQuery, dataTagSymbol, useQueryClient } from '@tanstack/svelte-query';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
