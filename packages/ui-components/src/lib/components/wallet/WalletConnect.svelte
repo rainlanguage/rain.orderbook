@@ -7,8 +7,6 @@
 	export let appKitModal: Writable<AppKit>;
 	export let connected: boolean;
 	export let classes: string = '';
-
-	$: console.log(connected);
 	function handleClick() {
 		$appKitModal.open();
 	}
