@@ -451,7 +451,7 @@ impl OrderbookSubgraphClient {
     ) -> Result<SgOrder, OrderbookSubgraphClientError> {
         let data = self
             .query::<SgOrderDetailByHashQuery, SgOrderDetailByHashQueryVariables>(
-                SgOrderDetailByHashQueryVariables { hash: hash },
+                SgOrderDetailByHashQueryVariables { hash },
             )
             .await?;
         let order = data

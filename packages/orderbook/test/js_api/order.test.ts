@@ -739,7 +739,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 		}
 	});
 
-	it.only('should fetch an order by orderHash', async () => {
+	it('should fetch an order by orderHash', async () => {
 		const mockOrder = {
 			...order1,
 			orderHash: '0xbf8075f73b0a6418d719e52189d59bf35a0949e5983b3edbbc0338c02ab17353'
