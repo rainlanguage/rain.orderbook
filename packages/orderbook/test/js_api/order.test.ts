@@ -9,7 +9,6 @@ import {
 	OrderWithSortedVaults
 } from '../../dist/types/js_api.js';
 import {
-	getOrder,
 	getOrders,
 	getOrderByHash,
 	getOrderTradesList,
@@ -380,10 +379,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 	afterEach(() => mockServer.stop());
 
 	it('should fetch a single order', async () => {
-		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order: order1 } }));
+		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 
 		try {
-			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				order1.orderHash
+			);
 			assert.equal(result.order.id, order1.id);
 		} catch (e) {
 			console.log(e);
@@ -713,10 +715,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 		await mockServer
 			.forPost('/sg1')
 			.once()
-			.thenReply(200, JSON.stringify({ data: { order: { ...order1, inputs, outputs } } }));
+			.thenReply(200, JSON.stringify({ data: { orders: [{ ...order1, inputs, outputs }] } }));
 
 		try {
-			const result: OrderWithSortedVaults = await getOrder(mockServer.url + '/sg1', order1.id);
+			const result: OrderWithSortedVaults = await getOrderByHash(mockServer.url + '/sg1', order1.orderHash);
 
 			const inputs = result.vaults.get('inputs');
 			const outputs = result.vaults.get('outputs');
