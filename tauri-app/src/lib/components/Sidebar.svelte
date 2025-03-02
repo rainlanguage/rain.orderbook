@@ -18,7 +18,7 @@
   import { onMount } from 'svelte';
   import { getAppCommitSha } from '$lib/services/app';
   import { colorTheme } from '$lib/stores/darkMode';
-
+  import { logoLight, logoDark } from '@rainlanguage/ui-components';
   let app_sha: string;
   onMount(async () => {
     app_sha = await getAppCommitSha();
@@ -33,7 +33,7 @@
           site={{
             name: '',
             href: '/',
-            img: '/logo-light.svg',
+            img: $colorTheme === 'dark' ? logoDark : logoLight,
           }}
           imgClass="w-2/3 m-auto"
           aClass="w-full flex items-center justify-start gap-x-3 mb-5"
@@ -45,7 +45,7 @@
           site={{
             name: '',
             href: '/',
-            img: '/logo-dark.svg',
+            img: $colorTheme === 'dark' ? logoDark : logoLight,
           }}
           imgClass="w-2/3 m-auto"
           aClass="w-full flex items-center justify-start gap-x-3 mb-5"
