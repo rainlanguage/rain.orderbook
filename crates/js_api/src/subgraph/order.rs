@@ -1,13 +1,12 @@
-use std::collections::{HashMap, HashSet};
-
 use cynic::Id;
 use rain_orderbook_common::types::OrderDetailExtended;
 use rain_orderbook_subgraph_client::{
-    types::common::{SgOrder, SgOrdersListFilterArgs, SgVault},
+    types::common::{SgBytes, SgOrder, SgOrdersListFilterArgs, SgVault},
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError, SgPaginationArgs,
 };
 use reqwest::Url;
+use std::collections::{HashMap, HashSet};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 use serde::{Deserialize, Serialize};
@@ -18,14 +17,6 @@ pub struct OrderWithSortedVaults {
     pub vaults: HashMap<String, Vec<SgVault>>,
 }
 impl_wasm_traits!(OrderWithSortedVaults);
-
-/// Internal function to fetch a single order
-/// Returns the SgOrder struct
-pub async fn get_sg_order(url: &str, id: &str) -> Result<SgOrder, OrderbookSubgraphClientError> {
-    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
-    let order = client.order_detail(Id::new(id)).await?;
-    Ok(order)
-}
 
 /// Fetch all orders from multiple subgraphs
 /// Returns a list of OrderWithSubgraphName structs
@@ -73,11 +64,27 @@ fn sort_vaults(order: &SgOrder) -> HashMap<String, Vec<SgVault>> {
     sorted_vaults
 }
 
+/// Internal function to fetch a single order
+/// Returns the SgOrder struct
+pub async fn get_sg_order_by_hash(
+    url: &str,
+    hash: &str,
+) -> Result<SgOrder, OrderbookSubgraphClientError> {
+    let client = OrderbookSubgraphClient::new(Url::parse(url)?);
+    let order = client
+        .order_detail_by_hash(SgBytes(hash.to_string()))
+        .await?;
+    Ok(order)
+}
+
 /// Fetch a single order
 /// Returns the Order struct with sorted vaults
-#[wasm_bindgen(js_name = "getOrder")]
-pub async fn get_order(url: &str, id: &str) -> Result<JsValue, OrderbookSubgraphClientError> {
-    let order = get_sg_order(url, id).await?;
+#[wasm_bindgen(js_name = "getOrderByHash")]
+pub async fn get_order_by_hash(
+    url: &str,
+    hash: &str,
+) -> Result<JsValue, OrderbookSubgraphClientError> {
+    let order = get_sg_order_by_hash(url, hash).await?;
     Ok(to_js_value(&OrderWithSortedVaults {
         order: order.clone(),
         vaults: sort_vaults(&order),

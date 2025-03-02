@@ -82,7 +82,7 @@ export type TransactionState = {
 	data: null;
 	functionName: string;
 	message: string;
-	newOrderId: string;
+	newOrderHash: string;
 	network: string;
 };
 
@@ -106,7 +106,7 @@ const initialState: TransactionState = {
 	data: null,
 	functionName: '',
 	message: '',
-	newOrderId: '',
+	newOrderHash: '',
 	network: ''
 };
 
@@ -166,7 +166,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (addOrders?.length > 0) {
 				clearInterval(interval);
-				return transactionSuccess(txHash, '', addOrders[0].order.id, network);
+				return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
 			}
 		}, 1000);
 	};
@@ -225,7 +225,7 @@ const transactionStore = () => {
 	const transactionSuccess = (
 		hash: string,
 		message?: string,
-		newOrderId?: string,
+		newOrderHash?: string,
 		network?: string
 	) => {
 		update((state) => ({
@@ -233,7 +233,7 @@ const transactionStore = () => {
 			status: TransactionStatus.SUCCESS,
 			hash: hash,
 			message: message || '',
-			newOrderId: newOrderId || '',
+			newOrderHash: newOrderHash || '',
 			network: network || ''
 		}));
 	};
