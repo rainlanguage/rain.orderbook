@@ -6,7 +6,7 @@
   import { settings } from '$lib/stores/settings';
   import { handleDebugTradeModal, handleQuoteDebugModal } from '$lib/services/modal';
   import type { Hex } from 'viem';
-  const { id, network } = $page.params;
+  const { orderHash, network } = $page.params;
 
   const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
   const subgraphUrl = $settings?.subgraphs?.[network];
@@ -17,7 +17,7 @@
 <PageHeader title="Order" pathname={$page.url.pathname} />
 {#if rpcUrl && subgraphUrl && orderbookAddress}
   <OrderDetail
-    {id}
+    {orderHash}
     {rpcUrl}
     {subgraphUrl}
     {colorTheme}
