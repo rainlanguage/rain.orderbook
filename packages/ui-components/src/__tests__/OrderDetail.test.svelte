@@ -4,7 +4,7 @@
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
-	import { getOrder } from '@rainlanguage/orderbook/js_api';
+	import { getOrderByHash } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
@@ -21,15 +21,17 @@
 		undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
-	export let id: string;
+	export let orderHash: string;
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
-		queryKey: [id, QKEY_ORDER + id],
-		queryFn: () => getOrder(subgraphUrl, id),
-		enabled: !!subgraphUrl && !!id
+		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryFn: () => {
+			return getOrderByHash(subgraphUrl, orderHash);
+		},
+		enabled: !!subgraphUrl
 	});
 </script>
 
@@ -58,7 +60,7 @@
 		{/if}
 
 		<Refresh
-			on:click={async () => await invalidateIdQuery(queryClient, id)}
+			on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
 			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 		/>
 	</svelte:fragment>
@@ -98,6 +100,6 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="below" let:data>
-		<div>Below content: {data.order.id}</div>
+		<div>Below content: {data.order.orderHash}</div>
 	</svelte:fragment>
 </TanstackPageContentDetail>

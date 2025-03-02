@@ -11,7 +11,7 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { getOrder, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -41,7 +41,7 @@
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Hex;
-	export let id: string;
+	export let orderHash: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
@@ -53,15 +53,15 @@
 	const queryClient = useQueryClient();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
-		queryKey: [id, QKEY_ORDER + id],
+		queryKey: [orderHash, QKEY_ORDER + orderHash],
 		queryFn: () => {
-			return getOrder(subgraphUrl, id);
+			return getOrderByHash(subgraphUrl, orderHash);
 		},
 		enabled: !!subgraphUrl
 	});
 
 	const interval = setInterval(async () => {
-		await invalidateIdQuery(queryClient, id);
+		await invalidateIdQuery(queryClient, orderHash);
 	}, 10000);
 
 	onDestroy(() => {
@@ -107,7 +107,7 @@
 					</Button>
 				{/if}
 				<Refresh
-					on:click={async () => await invalidateIdQuery(queryClient, id)}
+					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
 			</div>
@@ -165,12 +165,12 @@
 			{/each}
 		</div>
 	</svelte:fragment>
-	<svelte:fragment slot="chart">
-		<OrderTradesChart {id} {subgraphUrl} {lightweightChartsTheme} {colorTheme} />
+	<svelte:fragment slot="chart" let:data>
+		<OrderTradesChart id={data.order.id} {subgraphUrl} {lightweightChartsTheme} {colorTheme} />
 	</svelte:fragment>
 	<svelte:fragment slot="below" let:data>
 		<TanstackOrderQuote
-			{id}
+			id={data.order.id}
 			order={data.order}
 			{rpcUrl}
 			{orderbookAddress}
@@ -192,13 +192,13 @@
 				</div>
 			</TabItem>
 			<TabItem open title="Trades">
-				<OrderTradesListTable {id} {subgraphUrl} />
+				<OrderTradesListTable id={data.order.id} {subgraphUrl} />
 			</TabItem>
 			<TabItem title="Volume">
-				<OrderVaultsVolTable {id} {subgraphUrl} />
+				<OrderVaultsVolTable id={data.order.id} {subgraphUrl} />
 			</TabItem>
 			<TabItem title="APY">
-				<OrderApy {id} {subgraphUrl} />
+				<OrderApy id={data.order.id} {subgraphUrl} />
 			</TabItem>
 		</Tabs>
 	</svelte:fragment>

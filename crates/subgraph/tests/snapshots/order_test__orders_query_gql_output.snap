@@ -3,7 +3,7 @@ source: crates/subgraph/tests/order_test.rs
 assertion_line: 13
 expression: request_body.query
 ---
-query SgOrderDetailQuery($id: ID!) {
+query SgOrderDetailByIdQuery($id: ID!) {
   order(id: $id) {
     id
     orderBytes

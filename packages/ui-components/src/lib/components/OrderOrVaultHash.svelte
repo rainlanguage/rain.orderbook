@@ -13,8 +13,8 @@
 	let hash;
 
 	$: isOrder = 'orderHash' in (orderOrVault || {});
-	$: slug = isOrder ? (orderOrVault as SgOrder).id : (orderOrVault as SgVault)?.id;
-	$: hash = isOrder ? (orderOrVault as SgOrder).id : (orderOrVault as SgVault)?.id || '';
+	$: slug = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id;
+	$: hash = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
 	$: isActive = isOrder ? (orderOrVault as SgOrderAsIO).active : false;
 </script>
 
