@@ -4,16 +4,31 @@ import type { LayoutLoad } from './$types';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 export const load: LayoutLoad = async ({ url }) => {
-	// get the registry url from the url params
 	const registry = url.searchParams.get('registry');
-
-	const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
-	const strategyDetails = await Promise.all(
-		registryDotrains.map(async (registryDotrain) => {
-			const details = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
-			return { ...registryDotrain, details };
-		})
-	);
-
-	return { registry: registry || REGISTRY_URL, registryDotrains, strategyDetails };
+	try {
+		const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
+		const strategyDetails = await Promise.all(
+			registryDotrains.map(async (registryDotrain) => {
+				try {
+					const details = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
+					return { ...registryDotrain, details };
+				} catch (error) {
+					return { ...registryDotrain, details: null, error };
+				}
+			})
+		);
+		return {
+			registry: registry || REGISTRY_URL,
+			registryDotrains,
+			strategyDetails,
+			error: null
+		};
+	} catch (error: unknown) {
+		return {
+			registry: registry || REGISTRY_URL,
+			registryDotrains: [],
+			strategyDetails: [],
+			error: error instanceof Error ? error.message : 'Unknown error occurred'
+		};
+	}
 };
