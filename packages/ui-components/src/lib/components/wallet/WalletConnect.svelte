@@ -22,11 +22,9 @@
 	color={$connected ? 'alternative' : 'primary'}
 >
 	{#if $connected && $signerAddress}
-		<div class="flex flex-col gap-1">
-			<span class="flex flex-row items-center gap-2"
-				><CheckCircleOutline color="green" size="md" />{truncateEthAddress($signerAddress)}</span
-			>
-		</div>
+		<span class="flex flex-row items-center gap-2 text-sm"
+			><CheckCircleOutline color="green" size="sm" />{truncateEthAddress($signerAddress)}</span
+		>
 	{:else}
 		<span>Connect Wallet</span>
 	{/if}
