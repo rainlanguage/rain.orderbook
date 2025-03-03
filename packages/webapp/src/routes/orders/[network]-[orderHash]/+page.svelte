@@ -15,7 +15,7 @@
 	import { fade } from 'svelte/transition';
 
 	const queryClient = useQueryClient();
-	const { id, network } = $page.params;
+	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
 	const subgraphUrl = $settings.subgraphs[network];
@@ -38,7 +38,7 @@
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
 		queryClient.invalidateQueries({
-			queryKey: [$page.params.id],
+			queryKey: [orderHash],
 			refetchType: 'all',
 			exact: false
 		});
@@ -56,7 +56,7 @@
 	</Toast>
 {/if}
 <OrderDetail
-	{id}
+	{orderHash}
 	{subgraphUrl}
 	{rpcUrl}
 	{codeMirrorTheme}
