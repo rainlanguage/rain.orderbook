@@ -7,10 +7,12 @@ describe('InputRegistryUrl', () => {
 	const mockPushState = vi.fn();
 	const mockReload = vi.fn();
 	const mockLocalStorageSetItem = vi.fn();
+	const mockLocalStorageGetItem = vi.fn();
 
 	beforeEach(() => {
 		vi.stubGlobal('localStorage', {
-			setItem: mockLocalStorageSetItem
+			setItem: mockLocalStorageSetItem,
+			getItem: mockLocalStorageGetItem
 		});
 
 		Object.defineProperty(window, 'location', {
@@ -26,6 +28,7 @@ describe('InputRegistryUrl', () => {
 		mockPushState.mockClear();
 		mockReload.mockClear();
 		mockLocalStorageSetItem.mockClear();
+		mockLocalStorageGetItem.mockClear();
 	});
 
 	afterEach(() => {
@@ -33,7 +36,8 @@ describe('InputRegistryUrl', () => {
 	});
 
 	it('should render input and button', () => {
-		render(InputRegistryUrl, { props: { newRegistryUrl: '' } });
+		mockLocalStorageGetItem.mockReturnValue('');
+		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		const button = screen.getByText('Load Registry URL');
@@ -42,8 +46,9 @@ describe('InputRegistryUrl', () => {
 		expect(button).toBeInTheDocument();
 	});
 
-	it('should bind input value to newRegistryUrl prop', async () => {
-		const screen = render(InputRegistryUrl, { props: { newRegistryUrl: '' } });
+	it('should bind input value to newRegistryUrl', async () => {
+		mockLocalStorageGetItem.mockReturnValue('');
+		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		const testUrl = 'https://example.com/registry.json';
@@ -54,24 +59,24 @@ describe('InputRegistryUrl', () => {
 	});
 
 	it('should handle registry URL loading when button is clicked', async () => {
+		mockLocalStorageGetItem.mockReturnValue('');
+		render(InputRegistryUrl);
+
+		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		const testUrl = 'https://example.com/registry.json';
-		render(InputRegistryUrl, { props: { newRegistryUrl: testUrl } });
+		await userEvent.type(input, testUrl);
 
 		const button = screen.getByText('Load Registry URL');
 		await fireEvent.click(button);
 
-		// Verify URL update
 		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=' + testUrl);
-
-		// Verify page reload
 		expect(mockReload).toHaveBeenCalled();
-
-		// Verify localStorage update
 		expect(mockLocalStorageSetItem).toHaveBeenCalledWith('registry', testUrl);
 	});
 
 	it('should handle empty URL', async () => {
-		render(InputRegistryUrl, { props: { newRegistryUrl: '' } });
+		mockLocalStorageGetItem.mockReturnValue('');
+		render(InputRegistryUrl);
 
 		const button = screen.getByText('Load Registry URL');
 		await fireEvent.click(button);
@@ -79,5 +84,16 @@ describe('InputRegistryUrl', () => {
 		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=');
 		expect(mockReload).toHaveBeenCalled();
 		expect(mockLocalStorageSetItem).toHaveBeenCalledWith('registry', '');
+	});
+
+	it('should load initial value from localStorage', () => {
+		const initialUrl = 'https://example.com/registry.json';
+		mockLocalStorageGetItem.mockReturnValue(initialUrl);
+		
+		render(InputRegistryUrl);
+
+		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
+		expect(input).toHaveValue(initialUrl);
+		expect(mockLocalStorageGetItem).toHaveBeenCalledWith('registry');
 	});
 });

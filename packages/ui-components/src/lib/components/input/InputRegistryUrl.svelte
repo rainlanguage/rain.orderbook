@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button, Input } from 'flowbite-svelte';
 
-	export let newRegistryUrl: string;
+	let newRegistryUrl = localStorage.getItem('registry') || '';
 
 	const loadRegistryUrl = () => {
 		window.history.pushState({}, '', window.location.pathname + '?registry=' + newRegistryUrl);
