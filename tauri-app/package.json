@@ -1,6 +1,6 @@
 {
   "name": "tauri-app",
-  "version": "0.0.1",
+  "version": "workspace:*",
   "private": true,
   "license": "LicenseRef-DCL-1.0",
   "author": "Rain Open Source Software Ltd",

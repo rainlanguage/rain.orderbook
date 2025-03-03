@@ -1,9 +1,10 @@
 {
 	"name": "@rainlanguage/webapp",
-	"version": "0.0.1",
+	"version": "workspace:*",
 	"type": "module",
     "license": "LicenseRef-DCL-1.0",
     "author": "Rain Open Source Software Ltd",
+	"private": true,
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
