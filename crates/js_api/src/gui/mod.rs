@@ -61,7 +61,6 @@ pub struct DotrainOrderGui {
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
 }
-
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeploymentKeys")]
