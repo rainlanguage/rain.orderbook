@@ -198,5 +198,7 @@
 		<VaultBalanceChart vault={data} {subgraphUrl} {lightweightChartsTheme} {id} />
 	</svelte:fragment>
 
-	<svelte:fragment slot="below"><VaultBalanceChangesTable {id} {subgraphUrl} /></svelte:fragment>
+	<svelte:fragment slot="below"
+		><VaultBalanceChangesTable {id} {subgraphUrl} {chainId} /></svelte:fragment
+	>
 </TanstackPageContentDetail>
