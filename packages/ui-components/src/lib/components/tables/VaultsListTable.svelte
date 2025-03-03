@@ -159,10 +159,20 @@
 				<Hash type={HashType.Identifier} value={bigintStringToHex(item.vault.vaultId)} />
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
-				<Hash type={HashType.Identifier} value={item.vault.orderbook.id} />
+				<Hash
+					type={HashType.Identifier}
+					value={item.vault.orderbook.id}
+					linkType="address"
+					subgraphName={item.subgraphName}
+				/>
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
-				<Hash type={HashType.Wallet} value={item.vault.owner} />
+				<Hash
+					type={HashType.Wallet}
+					value={item.vault.owner}
+					linkType="address"
+					subgraphName={item.subgraphName}
+				/>
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
 				>{item.vault.token.name}</TableBodyCell

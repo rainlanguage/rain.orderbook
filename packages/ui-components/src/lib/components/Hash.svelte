@@ -10,7 +10,6 @@
 <script lang="ts">
 	import { getExplorerLink } from '$lib/services/getExplorerLink';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { Tooltip } from 'flowbite-svelte';
 	import {
 		WalletOutline,
 		FingerprintOutline,
@@ -18,18 +17,20 @@
 		ClipboardOutline
 	} from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import * as allChains from 'viem/chains';
 
+	export let network: string | undefined = undefined;
 	export let value: string;
 	export let type: HashType | undefined = undefined;
 	export let shorten = true;
 	export let copyOnClick = true;
-	let externalLink: boolean = false;
-	export let chainId: number | undefined = undefined;
+	export let chainId: number | undefined = allChains[network as keyof typeof allChains]?.id;
 	export let linkType: 'tx' | 'address' | undefined = undefined;
 	let showCopiedMessage = false;
 	let explorerLink = '';
+	let externalLink: boolean = false;
 
-	$: if (chainId && linkType) {
+	$: if (chainId && linkType && network) {
 		externalLink = true;
 		explorerLink = getExplorerLink(value, chainId, linkType);
 	}
@@ -55,24 +56,25 @@
 </script>
 
 {#if externalLink}
-	<a
-		data-testid="external-link"
-		href={explorerLink}
-		target="_blank"
-		rel="noopener noreferrer"
-		{id}
-		class="flex items-center justify-start space-x-2 text-left"
-	>
-		{#if type === HashType.Wallet}
-			<WalletOutline size="sm" />
-		{:else if type === HashType.Identifier}
-			<FingerprintOutline size="sm" />
-		{:else if type === HashType.Transaction}
-			<ClipboardListOutline size="sm" />
-		{:else if type === HashType.Address}
-			<ClipboardOutline size="sm" />
-		{/if}
-		<div class="cursor-pointer hover:underline">{displayValue}</div>
+	<a data-testid="external-link" href={explorerLink} target="_blank" rel="noopener noreferrer" {id}>
+		<button
+			type="button"
+			class="flex items-center justify-start space-x-2 text-left"
+			on:click={(e) => {
+				e.stopPropagation();
+			}}
+		>
+			{#if type === HashType.Wallet}
+				<WalletOutline size="sm" />
+			{:else if type === HashType.Identifier}
+				<FingerprintOutline size="sm" />
+			{:else if type === HashType.Transaction}
+				<ClipboardListOutline size="sm" />
+			{:else if type === HashType.Address}
+				<ClipboardOutline size="sm" />
+			{/if}
+			<div class="cursor-pointer hover:underline">{displayValue}</div>
+		</button>
 	</a>
 {:else}
 	<button
