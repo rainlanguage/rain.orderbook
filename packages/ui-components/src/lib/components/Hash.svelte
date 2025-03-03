@@ -23,13 +23,14 @@
 	export let type: HashType | undefined = undefined;
 	export let shorten = true;
 	export let copyOnClick = true;
-	export let externalLink: boolean;
+	let externalLink: boolean = false;
 	export let chainId: number | undefined = undefined;
 	export let linkType: 'tx' | 'address' | undefined = undefined;
 	let showCopiedMessage = false;
 	let explorerLink = '';
 
 	$: if (chainId && linkType) {
+		externalLink = true;
 		explorerLink = getExplorerLink(value, chainId, linkType);
 	}
 
@@ -100,21 +101,4 @@
 	>
 		Copied to clipboard
 	</div>
-{/if}
-
-{#if shorten}
-	<Tooltip triggeredBy={`#${id}`} class="z-20 whitespace-normal">
-		<div class="flex items-center justify-start space-x-2">
-			{#if type === HashType.Wallet}
-				<WalletOutline size="sm" />
-			{:else if type === HashType.Identifier}
-				<FingerprintOutline size="sm" />
-			{:else if type === HashType.Transaction}
-				<ClipboardListOutline size="sm" />
-			{:else if type === HashType.Address}
-				<ClipboardOutline size="sm" />
-			{/if}
-			<div>{value}</div>
-		</div>
-	</Tooltip>
 {/if}
