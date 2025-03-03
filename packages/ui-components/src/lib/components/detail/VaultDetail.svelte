@@ -127,33 +127,21 @@
 		<CardProperty data-testid="vaultDetailOrderbookAddress">
 			<svelte:fragment slot="key">Orderbook</svelte:fragment>
 			<svelte:fragment slot="value">
-				<Hash
-					type={HashType.Identifier}
-					value={data.orderbook.id}
-					externalLink={true}
-					linkType="address"
-					{chainId}
-				/>
+				<Hash type={HashType.Identifier} value={data.orderbook.id} linkType="address" {chainId} />
 			</svelte:fragment>
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailOwnerAddress">
 			<svelte:fragment slot="key">Owner Address</svelte:fragment>
 			<svelte:fragment slot="value">
-				<Hash
-					type={HashType.Wallet}
-					value={data.owner}
-					externalLink={true}
-					linkType="address"
-					{chainId}
-				/>
+				<Hash type={HashType.Wallet} value={data.owner} linkType="address" {chainId} />
 			</svelte:fragment>
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailTokenAddress">
 			<svelte:fragment slot="key">Token address</svelte:fragment>
 			<svelte:fragment slot="value">
-				<Hash value={data.token.id} externalLink={true} linkType="address" {chainId} />
+				<Hash value={data.token.id} linkType="address" {chainId} />
 			</svelte:fragment>
 		</CardProperty>
 

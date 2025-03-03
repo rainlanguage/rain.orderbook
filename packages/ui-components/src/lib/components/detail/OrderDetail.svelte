@@ -122,7 +122,6 @@
 						type={HashType.Identifier}
 						shorten={false}
 						value={data.order.orderbook.id}
-						externalLink={true}
 						linkType="address"
 						{chainId}
 					/>
@@ -136,7 +135,6 @@
 						type={HashType.Wallet}
 						shorten={false}
 						value={data.order.owner}
-						externalLink={true}
 						linkType="address"
 						{chainId}
 					/>
@@ -206,7 +204,7 @@
 				</div>
 			</TabItem>
 			<TabItem open title="Trades">
-				<OrderTradesListTable id={data.order.id} {subgraphUrl} />
+				<OrderTradesListTable id={data.order.id} {subgraphUrl} {chainId} />
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable id={data.order.id} {subgraphUrl} />
