@@ -11,85 +11,83 @@ const UNCHECKED_RETURN_TYPE_PARAM: &str = "unchecked_return_type";
 #[proc_macro_attribute]
 pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse the input as an impl block
-    let mut input = parse_macro_input!(item as ItemImpl);
+    let input = parse_macro_input!(item as ItemImpl);
 
-    // Transform each method to add a wasm export version
-    let mut new_items = Vec::new();
+    // Create two vectors to store original and exported items
+    let mut original_items = Vec::new();
+    let mut export_items = Vec::new();
 
-    for item in input.items {
-        if let ImplItem::Fn(mut method) = item {
-            // Only process public functions that don't have skip_wasm_export attribute
+    for item in input.items.iter() {
+        if let ImplItem::Fn(method) = item {
+            // Add original method to original_items
+            original_items.push(ImplItem::Fn(method.clone()));
+
+            // Process for export if applicable
             if let syn::Visibility::Public(_) = method.vis {
                 let should_skip = should_skip_wasm_export(&method.attrs);
 
                 if !should_skip {
                     if let ReturnType::Type(_, return_type) = &method.sig.output {
-                        // Try to extract Result inner type (will skip non-Result functions)
                         if let Some(inner_type) = try_extract_result_inner_type(return_type) {
                             let fn_name = &method.sig.ident;
                             let is_async = method.sig.asyncness.is_some();
-                            let args = collect_function_arguments(&method.sig.inputs);
+                            let (has_self_receiver, args) =
+                                collect_function_arguments(&method.sig.inputs);
 
-                            // New function logic
-                            {
-                                let export_fn_name = syn::Ident::new(
-                                    &format!("{}__{}", fn_name, WASM_EXPORT_ATTR),
-                                    fn_name.span(),
-                                );
-                                let camel_case_name = to_camel_case(&fn_name.to_string());
+                            // Create exported version
+                            let export_fn_name = syn::Ident::new(
+                                &format!("{}__{}", fn_name, WASM_EXPORT_ATTR),
+                                fn_name.span(),
+                            );
+                            let camel_case_name = to_camel_case(&fn_name.to_string());
 
-                                // Create a new function with __wasm_export suffix
-                                let mut export_method = method.clone();
-                                export_method.sig.ident = export_fn_name;
+                            let mut export_method = method.clone();
+                            export_method.sig.ident = export_fn_name;
 
-                                add_attributes_to_new_function(
-                                    &mut export_method,
-                                    &camel_case_name,
-                                );
+                            add_attributes_to_new_function(&mut export_method, &camel_case_name);
 
-                                let new_return_type = syn::parse_quote!(-> Result<CustomResult<#inner_type>, wasm_bindgen::JsValue>);
-                                export_method.sig.output = new_return_type;
+                            let new_return_type = syn::parse_quote!(-> Result<WasmEncodedResult<#inner_type>, wasm_bindgen::JsValue>);
+                            export_method.sig.output = new_return_type;
 
-                                let call_expr = create_new_function_call(&fn_name, &args);
+                            let call_expr =
+                                create_new_function_call(&fn_name, has_self_receiver, &args);
 
-                                if is_async {
-                                    export_method.block = syn::parse_quote!({
-                                        let result: CustomResult<_> = #call_expr.await.into();
-                                        Ok(result)
-                                    });
-                                } else {
-                                    export_method.block = syn::parse_quote!({
-                                        let result: CustomResult<_> = #call_expr.into();
-                                        Ok(result)
-                                    });
-                                }
-
-                                new_items.push(ImplItem::Fn(export_method));
+                            if is_async {
+                                export_method.block = syn::parse_quote!({
+                                    let result: WasmEncodedResult<_> = #call_expr.await.into();
+                                    Ok(result)
+                                });
+                            } else {
+                                export_method.block = syn::parse_quote!({
+                                    let result: WasmEncodedResult<_> = #call_expr.into();
+                                    Ok(result)
+                                });
                             }
 
-                            // Add the skip_typescript attribute to the original method
-                            method
-                                .attrs
-                                .push(syn::parse_quote!(#[wasm_bindgen(skip_typescript)]));
+                            export_items.push(ImplItem::Fn(export_method));
                         }
                     }
                 }
             }
-
-            // Keep the original item
-            new_items.push(ImplItem::Fn(method));
         } else {
-            // Keep the original item
-            new_items.push(item.clone());
+            // Non-function items go to both impl blocks
+            original_items.push(item.clone());
         }
     }
 
-    input.items = new_items;
+    // Create two impl blocks
+    let mut original_impl = input.clone();
+    original_impl.items = original_items;
 
-    // Generate the output with wasm_bindgen applied to the impl block
+    let mut export_impl = input;
+    export_impl.items = export_items;
+
+    // Generate the output with wasm_bindgen only on the export impl
     let output = quote! {
+        #original_impl
+
         #[wasm_bindgen]
-        #input
+        #export_impl
     };
 
     output.into()
@@ -144,25 +142,20 @@ fn try_extract_result_inner_type(return_type: &Box<Type>) -> Option<&Type> {
 
 fn collect_function_arguments(
     inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>,
-) -> Vec<proc_macro2::TokenStream> {
-    inputs
+) -> (bool, Vec<proc_macro2::TokenStream>) {
+    let mut has_self_receiver = false;
+
+    let args = inputs
         .iter()
-        .filter_map(|arg| {
+        .enumerate()
+        .filter_map(|(_, arg)| {
             match arg {
-                syn::FnArg::Receiver(receiver) => {
-                    // Handle self parameter
-                    if receiver.reference.is_some() {
-                        if receiver.mutability.is_some() {
-                            Some(quote::quote! { &mut self })
-                        } else {
-                            Some(quote::quote! { &self })
-                        }
-                    } else {
-                        Some(quote::quote! { self })
-                    }
+                syn::FnArg::Receiver(_) => {
+                    has_self_receiver = true;
+                    None
                 }
                 syn::FnArg::Typed(pat_type) => {
-                    // Handle named parameters
+                    // Extract the pattern (variable name)
                     if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                         Some(quote::quote! { #pat_ident })
                     } else {
@@ -171,7 +164,9 @@ fn collect_function_arguments(
                 }
             }
         })
-        .collect()
+        .collect();
+
+    (has_self_receiver, args)
 }
 
 fn add_attributes_to_new_function(method: &mut syn::ImplItemFn, camel_case_name: &str) {
@@ -217,9 +212,9 @@ fn add_attributes_to_new_function(method: &mut syn::ImplItemFn, camel_case_name:
 
                     // Create the modified return type
                     let return_type = if method.sig.asyncness.is_some() {
-                        format!("Promise<CustomResult<{}>>", unchecked_value)
+                        format!("Promise<WasmEncodedResult<{}>>", unchecked_value)
                     } else {
-                        format!("CustomResult<{}>", unchecked_value)
+                        format!("WasmEncodedResult<{}>", unchecked_value)
                     };
 
                     // Add other parameters
@@ -262,9 +257,9 @@ fn add_attributes_to_new_function(method: &mut syn::ImplItemFn, camel_case_name:
     //         // Check if the method is async and adjust the TypeScript return type accordingly
     //         let is_async = method.sig.asyncness.is_some();
     //         let return_type = if is_async {
-    //             format!("Promise<CustomResult<{}>>", ts_type)
+    //             format!("Promise<WasmEncodedResult<{}>>", ts_type)
     //         } else {
-    //             format!("CustomResult<{}>", ts_type)
+    //             format!("WasmEncodedResult<{}>", ts_type)
     //         };
 
     //         method.attrs.push(syn::parse_quote!(
@@ -362,23 +357,15 @@ fn rust_type_to_ts_type(rust_type: &Type) -> String {
 
 fn create_new_function_call(
     fn_name: &syn::Ident,
+    has_self_receiver: bool,
     args: &[proc_macro2::TokenStream],
 ) -> proc_macro2::TokenStream {
-    if let Some(first_arg) = args.first() {
-        // Check if the first argument is self (indicating an instance method)
-        if first_arg.to_string().contains("self") {
-            if args.len() > 1 {
-                quote::quote! { self.#fn_name(#(#args),*) }
-            } else {
-                quote::quote! { self.#fn_name() }
-            }
-        } else {
-            // Static method call (no self)
-            quote::quote! { Self::#fn_name(#(#args),*) }
-        }
+    if has_self_receiver {
+        // Instance method call
+        quote::quote! { self.#fn_name(#(#args),*) }
     } else {
-        // No arguments at all, must be a static method
-        quote::quote! { Self::#fn_name() }
+        // Static method call
+        quote::quote! { Self::#fn_name(#(#args),*) }
     }
 }
 

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'vitest';
 import { TestStruct } from '../../dist/cjs/js_api.js';
-import { CustomError, TestStruct as TestStructType } from '../../dist/types/js_api';
+import { WasmEncodedError, WasmEncodedResult } from '../../dist/types/js_api';
 
 const guiConfig = `
 gui:
@@ -161,18 +161,19 @@ describe('TestStruct', () => {
 		let error = {
 			msg: 'JavaScript error: some error',
 			readableMsg: 'Something went wrong: some error'
-		} as CustomError;
+		} as WasmEncodedError;
 		assert.deepEqual(result.error, error);
 	});
 
 	it('should be able to call simpleFunctionWithSelf', async () => {
-		const testStruct = await TestStruct.newWithResult('beef');
+		const testStruct = new TestStruct();
+		testStruct.updateField('beef');
 		const result = testStruct.simpleFunctionWithSelf();
 		assert.equal(result.data, 'Hello, beef!');
 	});
 
 	it('should be able to call errFunctionWithSelf', async () => {
-		const testStruct: TestStructType = await TestStruct.newWithResult('beef');
+		const testStruct = new TestStruct();
 		const result = testStruct.errFunctionWithSelf();
 		if (result.data) {
 			assert.fail('result.data should be undefined');
@@ -180,7 +181,7 @@ describe('TestStruct', () => {
 		let error = {
 			msg: 'Test error',
 			readableMsg: 'An unexpected error occurred. Please try again.'
-		} as CustomError;
+		} as WasmEncodedError;
 		assert.deepEqual(result.error, error);
 	});
 
@@ -190,7 +191,8 @@ describe('TestStruct', () => {
 	});
 
 	it('should be able to call simpleFunctionWithReturnTypeWithSelf', () => {
-		let testStruct = TestStruct.new('beef');
+		const testStruct = new TestStruct();
+		testStruct.updateField('beef');
 		const result = testStruct.simpleFunctionWithReturnTypeWithSelf();
 		assert.equal(result.data.field, 'Hello, beef!');
 	});
@@ -201,7 +203,7 @@ describe('TestStruct', () => {
 	});
 
 	it('should be able to call asyncFunctionWithSelf', async () => {
-		let testStruct = TestStruct.new('beef');
+		const testStruct = new TestStruct();
 		const result = await testStruct.asyncFunctionWithSelf();
 		assert.equal(result.data, 234);
 	});

@@ -8,15 +8,15 @@ use wasm_function_macro::{impl_wasm_exports, wasm_export};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct CustomError {
+pub struct WasmEncodedError {
     msg: String,
     readable_msg: String,
 }
-impl_wasm_traits!(CustomError);
+impl_wasm_traits!(WasmEncodedError);
 
-impl From<TestError> for CustomError {
+impl From<TestError> for WasmEncodedError {
     fn from(err: TestError) -> Self {
-        CustomError {
+        WasmEncodedError {
             msg: err.to_string(),
             readable_msg: err.to_string(),
         }
@@ -24,37 +24,37 @@ impl From<TestError> for CustomError {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct CustomResult<T> {
+pub struct WasmEncodedResult<T> {
     data: Option<T>,
-    error: Option<CustomError>,
+    error: Option<WasmEncodedError>,
 }
 
-impl<T> CustomResult<T> {
+impl<T> WasmEncodedResult<T> {
     pub fn success(data: T) -> Self {
-        CustomResult {
+        WasmEncodedResult {
             data: Some(data),
             error: None,
         }
     }
 
-    pub fn error(err: CustomError) -> Self {
-        CustomResult {
+    pub fn error(err: WasmEncodedError) -> Self {
+        WasmEncodedResult {
             data: None,
             error: Some(err),
         }
     }
 }
 
-impl<T> From<Result<T, TestError>> for CustomResult<T> {
+impl<T> From<Result<T, TestError>> for WasmEncodedResult<T> {
     fn from(result: Result<T, TestError>) -> Self {
         match result {
-            Ok(data) => CustomResult {
+            Ok(data) => WasmEncodedResult {
                 data: Some(data),
                 error: None,
             },
-            Err(err) => CustomResult {
+            Err(err) => WasmEncodedResult {
                 data: None,
-                error: Some(CustomError {
+                error: Some(WasmEncodedError {
                     msg: err.to_string(),
                     readable_msg: err.to_readable_msg(),
                 }),
@@ -103,25 +103,32 @@ impl From<TestError> for JsValue {
 pub struct TestStruct {
     field: String,
 }
+
+#[wasm_bindgen]
+impl TestStruct {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> TestStruct {
+        TestStruct {
+            field: "".to_string(),
+        }
+    }
+}
+
 #[impl_wasm_exports]
 impl TestStruct {
-    pub fn new(value: String) -> TestStruct {
-        Self { field: value }
+    #[wasm_export(js_name = "updateField")]
+    pub fn update_field(&mut self, value: String) -> Result<(), TestError> {
+        self.field = value;
+        Ok(())
     }
 
-    #[wasm_export(skip)]
-    #[wasm_bindgen(js_name = "newWithResult")]
-    pub async fn new_with_result(value: String) -> Result<TestStruct, TestError> {
-        Ok(Self { field: value })
-    }
-
-    // #[wasm_export(skip)]
-    // #[wasm_bindgen(js_name = "newWithDotrainResult")]
-    // pub async fn new_with_dotrain_result(value: String) -> Result<TestStruct, TestError> {
+    // #[wasm_export(js_name = "saveDotrain")]
+    // pub async fn new_with_dotrain_result(&mut self, value: String) -> Result<(), TestError> {
     //     let dotrain_order = DotrainOrder::new(value, None).await?;
     //     let dotrain =
     //         DotrainYaml::get_yaml_string(dotrain_order.dotrain_yaml().documents[0].clone())?;
-    //     Ok(Self { field: dotrain })
+    //     self.field = dotrain;
+    //     Ok(())
     // }
 
     #[wasm_export(js_name = "simpleFunction", unchecked_return_type = "string")]
@@ -202,9 +209,10 @@ impl TestStruct {
     }
 }
 
-impl_wasm_traits!(CustomResult<String>);
-impl_wasm_traits!(CustomResult<u64>);
-impl_wasm_traits!(CustomResult<TestReturnType>);
-impl_wasm_traits!(CustomResult<VecReturnType>);
-impl_wasm_traits!(CustomResult<HashMapReturnType>);
-impl_wasm_traits!(CustomResult<Option<u64>>);
+impl_wasm_traits!(WasmEncodedResult<String>);
+impl_wasm_traits!(WasmEncodedResult<u64>);
+impl_wasm_traits!(WasmEncodedResult<TestReturnType>);
+impl_wasm_traits!(WasmEncodedResult<VecReturnType>);
+impl_wasm_traits!(WasmEncodedResult<HashMapReturnType>);
+impl_wasm_traits!(WasmEncodedResult<Option<u64>>);
+impl_wasm_traits!(WasmEncodedResult<()>);
