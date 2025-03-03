@@ -7,7 +7,7 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-
+	import { signerAddress } from '$lib/stores/wagmi';
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
@@ -39,6 +39,7 @@
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
 	<DeploymentSteps
+		{signerAddress}
 		{strategyDetail}
 		{gui}
 		{dotrain}

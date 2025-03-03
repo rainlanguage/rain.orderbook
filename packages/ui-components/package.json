@@ -2,8 +2,8 @@
 	"name": "@rainlanguage/ui-components",
 	"version": "0.0.1",
 	"description": "A component library for building Svelte applications to be used with Raindex.",
-    "license": "LicenseRef-DCL-1.0",
-    "author": "Rain Open Source Software Ltd",
+	"license": "LicenseRef-DCL-1.0",
+	"author": "Rain Open Source Software Ltd",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"exports": {
@@ -49,8 +49,9 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"dependencies": {
-		"flowbite-svelte": "^0.44.21",
 		"@sveltejs/kit": "^2.0.0",
-		"svelte": "^4.2.7"
+		"flowbite-svelte": "^0.44.21",
+		"svelte": "^4.2.7",
+		"truncate-eth-address": "^1.0.2"
 	}
 }

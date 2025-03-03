@@ -9,7 +9,7 @@ import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 
-const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
@@ -622,6 +622,7 @@ const mockDeployment = {
 } as unknown as GuiDeploymentCfg;
 
 const defaultProps: DeploymentStepsProps = {
+	signerAddress: mockSignerAddressStore,
 	dotrain,
 	strategyDetail: {
 		name: 'SFLR<>WFLR on Flare',

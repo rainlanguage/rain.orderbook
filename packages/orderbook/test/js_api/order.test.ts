@@ -718,7 +718,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			.thenReply(200, JSON.stringify({ data: { orders: [{ ...order1, inputs, outputs }] } }));
 
 		try {
-			const result: OrderWithSortedVaults = await getOrderByHash(mockServer.url + '/sg1', order1.orderHash);
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				order1.orderHash
+			);
 
 			const inputs = result.vaults.get('inputs');
 			const outputs = result.vaults.get('outputs');
