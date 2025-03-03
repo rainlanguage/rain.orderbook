@@ -46,6 +46,8 @@ describe('WalletConnect component', () => {
 			}
 		});
 
-		expect(screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))).toBeInTheDocument();
+		expect(
+			screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))
+		).toBeInTheDocument();
 	});
 });

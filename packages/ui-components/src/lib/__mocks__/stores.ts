@@ -104,8 +104,7 @@ export const mockSignerAddressStore = {
 	subscribe: mockSignerAddressWritable.subscribe,
 	set: mockSignerAddressWritable.set,
 	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value),
-	update: mockSignerAddressWritable.update,
-
+	update: mockSignerAddressWritable.update
 };
 
 export const mockChainIdStore = {
