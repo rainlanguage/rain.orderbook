@@ -1,6 +1,6 @@
 [package]
-name = "wasm_function_macro"
-version = "0.1.0"
+name = "rain_orderbook_macros"
+version = "0.0.0"
 edition = "2021"
 
 [lib]

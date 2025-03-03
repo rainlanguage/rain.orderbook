@@ -6444,6 +6444,7 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
+ "rain_orderbook_macros",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
  "serde",
@@ -6452,8 +6453,16 @@ dependencies = [
  "thiserror",
  "tokio",
  "wasm-bindgen-utils",
- "wasm_function_macro",
  "web-sys",
+]
+
+[[package]]
+name = "rain_orderbook_macros"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]
 
 [[package]]
@@ -8894,15 +8903,6 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "wasm_function_macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.74",
 ]
 
 [[package]]
