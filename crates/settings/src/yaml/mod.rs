@@ -2,6 +2,7 @@ pub mod context;
 pub mod dotrain;
 pub mod orderbook;
 
+use crate::remote_networks::ParseRemoteNetworksError;
 use crate::{
     ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
@@ -146,6 +147,8 @@ pub enum YamlError {
     ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
     #[error(transparent)]
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    #[error(transparent)]
+    ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
     #[error(transparent)]
     ContextError(#[from] ContextError),
 }

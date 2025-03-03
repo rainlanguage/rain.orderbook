@@ -13,6 +13,7 @@ pub mod orderbook;
 pub mod plot_source;
 pub mod raindex_version;
 pub mod remote;
+pub mod remote_networks;
 pub mod scenario;
 pub mod sentry;
 pub mod subgraph;
@@ -31,6 +32,7 @@ pub(crate) use orderbook::*;
 pub(crate) use plot_source::*;
 pub(crate) use scenario::*;
 pub(crate) use token::*;
+
 #[cfg(test)]
 pub mod test;
 

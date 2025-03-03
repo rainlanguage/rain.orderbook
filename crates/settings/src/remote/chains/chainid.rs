@@ -1,12 +1,16 @@
-use crate::config_source::*;
+use crate::{yaml::default_document, NetworkCfg};
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use url::Url;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainId {
+    #[serde(skip, default = "default_document")]
+    pub document: Arc<RwLock<StrictYaml>>,
     pub name: String,
     pub chain: String,
     pub icon: Option<String>,
@@ -23,6 +27,19 @@ pub struct ChainId {
     pub ens: Option<ENS>,
     pub explorers: Option<Vec<Explorer>>,
     pub red_flags: Option<Vec<String>>,
+}
+
+impl PartialEq for ChainId {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.chain == other.chain
+            && self.rpc == other.rpc
+            && self.native_currency == other.native_currency
+            && self.info_url == other.info_url
+            && self.short_name == other.short_name
+            && self.chain_id == other.chain_id
+            && self.network_id == other.network_id
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -62,20 +79,22 @@ pub enum ChainIdError {
     NoRpc,
 }
 
-impl TryFrom<ChainId> for NetworkConfigSource {
+impl TryFrom<ChainId> for NetworkCfg {
     type Error = ChainIdError;
-    fn try_from(value: ChainId) -> Result<NetworkConfigSource, Self::Error> {
+    fn try_from(value: ChainId) -> Result<NetworkCfg, Self::Error> {
         if value.rpc.is_empty() {
             return Err(ChainIdError::NoRpc);
         }
         for rpc in &value.rpc {
             if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
-                return Ok(NetworkConfigSource {
-                    chain_id: value.chain_id,
+                return Ok(NetworkCfg {
+                    document: value.document.clone(),
+                    key: value.short_name,
                     rpc: rpc.clone(),
+                    chain_id: value.chain_id,
+                    label: Some(value.name),
                     network_id: Some(value.network_id),
                     currency: Some(value.native_currency.symbol),
-                    label: Some(value.name),
                 });
             }
         }
