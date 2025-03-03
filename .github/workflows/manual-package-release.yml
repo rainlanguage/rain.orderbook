@@ -68,6 +68,8 @@ jobs:
       - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
 
+      - name: Build UI Components
+        run: nix develop -c npm run build -w @rainlanguage/ui-components
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
 
@@ -113,7 +115,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Create orderbook npm package tarball to put in release files
+      # Create orderbook npm package tarball
       - name: Create orderbook NPM Package Tarball
         run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
 
@@ -128,7 +130,7 @@ jobs:
           access: public
           package: orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
 
-      # Create npm package tarball for ui-components to put in release files
+      # Create npm package tarball for ui-components
       - name: Create ui-components NPM Package Tarball
         run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
 
