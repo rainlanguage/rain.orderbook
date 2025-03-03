@@ -3,6 +3,7 @@ import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
 import { writable, type Writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
+import truncateEthAddress from 'truncate-eth-address';
 
 const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
@@ -33,17 +34,18 @@ describe('WalletConnect component', () => {
 		expect(connectButton).toBeInTheDocument();
 	});
 
-	it('displays "Connected" with green icon when wallet is connected', () => {
-		mockSignerAddressStore.mockSetSubscribeValue('0x123');
+	it('displays truncated version of the connected address, when a wallet is connected', () => {
+		mockSignerAddressStore.mockSetSubscribeValue('0x912ce59144191c1204e64559fe8253a0e49e6548');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		render(WalletConnect, {
 			props: {
 				connected: mockConnectedStore as Writable<boolean>,
+				signerAddress: mockSignerAddressStore,
 				appKitModal: writable({} as AppKit)
 			}
 		});
 
-		expect(screen.getByText('Connected')).toBeInTheDocument();
+		expect(screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))).toBeInTheDocument();
 	});
 });

@@ -103,7 +103,9 @@ export const mockSubgraphUrlStore = {
 export const mockSignerAddressStore = {
 	subscribe: mockSignerAddressWritable.subscribe,
 	set: mockSignerAddressWritable.set,
-	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value)
+	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value),
+	update: mockSignerAddressWritable.update,
+
 };
 
 export const mockChainIdStore = {
