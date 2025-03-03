@@ -11,8 +11,7 @@ pub fn collect_function_arguments(
 
     let args = inputs
         .iter()
-        .enumerate()
-        .filter_map(|(_, arg)| {
+        .filter_map(|arg| {
             match arg {
                 FnArg::Receiver(_) => {
                     has_self_receiver = true;
@@ -61,9 +60,9 @@ pub fn add_attributes_to_new_function(method: &mut ImplItemFn) {
                             if let Some(value) = param.split('=').nth(1) {
                                 let value = value.trim();
                                 // Remove quotes if present
-                                if value.starts_with('"') && value.ends_with('"') {
-                                    unchecked_value = &value[1..value.len() - 1];
-                                } else if value.starts_with('\'') && value.ends_with('\'') {
+                                if (value.starts_with('"') && value.ends_with('"'))
+                                    || (value.starts_with('\'') && value.ends_with('\''))
+                                {
                                     unchecked_value = &value[1..value.len() - 1];
                                 } else {
                                     unchecked_value = value;

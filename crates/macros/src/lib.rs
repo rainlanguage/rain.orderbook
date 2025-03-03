@@ -52,7 +52,7 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             export_method.sig.output = new_return_type;
 
                             let call_expr =
-                                create_new_function_call(&fn_name, has_self_receiver, &args);
+                                create_new_function_call(fn_name, has_self_receiver, &args);
 
                             if is_async {
                                 export_method.block = syn::parse_quote!({
