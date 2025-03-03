@@ -16,6 +16,7 @@ import {
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook/js_api';
+import { getExplorerLink } from '../services/getExplorerLink';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -25,7 +26,10 @@ export enum TransactionStatus {
 	CHECKING_ALLOWANCE = 'Checking your allowance...',
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
-	PENDING_DEPLOYMENT = 'Deploying your strategy...',
+	PENDING_DEPLOYMENT = 'Deploying your order...',
+	PENDING_WITHDRAWAL = 'Withdrawing tokens...',
+	PENDING_DEPOSIT = 'Depositing tokens...',
+	PENDING_REMOVE_ORDER = 'Removing order...',
 	PENDING_SUBGRAPH = 'Awaiting subgraph...',
 	SUCCESS = 'Success! Transaction confirmed',
 	ERROR = 'Something went wrong'
@@ -84,6 +88,7 @@ export type TransactionState = {
 	message: string;
 	newOrderHash: string;
 	network: string;
+	explorerLink: string;
 };
 
 export type TransactionStore = {
@@ -107,7 +112,8 @@ const initialState: TransactionState = {
 	functionName: '',
 	message: '',
 	newOrderHash: '',
-	network: ''
+	network: '',
+	explorerLink: ''
 };
 
 const transactionStore = () => {
@@ -215,12 +221,13 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_APPROVAL,
 			message: `Approving ${symbol || 'token'} spend...`
 		}));
-	const awaitDeployTx = (hash: string) =>
+	const awaitTx = (hash: string, status: TransactionStatus, explorerLink?: string, message?: string) =>
 		update((state) => ({
 			...state,
 			hash: hash,
-			status: TransactionStatus.PENDING_DEPLOYMENT,
-			message: 'Confirming transaction...'
+			status: status,
+			message: message || 'Waiting for transaction...',
+			explorerLink: explorerLink || ''
 		}));
 	const transactionSuccess = (
 		hash: string,
@@ -291,7 +298,8 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
-			awaitDeployTx(hash);
+			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
+			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitNewOrderIndexing(subgraphUrl, hash, network);
 		} catch {
@@ -344,7 +352,7 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
-			awaitDeployTx(hash);
+			awaitTx(hash, action === 'deposit' ? TransactionStatus.PENDING_DEPOSIT : TransactionStatus.PENDING_WITHDRAWAL);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitTransactionIndexing(
 				subgraphUrl,
@@ -385,7 +393,7 @@ const transactionStore = () => {
 		}
 
 		try {
-			awaitDeployTx(hash);
+			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitRemoveOrderIndexing(subgraphUrl, hash);
 		} catch {
