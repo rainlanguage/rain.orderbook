@@ -13,9 +13,9 @@ vi.mock('viem/chains', () => ({
 
 describe('getExplorerLink', () => {
 	it('should return the explorer link', async () => {
-		expect(await getExplorerLink('0x123', 999, 'tx')).toBe("https://etherscan.io/tx/0x123");
+		expect(await getExplorerLink('0x123', 999, 'tx')).toBe('https://etherscan.io/tx/0x123');
 	});
-    it('should return an empty string if the chain is not found', async () => {
-        expect(await getExplorerLink('0x123', 1, 'tx')).toBe('');
-    });
+	it('should return an empty string if the chain is not found', async () => {
+		expect(await getExplorerLink('0x123', 1, 'tx')).toBe('');
+	});
 });

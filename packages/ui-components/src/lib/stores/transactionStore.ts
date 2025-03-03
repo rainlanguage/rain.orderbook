@@ -221,7 +221,12 @@ const transactionStore = () => {
 			status: TransactionStatus.PENDING_APPROVAL,
 			message: `Approving ${symbol || 'token'} spend...`
 		}));
-	const awaitTx = (hash: string, status: TransactionStatus, explorerLink?: string, message?: string) =>
+	const awaitTx = (
+		hash: string,
+		status: TransactionStatus,
+		explorerLink?: string,
+		message?: string
+	) =>
 		update((state) => ({
 			...state,
 			hash: hash,
@@ -352,7 +357,12 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
-			awaitTx(hash, action === 'deposit' ? TransactionStatus.PENDING_DEPOSIT : TransactionStatus.PENDING_WITHDRAWAL);
+			awaitTx(
+				hash,
+				action === 'deposit'
+					? TransactionStatus.PENDING_DEPOSIT
+					: TransactionStatus.PENDING_WITHDRAWAL
+			);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitTransactionIndexing(
 				subgraphUrl,
