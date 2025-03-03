@@ -65,7 +65,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center border lg:hidden dark:border-gray-700"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
