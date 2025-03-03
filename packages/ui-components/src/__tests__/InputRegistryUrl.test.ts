@@ -89,7 +89,7 @@ describe('InputRegistryUrl', () => {
 	it('should load initial value from localStorage', () => {
 		const initialUrl = 'https://example.com/registry.json';
 		mockLocalStorageGetItem.mockReturnValue(initialUrl);
-		
+
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
