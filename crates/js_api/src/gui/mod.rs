@@ -25,7 +25,6 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 mod deposits;
 mod field_values;
-mod new;
 mod order_operations;
 mod select_tokens;
 mod state_management;
