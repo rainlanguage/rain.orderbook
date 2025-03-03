@@ -8,6 +8,8 @@
 </script>
 
 <script lang="ts">
+	import { getExplorerLink } from '$lib/services/getExplorerLink';
+	import truncateEthAddress from 'truncate-eth-address';
 	import { Tooltip } from 'flowbite-svelte';
 	import {
 		WalletOutline,
@@ -20,16 +22,22 @@
 	export let value: string;
 	export let type: HashType | undefined = undefined;
 	export let shorten = true;
-	export let sliceLen = 5;
 	export let copyOnClick = true;
+	export let externalLink: boolean;
+	export let chainId: number | undefined = undefined;
+	export let linkType: 'tx' | 'address' | undefined = undefined;
 	let showCopiedMessage = false;
+	let explorerLink = '';
+
+	$: if (chainId && linkType) {
+		explorerLink = getExplorerLink(value, chainId, linkType);
+	}
 
 	let cursorX = 0;
 	let cursorY = 0;
 
 	$: id = shorten ? `hash-${value}` : undefined;
-	$: displayValue =
-		value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
+	$: displayValue = value && shorten ? truncateEthAddress(value) : value;
 
 	function copy(e: MouseEvent) {
 		if (copyOnClick) {
@@ -45,23 +53,44 @@
 	}
 </script>
 
-<button
-	type="button"
-	{id}
-	class="flex items-center justify-start space-x-2 text-left"
-	on:click={copy}
->
-	{#if type === HashType.Wallet}
-		<WalletOutline size="sm" />
-	{:else if type === HashType.Identifier}
-		<FingerprintOutline size="sm" />
-	{:else if type === HashType.Transaction}
-		<ClipboardListOutline size="sm" />
-	{:else if type === HashType.Address}
-		<ClipboardOutline size="sm" />
-	{/if}
-	<div>{displayValue}</div>
-</button>
+{#if externalLink}
+	<a
+		href={explorerLink}
+		target="_blank"
+		rel="noopener noreferrer"
+		{id}
+		class="flex items-center justify-start space-x-2 text-left"
+	>
+		{#if type === HashType.Wallet}
+			<WalletOutline size="sm" />
+		{:else if type === HashType.Identifier}
+			<FingerprintOutline size="sm" />
+		{:else if type === HashType.Transaction}
+			<ClipboardListOutline size="sm" />
+		{:else if type === HashType.Address}
+			<ClipboardOutline size="sm" />
+		{/if}
+		<div class="cursor-pointer hover:underline">{displayValue}</div>
+	</a>
+{:else}
+	<button
+		type="button"
+		{id}
+		class="flex items-center justify-start space-x-2 text-left"
+		on:click={copy}
+	>
+		{#if type === HashType.Wallet}
+			<WalletOutline size="sm" />
+		{:else if type === HashType.Identifier}
+			<FingerprintOutline size="sm" />
+		{:else if type === HashType.Transaction}
+			<ClipboardListOutline size="sm" />
+		{:else if type === HashType.Address}
+			<ClipboardOutline size="sm" />
+		{/if}
+		<div>{displayValue}</div>
+	</button>
+{/if}
 
 {#if showCopiedMessage}
 	<div
