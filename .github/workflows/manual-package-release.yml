@@ -82,19 +82,19 @@ jobs:
       - name: Set Version
         run: |
           if [ "${{ inputs.level }}" == "alpha" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid alpha --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version prerelease --preid alpha --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "beta" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid beta --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version prerelease --preid beta --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "rc" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid rc --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version prerelease --preid rc --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "patch" ]; then
-            echo "NEW_VERSION=$(npm version patch --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version patch --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "minor" ]; then
-            echo "NEW_VERSION=$(npm version minor --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version minor --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "major" ]; then
-            echo "NEW_VERSION=$(npm version major --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version major --no-git-tag-version -ws)" >> $GITHUB_ENV
           elif [ "${{ inputs.level }}" == "release" ]; then
-            echo "NEW_VERSION=$(npm version patch --no-git-tag-version)" >> $GITHUB_ENV
+            echo "NEW_VERSION=$(npm version patch --no-git-tag-version -ws)" >> $GITHUB_ENV
           else
             echo "Invalid version level: ${{ inputs.level }}"
             exit 1
@@ -103,6 +103,10 @@ jobs:
       # Commit changes and tag
       - name: Commit And Tag
         run: |
+          git add "packages/orderbook/package.json"
+          git add "packages/ui-components/package.json"
+          git add "packages/webapp/package.json"
+          git add "tauri-app/package.json"
           git add "package-lock.json"
           git commit -m "NPM Package Release ${{ env.NEW_VERSION }}"
           git tag ${{ env.NEW_VERSION }}
