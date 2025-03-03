@@ -56,6 +56,7 @@
 
 {#if externalLink}
 	<a
+		data-testid="external-link"
 		href={explorerLink}
 		target="_blank"
 		rel="noopener noreferrer"

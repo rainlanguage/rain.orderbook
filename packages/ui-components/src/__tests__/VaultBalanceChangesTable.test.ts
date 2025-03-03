@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
 import type { SgVaultBalanceChangeType } from '@rainlanguage/orderbook/js_api';
 import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
+import truncateEthAddress from 'truncate-eth-address';
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultBalanceChanges: vi.fn()
@@ -111,7 +112,9 @@ test('it shows the correct data in the table', async () => {
 		expect(screen.getByTestId('vaultBalanceChangesTableDate')).toHaveTextContent(
 			formatTimestampSecondsAsLocal(BigInt('1625247600'))
 		);
-		expect(screen.getByTestId('vaultBalanceChangesTableFrom')).toHaveTextContent('0xUse...User1');
+		expect(screen.getByTestId('vaultBalanceChangesTableFrom')).toHaveTextContent(
+			truncateEthAddress('0xUser1')
+		);
 		expect(screen.getByTestId('vaultBalanceChangesTableTx')).toHaveTextContent('tx1');
 		expect(screen.getByTestId('vaultBalanceChangesTableBalanceChange')).toHaveTextContent(
 			'0.1 TKN1'
