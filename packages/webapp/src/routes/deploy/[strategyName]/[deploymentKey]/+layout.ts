@@ -15,7 +15,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 };
 
 	const tokenListData = await getTokenList()
-	const tokenList: ExtendedTokenInfo[] = tokenListData.tokens
+	const tokenList: ExtendedTokenInfo[] = tokenListData.tokens || []
 
 	const { name, description } = await DotrainOrderGui.getDeploymentDetail(
 		dotrain,
