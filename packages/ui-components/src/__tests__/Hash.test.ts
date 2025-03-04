@@ -1,4 +1,4 @@
-import { getByTestId, render } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import Hash from '../lib/components/Hash.svelte';
 import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';

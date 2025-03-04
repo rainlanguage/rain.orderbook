@@ -52,7 +52,8 @@ test('renders the vault list table with correct data', async () => {
 	render(VaultBalanceChangesTable, {
 		props: {
 			id: '100',
-			subgraphUrl: 'https://example.com'
+			subgraphUrl: 'https://example.com',
+			network: 'mainnet'
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
@@ -103,7 +104,8 @@ test('it shows the correct data in the table', async () => {
 	render(VaultBalanceChangesTable, {
 		props: {
 			id: '100',
-			subgraphUrl: 'https://example.com'
+			subgraphUrl: 'https://example.com',
+			network: 'mainnet'
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});

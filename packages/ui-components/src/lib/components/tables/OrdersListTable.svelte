@@ -20,7 +20,6 @@
 		TableHeadCell
 	} from 'flowbite-svelte';
 	import type { Writable } from 'svelte/store';
-	import * as chains from 'viem/chains';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

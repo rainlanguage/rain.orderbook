@@ -163,7 +163,7 @@
 					type={HashType.Identifier}
 					value={item.vault.orderbook.id}
 					linkType="address"
-					subgraphName={item.subgraphName}
+					network={item.subgraphName}
 				/>
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
@@ -171,7 +171,7 @@
 					type={HashType.Wallet}
 					value={item.vault.owner}
 					linkType="address"
-					subgraphName={item.subgraphName}
+					network={item.subgraphName}
 				/>
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
