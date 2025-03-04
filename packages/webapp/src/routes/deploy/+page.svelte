@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PageHeader, InputRegistryUrl, StrategiesSection } from '@rainlanguage/ui-components';
+	import { PageHeader, StrategiesSection, InputRegistryUrl } from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 
