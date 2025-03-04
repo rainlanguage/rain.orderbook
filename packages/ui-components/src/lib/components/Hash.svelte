@@ -17,20 +17,23 @@
 		ClipboardOutline
 	} from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
-	import * as allChains from 'viem/chains';
-
+	import { getViemChain } from '../services/getViemChain';
 	export let network: string | undefined = undefined;
 	export let value: string;
 	export let type: HashType | undefined = undefined;
 	export let shorten = true;
 	export let copyOnClick = true;
-	export let chainId: number | undefined = allChains[network as keyof typeof allChains]?.id;
 	export let linkType: 'tx' | 'address' | undefined = undefined;
+	export let chainId: number | undefined = undefined;
 	let showCopiedMessage = false;
 	let explorerLink = '';
 	let externalLink: boolean = false;
 
-	$: if (chainId && linkType && network) {
+	$: if (linkType && (network || chainId)) {
+		if (!chainId) {
+			chainId = getViemChain(network as string)?.id;
+		}
+		console.log('external LINKS!!');
 		externalLink = true;
 		explorerLink = getExplorerLink(value, chainId, linkType);
 	}

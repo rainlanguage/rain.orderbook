@@ -1,4 +1,4 @@
-import { render } from '@testing-library/svelte';
+import { render, waitFor } from '@testing-library/svelte';
 import Hash from '../lib/components/Hash.svelte';
 import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -64,16 +64,17 @@ describe('Hash Component', () => {
 		expect(clipboardText).toBe('');
 	});
 
-	it('renders with external link when linkType is provided', () => {
+	it('renders with external link when linkType is provided', async () => {
 		const { getByTestId } = render(Hash, {
 			props: {
 				...mockProps,
 				linkType: 'address',
-				chainId: 1
+				network: 'ethereum'
 			}
 		});
-
-		const link = getByTestId('external-link');
-		expect(link).toHaveAttribute('href', `https://etherscan.io/address/${mockProps.value}`);
+		await waitFor(() => {
+			const link = getByTestId('external-link');
+			expect(link).toHaveAttribute('href', `https://etherscan.io/address/${mockProps.value}`);
+		});
 	});
 });
