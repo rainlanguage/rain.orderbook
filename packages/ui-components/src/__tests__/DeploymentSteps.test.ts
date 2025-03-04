@@ -720,6 +720,8 @@ describe('DeploymentSteps', () => {
 			getAllDepositFields,
 			isSelectTokenSet: () => false,
 			saveSelectToken: vi.fn(),
+			replaceSelectToken: vi.fn(),
+			removeSelectToken: vi.fn(),
 			areAllTokensSelected,
 			hasAnyDeposit: vi.fn(),
 			hasAnyVaultId: vi.fn(),
@@ -762,7 +764,7 @@ describe('DeploymentSteps', () => {
 			expect(screen.getByText('Token 2')).toBeInTheDocument();
 		});
 
-		let selectTokenInput = screen.getAllByRole('textbox')[0];
+		let selectTokenInput = screen.getAllByRole('combobox')[0];
 		getTokenInfo.mockResolvedValue({
 			address: '0x1',
 			decimals: 18,
@@ -771,7 +773,7 @@ describe('DeploymentSteps', () => {
 		});
 		await user.type(selectTokenInput, '0x1');
 
-		const selectTokenOutput = screen.getAllByRole('textbox')[1];
+		const selectTokenOutput = screen.getAllByRole('combobox')[1];
 		getTokenInfo.mockResolvedValue({
 			address: '0x2',
 			decimals: 18,
@@ -785,7 +787,7 @@ describe('DeploymentSteps', () => {
 			expect(getAllFieldDefinitions).toHaveBeenCalled();
 		});
 
-		selectTokenInput = screen.getAllByRole('textbox')[0];
+		selectTokenInput = screen.getAllByRole('combobox')[0];
 		getTokenInfo.mockResolvedValue({
 			address: '0x3',
 			decimals: 18,
