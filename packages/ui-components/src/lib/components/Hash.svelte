@@ -33,7 +33,6 @@
 		if (!chainId) {
 			chainId = getViemChain(network as string)?.id;
 		}
-		console.log('external LINKS!!');
 		externalLink = true;
 		explorerLink = getExplorerLink(value, chainId, linkType);
 	}
