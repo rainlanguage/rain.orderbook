@@ -1,24 +1,16 @@
 <script lang="ts">
-	import { PageHeader, StrategyShortTile } from '@rainlanguage/ui-components';
-	import { Button, Input, Toggle } from 'flowbite-svelte';
+	import { PageHeader, StrategyShortTile, InputRegistryUrl } from '@rainlanguage/ui-components';
+	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 
 	const { strategyDetails } = $page.data;
 
-	let newRegistryUrl = '';
-	let advancedMode = false;
-
-	const loadRegistryUrl = () => {
-		// add the registry url to the url params
-		window.history.pushState({}, '', window.location.pathname + '?registry=' + newRegistryUrl);
-		// reload the page
-		window.location.reload();
-	};
+	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
 
 <PageHeader title={$page.data.name || 'Deploy'} pathname={$page.url.pathname}>
 	<svelte:fragment slot="actions">
-		<Toggle on:change={() => (advancedMode = !advancedMode)}>
+		<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 			<span class="whitespace-nowrap">Advanced mode</span>
 		</Toggle></svelte:fragment
 	>
@@ -27,15 +19,7 @@
 <div class="flex items-start justify-end gap-4">
 	{#if advancedMode}
 		<div class="mb-12 flex w-2/3 flex-col items-start gap-4">
-			<div class="flex w-full items-start gap-4">
-				<Input
-					id="strategy-url"
-					type="url"
-					placeholder="Enter URL to raw strategy registry file"
-					bind:value={newRegistryUrl}
-				/>
-				<Button class="text-nowrap" on:click={loadRegistryUrl}>Load Registry URL</Button>
-			</div>
+			<InputRegistryUrl />
 		</div>
 	{/if}
 </div>
