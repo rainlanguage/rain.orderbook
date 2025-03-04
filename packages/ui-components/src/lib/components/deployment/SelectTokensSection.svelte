@@ -10,7 +10,6 @@
 	export let onSelectTokenSelect: () => void;
 	export let tokenList: ExtendedTokenInfo[];
 	export let networkKey: string;
-
 	const chainId = getViemChain(networkKey).id;
 	$: filteredTokenList = tokenList.filter((token) => token.chainId === chainId);
 </script>

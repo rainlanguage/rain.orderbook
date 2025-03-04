@@ -7,6 +7,10 @@
 	export let tokenList: ExtendedTokenInfo[];
 
 	$: console.log('tokenList:', tokenList);
+	import { createEventDispatcher } from 'svelte';
+	const dispatch = createEventDispatcher<{
+		select: ExtendedTokenInfo;
+	}>();
 
 	const toOption = (token: ExtendedTokenInfo): ComboboxOptionProps<ExtendedTokenInfo> => ({
 		value: token,
@@ -15,21 +19,19 @@
 	});
 
 	const {
-		elements: { menu, input, option, label },
+		elements: { menu, input, option },
 		states: { open, inputValue, touchedInput, selected },
 		helpers: { isSelected }
 	} = createCombobox<ExtendedTokenInfo>({
 		forceVisible: true
 	});
 
-	$: if (!$open) {
-		$inputValue = $selected?.label ?? '';
+	$: if ($selected) {
+		dispatch('select', $selected.value);
 	}
 
-	$: {
-		console.log('tokenList:', tokenList);
-		console.log('touchedInput:', $touchedInput);
-		console.log('inputValue:', $inputValue);
+	$: if (!$open) {
+		$inputValue = $selected?.label ?? '';
 	}
 
 	$: filteredTokens = $touchedInput
@@ -42,50 +44,29 @@
 				);
 			})
 		: tokenList;
-
-	$: console.log('filteredTokens:', filteredTokens);
 </script>
 
-<div class="flex flex-col gap-1">
-	<!-- svelte-ignore a11y-label-has-associated-control - $label contains the 'for' attribute -->
-	<label use:melt={$label}>
-		<span class="text-sm font-medium">Select a token:</span>
-	</label>
+<!-- svelte-ignore a11y-label-has-associated-control - $label contains the 'for' attribute -->
 
-	<div class="relative">
-		<input
-			use:melt={$input}
-			class="flex h-10 items-center justify-between rounded-lg bg-white
-          px-3 pr-12 text-black"
-			placeholder="Search by name, symbol or address"
-		/>
-		<div class="absolute right-2 top-1/2 z-10 -translate-y-1/2">
-			{#if $open}
-				<ChevronUpSolid class="size-4" />
-			{:else}
-				<ChevronDownSolid class="size-4" />
-			{/if}
-		</div>
-	</div>
-</div>
+<input
+	use:melt={$input}
+	class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border-gray-300 bg-gray-50 p-3 text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+	placeholder="Search by name, symbol or address"
+/>
+
 {#if $open}
 	<ul
-		class="z-10 flex max-h-[300px] flex-col overflow-hidden rounded-lg"
+		class="z-10 flex max-h-[300px] flex-col divide-y divide-gray-100 overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700"
 		use:melt={$menu}
 		transition:fly={{ duration: 150, y: -5 }}
 	>
-		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 		<div
-			class="flex max-h-full flex-col gap-0 overflow-y-auto bg-white px-2 py-2 text-black"
-			tabindex="0"
+			class="flex max-h-full flex-col gap-0 overflow-y-auto px-2 py-2 text-sm text-gray-700 dark:text-gray-200"
 		>
 			{#each filteredTokens as token, index (index)}
 				<li
 					use:melt={$option(toOption(token))}
-					class="relative cursor-pointer scroll-my-2 rounded-md py-2 pl-4 pr-4
-        hover:bg-gray-100
-        data-[highlighted]:bg-gray-200 data-[highlighted]:text-gray-900
-          data-[disabled]:opacity-50"
+					class="relative cursor-pointer scroll-my-2 rounded-md py-2 pl-4 pr-4 hover:bg-gray-100 data-[highlighted]:bg-gray-200 data-[highlighted]:text-gray-900 data-[disabled]:opacity-50 dark:hover:bg-gray-600 dark:hover:text-white"
 				>
 					{#if $isSelected(token)}
 						<div class="check absolute left-2 top-1/2 z-10">
@@ -98,7 +79,11 @@
 					</div>
 				</li>
 			{:else}
-				<li class="relative cursor-pointer rounded-md py-1 pl-8 pr-4">No results found</li>
+				<li
+					class="relative cursor-pointer rounded-md py-1 pl-8 pr-4 text-gray-700 dark:text-gray-200"
+				>
+					No results found
+				</li>
 			{/each}
 		</div>
 	</ul>

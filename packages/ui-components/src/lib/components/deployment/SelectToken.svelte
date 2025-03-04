@@ -42,36 +42,44 @@
 		}
 	}
 
-	async function handleInput(event: Event) {
+	async function handleTokenUpdate(address: string) {
 		tokenInfo = null;
-		const currentTarget = event.currentTarget;
-		if (currentTarget instanceof HTMLInputElement) {
-			inputValue = currentTarget.value;
-			if (!inputValue) {
-				error = '';
-			}
-			checking = true;
-			try {
-				if (gui.isSelectTokenSet(token.key)) {
-					await gui.replaceSelectToken(token.key, currentTarget.value);
-				} else {
-					await gui.saveSelectToken(token.key, currentTarget.value);
-				}
-				await getInfoForSelectedToken();
-			} catch (e) {
-				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
-				error = errorMessage;
-			}
+		inputValue = address;
+		if (!inputValue) {
+			error = '';
+			return;
 		}
-
+		checking = true;
+		try {
+			if (gui.isSelectTokenSet(token.key)) {
+				await gui.replaceSelectToken(token.key, address);
+			} else {
+				await gui.saveSelectToken(token.key, address);
+			}
+			await getInfoForSelectedToken();
+		} catch (e) {
+			const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
+			error = errorMessage;
+		}
 		checking = false;
 		onSelectTokenSelect();
+	}
+
+	async function handleInput(event: Event) {
+		const currentTarget = event.currentTarget;
+		if (currentTarget instanceof HTMLInputElement) {
+			await handleTokenUpdate(currentTarget.value);
+		}
+	}
+
+	async function handleSelect(e: ExtendedTokenInfo) {
+		await handleTokenUpdate(e.address);
 	}
 </script>
 
 <div class="flex w-full flex-col">
 	<div class="flex flex-col gap-2">
-		<div class="flex flex-col justify-start gap-4 lg:flex-row lg:items-center lg:justify-between">
+		<div class="flex flex-col justify-start gap-4">
 			{#if token.name || token.description}
 				<div class="flex flex-col">
 					{#if token.name}
@@ -102,8 +110,16 @@
 					<span>{error}</span>
 				</div>
 			{/if}
+			<Input
+				placeholder="Enter a custom token address"
+				type="text"
+				size="lg"
+				on:input={handleInput}
+				bind:value={inputValue}
+			/>
+			{#if tokenList.length > 0}
+				<TokenSearchBox {tokenList} on:select={(e) => handleSelect(e.detail)} />
+			{/if}
 		</div>
-		<TokenSearchBox {tokenList} />
-		<Input type="text" size="lg" on:input={handleInput} bind:value={inputValue} />
 	</div>
 </div>
