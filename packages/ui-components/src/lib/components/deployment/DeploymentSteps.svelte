@@ -28,6 +28,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import type { ExtendedTokenInfo } from '../../types/tokens';
 
 	interface Deployment {
 		key: string;
@@ -42,6 +43,7 @@
 	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
+	export let tokenList: ExtendedTokenInfo[];
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -233,7 +235,13 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+					<SelectTokensSection
+						{gui}
+						{selectTokens}
+						{onSelectTokenSelect}
+						{tokenList}
+						{networkKey}
+					/>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}

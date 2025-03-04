@@ -9,7 +9,7 @@
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
 	const { settings } = $page.data.stores;
-	const { dotrain, deployment, strategyDetail } = $page.data;
+	const { dotrain, deployment, strategyDetail, tokenList } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	let gui: DotrainOrderGui | null = null;
@@ -22,6 +22,7 @@
 	}
 
 	onMount(async () => {
+		console.log(tokenList);
 		const { gui: initializedGui, error } = await handleGuiInitialization(
 			dotrain,
 			deployment.key,
@@ -49,6 +50,7 @@
 		{handleDeployModal}
 		{settings}
 		{handleDisclaimerModal}
+		{tokenList}
 	/>
 {:else if getGuiError}
 	<div>

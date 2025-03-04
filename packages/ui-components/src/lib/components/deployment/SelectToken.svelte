@@ -8,10 +8,14 @@
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
+	import type { ExtendedTokenInfo } from '../../types/tokens';
+	import TokenSearchBox from './TokenSearchBox.svelte';
 
 	export let token: GuiSelectTokensCfg;
 	export let gui: DotrainOrderGui;
 	export let onSelectTokenSelect: () => void;
+	export let tokenList: ExtendedTokenInfo[];
+
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
@@ -99,6 +103,7 @@
 				</div>
 			{/if}
 		</div>
+		<TokenSearchBox {tokenList} />
 		<Input type="text" size="lg" on:input={handleInput} bind:value={inputValue} />
 	</div>
 </div>
