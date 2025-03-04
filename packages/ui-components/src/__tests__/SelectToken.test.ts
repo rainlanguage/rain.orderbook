@@ -51,7 +51,7 @@ describe('SelectToken', () => {
 
 	it('renders input field', () => {
 		const { getByRole } = render(SelectToken, mockProps);
-		expect(getByRole('textbox')).toBeInTheDocument();
+		expect(getByRole('combobox')).toBeInTheDocument();
 	});
 
 	it('calls saveSelectToken and updates token info when input changes', async () => {
@@ -64,7 +64,7 @@ describe('SelectToken', () => {
 			...mockProps,
 			gui: mockGuiWithNoToken
 		});
-		const input = getByRole('textbox');
+		const input = getByRole('combobox');
 
 		await userEvent.clear(input);
 		await user.paste('0x456');
@@ -87,7 +87,7 @@ describe('SelectToken', () => {
 			gui: mockGuiWithError
 		});
 
-		const input = screen.getByRole('textbox');
+		const input = screen.getByRole('combobox');
 		await userEvent.clear(input);
 		await user.paste('invalid');
 		await waitFor(() => {
@@ -101,7 +101,7 @@ describe('SelectToken', () => {
 			...mockProps,
 			gui: undefined
 		} as unknown as SelectTokenComponentProps);
-		const input = getByRole('textbox');
+		const input = getByRole('combobox');
 
 		await userEvent.clear(input);
 		await user.paste('0x456');
@@ -124,7 +124,7 @@ describe('SelectToken', () => {
 			gui: mockGuiWithTokenSet
 		});
 
-		const input = getByRole('textbox');
+		const input = getByRole('combobox');
 		await userEvent.clear(input);
 		await user.paste('invalid');
 		await waitFor(() => {
@@ -136,7 +136,7 @@ describe('SelectToken', () => {
 	it('calls onSelectTokenSelect after input changes', async () => {
 		const user = userEvent.setup();
 		const { getByRole } = render(SelectToken, mockProps);
-		const input = getByRole('textbox');
+		const input = getByRole('combobox');
 
 		await userEvent.clear(input);
 		await user.paste('0x456');

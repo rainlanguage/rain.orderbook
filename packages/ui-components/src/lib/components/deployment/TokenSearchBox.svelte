@@ -8,8 +8,7 @@
 	export let tokenList: ExtendedTokenInfo[];
 
 	const dispatch = createEventDispatcher<{
-		select: ExtendedTokenInfo;
-		input: string;
+		change: string;
 	}>();
 
 	const toOption = (token: ExtendedTokenInfo): ComboboxOptionProps<ExtendedTokenInfo> => ({
@@ -26,15 +25,27 @@
 		forceVisible: true
 	});
 
+	let prevInputValue = '';
+
 	$: if (!$open) {
 		$inputValue = $selected?.label ?? '';
 	}
 
-	$: if ($selected) {
-		dispatch('select', $selected.value);
+	function clearSelection() {
+		$selected = undefined;
 	}
-	$: if ($inputValue) {
-		dispatch('input', $inputValue);
+
+	$: {
+		if ($open && $touchedInput) {
+			if ($inputValue === '' && prevInputValue !== '' && $selected) {
+				clearSelection();
+			}
+			prevInputValue = $inputValue;
+		}
+	}
+
+	$: if ($inputValue || $inputValue === '') {
+		dispatch('change', $inputValue);
 	}
 
 	$: filteredTokens = $touchedInput

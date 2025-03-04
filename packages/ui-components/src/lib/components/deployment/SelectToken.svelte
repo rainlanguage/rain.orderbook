@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
 	import type {
 		DotrainOrderGui,
 		GuiSelectTokensCfg,
@@ -16,7 +15,6 @@
 	export let onSelectTokenSelect: () => void;
 	export let tokenList: ExtendedTokenInfo[];
 
-	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
@@ -24,9 +22,6 @@
 	onMount(async () => {
 		try {
 			tokenInfo = await gui?.getTokenInfo(token.key);
-			if (tokenInfo?.address) {
-				inputValue = tokenInfo.address;
-			}
 		} catch {
 			// do nothing
 		}
@@ -44,10 +39,8 @@
 
 	async function handleTokenUpdate(address: string) {
 		tokenInfo = null;
-		inputValue = address;
-		if (!inputValue) {
-			error = '';
-			return;
+		if (address === '') {
+			await gui.removeSelectToken(token.key);
 		}
 		checking = true;
 		try {
@@ -58,19 +51,15 @@
 			}
 			await getInfoForSelectedToken();
 		} catch (e) {
-			const errorMessage = 'Invalid token address.';
+			const errorMessage = address === '' ? '' : 'Invalid token address.';
 			error = errorMessage;
 		}
 		checking = false;
 		onSelectTokenSelect();
 	}
 
-	async function handleInput(value: string) {
+	async function handleChange(value: string) {
 		await handleTokenUpdate(value);
-	}
-
-	async function handleSelect(e: ExtendedTokenInfo) {
-		await handleTokenUpdate(e.address);
 	}
 </script>
 
@@ -108,11 +97,7 @@
 				</div>
 			{/if}
 
-			<TokenSearchBox
-				{tokenList}
-				on:input={(e) => handleInput(e.detail)}
-				on:select={(e) => handleSelect(e.detail)}
-			/>
+			<TokenSearchBox {tokenList} on:change={(e) => handleChange(e.detail)} />
 		</div>
 	</div>
 </div>
