@@ -58,18 +58,15 @@
 			}
 			await getInfoForSelectedToken();
 		} catch (e) {
-			const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
+			const errorMessage = 'Invalid token address.';
 			error = errorMessage;
 		}
 		checking = false;
 		onSelectTokenSelect();
 	}
 
-	async function handleInput(event: Event) {
-		const currentTarget = event.currentTarget;
-		if (currentTarget instanceof HTMLInputElement) {
-			await handleTokenUpdate(currentTarget.value);
-		}
+	async function handleInput(value: string) {
+		await handleTokenUpdate(value);
 	}
 
 	async function handleSelect(e: ExtendedTokenInfo) {
@@ -110,16 +107,12 @@
 					<span>{error}</span>
 				</div>
 			{/if}
-			<Input
-				placeholder="Enter a custom token address"
-				type="text"
-				size="lg"
-				on:input={handleInput}
-				bind:value={inputValue}
+
+			<TokenSearchBox
+				{tokenList}
+				on:input={(e) => handleInput(e.detail)}
+				on:select={(e) => handleSelect(e.detail)}
 			/>
-			{#if tokenList.length > 0}
-				<TokenSearchBox {tokenList} on:select={(e) => handleSelect(e.detail)} />
-			{/if}
 		</div>
 	</div>
 </div>

@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { createCombobox, melt, type ComboboxOptionProps } from '@melt-ui/svelte';
-	import { CheckCircleSolid, ChevronDownSolid, ChevronUpSolid } from 'flowbite-svelte-icons';
+	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fly } from 'svelte/transition';
 	import type { ExtendedTokenInfo } from '../../types/tokens';
+	import { createEventDispatcher } from 'svelte';
 
 	export let tokenList: ExtendedTokenInfo[];
 
-	$: console.log('tokenList:', tokenList);
-	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher<{
 		select: ExtendedTokenInfo;
+		input: string;
 	}>();
 
 	const toOption = (token: ExtendedTokenInfo): ComboboxOptionProps<ExtendedTokenInfo> => ({
 		value: token,
-		label: token.name || token.symbol || token.address,
+		label: token.address || token.name || token.symbol,
 		disabled: false
 	});
 
@@ -26,12 +26,15 @@
 		forceVisible: true
 	});
 
+	$: if (!$open) {
+		$inputValue = $selected?.label ?? '';
+	}
+
 	$: if ($selected) {
 		dispatch('select', $selected.value);
 	}
-
-	$: if (!$open) {
-		$inputValue = $selected?.label ?? '';
+	$: if ($inputValue) {
+		dispatch('input', $inputValue);
 	}
 
 	$: filteredTokens = $touchedInput
@@ -44,9 +47,10 @@
 				);
 			})
 		: tokenList;
-</script>
 
-<!-- svelte-ignore a11y-label-has-associated-control - $label contains the 'for' attribute -->
+	$: hasResults = filteredTokens.length > 0;
+	$: showDropdown = $open && hasResults;
+</script>
 
 <input
 	use:melt={$input}
@@ -54,7 +58,7 @@
 	placeholder="Search by name, symbol or address"
 />
 
-{#if $open}
+{#if showDropdown}
 	<ul
 		class="z-10 flex max-h-[300px] flex-col divide-y divide-gray-100 overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700"
 		use:melt={$menu}
@@ -77,12 +81,6 @@
 						<span class="font-medium">{token.name || token.symbol}</span>
 						<span class="block text-sm opacity-75">{token.address}</span>
 					</div>
-				</li>
-			{:else}
-				<li
-					class="relative cursor-pointer rounded-md py-1 pl-8 pr-4 text-gray-700 dark:text-gray-200"
-				>
-					No results found
 				</li>
 			{/each}
 		</div>
