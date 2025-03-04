@@ -26,6 +26,7 @@ describe('SelectToken', () => {
 			name: 'test input',
 			description: 'test description'
 		},
+		tokenList: [],
 		onSelectTokenSelect: vi.fn()
 	};
 

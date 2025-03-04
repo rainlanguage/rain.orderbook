@@ -10,8 +10,13 @@
 	export let onSelectTokenSelect: () => void;
 	export let tokenList: ExtendedTokenInfo[];
 	export let networkKey: string;
-	const chainId = getViemChain(networkKey).id;
-	$: filteredTokenList = tokenList.filter((token) => token.chainId === chainId);
+
+	let filteredTokenList: ExtendedTokenInfo[] = [];
+
+	$: if (tokenList.length > 0) {
+		const chainId = getViemChain(networkKey).id;
+		filteredTokenList = tokenList.filter((token) => token.chainId === chainId);
+	}
 </script>
 
 <div class="flex w-full flex-col gap-4">
