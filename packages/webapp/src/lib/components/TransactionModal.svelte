@@ -98,6 +98,7 @@
 					<p>
 						<a
 							class="cursor-pointer text-blue-500 hover:underline"
+							rel="noopener noreferrer"
 							href={$transactionStore.explorerLink}
 							target="_blank">View transaction on block explorer</a
 						>
