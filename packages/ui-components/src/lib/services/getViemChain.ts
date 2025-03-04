@@ -1,5 +1,5 @@
-import type { Chain } from "viem/chains";
-import * as allChains from "viem/chains"
+import type { Chain } from 'viem/chains';
+import * as allChains from 'viem/chains';
 
 export const getViemChain = (networkKey: string) => {
 	if (networkKey === 'ethereum') {

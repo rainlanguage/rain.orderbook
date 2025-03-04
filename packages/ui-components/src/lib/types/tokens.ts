@@ -1,9 +1,6 @@
-import { type TokenInfo } from "@rainlanguage/orderbook/js_api";
+import { type TokenInfo } from '@rainlanguage/orderbook/js_api';
 
 export interface ExtendedTokenInfo extends TokenInfo {
-  logoUri?: string;
-  chainId?: number;
+	logoUri?: string;
+	chainId?: number;
 }
-
-
-
