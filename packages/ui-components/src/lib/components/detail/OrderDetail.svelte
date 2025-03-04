@@ -123,7 +123,7 @@
 						shorten={false}
 						value={data.order.orderbook.id}
 						linkType="address"
-						{subgraphName}
+						network={subgraphName}
 					/>
 				</svelte:fragment>
 			</CardProperty>
@@ -136,7 +136,7 @@
 						shorten={false}
 						value={data.order.owner}
 						linkType="address"
-						{subgraphName}
+						network={subgraphName}
 					/>
 				</svelte:fragment>
 			</CardProperty>

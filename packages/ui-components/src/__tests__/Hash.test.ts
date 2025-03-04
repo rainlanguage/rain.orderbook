@@ -9,8 +9,8 @@ type HashComponentProps = ComponentProps<Hash>;
 const mockProps: HashComponentProps = {
 	value: 'abcdef1234567890',
 	type: 1, // HashType.Wallet
-	shorten: true,
-}
+	shorten: true
+};
 
 describe('Hash Component', () => {
 	it('renders with shortened hash display', () => {
