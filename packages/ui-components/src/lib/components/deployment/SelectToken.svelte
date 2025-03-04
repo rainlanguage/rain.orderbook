@@ -50,7 +50,7 @@
 				await gui.saveSelectToken(token.key, address);
 			}
 			await getInfoForSelectedToken();
-		} catch (e) {
+		} catch {
 			const errorMessage = address === '' ? '' : 'Invalid token address.';
 			error = errorMessage;
 		}

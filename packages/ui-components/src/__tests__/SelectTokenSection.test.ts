@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import SelectTokensSection from '../lib/components/deployment/SelectTokensSection.svelte';
 import { describe, it, expect, vi } from 'vitest';
 import { getViemChain } from '../lib/services/getViemChain';
