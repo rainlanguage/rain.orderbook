@@ -363,7 +363,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			return result.data as T;
 		}
 
-		if (!result.data) {
+		if (result.data === undefined) {
 			assert.fail('No data returned');
 		}
 		return result.data;
@@ -536,13 +536,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should add deposit', async () => {
-			assert.equal(gui.hasAnyDeposit(), false);
+			let result = gui.hasAnyDeposit();
+			let hasAnyDeposit = extractWasmEncodedData<boolean>(result);
+			assert.equal(hasAnyDeposit, false);
 
 			gui.saveDeposit('token1', '50.6');
-			const deposits: TokenDeposit[] = gui.getDeposits();
+
+			result = gui.getDeposits();
+			const deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 1);
 
-			assert.equal(gui.hasAnyDeposit(), true);
+			result = gui.hasAnyDeposit();
+			hasAnyDeposit = extractWasmEncodedData<boolean>(result);
+			assert.equal(hasAnyDeposit, true);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 1);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
@@ -551,7 +557,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		it('should update deposit', async () => {
 			gui.saveDeposit('token1', '50.6');
 			gui.saveDeposit('token1', '100.6');
-			const deposits: TokenDeposit[] = gui.getDeposits();
+
+			const result = gui.getDeposits();
+			const deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].amount, '100.6');
 
@@ -560,31 +568,41 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error if deposit token is not found in gui config', () => {
-			expect(() => gui.saveDeposit('token3', '1')).toThrow(
-				'Deposit token not found in gui config: token3'
-			);
+			const result = gui.saveDeposit('token3', '1');
+			expect(result.error).toBeDefined();
+			expect(result.error.msg).toBe('Deposit token not found in gui config: token3');
 		});
 
 		it('should remove deposit', async () => {
 			gui.saveDeposit('token1', '50.6');
-			let deposits: TokenDeposit[] = gui.getDeposits();
+
+			let result = gui.getDeposits();
+			let deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 1);
 
 			gui.removeDeposit('token1');
-			let depositsAfterRemove: TokenDeposit[] = gui.getDeposits();
+			result = gui.getDeposits();
+			const depositsAfterRemove = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(depositsAfterRemove.length, 0);
 
 			gui.saveDeposit('token1', '50.6');
-			assert.equal(gui.getDeposits().length, 1);
+
+			result = gui.getDeposits();
+			deposits = extractWasmEncodedData<TokenDeposit[]>(result);
+			assert.equal(deposits.length, 1);
+
 			gui.saveDeposit('token1', '');
-			assert.equal(gui.getDeposits().length, 0);
+			result = gui.getDeposits();
+			deposits = extractWasmEncodedData<TokenDeposit[]>(result);
+			assert.equal(deposits.length, 0);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
 		it('should get deposit presets', async () => {
-			const presets = gui.getDepositPresets('token1');
+			const result = gui.getDepositPresets('token1');
+			const presets = extractWasmEncodedData<string[]>(result);
 			assert.equal(presets.length, 5);
 			assert.equal(presets[0], '0');
 			assert.equal(presets[1], '10');
@@ -594,9 +612,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error if deposit token is not found in gui config', () => {
-			expect(() => gui.getDepositPresets('token2')).toThrow(
-				'Deposit token not found in gui config: token2'
-			);
+			const result = gui.getDepositPresets('token2');
+			expect(result.error).toBeDefined();
+			expect(result.error.msg).toBe('Deposit token not found in gui config: token2');
 		});
 	});
 
@@ -886,7 +904,9 @@ ${dotrain}`;
 
 			assert.equal(gui.isSelectTokenSet('token1'), true);
 			assert.equal(gui.isSelectTokenSet('token2'), true);
-			const deposits: TokenDeposit[] = gui.getDeposits();
+
+			let result = gui.getDeposits();
+			const deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 2);
 			assert.equal(deposits[0].token, 'token1');
 			assert.equal(deposits[0].amount, '50.6');
@@ -895,7 +915,7 @@ ${dotrain}`;
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
 
-			let result = gui.getCurrentDeployment();
+			result = gui.getCurrentDeployment();
 			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
 			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
@@ -914,7 +934,9 @@ ${dotrainWithoutTokens}`;
 			gui.clearState();
 			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
 			assert.equal(fieldValues.length, 0);
-			const deposits: TokenDeposit[] = gui.getDeposits();
+
+			const result = gui.getDeposits();
+			const deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 0);
 		});
 
