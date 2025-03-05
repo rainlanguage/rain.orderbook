@@ -1,9 +1,8 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { Vault as TokenVaultDetail } from '$lib/typeshare/subgraphTypes';
-  import InputTokenAmount from '$lib/components/InputTokenAmount.svelte';
+  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook/js_api';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
-  import { bigintStringToHex } from '@rainlanguage/ui-components';
+  import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { toasts } from '$lib/stores/toasts';

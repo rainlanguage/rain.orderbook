@@ -1,13 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
-import * as navigation from '$app/navigation';
-import { userEvent } from '@testing-library/user-event';
-import type { Vault } from '@rainlanguage/orderbook/js_api';
-// Mock the $app/navigation module
-vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
-}));
+import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 describe('ButtonVaultLink', () => {
 	const mockVault = {
@@ -19,9 +13,9 @@ describe('ButtonVaultLink', () => {
 			symbol: 'TEST',
 			decimals: '18'
 		}
-	} as unknown as Vault;
+	} as unknown as SgVault;
 
-	it('should navigate to vault details page when clicked', async () => {
+	it('should render vault information correctly', () => {
 		render(ButtonVaultLink, {
 			props: {
 				tokenVault: mockVault,
@@ -31,7 +25,7 @@ describe('ButtonVaultLink', () => {
 
 		const vaultLink = screen.getByTestId('vault-link');
 		expect(vaultLink).toBeTruthy();
-		await userEvent.click(vaultLink);
-		expect(navigation.goto).toHaveBeenCalledWith(`/vaults/test-${mockVault.id}`);
+		expect(vaultLink).toHaveTextContent('Test Token');
+		expect(vaultLink).toHaveTextContent('TEST');
 	});
 });

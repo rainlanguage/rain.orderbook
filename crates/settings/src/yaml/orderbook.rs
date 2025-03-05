@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    metaboard::Metaboard, raindex_version::RaindexVersion, sentry::Sentry, subgraph::Subgraph,
-    Deployer, Network, Orderbook, Token,
+    metaboard::MetaboardCfg, raindex_version::RaindexVersion, sentry::Sentry,
+    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -12,17 +12,17 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
-
 #[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookYaml {
+    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
 }
 #[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(OrderbookYaml);
+impl_wasm_traits!(OrderbookYaml);
 
 impl YamlParsable for OrderbookYaml {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
@@ -40,12 +40,12 @@ impl YamlParsable for OrderbookYaml {
         }
 
         if validate {
-            Network::parse_all_from_yaml(documents.clone(), None)?;
-            Token::parse_all_from_yaml(documents.clone(), None)?;
-            Subgraph::parse_all_from_yaml(documents.clone(), None)?;
-            Orderbook::parse_all_from_yaml(documents.clone(), None)?;
-            Deployer::parse_all_from_yaml(documents.clone(), None)?;
-            Metaboard::parse_all_from_yaml(documents.clone(), None)?;
+            NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+            TokenCfg::parse_all_from_yaml(documents.clone(), None)?;
+            SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
+            OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
+            DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+            MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(OrderbookYaml { documents })
@@ -58,54 +58,54 @@ impl YamlParsable for OrderbookYaml {
 
 impl OrderbookYaml {
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let networks = Network::parse_all_from_yaml(self.documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(networks.keys().cloned().collect())
     }
-    pub fn get_network(&self, key: &str) -> Result<Network, YamlError> {
-        Network::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
+        NetworkCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let tokens = Token::parse_all_from_yaml(self.documents.clone(), None)?;
+        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(tokens.keys().cloned().collect())
     }
-    pub fn get_token(&self, key: &str) -> Result<Token, YamlError> {
-        Token::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
+        TokenCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = Subgraph::parse_all_from_yaml(self.documents.clone(), None)?;
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(subgraphs.keys().cloned().collect())
     }
-    pub fn get_subgraph(&self, key: &str) -> Result<Subgraph, YamlError> {
-        Subgraph::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
+        SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orderbooks = Orderbook::parse_all_from_yaml(self.documents.clone(), None)?;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orderbooks.keys().cloned().collect())
     }
-    pub fn get_orderbook(&self, key: &str) -> Result<Orderbook, YamlError> {
-        Orderbook::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
+        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = Metaboard::parse_all_from_yaml(self.documents.clone(), None)?;
+        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(metaboards.keys().cloned().collect())
     }
-    pub fn get_metaboard(&self, key: &str) -> Result<Metaboard, YamlError> {
-        Metaboard::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
+        MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
     pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
-        Metaboard::add_record_to_yaml(self.documents[0].clone(), key, value)
+        MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, value)
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployers = Deployer::parse_all_from_yaml(self.documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(deployers.keys().cloned().collect())
     }
-    pub fn get_deployer(&self, key: &str) -> Result<Deployer, YamlError> {
-        Deployer::parse_from_yaml(self.documents.clone(), key, None)
+    pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
+        DeployerCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
     pub fn get_sentry(&self) -> Result<bool, YamlError> {
@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
         assert_eq!(
-            Network::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
+            NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
             Url::parse("https://mainnet.infura.io").unwrap()
         );
 
@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(token.label, Some("Wrapped Ether".to_string()));
         assert_eq!(token.symbol, Some("WETH".to_string()));
         assert_eq!(
-            Token::parse_network_key(ob_yaml.documents.clone(), "token1").unwrap(),
+            TokenCfg::parse_network_key(ob_yaml.documents.clone(), "token1").unwrap(),
             "mainnet"
         );
 
@@ -287,7 +287,7 @@ mod tests {
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
         assert_eq!(
-            Orderbook::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
+            OrderbookCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
             "mainnet"
         );
 
@@ -309,7 +309,7 @@ mod tests {
         );
         assert_eq!(deployer.network, network.into());
         assert_eq!(
-            Deployer::parse_network_key(ob_yaml.documents.clone(), "deployer1").unwrap(),
+            DeployerCfg::parse_network_key(ob_yaml.documents.clone(), "deployer1").unwrap(),
             "mainnet"
         );
 
@@ -381,7 +381,7 @@ networks:
 "#;
         let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
 
-        Token::add_record_to_yaml(
+        TokenCfg::add_record_to_yaml(
             ob_yaml.documents.clone(),
             "test-token",
             "mainnet",
@@ -409,7 +409,7 @@ networks:
         let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
 
         assert!(ob_yaml.get_token("token1").is_ok());
-        Token::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
+        TokenCfg::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
         assert!(ob_yaml.get_token("token1").is_err());
     }
 

@@ -34,7 +34,12 @@
 	});
 </script>
 
-<TanstackAppTable query={orderPerformance} emptyMessage="APY Unavailable" rowHoverable={false}>
+<TanstackAppTable
+	query={orderPerformance}
+	emptyMessage="APY Unavailable"
+	rowHoverable={false}
+	queryKey={id}
+>
 	<svelte:fragment slot="timeFilter">
 		<ApyTimeFilters bind:startTimestamp bind:endTimestamp />
 	</svelte:fragment>

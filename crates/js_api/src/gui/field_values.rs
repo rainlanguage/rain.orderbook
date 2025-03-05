@@ -6,7 +6,7 @@ pub struct FieldValuePair {
     binding: String,
     value: PairValue,
 }
-impl_all_wasm_traits!(FieldValuePair);
+impl_wasm_traits!(FieldValuePair);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -14,14 +14,14 @@ pub struct PairValue {
     pub is_preset: bool,
     pub value: String,
 }
-impl_all_wasm_traits!(PairValue);
+impl_wasm_traits!(PairValue);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct AllFieldValuesResult {
     pub binding: String,
-    pub value: GuiPreset,
+    pub value: GuiPresetCfg,
 }
-impl_all_wasm_traits!(AllFieldValuesResult);
+impl_wasm_traits!(AllFieldValuesResult);
 
 #[wasm_bindgen]
 impl DotrainOrderGui {
@@ -42,6 +42,8 @@ impl DotrainOrderGui {
             }
         }
         self.field_values.insert(binding, value);
+
+        self.execute_state_update_callback()?;
         Ok(())
     }
 
@@ -54,12 +56,14 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "removeFieldValue")]
-    pub fn remove_field_value(&mut self, binding: String) {
+    pub fn remove_field_value(&mut self, binding: String) -> Result<(), GuiError> {
         self.field_values.remove(&binding);
+        self.execute_state_update_callback()?;
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = "getFieldValue")]
-    pub fn get_field_value(&self, binding: String) -> Result<GuiPreset, GuiError> {
+    pub fn get_field_value(&self, binding: String) -> Result<GuiPresetCfg, GuiError> {
         let field_value = self
             .field_values
             .get(&binding)
@@ -76,7 +80,7 @@ impl DotrainOrderGui {
                     .ok_or(GuiError::InvalidPreset)?
                     .clone()
             }
-            false => GuiPreset {
+            false => GuiPresetCfg {
                 id: "".to_string(),
                 name: None,
                 value: field_value.value.clone(),
@@ -98,7 +102,7 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getFieldDefinition")]
-    pub fn get_field_definition(&self, binding: &str) -> Result<GuiFieldDefinition, GuiError> {
+    pub fn get_field_definition(&self, binding: &str) -> Result<GuiFieldDefinitionCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let field_definition = deployment
             .fields
@@ -108,9 +112,57 @@ impl DotrainOrderGui {
         Ok(field_definition.clone())
     }
 
+    /// Get all field definitions, optionally filtered by whether they have a default value.
     #[wasm_bindgen(js_name = "getAllFieldDefinitions")]
-    pub fn get_all_field_definitions(&self) -> Result<Vec<GuiFieldDefinition>, GuiError> {
+    pub fn get_all_field_definitions(
+        &self,
+        filter_defaults: Option<bool>,
+    ) -> Result<Vec<GuiFieldDefinitionCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
-        Ok(deployment.fields.clone())
+        let mut field_definitions = deployment.fields.clone();
+
+        match filter_defaults {
+            Some(true) => field_definitions.retain(|field| field.default.is_some()),
+            Some(false) => field_definitions.retain(|field| field.default.is_none()),
+            None => (),
+        }
+        Ok(field_definitions)
+    }
+
+    pub fn check_field_values(&mut self) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
+
+        for field in deployment.fields.iter() {
+            if self.field_values.contains_key(&field.binding) {
+                continue;
+            }
+
+            match &field.default {
+                Some(default_value) => {
+                    self.save_field_value(
+                        field.binding.clone(),
+                        PairValue {
+                            is_preset: false,
+                            value: default_value.clone(),
+                        },
+                    )?;
+                }
+                None => return Err(GuiError::FieldValueNotSet(field.name.clone())),
+            }
+        }
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = "getMissingFieldValues")]
+    pub fn get_missing_field_values(&self) -> Result<Vec<String>, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let mut missing_field_values = Vec::new();
+
+        for field in deployment.fields.iter() {
+            if !self.field_values.contains_key(&field.binding) {
+                missing_field_values.push(field.name.clone());
+            }
+        }
+        Ok(missing_field_values)
     }
 }

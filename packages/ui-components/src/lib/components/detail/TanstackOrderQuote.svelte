@@ -1,11 +1,13 @@
 <script lang="ts" generics="T">
+	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook/quote';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
-	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderSubgraph } from '@rainlanguage/orderbook/js_api';
+	import type { Hex } from 'viem';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 	import {
 		Table,
 		TableBody,
@@ -18,15 +20,15 @@
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 
 	export let id: string;
-	export let order: OrderSubgraph;
+	export let order: SgOrder;
 	export let rpcUrl: string;
-	export let orderbookAddress: string = '';
+	export let orderbookAddress: Hex;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
-				order: OrderSubgraph,
+				order: SgOrder,
 				rpcUrl: string,
-				orderbookAddress: string,
+				orderbookAddress: Hex,
 				inputIndex: number,
 				outputIndex: number,
 				pairName: string,
@@ -35,15 +37,16 @@
 
 	let enabled = true;
 
-	const refreshQuotes = () => {
-		$orderQuoteQuery.refetch();
+	const queryClient = useQueryClient();
+
+	const refreshQuotes = async () => {
+		await invalidateIdQuery(queryClient, id);
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
-		queryKey: [QKEY_ORDER_QUOTE + id],
+		queryKey: [id, QKEY_ORDER_QUOTE + id],
 		queryFn: () => getOrderQuote([order], rpcUrl),
-		enabled: !!id && enabled,
-		refetchInterval: 10000
+		enabled: !!id && enabled
 	});
 
 	let blockNumber: number | undefined;
@@ -54,7 +57,7 @@
 	<div class="mb-4 flex items-center justify-between">
 		<h2 class="text-lg font-semibold">Order Quotes</h2>
 		<div class="flex items-center gap-x-1">
-			{#if $orderQuoteQuery.data && isHex($orderQuoteQuery.data[0].blockNumber)}
+			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0 && isHex($orderQuoteQuery.data[0].blockNumber)}
 				<EditableSpan
 					displayValue={blockNumber?.toString() ||
 						hexToNumber($orderQuoteQuery.data[0].blockNumber).toString()}
@@ -69,7 +72,6 @@
 			{/if}
 			<span></span>
 			<Refresh
-				data-testid="refreshButton"
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 				on:click={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
@@ -91,7 +93,7 @@
 		</div>
 	</div>
 
-	<Table divClass="rounded-lg overflow-hidden dark:border-none border">
+	<Table divClass="rounded-lg lg:overflow-hidden overflow-auto dark:border-none border">
 		<TableHead data-testid="head">
 			<TableHeadCell class="w-[80px]" data-testid="orderQuotesPair">Pair</TableHeadCell>
 			<TableHeadCell class="w-1/4" data-testid="orderQuotesMaxOutput">Maximum Output</TableHeadCell>

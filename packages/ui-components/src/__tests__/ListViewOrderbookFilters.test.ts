@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { ConfigSource } from '../lib/typeshare/config';
+import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 import type { ComponentProps } from 'svelte';
 
@@ -39,7 +39,9 @@ describe('ListViewOrderbookFilters', () => {
 		orderHash: writable(''),
 		isVaultsPage: false,
 		isOrdersPage: false,
-		query
+		query,
+		showMyItemsOnly: writable(false),
+		signerAddress: writable('')
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
@@ -64,7 +66,7 @@ describe('ListViewOrderbookFilters', () => {
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();
-		expect(screen.queryByTestId('accounts-dropdown')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('my-items-only')).not.toBeInTheDocument();
 	});
 
 	test('shows vault-specific components on vault page', () => {
@@ -90,9 +92,15 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows common components when networks exist', () => {
-		render(ListViewOrderbookFilters, defaultProps);
+		const props = {
+			...defaultProps,
+			signerAddress: writable('0x123'),
+			showMyItemsOnly: writable(true),
+			activeAccountsItems: undefined,
+			accounts: undefined
+		};
+		render(ListViewOrderbookFilters, props);
 
-		expect(screen.getByTestId('accounts-dropdown')).toBeInTheDocument();
 		expect(screen.getByTestId('subgraphs-dropdown')).toBeInTheDocument();
 	});
 

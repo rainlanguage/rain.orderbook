@@ -2,9 +2,12 @@ import { render } from '@testing-library/svelte';
 import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChart from '../lib/components/charts/VaultBalanceChart.svelte';
-import type { Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook/js_api';
 import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
 import { writable } from 'svelte/store';
+import type { ComponentProps } from 'svelte';
+
+type VaultBalanceChartProps = ComponentProps<VaultBalanceChart>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultBalanceChanges: vi.fn()
@@ -15,7 +18,7 @@ vi.mock('../lib/components/charts/TanstackLightweightChartLine.svelte', async ()
 	return { default: MockLightweightChart };
 });
 
-const mockVault: Vault = {
+const mockVault: SgVault = {
 	id: 'vault1',
 	vaultId: 'vault1',
 	token: {
@@ -42,8 +45,9 @@ test('calls getVaultBalanceChanges with correct arguments', async () => {
 		props: {
 			vault: mockVault,
 			subgraphUrl: 'https://example.com',
-			lightweightChartsTheme: writable({})
-		},
+			lightweightChartsTheme: writable({}),
+			id: 'vault1'
+		} as VaultBalanceChartProps,
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 

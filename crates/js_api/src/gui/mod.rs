@@ -3,21 +3,25 @@ use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_orderbook_app_settings::{
-    deployment::Deployment,
-    gui::{Gui, GuiDeployment, GuiFieldDefinition, GuiPreset, ParseGuiConfigSourceError},
-    network::Network,
-    order::Order,
-    yaml::YamlError,
+    deployment::DeploymentCfg,
+    gui::{
+        GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
+        ParseGuiConfigSourceError,
+    },
+    network::NetworkCfg,
+    order::OrderCfg,
+    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
 };
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
 use rain_orderbook_common::{
-    dotrain_order::{calldata::DotrainOrderCalldataError, DotrainOrder, DotrainOrderError},
+    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
+    dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 mod deposits;
 mod field_values;
@@ -27,23 +31,25 @@ mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct DeploymentKeys(Vec<String>);
-impl_all_wasm_traits!(DeploymentKeys);
+impl_wasm_traits!(DeploymentKeys);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
+    #[tsify(type = "string")]
     pub address: Address,
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
 }
-impl_all_wasm_traits!(TokenInfo);
+impl_wasm_traits!(TokenInfo);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct GuiDetails {
-    name: String,
-    description: String,
-}
-impl_all_wasm_traits!(GuiDetails);
+pub struct AllTokenInfos(Vec<TokenInfo>);
+impl_wasm_traits!(AllTokenInfos);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct DeploymentDetails(BTreeMap<String, NameAndDescriptionCfg>);
+impl_wasm_traits!(DeploymentDetails);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -52,13 +58,15 @@ pub struct DotrainOrderGui {
     selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
+    #[serde(skip)]
+    state_update_callback: Option<js_sys::Function>,
 }
 #[wasm_bindgen]
 impl DotrainOrderGui {
     #[wasm_bindgen(js_name = "getDeploymentKeys")]
     pub async fn get_deployment_keys(dotrain: String) -> Result<DeploymentKeys, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentKeys(keys))
     }
 
@@ -66,10 +74,11 @@ impl DotrainOrderGui {
     pub async fn choose_deployment(
         dotrain: String,
         deployment_name: String,
+        state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
-        let keys = Gui::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         if !keys.contains(&deployment_name) {
             return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
@@ -79,21 +88,22 @@ impl DotrainOrderGui {
             selected_deployment: deployment_name.clone(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
+            state_update_callback,
         })
     }
 
     #[wasm_bindgen(js_name = "getGuiConfig")]
-    pub fn get_gui_config(&self) -> Result<Gui, GuiError> {
+    pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui()?
+            .get_gui(Some(self.selected_deployment.clone()))?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
 
     #[wasm_bindgen(js_name = "getCurrentDeployment")]
-    pub fn get_current_deployment(&self) -> Result<GuiDeployment, GuiError> {
+    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, GuiError> {
         let gui = self.get_gui_config()?;
         let (_, gui_deployment) = gui
             .deployments
@@ -123,14 +133,16 @@ impl DotrainOrderGui {
                 symbol: token.symbol.unwrap(),
             }
         } else {
-            let order_key = Deployment::parse_order_key(
+            let order_key = DeploymentCfg::parse_order_key(
                 self.dotrain_order.dotrain_yaml().documents,
                 &self.selected_deployment,
             )?;
-            let network_key =
-                Order::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
+            let network_key = OrderCfg::parse_network_key(
+                self.dotrain_order.dotrain_yaml().documents,
+                &order_key,
+            )?;
             let rpc_url =
-                Network::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+                NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
             let erc20 = ERC20::new(rpc_url, token.address);
             let onchain_info = erc20.token_info(None).await?;
@@ -146,11 +158,85 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
-    #[wasm_bindgen(js_name = "getGuiDetails")]
-    pub fn get_gui_details(&self) -> Result<GuiDetails, GuiError> {
-        let (name, description) =
-            Gui::parse_gui_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(GuiDetails { name, description })
+    #[wasm_bindgen(js_name = "getAllTokenInfos")]
+    pub async fn get_all_token_infos(&self) -> Result<AllTokenInfos, GuiError> {
+        let select_tokens = self.get_select_tokens()?;
+
+        let token_keys = match select_tokens.0.is_empty() {
+            true => {
+                let order_key = DeploymentCfg::parse_order_key(
+                    self.dotrain_order.dotrain_yaml().documents,
+                    &self.selected_deployment,
+                )?;
+                OrderCfg::parse_io_token_keys(
+                    self.dotrain_order.dotrain_yaml().documents,
+                    &order_key,
+                )?
+            }
+            false => select_tokens
+                .0
+                .iter()
+                .map(|token| token.key.clone())
+                .collect(),
+        };
+
+        let mut result = Vec::new();
+        for key in token_keys.iter() {
+            result.push(self.get_token_info(key.clone()).await?);
+        }
+        Ok(AllTokenInfos(result))
+    }
+
+    #[wasm_bindgen(js_name = "getStrategyDetails")]
+    pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescriptionCfg, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let details =
+            GuiCfg::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(details)
+    }
+
+    #[wasm_bindgen(js_name = "getDeploymentDetails")]
+    pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let deployment_details =
+            GuiCfg::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+    }
+
+    #[wasm_bindgen(js_name = "getDeploymentDetail")]
+    pub async fn get_deployment_detail(
+        dotrain: String,
+        key: String,
+    ) -> Result<NameAndDescriptionCfg, GuiError> {
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
+        let deployment_detail = deployment_details
+            .0
+            .get(&key)
+            .ok_or(GuiError::DeploymentNotFound(key))?;
+        Ok(deployment_detail.clone())
+    }
+
+    #[wasm_bindgen(js_name = "generateDotrainText")]
+    pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
+        let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
+        let dotrain = format!(
+            "{}\n{}\n{}",
+            DotrainYaml::get_yaml_string(self.dotrain_order.dotrain_yaml().documents[0].clone(),)?,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+        Ok(dotrain)
+    }
+
+    #[wasm_bindgen(js_name = "getComposedRainlang")]
+    pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
+        self.update_scenario_bindings()?;
+        let dotrain = self.generate_dotrain_text()?;
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let rainlang = dotrain_order
+            .compose_deployment_to_rainlang(self.selected_deployment.clone())
+            .await?;
+        Ok(rainlang)
     }
 }
 
@@ -162,12 +248,18 @@ pub enum GuiError {
     DeploymentNotFound(String),
     #[error("Field binding not found: {0}")]
     FieldBindingNotFound(String),
+    #[error("Missing field value: {0}")]
+    FieldValueNotSet(String),
     #[error("Deposit token not found in gui config: {0}")]
     DepositTokenNotFound(String),
+    #[error("Missing deposit with token: {0}")]
+    DepositNotSet(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
-    #[error("Deserialized config mismatch")]
-    DeserializedConfigMismatch,
+    #[error("Order not found: {0}")]
+    OrderNotFound(String),
+    #[error("Deserialized dotrain mismatch")]
+    DotrainMismatch,
     #[error("Vault id not found for output index: {0}")]
     VaultIdNotFound(String),
     #[error("Deployer not found")]
@@ -176,6 +268,8 @@ pub enum GuiError {
     TokenNotFound(String),
     #[error("Invalid preset")]
     InvalidPreset,
+    #[error("Presets not set")]
+    PresetsNotSet,
     #[error("Select tokens not set")]
     SelectTokensNotSet,
     #[error("Token must be selected: {0}")]
@@ -184,6 +278,8 @@ pub enum GuiError {
     BindingHasNoPresets(String),
     #[error("Token not in select tokens: {0}")]
     TokenNotInSelectTokens(String),
+    #[error("JavaScript error: {0}")]
+    JsError(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -220,8 +316,6 @@ pub enum GuiError {
     SolTypesError(#[from] alloy::sol_types::Error),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
-    #[error(transparent)]
-    DotrainOrderCalldataError(#[from] DotrainOrderCalldataError),
     #[error(transparent)]
     YamlError(#[from] YamlError),
 }

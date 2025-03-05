@@ -7,10 +7,20 @@ concurrency:
 
 jobs:
   build-tauri:
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: ${{ github.ref != 'refs/heads/main' }}
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04]
+        os: [ubuntu-22.04, macos-13, macos-14]
+        is-not-main:
+          - ${{ github.ref != 'refs/heads/main' }}
+        exclude:
+          - is-not-main: true
+            os: macos-13
+          - is-not-main: true
+            os: macos-14
 
     runs-on: ${{ matrix.os }}
     env:
@@ -54,10 +64,14 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 

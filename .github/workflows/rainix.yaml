@@ -7,10 +7,15 @@ concurrency:
 
 jobs:
   standard-tests:
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        task: [ob-rs-test, rainix-rs-artifacts, rainix-sol-legal]
+        task: [ob-rs-test, rainix-rs-artifacts]
+        is-not-main:
+          - ${{ github.ref != 'refs/heads/main' }}
         include:
           # Solidity doesn't need to be tested on multiple platforms
           - os: ubuntu-latest
@@ -30,6 +35,12 @@ jobs:
           # Testing JS/TS bindings doesnt need to run on multiple platforms
           - os: ubuntu-latest
             task: test-js-bindings
+          # Legal doesnt need to run on multiple platforms
+          - os: ubuntu-latest
+            task: rainix-sol-legal
+        exclude:
+          - is-not-main: true
+            os: macos-latest
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
@@ -68,8 +79,10 @@ jobs:
           df -h
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./pointers.sh
 

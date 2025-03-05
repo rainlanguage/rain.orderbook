@@ -23,6 +23,7 @@ keep=(
   -k CI_SEPOLIA_METABOARD_URL
   -k RPC_URL_ETHEREUM_FORK
   -k COMMIT_SHA
+  -k PUBLIC_WALLETCONNECT_PROJECT_ID
 )
 
 echo "Installing Forge dependencies..."
@@ -49,6 +50,7 @@ nix develop -i ${keep[@]} .#tauri-shell -c ob-ui-components-prelude
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w tauri-app)'
 
 # Temporarily disable command echoing
 set +x

@@ -9,6 +9,7 @@ on:
 jobs:
   publish-tauri:
     permissions:
+      id-token: write
       contents: write
     strategy:
       fail-fast: false
@@ -62,10 +63,14 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 

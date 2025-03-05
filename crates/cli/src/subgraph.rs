@@ -1,8 +1,8 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
-    types::common::{Bytes, OrdersListFilterArgs, VaultsListFilterArgs},
-    PaginationArgs,
+    types::common::{SgBytes, SgOrdersListFilterArgs, SgVaultsListFilterArgs},
+    SgPaginationArgs,
 };
 
 #[derive(Args, Clone)]
@@ -52,7 +52,7 @@ pub struct CliPaginationArgs {
     pub csv: bool,
 }
 
-impl From<CliPaginationArgs> for PaginationArgs {
+impl From<CliPaginationArgs> for SgPaginationArgs {
     fn from(val: CliPaginationArgs) -> Self {
         Self {
             page: val.page,
@@ -84,19 +84,19 @@ pub struct CliFilterArgs {
     pub order_hash: Option<String>,
 }
 
-impl From<CliFilterArgs> for OrdersListFilterArgs {
+impl From<CliFilterArgs> for SgOrdersListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
-            owners: val.owners.into_iter().map(Bytes).collect(),
+            owners: val.owners.into_iter().map(SgBytes).collect(),
             active: val.active,
-            order_hash: val.order_hash.map(Bytes),
+            order_hash: val.order_hash.map(SgBytes),
         }
     }
 }
-impl From<CliFilterArgs> for VaultsListFilterArgs {
+impl From<CliFilterArgs> for SgVaultsListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
-            owners: val.owners.into_iter().map(Bytes).collect(),
+            owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
         }
     }

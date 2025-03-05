@@ -8,6 +8,9 @@ on:
       - main
 jobs:
   Deploy-Preview:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     env:
       COMMIT_SHA: ${{ github.sha }}
@@ -18,12 +21,18 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop .#webapp-shell -c npm run build
         working-directory: packages/webapp
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@canary

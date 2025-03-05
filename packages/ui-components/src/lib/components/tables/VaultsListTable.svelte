@@ -5,24 +5,27 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
+	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '../../typeshare/config';
-	import { type Vault } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook/js_api';
+	import { type SgVault } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
 		type MultiSubgraphArgs,
-		type VaultWithSubgraphName
+		type SgVaultWithSubgraphName
 	} from '@rainlanguage/orderbook/js_api';
-	import type { Writable, Readable } from 'svelte/store';
+	import { type Writable, type Readable } from 'svelte/store';
+	import type { AppStoresInterface } from '$lib/types/appStores.ts';
+
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
+	export let accounts: AppStoresInterface['accounts'] | undefined;
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let orderHash: Writable<string>;
-	export let accounts: Readable<Record<string, string>>;
-	export let activeAccountsItems: Writable<Record<string, string>>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let settings: Writable<ConfigSource | undefined>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
@@ -34,11 +37,13 @@
 	}>;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
-	export let handleDepositModal: ((vault: Vault, refetch: () => void) => void) | undefined =
+	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
-	export let handleWithdrawModal: ((vault: Vault, refetch: () => void) => void) | undefined =
+	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let signerAddress: Writable<string | null> | undefined;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -48,8 +53,11 @@
 	})) as MultiSubgraphArgs[];
 
 	$: owners =
-		Object.values($activeAccountsItems).length > 0 ? Object.values($activeAccountsItems) : [];
-
+		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
+			? Object.values($activeAccountsItems)
+			: $showMyItemsOnly && $signerAddress
+				? [$signerAddress]
+				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
@@ -86,12 +94,26 @@
 	$: isVaultsPage = currentRoute.startsWith('/vaults');
 	$: isOrdersPage = currentRoute.startsWith('/orders');
 
-	const AppTable = TanstackAppTable<VaultWithSubgraphName>;
+	const AppTable = TanstackAppTable<SgVaultWithSubgraphName>;
 </script>
 
 {#if $query}
+	<ListViewOrderbookFilters
+		{activeSubgraphs}
+		{settings}
+		{accounts}
+		{activeAccountsItems}
+		{showMyItemsOnly}
+		{activeOrderStatus}
+		{orderHash}
+		{hideZeroBalanceVaults}
+		{isVaultsPage}
+		{isOrdersPage}
+		{signerAddress}
+	/>
 	<AppTable
 		{query}
+		queryKey={undefined}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
@@ -99,7 +121,7 @@
 		}}
 	>
 		<svelte:fragment slot="title">
-			<div class="flex w-full justify-between py-4">
+			<div class="mt-2 flex w-full justify-between">
 				<div class="flex items-center gap-x-6">
 					<div class="text-3xl font-medium dark:text-white">Vaults</div>
 					{#if handleDepositGenericModal}
@@ -110,22 +132,10 @@
 							data-testid="new-vault-button"
 							on:click={() => {
 								handleDepositGenericModal();
-							}}>New vault</Button
-						>
+							}}
+							>New vault
+						</Button>
 					{/if}
-				</div>
-				<div class="flex flex-col items-end gap-y-2">
-					<ListViewOrderbookFilters
-						{activeSubgraphs}
-						{settings}
-						{accounts}
-						{activeAccountsItems}
-						{activeOrderStatus}
-						{orderHash}
-						{hideZeroBalanceVaults}
-						{isVaultsPage}
-						{isOrdersPage}
-					/>
 				</div>
 			</div>
 		</svelte:fragment>
@@ -145,15 +155,15 @@
 				{item.subgraphName}
 			</TableBodyCell>
 
-			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id"
-				>{bigintStringToHex(item.vault.vaultId)}</TableBodyCell
-			>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook"
-				><Hash type={HashType.Identifier} value={item.vault.orderbook.id} /></TableBodyCell
-			>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner"
-				><Hash type={HashType.Wallet} value={item.vault.owner} /></TableBodyCell
-			>
+			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
+				<Hash type={HashType.Identifier} value={bigintStringToHex(item.vault.vaultId)} />
+			</TableBodyCell>
+			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
+				<Hash type={HashType.Identifier} value={item.vault.orderbook.id} />
+			</TableBodyCell>
+			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
+				<Hash type={HashType.Wallet} value={item.vault.owner} />
+			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
 				>{item.vault.token.name}</TableBodyCell
 			>
@@ -165,21 +175,12 @@
 				{#if item.vault.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsInput.slice(0, 3) as order}
-							<Button
-								class="mr-1 mt-1 px-1 py-0"
-								color={order.active ? 'green' : 'yellow'}
-								data-testid="vault-order-input"
-								data-order-id={order.id}
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(item.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
-							>
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								network={item.subgraphName}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 						{#if item.vault.ordersAsInput.length > 3}...{/if}
 					</div>
@@ -189,21 +190,12 @@
 				{#if item.vault.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.vault.ordersAsOutput.slice(0, 3) as order}
-							<Button
-								class="mr-1 mt-1 px-1 py-0"
-								color={order.active ? 'green' : 'yellow'}
-								data-order-id={order.id}
-								data-testid="vault-order-output"
-								on:click={() => {
-									updateActiveNetworkAndOrderbook(item.subgraphName);
-									goto(`/orders/${order.id}`);
-								}}
-								><Hash
-									type={HashType.Identifier}
-									value={order.orderHash}
-									copyOnClick={false}
-								/></Button
-							>
+							<OrderOrVaultHash
+								type="orders"
+								orderOrVault={order}
+								network={item.subgraphName}
+								{updateActiveNetworkAndOrderbook}
+							/>
 						{/each}
 						{#if item.vault.ordersAsOutput.length > 3}...{/if}
 					</div>
@@ -237,15 +229,17 @@
 							on:click={(e) => {
 								e.stopPropagation();
 								handleDepositModal(item.vault, $query.refetch);
-							}}>Deposit</DropdownItem
-						>
+							}}
+							>Deposit
+						</DropdownItem>
 						<DropdownItem
 							data-testid="withdraw-button"
 							on:click={(e) => {
 								e.stopPropagation();
 								handleWithdrawModal(item.vault, $query.refetch);
-							}}>Withdraw</DropdownItem
-						>
+							}}
+							>Withdraw
+						</DropdownItem>
 					</Dropdown>
 				{/if}
 			{/if}

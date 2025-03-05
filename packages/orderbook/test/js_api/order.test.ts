@@ -1,17 +1,23 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Order, OrderPerformance, OrderWithSubgraphName, Trade } from '../../dist/types/js_api.js';
+import {
+	SgTrade,
+	SgOrder,
+	OrderPerformance,
+	SgOrderWithSubgraphName,
+	OrderWithSortedVaults
+} from '../../dist/types/js_api.js';
 import {
 	getOrders,
-	getOrder,
+	getOrderByHash,
 	getOrderTradesList,
 	getOrderTradeDetail,
 	getOrderTradesCount,
 	getOrderPerformance
 } from '../../dist/cjs/js_api.js';
 
-const order1 = {
+const order1: SgOrder = {
 	id: 'order1',
 	orderBytes:
 		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -19,7 +25,7 @@ const order1 = {
 	owner: '0x0000000000000000000000000000000000000000',
 	outputs: [
 		{
-			id: '0x0000000000000000000000000000000000000000',
+			id: '0x0000000000000000000000000000000000000001',
 			token: {
 				id: '0x0000000000000000000000000000000000000000',
 				address: '0x0000000000000000000000000000000000000000',
@@ -28,7 +34,7 @@ const order1 = {
 				decimals: '0'
 			},
 			balance: '0',
-			vaultId: '0',
+			vaultId: '0x1',
 			owner: '0x0000000000000000000000000000000000000000',
 			ordersAsOutput: [],
 			ordersAsInput: [],
@@ -40,7 +46,7 @@ const order1 = {
 	],
 	inputs: [
 		{
-			id: '0x0000000000000000000000000000000000000000',
+			id: '0x0000000000000000000000000000000000000002',
 			token: {
 				id: '0x0000000000000000000000000000000000000000',
 				address: '0x0000000000000000000000000000000000000000',
@@ -49,7 +55,7 @@ const order1 = {
 				decimals: '0'
 			},
 			balance: '0',
-			vaultId: '0',
+			vaultId: '0x2',
 			owner: '0x0000000000000000000000000000000000000000',
 			ordersAsOutput: [],
 			ordersAsInput: [],
@@ -75,9 +81,11 @@ const order1 = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
-};
-const order2: Order = {
+	trades: [],
+	removeEvents: []
+} as unknown as SgOrder;
+
+const order2 = {
 	id: 'order2',
 	orderBytes:
 		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -141,10 +149,11 @@ const order2: Order = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
-} as unknown as Order;
+	trades: [],
+	removeEvents: []
+} as unknown as SgOrder;
 
-const order3 = {
+export const order3 = {
 	id: 'order1',
 	orderBytes:
 		'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
@@ -208,10 +217,11 @@ const order3 = {
 	orderbook: {
 		id: '0x0000000000000000000000000000000000000000'
 	},
-	trades: []
-};
+	trades: [],
+	removeEvents: []
+} as unknown as SgOrder;
 
-const mockOrderTradesList: Trade[] = [
+const mockOrderTradesList: SgTrade[] = [
 	{
 		id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
 		timestamp: '1632000000',
@@ -284,9 +294,9 @@ const mockOrderTradesList: Trade[] = [
 			id: 'orderbook-1'
 		}
 	}
-] as unknown as Trade[];
+] as unknown as SgTrade[];
 
-const mockTrade: Trade = {
+const mockTrade: SgTrade = {
 	id: 'trade1',
 	order: {
 		id: 'order1',
@@ -361,19 +371,22 @@ const mockTrade: Trade = {
 			id: '0x0000000000000000000000000000000000000000'
 		}
 	}
-} as unknown as Trade;
+} as unknown as SgTrade;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function () {
+describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function () {
 	const mockServer = getLocal();
 	beforeEach(() => mockServer.start(8082));
 	afterEach(() => mockServer.stop());
 
 	it('should fetch a single order', async () => {
-		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { order: order1 } }));
+		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 
 		try {
-			const result: Order = await getOrder(mockServer.url + '/sg1', order1.id);
-			assert.equal(result.id, order1.id);
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				order1.orderHash
+			);
+			assert.equal(result.order.id, order1.id);
 		} catch (e) {
 			console.log(e);
 			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
@@ -385,7 +398,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 		await mockServer.forPost('/sg2').thenReply(200, JSON.stringify({ data: { orders: [order2] } }));
 
 		try {
-			const result: OrderWithSubgraphName[] = await getOrders(
+			const result: SgOrderWithSubgraphName[] = await getOrders(
 				[
 					{ url: mockServer.url + '/sg1', name: 'network-one' },
 					{ url: mockServer.url + '/sg2', name: 'network-two' }
@@ -452,7 +465,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
 
 		try {
-			const result: Trade = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
+			const result: SgTrade = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
 			assert.equal(result.id, mockTrade.id);
 			assert.equal(result.order.id, mockTrade.order.id);
 			assert.equal(
@@ -494,7 +507,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 				undefined,
 				undefined
 			);
-			console.log(count);
 
 			assert.strictEqual(typeof count, 'number', 'Count should be a number');
 			assert.strictEqual(count, 1, 'Should count one trade');
@@ -617,5 +629,140 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Order', async function (
 		};
 		mockServer.stop();
 		assert.deepEqual(result, expected);
+	});
+
+	it('should return vaults sorted by inputs, outputs and inputs and outputs', async () => {
+		const inputs = [
+			{
+				id: '0x0000000000000000000000000000000000000001',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'T2',
+					symbol: 'T2',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0x1',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			},
+			{
+				id: '0x0000000000000000000000000000000000000003',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'T3',
+					symbol: 'T3',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0x3',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		];
+		const outputs = [
+			{
+				id: '0x0000000000000000000000000000000000000002',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'T2',
+					symbol: 'T2',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0x2',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			},
+			{
+				id: '0x0000000000000000000000000000000000000003',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x0000000000000000000000000000000000000000',
+					name: 'T3',
+					symbol: 'T3',
+					decimals: '0'
+				},
+				balance: '0',
+				vaultId: '0x3',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		];
+		await mockServer
+			.forPost('/sg1')
+			.once()
+			.thenReply(200, JSON.stringify({ data: { orders: [{ ...order1, inputs, outputs }] } }));
+
+		try {
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				order1.orderHash
+			);
+
+			const inputs = result.vaults.get('inputs');
+			const outputs = result.vaults.get('outputs');
+			const inputsOutputs = result.vaults.get('inputs_outputs');
+
+			if (!inputs || !outputs || !inputsOutputs) {
+				assert.fail('inputs, outputs or inputsOutputs should not be null');
+			}
+
+			assert.equal(inputs.length, 1);
+			assert.equal(outputs.length, 1);
+			assert.equal(inputsOutputs.length, 1);
+
+			assert.equal(inputs[0].id, '0x0000000000000000000000000000000000000001');
+			assert.equal(outputs[0].id, '0x0000000000000000000000000000000000000002');
+			assert.equal(inputsOutputs[0].id, '0x0000000000000000000000000000000000000003');
+		} catch (e) {
+			console.log(e);
+			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+		}
+	});
+
+	it('should fetch an order by orderHash', async () => {
+		const mockOrder = {
+			...order1,
+			orderHash: '0xbf8075f73b0a6418d719e52189d59bf35a0949e5983b3edbbc0338c02ab17353'
+		};
+		await mockServer
+			.forPost('/sg1')
+			.thenReply(200, JSON.stringify({ data: { orders: [mockOrder] } }));
+
+		try {
+			const result: OrderWithSortedVaults = await getOrderByHash(
+				mockServer.url + '/sg1',
+				mockOrder.orderHash
+			);
+
+			assert.equal(result.order.orderHash, mockOrder.orderHash);
+		} catch (e) {
+			console.log(e);
+			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+		}
 	});
 });

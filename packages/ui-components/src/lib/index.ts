@@ -1,5 +1,3 @@
-import './app.css';
-
 // Components
 export { default as CardProperty } from './components/CardProperty.svelte';
 export { default as Hash, HashType } from './components/Hash.svelte';
@@ -46,15 +44,53 @@ export { default as IconSuccess } from './components/IconSuccess.svelte';
 export { default as IconTelegram } from './components/IconTelegram.svelte';
 export { default as IconWalletConnect } from './components/IconWalletConnect.svelte';
 export { default as IconWarning } from './components/IconWarning.svelte';
+export { default as FieldDefinitionInput } from './components/deployment/FieldDefinitionInput.svelte';
+export { default as DepositInput } from './components/deployment/DepositInput.svelte';
+export { default as DeploymentSteps } from './components/deployment/DeploymentSteps.svelte';
+export { default as TokenIOInput } from './components/deployment/TokenIOInput.svelte';
+export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
 export { default as CodeMirrorDotrain } from './components/CodeMirrorDotrain.svelte';
+export { default as OrderOrVaultHash } from './components/OrderOrVaultHash.svelte';
+export { default as License } from './components/License.svelte';
+export { default as ButtonDarkMode } from './components/ButtonDarkMode.svelte';
+export { default as StrategyPage } from './components/deployment/StrategyPage.svelte';
+export { default as InputHex } from './components/input/InputHex.svelte';
+export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
+export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
+export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
+export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
+export { default as StrategiesSection } from './components/deployment/StrategiesSection.svelte';
+export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
+export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
+export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource, OrderbookRef } from './typeshare/config';
+export type {
+	ConfigSource,
+	OrderbookConfigSource,
+	OrderbookCfgRef
+} from '@rainlanguage/orderbook/js_api';
+export {
+	TransactionStatus,
+	TransactionErrorMessage,
+	type TransactionState,
+	type ExtendedApprovalCalldata
+} from './stores/transactionStore';
+export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
+export type {
+	DepositOrWithdrawModalProps,
+	OrderRemoveModalProps,
+	QuoteDebugModalHandler,
+	DebugTradeModalHandler,
+	DeployModalProps,
+	DisclaimerModalProps
+} from './types/modal';
+export type { StrategyDetail } from './types/strategy';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -69,7 +105,6 @@ export { prepareHistoricalOrderChartData } from './services/historicalOrderChart
 export { bigintToFloat } from './utils/number';
 
 // Constants
-
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
 	QKEY_VAULTS,
@@ -88,3 +123,9 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
+export { default as transactionStore } from './stores/transactionStore';
+export { mockTransactionStore } from './__mocks__/mockTransactionStore';
+
+// Assets
+export { default as logoLight } from './assets/logo-light.svg';
+export { default as logoDark } from './assets/logo-dark.svg';

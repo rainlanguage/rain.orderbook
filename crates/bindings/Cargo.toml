@@ -12,10 +12,7 @@ alloy = { workspace = true, features = ["sol-types", "json"] }
 serde = { workspace = true, features = ["derive", "rc"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-js-sys = { version = "0.3.69" }
-wasm-bindgen = { version = "0.2.92" }
-serde-wasm-bindgen = { version = "0.6.5" }
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
+wasm-bindgen-utils = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.42"

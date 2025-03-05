@@ -4,10 +4,10 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import {
 		getVaultBalanceChanges,
-		type ClearBounty,
-		type Deposit,
-		type TradeVaultBalanceChange,
-		type Withdrawal
+		type SgClearBounty,
+		type SgDeposit,
+		type SgTradeVaultBalanceChange,
+		type SgWithdrawal
 	} from '@rainlanguage/orderbook/js_api';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import Hash, { HashType } from '../Hash.svelte';
@@ -33,11 +33,14 @@
 		enabled: !!subgraphUrl
 	});
 
-	const AppTable = TanstackAppTable<Withdrawal | Deposit | TradeVaultBalanceChange | ClearBounty>;
+	const AppTable = TanstackAppTable<
+		SgWithdrawal | SgDeposit | SgTradeVaultBalanceChange | SgClearBounty
+	>;
 </script>
 
 <AppTable
 	query={balanceChangesQuery}
+	queryKey={undefined}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
 >

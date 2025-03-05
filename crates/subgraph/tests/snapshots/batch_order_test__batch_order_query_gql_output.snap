@@ -2,7 +2,7 @@
 source: crates/subgraph/tests/batch_order_test.rs
 expression: request_body.query
 ---
-query BatchOrderDetailQuery($id_list: Order_filter!) {
+query SgBatchOrderDetailQuery($id_list: Order_filter!) {
   orders(where: $id_list) {
     id
     orderBytes
@@ -308,6 +308,14 @@ query BatchOrderDetailQuery($id_list: Order_filter!) {
     }
     trades {
       id
+    }
+    removeEvents {
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
     }
   }
 }

@@ -2814,16 +2814,16 @@ checksum = "aac81fa3e28d21450aa4d2ac065992ba96a1d7303efbce51a95f4fd175b67562"
 
 [[package]]
 name = "dotrain"
-version = "6.0.1-alpha.21"
+version = "6.0.1-alpha.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d800f2ccf3cafa9ae5650419edca41c2c1f38379f5bc122ace5046a24d787594"
+checksum = "55ee29248ec7f3f590d4709eef714c74094d8941ad3b6f642bbfd4a04cdc937b"
 dependencies = [
- "alloy-primitives 0.6.4",
+ "alloy-primitives 0.7.7",
  "anyhow",
  "async-recursion",
  "futures",
  "getrandom",
- "magic_string",
+ "magic_string_rain",
  "once_cell",
  "rain-metadata 0.0.2-alpha.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
@@ -2835,12 +2835,11 @@ dependencies = [
 
 [[package]]
 name = "dotrain-lsp"
-version = "6.0.1-alpha.21"
+version = "6.0.1-alpha.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd4c0c7ffe7f95bf0deac54d4b44b71f33fac0f898b0c74847d2191736d617ca"
+checksum = "de4dfc48293167f53102c46b86e02b0a4b6dd58d9bf94ddd29d9074d90c0a485"
 dependencies = [
- "alloy-primitives 0.6.4",
- "anyhow",
+ "alloy-primitives 0.7.7",
  "dotrain",
  "lsp-types",
  "once_cell",
@@ -5155,10 +5154,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "magic_string"
-version = "0.3.4"
+name = "magic_string_rain"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8033ce8c43f7ccb207e4699f30eed50d7526379ee08fab47159f80b7934e18"
+checksum = "b14a99e25cbe68891c84655e1bc0181c72c270c07d89591954982c607c1d912a"
 dependencies = [
  "base64 0.13.1",
  "regex",
@@ -6191,7 +6190,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "typeshare",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6235,9 +6234,9 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "typeshare",
  "url",
  "validator",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6335,16 +6334,13 @@ dependencies = [
  "rain_orderbook_bindings",
  "reqwest 0.12.5",
  "serde",
- "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "serde_yaml",
  "strict-yaml-rust",
  "thiserror",
  "tokio",
- "tsify",
- "typeshare",
  "url",
- "wasm-bindgen",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6352,12 +6348,9 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "js-sys",
  "serde",
- "serde-wasm-bindgen 0.6.5",
- "tsify",
- "wasm-bindgen",
  "wasm-bindgen-test",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6400,7 +6393,6 @@ dependencies = [
  "dotrain-lsp",
  "futures",
  "httpmock",
- "js-sys",
  "once_cell",
  "proptest",
  "rain-error-decoding",
@@ -6417,7 +6409,6 @@ dependencies = [
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",
  "serde",
- "serde-wasm-bindgen 0.6.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -6425,11 +6416,8 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "tsify",
- "typeshare",
  "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6453,19 +6441,17 @@ dependencies = [
  "bincode",
  "cynic",
  "flate2",
- "js-sys",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
  "serde",
- "serde-wasm-bindgen 0.6.5",
+ "sha2",
+ "strict-yaml-rust",
  "thiserror",
  "tokio",
- "tsify",
- "wasm-bindgen",
- "wasm-bindgen-futures",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6486,7 +6472,6 @@ dependencies = [
  "anyhow",
  "clap",
  "httpmock",
- "js-sys",
  "once_cell",
  "rain-error-decoding",
  "rain-interpreter-eval",
@@ -6496,18 +6481,14 @@ dependencies = [
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",
  "serde",
- "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "tsify",
- "typeshare",
  "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6522,20 +6503,16 @@ dependencies = [
  "futures",
  "httpmock",
  "insta",
- "js-sys",
  "once_cell",
  "rain_orderbook_bindings",
  "rain_orderbook_math",
  "reqwest 0.12.5",
  "serde",
- "serde-wasm-bindgen 0.6.5",
  "serde_json",
  "thiserror",
  "tokio",
- "tsify",
- "typeshare",
  "url",
- "wasm-bindgen",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8541,26 +8518,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 
 [[package]]
-name = "typeshare"
-version = "1.0.1"
-source = "git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "typeshare-annotation",
-]
-
-[[package]]
-name = "typeshare-annotation"
-version = "1.0.2"
-source = "git+https://github.com/tomjw64/typeshare?rev=556b44aafd5304eedf17206800f69834e3820b7c#556b44aafd5304eedf17206800f69834e3820b7c"
-dependencies = [
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "ucd-trie"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8916,6 +8873,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04293ba23e84c21b0d42179abedf35e6eb082bd6f06bce7a42a8dd8e0b2b589f"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

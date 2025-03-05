@@ -1,8 +1,9 @@
 ---
 source: crates/subgraph/tests/order_test.rs
+assertion_line: 13
 expression: request_body.query
 ---
-query OrderDetailQuery($id: ID!) {
+query SgOrderDetailByIdQuery($id: ID!) {
   order(id: $id) {
     id
     orderBytes
@@ -308,6 +309,14 @@ query OrderDetailQuery($id: ID!) {
     }
     trades {
       id
+    }
+    removeEvents {
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
     }
   }
 }

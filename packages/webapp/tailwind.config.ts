@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import { neutral, indigo } from 'tailwindcss/colors';
+import typography from '@tailwindcss/typography';
 
 export default {
 	content: [
@@ -9,10 +10,13 @@ export default {
 		'../ui-components/**/*.{html,js,svelte,ts}'
 	],
 
+	darkMode: 'class',
+
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['DM Sans', 'sans-serif']
+				sans: ['DM Sans', 'sans-serif'],
+				'instrument-serif': ['Instrument Serif', 'serif']
 			},
 			colors: {
 				primary: { ...indigo },
@@ -24,5 +28,5 @@ export default {
 		}
 	},
 
-	plugins: []
+	plugins: [typography]
 } satisfies Config;

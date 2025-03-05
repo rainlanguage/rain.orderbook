@@ -1,5 +1,6 @@
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use crate::*;
 use alloy::primitives::{hex::FromHexError, Address};
@@ -10,30 +11,31 @@ use std::{collections::HashMap, sync::Arc};
 use strict_yaml_rust::strict_yaml::Hash;
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use typeshare::typeshare;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::context::Context;
 
-#[cfg(target_family = "wasm")]
-use rain_orderbook_bindings::{impl_all_wasm_traits, wasm_traits::prelude::*};
-
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct Token {
+pub struct TokenCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "Network"))]
-    pub network: Arc<Network>,
-    #[typeshare(typescript(type = "string"))]
+    pub network: Arc<NetworkCfg>,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub decimals: Option<u8>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub symbol: Option<String>,
 }
-impl Token {
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(TokenCfg);
+
+impl TokenCfg {
     pub fn validate_address(value: &str) -> Result<Address, ParseTokenConfigSourceError> {
         Address::from_str(value).map_err(ParseTokenConfigSourceError::AddressParseError)
     }
@@ -44,7 +46,7 @@ impl Token {
     }
 
     pub fn update_address(&mut self, address: &str) -> Result<Self, YamlError> {
-        let address = Token::validate_address(address)?;
+        let address = TokenCfg::validate_address(address)?;
 
         let mut document = self
             .document
@@ -62,16 +64,25 @@ impl Token {
                         StrictYaml::String(address.to_string());
                     self.address = address;
                 } else {
-                    return Err(YamlError::ParseError(format!(
-                        "missing field: {} in tokens",
-                        self.key
-                    )));
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "tokens".to_string(),
+                    });
                 }
             } else {
-                return Err(YamlError::ParseError("missing field: tokens".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("tokens".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(self.clone())
@@ -86,13 +97,13 @@ impl Token {
         label: Option<&str>,
         symbol: Option<&str>,
     ) -> Result<(), YamlError> {
-        if Token::parse_from_yaml(documents.clone(), key, None).is_ok() {
+        if TokenCfg::parse_from_yaml(documents.clone(), key, None).is_ok() {
             return Err(YamlError::KeyShadowing(key.to_string()));
         }
 
-        let address = Token::validate_address(address)?;
-        let decimals = decimals.map(Token::validate_decimals).transpose()?;
-        Network::parse_from_yaml(documents.clone(), network_key, None)?;
+        let address = TokenCfg::validate_address(address)?;
+        let decimals = decimals.map(TokenCfg::validate_decimals).transpose()?;
+        NetworkCfg::parse_from_yaml(documents.clone(), network_key, None)?;
 
         let mut document = documents[0]
             .write()
@@ -150,10 +161,19 @@ impl Token {
                     StrictYaml::Hash(token_hash),
                 );
             } else {
-                return Err(YamlError::ParseError("missing field: token".to_string()));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("tokens".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(())
@@ -192,21 +212,26 @@ impl Token {
                 if let Some(token_yaml) =
                     tokens_hash.get(&StrictYaml::String(token_key.to_string()))
                 {
-                    return require_string(token_yaml, Some("network"), None);
+                    let location = format!("token '{}'", token_key);
+                    return require_string(token_yaml, Some("network"), Some(location));
                 }
             }
         }
-        Err(YamlError::ParseError(format!(
-            "network key not found for token: {token_key}"
-        )))
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(format!("network for token '{}'", token_key)),
+            location: "root".to_string(),
+        })
     }
 }
-impl YamlParsableHash for Token {
+
+impl YamlParsableHash for TokenCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
+
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -214,37 +239,47 @@ impl YamlParsableHash for Token {
             if let Ok(tokens_hash) = require_hash(&document_read, Some("tokens"), None) {
                 for (key_yaml, token_yaml) in tokens_hash {
                     let token_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("token '{}'", token_key);
 
-                    let network = Network::parse_from_yaml(
-                        documents.clone(),
-                        &require_string(
-                            token_yaml,
-                            Some("network"),
-                            Some(format!("network string missing in token: {token_key}")),
-                        )?,
-                        None,
-                    )
-                    .map_err(|_| {
-                        ParseTokenConfigSourceError::NetworkNotFoundError(token_key.clone())
+                    let network_key =
+                        require_string(token_yaml, Some("network"), Some(location.clone()))?;
+                    let network = networks.get(&network_key).ok_or_else(|| YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "network".to_string(),
+                            reason: format!("Network '{}' not found", network_key),
+                        },
+                        location: location.clone(),
                     })?;
 
-                    let address = Token::validate_address(&require_string(
-                        token_yaml,
-                        Some("address"),
-                        Some(format!("address string missing in token: {token_key}")),
-                    )?)?;
+                    let address_str =
+                        require_string(token_yaml, Some("address"), Some(location.clone()))?;
+                    let address =
+                        TokenCfg::validate_address(&address_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "address".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let decimals = optional_string(token_yaml, "decimals")
-                        .map(|d| Token::validate_decimals(&d))
-                        .transpose()?;
+                        .map(|d| TokenCfg::validate_decimals(&d))
+                        .transpose()
+                        .map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "decimals".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let label = optional_string(token_yaml, "label");
                     let symbol = optional_string(token_yaml, "symbol");
 
-                    let token = Token {
+                    let token = TokenCfg {
                         document: document.clone(),
                         key: token_key.clone(),
-                        network: Arc::new(network),
+                        network: Arc::new(network.clone()),
                         address,
                         decimals,
                         label,
@@ -260,22 +295,22 @@ impl YamlParsableHash for Token {
         }
 
         if tokens.is_empty() {
-            return Err(YamlError::ParseError("missing field: tokens".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(tokens)
     }
 }
 
-#[cfg(target_family = "wasm")]
-impl_all_wasm_traits!(Token);
-
-impl Default for Token {
+impl Default for TokenCfg {
     fn default() -> Self {
-        Token {
+        TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
-            network: Arc::new(Network::dummy()),
+            network: Arc::new(NetworkCfg::dummy()),
             address: Address::ZERO,
             decimals: None,
             label: None,
@@ -283,7 +318,7 @@ impl Default for Token {
         }
     }
 }
-impl PartialEq for Token {
+impl PartialEq for TokenCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
             && self.network == other.network
@@ -308,8 +343,8 @@ impl TokenConfigSource {
     pub fn try_into_token(
         self,
         name: &str,
-        networks: &HashMap<String, Arc<Network>>,
-    ) -> Result<Token, ParseTokenConfigSourceError> {
+        networks: &HashMap<String, Arc<NetworkCfg>>,
+    ) -> Result<TokenCfg, ParseTokenConfigSourceError> {
         let network_ref = networks
             .get(&self.network)
             .ok_or(ParseTokenConfigSourceError::NetworkNotFoundError(
@@ -317,7 +352,7 @@ impl TokenConfigSource {
             ))
             .map(Arc::clone)?;
 
-        Ok(Token {
+        Ok(TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: name.to_string(),
             network: network_ref,
@@ -336,7 +371,7 @@ mod tests {
     use alloy::primitives::Address;
     use yaml::tests::get_document;
 
-    fn setup_networks() -> HashMap<String, Arc<Network>> {
+    fn setup_networks() -> HashMap<String, Arc<NetworkCfg>> {
         let network = mock_network();
         let mut networks = HashMap::new();
         networks.insert("TestNetwork".to_string(), network);
@@ -419,7 +454,7 @@ mod tests {
 
     #[test]
     fn test_parse_tokens_errors() {
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 test: test
@@ -430,10 +465,34 @@ test: test
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: tokens".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            }
         );
 
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
+            vec![get_document(
+                r#"
+networks:
+    mainnet:
+        rpc: "https://mainnet.infura.io"
+        chain-id: "1"
+test: test
+"#,
+            )],
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 networks:
@@ -450,10 +509,13 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("network string missing in token: token1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("network".to_string()),
+                location: "token 'token1'".to_string(),
+            }
         );
 
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 networks:
@@ -471,12 +533,16 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseTokenConfigSourceError(
-                ParseTokenConfigSourceError::NetworkNotFoundError("token1".to_string())
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "network".to_string(),
+                    reason: "Network 'nonexistent' not found".to_string(),
+                },
+                location: "token 'token1'".to_string(),
+            }
         );
 
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 networks:
@@ -493,10 +559,13 @@ tokens:
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("address string missing in token: token1".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("address".to_string()),
+                location: "token 'token1'".to_string(),
+            }
         );
 
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 networks:
@@ -510,10 +579,17 @@ tokens:
 "#,
             )],
             None,
-        );
-        assert!(error.is_err());
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
 
-        let error = Token::parse_all_from_yaml(
+        let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
 networks:
@@ -528,8 +604,15 @@ tokens:
 "#,
             )],
             None,
-        );
-        assert!(error.is_err());
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
     }
 
     #[test]
@@ -560,9 +643,11 @@ tokens:
         address: "0xdac17f958d2ee523a2206206994597c13d831ec7"
         decimals: "6"
 "#;
-        let tokens =
-            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)], None)
-                .unwrap();
+        let tokens = TokenCfg::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap();
 
         assert_eq!(tokens.len(), 4);
         assert_eq!(
@@ -608,9 +693,11 @@ tokens:
         network: mainnet
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
 "#;
-        let error =
-            Token::parse_all_from_yaml(vec![get_document(yaml_one), get_document(yaml_two)], None)
-                .unwrap_err();
+        let error = TokenCfg::parse_all_from_yaml(
+            vec![get_document(yaml_one), get_document(yaml_two)],
+            None,
+        )
+        .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("dai".to_string()));
     }
 }

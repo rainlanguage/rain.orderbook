@@ -18,14 +18,11 @@ serde_yaml = { workspace = true }
 serde_json = { workspace = true }
 strict-yaml-rust = { workspace = true }
 alloy = { workspace = true, features = ["serde", "rand"] }
-typeshare = { workspace = true }
 reqwest = { workspace = true }
 rain_orderbook_bindings = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-tsify = { version = "0.4.5", default-features = false, features = ["js", "wasm-bindgen"] }
-serde-wasm-bindgen = { version = "0.6.5" }
-wasm-bindgen = { version = "0.2.92" }
+wasm-bindgen-utils = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

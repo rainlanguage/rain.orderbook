@@ -1,11 +1,18 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
-import { describe, it, beforeEach, afterEach } from 'vitest';
-import { Vault, VaultWithSubgraphName, Deposit } from '../../dist/types/js_api.js';
-import { getVaults, getVault, getVaultBalanceChanges } from '../../dist/cjs/js_api.js';
-import { VaultBalanceChange } from '../../dist/types/quote.js';
+import { describe, it, beforeEach, beforeAll, afterAll } from 'vitest';
+import { SgVault, SgVaultWithSubgraphName, SgDeposit } from '../../dist/types/js_api.js';
+import {
+	getVaults,
+	getVault,
+	getVaultBalanceChanges,
+	getVaultDepositCalldata,
+	getVaultWithdrawCalldata,
+	checkVaultAllowance,
+	getVaultApprovalCalldata
+} from '../../dist/cjs/js_api.js';
 
-const vault1: Vault = {
+const vault1: SgVault = {
 	id: 'vault1',
 	owner: '0x0000000000000000000000000000000000000000',
 	vaultId: '0x10',
@@ -24,7 +31,7 @@ const vault1: Vault = {
 	ordersAsInput: [],
 	balanceChanges: []
 };
-const vault2: Vault = {
+const vault2: SgVault = {
 	id: 'vault2',
 	owner: '0x0000000000000000000000000000000000000000',
 	vaultId: '0x20',
@@ -46,14 +53,21 @@ const vault2: Vault = {
 
 describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () {
 	const mockServer = getLocal();
-	beforeEach(() => mockServer.start(8083));
-	afterEach(() => mockServer.stop());
+	beforeAll(async () => {
+		await mockServer.start(8083);
+	});
+	afterAll(async () => {
+		await mockServer.stop();
+	});
+	beforeEach(() => {
+		mockServer.reset();
+	});
 
 	it('should fetch a single vault', async () => {
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { vault: vault1 } }));
 
 		try {
-			const result: Vault = await getVault(mockServer.url + '/sg1', vault1.id);
+			const result: SgVault = await getVault(mockServer.url + '/sg1', vault1.id);
 			assert.equal(result.id, vault1.id);
 		} catch (e) {
 			console.log(e);
@@ -66,7 +80,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		await mockServer.forPost('/sg2').thenReply(200, JSON.stringify({ data: { vaults: [vault2] } }));
 
 		try {
-			const result: VaultWithSubgraphName[] = await getVaults(
+			const result: SgVaultWithSubgraphName[] = await getVaults(
 				[
 					{ url: mockServer.url + '/sg1', name: 'network-one' },
 					{ url: mockServer.url + '/sg2', name: 'network-two' }
@@ -128,7 +142,7 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 			.thenReply(200, JSON.stringify({ data: { vaultBalanceChanges: mockVaultBalanceChanges } }));
 
 		try {
-			const result: Deposit[] = await getVaultBalanceChanges(mockServer.url + '/sg3', vault1.id, {
+			const result: SgDeposit[] = await getVaultBalanceChanges(mockServer.url + '/sg3', vault1.id, {
 				page: 1,
 				pageSize: 1
 			});
@@ -151,5 +165,151 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		} catch (e) {
 			assert.ok(e);
 		}
+	});
+
+	const order = {
+		id: 'order',
+		orderBytes:
+			'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+		orderHash: '0x1',
+		owner: '0x0000000000000000000000000000000000000000',
+		outputs: [
+			{
+				id: '0x0000000000000000000000000000000000000000',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x1234567890123456789012345678901234567890',
+					name: 'T1',
+					symbol: 'T1',
+					decimals: '0'
+				},
+				balance: '88888888888',
+				vaultId: '0x2523',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		inputs: [
+			{
+				id: '0x0000000000000000000000000000000000000000',
+				token: {
+					id: '0x0000000000000000000000000000000000000000',
+					address: '0x9876543210987654321098765432109876543210',
+					name: 'T2',
+					symbol: 'T2',
+					decimals: '0'
+				},
+				balance: '999999999999999',
+				vaultId: '0x100',
+				owner: '0x0000000000000000000000000000000000000000',
+				ordersAsOutput: [],
+				ordersAsInput: [],
+				balanceChanges: [],
+				orderbook: {
+					id: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		active: true,
+		addEvents: [
+			{
+				transaction: {
+					blockNumber: '0',
+					timestamp: '0',
+					id: '0x0000000000000000000000000000000000000000',
+					from: '0x0000000000000000000000000000000000000000'
+				}
+			}
+		],
+		meta: null,
+		timestampAdded: '0',
+		orderbook: {
+			id: '0x0000000000000000000000000000000000000000'
+		},
+		trades: [],
+		removeEvents: []
+	};
+
+	it('should get deposit calldata for a vault', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		let calldata: string = await getVaultDepositCalldata(vault1, '500');
+		assert.equal(calldata.length, 330);
+	});
+
+	it('should handle zero deposit amount', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		await assert.rejects(
+			async () => {
+				await getVaultDepositCalldata(vault1, '0');
+			},
+			{ message: 'Invalid amount' }
+		);
+	});
+
+	it('should throw error for invalid deposit amount', async () => {
+		await assert.rejects(
+			async () => {
+				await getVaultDepositCalldata(vault1, '-100');
+			},
+			{ message: 'invalid digit: -' }
+		);
+	});
+
+	it('should get withdraw calldata for a vault', async () => {
+		await mockServer.forPost('/sg4').thenReply(200, JSON.stringify({ data: { order } }));
+
+		let calldata: string = await getVaultWithdrawCalldata(vault1, '500');
+		assert.equal(calldata.length, 330);
+
+		try {
+			await getVaultWithdrawCalldata(vault1, '0');
+			assert.fail('expected to reject, but resolved');
+		} catch (e) {
+			assert.equal((e as Error).message, 'Invalid amount');
+		}
+
+		try {
+			await getVaultWithdrawCalldata(vault1, '0');
+			assert.fail('expected to reject, but resolved');
+		} catch (error) {
+			assert.equal((error as Error).message, 'Invalid amount');
+		}
+	});
+
+	it('should read allowance for a vault', async () => {
+		await mockServer.forPost('/rpc').thenReply(
+			200,
+			JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+			})
+		);
+
+		const allowance = await checkVaultAllowance(mockServer.url + '/rpc', vault1);
+		assert.equal(allowance, '0x64');
+	});
+
+	it('should generate valid approval calldata with correct length', async () => {
+		await mockServer.forPost('/rpc').thenReply(
+			200,
+			JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+			})
+		);
+
+		const calldata = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '600');
+
+		assert.ok(calldata.startsWith('0x'));
+		assert.equal(calldata.length, 138);
 	});
 });

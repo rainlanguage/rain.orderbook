@@ -8,3 +8,11 @@ export const queryClient = new QueryClient({
 		}
 	}
 });
+
+export const invalidateIdQuery = async (queryClient: QueryClient, id: string) => {
+	await queryClient.invalidateQueries({
+		queryKey: [id],
+		refetchType: 'all',
+		exact: false
+	});
+};

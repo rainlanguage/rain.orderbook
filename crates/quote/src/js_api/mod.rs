@@ -1,68 +1,13 @@
-use crate::{error::Error, BatchQuoteSpec as MainBatchQuoteSpec, QuoteSpec as MainQuoteSpec};
-use crate::{
-    get_order_quotes, BatchQuoteTarget as MainBatchQuoteTarget, QuoteTarget as MainQuoteTarget,
-};
+use crate::{error::Error, BatchQuoteSpec, QuoteSpec};
+use crate::{get_order_quotes, BatchQuoteTarget, QuoteTarget};
 use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
-use rain_orderbook_bindings::js_api::{Quote, SignedContextV1};
-use rain_orderbook_bindings::{
-    impl_all_wasm_traits,
-    wasm_traits::{prelude::*, TryIntoU256},
-};
-use rain_orderbook_subgraph_client::{types::common::Order, utils::make_order_id};
-use serde::{Deserialize, Serialize};
+use rain_orderbook_bindings::wasm_traits::TryIntoU256;
+use rain_orderbook_subgraph_client::{types::common::SgOrder, utils::make_order_id};
 use std::str::FromStr;
-
-mod impls;
-
-/// Holds quoted order max output and ratio
-#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderQuoteValue {
-    pub max_output: String,
-    pub ratio: String,
-}
-
-/// A quote target
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct QuoteTarget {
-    pub quote_config: Quote,
-    pub orderbook: String,
-}
-
-/// Batch quote target
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(transparent)]
-pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
-
-/// A quote target specifier, where the order details need to be fetched from a
-/// source (such as subgraph) to build a [QuoteTarget] out of it
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct QuoteSpec {
-    pub order_hash: String,
-    #[serde(rename = "inputIOIndex")]
-    pub input_io_index: u8,
-    #[serde(rename = "outputIOIndex")]
-    pub output_io_index: u8,
-    pub signed_context: Vec<SignedContextV1>,
-    pub orderbook: String,
-}
-
-/// Batch quote spec
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(transparent)]
-pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tsify)]
-#[serde(untagged)]
-pub enum QuoteResult {
-    Ok(OrderQuoteValue),
-    Err(String),
-}
+use wasm_bindgen_utils::prelude::*;
 
 /// Get subgraph represented "order_id" of a QuoteTarget
 #[wasm_bindgen(js_name = "getId")]
@@ -100,20 +45,22 @@ pub async fn do_quote_targets(
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });
-    let quote_targets: Vec<MainQuoteTarget> = quote_targets
+    let quote_targets: Vec<QuoteTarget> = quote_targets
         .0
         .iter()
-        .map(|v| MainQuoteTarget::from(v.clone()))
+        .map(|v| QuoteTarget::from(v.clone()))
         .collect();
-    let batch_quote_target = MainBatchQuoteTarget(quote_targets);
+    let batch_quote_target = BatchQuoteTarget(quote_targets);
     match batch_quote_target
         .do_quote(rpc_url, block_number, gas_value, multicall_address)
         .await
     {
         Err(e) => Err(e),
-        Ok(v) => Ok(to_value(
-            &v.into_iter().map(QuoteResult::from).collect::<Vec<_>>(),
-        )?),
+        Ok(v) => Ok(js_sys::Array::from_iter(
+            v.into_iter()
+                .map(|e| e.map_or_else(JsValue::from, JsValue::from)),
+        )
+        .into()),
     }
 }
 
@@ -141,12 +88,12 @@ pub async fn do_quote_specs(
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });
-    let quote_specs: Vec<MainQuoteSpec> = quote_specs
+    let quote_specs: Vec<QuoteSpec> = quote_specs
         .0
         .iter()
-        .map(|v| MainQuoteSpec::from(v.clone()))
+        .map(|v| QuoteSpec::from(v.clone()))
         .collect();
-    let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
+    let batch_quote_spec = BatchQuoteSpec(quote_specs);
     match batch_quote_spec
         .do_quote(
             subgraph_url,
@@ -158,9 +105,11 @@ pub async fn do_quote_specs(
         .await
     {
         Err(e) => Err(e),
-        Ok(v) => Ok(to_value(
-            &v.into_iter().map(QuoteResult::from).collect::<Vec<_>>(),
-        )?),
+        Ok(v) => Ok(js_sys::Array::from_iter(
+            v.into_iter()
+                .map(|e| e.map_or_else(JsValue::from, JsValue::from)),
+        )
+        .into()),
     }
 }
 
@@ -173,18 +122,18 @@ pub async fn get_batch_quote_target_from_subgraph(
     quote_specs: &BatchQuoteSpec,
     subgraph_url: &str,
 ) -> Result<JsValue, Error> {
-    let quote_specs: Vec<MainQuoteSpec> = quote_specs
+    let quote_specs: Vec<QuoteSpec> = quote_specs
         .0
         .iter()
-        .map(|v| MainQuoteSpec::from(v.clone()))
+        .map(|v| QuoteSpec::from(v.clone()))
         .collect();
-    let batch_quote_spec = MainBatchQuoteSpec(quote_specs);
+    let batch_quote_spec = BatchQuoteSpec(quote_specs);
     match batch_quote_spec
         .get_batch_quote_target_from_subgraph(subgraph_url)
         .await
     {
         Err(e) => Err(e),
-        Ok(v) => Ok(to_value(
+        Ok(v) => Ok(to_js_value(
             &v.into_iter()
                 .map(|e| e.map(QuoteTarget::from))
                 .collect::<Vec<_>>(),
@@ -192,29 +141,11 @@ pub async fn get_batch_quote_target_from_subgraph(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct Pair {
-    pub pair_name: String,
-    pub input_index: u32,
-    pub output_index: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct BatchOrderQuotesResponse {
-    pub pair: Pair,
-    pub block_number: u64,
-    pub data: Option<OrderQuoteValue>,
-    pub success: bool,
-    pub error: Option<String>,
-}
-
 /// Get the quote for an order
 /// Resolves with a BatchOrderQuotesResponse object
 #[wasm_bindgen(js_name = "getOrderQuote")]
 pub async fn get_order_quote(
-    order: Vec<Order>,
+    order: Vec<SgOrder>,
     rpc_url: &str,
     block_number: Option<u64>,
     gas: Option<js_sys::BigInt>,
@@ -225,13 +156,7 @@ pub async fn get_order_quote(
             .inspect_err(|e| gas_error.push_str(&e.to_string()))
             .expect_throw(&gas_error)
     });
-    Ok(to_value(
-        &get_order_quotes(order, block_number, rpc_url.to_string(), gas_value)
-            .await
-            .map(|v| {
-                v.into_iter()
-                    .map(BatchOrderQuotesResponse::from)
-                    .collect::<Vec<_>>()
-            })?,
+    Ok(to_js_value(
+        &get_order_quotes(order, block_number, rpc_url.to_string(), gas_value).await?,
     )?)
 }

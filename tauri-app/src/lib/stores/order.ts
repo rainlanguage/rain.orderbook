@@ -1,9 +1,8 @@
-import type { OrderDetailExtended } from '$lib/typeshare/subgraphTypes';
+import type { OrderDetailExtended, SgTrade } from '@rainlanguage/orderbook/js_api';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';
 import { listStore } from '$lib/storesGeneric/listStore';
-import type { Trade } from '$lib/typeshare/subgraphTypes';
 
 export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',
@@ -14,7 +13,7 @@ export const orderDetail = detailStore<OrderDetailExtended>(
 );
 
 export const useOrderTradesList = (orderId: string) =>
-  listStore<Trade>(
+  listStore<SgTrade>(
     `orderTakesList-${orderId}`,
     async (page) => {
       const url = await subgraphUrl.load();

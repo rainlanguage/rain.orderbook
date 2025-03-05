@@ -1,21 +1,26 @@
 use crate::cynic_client::{CynicClient, CynicClientError};
-use crate::pagination::{PaginationArgs, PaginationClient, PaginationClientError};
+use crate::pagination::{PaginationClient, PaginationClientError, SgPaginationArgs};
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 use crate::performance::OrderPerformance;
+use crate::types::add_order::{SgTransactionAddOrdersQuery, TransactionAddOrdersVariables};
 use crate::types::common::*;
 use crate::types::order::{
-    BatchOrderDetailQuery, BatchOrderDetailQueryVariables, OrderDetailQuery, OrderIdList,
-    OrdersListQuery,
+    SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables, SgOrderDetailByHashQuery,
+    SgOrderDetailByHashQueryVariables, SgOrderDetailByIdQuery, SgOrderIdList, SgOrdersListQuery,
 };
-use crate::types::order_trade::{OrderTradeDetailQuery, OrderTradesListQuery};
-use crate::types::vault::{VaultDetailQuery, VaultsListQuery};
+use crate::types::order_trade::{SgOrderTradeDetailQuery, SgOrderTradesListQuery};
+use crate::types::remove_order::{
+    SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables,
+};
+use crate::types::transaction::SgTransactionDetailQuery;
+use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
 use std::num::ParseIntError;
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen::{JsError, JsValue};
+use wasm_bindgen_utils::prelude::{JsError, JsValue};
 
 const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
 
@@ -25,6 +30,8 @@ pub enum OrderbookSubgraphClientError {
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
     Empty,
+    #[error("Request timed out")]
+    RequestTimedOut,
     #[error(transparent)]
     PaginationClientError(#[from] PaginationClientError),
     #[error(transparent)]
@@ -37,7 +44,7 @@ pub enum OrderbookSubgraphClientError {
     ParseIntError(#[from] ParseIntError),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
-    SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
+    SerdeWasmBindgenError(#[from] wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error),
     #[error("Failed to extend the order detail")]
     OrderDetailExtendError,
 }
@@ -66,9 +73,9 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch single order
-    pub async fn order_detail(&self, id: Id) -> Result<Order, OrderbookSubgraphClientError> {
+    pub async fn order_detail(&self, id: Id) -> Result<SgOrder, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .query::<SgOrderDetailByIdQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -78,12 +85,12 @@ impl OrderbookSubgraphClient {
     /// Fetch batch orders given their order id
     pub async fn batch_order_detail(
         &self,
-        id_list: Vec<Bytes>,
-    ) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
+        id_list: Vec<SgBytes>,
+    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
         let data = self
-            .query::<BatchOrderDetailQuery, BatchOrderDetailQueryVariables>(
-                BatchOrderDetailQueryVariables {
-                    id_list: OrderIdList { id_in: id_list },
+            .query::<SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables>(
+                SgBatchOrderDetailQueryVariables {
+                    id_list: SgOrderIdList { id_in: id_list },
                 },
             )
             .await?;
@@ -94,16 +101,16 @@ impl OrderbookSubgraphClient {
     /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
-        filter_args: OrdersListFilterArgs,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
+        filter_args: SgOrdersListFilterArgs,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
         let filters = if !filter_args.owners.is_empty()
             || filter_args.active.is_some()
             || filter_args.order_hash.is_some()
         {
-            Some(OrdersListQueryFilters {
+            Some(SgOrdersListQueryFilters {
                 owner_in: filter_args.owners,
                 active: filter_args.active,
                 order_hash: filter_args.order_hash,
@@ -112,33 +119,33 @@ impl OrderbookSubgraphClient {
             None
         };
 
-        let variables = OrdersListQueryVariables {
+        let variables = SgOrdersListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
             filters,
         };
 
         let data = self
-            .query::<OrdersListQuery, OrdersListQueryVariables>(variables)
+            .query::<SgOrdersListQuery, SgOrdersListQueryVariables>(variables)
             .await?;
 
         Ok(data.orders)
     }
 
     /// Fetch all pages of orders_list query
-    pub async fn orders_list_all(&self) -> Result<Vec<Order>, OrderbookSubgraphClientError> {
+    pub async fn orders_list_all(&self) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
         loop {
             let page_data = self
                 .orders_list(
-                    OrdersListFilterArgs {
+                    SgOrdersListFilterArgs {
                         owners: vec![],
                         active: None,
                         order_hash: None,
                     },
-                    PaginationArgs {
+                    SgPaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
@@ -155,9 +162,12 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch single order take
-    pub async fn order_trade_detail(&self, id: Id) -> Result<Trade, OrderbookSubgraphClientError> {
+    pub async fn order_trade_detail(
+        &self,
+        id: Id,
+    ) -> Result<SgTrade, OrderbookSubgraphClientError> {
         let data = self
-            .query::<OrderTradeDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .query::<SgOrderTradeDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let order_take = data.trade.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -168,23 +178,24 @@ impl OrderbookSubgraphClient {
     pub async fn order_trades_list(
         &self,
         order_id: cynic::Id,
-        pagination_args: PaginationArgs,
+        pagination_args: SgPaginationArgs,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
-            .query::<OrderTradesListQuery, PaginationWithTimestampQueryVariables>(
-                PaginationWithTimestampQueryVariables {
-                    id: Bytes(order_id.inner().to_string()),
+            .query::<SgOrderTradesListQuery, SgPaginationWithTimestampQueryVariables>(
+                SgPaginationWithTimestampQueryVariables {
+                    id: SgBytes(order_id.inner().to_string()),
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
                     timestamp_gte: Some(
-                        start_timestamp.map_or(BigInt("0".to_string()), |v| BigInt(v.to_string())),
+                        start_timestamp
+                            .map_or(SgBigInt("0".to_string()), |v| SgBigInt(v.to_string())),
                     ),
                     timestamp_lte: Some(
                         end_timestamp
-                            .map_or(BigInt(u64::MAX.to_string()), |v| BigInt(v.to_string())),
+                            .map_or(SgBigInt(u64::MAX.to_string()), |v| SgBigInt(v.to_string())),
                     ),
                 },
             )
@@ -199,7 +210,7 @@ impl OrderbookSubgraphClient {
         order_id: cynic::Id,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<Trade>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -207,7 +218,7 @@ impl OrderbookSubgraphClient {
             let page_data = self
                 .order_trades_list(
                     order_id.clone(),
-                    PaginationArgs {
+                    SgPaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
@@ -258,9 +269,9 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch single vault
-    pub async fn vault_detail(&self, id: Id) -> Result<Vault, OrderbookSubgraphClientError> {
+    pub async fn vault_detail(&self, id: Id) -> Result<SgVault, OrderbookSubgraphClientError> {
         let data = self
-            .query::<VaultDetailQuery, IdQueryVariables>(IdQueryVariables { id: &id })
+            .query::<SgVaultDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let vault = data.vault.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -270,21 +281,21 @@ impl OrderbookSubgraphClient {
     /// Fetch all vaults, paginated
     pub async fn vaults_list(
         &self,
-        filter_args: VaultsListFilterArgs,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<Vault>, OrderbookSubgraphClientError> {
+        filter_args: SgVaultsListFilterArgs,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        let mut filters = VaultsListQueryFilters {
+        let mut filters = SgVaultsListQueryFilters {
             owner_in: filter_args.owners.clone(),
             balance_gt: None,
         };
 
         if filter_args.hide_zero_balance {
-            filters.balance_gt = Some(BigInt("0".to_string()));
+            filters.balance_gt = Some(SgBigInt("0".to_string()));
         }
 
-        let variables = VaultsListQueryVariables {
+        let variables = SgVaultsListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
             filters: if !filter_args.owners.is_empty() || filter_args.hide_zero_balance {
@@ -295,25 +306,25 @@ impl OrderbookSubgraphClient {
         };
 
         let data = self
-            .query::<VaultsListQuery, VaultsListQueryVariables>(variables)
+            .query::<SgVaultsListQuery, SgVaultsListQueryVariables>(variables)
             .await?;
 
         Ok(data.vaults)
     }
 
     /// Fetch all pages of vaults_list query
-    pub async fn vaults_list_all(&self) -> Result<Vec<Vault>, OrderbookSubgraphClientError> {
+    pub async fn vaults_list_all(&self) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
         loop {
             let page_data = self
                 .vaults_list(
-                    VaultsListFilterArgs {
+                    SgVaultsListFilterArgs {
                         owners: vec![],
                         hide_zero_balance: true,
                     },
-                    PaginationArgs {
+                    SgPaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
@@ -333,15 +344,15 @@ impl OrderbookSubgraphClient {
     pub async fn vault_balance_changes_list(
         &self,
         id: cynic::Id,
-        pagination_args: PaginationArgs,
-    ) -> Result<Vec<VaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgVaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
         let pagination_vars = Self::parse_pagination_args(pagination_args);
         let res = self
             .query_paginated(
                 pagination_vars,
                 VaultBalanceChangesListPageQueryClient::new(self.url.clone()),
-                PaginationWithIdQueryVariables {
-                    id: Bytes(id.inner().to_string()),
+                SgPaginationWithIdQueryVariables {
+                    id: SgBytes(id.inner().to_string()),
                     skip: Some(0),
                     first: Some(200),
                 },
@@ -356,7 +367,7 @@ impl OrderbookSubgraphClient {
     pub async fn vault_balance_changes_list_all(
         &self,
         id: cynic::Id,
-    ) -> Result<Vec<VaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgVaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -364,7 +375,7 @@ impl OrderbookSubgraphClient {
             let page_data = self
                 .vault_balance_changes_list(
                     id.clone(),
-                    PaginationArgs {
+                    SgPaginationArgs {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
@@ -378,5 +389,75 @@ impl OrderbookSubgraphClient {
             }
         }
         Ok(all_pages_merged)
+    }
+
+    pub async fn transaction_detail(
+        &self,
+        id: Id,
+    ) -> Result<SgTransaction, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgTransactionDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
+            .await?;
+        let transaction = data
+            .transaction
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        Ok(transaction)
+    }
+
+    /// Fetch all add orders for a given transaction
+    pub async fn transaction_add_orders(
+        &self,
+        id: Id,
+    ) -> Result<Vec<SgAddOrderWithOrder>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgTransactionAddOrdersQuery, TransactionAddOrdersVariables>(
+                TransactionAddOrdersVariables {
+                    id: SgBytes(id.inner().to_string()),
+                },
+            )
+            .await?;
+
+        if data.add_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.add_orders)
+    }
+
+    /// Fetch all remove orders for a given transaction
+    pub async fn transaction_remove_orders(
+        &self,
+        id: Id,
+    ) -> Result<Vec<SgRemoveOrderWithOrder>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables>(
+                TransactionRemoveOrdersVariables {
+                    id: SgBytes(id.inner().to_string()),
+                },
+            )
+            .await?;
+
+        if data.remove_orders.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.remove_orders)
+    }
+
+    /// Fetch single order given its hash
+    pub async fn order_detail_by_hash(
+        &self,
+        hash: SgBytes,
+    ) -> Result<SgOrder, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgOrderDetailByHashQuery, SgOrderDetailByHashQueryVariables>(
+                SgOrderDetailByHashQueryVariables { hash },
+            )
+            .await?;
+        let order = data
+            .orders
+            .first()
+            .ok_or(OrderbookSubgraphClientError::Empty)?;
+        Ok(order.clone())
     }
 }

@@ -7,6 +7,9 @@ concurrency:
 
 jobs:
   test:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     env:
       COMMIT_SHA: ${{ github.sha }}
@@ -17,9 +20,13 @@ jobs:
           fetch-depth: 0
 
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
       - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
       - run: nix develop -c npm run svelte-lint-format-check
         working-directory: packages/ui-components

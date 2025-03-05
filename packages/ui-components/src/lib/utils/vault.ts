@@ -1,7 +1,7 @@
-import type { Vault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook/js_api';
 import { formatUnits } from 'viem';
 
-export const vaultBalanceDisplay = (vault: Vault) => {
+export const vaultBalanceDisplay = (vault: SgVault) => {
 	return formatUnits(BigInt(vault.balance), +(vault.token?.decimals || 0));
 };
 
@@ -25,7 +25,7 @@ if (import.meta.vitest) {
 			orderbook: {
 				id: '0x00'
 			}
-		} as unknown as Vault;
+		} as unknown as SgVault;
 
 		expect(vaultBalanceDisplay(vault)).toEqual('1');
 

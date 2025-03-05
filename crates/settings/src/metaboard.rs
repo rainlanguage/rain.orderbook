@@ -1,5 +1,6 @@
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -7,21 +8,24 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
-use typeshare::typeshare;
 use url::{ParseError, Url};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct Metaboard {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct MetaboardCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub url: Url,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(MetaboardCfg);
 
-impl Metaboard {
+impl MetaboardCfg {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
@@ -31,7 +35,7 @@ impl Metaboard {
         key: &str,
         value: &str,
     ) -> Result<(), YamlError> {
-        Metaboard::validate_url(value)?;
+        MetaboardCfg::validate_url(value)?;
 
         let mut document = document.write().map_err(|_| YamlError::WriteLockError)?;
 
@@ -55,23 +59,30 @@ impl Metaboard {
                     StrictYaml::String(value.to_string()),
                 );
             } else {
-                return Err(YamlError::ParseError(
-                    "missing field: metaboards".to_string(),
-                ));
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("metaboards".to_string()),
+                    location: "root".to_string(),
+                });
             }
         } else {
-            return Err(YamlError::ParseError("document parse error".to_string()));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(())
     }
 }
 
-impl YamlParsableHash for Metaboard {
+impl YamlParsableHash for MetaboardCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
-    ) -> Result<HashMap<String, Metaboard>, YamlError> {
+    ) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
         let mut metaboards = HashMap::new();
 
         for document in documents {
@@ -80,16 +91,19 @@ impl YamlParsableHash for Metaboard {
             if let Ok(metaboards_hash) = require_hash(&document_read, Some("metaboards"), None) {
                 for (key_yaml, metaboard_yaml) in metaboards_hash {
                     let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("metaboards[{}]", metaboard_key);
 
-                    let url = Metaboard::validate_url(&require_string(
-                        metaboard_yaml,
-                        None,
-                        Some(format!(
-                            "metaboard value must be a string for key: {metaboard_key}"
-                        )),
-                    )?)?;
+                    let url_str = require_string(metaboard_yaml, None, Some(location.clone()))?;
+                    let url =
+                        MetaboardCfg::validate_url(&url_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "url".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                    let metaboard = Metaboard {
+                    let metaboard = MetaboardCfg {
                         document: document.clone(),
                         key: metaboard_key.clone(),
                         url,
@@ -104,16 +118,17 @@ impl YamlParsableHash for Metaboard {
         }
 
         if metaboards.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: metaboards".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("metaboards".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(metaboards)
     }
 }
 
-impl Default for Metaboard {
+impl Default for MetaboardCfg {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -123,14 +138,14 @@ impl Default for Metaboard {
     }
 }
 
-impl PartialEq for Metaboard {
+impl PartialEq for MetaboardCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key && self.url == other.url
     }
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 
@@ -146,7 +161,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let metaboards = Metaboard::parse_all_from_yaml(documents, None).unwrap();
+        let metaboards = MetaboardCfg::parse_all_from_yaml(documents, None).unwrap();
 
         assert_eq!(metaboards.len(), 2);
         assert!(metaboards.contains_key("MetaboardOne"));
@@ -174,7 +189,7 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = Metaboard::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = MetaboardCfg::parse_all_from_yaml(documents, None).unwrap_err();
 
         assert_eq!(
             error,

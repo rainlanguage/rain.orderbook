@@ -1,5 +1,6 @@
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, YamlError, YamlParsableHash,
+    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -7,49 +8,110 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::StrictYaml;
-use typeshare::typeshare;
 use url::{ParseError, Url};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
-pub struct Subgraph {
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SubgraphCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[typeshare(typescript(type = "string"))]
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub url: Url,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(SubgraphCfg);
 
-impl Subgraph {
+impl SubgraphCfg {
     pub fn validate_url(value: &str) -> Result<Url, ParseError> {
         Url::parse(value)
     }
+
+    pub fn add_record_to_yaml(
+        document: Arc<RwLock<StrictYaml>>,
+        key: &str,
+        value: &str,
+    ) -> Result<(), YamlError> {
+        let url = SubgraphCfg::validate_url(value).map_err(|e| YamlError::Field {
+            kind: FieldErrorKind::InvalidValue {
+                field: "url".to_string(),
+                reason: e.to_string(),
+            },
+            location: format!("subgraph '{}'", key),
+        })?;
+
+        let mut document = document.write().map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if !document_hash.contains_key(&StrictYaml::String("subgraphs".to_string())) {
+                document_hash.insert(
+                    StrictYaml::String("subgraphs".to_string()),
+                    StrictYaml::Hash(Default::default()),
+                );
+            }
+
+            if let Some(StrictYaml::Hash(ref mut subgraphs)) =
+                document_hash.get_mut(&StrictYaml::String("subgraphs".to_string()))
+            {
+                if subgraphs.contains_key(&StrictYaml::String(key.to_string())) {
+                    return Err(YamlError::KeyShadowing(key.to_string()));
+                }
+
+                subgraphs.insert(
+                    StrictYaml::String(key.to_string()),
+                    StrictYaml::String(url.to_string()),
+                );
+            } else {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("subgraphs".to_string()),
+                    location: "root".to_string(),
+                });
+            }
+        } else {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
+        }
+
+        Ok(())
+    }
 }
 
-impl YamlParsableHash for Subgraph {
+impl YamlParsableHash for SubgraphCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
-    ) -> Result<HashMap<String, Subgraph>, YamlError> {
+    ) -> Result<HashMap<String, Self>, YamlError> {
         let mut subgraphs = HashMap::new();
 
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(subgraphs_hash) = require_hash(&document_read, Some("subgraphs"), None) {
+            if let Ok(subgraphs_hash) =
+                require_hash(&document_read, Some("subgraphs"), Some("root".to_string()))
+            {
                 for (key_yaml, subgraph_yaml) in subgraphs_hash {
                     let subgraph_key = key_yaml.as_str().unwrap_or_default().to_string();
+                    let location = format!("subgraph '{}'", subgraph_key);
 
-                    let url = Subgraph::validate_url(&require_string(
-                        subgraph_yaml,
-                        None,
-                        Some(format!(
-                            "subgraph value must be a string for key: {subgraph_key}"
-                        )),
-                    )?)?;
+                    let url_str = require_string(subgraph_yaml, None, Some(location.clone()))?;
+                    let url =
+                        SubgraphCfg::validate_url(&url_str).map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "url".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
-                    let subgraph = Subgraph {
+                    let subgraph = SubgraphCfg {
                         document: document.clone(),
                         key: subgraph_key.clone(),
                         url,
@@ -64,16 +126,17 @@ impl YamlParsableHash for Subgraph {
         }
 
         if subgraphs.is_empty() {
-            return Err(YamlError::ParseError(
-                "missing field: subgraphs".to_string(),
-            ));
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::Missing("subgraphs".to_string()),
+                location: "root".to_string(),
+            });
         }
 
         Ok(subgraphs)
     }
 }
 
-impl Default for Subgraph {
+impl Default for SubgraphCfg {
     fn default() -> Self {
         Self {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -83,14 +146,14 @@ impl Default for Subgraph {
     }
 }
 
-impl PartialEq for Subgraph {
+impl PartialEq for SubgraphCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key && self.url == other.url
     }
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 
@@ -99,10 +162,13 @@ mod test {
         let yaml = r#"
 test: test
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError("missing field: subgraphs".to_string())
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("subgraphs".to_string()),
+                location: "root".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -110,12 +176,16 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "subgraph value must be a string for key: TestSubgraph".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: "subgraph 'TestSubgraph'".to_string(),
+            }
         );
 
         let yaml = r#"
@@ -123,21 +193,42 @@ subgraphs:
     TestSubgraph:
         - https://subgraph.com
 "#;
-        let error = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
-            YamlError::ParseError(
-                "subgraph value must be a string for key: TestSubgraph".to_string()
-            )
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "value".to_string(),
+                    expected: "a string".to_string(),
+                },
+                location: "subgraph 'TestSubgraph'".to_string(),
+            }
         );
+
+        let yaml = r#"
+subgraphs:
+    TestSubgraph: not_a_valid_url
+"#;
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
 
         let yaml = r#"
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = Subgraph::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let result = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
+        assert_eq!(
+            result.get("TestSubgraph").unwrap().url,
+            Url::parse("https://subgraph.com").unwrap()
+        );
     }
 
     #[test]
@@ -152,7 +243,7 @@ subgraphs:
     subgraph-one: https://api.thegraph.com/subgraphs/name/one
     subgraph-two: https://api.thegraph.com/subgraphs/name/two
 "#;
-        let subgraphs = Subgraph::parse_all_from_yaml(
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
@@ -188,7 +279,7 @@ subgraphs:
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/mainnet
 "#;
-        let error = Subgraph::parse_all_from_yaml(
+        let error = SubgraphCfg::parse_all_from_yaml(
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )

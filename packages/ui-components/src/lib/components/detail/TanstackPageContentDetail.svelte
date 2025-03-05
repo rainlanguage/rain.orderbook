@@ -21,11 +21,11 @@
 	<div class="mb-6 flex items-end justify-between">
 		<slot name="top" {data} />
 	</div>
-	<div class="grid grid-cols-3 gap-4">
-		<div class="col-span-1 flex flex-col gap-y-6">
+	<div class="tanstack-detail-grid">
+		<div class="flex flex-col gap-y-6 lg:col-span-1">
 			<slot name="card" {data} />
 		</div>
-		<div class="col-span-2 min-h-[500px]">
+		<div class="h-[500px] lg:col-span-2">
 			<slot name="chart" {data} />
 		</div>
 	</div>
@@ -41,3 +41,26 @@
 		{emptyMessage}
 	</div>
 {/if}
+
+<style>
+	.tanstack-detail-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	@media (min-width: 1024px) {
+		.tanstack-detail-grid {
+			flex-direction: row;
+		}
+
+		.tanstack-detail-grid > :first-child {
+			flex: 1;
+		}
+
+		.tanstack-detail-grid > :last-child {
+			flex: 2;
+		}
+	}
+</style>

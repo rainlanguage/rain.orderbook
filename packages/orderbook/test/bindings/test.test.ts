@@ -10,7 +10,7 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 			evaluable: {
 				interpreter: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
 				store: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
-				bytecode: Uint8Array.from([1, 2])
+				bytecode: '0x0102'
 			},
 			validInputs: [
 				{
@@ -26,7 +26,7 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 					vaultId: '0x1234'
 				}
 			],
-			nonce: '0x2'
+			nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 		};
 		const result = getOrderHash(order);
 		const expected = '0xf4058d50e798f18a048097265fe67fe2e8619f337b9377a7620bb87fc2f52721';
@@ -40,7 +40,7 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				evaluable: {
 					interpreter: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
 					store: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
-					bytecode: Uint8Array.from([1, 2])
+					bytecode: '0x0102'
 				},
 				validInputs: [
 					{
@@ -56,13 +56,13 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 						vaultId: '0x1234'
 					}
 				],
-				nonce: '0x2'
+				nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 			};
 			getOrderHash(order);
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.ok(error.message.includes('owner address, Invalid string length'));
+			assert.ok(error.message.includes('Invalid string length'));
 		}
 	});
 
@@ -73,7 +73,7 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				evaluable: {
 					interpreter: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
 					store: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
-					bytecode: Uint8Array.from([1, 2])
+					bytecode: '0x0102'
 				},
 				validInputs: [
 					{
@@ -89,13 +89,15 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 						vaultId: '0x1234'
 					}
 				],
-				nonce: '0x2'
+				nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 			};
 			getOrderHash(order);
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.ok(error.message.includes('vault id, digit 26 is out of range for base 10'));
+			assert.ok(
+				error.message.includes('invalid value: string "qwe", expected a 32 byte hex string')
+			);
 		}
 	});
 
@@ -106,7 +108,7 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				evaluable: {
 					interpreter: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
 					store: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
-					bytecode: Uint8Array.from([1, 2])
+					bytecode: '0x0102'
 				},
 				validInputs: [
 					{
@@ -122,13 +124,13 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 						vaultId: '0x1234'
 					}
 				],
-				nonce: 'abcd' // bad nonce, doesnt have 0x
+				nonce: '0x0000000000000000000000000000000000000000000000000000000000000efg' // bad nonce
 			};
 			getOrderHash(order);
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.ok(error.message.includes('nonce value, digit 10 is out of range for base 10'));
+			assert.ok(error.message.includes("Invalid character 'g' at position 63"));
 		}
 	});
 });

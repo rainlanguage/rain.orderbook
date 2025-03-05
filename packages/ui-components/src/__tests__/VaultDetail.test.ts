@@ -3,8 +3,10 @@ import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
-import { readable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
+import type { Config } from 'wagmi';
+import userEvent from '@testing-library/user-event';
 
 // Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -34,6 +36,8 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 
 	render(VaultDetail, {
 		props: {
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			id: '100',
 			network: 'mainnet',
 			settings: mockSettings,
@@ -55,6 +59,8 @@ test('shows the correct empty message when the query returns no data', async () 
 		props: {
 			id: '100',
 			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme)
 		},
@@ -96,6 +102,8 @@ test('shows the correct data when the query returns data', async () => {
 		props: {
 			id: '100',
 			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme)
 		},
@@ -110,5 +118,128 @@ test('shows the correct data when the query returns data', async () => {
 		expect(screen.getByTestId('vaultDetailBalance')).toHaveTextContent('Balance 100000 USDC');
 		expect(screen.queryByTestId('vaultDetailOrdersAsInput')).toHaveTextContent('None');
 		expect(screen.queryByTestId('vaulDetailOrdersAsOutput')).toHaveTextContent('None');
+	});
+});
+
+test('shows deposit/withdraw buttons when signerAddress matches owner', async () => {
+	const mockData = {
+		id: '1',
+		vaultId: '0xabc',
+		owner: '0x123',
+		token: {
+			id: '0x456',
+			address: '0x456',
+			name: 'USDC coin',
+			symbol: 'USDC',
+			decimals: '6'
+		},
+		balance: '100000000000',
+		ordersAsInput: [
+			{
+				id: '1',
+				owner: '0x123'
+			}
+		],
+		ordersAsOutput: [
+			{
+				id: '2',
+				owner: '0x123'
+			}
+		],
+		balanceChanges: [],
+		orderbook: {
+			id: '0x00'
+		}
+	};
+
+	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	vi.mocked(getVault).mockResolvedValue(mockData);
+
+	const queryClient = new QueryClient();
+	const mockWagmiConfig = writable({} as Config);
+	const mockSignerAddress = writable('0x123'); // Same as owner address
+
+	render(VaultDetail, {
+		props: {
+			id: '100',
+			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
+			settings: mockSettings,
+			lightweightChartsTheme: readable(darkChartTheme),
+			wagmiConfig: mockWagmiConfig,
+			signerAddress: mockSignerAddress,
+			handleDepositOrWithdrawModal: vi.fn()
+		},
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	await waitFor(() => {
+		expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
+	});
+});
+
+test('refresh button triggers query invalidation when clicked', async () => {
+	const mockData = {
+		id: '1',
+		vaultId: '0xabc',
+		owner: '0x123',
+		token: {
+			id: '0x456',
+			address: '0x456',
+			name: 'USDC coin',
+			symbol: 'USDC',
+			decimals: '6'
+		},
+		balance: '100000000000',
+		ordersAsInput: [
+			{
+				id: '1',
+				owner: '0x123'
+			}
+		],
+		ordersAsOutput: [
+			{
+				id: '2',
+				owner: '0x123'
+			}
+		],
+		balanceChanges: [],
+		orderbook: {
+			id: '0x00'
+		}
+	};
+
+	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	vi.mocked(getVault).mockResolvedValue(mockData);
+	const queryClient = new QueryClient();
+	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+
+	const mockWagmiConfig = writable({} as Config);
+	const mockSignerAddress = writable('0x123'); // Same as owner address
+
+	render(VaultDetail, {
+		props: {
+			id: '100',
+			network: 'mainnet',
+			activeNetworkRef: writable('mainnet'),
+			activeOrderbookRef: writable('0x00'),
+			settings: mockSettings,
+			lightweightChartsTheme: readable(darkChartTheme),
+			wagmiConfig: mockWagmiConfig,
+			signerAddress: mockSignerAddress,
+			handleDepositOrWithdrawModal: vi.fn()
+		},
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	await waitFor(async () => {
+		const refreshButton = await screen.findAllByTestId('refresh-button');
+		await userEvent.click(refreshButton[0]);
+		expect(invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ['100'],
+			refetchType: 'all',
+			exact: false
+		});
 	});
 });
