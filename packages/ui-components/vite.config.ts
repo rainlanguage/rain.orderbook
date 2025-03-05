@@ -15,6 +15,11 @@ export default defineConfig(({ mode }) => ({
 
 	test: {
 		// Jest like globals
+		    interopDefault: true,
+      // Force node resolution for these problematic packages
+      registerNodeLoader: true,
+      // Add the problematic packages to the list
+      fallbackCJS: true,
 		includeSource: ['src/**/*.{js,ts}'],
 		globals: true,
 		environment: 'jsdom',

@@ -5,6 +5,7 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { Page } from '@sveltejs/kit';
+import type { AppKit } from '@reown/appkit';
 
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
@@ -24,6 +25,7 @@ const mockConnectedWritable = writable<boolean>(false);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockPageWritable = writable<Page>();
+const mockAppKitModalWritable = writable<AppKit>();
 
 export const mockWalletAddressMatchesOrBlankStore = {
 	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
@@ -137,4 +139,10 @@ export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
 	mockSetSubscribeValue: (value: Page): void => mockPageWritable.set(value)
+};
+
+export const mockAppKitModalStore = {
+	subscribe: mockAppKitModalWritable.subscribe,
+	set: mockAppKitModalWritable.set,
+	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
 };

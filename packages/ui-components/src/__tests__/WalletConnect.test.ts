@@ -1,30 +1,25 @@
-import { render, screen } from '@testing-library/svelte';
-import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
-import { writable, type Writable } from 'svelte/store';
-import type { AppKit } from '@reown/appkit';
 import truncateEthAddress from 'truncate-eth-address';
+import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 
-const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
-	() => import('$lib/__mocks__/stores')
+const { mockWagmiConfigStore, mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
-	return {
-		...actual,
-		appKitModal: writable({} as AppKit),
-		useSignerAddress: vi.fn().mockReturnValue({
-			signerAddress: mockSignerAddressStore,
-			connected: mockConnectedStore
-		})
-	};
-});
+vi.mock('../lib/stores/wagmi', () => ({
+	appKitModal: mockAppKitModalStore,
+	wagmiConfig: mockWagmiConfigStore,
+	useSignerAddress: vi.fn().mockReturnValue({
+		signerAddress: mockSignerAddressStore,
+		connected: mockConnectedStore
+	})
+}));
 
 describe('WalletConnect component', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
 		vi.resetAllMocks();
+		vi.clearAllMocks();
 	});
 
 	it('displays "Connect" with red icon when wallet is not connected or wrong network', () => {
@@ -37,20 +32,16 @@ describe('WalletConnect component', () => {
 		expect(connectButton).toBeInTheDocument();
 	});
 
-	it('displays truncated version of the connected address, when a wallet is connected', () => {
+	it('displays truncated version of the connected address, when a wallet is connected', async() => {
 		mockSignerAddressStore.mockSetSubscribeValue('0x912ce59144191c1204e64559fe8253a0e49e6548');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
-		render(WalletConnect, {
-			props: {
-				connected: mockConnectedStore as Writable<boolean>,
-				signerAddress: mockSignerAddressStore,
-				appKitModal: writable({} as AppKit)
-			}
-		});
+		render(WalletConnect);
 
-		expect(
-			screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))
-		).toBeInTheDocument();
+		await waitFor(() => {
+			expect(
+				screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))
+			).toBeInTheDocument();
+		});
 	});
 });

@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+vi.mock('@reown/appkit', () => ({
+  AppKit: vi.fn(),
+  createAppKit: vi.fn()
+}));
+
+vi.mock('@reown/appkit-adapter-wagmi', () => ({
+  WagmiAdapter: vi.fn()
+}));
+
+
 vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
 }));

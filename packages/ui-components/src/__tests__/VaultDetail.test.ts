@@ -5,7 +5,6 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 
 const { mockWagmiConfigStore, mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
@@ -223,9 +222,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	vi.mocked(getVault).mockResolvedValue(mockData);
 	const queryClient = new QueryClient();
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
-
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
+	mockSignerAddressStore.mockSetSubscribeValue('0x1235678');
 
 	render(VaultDetail, {
 		props: {

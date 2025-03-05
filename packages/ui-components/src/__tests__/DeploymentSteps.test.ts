@@ -13,6 +13,17 @@ const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = awa
 	() => import('../lib/__mocks__/stores')
 );
 
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		wagmiConfig: mockWagmiConfigStore,
+	  useSignerAddress: vi.fn().mockReturnValue({
+		  signerAddress: mockSignerAddressStore,
+			connected: mockConnectedStore
+		})
+	};
+});
+
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({

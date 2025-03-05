@@ -60,6 +60,8 @@
 		enabled: !!subgraphUrl
 	});
 
+	console.log(useSignerAddress);
+
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);
