@@ -6,7 +6,7 @@
 		type DepositOrWithdrawArgs,
 		wagmiConfig,
 		appKitModal,
-		useSignerAddress
+		useWagmiClient
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -25,7 +25,7 @@
 	import * as allChains from 'viem/chains';
 
 	const { ...chains } = allChains;
-	const { connected, signerAddress } = useSignerAddress();
+	const { signerAddress } = useWagmiClient();
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {

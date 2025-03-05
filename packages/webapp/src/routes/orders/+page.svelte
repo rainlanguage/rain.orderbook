@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { page } from '$app/stores';
-	import { OrdersListTable, PageHeader, useSignerAddress } from '@rainlanguage/ui-components';
+	import { OrdersListTable, PageHeader, useWagmiClient } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import { writable } from 'svelte/store';
 
@@ -17,7 +17,7 @@
 		showMyItemsOnly = writable(false)
 	}: AppStoresInterface = $page.data.stores;
 
-	const { connected } = useSignerAddress();
+	const { connected } = useWagmiClient();
 
 	$: currentRoute = $page.url.pathname;
 	$: showMyItemsOnly.set($connected);
