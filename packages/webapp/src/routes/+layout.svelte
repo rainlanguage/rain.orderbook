@@ -5,7 +5,7 @@
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
-	import { defaultConfig } from '$lib/stores/wagmi';
+	import { defaultWagmiConfig } from '@rainlanguage/ui-components';
 	import { injected, walletConnect } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
@@ -23,13 +23,14 @@
 	});
 
 	const initWallet = async () => {
-		const erckit = defaultConfig({
+		const erckit = defaultWagmiConfig({
+			supportedChains: supportedChainsList as unknown as Chain[],
 			appName: 'Rain Language',
 			connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
 			chains: supportedChainsList as unknown as Chain[],
 			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
 		});
-		await erckit.init();
+		await erckit.initWagmi();
 	};
 
 	$: if (browser && window.navigator) {

@@ -13,8 +13,7 @@ import {
 import { type Chain } from '@wagmi/core/chains';
 import { AppKit, createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { supportedChainsList } from '$lib/chains';
-
+export const supportedChains: Chain[] = [];
 export const connected = writable<boolean>(false);
 export const wagmiLoaded = writable<boolean>(false);
 export const chainId = writable<number | null | undefined>(null);
@@ -34,9 +33,10 @@ type DefaultConfigProps = {
 	chains?: Chain[] | null;
 	connectors: CreateConnectorFn[];
 	projectId: string;
+	supportedChains: Chain[];
 };
 
-export const defaultConfig = ({
+export const defaultWagmiConfig = ({
 	appName,
 	appDescription = null,
 	appUrl = null,
@@ -44,7 +44,8 @@ export const defaultConfig = ({
 	autoConnect = true,
 	chains = [],
 	connectors,
-	projectId
+	projectId,
+	supportedChains
 }: DefaultConfigProps) => {
 	if (connectors) configuredConnectors.set(connectors);
 
@@ -61,7 +62,7 @@ export const defaultConfig = ({
 			)
 		: {};
 	const config = createConfig({
-		chains: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
+		chains: [supportedChains[0], ...supportedChains.slice(1)] as [Chain, ...Chain[]],
 		transports,
 		connectors: get(configuredConnectors)
 	});
@@ -84,7 +85,7 @@ export const defaultConfig = ({
 
 	const modal = createAppKit({
 		adapters: [wagmiAdapter],
-		networks: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
+		networks: [supportedChains[0], ...supportedChains.slice(1)] as [Chain, ...Chain[]],
 		metadata,
 		projectId,
 		features: {
@@ -97,10 +98,10 @@ export const defaultConfig = ({
 	appKitModal.set(modal);
 	wagmiLoaded.set(true);
 
-	return { init };
+	return { initWagmi };
 };
 
-export const init = async () => {
+export const initWagmi = async () => {
 	try {
 		setupListeners();
 		const account = await waitForConnection();
@@ -192,3 +193,11 @@ const waitForConnection = (): Promise<GetAccountReturnType> =>
 
 		attemptToGetAccount();
 	});
+
+export function useSignerAddress() {
+	return {
+		signerAddress,
+		chainId,
+		connected
+	};
+}

@@ -1,9 +1,7 @@
 <script lang="ts" generics="T">
 	import { page } from '$app/stores';
-	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
+	import { OrdersListTable, PageHeader, useSignerAddress } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { signerAddress } from '$lib/stores/wagmi';
-	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
 
 	const {
@@ -19,6 +17,8 @@
 		showMyItemsOnly = writable(false)
 	}: AppStoresInterface = $page.data.stores;
 
+	const { connected } = useSignerAddress();
+
 	$: currentRoute = $page.url.pathname;
 	$: showMyItemsOnly.set($connected);
 </script>
@@ -33,7 +33,6 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}

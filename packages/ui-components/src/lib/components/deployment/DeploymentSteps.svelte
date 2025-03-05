@@ -18,9 +18,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
-	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
-	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
@@ -28,6 +26,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import { useSignerAddress, appKitModal, wagmiConfig } from '../../stores/wagmi';
 
 	interface Deployment {
 		key: string;
@@ -58,10 +57,7 @@
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
-	export let wagmiConfig: Writable<Config | undefined>;
-	export let wagmiConnected: Writable<boolean>;
-	export let appKitModal: Writable<AppKit>;
-	export let signerAddress: Writable<string | null>;
+	const { connected, signerAddress } = useSignerAddress();
 
 	onMount(async () => {
 		await areAllTokensSelected();
@@ -269,7 +265,7 @@
 					{/if}
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $wagmiConnected}
+						{#if $connected}
 							<Button
 								size="lg"
 								on:click={handleDeployButtonClick}
@@ -283,7 +279,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
+							<WalletConnect {appKitModal} {connected} {signerAddress} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />

@@ -3,7 +3,10 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type DepositOrWithdrawArgs,
+		wagmiConfig,
+		appKitModal,
+		useSignerAddress
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -13,15 +16,16 @@
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
-	import { wagmiConfig } from '$lib/stores/wagmi';
+
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
-	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
+
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
 
 	const { ...chains } = allChains;
+	const { connected, signerAddress } = useSignerAddress();
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {
@@ -161,7 +165,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect {appKitModal} {connected} {signerAddress} />
+						<WalletConnect {appKitModal} {connected} />
 					{/if}
 				</div>
 				{#if errorMessage}

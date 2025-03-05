@@ -21,13 +21,16 @@
 		IconExternalLink,
 		logoDark,
 		logoLight,
-		WalletConnect
+		WalletConnect,
+		appKitModal,
+		useSignerAddress
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
-	import { connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+
 	export let colorTheme;
 	export let page;
+	const { connected, signerAddress } = useSignerAddress();
 
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
@@ -65,7 +68,7 @@
 		{#if !sideBarHidden}
 			<CloseButton
 				data-testid="close-button"
-				class="absolute right-3 top-2 z-20 flex size-8 items-center border dark:border-gray-700 lg:hidden"
+				class="absolute right-3 top-2 z-20 flex size-8 items-center border lg:hidden dark:border-gray-700"
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
