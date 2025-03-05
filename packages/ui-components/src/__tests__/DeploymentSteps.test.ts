@@ -17,8 +17,8 @@ vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
 		wagmiConfig: mockWagmiConfigStore,
-	  useSignerAddress: vi.fn().mockReturnValue({
-		  signerAddress: mockSignerAddressStore,
+		useSignerAddress: vi.fn().mockReturnValue({
+			signerAddress: mockSignerAddressStore,
 			connected: mockConnectedStore
 		})
 	};

@@ -168,7 +168,6 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 
 	const queryClient = new QueryClient();
 
-
 	render(VaultDetail, {
 		props: {
 			id: '100',

@@ -25,7 +25,9 @@
 >
 	{#if $connected && $signerAddress}
 		<span class="flex flex-row items-center gap-2 text-sm"
-			><CheckCircleOutline color="green" size="sm" />{truncateEthAddress($signerAddress)}</span
+			><CheckCircleOutline class="outline-none" color="green" size="sm" />{truncateEthAddress(
+				$signerAddress
+			)}</span
 		>
 	{:else}
 		<span>Connect Wallet</span>

@@ -17,8 +17,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	};
 });
 
-
-
 describe('DeployModal', () => {
 	const mockProps = {
 		open: true,

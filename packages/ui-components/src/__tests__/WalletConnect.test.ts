@@ -3,9 +3,8 @@ import { describe, it, vi, beforeEach, expect } from 'vitest';
 import truncateEthAddress from 'truncate-eth-address';
 import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 
-const { mockWagmiConfigStore, mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
-);
+const { mockWagmiConfigStore, mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } =
+	await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
@@ -32,7 +31,7 @@ describe('WalletConnect component', () => {
 		expect(connectButton).toBeInTheDocument();
 	});
 
-	it('displays truncated version of the connected address, when a wallet is connected', async() => {
+	it('displays truncated version of the connected address, when a wallet is connected', async () => {
 		mockSignerAddressStore.mockSetSubscribeValue('0x912ce59144191c1204e64559fe8253a0e49e6548');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
