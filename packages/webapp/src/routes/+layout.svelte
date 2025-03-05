@@ -5,7 +5,12 @@
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
-	import { defaultWagmiConfig } from '@rainlanguage/ui-components';
+	import {
+		defaultWagmiConfig,
+		WagmiProvider,
+		wagmiConfig,
+		appKitModal
+	} from '@rainlanguage/ui-components';
 	import { injected, walletConnect } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
@@ -30,6 +35,7 @@
 			chains: supportedChainsList as unknown as Chain[],
 			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
 		});
+
 		await erckit.initWagmi();
 	};
 
@@ -39,18 +45,20 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-	<LoadingWrapper>
-		{#if $page.url.pathname === '/'}
-			<Homepage {colorTheme} />
-		{:else}
-			<div
-				class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-			>
-				<Sidebar {colorTheme} page={$page} />
-				<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-					<slot />
-				</main>
-			</div>
-		{/if}
-	</LoadingWrapper>
+	<WagmiProvider config={$wagmiConfig} appKit={$appKitModal}>
+		<LoadingWrapper>
+			{#if $page.url.pathname === '/'}
+				<Homepage {colorTheme} />
+			{:else}
+				<div
+					class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+				>
+					<Sidebar {colorTheme} page={$page} />
+					<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+						<slot />
+					</main>
+				</div>
+			{/if}
+		</LoadingWrapper>
+	</WagmiProvider>
 </QueryClientProvider>

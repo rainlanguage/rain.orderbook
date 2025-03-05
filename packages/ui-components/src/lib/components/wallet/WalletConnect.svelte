@@ -1,12 +1,13 @@
 <script lang="ts">
+	import { useWagmiClient } from '$lib/providers/wagmi/useWagmiClient';
 	import { Button } from 'flowbite-svelte';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { useSignerAddress, appKitModal } from '../../stores/wagmi';
+	const wagmiClient = useWagmiClient();
+	const { signerAddress, connected, appKitModal } = wagmiClient;
 
 	export let classes: string = '';
-	const { signerAddress, connected } = useSignerAddress();
 
 	function handleClick() {
 		$appKitModal.open();
