@@ -9,8 +9,8 @@ use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
-    context::{Context, GuiContextTrait},
-    default_document, require_hash, require_string, FieldErrorKind, YamlError, YamlParsableHash,
+    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    YamlParsableHash,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -57,67 +57,75 @@ impl DeploymentCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for DeploymentCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployments = HashMap::new();
 
         for document in &documents {
-            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            let deployment_configs = {
+                let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(deployments_hash) = require_hash(&document_read, Some("deployments"), None) {
-                for (key_yaml, deployment_yaml) in deployments_hash {
-                    let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
-                    let location = format!("deployment '{deployment_key}'");
+                if let Ok(deployments_hash) =
+                    require_hash(&document_read, Some("deployments"), None)
+                {
+                    deployments_hash
+                        .iter()
+                        .map(|(key_yaml, deployment_yaml)| {
+                            let deployment_key = key_yaml.as_str().unwrap_or_default().to_string();
+                            let location = format!("deployment '{deployment_key}'");
 
-                    if let Some(context) = context {
-                        if let Some(current_deployment) = context.get_current_deployment() {
-                            if current_deployment != &deployment_key {
-                                continue;
-                            }
-                        }
-                    }
+                            let order_key = require_string(
+                                deployment_yaml,
+                                Some("order"),
+                                Some(location.clone()),
+                            )?;
+                            let scenario_key =
+                                require_string(deployment_yaml, Some("scenario"), Some(location))?;
 
-                    let mut context = Context::from_context(context);
-
-                    let order_key =
-                        require_string(deployment_yaml, Some("order"), Some(location.clone()))?;
-                    context.add_current_order(order_key.clone());
-
-                    let order =
-                        OrderCfg::parse_from_yaml(documents.clone(), &order_key, Some(&context))?;
-                    context.add_order(Arc::new(order.clone()));
-
-                    let scenario_key =
-                        require_string(deployment_yaml, Some("scenario"), Some(location.clone()))?;
-                    let scenario = ScenarioCfg::parse_from_yaml(
-                        documents.clone(),
-                        &scenario_key,
-                        Some(&context),
-                    )?;
-
-                    if let Some(deployer) = &order.deployer {
-                        if deployer != &scenario.deployer {
-                            return Err(YamlError::ParseDeploymentConfigSourceError(
-                                ParseDeploymentConfigSourceError::NoMatch,
-                            ));
-                        }
-                    }
-
-                    let deployment = DeploymentCfg {
-                        document: document.clone(),
-                        key: deployment_key.clone(),
-                        scenario: Arc::new(scenario),
-                        order: Arc::new(order),
-                    };
-
-                    if deployments.contains_key(&deployment_key) {
-                        return Err(YamlError::KeyShadowing(deployment_key));
-                    }
-                    deployments.insert(deployment_key, deployment);
+                            Ok((deployment_key, order_key, scenario_key))
+                        })
+                        .collect::<Result<Vec<_>, YamlError>>()?
+                } else {
+                    vec![]
                 }
+            };
+
+            for (deployment_key, order_key, scenario_key) in deployment_configs {
+                let mut context = Context::from_context(context);
+                context.add_current_order(order_key.clone());
+
+                let order =
+                    OrderCfg::parse_from_yaml(documents.clone(), &order_key, Some(&context))
+                        .await?;
+                context.add_order(Arc::new(order.clone()));
+
+                let scenario =
+                    ScenarioCfg::parse_from_yaml(documents.clone(), &scenario_key, Some(&context))
+                        .await?;
+
+                if let Some(deployer) = &order.deployer {
+                    if deployer != &scenario.deployer {
+                        return Err(YamlError::ParseDeploymentConfigSourceError(
+                            ParseDeploymentConfigSourceError::NoMatch,
+                        ));
+                    }
+                }
+
+                let deployment = DeploymentCfg {
+                    document: document.clone(),
+                    key: deployment_key.clone(),
+                    scenario: Arc::new(scenario),
+                    order: Arc::new(order),
+                };
+
+                if deployments.contains_key(&deployment_key) {
+                    return Err(YamlError::KeyShadowing(deployment_key));
+                }
+                deployments.insert(deployment_key, deployment);
             }
         }
 
@@ -269,8 +277,8 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_parse_deployments_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_deployments_from_yaml() {
         let yaml = r#"
 networks:
     network1:
@@ -293,7 +301,9 @@ orders:
         deployer: deployer1
 test: test
 "#;
-        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -326,7 +336,9 @@ deployments:
     deployment1:
         test: test
         "#;
-        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -360,7 +372,9 @@ deployments:
         order: order1
         test: test
         "#;
-        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -405,7 +419,9 @@ deployments:
         scenario: scenario1
         order: order1
         "#;
-        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseDeploymentConfigSourceError(ParseDeploymentConfigSourceError::NoMatch)
@@ -459,8 +475,8 @@ orders:
         deployer: deployer2
 "#;
 
-    #[test]
-    fn test_parse_deployments_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_deployments_from_yaml_multiple_files() {
         let yaml_one = r#"
 deployments:
     DeploymentOne:
@@ -481,6 +497,7 @@ deployments:
             ],
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(deployments.len(), 2);
@@ -497,8 +514,8 @@ deployments:
         );
     }
 
-    #[test]
-    fn test_parse_deployments_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_deployments_from_yaml_duplicate_key() {
         let yaml_one = r#"
 deployments:
     DuplicateDeployment:
@@ -519,6 +536,7 @@ deployments:
             ],
             None,
         )
+        .await
         .unwrap_err();
 
         assert_eq!(

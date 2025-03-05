@@ -547,6 +547,7 @@ impl GuiCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParseableValue for GuiCfg {
     fn parse_from_yaml(
         _: Vec<Arc<RwLock<StrictYaml>>>,
@@ -555,64 +556,82 @@ impl YamlParseableValue for GuiCfg {
         Err(YamlError::InvalidTraitFunction)
     }
 
-    fn parse_from_yaml_optional(
+    async fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError> {
         let mut gui_res: Option<GuiCfg> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeploymentCfg> = HashMap::new();
 
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None).await;
 
         for document in &documents {
-            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            // Collect all YAML data first
+            let gui_data = {
+                let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Some(gui) = optional_hash(&document_read, "gui") {
-                let name = get_hash_value(gui, "name", Some("gui".to_string()))?
-                    .as_str()
-                    .ok_or(YamlError::Field {
-                        kind: FieldErrorKind::InvalidType {
-                            field: "name".to_string(),
-                            expected: "a string".to_string(),
-                        },
-                        location: "gui".to_string(),
-                    })?;
+                if let Some(gui) = optional_hash(&document_read, "gui") {
+                    let name = get_hash_value(gui, "name", Some("gui".to_string()))?
+                        .as_str()
+                        .ok_or(YamlError::Field {
+                            kind: FieldErrorKind::InvalidType {
+                                field: "name".to_string(),
+                                expected: "a string".to_string(),
+                            },
+                            location: "gui".to_string(),
+                        })?
+                        .to_string();
 
-                let description = get_hash_value(gui, "description", Some("gui".to_string()))?
-                    .as_str()
-                    .ok_or(YamlError::Field {
-                        kind: FieldErrorKind::InvalidType {
-                            field: "description".to_string(),
-                            expected: "a string".to_string(),
-                        },
-                        location: "gui".to_string(),
-                    })?;
+                    let description = get_hash_value(gui, "description", Some("gui".to_string()))?
+                        .as_str()
+                        .ok_or(YamlError::Field {
+                            kind: FieldErrorKind::InvalidType {
+                                field: "description".to_string(),
+                                expected: "a string".to_string(),
+                            },
+                            location: "gui".to_string(),
+                        })?
+                        .to_string();
 
+                    let deployments = gui
+                        .get(&StrictYaml::String("deployments".to_string()))
+                        .ok_or(YamlError::Field {
+                            kind: FieldErrorKind::Missing("deployments".to_string()),
+                            location: "gui".to_string(),
+                        })?
+                        .as_hash()
+                        .ok_or(YamlError::Field {
+                            kind: FieldErrorKind::InvalidType {
+                                field: "deployments".to_string(),
+                                expected: "a map".to_string(),
+                            },
+                            location: "gui".to_string(),
+                        })?;
+
+                    // Clone/collect all deployment data
+                    let deployment_data: Result<Vec<_>, YamlError> = deployments
+                        .iter()
+                        .map(|(key, value)| {
+                            Ok((key.as_str().unwrap_or_default().to_string(), value.clone()))
+                        })
+                        .collect();
+
+                    Some((name, description, deployment_data?))
+                } else {
+                    None
+                }
+            };
+
+            if let Some((name, description, deployment_data)) = gui_data {
                 if gui_res.is_none() {
                     gui_res = Some(GuiCfg {
-                        name: name.to_string(),
-                        description: description.to_string(),
+                        name: name.clone(),
+                        description: description.clone(),
                         deployments: gui_deployments_res.clone(),
                     });
                 }
 
-                let deployments = gui
-                    .get(&StrictYaml::String("deployments".to_string()))
-                    .ok_or(YamlError::Field {
-                        kind: FieldErrorKind::Missing("deployments".to_string()),
-                        location: "gui".to_string(),
-                    })?
-                    .as_hash()
-                    .ok_or(YamlError::Field {
-                        kind: FieldErrorKind::InvalidType {
-                            field: "deployments".to_string(),
-                            expected: "a map".to_string(),
-                        },
-                        location: "gui".to_string(),
-                    })?;
-
-                for (deployment_name, deployment_yaml) in deployments {
-                    let deployment_name = deployment_name.as_str().unwrap_or_default().to_string();
+                for (deployment_name, deployment_yaml) in deployment_data {
                     let location = format!("gui deployment '{deployment_name}'");
 
                     if let Some(context) = context {
@@ -625,163 +644,158 @@ impl YamlParseableValue for GuiCfg {
 
                     let mut context = Context::from_context(context);
 
-                    let select_tokens = match optional_vec(deployment_yaml, "select-tokens") {
-                            Some(tokens) => Some(
-                                tokens
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(select_token_index, select_token_value)| {
-                                        let location = format!("select-token index '{select_token_index}' in gui deployment '{deployment_name}'");
+                    // Process select_tokens
+                    let select_tokens = match optional_vec(&deployment_yaml, "select-tokens") {
+                        Some(tokens) => Some(
+                            tokens
+                                .iter()
+                                .enumerate()
+                                .map(|(select_token_index, select_token_value)| {
+                                    let location = format!("select-token index '{select_token_index}' in gui deployment '{deployment_name}'");
+                                    select_token_value.as_hash().ok_or(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidType {
+                                            field: "select-token".to_string(),
+                                            expected: "a map".to_string(),
+                                        },
+                                        location: location.clone(),
+                                    })?;
 
-                                        select_token_value.as_hash().ok_or(YamlError::Field{
-                                            kind: FieldErrorKind::InvalidType {
-                                                field: "select-token".to_string(),
-                                                expected: "a map".to_string(),
-                                            },
-                                            location: location.clone(),
-                                        })?;
-
-                                        Ok(GuiSelectTokensCfg {
-                                            key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
-                                            name: optional_string(select_token_value, "name"),
-                                            description: optional_string(select_token_value, "description"),
+                                    Ok(GuiSelectTokensCfg {
+                                        key: require_string(select_token_value, Some("key"), Some(location.clone()))?,
+                                        name: optional_string(select_token_value, "name"),
+                                        description: optional_string(select_token_value, "description"),
                                     })
                                 })
                                 .collect::<Result<Vec<_>, YamlError>>()?,
                         ),
                         None => None,
                     };
+
                     if let Some(ref select_tokens) = select_tokens {
                         context.add_select_tokens(
                             select_tokens
                                 .iter()
                                 .map(|select_token| select_token.key.clone())
-                                .collect::<Vec<_>>(),
+                                .collect(),
                         );
                     }
 
+                    // Async operation after releasing the lock
                     let deployment = DeploymentCfg::parse_from_yaml(
                         documents.clone(),
                         &deployment_name,
                         Some(&context),
-                    )?;
+                    )
+                    .await?;
                     context.add_order(deployment.order.clone());
 
                     let name =
-                        require_string(deployment_yaml, Some("name"), Some(location.clone()))?;
-
+                        require_string(&deployment_yaml, Some("name"), Some(location.clone()))?;
                     let description = require_string(
-                        deployment_yaml,
+                        &deployment_yaml,
                         Some("description"),
                         Some(location.clone()),
                     )?;
 
-                    let deposits = require_vec(
-                        deployment_yaml,
-                        "deposits",
-                        Some(location.clone()),
-                    )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
-                        let mut deposit_token = None;
+                    // Process deposits
+                    let deposits = require_vec(&deployment_yaml, "deposits", Some(location.clone()))?
+                        .iter()
+                        .enumerate()
+                        .map(|(deposit_index, deposit_value)| {
+                            let mut deposit_token = None;
+                            if let Ok(ref tokens) = tokens {
+                                let token = tokens.get(&require_string(
+                                    deposit_value,
+                                    Some("token"),
+                                    Some(format!("deposit index '{deposit_index}' in {location}")),
+                                )?);
+                                deposit_token = token.map(|t| Arc::new(t.clone()));
+                            }
 
-                        if let Ok(tokens) = &tokens {
-                            let token = tokens.get(&require_string(
-                                deposit_value,
-                                Some("token"),
-                                Some(format!(
-                                    "deposit index '{deposit_index}' in {location}",
-                                )),
-                            )?);
+                            let presets = match optional_vec(deposit_value, "presets") {
+                                Some(presets) => Some(
+                                    presets
+                                        .iter()
+                                        .enumerate()
+                                        .map(|(preset_index, preset_yaml)| {
+                                            Ok(preset_yaml.as_str().ok_or(YamlError::Field {
+                                                kind: FieldErrorKind::InvalidType {
+                                                    field: "preset value".to_string(),
+                                                    expected: "a string".to_string(),
+                                                },
+                                                location: format!(
+                                                    "presets list index '{preset_index}' for deposit index '{deposit_index}' in {location}",
+                                                ),
+                                            })?.to_string())
+                                        })
+                                        .collect::<Result<Vec<_>, YamlError>>()?,
+                                ),
+                                None => None,
+                            };
 
-                            deposit_token = token.map(|token| Arc::new(token.clone()));
-                        }
-
-                        let presets = match optional_vec(deposit_value, "presets") {
-                            Some(presets) => Some(presets.iter()
-                            .enumerate()
-                            .map(|(preset_index, preset_yaml)| {
-                                Ok(preset_yaml.as_str().ok_or(YamlError::Field{
-                                    kind: FieldErrorKind::InvalidType {
-                                        field: "preset value".to_string(),
-                                        expected: "a string".to_string(),
-                                    },
-                                    location: format!(
-                                        "presets list index '{preset_index}' for deposit index '{deposit_index}' in {location}",
-                                    ),
-                                })?.to_string())
+                            Ok(GuiDepositCfg {
+                                token: deposit_token,
+                                presets,
                             })
-                            .collect::<Result<Vec<_>, YamlError>>()?),
-                            None => None,
-                        };
+                        })
+                        .collect::<Result<Vec<_>, YamlError>>()?;
 
-                        let gui_deposit = GuiDepositCfg {
-                            token: deposit_token,
-                            presets,
-                        };
-                        Ok(gui_deposit)
-                    })
-                    .collect::<Result<Vec<_>, YamlError>>()?;
+                    // Process fields
+                    let fields = require_vec(&deployment_yaml, "fields", Some(location.clone()))?
+                        .iter()
+                        .enumerate()
+                        .map(|(field_index, field_yaml)| {
+                            let binding = require_string(
+                                field_yaml,
+                                Some("binding"),
+                                Some(format!("fields list index '{field_index}' in {location}")),
+                            )?;
 
-                    let fields = require_vec(
-                        deployment_yaml,
-                        "fields",
-                        Some(location.clone()),
-                    )?.iter().enumerate().map(|(field_index, field_yaml)| {
-                        let binding = require_string(
-                            field_yaml,
-                            Some("binding"),
-                            Some(format!(
-                                "fields list index '{field_index}' in {location}",
-                            )),
-                        )?;
+                            let name = require_string(
+                                field_yaml,
+                                Some("name"),
+                                Some(format!("fields list index '{field_index}' in {location}")),
+                            )?;
+                            let interpolated_name = context.interpolate(&name)?;
 
-                        let name = require_string(
-                            field_yaml,
-                            Some("name"),
-                            Some(format!(
-                                "fields list index '{field_index}' in {location}",
-                            )),
-                        )?;
-                        let interpolated_name = context.interpolate(&name)?;
+                            let description = optional_string(field_yaml, "description");
+                            let interpolated_description = description
+                                .map(|description| context.interpolate(&description))
+                                .transpose()?;
 
-                        let description = optional_string(field_yaml, "description");
-                        let interpolated_description = description.map(|description| context.interpolate(&description)).transpose()?;
+                            let presets = match optional_vec(field_yaml, "presets") {
+                                Some(p) => Some(
+                                    p.iter()
+                                        .enumerate()
+                                        .map(|(preset_index, preset_yaml)| {
+                                            Ok(GuiPresetCfg {
+                                                id: preset_index.to_string(),
+                                                name: optional_string(preset_yaml, "name"),
+                                                value: require_string(
+                                                    preset_yaml,
+                                                    Some("value"),
+                                                    Some(format!(
+                                                        "preset index '{preset_index}' for field index '{field_index}' in {location}",
+                                                    )),
+                                                )?,
+                                            })
+                                        })
+                                        .collect::<Result<Vec<_>, YamlError>>()?,
+                                ),
+                                None => None,
+                            };
 
-                        let presets = match optional_vec(field_yaml, "presets") {
-                            Some(p) => Some(p.iter().enumerate().map(|(preset_index, preset_yaml)| {
-                                let name = optional_string(preset_yaml, "name");
-                                let value = require_string(
-                                    preset_yaml,
-                                    Some("value"),
-                                    Some(format!(
-                                        "preset index '{preset_index}' for field index '{field_index}' in {location}",
-                                    ))
-                                )?;
-
-                                let gui_preset = GuiPresetCfg {
-                                    id: preset_index.to_string(),
-                                    name,
-                                    value,
-                                };
-                                Ok(gui_preset)
+                            Ok(GuiFieldDefinitionCfg {
+                                binding,
+                                name: interpolated_name,
+                                description: interpolated_description,
+                                presets,
+                                default: optional_string(field_yaml, "default"),
+                                show_custom_field: optional_string(field_yaml, "show-custom-field")
+                                    .map(|v| v.eq("true")),
                             })
-                            .collect::<Result<Vec<_>, YamlError>>()?),
-                            None => None,
-                        };
-
-                        let default = optional_string(field_yaml, "default");
-                        let show_custom_field = optional_string(field_yaml, "show-custom-field").map(|v| v.eq("true"));
-
-                        let gui_field_definition = GuiFieldDefinitionCfg {
-                            binding,
-                            name: interpolated_name,
-                            description: interpolated_description,
-                            presets,
-                            default,
-                            show_custom_field
-                        };
-                        Ok(gui_field_definition)
-                    })
-                    .collect::<Result<Vec<_>, YamlError>>()?;
+                        })
+                        .collect::<Result<Vec<_>, YamlError>>()?;
 
                     let gui_deployment = GuiDeploymentCfg {
                         document: document.clone(),
@@ -799,6 +813,7 @@ impl YamlParseableValue for GuiCfg {
                     }
                     gui_deployments_res.insert(deployment_name, gui_deployment);
                 }
+
                 if let Some(gui) = &mut gui_res {
                     gui.deployments.clone_from(&gui_deployments_res);
                 }
@@ -991,8 +1006,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_parse_gui_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_gui_from_yaml() {
         let yaml = r#"
 networks:
     network1:
@@ -1008,7 +1023,9 @@ tokens:
 gui:
     test: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1032,7 +1049,9 @@ gui:
     name:
       - test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1059,7 +1078,9 @@ gui:
     name:
       - test: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1086,7 +1107,9 @@ tokens:
 gui:
     name: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1111,7 +1134,9 @@ gui:
     description:
       - test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1139,7 +1164,9 @@ gui:
     description:
       - test: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1167,7 +1194,9 @@ gui:
     name: test
     description: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1192,7 +1221,9 @@ gui:
     description: test
     deployments: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1219,9 +1250,11 @@ gui:
     name: test
     description: test
     deployments:
-        - test: test
+        - test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1268,7 +1301,9 @@ gui:
         deployment1:
             test: test
 "#;
-        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None).unwrap_err();
+        let error = GuiCfg::parse_from_yaml_optional(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1323,6 +1358,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1344,6 +1380,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1366,6 +1403,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1390,6 +1428,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1416,6 +1455,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1447,6 +1487,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1475,6 +1516,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1503,6 +1545,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1535,6 +1578,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1572,6 +1616,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1608,6 +1653,7 @@ gui:
             vec![get_document(&format!("{yaml_prefix}{yaml}"))],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -1618,8 +1664,8 @@ gui:
         );
     }
 
-    #[test]
-    fn test_parse_gui_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_gui_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     network1:
@@ -1694,6 +1740,7 @@ gui:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap();
 
         let gui = res.unwrap();
@@ -1710,8 +1757,8 @@ gui:
         assert_eq!(deployment.deposits[0].token.as_ref().unwrap().key, "token2");
     }
 
-    #[test]
-    fn test_parse_gui_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_gui_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     network1:
@@ -1786,6 +1833,7 @@ gui:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("deployment1".to_string()));

@@ -141,7 +141,7 @@ impl DotrainOrder {
 
         Ok(Self {
             dotrain,
-            dotrain_yaml: DotrainYaml::new(sources.clone(), false)?,
+            dotrain_yaml: DotrainYaml::new(sources.clone(), false).await?,
         })
     }
 
@@ -160,7 +160,7 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
+        let scenario = self.dotrain_yaml.get_scenario(&scenario).await?;
 
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
@@ -177,7 +177,7 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
+        let scenario = self.dotrain_yaml.get_scenario(&scenario).await?;
 
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
@@ -194,7 +194,11 @@ impl DotrainOrder {
         &self,
         deployment: String,
     ) -> Result<String, DotrainOrderError> {
-        let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
+        let scenario = self
+            .dotrain_yaml
+            .get_deployment(&deployment)
+            .await?
+            .scenario;
 
         Ok(compose_to_rainlang(
             self.dotrain.clone(),
@@ -223,7 +227,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        let deployer = self.dotrain_yaml.get_scenario(scenario)?.deployer;
+        let deployer = self.dotrain_yaml.get_scenario(scenario).await?.deployer;
         let parser: ParserV2 = deployer.address.into();
         let rainlang = self
             .compose_scenario_to_rainlang(scenario.to_string())
@@ -239,10 +243,15 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
+        let network = &self
+            .dotrain_yaml
+            .get_scenario(scenario)
+            .await?
+            .deployer
+            .network;
 
         let rpc = &network.rpc;
-        let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
+        let metaboard = self.orderbook_yaml().get_metaboard(&network.key).await?.url;
         Ok(
             AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
                 .await?,
@@ -253,7 +262,12 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
-        let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
+        let deployer = &self
+            .dotrain_yaml
+            .get_scenario(scenario)
+            .await?
+            .deployer
+            .address;
 
         Ok(ContractWords {
             address: *deployer,
@@ -289,7 +303,12 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
-        let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
+        let deployer = &self
+            .dotrain_yaml
+            .get_scenario(scenario)
+            .await?
+            .deployer
+            .address;
         let mut addresses = vec![*deployer];
         addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
 
@@ -323,7 +342,7 @@ impl DotrainOrder {
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
         let mut scenarios = vec![];
-        for scenario in self.dotrain_yaml.get_scenario_keys()? {
+        for scenario in self.dotrain_yaml.get_scenario_keys().await? {
             scenarios.push(self.get_all_words_for_scenario(&scenario).await?);
         }
         Ok(scenarios)
@@ -400,6 +419,7 @@ _ _: 0 0;
             dotrain_order
                 .orderbook_yaml()
                 .get_network("polygon")
+                .await
                 .unwrap()
                 .rpc
                 .to_string(),
@@ -537,6 +557,7 @@ networks:
             merged_dotrain_order
                 .orderbook_yaml()
                 .get_network("mainnet")
+                .await
                 .unwrap()
                 .rpc
                 .to_string(),

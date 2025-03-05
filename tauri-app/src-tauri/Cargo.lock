@@ -8267,6 +8267,7 @@ name = "rain_orderbook_app_settings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "async-trait",
  "derive_builder 0.20.0",
  "rain_orderbook_bindings",
  "reqwest 0.12.5",

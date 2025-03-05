@@ -1,3 +1,4 @@
+use crate::caching::{get_cache, CacheError};
 use crate::remote::chains::chainid::{ChainId, ChainIdError};
 use crate::yaml::context::Context;
 use crate::yaml::{
@@ -38,37 +39,60 @@ impl RemoteNetworksCfg {
     }
 
     pub async fn fetch_networks(
-        &self,
+        remote_networks: HashMap<String, RemoteNetworksCfg>,
     ) -> Result<HashMap<String, NetworkCfg>, ParseRemoteNetworksError> {
-        let mut networks: HashMap<String, NetworkCfg> = HashMap::new();
+        let cache = get_cache();
 
-        match self.format.as_str() {
-            "chainid" => {
-                let chains = reqwest::get(self.url.clone())
-                    .await?
-                    .json::<Vec<ChainId>>()
-                    .await?;
+        match cache.get_networks() {
+            Ok(networks) => {
+                return Ok(networks);
+            }
+            _ => {
+                let networks = HashMap::new();
 
-                for chain in &chains {
-                    let network: NetworkCfg = chain.clone().try_into()?;
+                for (_, remote_network) in remote_networks {
+                    match remote_network.format.as_str() {
+                        "chainid" => {
+                            let chains = reqwest::get(remote_network.url.clone())
+                                .await?
+                                .json::<Vec<ChainId>>()
+                                .await?;
 
-                    if networks.contains_key(&network.key) {
-                        return Err(ParseRemoteNetworksError::ConflictingNetworks(
-                            network.key.clone(),
-                        ));
-                    }
-                    networks.insert(network.key.clone(), network);
+                            let mut networks = HashMap::new();
+                            for chain in &chains {
+                                let network: NetworkCfg = chain.clone().try_into()?;
+
+                                if networks.contains_key(&network.key) {
+                                    return Err(ParseRemoteNetworksError::ConflictingNetworks(
+                                        network.key.clone(),
+                                    ));
+                                }
+                                networks.insert(network.key.clone(), network);
+                            }
+
+                            networks
+                        }
+                        _ => {
+                            return Err(ParseRemoteNetworksError::UnknownFormat(
+                                remote_network.format.clone(),
+                            ))
+                        }
+                    };
                 }
+
+                cache
+                    .set_networks(networks.clone())
+                    .map_err(|e| ParseRemoteNetworksError::CacheError(e))?;
 
                 Ok(networks)
             }
-            _ => Err(ParseRemoteNetworksError::UnknownFormat(self.format.clone())),
         }
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for RemoteNetworksCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
@@ -148,6 +172,8 @@ pub enum ParseRemoteNetworksError {
     ConflictingNetworks(String),
     #[error(transparent)]
     ChainIdError(#[from] ChainIdError),
+    #[error("Cache error: {0}")]
+    CacheError(#[from] CacheError),
 }
 
 #[cfg(test)]
@@ -155,14 +181,15 @@ mod tests {
     use super::*;
     use crate::yaml::{tests::get_document, FieldErrorKind};
 
-    #[test]
-    fn test_parse_remote_networks_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_remote_networks_from_yaml() {
         let yaml = r#"
 using-networks-from:
     test: test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -177,8 +204,9 @@ using-networks-from:
       url:
         - test: test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -196,8 +224,9 @@ using-networks-from:
       url:
         - test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -214,8 +243,9 @@ using-networks-from:
     test:
       url: test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -233,8 +263,9 @@ using-networks-from:
       url: https://example.com
       test: test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -250,8 +281,9 @@ using-networks-from:
       format:
         - test: test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -270,8 +302,9 @@ using-networks-from:
       format:
         - test
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -284,16 +317,20 @@ using-networks-from:
         );
     }
 
-    #[test]
-    fn test_parse_remote_networks_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_remote_networks_from_yaml_duplicate_key() {
         let yaml = r#"
 using-networks-from:
     test:
       url: https://example.com
       format: chainid
 "#;
-        let error =
-            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = RemoteNetworksCfg::parse_all_from_yaml(
+            vec![get_document(yaml), get_document(yaml)],
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("test".to_string()),);
     }
 }

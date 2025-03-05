@@ -35,15 +35,18 @@ impl Execute for OrderbookAddress {
             None => None,
         };
         let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
-        let deployment_ref = order.dotrain_yaml().get_deployment(&self.deployment)?;
+        let deployment_ref = order
+            .dotrain_yaml()
+            .get_deployment(&self.deployment)
+            .await?;
 
         let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
             v.address
         } else {
             let network_key = &deployment_ref.scenario.deployer.network.key;
             let mut orderbook_address = None;
-            for key in order.orderbook_yaml().get_orderbook_keys()? {
-                let orderbook = order.orderbook_yaml().get_orderbook(&key)?;
+            for key in order.orderbook_yaml().get_orderbook_keys().await? {
+                let orderbook = order.orderbook_yaml().get_orderbook(&key).await?;
                 if key == *network_key || orderbook.network.key == *network_key {
                     orderbook_address = Some(orderbook.address);
                 }

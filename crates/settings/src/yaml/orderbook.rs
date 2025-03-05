@@ -24,8 +24,9 @@ pub struct OrderbookYaml {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderbookYaml);
 
+#[async_trait::async_trait]
 impl YamlParsable for OrderbookYaml {
-    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
+    async fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
         let mut documents = Vec::new();
 
         for source in sources {
@@ -40,12 +41,12 @@ impl YamlParsable for OrderbookYaml {
         }
 
         if validate {
-            NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
-            TokenCfg::parse_all_from_yaml(documents.clone(), None)?;
-            SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
-            OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
-            DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
-            MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
+            NetworkCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            TokenCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            SubgraphCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            OrderbookCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            DeployerCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            MetaboardCfg::parse_all_from_yaml(documents.clone(), None).await?;
         }
 
         Ok(OrderbookYaml { documents })
@@ -57,55 +58,55 @@ impl YamlParsable for OrderbookYaml {
 }
 
 impl OrderbookYaml {
-    pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
+        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(networks.keys().cloned().collect())
     }
-    pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
-        NetworkCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
+        NetworkCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
-    pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
+        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(tokens.keys().cloned().collect())
     }
-    pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
-        TokenCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
+        TokenCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
-    pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(subgraphs.keys().cloned().collect())
     }
-    pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
-        SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
+        SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
-    pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(orderbooks.keys().cloned().collect())
     }
-    pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
-        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
+        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
-    pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
+        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(metaboards.keys().cloned().collect())
     }
-    pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
-        MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
+        MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
     pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
         MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, value)
     }
 
-    pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
+        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(deployers.keys().cloned().collect())
     }
-    pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
-        DeployerCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
+        DeployerCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
     pub fn get_sentry(&self) -> Result<bool, YamlError> {
@@ -237,12 +238,14 @@ mod tests {
             address: 0x3456789012abcdef
     "#;
 
-    #[test]
-    fn test_full_yaml() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_full_yaml() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
-        let network = ob_yaml.get_network("mainnet").unwrap();
+        assert_eq!(ob_yaml.get_network_keys().await.unwrap().len(), 1);
+        let network = ob_yaml.get_network("mainnet").await.unwrap();
         assert_eq!(
             network.rpc,
             Url::parse("https://mainnet.infura.io").unwrap()
@@ -256,8 +259,8 @@ mod tests {
             Url::parse("https://mainnet.infura.io").unwrap()
         );
 
-        assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
-        let token = ob_yaml.get_token("token1").unwrap();
+        assert_eq!(ob_yaml.get_token_keys().await.unwrap().len(), 1);
+        let token = ob_yaml.get_token("token1").await.unwrap();
         assert_eq!(
             token.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -270,15 +273,15 @@ mod tests {
             "mainnet"
         );
 
-        assert_eq!(ob_yaml.get_subgraph_keys().unwrap().len(), 2);
-        let subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
+        assert_eq!(ob_yaml.get_subgraph_keys().await.unwrap().len(), 2);
+        let subgraph = ob_yaml.get_subgraph("mainnet").await.unwrap();
         assert_eq!(
             subgraph.url,
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
-        assert_eq!(ob_yaml.get_orderbook_keys().unwrap().len(), 1);
-        let orderbook = ob_yaml.get_orderbook("orderbook1").unwrap();
+        assert_eq!(ob_yaml.get_orderbook_keys().await.unwrap().len(), 1);
+        let orderbook = ob_yaml.get_orderbook("orderbook1").await.unwrap();
         assert_eq!(
             orderbook.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
@@ -291,18 +294,18 @@ mod tests {
             "mainnet"
         );
 
-        assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
+        assert_eq!(ob_yaml.get_metaboard_keys().await.unwrap().len(), 2);
         assert_eq!(
-            ob_yaml.get_metaboard("board1").unwrap().url,
+            ob_yaml.get_metaboard("board1").await.unwrap().url,
             Url::parse("https://meta.example.com/board1").unwrap()
         );
         assert_eq!(
-            ob_yaml.get_metaboard("board2").unwrap().url,
+            ob_yaml.get_metaboard("board2").await.unwrap().url,
             Url::parse("https://meta.example.com/board2").unwrap()
         );
 
-        assert_eq!(ob_yaml.get_deployer_keys().unwrap().len(), 1);
-        let deployer = ob_yaml.get_deployer("deployer1").unwrap();
+        assert_eq!(ob_yaml.get_deployer_keys().await.unwrap().len(), 1);
+        let deployer = ob_yaml.get_deployer("deployer1").await.unwrap();
         assert_eq!(
             deployer.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
@@ -321,11 +324,13 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_update_network_rpc() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_update_network_rpc() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        let mut network = ob_yaml.get_network("mainnet").unwrap();
+        let mut network = ob_yaml.get_network("mainnet").await.unwrap();
         assert_eq!(
             network.rpc,
             Url::parse("https://mainnet.infura.io").unwrap()
@@ -339,18 +344,20 @@ mod tests {
             Url::parse("https://some-random-rpc-address.com").unwrap()
         );
 
-        let network = ob_yaml.get_network("mainnet").unwrap();
+        let network = ob_yaml.get_network("mainnet").await.unwrap();
         assert_eq!(
             network.rpc,
             Url::parse("https://some-random-rpc-address.com").unwrap()
         );
     }
 
-    #[test]
-    fn test_update_token_address() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_update_token_address() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        let mut token = ob_yaml.get_token("token1").unwrap();
+        let mut token = ob_yaml.get_token("token1").await.unwrap();
         assert_eq!(
             token.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -364,22 +371,24 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
         );
 
-        let token = ob_yaml.get_token("token1").unwrap();
+        let token = ob_yaml.get_token("token1").await.unwrap();
         assert_eq!(
             token.address,
             Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
         );
     }
 
-    #[test]
-    fn test_add_token_to_yaml() {
+    #[tokio::test]
+    async fn test_add_token_to_yaml() {
         let yaml = r#"
 networks:
     mainnet:
         rpc: "https://mainnet.infura.io"
         chain-id: "1"
 "#;
-        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false)
+            .await
+            .unwrap();
 
         TokenCfg::add_record_to_yaml(
             ob_yaml.documents.clone(),
@@ -390,9 +399,10 @@ networks:
             Some("Test Token"),
             Some("TTK"),
         )
+        .await
         .unwrap();
 
-        let token = ob_yaml.get_token("test-token").unwrap();
+        let token = ob_yaml.get_token("test-token").await.unwrap();
         assert_eq!(token.key, "test-token");
         assert_eq!(token.network.key, "mainnet");
         assert_eq!(
@@ -404,32 +414,36 @@ networks:
         assert_eq!(token.symbol, Some("TTK".to_string()));
     }
 
-    #[test]
-    fn test_remove_token_from_yaml() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_remove_token_from_yaml() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        assert!(ob_yaml.get_token("token1").is_ok());
+        assert!(ob_yaml.get_token("token1").await.is_ok());
         TokenCfg::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
-        assert!(ob_yaml.get_token("token1").is_err());
+        assert!(ob_yaml.get_token("token1").await.is_err());
     }
 
-    #[test]
-    fn test_add_metaboard_to_yaml() {
+    #[tokio::test]
+    async fn test_add_metaboard_to_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();
+        let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false)
+            .await
+            .unwrap();
 
         ob_yaml
             .add_metaboard("test-metaboard", "https://test-metaboard.com")
             .unwrap();
 
         assert_eq!(
-            ob_yaml.get_metaboard_keys().unwrap(),
+            ob_yaml.get_metaboard_keys().await.unwrap(),
             vec!["test-metaboard".to_string()]
         );
         assert_eq!(
-            ob_yaml.get_metaboard("test-metaboard").unwrap().url,
+            ob_yaml.get_metaboard("test-metaboard").await.unwrap().url,
             Url::parse("https://test-metaboard.com").unwrap()
         );
     }

@@ -69,15 +69,16 @@ impl OrderbookCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for OrderbookCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orderbooks = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
-        let subgraphs = SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None).await?;
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(documents.clone(), None).await?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -339,12 +340,14 @@ mod tests {
         Arc::new(RwLock::new(document))
     }
 
-    #[test]
-    fn test_parse_orderbooks_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_orderbooks_from_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -360,7 +363,9 @@ networks:
         chain-id: 1
 test: test
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -378,7 +383,9 @@ subgraphs:
     SomeSubgraph: https://subgraph.com
 test: test
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -397,7 +404,9 @@ subgraphs:
 orderbooks:
     TestOrderbook:
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -418,7 +427,9 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: TestNetwork
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -443,7 +454,9 @@ orderbooks:
         network: TestNetwork
         subgraph: TestSubgraph
 "#;
-        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -456,8 +469,8 @@ orderbooks:
         );
     }
 
-    #[test]
-    fn test_parse_orderbooks_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_orderbooks_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     TestNetwork:
@@ -480,7 +493,9 @@ orderbooks:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents, None).unwrap();
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap();
 
         assert_eq!(orderbooks.len(), 2);
         assert!(orderbooks.contains_key("OrderbookOne"));
@@ -496,8 +511,8 @@ orderbooks:
         );
     }
 
-    #[test]
-    fn test_parse_orderbooks_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_orderbooks_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     TestNetwork:
@@ -520,7 +535,9 @@ orderbooks:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = OrderbookCfg::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = OrderbookCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap_err();
 
         assert_eq!(
             error,

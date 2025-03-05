@@ -142,7 +142,11 @@ amount price: 2 1;
 
         // add order
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("polygon").unwrap();
+        let deployment = order
+            .dotrain_yaml()
+            .get_deployment("polygon")
+            .await
+            .unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()

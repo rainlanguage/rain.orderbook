@@ -20,8 +20,9 @@ use strict_yaml_rust::{
 use thiserror::Error;
 use url::ParseError as UrlParseError;
 
+#[async_trait::async_trait]
 pub trait YamlParsable: Sized {
-    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
+    async fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
 
@@ -41,18 +42,19 @@ pub trait YamlParsable: Sized {
     }
 }
 
+#[async_trait::async_trait]
 pub trait YamlParsableHash: Sized + Clone {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError>;
 
-    fn parse_from_yaml(
+    async fn parse_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         key: &str,
         context: Option<&Context>,
     ) -> Result<Self, YamlError> {
-        let all = Self::parse_all_from_yaml(documents, context)?;
+        let all = Self::parse_all_from_yaml(documents, context).await?;
         all.get(key)
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
@@ -71,13 +73,14 @@ pub trait YamlParsableString {
     ) -> Result<Option<String>, YamlError>;
 }
 
+#[async_trait::async_trait]
 pub trait YamlParseableValue: Sized {
     fn parse_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Self, YamlError>;
 
-    fn parse_from_yaml_optional(
+    async fn parse_from_yaml_optional(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;

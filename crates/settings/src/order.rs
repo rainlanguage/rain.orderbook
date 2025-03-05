@@ -471,16 +471,17 @@ impl OrderCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for OrderCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None);
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), None);
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None).await;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), None).await;
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None).await;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -1097,12 +1098,14 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_parse_orders_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_orders_from_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1115,7 +1118,9 @@ test: test
 orders:
     order1:
 "#;
-        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1130,7 +1135,9 @@ orders:
         inputs:
             - test: test
 "#;
-        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1153,7 +1160,9 @@ orders:
         inputs:
             - token: eth
 "#;
-        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1178,7 +1187,9 @@ orders:
         outputs:
             - test: test
 "#;
-        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1188,8 +1199,8 @@ orders:
         );
     }
 
-    #[test]
-    fn test_parse_orders_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_orders_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -1225,7 +1236,9 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let orders = OrderCfg::parse_all_from_yaml(documents, None).unwrap();
+        let orders = OrderCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap();
 
         assert_eq!(orders.len(), 2);
         assert!(orders.contains_key("OrderOne"));
@@ -1235,8 +1248,8 @@ orders:
         assert_eq!(orders.get("OrderTwo").unwrap().key, "OrderTwo");
     }
 
-    #[test]
-    fn test_parse_orders_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_orders_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -1272,7 +1285,9 @@ orders:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = OrderCfg::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = OrderCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap_err();
 
         assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
     }

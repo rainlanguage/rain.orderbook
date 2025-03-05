@@ -45,7 +45,7 @@ impl Execute for ListOrderFrontmatterKeys {
 
         let keys_string = match self.key_type {
             KeyType::Deployment => {
-                let deployment_keys = order.dotrain_yaml().get_deployment_keys()?;
+                let deployment_keys = order.dotrain_yaml().get_deployment_keys().await?;
                 deployment_keys
                     .iter()
                     .map(|key| key.to_string())
@@ -53,7 +53,7 @@ impl Execute for ListOrderFrontmatterKeys {
                     .join(" ")
             }
             KeyType::Scenario => {
-                let scenario_keys = order.dotrain_yaml().get_scenario_keys()?;
+                let scenario_keys = order.dotrain_yaml().get_scenario_keys().await?;
                 scenario_keys
                     .iter()
                     .map(|key| key.to_string())

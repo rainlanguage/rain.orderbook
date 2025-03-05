@@ -84,8 +84,9 @@ impl SubgraphCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for SubgraphCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
@@ -157,12 +158,14 @@ mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 
-    #[test]
-    fn test_parse_subgraphs_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_subgraphs_from_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -176,7 +179,9 @@ subgraphs:
     TestSubgraph:
         test: https://subgraph.com
 "#;
-        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -193,7 +198,9 @@ subgraphs:
     TestSubgraph:
         - https://subgraph.com
 "#;
-        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -209,7 +216,9 @@ subgraphs:
 subgraphs:
     TestSubgraph: not_a_valid_url
 "#;
-        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert!(matches!(
             error,
             YamlError::Field {
@@ -222,7 +231,9 @@ subgraphs:
 subgraphs:
     TestSubgraph: https://subgraph.com
 "#;
-        let result = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let result = SubgraphCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("TestSubgraph"));
         assert_eq!(
@@ -231,8 +242,8 @@ subgraphs:
         );
     }
 
-    #[test]
-    fn test_parse_subgraphs_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_subgraphs_from_yaml_multiple_files() {
         let yaml_one = r#"
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/mainnet
@@ -247,6 +258,7 @@ subgraphs:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(subgraphs.len(), 4);
@@ -268,8 +280,8 @@ subgraphs:
         );
     }
 
-    #[test]
-    fn test_parse_subgraphs_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_subgraphs_from_yaml_duplicate_key() {
         let yaml_one = r#"
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/mainnet
@@ -283,6 +295,7 @@ subgraphs:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
     }

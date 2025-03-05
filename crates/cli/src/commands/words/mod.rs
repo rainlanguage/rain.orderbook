@@ -96,21 +96,19 @@ impl Execute for Words {
 
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
-            let deployer = order.orderbook_yaml().get_deployer(deployer_key)?;
+            let deployer = order.orderbook_yaml().get_deployer(deployer_key).await?;
 
             // get metaboard subgraph url
-            let metaboard_url = self
-                .metaboard_subgraph
-                .as_ref()
-                .map(|v| v.to_string())
-                .or_else(|| {
-                    order
+            let metaboard_url = match self.metaboard_subgraph.as_ref() {
+                Some(v) => v.to_string(),
+                None => {
+                    let metaboard = order
                         .orderbook_yaml()
                         .get_metaboard(&deployer.network.key)
-                        .ok()
-                        .map(|metaboard| metaboard.url.to_string())
-                })
-                .ok_or(anyhow!("undefined metaboard subgraph url"))?;
+                        .await?;
+                    metaboard.url.to_string()
+                }
+            };
 
             AuthoringMetaV2::fetch_for_contract(
                 deployer.address,
@@ -124,7 +122,8 @@ impl Execute for Words {
             if let Some(v) = &self.metaboard_subgraph {
                 let network_name = &order
                     .dotrain_yaml()
-                    .get_scenario(scenario)?
+                    .get_scenario(scenario)
+                    .await?
                     .deployer
                     .network
                     .key
@@ -162,7 +161,7 @@ impl Execute for Words {
                 words
             }
         } else if let Some(deployment) = &self.source.deployment {
-            let deployment = order.dotrain_yaml().get_deployment(deployment)?;
+            let deployment = order.dotrain_yaml().get_deployment(deployment).await?;
             let scenario = &deployment.scenario.key;
 
             // set the cli given metaboard url into the config

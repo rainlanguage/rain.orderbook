@@ -78,8 +78,9 @@ impl MetaboardCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for MetaboardCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
@@ -149,8 +150,8 @@ mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
 
-    #[test]
-    fn test_parse_metaboards_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_metaboards_from_yaml_multiple_files() {
         let yaml_one = r#"
 metaboards:
     MetaboardOne: https://metaboard-one.com
@@ -161,7 +162,9 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let metaboards = MetaboardCfg::parse_all_from_yaml(documents, None).unwrap();
+        let metaboards = MetaboardCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap();
 
         assert_eq!(metaboards.len(), 2);
         assert!(metaboards.contains_key("MetaboardOne"));
@@ -177,8 +180,8 @@ metaboards:
         );
     }
 
-    #[test]
-    fn test_parse_metaboards_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_metaboards_from_yaml_duplicate_key() {
         let yaml_one = r#"
 metaboards:
     DuplicateMetaboard: https://metaboard-one.com
@@ -189,7 +192,9 @@ metaboards:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = MetaboardCfg::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = MetaboardCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap_err();
 
         assert_eq!(
             error,

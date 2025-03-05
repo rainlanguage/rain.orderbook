@@ -873,7 +873,11 @@ _ _: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+        let deployment = order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .await
+            .unwrap();
         AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -958,7 +962,11 @@ _ _: 16 52;
         );
 
         let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+        let deployment = order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .await
+            .unwrap();
         AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()

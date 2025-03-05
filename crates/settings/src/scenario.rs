@@ -190,7 +190,7 @@ impl ScenarioCfg {
         Ok(())
     }
 
-    pub fn update_bindings(
+    pub async fn update_bindings(
         &mut self,
         bindings: HashMap<String, String>,
     ) -> Result<Self, YamlError> {
@@ -320,18 +320,19 @@ impl ScenarioCfg {
             }
         }
 
-        Self::parse_from_yaml(vec![self.document.clone()], &self.key, None)
+        Self::parse_from_yaml(vec![self.document.clone()], &self.key, None).await
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for ScenarioCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None).await?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -676,8 +677,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_parse_scenarios_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_scenarios_from_yaml() {
         let yaml = r#"
 networks:
     mainnet:
@@ -689,7 +690,9 @@ deployers:
         network: mainnet
 test: test
 "#;
-        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -713,7 +716,9 @@ scenarios:
             key1:
                 - value1
 "#;
-        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -740,7 +745,9 @@ scenarios:
             key1:
                 - value1: value2
 "#;
-        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -771,7 +778,9 @@ scenarios:
                 bindings:
                     key1: value
 "#;
-        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -806,7 +815,9 @@ scenarios:
                     key2: value
                 deployer: testnet
 "#;
-        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
@@ -816,8 +827,8 @@ scenarios:
         );
     }
 
-    #[test]
-    fn test_parse_scenarios_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_scenarios_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -852,6 +863,7 @@ scenarios:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(scenarios.len(), 4);
@@ -898,8 +910,8 @@ scenarios:
         );
     }
 
-    #[test]
-    fn test_parse_scenarios_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_scenarios_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -927,6 +939,7 @@ scenarios:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap_err();
 
         assert_eq!(

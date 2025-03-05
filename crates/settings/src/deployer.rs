@@ -124,14 +124,15 @@ impl DeployerConfigSource {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for DeployerCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None).await?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -259,8 +260,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_parse_deployers_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_deployers_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     TestNetwork:
@@ -279,7 +280,9 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let deployers = DeployerCfg::parse_all_from_yaml(documents, None).unwrap();
+        let deployers = DeployerCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap();
 
         assert_eq!(deployers.len(), 2);
         assert!(deployers.contains_key("DeployerOne"));
@@ -295,8 +298,8 @@ deployers:
         );
     }
 
-    #[test]
-    fn test_parse_deployers_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_deployers_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     TestNetwork:
@@ -315,7 +318,9 @@ deployers:
 "#;
 
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
-        let error = DeployerCfg::parse_all_from_yaml(documents, None).unwrap_err();
+        let error = DeployerCfg::parse_all_from_yaml(documents, None)
+            .await
+            .unwrap_err();
 
         assert_eq!(
             error,

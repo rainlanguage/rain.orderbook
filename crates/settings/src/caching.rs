@@ -19,7 +19,7 @@ pub enum CacheError {
 }
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
-pub trait CacheStrategy {
+pub trait CacheStrategy: Send + Sync {
     fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, CacheError>;
     fn set_networks(&self, networks: HashMap<String, NetworkCfg>) -> Result<(), CacheError>;
     fn get_network(&self, key: &str) -> Result<NetworkCfg, CacheError>;

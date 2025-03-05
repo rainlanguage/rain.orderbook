@@ -1,4 +1,5 @@
 use crate::config_source::*;
+use crate::remote_networks::RemoteNetworksCfg;
 use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
@@ -139,75 +140,99 @@ impl NetworkCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for NetworkCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut networks = HashMap::new();
 
-        for document in documents {
-            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+        for document in documents.clone() {
+            let network_configs = {
+                let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(networks_hash) =
-                require_hash(&document_read, Some("networks"), Some("root".to_string()))
+                if let Ok(networks_hash) =
+                    require_hash(&document_read, Some("networks"), Some("root".to_string()))
+                {
+                    networks_hash
+                        .iter()
+                        .map(|(key_yaml, network_yaml)| {
+                            let network_key = key_yaml.as_str().unwrap_or_default().to_string();
+                            let location = format!("network '{}'", network_key);
+
+                            let rpc_str =
+                                require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+                            let chain_id_str = require_string(
+                                network_yaml,
+                                Some("chain-id"),
+                                Some(location.clone()),
+                            )?;
+                            let label = optional_string(network_yaml, "label");
+                            let network_id_str = optional_string(network_yaml, "network-id");
+                            let currency = optional_string(network_yaml, "currency");
+
+                            Ok((
+                                network_key,
+                                rpc_str,
+                                chain_id_str,
+                                label,
+                                network_id_str,
+                                currency,
+                            ))
+                        })
+                        .collect::<Result<Vec<_>, YamlError>>()?
+                } else {
+                    vec![]
+                }
+            };
+
+            for (network_key, rpc_str, chain_id_str, label, network_id_str, currency) in
+                network_configs
             {
-                for (key_yaml, network_yaml) in networks_hash {
-                    let network_key = key_yaml.as_str().unwrap_or_default().to_string();
-                    let location = format!("network '{}'", network_key);
+                let location = format!("network '{}'", network_key);
 
-                    let rpc_str =
-                        require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+                let rpc_url = NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "rpc".to_string(),
+                        reason: e.to_string(),
+                    },
+                    location: location.clone(),
+                })?;
 
-                    let rpc_url =
-                        NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
-                            kind: FieldErrorKind::InvalidValue {
-                                field: "rpc".to_string(),
-                                reason: e.to_string(),
-                            },
-                            location: location.clone(),
-                        })?;
+                let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "chain-id".to_string(),
+                        reason: e.to_string(),
+                    },
+                    location: location.clone(),
+                })?;
 
-                    let chain_id_str =
-                        require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
-
-                    let chain_id = chain_id_str.parse::<u64>().map_err(|e| YamlError::Field {
+                let network_id = network_id_str
+                    .map(|id| NetworkCfg::validate_network_id(&id))
+                    .transpose()
+                    .map_err(|e| YamlError::Field {
                         kind: FieldErrorKind::InvalidValue {
-                            field: "chain-id".to_string(),
+                            field: "network-id".to_string(),
                             reason: e.to_string(),
                         },
                         location: location.clone(),
                     })?;
 
-                    let label = optional_string(network_yaml, "label");
-                    let network_id = optional_string(network_yaml, "network-id")
-                        .map(|id| NetworkCfg::validate_network_id(&id))
-                        .transpose()
-                        .map_err(|e| YamlError::Field {
-                            kind: FieldErrorKind::InvalidValue {
-                                field: "network-id".to_string(),
-                                reason: e.to_string(),
-                            },
-                            location: location.clone(),
-                        })?;
+                let network = NetworkCfg {
+                    document: document.clone(),
+                    key: network_key.clone(),
+                    rpc: rpc_url,
+                    chain_id,
+                    label,
+                    network_id,
+                    currency,
+                };
 
-                    let currency = optional_string(network_yaml, "currency");
-
-                    let network = NetworkCfg {
-                        document: document.clone(),
-                        key: network_key.clone(),
-                        rpc: rpc_url,
-                        chain_id,
-                        label,
-                        network_id,
-                        currency,
-                    };
-
-                    if networks.contains_key(&network_key) {
-                        return Err(YamlError::KeyShadowing(network_key));
-                    }
-                    networks.insert(network_key, network);
+                if networks.contains_key(&network_key) {
+                    return Err(YamlError::KeyShadowing(network_key));
                 }
+                networks.insert(network_key, network);
             }
         }
 
@@ -293,12 +318,14 @@ mod tests {
         assert_eq!(network.key, "local");
     }
 
-    #[test]
-    fn test_parse_networks_from_yaml() {
+    #[tokio::test]
+    async fn test_parse_networks_from_yaml() {
         let yaml = r#"
 test: test
 "#;
-        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -311,7 +338,9 @@ test: test
 networks:
     mainnet:
 "#;
-        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -325,7 +354,9 @@ networks:
     mainnet:
         rpc: https://mainnet.infura.io
 "#;
-        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
+            .await
+            .unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -335,8 +366,8 @@ networks:
         );
     }
 
-    #[test]
-    fn test_parse_networks_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_networks_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -359,6 +390,7 @@ networks:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(networks.len(), 4);
@@ -380,8 +412,8 @@ networks:
         );
     }
 
-    #[test]
-    fn test_parse_networks_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_networks_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -401,6 +433,7 @@ networks:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
     }

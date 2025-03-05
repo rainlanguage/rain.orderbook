@@ -88,7 +88,7 @@ impl TokenCfg {
         Ok(self.clone())
     }
 
-    pub fn add_record_to_yaml(
+    pub async fn add_record_to_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         key: &str,
         network_key: &str,
@@ -97,13 +97,16 @@ impl TokenCfg {
         label: Option<&str>,
         symbol: Option<&str>,
     ) -> Result<(), YamlError> {
-        if TokenCfg::parse_from_yaml(documents.clone(), key, None).is_ok() {
+        if TokenCfg::parse_from_yaml(documents.clone(), key, None)
+            .await
+            .is_ok()
+        {
             return Err(YamlError::KeyShadowing(key.to_string()));
         }
 
         let address = TokenCfg::validate_address(address)?;
         let decimals = decimals.map(TokenCfg::validate_decimals).transpose()?;
-        NetworkCfg::parse_from_yaml(documents.clone(), network_key, None)?;
+        NetworkCfg::parse_from_yaml(documents.clone(), network_key, None).await?;
 
         let mut document = documents[0]
             .write()
@@ -224,14 +227,15 @@ impl TokenCfg {
     }
 }
 
+#[async_trait::async_trait]
 impl YamlParsableHash for TokenCfg {
-    fn parse_all_from_yaml(
+    async fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None).await?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -452,8 +456,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_parse_tokens_errors() {
+    #[tokio::test]
+    async fn test_parse_tokens_errors() {
         let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
                 r#"
@@ -462,6 +466,7 @@ test: test
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -483,6 +488,7 @@ test: test
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -506,6 +512,7 @@ tokens:
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -530,6 +537,7 @@ tokens:
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -556,6 +564,7 @@ tokens:
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(
             error,
@@ -580,6 +589,7 @@ tokens:
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert!(matches!(
             error,
@@ -605,6 +615,7 @@ tokens:
             )],
             None,
         )
+        .await
         .unwrap_err();
         assert!(matches!(
             error,
@@ -615,8 +626,8 @@ tokens:
         ));
     }
 
-    #[test]
-    fn test_parse_tokens_from_yaml_multiple_files() {
+    #[tokio::test]
+    async fn test_parse_tokens_from_yaml_multiple_files() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -647,6 +658,7 @@ tokens:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap();
 
         assert_eq!(tokens.len(), 4);
@@ -672,8 +684,8 @@ tokens:
         assert_eq!(tokens.get("usdt").unwrap().decimals, Some(6));
     }
 
-    #[test]
-    fn test_parse_tokens_from_yaml_duplicate_key() {
+    #[tokio::test]
+    async fn test_parse_tokens_from_yaml_duplicate_key() {
         let yaml_one = r#"
 networks:
     mainnet:
@@ -697,6 +709,7 @@ tokens:
             vec![get_document(yaml_one), get_document(yaml_two)],
             None,
         )
+        .await
         .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("dai".to_string()));
     }

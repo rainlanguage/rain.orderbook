@@ -21,8 +21,9 @@ pub struct DotrainYaml {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DotrainYaml);
 
+#[async_trait::async_trait]
 impl YamlParsable for DotrainYaml {
-    fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
+    async fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError> {
         let mut documents = Vec::new();
 
         for source in sources {
@@ -37,9 +38,9 @@ impl YamlParsable for DotrainYaml {
         }
 
         if validate {
-            OrderCfg::parse_all_from_yaml(documents.clone(), None)?;
-            ScenarioCfg::parse_all_from_yaml(documents.clone(), None)?;
-            DeploymentCfg::parse_all_from_yaml(documents.clone(), None)?;
+            OrderCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            ScenarioCfg::parse_all_from_yaml(documents.clone(), None).await?;
+            DeploymentCfg::parse_all_from_yaml(documents.clone(), None).await?;
         }
 
         Ok(DotrainYaml { documents })
@@ -51,40 +52,43 @@ impl YamlParsable for DotrainYaml {
 }
 
 impl DotrainYaml {
-    pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
+        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(orders.keys().cloned().collect())
     }
-    pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
+    pub async fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         context.add_current_order(key.to_string());
-        OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context)).await
     }
 
-    pub fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
-        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_scenario_keys(&self) -> Result<Vec<String>, YamlError> {
+        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(scenarios.keys().cloned().collect())
     }
-    pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
-        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
+    pub async fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
+        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None).await
     }
 
-    pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+    pub async fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
+        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None).await?;
         Ok(deployments.keys().cloned().collect())
     }
-    pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
+    pub async fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
         context.add_current_deployment(key.to_string());
-        DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context)).await
     }
 
-    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
+    pub async fn get_gui(
+        &self,
+        current_deployment: Option<String>,
+    ) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
         if let Some(deployment) = current_deployment {
             context.add_current_deployment(deployment);
         }
-        GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
+        GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context)).await
     }
 }
 
@@ -288,29 +292,33 @@ mod tests {
                         - value: value2
     "#;
 
-    #[test]
-    fn test_full_yaml() {
-        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
-        let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_full_yaml() {
+        let ob_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
+        let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        assert_eq!(dotrain_yaml.get_order_keys().unwrap().len(), 1);
-        let order = dotrain_yaml.get_order("order1").unwrap();
+        assert_eq!(dotrain_yaml.get_order_keys().await.unwrap().len(), 1);
+        let order = dotrain_yaml.get_order("order1").await.unwrap();
         assert_eq!(order.inputs.len(), 1);
         let input = order.inputs.first().unwrap();
         assert_eq!(
             *input.token.clone().as_ref().unwrap(),
-            ob_yaml.get_token("token1").unwrap().into()
+            ob_yaml.get_token("token1").await.unwrap().into()
         );
         assert_eq!(input.vault_id, Some(U256::from(1)));
         let output = order.outputs.first().unwrap();
         assert_eq!(
             *output.token.as_ref().unwrap(),
-            ob_yaml.get_token("token2").unwrap().into()
+            ob_yaml.get_token("token2").await.unwrap().into()
         );
         assert_eq!(output.vault_id, Some(U256::from(2)));
         assert_eq!(
             *order.network.as_ref(),
-            ob_yaml.get_network("mainnet").unwrap()
+            ob_yaml.get_network("mainnet").await.unwrap()
         );
         let input_vault_ids =
             OrderCfg::parse_vault_ids(dotrain_yaml.documents.clone(), &order.key, true).unwrap();
@@ -326,46 +334,50 @@ mod tests {
         assert_eq!(io_token_keys[0], "token1");
         assert_eq!(io_token_keys[1], "token2");
 
-        let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
+        let scenario_keys = dotrain_yaml.get_scenario_keys().await.unwrap();
         assert_eq!(scenario_keys.len(), 3);
-        let scenario1 = dotrain_yaml.get_scenario("scenario1").unwrap();
+        let scenario1 = dotrain_yaml.get_scenario("scenario1").await.unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
         assert_eq!(
             *scenario1.deployer.as_ref(),
-            ob_yaml.get_deployer("scenario1").unwrap()
+            ob_yaml.get_deployer("scenario1").await.unwrap()
         );
-        let scenario2 = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+        let scenario2 = dotrain_yaml
+            .get_scenario("scenario1.scenario2")
+            .await
+            .unwrap();
         assert_eq!(scenario2.bindings.len(), 2);
         assert_eq!(scenario2.bindings.get("key1").unwrap(), "value1");
         assert_eq!(scenario2.bindings.get("key2").unwrap(), "value2");
         assert_eq!(
             *scenario2.deployer.as_ref(),
-            ob_yaml.get_deployer("scenario1").unwrap()
+            ob_yaml.get_deployer("scenario1").await.unwrap()
         );
 
-        let deployment_keys = dotrain_yaml.get_deployment_keys().unwrap();
+        let deployment_keys = dotrain_yaml.get_deployment_keys().await.unwrap();
         assert_eq!(deployment_keys.len(), 2);
-        let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
+        let deployment = dotrain_yaml.get_deployment("deployment1").await.unwrap();
         assert_eq!(
             deployment.order,
-            dotrain_yaml.get_order("order1").unwrap().into()
+            dotrain_yaml.get_order("order1").await.unwrap().into()
         );
         assert_eq!(
             deployment.scenario,
             dotrain_yaml
                 .get_scenario("scenario1.scenario2")
+                .await
                 .unwrap()
                 .into()
         );
-        let deployment = dotrain_yaml.get_deployment("deployment2").unwrap();
+        let deployment = dotrain_yaml.get_deployment("deployment2").await.unwrap();
         assert_eq!(
             deployment.order,
-            dotrain_yaml.get_order("order1").unwrap().into()
+            dotrain_yaml.get_order("order1").await.unwrap().into()
         );
         assert_eq!(
             deployment.scenario,
-            dotrain_yaml.get_scenario("scenario1").unwrap().into()
+            dotrain_yaml.get_scenario("scenario1").await.unwrap().into()
         );
         assert_eq!(
             DeploymentCfg::parse_order_key(dotrain_yaml.documents.clone(), "deployment1").unwrap(),
@@ -376,7 +388,7 @@ mod tests {
             "order1"
         );
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui(None).await.unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -387,7 +399,7 @@ mod tests {
         let deposit = &deployment.deposits[0];
         assert_eq!(
             *deposit.token.as_ref().unwrap(),
-            ob_yaml.get_token("token1").unwrap().into()
+            ob_yaml.get_token("token1").await.unwrap().into()
         );
         let presets = deposit.presets.as_ref().unwrap();
         assert_eq!(presets.len(), 2);
@@ -452,8 +464,8 @@ mod tests {
         assert_eq!(field_presets[0].value, "value2");
     }
 
-    #[test]
-    fn test_update_vault_ids() {
+    #[tokio::test]
+    async fn test_update_vault_ids() {
         let yaml = r#"
         networks:
             mainnet:
@@ -482,9 +494,11 @@ mod tests {
                 outputs:
                     - token: token2
         "#;
-        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
+        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false)
+            .await
+            .unwrap();
 
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1").await.unwrap();
 
         assert!(order.inputs[0].vault_id.is_none());
         assert!(order.outputs[0].vault_id.is_none());
@@ -499,7 +513,7 @@ mod tests {
             updated_order.outputs[0].vault_id
         );
 
-        let order_after = dotrain_yaml.get_order("order1").unwrap();
+        let order_after = dotrain_yaml.get_order("order1").await.unwrap();
         assert_eq!(
             order_after.inputs[0].vault_id,
             updated_order.inputs[0].vault_id
@@ -510,8 +524,10 @@ mod tests {
         );
 
         // Populate vault IDs should not change if the vault IDs are already set
-        let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false)
+            .await
+            .unwrap();
+        let mut order = dotrain_yaml.get_order("order1").await.unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
         order.populate_vault_ids().unwrap();
@@ -519,8 +535,8 @@ mod tests {
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
     }
 
-    #[test]
-    fn test_update_vault_id() {
+    #[tokio::test]
+    async fn test_update_vault_id() {
         let yaml = r#"
         networks:
             mainnet:
@@ -549,8 +565,10 @@ mod tests {
                 outputs:
                     - token: token2
         "#;
-        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false).unwrap();
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let dotrain_yaml = DotrainYaml::new(vec![yaml.to_string()], false)
+            .await
+            .unwrap();
+        let mut order = dotrain_yaml.get_order("order1").await.unwrap();
 
         assert!(order.inputs[0].vault_id.is_none());
         assert!(order.outputs[0].vault_id.is_none());
@@ -565,7 +583,7 @@ mod tests {
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(11)));
 
-        let mut order = dotrain_yaml.get_order("order1").unwrap();
+        let mut order = dotrain_yaml.get_order("order1").await.unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(11)));
 
@@ -578,39 +596,47 @@ mod tests {
         assert_eq!(updated_order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(updated_order.outputs[0].vault_id, Some(U256::from(33)));
 
-        let order = dotrain_yaml.get_order("order1").unwrap();
+        let order = dotrain_yaml.get_order("order1").await.unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
     }
 
-    #[test]
-    fn test_update_bindings() {
+    #[tokio::test]
+    async fn test_update_bindings() {
         // Parent scenario
         {
-            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false)
+                .await
+                .unwrap();
 
-            let mut scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+            let mut scenario = dotrain_yaml.get_scenario("scenario1").await.unwrap();
 
             assert_eq!(scenario.bindings.len(), 1);
             assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
 
             let updated_scenario = scenario
                 .update_bindings(HashMap::from([("key1".to_string(), "value2".to_string())]))
+                .await
                 .unwrap();
 
             assert_eq!(updated_scenario.bindings.len(), 1);
             assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value2");
 
-            let scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
+            let scenario = dotrain_yaml.get_scenario("scenario1").await.unwrap();
             assert_eq!(scenario.bindings.len(), 1);
             assert_eq!(scenario.bindings.get("key1").unwrap(), "value2");
         }
 
         // Child scenario
         {
-            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false)
+                .await
+                .unwrap();
 
-            let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            let mut scenario = dotrain_yaml
+                .get_scenario("scenario1.scenario2")
+                .await
+                .unwrap();
 
             assert_eq!(scenario.bindings.len(), 2);
             assert_eq!(scenario.bindings.get("key1").unwrap(), "value1");
@@ -621,13 +647,17 @@ mod tests {
                     ("key1".to_string(), "value3".to_string()),
                     ("key2".to_string(), "value4".to_string()),
                 ]))
+                .await
                 .unwrap();
 
             assert_eq!(updated_scenario.bindings.len(), 2);
             assert_eq!(updated_scenario.bindings.get("key1").unwrap(), "value3");
             assert_eq!(updated_scenario.bindings.get("key2").unwrap(), "value4");
 
-            let scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            let scenario = dotrain_yaml
+                .get_scenario("scenario1.scenario2")
+                .await
+                .unwrap();
             assert_eq!(scenario.bindings.len(), 2);
             assert_eq!(scenario.bindings.get("key1").unwrap(), "value3");
             assert_eq!(scenario.bindings.get("key2").unwrap(), "value4");
@@ -635,14 +665,20 @@ mod tests {
 
         // Adding additional bindings
         {
-            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false).unwrap();
+            let dotrain_yaml = DotrainYaml::new(vec![FULL_YAML.to_string()], false)
+                .await
+                .unwrap();
 
-            let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
+            let mut scenario = dotrain_yaml
+                .get_scenario("scenario1.scenario2")
+                .await
+                .unwrap();
             let updated_scenario = scenario
                 .update_bindings(HashMap::from([
                     ("key3".to_string(), "value3".to_string()),
                     ("key4".to_string(), "value4".to_string()),
                 ]))
+                .await
                 .unwrap();
 
             assert_eq!(updated_scenario.bindings.len(), 4);
@@ -651,11 +687,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_handlebars() {
-        let dotrain_yaml = DotrainYaml::new(vec![HANDLEBARS_YAML.to_string()], false).unwrap();
+    #[tokio::test]
+    async fn test_handlebars() {
+        let dotrain_yaml = DotrainYaml::new(vec![HANDLEBARS_YAML.to_string()], false)
+            .await
+            .unwrap();
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui(None).await.unwrap().unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
 
         assert_eq!(
@@ -674,8 +712,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_parse_orders_missing_token() {
+    #[tokio::test]
+    async fn test_parse_orders_missing_token() {
         let yaml_prefix = r#"
 networks:
     mainnet:
@@ -745,8 +783,10 @@ orders:
         "
         );
 
-        let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let dotrain_yaml = DotrainYaml::new(vec![missing_input_token_yaml], false)
+            .await
+            .unwrap();
+        let error = dotrain_yaml.get_gui(None).await.unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -758,8 +798,10 @@ orders:
             }
         );
 
-        let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false)
+            .await
+            .unwrap();
+        let error = dotrain_yaml.get_gui(None).await.unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
