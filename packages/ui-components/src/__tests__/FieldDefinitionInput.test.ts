@@ -150,8 +150,6 @@ describe('FieldDefinitionInput', () => {
 			}
 		});
 
-		
-
 		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
 		expect(input.value).toBe('preset1');
 
