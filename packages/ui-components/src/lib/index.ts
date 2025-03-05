@@ -125,14 +125,12 @@ export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';
-export {
-	defaultWagmiConfig,
-	useSignerAddress,
-	initWagmi,
-	wagmiConfig,
-	appKitModal
-} from './stores/wagmi';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
+
+// Wagmi provider
+export { default as WagmiProvider } from './providers/wagmi/WagmiProvider.svelte';
+export { useWagmiClient } from './providers/wagmi/useWagmiClient';
+export { defaultWagmiConfig, wagmiConfig, appKitModal } from './providers/wagmi/wagmiStores';
