@@ -6,11 +6,7 @@
 	import { useSignerAddress, appKitModal } from '../../stores/wagmi';
 
 	export let classes: string = '';
-
-	console.log('use it!', useSignerAddress);
-
 	const { signerAddress, connected } = useSignerAddress();
-	console.log($signerAddress, $connected);
 
 	function handleClick() {
 		$appKitModal.open();

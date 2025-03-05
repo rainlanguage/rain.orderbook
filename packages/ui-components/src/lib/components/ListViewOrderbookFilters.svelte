@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { useSignerAddress } from '../stores/wagmi';
+
 	import { isEmpty } from 'lodash';
 	import { Alert, Tooltip } from 'flowbite-svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
@@ -19,7 +21,8 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let signerAddress: Writable<string | null> | undefined;
+
+	const { signerAddress } = useSignerAddress();
 </script>
 
 <div
@@ -33,11 +36,7 @@
 	{:else}
 		{#if $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-				<CheckboxMyItemsOnly
-					context={isVaultsPage ? 'vaults' : 'orders'}
-					{showMyItemsOnly}
-					{signerAddress}
-				/>
+				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 				{#if !$signerAddress}
 					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
 				{/if}
