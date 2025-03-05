@@ -236,6 +236,16 @@ impl YamlParsableHash for NetworkCfg {
             }
         }
 
+        let remote_networks = RemoteNetworksCfg::parse_all_from_yaml(documents, None).await?;
+        let fetched_networks = RemoteNetworksCfg::fetch_networks(remote_networks).await?;
+
+        for (key, network) in fetched_networks {
+            if networks.contains_key(&key) {
+                return Err(YamlError::KeyShadowing(key));
+            }
+            networks.insert(key, network);
+        }
+
         if networks.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
