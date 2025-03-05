@@ -9,15 +9,15 @@ const { mockWagmiConfigStore } = await vi.hoisted(() => import('$lib/__mocks__/s
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
+		useSignerAddress: vi.fn().mockReturnValue({
+			signerAddress: '0x123'
+		}),
+		wagmiConfig: mockWagmiConfigStore,
 		transactionStore: mockTransactionStore
 	};
 });
 
-vi.mock('$lib/stores/wagmi', () => {
-	return {
-		wagmiConfig: mockWagmiConfigStore
-	};
-});
+
 
 describe('DeployModal', () => {
 	const mockProps = {

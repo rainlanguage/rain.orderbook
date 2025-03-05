@@ -622,7 +622,6 @@ const mockDeployment = {
 } as unknown as GuiDeploymentCfg;
 
 const defaultProps: DeploymentStepsProps = {
-	signerAddress: mockSignerAddressStore,
 	dotrain,
 	strategyDetail: {
 		name: 'SFLR<>WFLR on Flare',
@@ -630,9 +629,6 @@ const defaultProps: DeploymentStepsProps = {
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
 	},
 	deployment: mockDeployment,
-	wagmiConfig: mockWagmiConfigStore,
-	wagmiConnected: mockConnectedStore,
-	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 	settings: writable({} as ConfigSource),

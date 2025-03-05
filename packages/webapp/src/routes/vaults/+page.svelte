@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable, useSignerAddress } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { connected, signerAddress } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
+
+	const { connected, signerAddress } = useSignerAddress();
 
 	const {
 		activeOrderbook,

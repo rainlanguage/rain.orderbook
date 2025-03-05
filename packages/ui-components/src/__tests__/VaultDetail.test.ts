@@ -8,6 +8,18 @@ import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 
+const { mockWagmiConfigStore, mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
+
+vi.mock('../lib/stores/wagmi', () => ({
+	wagmiConfig: mockWagmiConfigStore,
+	useSignerAddress: vi.fn().mockReturnValue({
+		signerAddress: mockSignerAddressStore,
+		connected: mockConnectedStore
+	})
+}));
+
 // Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVault: vi.fn()
@@ -151,13 +163,12 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 			id: '0x00'
 		}
 	};
-
+	mockSignerAddressStore.mockSetSubscribeValue('0x123');
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
+
 
 	render(VaultDetail, {
 		props: {
@@ -167,8 +178,6 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])
@@ -226,8 +235,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])

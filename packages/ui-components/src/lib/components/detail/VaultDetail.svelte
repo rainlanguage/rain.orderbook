@@ -25,6 +25,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { useSignerAddress, wagmiConfig } from '$lib/stores/wagmi';
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -43,8 +44,8 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
+	const { signerAddress } = useSignerAddress();
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;

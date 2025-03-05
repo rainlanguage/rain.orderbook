@@ -3,9 +3,11 @@ import { vi, describe, it, expect, afterEach } from 'vitest';
 import Sidebar from '../lib/components/Sidebar.svelte';
 import { writable } from 'svelte/store';
 
-vi.mock('@rainlanguage/ui-components', async () => {
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
 	return {
+		...actual,
 		ButtonDarkMode: MockComponent,
 		logoLight: 'mock-logo-light.svg',
 		logoDark: 'mock-logo-dark.svg',

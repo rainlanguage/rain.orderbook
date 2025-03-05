@@ -9,12 +9,15 @@ const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
 );
 
-vi.mock('$lib/stores/wagmi', async (importOriginal) => {
-	const original = (await importOriginal()) as object;
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
 	return {
-		...original,
+		...actual,
 		appKitModal: writable({} as AppKit),
-		connected: mockConnectedStore
+		useSignerAddress: vi.fn().mockReturnValue({
+			signerAddress: mockSignerAddressStore,
+			connected: mockConnectedStore
+		})
 	};
 });
 

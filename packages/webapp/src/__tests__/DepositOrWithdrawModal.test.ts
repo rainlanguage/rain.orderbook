@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
-import { transactionStore } from '@rainlanguage/ui-components';
-import { signerAddress } from '$lib/stores/wagmi';
+import { transactionStore, useSignerAddress } from '@rainlanguage/ui-components';
+
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
@@ -21,6 +21,16 @@ vi.mock('@wagmi/core', () => ({
 	readContract: vi.fn(),
 	switchChain: vi.fn()
 }));
+
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
+	return {
+		...actual,
+		useSignerAddress: vi.fn().mockReturnValue({
+			signerAddress: '0x123'
+		})
+	};
+});
 
 describe('DepositOrWithdrawModal', () => {
 	const mockVault = {
@@ -47,7 +57,6 @@ describe('DepositOrWithdrawModal', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		transactionStore.reset();
-		signerAddress.set('0x123');
 	});
 
 	it('renders deposit modal correctly', () => {
