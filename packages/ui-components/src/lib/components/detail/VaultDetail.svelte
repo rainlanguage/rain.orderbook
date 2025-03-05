@@ -22,7 +22,10 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { useSignerAddress, wagmiConfig } from '$lib/stores/wagmi';
+	import { useWagmiClient } from '../../providers/wagmi/useWagmiClient';
+
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -42,8 +45,6 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 
-	const { signerAddress } = useSignerAddress();
-
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
@@ -56,8 +57,6 @@
 		},
 		enabled: !!subgraphUrl
 	});
-
-	console.log(useSignerAddress);
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {
 		activeNetworkRef.set(subgraphName);
@@ -88,7 +87,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
+			{#if wagmiClient.config && handleDepositOrWithdrawModal && $signerAddress === data.owner}
 				<DepositOrWithdrawButtons
 					vault={data}
 					{chainId}

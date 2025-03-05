@@ -1,5 +1,4 @@
 <script lang="ts" generics="T">
-	import { useSignerAddress } from '../../stores/wagmi';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
@@ -20,7 +19,7 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-
+	import { useWagmiClient } from '../../providers/wagmi/useWagmiClient';
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export const walletAddressMatchesOrBlank: any = undefined;
@@ -40,7 +39,8 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
-	const { signerAddress } = useSignerAddress();
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})

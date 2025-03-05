@@ -18,7 +18,6 @@
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-	import { useSignerAddress, wagmiConfig } from '../../stores/wagmi';
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
@@ -29,6 +28,10 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { useWagmiClient } from '../../providers/wagmi/useWagmiClient';
+
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -49,7 +52,6 @@
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
-	const { signerAddress } = useSignerAddress();
 	const queryClient = useQueryClient();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
@@ -86,7 +88,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && wagmiClient.config && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"

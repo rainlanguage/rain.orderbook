@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
-	import { useSignerAddress } from '../../stores/wagmi';
+	import { useWagmiClient } from '../../providers/wagmi/useWagmiClient';
+
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -45,7 +46,8 @@
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 
-	const { signerAddress } = useSignerAddress();
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})

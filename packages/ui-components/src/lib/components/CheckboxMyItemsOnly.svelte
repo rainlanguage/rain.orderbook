@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { Checkbox, Label } from 'flowbite-svelte';
 	import type { Writable } from 'svelte/store';
-	import { useSignerAddress } from '../stores/wagmi';
+	import { useWagmiClient } from '../providers/wagmi/useWagmiClient';
+
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 
 	export let showMyItemsOnly: Writable<boolean>;
 	export let context: 'orders' | 'vaults';
-
-	const { signerAddress } = useSignerAddress();
 
 	function handleShowMyItemsChange() {
 		$showMyItemsOnly = !$showMyItemsOnly;

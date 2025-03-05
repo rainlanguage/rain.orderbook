@@ -1,6 +1,4 @@
 <script lang="ts" generics="T">
-	import { useSignerAddress } from '../stores/wagmi';
-
 	import { isEmpty } from 'lodash';
 	import { Alert, Tooltip } from 'flowbite-svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
@@ -11,6 +9,10 @@
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
+	import { useWagmiClient } from '../providers/wagmi/useWagmiClient';
+
+	const wagmiClient = useWagmiClient();
+	const { signerAddress } = wagmiClient;
 	export let settings: Writable<ConfigSource | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
@@ -21,8 +23,6 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-
-	const { signerAddress } = useSignerAddress();
 </script>
 
 <div

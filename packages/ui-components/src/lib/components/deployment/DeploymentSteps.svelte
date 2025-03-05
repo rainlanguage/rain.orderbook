@@ -26,7 +26,9 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
-	import { useSignerAddress, wagmiConfig } from '../../stores/wagmi';
+	import { useWagmiClient } from '../../providers/wagmi/useWagmiClient';
+
+	const wagmiClient = useWagmiClient();
 
 	interface Deployment {
 		key: string;
@@ -57,7 +59,7 @@
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
-	const { connected } = useSignerAddress();
+	const { connected } = wagmiClient;
 
 	onMount(async () => {
 		await areAllTokensSelected();
@@ -141,7 +143,7 @@
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 			return;
 		}
-		if (!wagmiConfig) {
+		if (!wagmiClient.config) {
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 			return;
 		}
@@ -154,7 +156,7 @@
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			result = await getDeploymentTransactionArgs(gui, wagmiClient.config);
 		} catch (e) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);

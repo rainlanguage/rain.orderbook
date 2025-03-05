@@ -28,15 +28,15 @@
 	});
 
 	const initWallet = async () => {
-		const erckit = defaultWagmiConfig({
-			supportedChains: supportedChainsList as unknown as Chain[],
-			appName: 'Rain Language',
+		const config = defaultWagmiConfig({
+			appName: 'Your App Name',
 			connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
 			chains: supportedChainsList as unknown as Chain[],
-			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
+			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID,
+			supportedChains: supportedChainsList as unknown as Chain[]
 		});
 
-		await erckit.initWagmi();
+		await config.initWagmi();
 	};
 
 	$: if (browser && window.navigator) {
