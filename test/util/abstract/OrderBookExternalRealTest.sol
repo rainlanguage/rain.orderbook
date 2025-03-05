@@ -3,12 +3,12 @@
 pragma solidity =0.8.25;
 
 import {Test, Vm, console2} from "forge-std/Test.sol";
-import {RainterpreterNPE2} from "rain.interpreter/concrete/RainterpreterNPE2.sol";
-import {RainterpreterStoreNPE2} from "rain.interpreter/concrete/RainterpreterStoreNPE2.sol";
+import {Rainterpreter} from "rain.interpreter/concrete/Rainterpreter.sol";
+import {RainterpreterStore} from "rain.interpreter/concrete/RainterpreterStore.sol";
 import {
-    RainterpreterExpressionDeployerNPE2,
-    RainterpreterExpressionDeployerNPE2ConstructionConfigV2
-} from "rain.interpreter/concrete/RainterpreterExpressionDeployerNPE2.sol";
+    RainterpreterExpressionDeployer,
+    RainterpreterExpressionDeployerConstructionConfigV2
+} from "rain.interpreter/concrete/RainterpreterExpressionDeployer.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
@@ -22,7 +22,7 @@ import {
     SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
-import {RainterpreterParserNPE2} from "rain.interpreter/concrete/RainterpreterParserNPE2.sol";
+import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
