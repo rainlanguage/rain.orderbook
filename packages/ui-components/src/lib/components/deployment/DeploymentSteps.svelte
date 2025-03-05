@@ -26,7 +26,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
-	import { useSignerAddress, appKitModal, wagmiConfig } from '../../stores/wagmi';
+	import { useSignerAddress, wagmiConfig } from '../../stores/wagmi';
 
 	interface Deployment {
 		key: string;
@@ -57,7 +57,7 @@
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
-	const { connected, signerAddress } = useSignerAddress();
+	const { connected } = useSignerAddress();
 
 	onMount(async () => {
 		await areAllTokensSelected();
@@ -279,7 +279,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} {connected} {signerAddress} />
+							<WalletConnect />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />

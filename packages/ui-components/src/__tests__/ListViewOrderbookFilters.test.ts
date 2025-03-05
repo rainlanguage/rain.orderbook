@@ -6,6 +6,17 @@ import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 import type { ComponentProps } from 'svelte';
 
+const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
+
+vi.mock('../lib/stores/wagmi', () => ({
+	useSignerAddress: vi.fn().mockReturnValue({
+		signerAddress: mockSignerAddressStore,
+		connected: mockConnectedStore
+	})
+}));
+
 // Get the props type from the component
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;

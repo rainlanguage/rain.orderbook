@@ -11,16 +11,13 @@
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
-
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
-
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import type { Config } from 'wagmi';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';

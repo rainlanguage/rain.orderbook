@@ -8,6 +8,17 @@ import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 
+const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
+
+vi.mock('../lib/stores/wagmi', () => ({
+	useSignerAddress: vi.fn().mockReturnValue({
+		signerAddress: mockSignerAddressStore,
+		connected: mockConnectedStore
+	})
+}));
+
 const mockVaultWithSubgraph: SgVaultWithSubgraphName = {
 	vault: {
 		id: '0x1234567890abcdef1234567890abcdef12345678',

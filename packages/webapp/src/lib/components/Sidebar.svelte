@@ -107,7 +107,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<WalletConnect {appKitModal} {connected} {signerAddress} classes="w-full" />
+				<WalletConnect classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem

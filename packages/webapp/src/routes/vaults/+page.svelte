@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { writable } from 'svelte/store';
 
-	const { connected, signerAddress } = useSignerAddress();
+	const { connected } = useSignerAddress();
 
 	const {
 		activeOrderbook,
@@ -60,7 +60,6 @@
 	{subgraphUrl}
 	{orderHash}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeSubgraphs}
 	{settings}
 	{accounts}
