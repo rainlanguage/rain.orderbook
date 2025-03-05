@@ -4,6 +4,7 @@
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
 	import { useSignerAddress, appKitModal } from '../../stores/wagmi';
+
 	export let classes: string = '';
 
 	console.log('use it!', useSignerAddress);
