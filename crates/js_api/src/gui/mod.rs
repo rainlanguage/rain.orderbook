@@ -81,8 +81,6 @@ impl DotrainOrderGui {
 impl_wasm_traits!(WasmEncodedResult<DeploymentKeys>);
 impl_wasm_traits!(WasmEncodedResult<GuiCfg>);
 impl_wasm_traits!(WasmEncodedResult<GuiDeploymentCfg>);
-impl_wasm_traits!(WasmEncodedResult<GuiFieldDefinitionCfg>);
-impl_wasm_traits!(WasmEncodedResult<GuiPresetCfg>);
 impl_wasm_traits!(WasmEncodedResult<NameAndDescriptionCfg>);
 impl_wasm_traits!(WasmEncodedResult<TokenInfo>);
 impl_wasm_traits!(WasmEncodedResult<AllTokenInfos>);
