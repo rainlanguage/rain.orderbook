@@ -75,11 +75,7 @@ pub fn add_attributes_to_new_function(method: &mut ImplItemFn) {
                     }
 
                     // Create the modified return type
-                    let return_type = if method.sig.asyncness.is_some() {
-                        format!("Promise<WasmEncodedResult<{}>>", unchecked_value)
-                    } else {
-                        format!("WasmEncodedResult<{}>", unchecked_value)
-                    };
+                    let return_type = format!("WasmEncodedResult<{}>", unchecked_value);
 
                     // Add other parameters
                     for param in &other_params {

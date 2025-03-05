@@ -367,15 +367,16 @@
         "solc": "solc_2"
       },
       "locked": {
-        "lastModified": 1741104212,
-        "narHash": "sha256-SklOZvbEvxpTzKu825KKC2wi4houOInj+STns9PMR1o=",
+        "lastModified": 1741191337,
+        "narHash": "sha256-5Fj87surn1/U38gUJym6nQOBTZ5L2BoHdNtVWlYsyJM=",
         "owner": "rainlanguage",
         "repo": "rainix",
-        "rev": "21f0ce10978de79742e6e7ca49253b37a9864412",
+        "rev": "f7b1b4b8298269728ce8994a208fbd3c932c94cf",
         "type": "github"
       },
       "original": {
         "owner": "rainlanguage",
+        "ref": "2025-03-05-fix-tauri-to-v1",
         "repo": "rainix",
         "type": "github"
       }

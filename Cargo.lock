@@ -2723,6 +2723,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
+
+[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5145,6 +5151,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "macrotest"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0597a8d49ceeea5845b12d1970aa993261e68d4660b327eabab667b3e7ffd60"
+dependencies = [
+ "diff",
+ "fastrand 2.1.0",
+ "glob",
+ "prettyplease",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "syn 2.0.74",
+ "toml_edit 0.22.20",
+]
+
+[[package]]
 name = "magic_string_rain"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6461,6 +6484,7 @@ dependencies = [
 name = "rain_orderbook_macros"
 version = "0.0.0"
 dependencies = [
+ "macrotest",
  "proc-macro2",
  "quote",
  "syn 2.0.74",

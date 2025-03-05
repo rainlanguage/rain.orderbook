@@ -48,7 +48,7 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                             add_attributes_to_new_function(&mut export_method);
 
-                            let new_return_type = syn::parse_quote!(-> Result<WasmEncodedResult<#inner_type>, wasm_bindgen::JsValue>);
+                            let new_return_type = syn::parse_quote!(-> WasmEncodedResult<#inner_type>);
                             export_method.sig.output = new_return_type;
 
                             let call_expr =
@@ -56,13 +56,11 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                             if is_async {
                                 export_method.block = syn::parse_quote!({
-                                    let result: WasmEncodedResult<_> = #call_expr.await.into();
-                                    Ok(result)
+                                    #call_expr.await.into()
                                 });
                             } else {
                                 export_method.block = syn::parse_quote!({
-                                    let result: WasmEncodedResult<_> = #call_expr.into();
-                                    Ok(result)
+                                    #call_expr.into()
                                 });
                             }
 

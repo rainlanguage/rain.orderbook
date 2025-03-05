@@ -2,7 +2,7 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix";
+    rainix.url = "github:rainlanguage/rainix?ref=2025-03-05-fix-tauri-to-v1";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -253,6 +253,26 @@
             '';
           };
 
+          # need to build from source since it errors on macos with current rainix rust version 1.79 on rainix
+          # and the version available on rainix.pkgs is 1.0.100 which is not compatible with rust 1.79,
+          # the latest version that works with rust 1.79 is v1.0.95 so we build form source
+          cargo-expand = (pkgs.makeRustPlatform{
+            rustc = rainix.rust-toolchain.${system};
+            cargo = rainix.rust-toolchain.${system};
+          }).buildRustPackage rec {
+            pname = "cargo-expand";
+            version = "1.0.95";
+            src = pkgs.fetchFromGitHub {
+              executable = true;
+              owner = "dtolnay";
+              repo = "cargo-expand";
+              tag = "1.0.95";
+              hash = "sha256-VEjgSmZcy/CZ8EO/mJ2nBOpQviF4A/QQ8SpLLF/9x4c=";
+            };
+            useFetchCargoVendor = true;
+            cargoHash = "sha256-ow5Zy0tv9W5w+Pib2yW1nPj2pUZt0HhplHxjIZZZzU8=";
+          };
+
         } // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
@@ -266,6 +286,7 @@
             packages.test-js-bindings
             rain.defaultPackage.${system}
             packages.ob-ui-components-prelude
+            packages.cargo-expand
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;
@@ -283,6 +304,7 @@
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
             packages.tauri-rs-test
+            packages.cargo-expand
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
