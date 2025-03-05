@@ -554,20 +554,22 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(hasAnyDeposit, true);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 1);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should update deposit', async () => {
 			gui.saveDeposit('token1', '50.6');
 			gui.saveDeposit('token1', '100.6');
 
-			const result = gui.getDeposits();
+			let result = gui.getDeposits();
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(result);
 			assert.equal(deposits.length, 1);
 			assert.equal(deposits[0].amount, '100.6');
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should throw error if deposit token is not found in gui config', () => {
@@ -600,7 +602,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(deposits.length, 0);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should get deposit presets', async () => {
@@ -669,7 +672,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.deepEqual(fieldValue, allFieldDefinitions[0].presets?.[2]);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should save field value as custom values', async () => {
@@ -706,7 +710,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				}
 			]);
 
-			const result = gui.getAllFieldValues();
+			let result = gui.getAllFieldValues();
 			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(result);
 			assert.equal(fieldValues.length, 2);
 			assert.deepEqual(fieldValues[0], {
@@ -727,7 +731,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			});
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should throw error during save if preset is not found in field definition', () => {
@@ -916,14 +921,17 @@ ${dotrain}`;
 		});
 
 		it('should serialize gui state', async () => {
-			const serialized = gui.serializeState();
+			const result = gui.serializeState();
+			const serialized = extractWasmEncodedData<string>(result);
 			assert.equal(serialized, serializedState);
 		});
 
 		it('should deserialize gui state', async () => {
-			let gui = await DotrainOrderGui.deserializeState(dotrain3, serializedState);
+			const gui = new DotrainOrderGui();
+			let result = await gui.deserializeState(dotrain3, serializedState);
+			extractWasmEncodedData(result);
 
-			let result = gui.getAllFieldValues();
+			result = gui.getAllFieldValues();
 			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(result);
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
@@ -960,9 +968,10 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutTokens}`;
-			await expect(
-				async () => await DotrainOrderGui.deserializeState(testDotrain, serializedState)
-			).rejects.toThrow('Deserialized dotrain mismatch');
+			const gui = new DotrainOrderGui();
+			const result = await gui.deserializeState(testDotrain, serializedState);
+			expect(result.error).toBeDefined();
+			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 		});
 
 		it('should clear state', async () => {
@@ -984,19 +993,27 @@ ${dotrainWithoutTokens}`;
 				value: fieldDefinition?.presets?.[0].id
 			});
 
-			assert.equal(gui.isFieldPreset('test-binding'), true);
+			result = gui.isFieldPreset('test-binding');
+			let isFieldPreset = extractWasmEncodedData<boolean>(result);
+			assert.equal(isFieldPreset, true);
 			gui.saveFieldValue('test-binding', {
 				isPreset: false,
 				value: '100'
 			});
-			assert.equal(gui.isFieldPreset('test-binding'), false);
+			result = gui.isFieldPreset('test-binding');
+			isFieldPreset = extractWasmEncodedData<boolean>(result);
+			assert.equal(isFieldPreset, false);
 		});
 
 		it('should check if deposit is preset', async () => {
 			gui.saveDeposit('token1', '55');
-			assert.equal(gui.isDepositPreset('token1'), false);
+			let result = gui.isDepositPreset('token1');
+			let isDepositPreset = extractWasmEncodedData<boolean>(result);
+			assert.equal(isDepositPreset, false);
 			gui.saveDeposit('token1', '0');
-			assert.equal(gui.isDepositPreset('token1'), true);
+			result = gui.isDepositPreset('token1');
+			isDepositPreset = extractWasmEncodedData<boolean>(result);
+			assert.equal(isDepositPreset, true);
 		});
 
 		it('should keep the same vault ids after deserializing if not set during serializing', async () => {
@@ -1020,7 +1037,11 @@ ${dotrainWithoutVaultIds}
 			assert.equal(deployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(deployment.deployment.order.outputs[0].vaultId, undefined);
 
-			gui = await DotrainOrderGui.deserializeState(testDotrain, gui.serializeState());
+			result = gui.serializeState();
+			let serialized = extractWasmEncodedData<string>(result);
+
+			gui = new DotrainOrderGui();
+			result = await gui.deserializeState(testDotrain, serialized);
 
 			result = gui.getCurrentDeployment();
 			deployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1545,7 +1566,8 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should skip deposits with zero amount for deposit calldata', async () => {
@@ -1738,7 +1760,8 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo2.decimals, 18);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should replace select token', async () => {
@@ -1778,7 +1801,8 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo2.decimals, 18);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should remove select token', async () => {
@@ -1825,7 +1849,8 @@ ${dotrainWithoutVaultIds}`;
 			expect(result.error.msg).toBe("Missing required field 'tokens' in root");
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 2);
-			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
+			result = gui.serializeState();
+			expect(stateUpdateCallback).toHaveBeenCalledWith(extractWasmEncodedData<string>(result));
 		});
 
 		it('should get network key', async () => {
