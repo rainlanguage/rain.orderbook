@@ -1,4 +1,4 @@
-use crate::{yaml::default_document, NetworkCfg};
+use crate::{yaml::default_document, NetworkCfg, NetworkConfigSource};
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
@@ -77,6 +77,27 @@ pub enum ChainIdError {
     UnsupportedRpcUrls,
     #[error("cannot find any rpc urls for this chain")]
     NoRpc,
+}
+
+impl TryFrom<ChainId> for NetworkConfigSource {
+    type Error = ChainIdError;
+    fn try_from(value: ChainId) -> Result<NetworkConfigSource, Self::Error> {
+        if value.rpc.is_empty() {
+            return Err(ChainIdError::NoRpc);
+        }
+        for rpc in &value.rpc {
+            if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
+                return Ok(NetworkConfigSource {
+                    chain_id: value.chain_id,
+                    rpc: rpc.clone(),
+                    network_id: Some(value.network_id),
+                    currency: Some(value.native_currency.symbol),
+                    label: Some(value.name),
+                });
+            }
+        }
+        Err(ChainIdError::UnsupportedRpcUrls)
+    }
 }
 
 impl TryFrom<ChainId> for NetworkCfg {
