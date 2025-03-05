@@ -29,6 +29,7 @@ impl_wasm_traits!(WasmEncodedResult<()>);
 impl_wasm_traits!(WasmEncodedResult<String>);
 impl_wasm_traits!(WasmEncodedResult<Vec<String>>);
 impl_wasm_traits!(WasmEncodedResult<bool>);
+impl_wasm_traits!(WasmEncodedResult<Option<bool>>);
 
 impl<T> WasmEncodedResult<T> {
     pub fn success(data: T) -> Self {
