@@ -130,7 +130,6 @@
 		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
 			>Output Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
@@ -162,9 +161,7 @@
 		<TableBodyCell data-testid="orderListRowOutputs" tdClass="break-word p-2">
 			{item.order.outputs?.map((t) => t.token.symbol)}
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
-			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
-		>
+
 		{#if walletAddressMatchesOrBlank && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
