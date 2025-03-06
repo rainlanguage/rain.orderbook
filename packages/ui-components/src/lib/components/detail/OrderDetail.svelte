@@ -19,7 +19,7 @@
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-	import type { Config } from 'wagmi';
+	import { signerAddress, wagmiConfig } from '../../stores/wagmi';
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
@@ -46,8 +46,7 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 

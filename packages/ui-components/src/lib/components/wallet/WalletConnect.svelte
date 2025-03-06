@@ -5,11 +5,10 @@
 	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { useSignerAddress } from '../../stores/wagmi';
-	export let appKitModal: Writable<AppKit>;
-	export let connected: Writable<boolean>;
+	import { signerAddress, connected, appKitModal } from '../../stores/wagmi';
+
 	export let classes: string = '';
-	const { signerAddress } = useSignerAddress();
+
 	function handleClick() {
 		$appKitModal.open();
 	}

@@ -193,11 +193,3 @@ const waitForConnection = (): Promise<GetAccountReturnType> =>
 
 		attemptToGetAccount();
 	});
-
-export function useSignerAddress() {
-	return {
-		signerAddress,
-		chainId,
-		connected
-	};
-}

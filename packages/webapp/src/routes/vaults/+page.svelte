@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable, connected } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { connected, signerAddress } from '$lib/stores/wagmi';
+
 	import { writable } from 'svelte/store';
 
 	const {
@@ -59,7 +59,6 @@
 	{subgraphUrl}
 	{orderHash}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeSubgraphs}
 	{settings}
 	{accounts}

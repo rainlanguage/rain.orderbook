@@ -23,14 +23,14 @@
 		logoLight,
 		WalletConnect,
 		appKitModal,
-		useSignerAddress
+		connected,
+		signerAddress
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
 
 	export let colorTheme;
 	export let page;
-	const { connected, signerAddress } = useSignerAddress();
 
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
