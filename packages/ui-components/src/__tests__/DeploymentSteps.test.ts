@@ -19,7 +19,7 @@ vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 		connected: mockConnectedStore,
 		signerAddress: mockSignerAddressStore,
 		wagmiConfig: mockWagmiConfigStore
-	};
+	};  
 });
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
