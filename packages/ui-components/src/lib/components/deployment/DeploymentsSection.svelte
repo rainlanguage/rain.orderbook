@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import DeploymentTile from './DeploymentTile.svelte';
-	import { Button } from 'flowbite-svelte';
 	export let dotrain: string;
 	export let strategyName: string;
 </script>
