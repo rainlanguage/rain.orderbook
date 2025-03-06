@@ -90,6 +90,7 @@ export type {
 	DeployModalProps,
 	DisclaimerModalProps
 } from './types/modal';
+export type { ExtendedTokenInfo } from './types/tokens';
 export type { StrategyDetail } from './types/strategy';
 
 // Functions
@@ -103,6 +104,7 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
 export { bigintToFloat } from './utils/number';
+export { getViemChain } from './services/getViemChain';
 
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';

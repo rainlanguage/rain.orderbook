@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
 	import type {
 		DotrainOrderGui,
 		GuiSelectTokensCfg,
@@ -8,11 +7,14 @@
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
+	import type { ExtendedTokenInfo } from '../../types/tokens';
+	import TokenSearchBox from './TokenSearchBox.svelte';
 
 	export let token: GuiSelectTokensCfg;
 	export let gui: DotrainOrderGui;
 	export let onSelectTokenSelect: () => void;
-	let inputValue: string | null = null;
+	export let tokenList: ExtendedTokenInfo[];
+
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
@@ -20,9 +22,6 @@
 	onMount(async () => {
 		try {
 			tokenInfo = await gui?.getTokenInfo(token.key);
-			if (tokenInfo?.address) {
-				inputValue = tokenInfo.address;
-			}
 		} catch {
 			// do nothing
 		}
@@ -38,36 +37,35 @@
 		}
 	}
 
-	async function handleInput(event: Event) {
+	async function handleTokenUpdate(address: string) {
 		tokenInfo = null;
-		const currentTarget = event.currentTarget;
-		if (currentTarget instanceof HTMLInputElement) {
-			inputValue = currentTarget.value;
-			if (!inputValue) {
-				error = '';
-			}
-			checking = true;
-			try {
-				if (gui.isSelectTokenSet(token.key)) {
-					await gui.replaceSelectToken(token.key, currentTarget.value);
-				} else {
-					await gui.saveSelectToken(token.key, currentTarget.value);
-				}
-				await getInfoForSelectedToken();
-			} catch (e) {
-				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
-				error = errorMessage;
-			}
+		if (address === '') {
+			await gui.removeSelectToken(token.key);
 		}
-
+		checking = true;
+		try {
+			if (gui.isSelectTokenSet(token.key)) {
+				await gui.replaceSelectToken(token.key, address);
+			} else {
+				await gui.saveSelectToken(token.key, address);
+			}
+			await getInfoForSelectedToken();
+		} catch {
+			const errorMessage = address === '' ? '' : 'Invalid token address.';
+			error = errorMessage;
+		}
 		checking = false;
 		onSelectTokenSelect();
+	}
+
+	async function handleChange(value: string) {
+		await handleTokenUpdate(value);
 	}
 </script>
 
 <div class="flex w-full flex-col">
 	<div class="flex flex-col gap-2">
-		<div class="flex flex-col justify-start gap-4 lg:flex-row lg:items-center lg:justify-between">
+		<div class="flex flex-col justify-start gap-4">
 			{#if token.name || token.description}
 				<div class="flex flex-col">
 					{#if token.name}
@@ -98,7 +96,8 @@
 					<span>{error}</span>
 				</div>
 			{/if}
+
+			<TokenSearchBox {tokenList} on:change={(e) => handleChange(e.detail)} />
 		</div>
-		<Input type="text" size="lg" on:input={handleInput} bind:value={inputValue} />
 	</div>
 </div>
