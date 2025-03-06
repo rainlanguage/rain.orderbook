@@ -33,7 +33,7 @@ pub fn collect_function_arguments(
 }
 
 /// Adds necessary attributes to the exported function
-pub fn add_attributes_to_new_function(method: &mut ImplItemFn) {
+pub fn add_attributes_to_new_function(method: &mut ImplItemFn) -> Vec<Attribute> {
     // Add the allow attribute to suppress the warning
     method
         .attrs
@@ -41,65 +41,53 @@ pub fn add_attributes_to_new_function(method: &mut ImplItemFn) {
 
     // Forward the wasm_bindgen attributes to the new function
     let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
+    let mut keep = Vec::new();
     for attr in &method.attrs {
         if attr.path().is_ident(WASM_EXPORT_ATTR) {
-            if let Ok(meta) = attr.meta.require_list() {
-                let tokens = meta.tokens.to_string();
-
-                // Check if this attribute contains unchecked_return_type
-                if tokens.contains(UNCHECKED_RETURN_TYPE_PARAM) {
-                    // Extract the value from unchecked_return_type
-                    let mut unchecked_value = "";
-                    let mut other_params = Vec::new();
-
-                    // Parse the tokens to extract individual parameters
-                    for param in tokens.split(',') {
-                        let param = param.trim();
-                        if param.starts_with(UNCHECKED_RETURN_TYPE_PARAM) {
-                            // Extract the value between quotes
-                            if let Some(value) = param.split('=').nth(1) {
-                                let value = value.trim();
-                                // Remove quotes if present
-                                if (value.starts_with('"') && value.ends_with('"'))
-                                    || (value.starts_with('\'') && value.ends_with('\''))
-                                {
-                                    unchecked_value = &value[1..value.len() - 1];
-                                } else {
-                                    unchecked_value = value;
-                                }
-                            }
-                        } else {
-                            // Keep other parameters
-                            other_params.push(param.to_string());
-                        }
+            keep.push(false);
+            let mut unchecked_ret_type = None;
+            let _ = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident(UNCHECKED_RETURN_TYPE_PARAM) {
+                    if let syn::Meta::NameValue(syn::MetaNameValue {
+                        value:
+                            syn::Expr::Lit(syn::ExprLit {
+                                lit: syn::Lit::Str(str),
+                                ..
+                            }),
+                        ..
+                    }) = &attr.meta
+                    {
+                        unchecked_ret_type = Some(str.value());
                     }
-
-                    // Create the modified return type
-                    let return_type = format!("WasmEncodedResult<{}>", unchecked_value);
-
-                    // Add other parameters
-                    for param in &other_params {
-                        // Parse the string parameter into a token stream
-                        if let Ok(param_tokens) = syn::parse_str::<TokenStream>(param) {
+                } else {
+                    // Forward other attributes unchanged
+                    if let Some(v) = meta.path.get_ident() {
+                        let mut tokens = v.to_string();
+                        tokens.push_str(&meta.input.to_string());
+                        if let Ok(param_tokens) = syn::parse_str::<TokenStream>(&tokens) {
                             wasm_bindgen_attrs.push(syn::parse_quote!(
                                 #[wasm_bindgen(#param_tokens)]
                             ));
                         }
                     }
-                    // Add the modified unchecked_return_type
-                    wasm_bindgen_attrs.push(syn::parse_quote!(
-                        #[wasm_bindgen(unchecked_return_type = #return_type)]
-                    ));
-                } else {
-                    // Forward other attributes unchanged
-                    let tokens = meta.tokens.clone();
-                    wasm_bindgen_attrs.push(syn::parse_quote!(#[wasm_bindgen(#tokens)]));
                 }
+                Ok(())
+            });
+            if let Some(v) = unchecked_ret_type {
+                // Create the modified return type
+                let return_type = format!("WasmEncodedResult<{}>", v);
+                // Add the modified unchecked_return_type
+                wasm_bindgen_attrs.push(syn::parse_quote!(
+                    #[wasm_bindgen(unchecked_return_type = #return_type)]
+                ));
             }
+        } else {
+            keep.push(true);
         }
     }
 
-    if !wasm_bindgen_attrs.is_empty() {
-        method.attrs.extend(wasm_bindgen_attrs);
-    }
+    let mut keep = keep.into_iter();
+    method.attrs.retain(|_attr| keep.next().unwrap());
+
+    wasm_bindgen_attrs
 }

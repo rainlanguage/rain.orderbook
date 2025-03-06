@@ -2,9 +2,11 @@
 extern crate rain_orderbook_macros;
 struct TestStruct;
 impl TestStruct {
+    #[allow(non_snake_case)]
     pub async fn get_deployment_keys(dotrain: String) -> Result<String, Error> {
         Ok(String::new())
     }
+    #[allow(non_snake_case)]
     pub async fn choose_deployment(
         &mut self,
         dotrain: String,
@@ -16,8 +18,7 @@ impl TestStruct {
 #[wasm_bindgen]
 impl TestStruct {
     #[allow(non_snake_case)]
-    #[wasm_bindgen(js_name = "getDeploymentKeys")]
-    #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<string>")]
+    #[wasm_bindgen(js_name = "getDeploymentKeys", unchecked_return_type = "string")]
     pub async fn get_deployment_keys__wasm_export(
         dotrain: String,
     ) -> WasmEncodedResult<String> {
