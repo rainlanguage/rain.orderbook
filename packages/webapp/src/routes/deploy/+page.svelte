@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { PageHeader, StrategiesSection, InputRegistryUrl } from '@rainlanguage/ui-components';
+	import {
+		PageHeader,
+		ValidStrategiesSection,
+		InvalidStrategiesSection,
+		InputRegistryUrl
+	} from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import type { PageData } from './$types';
 
-	const { error, strategyDetails } = $page.data;
+	export let data: PageData;
+	const { error, strategyDetails } = data;
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
@@ -31,7 +38,7 @@
 			Error loading registry:<span class="text-red-500">{error}</span>
 		</div>
 	{:else}
-		<div class="flex flex-col rounded-3xl bg-primary-100 p-12 dark:bg-primary-900">
+		<div class="bg-primary-100 dark:bg-primary-900 flex flex-col rounded-3xl p-12">
 			<h1 class="text-xl font-semibold text-gray-900 dark:text-white">
 				Raindex empowers you to take full control of your trading strategies. All the strategies
 				here are non-custodial, perpetual, and automated strategies built with our open-source,
@@ -40,7 +47,15 @@
 				>
 			</h1>
 		</div>
-
-		<StrategiesSection {strategyDetails} />
+		{#await strategyDetails.filter((strategy) => !strategy.error) then validStrategies}
+			{#if validStrategies.length > 0}
+				<ValidStrategiesSection {validStrategies} />
+			{/if}
+		{/await}
+		{#await strategyDetails.filter((strategy) => strategy.error) then invalidStrategies}
+			{#if invalidStrategies.length > 0}
+				<InvalidStrategiesSection {invalidStrategies} />
+			{/if}
+		{/await}
 	{/if}
 </div>
