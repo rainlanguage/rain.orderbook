@@ -13,3 +13,4 @@ proc-macro2 = "1.0"
 
 [dev-dependencies]
 macrotest = "1.0"
+trybuild = "1.0"
