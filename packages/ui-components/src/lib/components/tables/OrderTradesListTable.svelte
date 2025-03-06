@@ -14,6 +14,7 @@
 
 	export let id: string;
 	export let subgraphUrl: string;
+	export let chainId: number | undefined = undefined;
 	export let rpcUrl: string | undefined = undefined;
 	export let handleDebugTradeModal: ((hash: string, rpcUrl: string) => void) | undefined =
 		undefined;
@@ -86,10 +87,20 @@
 			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
-			<Hash type={HashType.Wallet} value={item.tradeEvent.transaction.from} />
+			<Hash
+				type={HashType.Wallet}
+				value={item.tradeEvent.transaction.from}
+				{chainId}
+				linkType="address"
+			/>
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-32">
-			<Hash type={HashType.Transaction} value={item.tradeEvent.transaction.id} />
+			<Hash
+				type={HashType.Transaction}
+				value={item.tradeEvent.transaction.id}
+				{chainId}
+				linkType="tx"
+			/>
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2">
 			{formatUnits(

@@ -303,7 +303,7 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
-			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
+			const transactionExplorerLink = getExplorerLink(hash, chainId, 'tx');
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitNewOrderIndexing(subgraphUrl, hash, network);
