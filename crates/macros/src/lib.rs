@@ -71,6 +71,10 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             export_items.push(ImplItem::Fn(export_method));
                         }
                     }
+                } else {
+                    // Add original method to original_items
+                    let _ = add_attributes_to_new_function(method);
+                    original_items.push(ImplItem::Fn(method.clone()));
                 }
             } else {
                 // Add original method to original_items

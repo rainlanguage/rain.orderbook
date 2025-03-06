@@ -5,6 +5,9 @@ impl TestStruct {
     pub async fn get_deployment_keys(dotrain: String) -> Result<String, Error> {
         Ok(String::new())
     }
+    pub async fn some_skip_fn() -> Result<String, Error> {
+        Ok(String::new())
+    }
     pub async fn choose_deployment(
         &mut self,
         dotrain: String,
@@ -23,7 +26,7 @@ impl TestStruct {
         Self::get_deployment_keys(dotrain).await.into()
     }
     #[allow(non_snake_case)]
-    #[wasm_bindgen(js_name = "chooseDeployment")]
+    #[wasm_bindgen(js_name = "chooseDeployment", optional)]
     pub async fn choose_deployment__wasm_export(
         &mut self,
         dotrain: String,

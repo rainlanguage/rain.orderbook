@@ -5,15 +5,17 @@ struct TestStruct;
 
 #[impl_wasm_exports]
 impl TestStruct {
-    #[wasm_export(
-        js_name = "getDeploymentKeys",
-        unchecked_return_type = "string"
-    )]
+    #[wasm_export(js_name = "getDeploymentKeys", unchecked_return_type = "string")]
     pub async fn get_deployment_keys(dotrain: String) -> Result<String, Error> {
         Ok(String::new())
     }
 
-    #[wasm_export(js_name = "chooseDeployment")]
+    #[wasm_export(skip)]
+    pub async fn some_skip_fn() -> Result<String, Error> {
+        Ok(String::new())
+    }
+
+    #[wasm_export(js_name = "chooseDeployment", optional)]
     pub async fn choose_deployment(
         &mut self,
         dotrain: String,
