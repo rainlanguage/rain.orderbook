@@ -10,9 +10,6 @@
 	function handleClick() {
 		$appKitModal.open();
 	}
-
-	$: console.log('connected', $connected);
-	$: console.log('signerAddress', $signerAddress);
 </script>
 
 <Button

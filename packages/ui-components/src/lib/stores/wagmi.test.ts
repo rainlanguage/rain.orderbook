@@ -65,7 +65,7 @@ describe('wagmi store', () => {
 				supportedChains: [mainnet]
 			});
 
-			expect(result).toHaveProperty('init');
+			expect(result).toHaveProperty('initWagmi');
 			expect(get(wagmiLoaded)).toBe(true);
 		});
 	});

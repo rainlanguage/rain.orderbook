@@ -7,6 +7,20 @@ import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
+import { wagmiConfig } from '$lib';
+
+const { mockSignerAddressStore, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
+
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		signerAddress: mockSignerAddressStore,
+		wagmiConfig: mockWagmiConfigStore
+	};
+});
 
 // Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -122,6 +136,8 @@ test('shows the correct data when the query returns data', async () => {
 });
 
 test('shows deposit/withdraw buttons when signerAddress matches owner', async () => {
+	mockSignerAddressStore.mockSetSubscribeValue('0x123');
+
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
@@ -156,8 +172,6 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
 
 	render(VaultDetail, {
 		props: {
@@ -167,16 +181,18 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 
+	// Wait for the query to resolve and data to be available
 	await waitFor(() => {
-		expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
+		expect(screen.getByTestId('vaultDetailTokenName')).toBeInTheDocument();
 	});
+
+	// Now check for the deposit/withdraw buttons
+	expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
 });
 
 test('refresh button triggers query invalidation when clicked', async () => {
@@ -215,9 +231,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	const queryClient = new QueryClient();
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
-
 	render(VaultDetail, {
 		props: {
 			id: '100',
@@ -226,8 +239,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])

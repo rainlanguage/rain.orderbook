@@ -23,6 +23,7 @@
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { signerAddress, wagmiConfig } from '../../stores/wagmi';
+
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
