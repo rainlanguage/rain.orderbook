@@ -30,7 +30,8 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui = new DotrainOrderGui();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockGui = new (DotrainOrderGui as any)();
 		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
 			mockStateUpdateCallback();
 		});

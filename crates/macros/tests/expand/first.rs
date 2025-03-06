@@ -23,4 +23,9 @@ impl TestStruct {
     ) -> Result<TestStruct, Error> {
         Ok(TestStruct)
     }
+
+    #[wasm_export(unchecked_return_type = "number[]", js_name = "returnNumArray")]
+    pub fn return_num_array(&mut self) -> Result<Vec<u8>, Error> {
+        Ok(vec![])
+    }
 }
