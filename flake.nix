@@ -257,8 +257,8 @@
           # and the version available on rainix.pkgs is 1.0.100 which is not compatible with rust 1.79,
           # the latest version that works with rust 1.79 is v1.0.95 so we build form source
           cargo-expand = (pkgs.makeRustPlatform{
-            rustc = rust-toolchain;
-            cargo = rust-toolchain;
+            rustc = rainix.rust-toolchain.${system};
+            cargo = rainix.rust-toolchain.${system};
           }).buildRustPackage rec {
             pname = "cargo-expand";
             version = "1.0.95";
