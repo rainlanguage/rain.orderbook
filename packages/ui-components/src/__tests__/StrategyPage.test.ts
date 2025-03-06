@@ -108,7 +108,7 @@ describe('StrategySection', () => {
 	});
 
 	it('handles markdown fetch failure', async () => {
-			const mockDotrain = 'mock dotrain content';
+		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
 			description: 'https://example.com/description.md',
