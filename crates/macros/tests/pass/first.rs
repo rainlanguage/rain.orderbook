@@ -6,7 +6,7 @@ struct TestStruct;
 #[impl_wasm_exports]
 impl TestStruct {
     #[wasm_export(js_name = "someStaticMethod", unchecked_return_type = "string")]
-    pub async fn some_static_method(arg: String) -> Result<String, Error> {
+    pub async fn some_static_method((arg, e): (String, u8)) -> Result<String, Error> {
         Ok(String::new())
     }
 

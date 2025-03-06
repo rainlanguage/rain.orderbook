@@ -2,7 +2,7 @@
 extern crate rain_orderbook_macros;
 struct TestStruct;
 impl TestStruct {
-    pub async fn some_static_method(arg: String) -> Result<String, Error> {
+    pub async fn some_static_method((arg, e): (String, u8)) -> Result<String, Error> {
         Ok(String::new())
     }
     pub async fn some_skip_fn() -> Result<String, Error> {
@@ -21,9 +21,9 @@ impl TestStruct {
     #[wasm_bindgen(js_name = "someStaticMethod")]
     #[wasm_bindgen(unchecked_return_type = "WasmEncodedResult<string>")]
     pub async fn some_static_method__wasm_export(
-        arg: String,
+        (arg, e): (String, u8),
     ) -> WasmEncodedResult<String> {
-        Self::some_static_method(arg).await.into()
+        Self::some_static_method((arg, e)).await.into()
     }
     #[allow(non_snake_case)]
     #[wasm_bindgen(js_name = "someSelfMethod")]

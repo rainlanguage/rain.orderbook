@@ -2,6 +2,7 @@ use super::try_extract_result_inner_type;
 use crate::wasm_export::{UNCHECKED_RETURN_TYPE_PARAM, WASM_EXPORT_ATTR};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
+use std::ops::Deref;
 use syn::{punctuated::Punctuated, Attribute, FnArg, ImplItemFn, Meta, Token, Type};
 
 /// Collects function arguments and determines if the function has a self receiver
@@ -12,20 +13,14 @@ pub fn collect_function_arguments(
 
     let args = inputs
         .iter()
-        .filter_map(|arg| {
-            match arg {
-                FnArg::Receiver(_) => {
-                    has_self_receiver = true;
-                    None
-                }
-                FnArg::Typed(pat_type) => {
-                    // Extract the pattern (variable name)
-                    if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                        Some(quote! { #pat_ident })
-                    } else {
-                        None
-                    }
-                }
+        .filter_map(|arg| match arg {
+            FnArg::Receiver(_) => {
+                has_self_receiver = true;
+                None
+            }
+            FnArg::Typed(pat_type) => {
+                let pat = pat_type.pat.deref();
+                Some(quote! { #pat })
             }
         })
         .collect();
