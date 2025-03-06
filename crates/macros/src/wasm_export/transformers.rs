@@ -38,9 +38,9 @@ pub fn add_attributes_to_new_function(
     method: &mut ImplItemFn,
 ) -> Result<(Vec<Attribute>, Option<Type>), syn::Error> {
     // Forward the wasm_bindgen attributes to the new function
-    let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
     let mut keep = Vec::new();
     let mut unchecked_ret_type: Option<String> = None;
+    let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
     for attr in &method.attrs {
         if attr.path().is_ident(WASM_EXPORT_ATTR) {
             keep.push(false);
@@ -59,7 +59,7 @@ pub fn add_attributes_to_new_function(
                     {
                         unchecked_ret_type = Some(str.value());
                     } else {
-                        return Err(syn::Error::new_spanned(meta, "expected literal"));
+                        return Err(syn::Error::new_spanned(meta, "expected string literal"));
                     }
                 } else {
                     // include unchanged

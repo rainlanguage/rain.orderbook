@@ -1,4 +1,4 @@
-error: expected literal
+error: expected string literal
  --> tests/fail/first.rs:8:19
   |
 8 |     #[wasm_export(unchecked_return_type = string)]
