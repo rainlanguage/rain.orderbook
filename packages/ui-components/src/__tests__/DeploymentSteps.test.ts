@@ -4,7 +4,6 @@ import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
-import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
@@ -13,11 +12,15 @@ const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = awa
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('../../stores/wagmi', () => ({
-	connected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
-	wagmiConfig: mockWagmiConfigStore
-}));
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		connected: mockConnectedStore,
+		signerAddress: mockSignerAddressStore,
+		wagmiConfig: mockWagmiConfigStore
+	};
+});
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 

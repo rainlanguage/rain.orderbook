@@ -40,7 +40,7 @@ describe('ListViewOrderbookFilters', () => {
 		isVaultsPage: false,
 		isOrdersPage: false,
 		query,
-		showMyItemsOnly: writable(false),
+		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {

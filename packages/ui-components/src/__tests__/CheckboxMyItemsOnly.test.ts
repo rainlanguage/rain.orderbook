@@ -16,8 +16,7 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context,
-
+				context
 			}
 		});
 		expect(screen.getByText('Only show my orders')).toBeInTheDocument();
@@ -26,8 +25,7 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context: 'vaults',
-
+				context: 'vaults'
 			}
 		});
 		expect(screen.getByText('Only show my vaults')).toBeInTheDocument();
@@ -37,8 +35,7 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context,
-
+				context
 			}
 		});
 

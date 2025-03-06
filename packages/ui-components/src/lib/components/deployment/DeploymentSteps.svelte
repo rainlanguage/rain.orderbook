@@ -277,7 +277,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {connected} />
+							<WalletConnect />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
