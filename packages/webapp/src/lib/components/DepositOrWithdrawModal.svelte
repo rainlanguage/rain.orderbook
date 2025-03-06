@@ -5,8 +5,7 @@
 		WalletConnect,
 		type DepositOrWithdrawArgs,
 		wagmiConfig,
-		appKitModal,
-		useSignerAddress
+		signerAddress
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -25,7 +24,6 @@
 	import * as allChains from 'viem/chains';
 
 	const { ...chains } = allChains;
-	const { connected, signerAddress } = useSignerAddress();
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {
@@ -165,7 +163,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect {appKitModal} {connected} />
+						<WalletConnect />
 					{/if}
 				</div>
 				{#if errorMessage}
