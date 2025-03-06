@@ -14,14 +14,14 @@
 	export let gui: DotrainOrderGui;
 
 	let currentValue: GuiPresetCfg | undefined;
-	let inputValue: string | null = fieldDefinition.default
-		? fieldDefinition.default
-		: currentValue?.value || null;
+	let inputValue: string | null = currentValue?.value
+		? currentValue?.value
+		: fieldDefinition.default || null;
 
 	onMount(() => {
 		try {
 			currentValue = gui.getFieldValue(fieldDefinition.binding);
-			inputValue = fieldDefinition.default ? fieldDefinition.default : currentValue?.value || null;
+			inputValue = currentValue?.value ? currentValue?.value : fieldDefinition.default || null;
 		} catch {
 			currentValue = undefined;
 		}
