@@ -15,37 +15,42 @@ describe('DeploymentsSection', () => {
 		vi.clearAllMocks();
 	});
 
-	  it('should render deployments when promise resolves', async () => {
-    // Create a promise that we can control
-    const deploymentPromise = Promise.resolve(new Map([
-      [
-        'key1',
-        { name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
-      ],
-      ['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
-    ]));
-    
-    vi.mocked(DotrainOrderGui.getDeploymentDetails).mockReturnValue(deploymentPromise);
+	it('should render deployments when promise resolves', async () => {
+		// Create a promise that we can control
+		const deploymentPromise = Promise.resolve(
+			new Map([
+				[
+					'key1',
+					{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
+				],
+				[
+					'key2',
+					{ name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }
+				]
+			])
+		);
 
-    render(DeploymentsSection, {
-      props: {
-        dotrain: 'test-dotrain',
-        strategyName: 'Test Strategy'
-      }
-    });
+		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockReturnValue(deploymentPromise);
 
-    // Wait for the promise to resolve and the component to update
-    await deploymentPromise;
-    
-    // Check that the deployments are rendered
-    await waitFor(() => {
-      expect(screen.getByText('Deployment 1')).toBeInTheDocument();
-      expect(screen.getByText('Deployment 2')).toBeInTheDocument();
-    });
-  });
+		render(DeploymentsSection, {
+			props: {
+				dotrain: 'test-dotrain',
+				strategyName: 'Test Strategy'
+			}
+		});
+
+		// Wait for the promise to resolve and the component to update
+		await deploymentPromise;
+
+		// Check that the deployments are rendered
+		await waitFor(() => {
+			expect(screen.getByText('Deployment 1')).toBeInTheDocument();
+			expect(screen.getByText('Deployment 2')).toBeInTheDocument();
+		});
+	});
 
 	it('should handle error when fetching deployments fails', async () => {
-		const testErrorMessage = "Test error message";
+		const testErrorMessage = 'Test error message';
 		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockRejectedValue(new Error(testErrorMessage));
 
 		render(DeploymentsSection, {
@@ -55,9 +60,7 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		const errorMessage = await screen.findByText(
-			testErrorMessage
-		);
+		const errorMessage = await screen.findByText(testErrorMessage);
 		expect(errorMessage).toBeInTheDocument();
 	});
 
