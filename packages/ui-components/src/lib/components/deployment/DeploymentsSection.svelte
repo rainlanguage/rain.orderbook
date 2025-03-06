@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import DeploymentTile from './DeploymentTile.svelte';
-
+	import { Button } from 'flowbite-svelte';
 	export let dotrain: string;
 	export let strategyName: string;
 </script>
@@ -10,12 +10,12 @@
 	<div
 		class="mr-auto grid w-full grid-cols-1 justify-items-start gap-4 md:grid-cols-2 lg:w-auto lg:grid-cols-3"
 	>
-		{#each Object.entries(deploymentsWithDetails) as [key, { name, description }]}
+		{#each deploymentsWithDetails as [key, { name, description }]}
 			<DeploymentTile {name} {description} {key} {strategyName} />
 		{/each}
 	</div>
 {:catch error}
-	<p class="text-red-500">Error loading deployments: {error}</p>
+	<p class="text-red-500">Error loading deployments:</p>
 	<p class="text-gray-500">
 		{error instanceof Error ? error.message : 'Unknown error'}
 	</p>

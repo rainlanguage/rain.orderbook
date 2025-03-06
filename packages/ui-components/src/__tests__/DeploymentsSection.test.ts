@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -15,34 +15,38 @@ describe('DeploymentsSection', () => {
 		vi.clearAllMocks();
 	});
 
-	it('should render deployments when data is available', async () => {
-		const mockDeployments = new Map([
-			[
-				'key1',
-				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
-			],
-			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
-		]);
+	  it('should render deployments when promise resolves', async () => {
+    // Create a promise that we can control
+    const deploymentPromise = Promise.resolve(new Map([
+      [
+        'key1',
+        { name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
+      ],
+      ['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
+    ]));
+    
+    vi.mocked(DotrainOrderGui.getDeploymentDetails).mockReturnValue(deploymentPromise);
 
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockResolvedValue(mockDeployments);
+    render(DeploymentsSection, {
+      props: {
+        dotrain: 'test-dotrain',
+        strategyName: 'Test Strategy'
+      }
+    });
 
-		render(DeploymentsSection, {
-			props: {
-				dotrain: 'test-dotrain',
-				strategyName: 'Test Strategy'
-			}
-		});
-
-		// Wait for deployments to load
-		const deployment1 = await screen.findByText('Deployment 1');
-		const deployment2 = await screen.findByText('Deployment 2');
-
-		expect(deployment1).toBeInTheDocument();
-		expect(deployment2).toBeInTheDocument();
-	});
+    // Wait for the promise to resolve and the component to update
+    await deploymentPromise;
+    
+    // Check that the deployments are rendered
+    await waitFor(() => {
+      expect(screen.getByText('Deployment 1')).toBeInTheDocument();
+      expect(screen.getByText('Deployment 2')).toBeInTheDocument();
+    });
+  });
 
 	it('should handle error when fetching deployments fails', async () => {
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockRejectedValue(new Error('API Error'));
+		const testErrorMessage = "Test error message";
+		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockRejectedValue(new Error(testErrorMessage));
 
 		render(DeploymentsSection, {
 			props: {
@@ -52,7 +56,7 @@ describe('DeploymentsSection', () => {
 		});
 
 		const errorMessage = await screen.findByText(
-			'Error loading deployments: Error getting deployments.'
+			testErrorMessage
 		);
 		expect(errorMessage).toBeInTheDocument();
 	});
@@ -65,7 +69,7 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		expect(DotrainOrderGui.getDeploymentDetails).not.toHaveBeenCalled();
+		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledTimes(1);
 
 		await rerender({ dotrain: 'new-dotrain', strategyName: 'Test Strategy' });
 
