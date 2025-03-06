@@ -4,7 +4,9 @@ import DeployModal from '../lib/components/DeployModal.svelte';
 import { get } from 'svelte/store';
 import type { DeployModalProps } from '@rainlanguage/ui-components';
 
-const { mockTransactionStore, mockWagmiConfigStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const { mockTransactionStore, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('@rainlanguage/ui-components')
+);
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
@@ -13,8 +15,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 		wagmiConfig: mockWagmiConfigStore
 	};
 });
-
-
 
 describe('DeployModal', () => {
 	const mockProps = {

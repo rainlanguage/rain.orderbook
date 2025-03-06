@@ -5,9 +5,13 @@ import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 import { transactionStore } from '@rainlanguage/ui-components';
-const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore, mockTransactionStore } = await vi.hoisted(
-	() => import('@rainlanguage/ui-components')
-);
+const {
+	mockSignerAddressStore,
+	mockConnectedStore,
+	mockAppKitModalStore,
+	mockWagmiConfigStore,
+	mockTransactionStore
+} = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -229,9 +233,10 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(expect.objectContaining({
-			action: 'deposit',
-			chainId: 1,
+		expect(handleTransactionSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: 'deposit',
+				chainId: 1,
 				vault: mockVault,
 				subgraphUrl: undefined,
 				approvalCalldata: undefined,

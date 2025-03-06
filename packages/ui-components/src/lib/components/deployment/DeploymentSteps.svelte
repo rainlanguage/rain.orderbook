@@ -26,7 +26,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
-	import { signerAddress, connected, appKitModal, wagmiConfig } from '../../stores/wagmi';
+	import { connected, wagmiConfig } from '../../stores/wagmi';
 
 	interface Deployment {
 		key: string;

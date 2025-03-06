@@ -5,9 +5,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
-import { wagmiConfig } from '$lib';
 
 const { mockSignerAddressStore, mockWagmiConfigStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')

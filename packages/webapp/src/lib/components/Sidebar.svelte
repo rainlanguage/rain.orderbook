@@ -21,10 +21,7 @@
 		IconExternalLink,
 		logoDark,
 		logoLight,
-		WalletConnect,
-		appKitModal,
-		connected,
-		signerAddress
+		WalletConnect
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
@@ -107,7 +104,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<WalletConnect {appKitModal} {connected} {signerAddress} classes="w-full" />
+				<WalletConnect classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem

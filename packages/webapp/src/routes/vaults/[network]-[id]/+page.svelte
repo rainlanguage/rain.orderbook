@@ -59,6 +59,5 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{wagmiConfig}
 	{handleDepositOrWithdrawModal}
 />
