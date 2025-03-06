@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => ({
 		testTimeout: 10000,
 		server: {
 			deps: {
+				interopDefault: true,
+				fallbackCJS: true,
+				registerNodeLoader: true,
 				inline: [/@tanstack\/svelte-query/]
 			}
 		}

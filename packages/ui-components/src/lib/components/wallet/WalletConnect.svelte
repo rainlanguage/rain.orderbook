@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
-	import type { Writable } from 'svelte/store';
-	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
 	import { signerAddress, connected, appKitModal } from '../../stores/wagmi';
@@ -12,6 +10,9 @@
 	function handleClick() {
 		$appKitModal.open();
 	}
+
+	$: console.log('connected', $connected);
+	$: console.log('signerAddress', $signerAddress);
 </script>
 
 <Button

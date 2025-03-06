@@ -1,20 +1,17 @@
 import { render, screen } from '@testing-library/svelte';
 import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
-import { writable, type Writable } from 'svelte/store';
-import type { AppKit } from '@reown/appkit';
 import truncateEthAddress from 'truncate-eth-address';
 
-const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
+const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
 );
 
-vi.mock('$lib/stores/wagmi', async (importOriginal) => {
-	const original = (await importOriginal()) as object;
+vi.mock('../lib/stores/wagmi', async () => {
 	return {
-		...original,
-		appKitModal: writable({} as AppKit),
-		connected: mockConnectedStore
+		appKitModal: mockAppKitModalStore,
+		connected: mockConnectedStore,
+		signerAddress: mockSignerAddressStore
 	};
 });
 
@@ -38,13 +35,7 @@ describe('WalletConnect component', () => {
 		mockSignerAddressStore.mockSetSubscribeValue('0x912ce59144191c1204e64559fe8253a0e49e6548');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
-		render(WalletConnect, {
-			props: {
-				connected: mockConnectedStore as Writable<boolean>,
-				signerAddress: mockSignerAddressStore,
-				appKitModal: writable({} as AppKit)
-			}
-		});
+		render(WalletConnect);
 
 		expect(
 			screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))
