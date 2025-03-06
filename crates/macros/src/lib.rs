@@ -43,6 +43,9 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             let forward_attrs = add_attributes_to_new_function(method);
                             let mut export_method = method.clone();
                             export_method.sig.ident = export_fn_name;
+                            export_method
+                                .attrs
+                                .push(syn::parse_quote!(#[allow(non_snake_case)]));
                             export_method.attrs.extend(forward_attrs);
 
                             // Add original method to original_items

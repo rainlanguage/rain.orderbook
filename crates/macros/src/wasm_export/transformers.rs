@@ -34,11 +34,6 @@ pub fn collect_function_arguments(
 
 /// Adds necessary attributes to the exported function
 pub fn add_attributes_to_new_function(method: &mut ImplItemFn) -> Vec<Attribute> {
-    // Add the allow attribute to suppress the warning
-    method
-        .attrs
-        .push(syn::parse_quote!(#[allow(non_snake_case)]));
-
     // Forward the wasm_bindgen attributes to the new function
     let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
     let mut keep = Vec::new();
