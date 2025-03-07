@@ -253,7 +253,7 @@
             '';
           };
 
-          # need to build from source since it errors on macos with current rainix rust version 1.79 on rainix
+          # need to build from source since it errors on macos with current rainix rust version 1.79
           # and the version available on rainix.pkgs is 1.0.100 which is not compatible with rust 1.79,
           # the latest version that works with rust 1.79 is v1.0.95 so we build form source
           cargo-expand = (pkgs.makeRustPlatform{
