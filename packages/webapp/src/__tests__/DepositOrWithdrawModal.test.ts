@@ -9,8 +9,7 @@ const {
 	mockSignerAddressStore,
 	mockConnectedStore,
 	mockAppKitModalStore,
-	mockWagmiConfigStore,
-	mockTransactionStore
+	mockWagmiConfigStore
 } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;

@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		PageHeader,
-		TransactionStatus,
-		transactionStore,
-		wagmiConfig
-	} from '@rainlanguage/ui-components';
+	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
 
