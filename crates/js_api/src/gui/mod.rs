@@ -1,3 +1,4 @@
+use crate::common::*;
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
@@ -17,6 +18,7 @@ use rain_orderbook_common::{
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
+use rain_orderbook_macros::{impl_wasm_exports, wasm_export};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
@@ -61,21 +63,50 @@ pub struct DotrainOrderGui {
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
 }
+
 #[wasm_bindgen]
 impl DotrainOrderGui {
-    #[wasm_bindgen(js_name = "getDeploymentKeys")]
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> DotrainOrderGui {
+        Self {
+            dotrain_order: DotrainOrder::dummy(),
+            selected_deployment: "".to_string(),
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            state_update_callback: None,
+        }
+    }
+}
+
+impl_wasm_traits!(WasmEncodedResult<DeploymentKeys>);
+impl_wasm_traits!(WasmEncodedResult<GuiCfg>);
+impl_wasm_traits!(WasmEncodedResult<GuiDeploymentCfg>);
+impl_wasm_traits!(WasmEncodedResult<GuiFieldDefinitionCfg>);
+impl_wasm_traits!(WasmEncodedResult<GuiPresetCfg>);
+impl_wasm_traits!(WasmEncodedResult<NameAndDescriptionCfg>);
+impl_wasm_traits!(WasmEncodedResult<TokenInfo>);
+impl_wasm_traits!(WasmEncodedResult<AllTokenInfos>);
+impl_wasm_traits!(WasmEncodedResult<DeploymentDetails>);
+
+#[impl_wasm_exports]
+impl DotrainOrderGui {
+    #[wasm_export(
+        js_name = "getDeploymentKeys",
+        unchecked_return_type = "DeploymentKeys"
+    )]
     pub async fn get_deployment_keys(dotrain: String) -> Result<DeploymentKeys, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentKeys(keys))
     }
 
-    #[wasm_bindgen(js_name = "chooseDeployment")]
+    #[wasm_export(js_name = "chooseDeployment")]
     pub async fn choose_deployment(
+        &mut self,
         dotrain: String,
         deployment_name: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<DotrainOrderGui, GuiError> {
+    ) -> Result<(), GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
 
         let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
@@ -83,16 +114,14 @@ impl DotrainOrderGui {
             return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
 
-        Ok(Self {
-            dotrain_order,
-            selected_deployment: deployment_name.clone(),
-            field_values: BTreeMap::new(),
-            deposits: BTreeMap::new(),
-            state_update_callback,
-        })
+        self.dotrain_order = dotrain_order;
+        self.selected_deployment = deployment_name;
+        self.state_update_callback = state_update_callback;
+
+        Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getGuiConfig")]
+    #[wasm_export(js_name = "getGuiConfig", unchecked_return_type = "GuiCfg")]
     pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
         let gui = self
             .dotrain_order
@@ -102,7 +131,10 @@ impl DotrainOrderGui {
         Ok(gui)
     }
 
-    #[wasm_bindgen(js_name = "getCurrentDeployment")]
+    #[wasm_export(
+        js_name = "getCurrentDeployment",
+        unchecked_return_type = "GuiDeploymentCfg"
+    )]
     pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, GuiError> {
         let gui = self.get_gui_config()?;
         let (_, gui_deployment) = gui
@@ -118,7 +150,7 @@ impl DotrainOrderGui {
     /// Get token info for a given key
     ///
     /// Returns a [`TokenInfo`]
-    #[wasm_bindgen(js_name = "getTokenInfo")]
+    #[wasm_export(js_name = "getTokenInfo", unchecked_return_type = "TokenInfo")]
     pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
@@ -158,7 +190,7 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
-    #[wasm_bindgen(js_name = "getAllTokenInfos")]
+    #[wasm_export(js_name = "getAllTokenInfos", unchecked_return_type = "AllTokenInfos")]
     pub async fn get_all_token_infos(&self) -> Result<AllTokenInfos, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
@@ -187,7 +219,10 @@ impl DotrainOrderGui {
         Ok(AllTokenInfos(result))
     }
 
-    #[wasm_bindgen(js_name = "getStrategyDetails")]
+    #[wasm_export(
+        js_name = "getStrategyDetails",
+        unchecked_return_type = "NameAndDescriptionCfg"
+    )]
     pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescriptionCfg, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let details =
@@ -195,7 +230,10 @@ impl DotrainOrderGui {
         Ok(details)
     }
 
-    #[wasm_bindgen(js_name = "getDeploymentDetails")]
+    #[wasm_export(
+        js_name = "getDeploymentDetails",
+        unchecked_return_type = "DeploymentDetails"
+    )]
     pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
         let deployment_details =
@@ -203,7 +241,10 @@ impl DotrainOrderGui {
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
     }
 
-    #[wasm_bindgen(js_name = "getDeploymentDetail")]
+    #[wasm_export(
+        js_name = "getDeploymentDetail",
+        unchecked_return_type = "NameAndDescriptionCfg"
+    )]
     pub async fn get_deployment_detail(
         dotrain: String,
         key: String,
@@ -216,7 +257,7 @@ impl DotrainOrderGui {
         Ok(deployment_detail.clone())
     }
 
-    #[wasm_bindgen(js_name = "generateDotrainText")]
+    #[wasm_export(js_name = "generateDotrainText", unchecked_return_type = "string")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
         let dotrain = format!(
@@ -228,7 +269,7 @@ impl DotrainOrderGui {
         Ok(dotrain)
     }
 
-    #[wasm_bindgen(js_name = "getComposedRainlang")]
+    #[wasm_export(js_name = "getComposedRainlang", unchecked_return_type = "string")]
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
