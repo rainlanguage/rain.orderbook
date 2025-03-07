@@ -306,7 +306,7 @@
             packages.tauri-rs-test
             packages.cargo-expand
           ];
-          shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
+          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + '' unset DEVELOPER_DIR SDKROOT '';
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
