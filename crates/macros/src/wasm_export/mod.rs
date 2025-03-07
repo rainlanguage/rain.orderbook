@@ -5,7 +5,7 @@ mod type_utils;
 
 // Re-export the public API
 pub use function_gen::create_new_function_call;
-pub use transformers::{add_attributes_to_new_function, collect_function_arguments};
+pub use transformers::{collect_function_arguments, handle_attrs};
 pub use type_utils::try_extract_result_inner_type;
 
 // Constants used throughout the module

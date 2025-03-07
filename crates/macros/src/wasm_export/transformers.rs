@@ -28,8 +28,8 @@ pub fn collect_function_arguments(
     (has_self_receiver, args)
 }
 
-/// Adds necessary attributes to the exported function
-pub fn add_attributes_to_new_function(
+/// Handles wasm_export macro attributes for a given method
+pub fn handle_attrs(
     method: &mut ImplItemFn,
 ) -> Result<(Vec<Attribute>, Option<Type>, bool), syn::Error> {
     // Forward the wasm_bindgen attributes to the new function

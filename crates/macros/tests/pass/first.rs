@@ -3,7 +3,7 @@ extern crate rain_orderbook_macros;
 
 struct TestStruct;
 
-#[impl_wasm_exports]
+#[wasm_export]
 impl TestStruct {
     #[wasm_export(js_name = "someStaticMethod", unchecked_return_type = "string")]
     pub async fn some_static_method((arg1, arg2): (String, u8)) -> Result<String, Error> {
