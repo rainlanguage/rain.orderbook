@@ -70,7 +70,7 @@ fn expand_macro(_attr: TokenStream, item: TokenStream) -> Result<TokenStream, Er
                 } else {
                     return Err(Error::new_spanned(
                         &method.sig.output,
-                        "wasm_macro expects Result<T, E> return type",
+                        "expected Result<T, E> return type",
                     ));
                 }
             }
