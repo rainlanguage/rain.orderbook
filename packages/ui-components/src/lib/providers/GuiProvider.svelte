@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
-	import { writable } from 'svelte/store';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 	export let gui: DotrainOrderGui;
