@@ -2,11 +2,9 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -30,6 +28,9 @@
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	interface Deployment {
 		key: string;
@@ -41,7 +42,7 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
+
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -112,7 +113,6 @@
 	async function updateFields() {
 		try {
 			DeploymentStepsError.clear();
-
 			getAllDepositFields();
 			getAllFieldDefinitions();
 			getAllTokenInputs();

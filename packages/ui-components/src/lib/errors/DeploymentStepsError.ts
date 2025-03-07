@@ -38,6 +38,7 @@ export class DeploymentStepsError extends Error {
 	}
 
 	static catch(e: unknown, code: DeploymentStepsErrorCode) {
+		console.log(e);
 		const error =
 			e instanceof DeploymentStepsError
 				? e
