@@ -41,7 +41,7 @@ tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time
 httpmock = "0.7.0"
 
 [target.'cfg(target_family = "wasm")'.dev-dependencies]
-wasm-bindgen-test = "0.3.42"
+wasm-bindgen-test = "0.3"
 
 [dev-dependencies]
 rain_orderbook_test_fixtures = { workspace = true }
