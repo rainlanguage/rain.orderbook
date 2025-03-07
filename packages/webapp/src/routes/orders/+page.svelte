@@ -1,9 +1,7 @@
 <script lang="ts" generics="T">
 	import { page } from '$app/stores';
-	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
+	import { OrdersListTable, PageHeader, connected } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { signerAddress } from '$lib/stores/wagmi';
-	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
 
 	const {
@@ -33,7 +31,6 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}

@@ -3,7 +3,9 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type DepositOrWithdrawArgs,
+		wagmiConfig,
+		signerAddress
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -13,10 +15,10 @@
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
-	import { wagmiConfig } from '$lib/stores/wagmi';
+
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
-	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
+
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
@@ -161,7 +163,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect {appKitModal} {connected} />
+						<WalletConnect />
 					{/if}
 				</div>
 				{#if errorMessage}
