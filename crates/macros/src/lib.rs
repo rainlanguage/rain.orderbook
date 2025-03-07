@@ -8,7 +8,7 @@ mod wasm_export;
 // Import specific items from modules
 use wasm_export::{
     add_attributes_to_new_function, collect_function_arguments, create_new_function_call,
-    should_skip_wasm_export, WASM_EXPORT_ATTR,
+    WASM_EXPORT_ATTR,
 };
 
 #[proc_macro_attribute]
@@ -23,16 +23,15 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
         if let ImplItem::Fn(method) = item {
             // Process for export if applicable
             if let syn::Visibility::Public(_) = method.vis {
-                let should_skip = should_skip_wasm_export(&method.attrs);
                 match add_attributes_to_new_function(method) {
                     Err(e) => {
                         return e.into_compile_error().into();
                     }
-                    Ok((forwarding_attrs, inner_ret_type)) => {
+                    Ok((forwarding_attrs, inner_ret_type, should_skip)) => {
                         if should_skip {
                             continue;
                         }
-                        if let Some(inner_type) = inner_ret_type {
+                        if let Some(inner_ret_type) = inner_ret_type {
                             let fn_name = &method.sig.ident;
                             let is_async = method.sig.asyncness.is_some();
                             let (has_self_receiver, args) =
@@ -52,7 +51,7 @@ pub fn impl_wasm_exports(_attr: TokenStream, item: TokenStream) -> TokenStream {
                             export_method.attrs.extend(forwarding_attrs);
 
                             let new_return_type =
-                                syn::parse_quote!(-> WasmEncodedResult<#inner_type>);
+                                syn::parse_quote!(-> WasmEncodedResult<#inner_ret_type>);
                             export_method.sig.output = new_return_type;
 
                             let call_expr =

@@ -1,4 +1,4 @@
-use super::try_extract_result_inner_type;
+use super::{try_extract_result_inner_type, SKIP_PARAM};
 use crate::wasm_export::{UNCHECKED_RETURN_TYPE_PARAM, WASM_EXPORT_ATTR};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -31,10 +31,11 @@ pub fn collect_function_arguments(
 /// Adds necessary attributes to the exported function
 pub fn add_attributes_to_new_function(
     method: &mut ImplItemFn,
-) -> Result<(Vec<Attribute>, Option<Type>), syn::Error> {
+) -> Result<(Vec<Attribute>, Option<Type>, bool), syn::Error> {
     // Forward the wasm_bindgen attributes to the new function
     let mut keep = Vec::new();
-    let mut unchecked_ret_type: Option<String> = None;
+    let mut should_skip = false;
+    let mut unchecked_ret_type = None;
     let mut wasm_bindgen_attrs: Vec<Attribute> = Vec::new();
     for attr in &method.attrs {
         if attr.path().is_ident(WASM_EXPORT_ATTR) {
@@ -56,6 +57,12 @@ pub fn add_attributes_to_new_function(
                     } else {
                         return Err(syn::Error::new_spanned(meta, "expected string literal"));
                     }
+                } else if meta.path().is_ident(SKIP_PARAM) {
+                    if should_skip {
+                        return Err(syn::Error::new_spanned(meta, "duplicate skip attribute"));
+                    }
+                    meta.require_path_only()?;
+                    should_skip = true;
                 } else {
                     // include unchanged
                     wasm_bindgen_attrs.push(syn::parse_quote!(
@@ -68,6 +75,7 @@ pub fn add_attributes_to_new_function(
         }
     }
 
+    // extract #[wasm_export] attrs from input
     let mut keep = keep.into_iter();
     method.attrs.retain(|_| keep.next().unwrap());
 
@@ -84,5 +92,5 @@ pub fn add_attributes_to_new_function(
         ));
     }
 
-    Ok((wasm_bindgen_attrs, inner_ret_type))
+    Ok((wasm_bindgen_attrs, inner_ret_type, should_skip))
 }
