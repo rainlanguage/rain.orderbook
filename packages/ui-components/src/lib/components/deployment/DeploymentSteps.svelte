@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
-	import SelectTokensSection from './SelectTokensSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
@@ -28,6 +26,10 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import DepositInput from './DepositInput.svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import SelectToken from './SelectToken.svelte';
 
 	interface Deployment {
 		key: string;
@@ -233,29 +235,50 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+					<div class="flex w-full flex-col gap-4">
+						<DeploymentSectionHeader
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
+						/>
+						{#each selectTokens as token}
+							<SelectToken {token} {gui} {onSelectTokenSelect} />
+						{/each}
+					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
+						{#if allTokenInputs.length > 0}
+							{#each allTokenInputs as input, i}
+								<TokenIOInput {i} label="Input" vault={input} {gui} />
+							{/each}
+						{/if}
+
+						{#if allTokenOutputs.length > 0}
+							{#each allTokenOutputs as output, i}
+								<TokenIOInput {i} label="Output" vault={output} {gui} />
+							{/each}
+						{/if}
 					{/if}
 
 					{#if $deploymentStepsError}

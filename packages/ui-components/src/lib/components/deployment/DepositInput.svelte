@@ -13,6 +13,7 @@
 
 	export let deposit: GuiDepositCfg;
 	export let gui: DotrainOrderGui;
+
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
