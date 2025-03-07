@@ -856,12 +856,12 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// Given an order, final input and output amounts and the IO calculation
     /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
     /// it exists and update the order owner's vault balances.
-    /// @param input The exact token input amount to move into the owner's
-    /// vault.
-    /// @param output The exact token output amount to move out of the owner's
-    /// vault.
-    /// @param orderIOCalculation The verbatim order IO calculation returned by
-    /// `_calculateOrderIO`.
+    /// @param inputSignedCoefficient The signed coefficient of the input amount.
+    /// @param inputExponent The exponent of the input amount.
+    /// @param outputSignedCoefficient The signed coefficient of the output
+    /// amount.
+    /// @param outputExponent The exponent of the output amount.
+    /// @param orderIOCalculation The order IO calculation produced by
     function recordVaultIO(
         int256 inputSignedCoefficient,
         int256 inputExponent,
@@ -994,7 +994,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     function calculateClearStateAlice(
         OrderIOCalculationV2 memory aliceOrderIOCalculation,
         OrderIOCalculationV2 memory bobOrderIOCalculation
-    ) internal pure returns returns (
+    ) internal pure returns (
         int256 aliceInputSignedCoefficient,
         int256 aliceInputExponent,
         int256 aliceOutputMaxSignedCoefficient,
