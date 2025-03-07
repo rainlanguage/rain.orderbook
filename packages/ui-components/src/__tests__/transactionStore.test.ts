@@ -10,6 +10,7 @@ import {
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook/js_api';
+import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({
@@ -22,6 +23,10 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getTransaction: vi.fn(),
 	getTransactionAddOrders: vi.fn(),
 	getTransactionRemoveOrders: vi.fn()
+}));
+
+vi.mock('../lib/services/getExplorerLink', () => ({
+	getExplorerLink: vi.fn()
 }));
 
 describe('transactionStore', () => {
@@ -59,7 +64,8 @@ describe('transactionStore', () => {
 			functionName: '',
 			message: '',
 			newOrderHash: '',
-			network: ''
+			network: '',
+			explorerLink: ''
 		});
 	});
 
@@ -122,6 +128,7 @@ describe('transactionStore', () => {
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).hash).toBe('deployHash');
+		expect(getExplorerLink).toHaveBeenCalledWith('deployHash', 1, 'tx');
 	});
 
 	it('should handle chain switch failure', async () => {
