@@ -17,4 +17,11 @@ describe('DeploymentSectionHeader', () => {
 		expect(screen.getByText('Test Title')).toBeInTheDocument();
 		expect(screen.getByText('Test Description')).toBeInTheDocument();
 	});
+
+	it('renders title only', () => {
+		render(DeploymentSectionHeader, { title: 'Test Title' });
+
+		expect(screen.getByText('Test Title')).toBeInTheDocument();
+		expect(screen.queryByText('Test Description')).not.toBeInTheDocument();
+	});
 });
