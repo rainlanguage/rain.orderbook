@@ -20,6 +20,10 @@
 
 	onMount(() => {
 		try {
+			const fieldValues = gui.getAllFieldValues();
+			const fieldDefinitions = gui.getAllFieldDefinitions();
+			console.log('fieldValues', fieldValues);
+			console.log('fieldDefinitions', fieldDefinitions);
 			currentValue = gui.getFieldValue(fieldDefinition.binding);
 			inputValue = currentValue?.value ? currentValue?.value : fieldDefinition.default || null;
 		} catch {

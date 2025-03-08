@@ -37,12 +37,12 @@ export class DeploymentStepsError extends Error {
 		return value;
 	}
 
-	static catch(e: unknown, code: DeploymentStepsErrorCode) {
-		console.log(e);
+	static catch(e: { message: string }, code: DeploymentStepsErrorCode) {
+
 		const error =
 			e instanceof DeploymentStepsError
 				? e
-				: new DeploymentStepsError(code, e instanceof Error ? e.message : 'Unknown error');
+				: new DeploymentStepsError(code, e.message || 'Unknown error');
 		this.errorStore.set(error);
 	}
 
