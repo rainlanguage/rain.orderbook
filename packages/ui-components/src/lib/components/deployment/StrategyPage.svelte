@@ -30,7 +30,9 @@
 			try {
 				markdownContent = await fetchMarkdownContent(strategyDetails.description);
 			} catch (error: unknown) {
-				error = error instanceof Error ? error.message : 'Unknown error';
+				throw new Error(
+					`Failed to fetch markdown: ${error instanceof Error ? error.message : 'Unknown error'}`
+				);
 			}
 		}
 		return strategyDetails;
@@ -53,8 +55,6 @@
 						data-testId="plain-description"
 						class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
 					>
-						<span class="text-red-500">Could not load strategy description from: </span>
-
 						{strategyDetails.description}
 					</p>
 				{/if}
