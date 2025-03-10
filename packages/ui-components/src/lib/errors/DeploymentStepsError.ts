@@ -38,7 +38,6 @@ export class DeploymentStepsError extends Error {
 	}
 
 	static catch(e: { message: string }, code: DeploymentStepsErrorCode) {
-
 		const error =
 			e instanceof DeploymentStepsError
 				? e
