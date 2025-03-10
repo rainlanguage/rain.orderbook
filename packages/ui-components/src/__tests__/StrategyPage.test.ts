@@ -3,7 +3,6 @@ import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-
 // Mock fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -87,7 +86,9 @@ describe('StrategyPage', () => {
 	it('displays error message when strategy details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
 
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(new Error('Error: Failed to get strategy details'));
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(
+			new Error('Error: Failed to get strategy details')
+		);
 
 		render(StrategyPage, {
 			props: {
