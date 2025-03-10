@@ -647,8 +647,7 @@ describe('DeploymentSteps', () => {
 
 		// Make useGui return our mock instance
 		vi.mocked(useGui).mockReturnValue(mockGui);
-
-  });
+	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
 		// Override the getSelectTokens mock for this test
