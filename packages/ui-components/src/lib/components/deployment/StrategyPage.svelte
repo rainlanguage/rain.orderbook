@@ -31,7 +31,7 @@
 				await fetchMarkdownContent(strategyDetails.description);
 			}
 			return strategyDetails;
-		} catch (e) {
+		} catch {
 			throw new Error('Failed to get strategy details');
 		}
 	};
