@@ -15,15 +15,6 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}
 }));
 
-vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
-	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: MockComponent };
-});
-
-vi.mock('svelte-markdown', async () => {
-	const mockSvelteMarkdown = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: mockSvelteMarkdown };
-});
 
 describe('StrategyPage', () => {
 	beforeEach(() => {
@@ -31,7 +22,7 @@ describe('StrategyPage', () => {
 		vi.resetAllMocks();
 	});
 
-	it('renders strategy details successfully with rawDotrain', async () => {
+	it.only('renders strategy details successfully with rawDotrain', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -54,7 +45,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it('renders strategy details successfully from fetch', async () => {
+	it.only('renders strategy details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -62,12 +53,10 @@ describe('StrategyPage', () => {
 			short_description: 'Test Short Description'
 		};
 
-		// Mock fetch response
 		mockFetch.mockResolvedValueOnce({
 			text: () => Promise.resolve(mockDotrain)
 		});
 
-		// Mock DotrainOrderGui methods
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
@@ -83,7 +72,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it('displays error message when strategy details fail', async () => {
+	it.only('displays error message when strategy details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
 
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(
@@ -102,7 +91,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it('handles markdown fetch failure', async () => {
+	it.only('handles markdown fetch failure', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -126,25 +115,17 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it('renders markdown if description is a markdown url', async () => {
+	it.only('renders markdown if description is a markdown url', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
 			description: 'https://example.com/description.md',
 			short_description: 'Test Short Description'
 		};
-		const mockMarkdownContent = '# Mock Markdown Content';
 
-		// First fetch for dotrain
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		// Second fetch for markdown content
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			text: () => Promise.resolve(mockMarkdownContent)
+			text: () => Promise.resolve('mock markdown content')
 		});
 
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
@@ -158,14 +139,12 @@ describe('StrategyPage', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
-			expect(screen.getByTestId('plain-description')).toHaveTextContent(
-				'https://example.com/description.md'
-			);
+			expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
 			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
 		});
 	});
 
-	it('falls back to plain text when markdown fetch fails', async () => {
+	it.only('falls back to plain text when markdown fetch fails', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -173,15 +152,10 @@ describe('StrategyPage', () => {
 			short_description: 'Test Short Description'
 		};
 
-		mockFetch
-			.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve(mockDotrain)
-			})
-			.mockResolvedValueOnce({
-				ok: false,
-				statusText: 'Not Found'
-			});
+		mockFetch.mockResolvedValueOnce({
+			ok: false,
+			statusText: 'Not Found'
+		});
 
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
