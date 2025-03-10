@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { PageHeader, StrategiesSection, InputRegistryUrl } from '@rainlanguage/ui-components';
+	import {
+		PageHeader,
+		ValidStrategiesSection,
+		InvalidStrategiesSection,
+		InputRegistryUrl
+	} from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import type { PageData } from './$types';
 
-	const { error, strategyDetails } = $page.data;
+	export let data: PageData;
+	const { error, strategyDetails } = data;
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
@@ -40,7 +47,15 @@
 				>
 			</h1>
 		</div>
-
-		<StrategiesSection {strategyDetails} />
+		{#await strategyDetails.filter((strategy) => !strategy.error) then validStrategies}
+			{#if validStrategies.length > 0}
+				<ValidStrategiesSection {validStrategies} />
+			{/if}
+		{/await}
+		{#await strategyDetails.filter((strategy) => strategy.error) then invalidStrategies}
+			{#if invalidStrategies.length > 0}
+				<InvalidStrategiesSection {invalidStrategies} />
+			{/if}
+		{/await}
 	{/if}
 </div>

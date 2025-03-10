@@ -15,6 +15,11 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}
 }));
 
+vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
+	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockComponent };
+});
+
 vi.mock('svelte-markdown', async () => {
 	const mockSvelteMarkdown = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: mockSvelteMarkdown };
@@ -32,13 +37,15 @@ describe('StrategySection', () => {
 			description: 'Test Description',
 			short_description: 'Test Short Description'
 		};
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+		const strategyPromise = Promise.resolve(mockStrategyDetails);
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockReturnValue(strategyPromise);
 
 		render(StrategyPage, {
 			props: {
 				dotrain: mockDotrain
 			}
 		});
+		await strategyPromise;
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
@@ -100,23 +107,29 @@ describe('StrategySection', () => {
 		});
 	});
 
-	it('handles fetch failure', async () => {
-		const mockError = new Error('Failed to fetch');
+	it('handles markdown fetch failure', async () => {
+		const mockDotrain = 'mock dotrain content';
+		const mockStrategyDetails = {
+			name: 'Test Strategy',
+			description: 'https://example.com/description.md',
+			short_description: 'Test Short Description'
+		};
 
-		// Mock fetch to reject
-		mockFetch.mockRejectedValueOnce(mockError);
+		// Mock fetch response
+		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
+
+		// Mock DotrainOrderGui methods
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
-				strategyName: 'TestStrategy'
+				strategyName: 'TestStrategy',
+				dotrain: mockDotrain
 			}
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Error getting strategy details')).toBeInTheDocument();
-			expect(
-				screen.getByText("Cannot read properties of undefined (reading 'description')")
-			).toBeInTheDocument();
+			expect(screen.getByText('https://example.com/description.md')).toBeInTheDocument();
 		});
 	});
 
