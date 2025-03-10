@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
@@ -8,6 +8,14 @@ import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
+
+
+import { useGui } from '$lib/hooks/useGui';
+
+
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
 
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -621,42 +629,46 @@ const mockDeployment = {
 	}
 } as unknown as GuiDeploymentCfg;
 
-const defaultProps: DeploymentStepsProps = {
-	dotrain,
-	strategyDetail: {
-		name: 'SFLR<>WFLR on Flare',
-		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-	},
-	deployment: mockDeployment,
-	wagmiConfig: mockWagmiConfigStore,
-	wagmiConnected: mockConnectedStore,
-	appKitModal: writable({} as AppKit),
-	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-	settings: writable({} as ConfigSource),
-	gui: {} as DotrainOrderGui
-};
-
 describe('DeploymentSteps', () => {
+	let mockGui: DotrainOrderGui;
+	
 	beforeEach(() => {
 		vi.clearAllMocks();
+		
+		// Create a mock GUI instance
+		mockGui = {
+			areAllTokensSelected: vi.fn().mockReturnValue(false),
+			getSelectTokens: vi.fn().mockReturnValue([]),
+			getNetworkKey: vi.fn().mockReturnValue('flare'),
+			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
+			getAllFieldDefinitions: vi.fn().mockReturnValue([]),
+			hasAnyDeposit: vi.fn().mockReturnValue(false),
+			hasAnyVaultId: vi.fn().mockReturnValue(false),
+			getAllTokenInfos: vi.fn().mockResolvedValue([])
+		} as unknown as DotrainOrderGui;
+		
+		// Make useGui return our mock instance
+		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
 
-	const setGui = (defaultProps: DeploymentStepsProps) => {
-		defaultProps.gui = {
-			areAllTokensSelected: vi.fn(),
-			getSelectTokens: () => [],
-			getNetworkKey: vi.fn(),
-			getCurrentDeployment: () => mockDeployment,
-			getAllFieldDefinitions: () => []
-		} as unknown as DotrainOrderGui;
-	};
-
 	it('shows deployment details when provided', async () => {
-		setGui(defaultProps);
-
-		render(DeploymentSteps, { props: defaultProps });
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+				settings: writable({} as ConfigSource)
+			}
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
@@ -664,10 +676,26 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
-		setGui(defaultProps);
-		defaultProps.gui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
+		// Override the getSelectTokens mock for this test
+		mockGui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
 
-		render(DeploymentSteps, { props: defaultProps });
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+				settings: writable({} as ConfigSource)
+			}
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
@@ -679,9 +707,24 @@ describe('DeploymentSteps', () => {
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
 		mockConnectedStore.mockSetSubscribeValue(true);
-		setGui(defaultProps);
-
-		render(DeploymentSteps, { props: defaultProps });
+		
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+				settings: writable({} as ConfigSource)
+			}
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
@@ -690,9 +733,24 @@ describe('DeploymentSteps', () => {
 
 	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
-		setGui(defaultProps);
-
-		render(DeploymentSteps, { props: defaultProps });
+		
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+				settings: writable({} as ConfigSource)
+			}
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
@@ -704,36 +762,24 @@ describe('DeploymentSteps', () => {
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
 		];
-		const getAllTokenInfos = vi.fn();
-		const getAllFieldDefinitions = vi.fn();
-		const getAllDepositFields = vi.fn();
-		const getTokenInfo = vi.fn();
-		const areAllTokensSelected = vi.fn(() => true);
-
-		defaultProps.gui = {
-			getSelectTokens: () => mockSelectTokens,
-			getTokenInfo,
-			getNetworkKey: vi.fn(),
-			getAllTokenInfos,
-			getAllFieldDefinitions,
-			getAllDepositFields,
-			isSelectTokenSet: () => false,
-			saveSelectToken: vi.fn(),
-			areAllTokensSelected,
-			hasAnyDeposit: vi.fn(),
-			hasAnyVaultId: vi.fn(),
-			getCurrentDeployment: () => ({
-				deployment: {
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				},
-				deposits: []
-			})
-		} as unknown as DotrainOrderGui;
-
-		getAllTokenInfos.mockResolvedValue([
+		
+		// Set up specific mocks for this test
+		mockGui.getSelectTokens = vi.fn().mockReturnValue(mockSelectTokens);
+		mockGui.getTokenInfo = vi.fn();
+		mockGui.areAllTokensSelected = vi.fn().mockReturnValue(true);
+		mockGui.isSelectTokenSet = vi.fn().mockReturnValue(false);
+		mockGui.saveSelectToken = vi.fn();
+		mockGui.getCurrentDeployment = vi.fn().mockReturnValue({
+			deployment: {
+				order: {
+					inputs: [],
+					outputs: []
+				}
+			},
+			deposits: []
+		});
+		
+		mockGui.getAllTokenInfos = vi.fn().mockResolvedValue([
 			{
 				address: '0x1',
 				decimals: 18,
@@ -747,13 +793,28 @@ describe('DeploymentSteps', () => {
 				symbol: 'TKN2'
 			}
 		]);
-		getAllFieldDefinitions.mockResolvedValue([]);
-		getAllDepositFields.mockResolvedValue([]);
 
 		const user = userEvent.setup();
-		render(DeploymentSteps, { props: defaultProps });
+		
+		render(DeploymentSteps, {
+			props: {
+				dotrain,
+				strategyDetail: {
+					name: 'SFLR<>WFLR on Flare',
+					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+				},
+				deployment: mockDeployment,
+				wagmiConfig: mockWagmiConfigStore,
+				wagmiConnected: mockConnectedStore,
+				appKitModal: writable({} as AppKit),
+				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+				settings: writable({} as ConfigSource)
+			}
+		});
 
-		expect(areAllTokensSelected).toHaveBeenCalled();
+		expect(mockGui.areAllTokensSelected).toHaveBeenCalled();
 
 		await waitFor(() => {
 			expect(screen.getByText('Select Tokens')).toBeInTheDocument();
@@ -762,7 +823,7 @@ describe('DeploymentSteps', () => {
 		});
 
 		let selectTokenInput = screen.getAllByRole('textbox')[0];
-		getTokenInfo.mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			address: '0x1',
 			decimals: 18,
 			name: 'Token 1',
@@ -771,7 +832,7 @@ describe('DeploymentSteps', () => {
 		await user.type(selectTokenInput, '0x1');
 
 		const selectTokenOutput = screen.getAllByRole('textbox')[1];
-		getTokenInfo.mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			address: '0x2',
 			decimals: 18,
 			name: 'Token 2',
@@ -780,12 +841,12 @@ describe('DeploymentSteps', () => {
 		await user.type(selectTokenOutput, '0x2');
 
 		await waitFor(() => {
-			expect(getAllTokenInfos).toHaveBeenCalled();
-			expect(getAllFieldDefinitions).toHaveBeenCalled();
+			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
+			expect(mockGui.getAllFieldDefinitions).toHaveBeenCalled();
 		});
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
-		getTokenInfo.mockResolvedValue({
+		(mockGui.getTokenInfo  as Mock).mockResolvedValue({
 			address: '0x3',
 			decimals: 18,
 			name: 'Token 3',
@@ -793,26 +854,24 @@ describe('DeploymentSteps', () => {
 		});
 		await user.type(selectTokenInput, '0x3');
 
-		getAllTokenInfos.mockReturnValue(
-			Promise.resolve([
-				{
-					address: '0x3',
-					decimals: 18,
-					name: 'Token 3',
-					symbol: 'TKN3'
-				},
-				{
-					address: '0x2',
-					decimals: 18,
-					name: 'Token 2',
-					symbol: 'TKN2'
-				}
-			])
-		);
+		(mockGui.getAllTokenInfos as Mock).mockResolvedValue([
+			{
+				address: '0x3',
+				decimals: 18,
+				name: 'Token 3',
+				symbol: 'TKN3'
+			},
+			{
+				address: '0x2',
+				decimals: 18,
+				name: 'Token 2',
+				symbol: 'TKN2'
+			}
+		]);
 
 		await waitFor(() => {
-			expect(getAllTokenInfos).toHaveBeenCalled();
-			expect(getAllFieldDefinitions).toHaveBeenCalled();
+			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
+			expect(mockGui.getAllFieldDefinitions).toHaveBeenCalled();
 		});
 	});
 });

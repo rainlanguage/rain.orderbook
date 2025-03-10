@@ -22,6 +22,8 @@
 	}
 
 	onMount(async () => {
+		// TODO: Should this happen in page loadd
+		// TODO: New gui init will be to instantiate an instance of GUI class
 		const { gui: initializedGui, error } = await handleGuiInitialization(
 			dotrain,
 			deployment.key,

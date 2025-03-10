@@ -1,6 +1,5 @@
 <script lang="ts">
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
@@ -12,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	export let deposit: GuiDepositCfg;
+
 	const gui = useGui();
 
 	let error: string = '';
@@ -19,10 +19,7 @@
 	let inputValue: string = '';
 	let tokenInfo: TokenInfo | null = null;
 
-	$: console.log('deposit', deposit);
-
 	onMount(() => {
-		console.log('gui.getDeposits()', gui.getDeposits());
 		setCurrentDeposit();
 	});
 
@@ -38,7 +35,7 @@
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(deposit.token?.key);
+			tokenInfo = await gui.getTokenInfo(deposit.token?.key);
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message
@@ -51,7 +48,7 @@
 		if (deposit.token?.key) {
 			inputValue = preset;
 			gui.saveDeposit(deposit.token?.key, preset);
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
 		}
 	}
 
@@ -60,8 +57,7 @@
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
 				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
-				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
-				console.log('currentDeposit', currentDeposit);
+				currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
 			}
 		}
 	}

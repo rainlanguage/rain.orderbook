@@ -146,11 +146,8 @@
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 			return;
 		}
-		if (!wagmiConfig) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-			return;
-		}
 
+		// TODO: remove this once we have a way to get the network key
 		if (!networkKey) {
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 			return;
@@ -241,15 +238,15 @@
 							description="Select the tokens that you want to use in your order."
 						/>
 						{#each selectTokens as token}
-							<SelectToken {token} {gui} {onSelectTokenSelect} />
+							<SelectToken {token} {onSelectTokenSelect} />
 						{/each}
 					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
@@ -257,7 +254,7 @@
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
 						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
@@ -270,13 +267,13 @@
 					{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
 						{#if allTokenInputs.length > 0}
 							{#each allTokenInputs as input, i}
-								<TokenIOInput {i} label="Input" vault={input} {gui} />
+								<TokenIOInput {i} label="Input" vault={input} />
 							{/each}
 						{/if}
 
 						{#if allTokenOutputs.length > 0}
 							{#each allTokenOutputs as output, i}
-								<TokenIOInput {i} label="Output" vault={output} {gui} />
+								<TokenIOInput {i} label="Output" vault={output} />
 							{/each}
 						{/if}
 					{/if}

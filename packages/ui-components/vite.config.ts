@@ -1,10 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import {svelteTesting} from '@testing-library/svelte/vite'
+
 
 export default defineConfig(({ mode }) => ({
 	assetsInclude: ['**/*.rain'],
-	plugins: [sveltekit()],
+	plugins: [sveltekit(), svelteTesting({
+  autoCleanup: false,
+  resolveBrowser: false,
+})],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []
 	},
@@ -12,6 +17,7 @@ export default defineConfig(({ mode }) => ({
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
 	},
+	
 
 	test: {
 		// Jest like globals

@@ -7,11 +7,13 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
-	export let gui: DotrainOrderGui;
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
@@ -29,7 +31,7 @@
 	const handleGetTokenInfo = async () => {
 		if (!vault.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(vault.token?.key);
+			tokenInfo = await gui.getTokenInfo(vault.token?.key);
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message
@@ -42,7 +44,7 @@
 		const isInput = label === 'Input';
 		error = '';
 		try {
-			gui?.setVaultId(isInput, i, inputValue);
+			gui.setVaultId(isInput, i, inputValue);
 		} catch (e) {
 			const errorMessage = (e as Error).message ? (e as Error).message : 'Error setting vault ID.';
 			error = errorMessage;
