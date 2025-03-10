@@ -7,7 +7,6 @@
 	import {
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
-		type NameAndDescriptionCfg,
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
 		type AllTokenInfos
@@ -29,7 +28,6 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { page } from '$app/stores';
 
 	const gui = useGui();
 
