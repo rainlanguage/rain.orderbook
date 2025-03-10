@@ -32,7 +32,6 @@
 			}
 			return strategyDetails;
 		} catch (e) {
-			console.log(e);
 			throw new Error('Failed to get strategy details');
 		}
 	};
