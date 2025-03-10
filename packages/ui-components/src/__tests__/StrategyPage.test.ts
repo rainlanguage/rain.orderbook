@@ -15,7 +15,6 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}
 }));
 
-
 describe('StrategyPage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
