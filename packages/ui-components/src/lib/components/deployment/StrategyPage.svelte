@@ -16,7 +16,7 @@
 	const fetchMarkdownContent = async (url: string) => {
 		try {
 			const response = await fetch(url);
-			if (!response.ok) {
+			if (response.ok) {
 				markdownContent = await response.text();
 			}
 		} catch {

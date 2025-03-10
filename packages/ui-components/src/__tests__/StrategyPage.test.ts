@@ -39,6 +39,10 @@ describe('StrategyPage', () => {
 			short_description: 'Test Short Description'
 		};
 		const strategyPromise = Promise.resolve(mockStrategyDetails);
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			text: () => Promise.resolve(mockDotrain)
+		});
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockReturnValue(strategyPromise);
 
 		render(StrategyPage, {
@@ -62,12 +66,11 @@ describe('StrategyPage', () => {
 			short_description: 'Test Short Description'
 		};
 
-		// Mock fetch response
 		mockFetch.mockResolvedValueOnce({
+			ok: true,
 			text: () => Promise.resolve(mockDotrain)
 		});
 
-		// Mock DotrainOrderGui methods
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
