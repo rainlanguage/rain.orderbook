@@ -1,17 +1,12 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
-	import SelectTokensSection from './SelectTokensSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
-		type NameAndDescriptionCfg,
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
 		type AllTokenInfos
@@ -28,18 +23,16 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import DepositInput from './DepositInput.svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import SelectToken from './SelectToken.svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
-	interface Deployment {
-		key: string;
-		name: string;
-		description: string;
-	}
+	const gui = useGui();
 
 	export let settings: Writable<ConfigSource>;
-	export let dotrain: string;
-	export let deployment: Deployment;
-	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
+
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -110,7 +103,6 @@
 	async function updateFields() {
 		try {
 			DeploymentStepsError.clear();
-
 			getAllDepositFields();
 			getAllFieldDefinitions();
 			getAllTokenInputs();
@@ -144,11 +136,8 @@
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 			return;
 		}
-		if (!wagmiConfig) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-			return;
-		}
 
+		// TODO: remove this once we have a way to get the network key
 		if (!networkKey) {
 			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
 			return;
@@ -218,77 +207,85 @@
 			{/if}
 		</Alert>
 	{/if}
-	{#if dotrain}
-		{#if gui}
-			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deployment}
-					<div class="flex max-w-2xl flex-col gap-4 text-start">
-						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{strategyDetail.name}
-						</h1>
-						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deployment.description}
-						</p>
-					</div>
+	{#if gui}
+		<div class="flex max-w-3xl flex-col gap-12" in:fade>
+			{#if selectTokens && selectTokens.length > 0}
+				<div class="flex w-full flex-col gap-4">
+					<DeploymentSectionHeader
+						title="Select Tokens"
+						description="Select the tokens that you want to use in your order."
+					/>
+					{#each selectTokens as token}
+						<SelectToken {token} {onSelectTokenSelect} />
+					{/each}
+				</div>
+			{/if}
+
+			{#if allTokensSelected || selectTokens?.length === 0}
+				{#if allFieldDefinitionsWithoutDefaults.length > 0}
+					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} />
+					{/each}
 				{/if}
 
-				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+				{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
+					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} />
+					{/each}
 				{/if}
 
-				{#if allTokensSelected || selectTokens?.length === 0}
-					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+				{#if allDepositFields.length > 0 && showAdvancedOptions}
+					{#each allDepositFields as deposit}
+						<DepositInput {deposit} />
+					{/each}
+				{/if}
+
+				{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
+					{#if allTokenInputs.length > 0}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} />
+						{/each}
 					{/if}
 
-					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
-
-					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+					{#if allTokenOutputs.length > 0}
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} />
+						{/each}
 					{/if}
+				{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
-					{/if}
-
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
-					{/if}
-
-					{#if $deploymentStepsError}
-						<Alert color="red">
-							<p class="text-red-500">{$deploymentStepsError.code}</p>
-							{#if $deploymentStepsError.details}
-								<p class="text-red-500">{$deploymentStepsError.details}</p>
-							{/if}
-						</Alert>
-					{/if}
-
-					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $wagmiConnected}
-							<Button
-								size="lg"
-								on:click={handleDeployButtonClick}
-								class="bg-gradient-to-br from-blue-600 to-violet-600"
-							>
-								{#if checkingDeployment}
-									<Spinner size="4" color="white" />
-									<span class="ml-2">Checking deployment...</span>
-								{:else}
-									Deploy Strategy
-								{/if}
-							</Button>
-						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
+				{#if $deploymentStepsError}
+					<Alert color="red">
+						<p class="text-red-500">{$deploymentStepsError.code}</p>
+						{#if $deploymentStepsError.details}
+							<p class="text-red-500">{$deploymentStepsError.details}</p>
 						{/if}
-						<ComposedRainlangModal {gui} />
-						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
-					</div>
+					</Alert>
 				{/if}
-			</div>
-		{/if}
+
+				<div class="flex flex-wrap items-start justify-start gap-2">
+					{#if $wagmiConnected}
+						<Button
+							size="lg"
+							on:click={handleDeployButtonClick}
+							class="bg-gradient-to-br from-blue-600 to-violet-600"
+						>
+							{#if checkingDeployment}
+								<Spinner size="4" color="white" />
+								<span class="ml-2">Checking deployment...</span>
+							{:else}
+								Deploy Strategy
+							{/if}
+						</Button>
+					{:else}
+						<WalletConnect {appKitModal} connected={wagmiConnected} />
+					{/if}
+					<ComposedRainlangModal {gui} />
+					<ShareChoicesButton handleShareChoices={_handleShareChoices} />
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>

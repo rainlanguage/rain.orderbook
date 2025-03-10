@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
+	import { DeploymentSteps, GuiProvider, PageHeader } from '@rainlanguage/ui-components';
 	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -9,7 +9,7 @@
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
 	const { settings } = $page.data.stores;
-	const { dotrain, deployment, strategyDetail } = $page.data;
+	const { dotrain, deployment } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	let gui: DotrainOrderGui | null = null;
@@ -38,18 +38,16 @@
 {#if !dotrain || !deployment}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
-	<DeploymentSteps
-		{strategyDetail}
-		{gui}
-		{dotrain}
-		{deployment}
-		{wagmiConfig}
-		wagmiConnected={connected}
-		{appKitModal}
-		{handleDeployModal}
-		{settings}
-		{handleDisclaimerModal}
-	/>
+	<GuiProvider {gui}>
+		<DeploymentSteps
+			{wagmiConfig}
+			wagmiConnected={connected}
+			{appKitModal}
+			{settings}
+			{handleDeployModal}
+			{handleDisclaimerModal}
+		/>
+	</GuiProvider>
 {:else if getGuiError}
 	<div>
 		{getGuiError}

@@ -4,14 +4,12 @@ import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionIn
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: vi.fn().mockImplementation(() => ({
-		saveFieldValue: vi.fn(),
-		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn(),
-		getAllFieldValues: vi.fn(),
-		getCurrentDeployment: vi.fn()
-	}))
+// Import the useGui hook to mock it
+import { useGui } from '$lib/hooks/useGui';
+
+// Mock the useGui hook
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
 }));
 
 describe('FieldDefinitionInput', () => {
@@ -30,17 +28,26 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui = new DotrainOrderGui();
-		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
+
+		// Create a mock GUI instance
+		mockGui = {
+			saveFieldValue: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			}),
+			getFieldValue: vi.fn(),
+			isFieldPreset: vi.fn(),
+			getAllFieldValues: vi.fn(),
+			getCurrentDeployment: vi.fn()
+		} as unknown as DotrainOrderGui;
+
+		// Make useGui return our mock instance
+		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -51,8 +58,7 @@ describe('FieldDefinitionInput', () => {
 	it('renders preset buttons', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -63,8 +69,7 @@ describe('FieldDefinitionInput', () => {
 	it('handles preset button clicks and triggers state update', async () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -80,8 +85,7 @@ describe('FieldDefinitionInput', () => {
 	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
-				gui: mockGui
+				fieldDefinition: { ...mockFieldDefinition, showCustomField: true }
 			}
 		});
 
@@ -103,8 +107,7 @@ describe('FieldDefinitionInput', () => {
 
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
+				fieldDefinition: fastExitFieldDef
 			}
 		});
 
@@ -118,8 +121,7 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
+				}
 			}
 		});
 
@@ -145,8 +147,7 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
+				}
 			}
 		});
 
