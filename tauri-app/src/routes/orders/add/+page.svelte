@@ -72,7 +72,7 @@
     error: authoringMetasError,
   } = useDebouncedFn(getAuthoringMetaV2ForScenarios, 500);
 
-  $: debounceGetAuthoringMetas($globalDotrainFile.text, $settingsText);
+  $: debounceGetAuthoringMetas($globalDotrainFile.text, [$settingsText]);
 
   const {
     debouncedFn: debouncedGenerateRainlangStrings,
@@ -186,7 +186,7 @@
         try {
           const composedRainlang = await orderAddComposeRainlang(
             dotrainText,
-            $settingsText,
+            [$settingsText],
             scenario,
           );
           composedRainlangForScenarios.set(scenario, composedRainlang);
@@ -206,7 +206,7 @@
   const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
     useDebouncedFn(validateRaindexVersion, 500);
 
-  $: debounceValidateRaindexVersion($globalDotrainFile.text, $settingsText);
+  $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
