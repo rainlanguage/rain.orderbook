@@ -29,19 +29,11 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { page } from '$app/stores';
 
 	const gui = useGui();
 
-	interface Deployment {
-		key: string;
-		name: string;
-		description: string;
-	}
-
 	export let settings: Writable<ConfigSource>;
-	export let dotrain: string;
-	export let deployment: Deployment;
-	export let strategyDetail: NameAndDescriptionCfg;
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
@@ -217,98 +209,85 @@
 			{/if}
 		</Alert>
 	{/if}
-	{#if dotrain}
-		{#if gui}
-			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deployment}
-					<div class="flex max-w-2xl flex-col gap-4 text-start">
-						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{strategyDetail.name}
-						</h1>
-						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deployment.description}
-						</p>
-					</div>
+	{#if gui}
+		<div class="flex max-w-3xl flex-col gap-12" in:fade>
+			{#if selectTokens && selectTokens.length > 0}
+				<div class="flex w-full flex-col gap-4">
+					<DeploymentSectionHeader
+						title="Select Tokens"
+						description="Select the tokens that you want to use in your order."
+					/>
+					{#each selectTokens as token}
+						<SelectToken {token} {onSelectTokenSelect} />
+					{/each}
+				</div>
+			{/if}
+
+			{#if allTokensSelected || selectTokens?.length === 0}
+				{#if allFieldDefinitionsWithoutDefaults.length > 0}
+					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} />
+					{/each}
 				{/if}
 
-				{#if selectTokens && selectTokens.length > 0}
-					<div class="flex w-full flex-col gap-4">
-						<DeploymentSectionHeader
-							title="Select Tokens"
-							description="Select the tokens that you want to use in your order."
-						/>
-						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} />
-						{/each}
-					</div>
+				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+				{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
+					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} />
+					{/each}
 				{/if}
 
-				{#if allTokensSelected || selectTokens?.length === 0}
-					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} />
+				{#if allDepositFields.length > 0 && showAdvancedOptions}
+					{#each allDepositFields as deposit}
+						<DepositInput {deposit} />
+					{/each}
+				{/if}
+
+				{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
+					{#if allTokenInputs.length > 0}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} />
 						{/each}
 					{/if}
 
-					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
-
-					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} />
+					{#if allTokenOutputs.length > 0}
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} />
 						{/each}
 					{/if}
+				{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						{#each allDepositFields as deposit}
-							<DepositInput {deposit} />
-						{/each}
-					{/if}
-
-					{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
-						{#if allTokenInputs.length > 0}
-							{#each allTokenInputs as input, i}
-								<TokenIOInput {i} label="Input" vault={input} />
-							{/each}
+				{#if $deploymentStepsError}
+					<Alert color="red">
+						<p class="text-red-500">{$deploymentStepsError.code}</p>
+						{#if $deploymentStepsError.details}
+							<p class="text-red-500">{$deploymentStepsError.details}</p>
 						{/if}
+					</Alert>
+				{/if}
 
-						{#if allTokenOutputs.length > 0}
-							{#each allTokenOutputs as output, i}
-								<TokenIOInput {i} label="Output" vault={output} />
-							{/each}
-						{/if}
-					{/if}
-
-					{#if $deploymentStepsError}
-						<Alert color="red">
-							<p class="text-red-500">{$deploymentStepsError.code}</p>
-							{#if $deploymentStepsError.details}
-								<p class="text-red-500">{$deploymentStepsError.details}</p>
+				<div class="flex flex-wrap items-start justify-start gap-2">
+					{#if $wagmiConnected}
+						<Button
+							size="lg"
+							on:click={handleDeployButtonClick}
+							class="bg-gradient-to-br from-blue-600 to-violet-600"
+						>
+							{#if checkingDeployment}
+								<Spinner size="4" color="white" />
+								<span class="ml-2">Checking deployment...</span>
+							{:else}
+								Deploy Strategy
 							{/if}
-						</Alert>
+						</Button>
+					{:else}
+						<WalletConnect {appKitModal} connected={wagmiConnected} />
 					{/if}
-
-					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $wagmiConnected}
-							<Button
-								size="lg"
-								on:click={handleDeployButtonClick}
-								class="bg-gradient-to-br from-blue-600 to-violet-600"
-							>
-								{#if checkingDeployment}
-									<Spinner size="4" color="white" />
-									<span class="ml-2">Checking deployment...</span>
-								{:else}
-									Deploy Strategy
-								{/if}
-							</Button>
-						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
-						{/if}
-						<ComposedRainlangModal {gui} />
-						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
-					</div>
-				{/if}
-			</div>
-		{/if}
+					<ComposedRainlangModal {gui} />
+					<ShareChoicesButton handleShareChoices={_handleShareChoices} />
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>

@@ -649,43 +649,12 @@ describe('DeploymentSteps', () => {
 		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
 
-	it('shows deployment details when provided', async () => {
-		render(DeploymentSteps, {
-			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
-				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-				settings: writable({} as ConfigSource)
-			}
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-		});
-	});
-
 	it('shows select tokens section when tokens need to be selected', async () => {
 		// Override the getSelectTokens mock for this test
 		mockGui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
 
 		render(DeploymentSteps, {
 			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
@@ -708,13 +677,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
@@ -734,13 +696,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),
@@ -796,13 +751,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				dotrain,
-				strategyDetail: {
-					name: 'SFLR<>WFLR on Flare',
-					description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-					short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-				},
-				deployment: mockDeployment,
 				wagmiConfig: mockWagmiConfigStore,
 				wagmiConnected: mockConnectedStore,
 				appKitModal: writable({} as AppKit),

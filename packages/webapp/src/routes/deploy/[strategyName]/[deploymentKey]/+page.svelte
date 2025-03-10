@@ -9,7 +9,7 @@
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
 	const { settings } = $page.data.stores;
-	const { dotrain, deployment, strategyDetail } = $page.data;
+	const { dotrain, deployment } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	let gui: DotrainOrderGui | null = null;
@@ -22,8 +22,6 @@
 	}
 
 	onMount(async () => {
-		// TODO: Should this happen in page loadd
-		// TODO: New gui init will be to instantiate an instance of GUI class
 		const { gui: initializedGui, error } = await handleGuiInitialization(
 			dotrain,
 			deployment.key,
@@ -42,14 +40,11 @@
 {:else if gui}
 	<GuiProvider {gui}>
 		<DeploymentSteps
-			{strategyDetail}
-			{dotrain}
-			{deployment}
 			{wagmiConfig}
 			wagmiConnected={connected}
 			{appKitModal}
-			{handleDeployModal}
 			{settings}
+			{handleDeployModal}
 			{handleDisclaimerModal}
 		/>
 	</GuiProvider>
