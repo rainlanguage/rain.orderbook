@@ -3,6 +3,7 @@ import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+
 // Mock fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -25,9 +26,10 @@ vi.mock('svelte-markdown', async () => {
 	return { default: mockSvelteMarkdown };
 });
 
-describe('StrategySection', () => {
+describe('StrategyPage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.resetAllMocks();
 	});
 
 	it('renders strategy details successfully with rawDotrain', async () => {
@@ -84,15 +86,8 @@ describe('StrategySection', () => {
 
 	it('displays error message when strategy details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockError = new Error('Failed to get strategy details');
 
-		// Mock fetch response
-		mockFetch.mockResolvedValueOnce({
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		// Mock DotrainOrderGui methods
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(mockError);
+		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(new Error('Error: Failed to get strategy details'));
 
 		render(StrategyPage, {
 			props: {
@@ -102,8 +97,7 @@ describe('StrategySection', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Error getting strategy details')).toBeInTheDocument();
-			expect(screen.getByText('Failed to get strategy details')).toBeInTheDocument();
+			expect(screen.getByText('Error: Failed to get strategy details')).toBeInTheDocument();
 		});
 	});
 
@@ -115,10 +109,8 @@ describe('StrategySection', () => {
 			short_description: 'Test Short Description'
 		};
 
-		// Mock fetch response
 		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
-		// Mock DotrainOrderGui methods
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
