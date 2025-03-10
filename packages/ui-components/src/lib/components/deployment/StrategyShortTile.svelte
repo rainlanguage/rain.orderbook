@@ -3,7 +3,7 @@
 	import { type NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 	import { page } from '$app/stores';
 
-	export let strategyDetails: NameAndDescriptionCfg;
+	export let strategyDetails: NameAndDescriptionCfg | null;
 	export let registryName: string;
 	let customRegistryParam = '';
 
