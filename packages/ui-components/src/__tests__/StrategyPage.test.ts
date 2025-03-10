@@ -21,7 +21,7 @@ describe('StrategyPage', () => {
 		vi.resetAllMocks();
 	});
 
-	it.only('renders strategy details successfully with rawDotrain', async () => {
+	it('renders strategy details successfully with rawDotrain', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -50,7 +50,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it.only('renders strategy details successfully from fetch', async () => {
+	it('renders strategy details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -78,7 +78,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it.only('displays error message when strategy details fail', async () => {
+	it('displays error message when strategy details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
 
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(
@@ -97,7 +97,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it.only('handles markdown fetch failure', async () => {
+	it('handles markdown fetch failure', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -121,7 +121,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it.only('renders markdown if description is a markdown url', async () => {
+	it('renders markdown if description is a markdown url', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
@@ -150,7 +150,7 @@ describe('StrategyPage', () => {
 		});
 	});
 
-	it.only('falls back to plain text when markdown fetch fails', async () => {
+	it('falls back to plain text when markdown fetch fails', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
 			name: 'Test Strategy',
