@@ -45,16 +45,16 @@
 					{strategyDetails.name}
 				</h1>
 				{#if markdownContent}
-					<div data-testId="markdown-content" class="prose dark:prose-invert">
+					<div data-testid="markdown-content" class="prose dark:prose-invert">
 						<SvelteMarkdown source={markdownContent} />
 					</div>
 				{:else}
 					<div class="flex flex-col gap-2">
 						{#if error}
-							<p data-testId="markdown-error" class="text-red-500">{error}</p>
+							<p data-testid="markdown-error" class="text-red-500">{error}</p>
 						{/if}
 						<p
-							data-testId="plain-description"
+							data-testid="plain-description"
 							class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
 						>
 							{strategyDetails.description}
