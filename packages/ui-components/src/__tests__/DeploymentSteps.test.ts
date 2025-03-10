@@ -9,9 +9,7 @@ import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 
-
 import { useGui } from '$lib/hooks/useGui';
-
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -631,10 +629,10 @@ const mockDeployment = {
 
 describe('DeploymentSteps', () => {
 	let mockGui: DotrainOrderGui;
-	
+
 	beforeEach(() => {
 		vi.clearAllMocks();
-		
+
 		// Create a mock GUI instance
 		mockGui = {
 			areAllTokensSelected: vi.fn().mockReturnValue(false),
@@ -646,7 +644,7 @@ describe('DeploymentSteps', () => {
 			hasAnyVaultId: vi.fn().mockReturnValue(false),
 			getAllTokenInfos: vi.fn().mockResolvedValue([])
 		} as unknown as DotrainOrderGui;
-		
+
 		// Make useGui return our mock instance
 		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
@@ -707,7 +705,7 @@ describe('DeploymentSteps', () => {
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
 		mockConnectedStore.mockSetSubscribeValue(true);
-		
+
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
@@ -733,7 +731,7 @@ describe('DeploymentSteps', () => {
 
 	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
-		
+
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
@@ -762,7 +760,7 @@ describe('DeploymentSteps', () => {
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
 		];
-		
+
 		// Set up specific mocks for this test
 		mockGui.getSelectTokens = vi.fn().mockReturnValue(mockSelectTokens);
 		mockGui.getTokenInfo = vi.fn();
@@ -778,7 +776,7 @@ describe('DeploymentSteps', () => {
 			},
 			deposits: []
 		});
-		
+
 		mockGui.getAllTokenInfos = vi.fn().mockResolvedValue([
 			{
 				address: '0x1',
@@ -795,7 +793,7 @@ describe('DeploymentSteps', () => {
 		]);
 
 		const user = userEvent.setup();
-		
+
 		render(DeploymentSteps, {
 			props: {
 				dotrain,
@@ -846,7 +844,7 @@ describe('DeploymentSteps', () => {
 		});
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
-		(mockGui.getTokenInfo  as Mock).mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			address: '0x3',
 			decimals: 18,
 			name: 'Token 3',
