@@ -29,7 +29,7 @@ describe('StrategyPage', () => {
 			short_description: 'Test Short Description'
 		};
 		const strategyPromise = Promise.resolve(mockStrategyDetails);
-		
+
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			text: () => Promise.resolve(mockDotrain)
