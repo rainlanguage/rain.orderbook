@@ -358,16 +358,13 @@ impl From<GuiError> for JsValue {
 impl<T> From<Result<T, GuiError>> for WasmEncodedResult<T> {
     fn from(result: Result<T, GuiError>) -> Self {
         match result {
-            Ok(value) => WasmEncodedResult {
-                value: Some(value),
-                error: None,
-            },
-            Err(err) => WasmEncodedResult {
+            Ok(value) => WasmEncodedResult::Success { value, error: None },
+            Err(err) => WasmEncodedResult::Err {
                 value: None,
-                error: Some(WasmEncodedError {
+                error: WasmEncodedError {
                     msg: err.to_string(),
                     readable_msg: err.to_string(),
-                }),
+                },
             },
         }
     }
