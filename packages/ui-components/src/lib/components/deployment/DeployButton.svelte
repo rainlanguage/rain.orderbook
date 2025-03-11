@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { Button, Spinner } from 'flowbite-svelte';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-
 	import {
 		getDeploymentTransactionArgs,
 		type HandleAddOrderResult
 	} from './getDeploymentTransactionArgs';
 	import { useGui } from '../../hooks/useGui';
-
 	import { wagmiConfig } from '../../stores/wagmi';
+	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
+
+	export let handleDeployModal: (args: DeployModalProps) => void;
+	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
+
 	let checkingDeployment = false;
 	let gui = useGui();
 

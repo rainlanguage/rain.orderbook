@@ -89,7 +89,7 @@ const mockDeployment = {
 const defaultProps: DeploymentStepsProps = {
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-	settings: writable({} as ConfigSource),
+	settings: writable({} as ConfigSource)
 };
 
 describe('DeploymentSteps', () => {
