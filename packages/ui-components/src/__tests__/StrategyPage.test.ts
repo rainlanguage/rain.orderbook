@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { type WasmEncodedResult } from '@rainlanguage/orderbook/js_api';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -31,7 +32,7 @@ describe('StrategySection', () => {
 			name: 'Test Strategy',
 			description: 'Test Description',
 			short_description: 'Test Short Description'
-		};
+		} as unknown as WasmEncodedResult<NameAndDescriptionCfg>;
 		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
@@ -52,7 +53,7 @@ describe('StrategySection', () => {
 			name: 'Test Strategy',
 			description: 'Test Description',
 			short_description: 'Test Short Description'
-		};
+		} as unknown as WasmEncodedResult<NameAndDescriptionCfg>;
 
 		// Mock fetch response
 		mockFetch.mockResolvedValueOnce({
@@ -126,7 +127,7 @@ describe('StrategySection', () => {
 			name: 'Test Strategy',
 			description: 'https://example.com/description.md',
 			short_description: 'Test Short Description'
-		};
+		} as unknown as WasmEncodedResult<NameAndDescriptionCfg>;
 		const mockMarkdownContent = '# Mock Markdown Content';
 
 		// First fetch for dotrain
@@ -165,7 +166,7 @@ describe('StrategySection', () => {
 			name: 'Test Strategy',
 			description: 'https://example.com/description.md',
 			short_description: 'Test Short Description'
-		};
+		} as unknown as WasmEncodedResult<NameAndDescriptionCfg>;
 
 		mockFetch
 			.mockResolvedValueOnce({

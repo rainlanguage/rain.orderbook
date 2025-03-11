@@ -1,7 +1,11 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import {
+	DotrainOrderGui,
+	type DeploymentDetails,
+	type WasmEncodedResult
+} from '@rainlanguage/orderbook/js_api';
 
 // Mock the DotrainOrderGui
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -22,7 +26,7 @@ describe('DeploymentsSection', () => {
 				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
 			],
 			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
-		]);
+		]) as unknown as WasmEncodedResult<DeploymentDetails>;
 
 		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockResolvedValue(mockDeployments);
 

@@ -10,8 +10,11 @@ export const load: LayoutLoad = async ({ url }) => {
 	const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
 	const strategyDetails = await Promise.all(
 		registryDotrains.map(async (registryDotrain) => {
-			const details = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
-			return { ...registryDotrain, details };
+			const result = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			return { ...registryDotrain, details: result.value };
 		})
 	);
 
