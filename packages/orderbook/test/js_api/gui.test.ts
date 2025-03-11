@@ -397,13 +397,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment details', async () => {
-		const stateUpdateCallback = vi.fn();
-		const gui = await DotrainOrderGui.chooseDeployment(
-			dotrainWithGui,
-			'some-deployment',
-			stateUpdateCallback
-		);
-		const deploymentDetails: DeploymentDetails = await gui.getDeploymentDetails();
+		const deploymentDetails: DeploymentDetails =
+			await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
 		const entries = Array.from(deploymentDetails.entries());
 		assert.equal(entries[0][0], 'other-deployment');
 		assert.equal(entries[0][1].name, 'Test test');
