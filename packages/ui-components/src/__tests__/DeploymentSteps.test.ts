@@ -9,7 +9,7 @@ import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 
-const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
@@ -630,7 +630,8 @@ const defaultProps: DeploymentStepsProps = {
 	},
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
-	wagmiConnected: mockConnectedStore,
+	wagmiConnected: mockConnectedStore, mockSignerAdd,
+	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
@@ -678,7 +679,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
-		mockConnectedStore.mockSetSubscribeValue(true);
+		mockConnectedStore, mockSignerAdd.mockSetSubscribeValue(true);
 		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
@@ -689,7 +690,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows connect wallet button when not connected', async () => {
-		mockConnectedStore.mockSetSubscribeValue(false);
+		mockConnectedStore, mockSignerAdd.mockSetSubscribeValue(false);
 		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
