@@ -13,7 +13,7 @@
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import { Button, TabItem, Tabs } from 'flowbite-svelte';
+	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
@@ -29,6 +29,7 @@
 	} from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -139,7 +140,15 @@
 			{#each [{ key: 'Input vaults', type: 'inputs' }, { key: 'Output vaults', type: 'outputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
 				{#if data.vaults.get(type)?.length !== 0}
 					<CardProperty>
-						<svelte:fragment slot="key">{key}</svelte:fragment>
+						<svelte:fragment slot="key"
+							><div class="flex items-center gap-x-2">
+								{key}
+								{#if type === 'inputs_outputs'}
+									<InfoCircleOutline class="h-4 w-4" /><Tooltip
+										>{'These vaults can be an input or an output for this order'}</Tooltip
+									>{/if}
+							</div></svelte:fragment
+						>
 						<svelte:fragment slot="value">
 							<div class="mt-2 space-y-2">
 								{#each data.vaults.get(type) || [] as vault}
