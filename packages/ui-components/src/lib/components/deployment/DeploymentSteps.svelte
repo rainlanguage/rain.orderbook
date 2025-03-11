@@ -13,9 +13,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Toggle } from 'flowbite-svelte';
-	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
-	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
@@ -27,6 +25,8 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { connected } from '../../stores/wagmi';
+	import DeployButton from './DeployButton.svelte';
 
 	const gui = useGui();
 
@@ -41,7 +41,6 @@
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
-	let checkingDeployment: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
 
 	const selectTokens = gui.getSelectTokens();
@@ -49,10 +48,6 @@
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
-
-	export let wagmiConfig: Writable<Config | undefined>;
-	export let wagmiConnected: Writable<boolean>;
-	export let appKitModal: Writable<AppKit>;
 
 	onMount(async () => {
 		await areAllTokensSelected();
@@ -215,10 +210,10 @@
 				{/if}
 
 				<div class="flex flex-wrap items-start justify-start gap-2">
-					{#if $wagmiConnected}
-						<DeployButton />
+					{#if $connected}
+						<DeployButton {handleDeployModal} {handleDisclaimerModal} />
 					{:else}
-						<WalletConnect {appKitModal} connected={wagmiConnected} />
+						<WalletConnect />
 					{/if}
 					<ComposedRainlangModal {gui} />
 					<ShareChoicesButton handleShareChoices={_handleShareChoices} />

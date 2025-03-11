@@ -4,7 +4,6 @@ import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
-import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
@@ -15,9 +14,19 @@ vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
 
-const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
+
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		connected: mockConnectedStore,
+		signerAddress: mockSignerAddressStore,
+		wagmiConfig: mockWagmiConfigStore
+	};
+});
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
@@ -77,6 +86,12 @@ const mockDeployment = {
 	}
 } as unknown as GuiDeploymentCfg;
 
+const defaultProps: DeploymentStepsProps = {
+	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+	settings: writable({} as ConfigSource),
+};
+
 describe('DeploymentSteps', () => {
 	let mockGui: DotrainOrderGui;
 
@@ -105,9 +120,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 				settings: writable({} as ConfigSource)
@@ -127,9 +139,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 				settings: writable({} as ConfigSource)
@@ -146,9 +155,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 				settings: writable({} as ConfigSource)
@@ -201,9 +207,6 @@ describe('DeploymentSteps', () => {
 
 		render(DeploymentSteps, {
 			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				wagmiConnected: mockConnectedStore,
-				appKitModal: writable({} as AppKit),
 				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 				settings: writable({} as ConfigSource)
