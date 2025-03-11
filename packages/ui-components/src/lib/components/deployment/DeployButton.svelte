@@ -13,6 +13,7 @@
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let subgraphUrl: string;
+	export let network: string;
 
 	let checkingDeployment = false;
 	let gui = useGui();
@@ -41,8 +42,9 @@
 				open: true,
 				args: {
 					...result,
-					subgraphUrl: subgraphUrl,
-					chainId: orderbookNetwork.chainId
+					subgraphUrl,
+					chainId: orderbookNetwork.chainId,
+					network
 				}
 			});
 		};

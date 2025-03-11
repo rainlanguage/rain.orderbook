@@ -9,6 +9,7 @@ export type DeploymentArgs = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
+	network: string;
 };
 
 export type DepositOrWithdrawArgs = {
