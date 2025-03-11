@@ -359,14 +359,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.fail(errorMessage ?? result.error.msg);
 		}
 
-		if (typeof void 0 === typeof result.data) {
-			return result.data as T;
+		if (typeof void 0 === typeof result.value) {
+			return result.value as T;
 		}
 
-		if (!result.data) {
+		if (!result.value) {
 			assert.fail('No data returned');
 		}
-		return result.data;
+		return result.value;
 	};
 
 	it('should return available deployments', async () => {

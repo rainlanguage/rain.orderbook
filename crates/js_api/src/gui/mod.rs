@@ -1,4 +1,4 @@
-use crate::common::*;
+use crate::result::{WasmEncodedError, WasmEncodedResult};
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
@@ -18,12 +18,11 @@ use rain_orderbook_common::{
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
 };
-use rain_orderbook_macros::{impl_wasm_exports, wasm_export};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use thiserror::Error;
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
 mod field_values;
@@ -78,17 +77,7 @@ impl DotrainOrderGui {
     }
 }
 
-impl_wasm_traits!(WasmEncodedResult<DeploymentKeys>);
-impl_wasm_traits!(WasmEncodedResult<GuiCfg>);
-impl_wasm_traits!(WasmEncodedResult<GuiDeploymentCfg>);
-impl_wasm_traits!(WasmEncodedResult<GuiFieldDefinitionCfg>);
-impl_wasm_traits!(WasmEncodedResult<GuiPresetCfg>);
-impl_wasm_traits!(WasmEncodedResult<NameAndDescriptionCfg>);
-impl_wasm_traits!(WasmEncodedResult<TokenInfo>);
-impl_wasm_traits!(WasmEncodedResult<AllTokenInfos>);
-impl_wasm_traits!(WasmEncodedResult<DeploymentDetails>);
-
-#[impl_wasm_exports]
+#[wasm_export]
 impl DotrainOrderGui {
     #[wasm_export(
         js_name = "getDeploymentKeys",
@@ -100,7 +89,7 @@ impl DotrainOrderGui {
         Ok(DeploymentKeys(keys))
     }
 
-    #[wasm_export(js_name = "chooseDeployment")]
+    #[wasm_export(js_name = "chooseDeployment", unchecked_return_type = "void")]
     pub async fn choose_deployment(
         &mut self,
         dotrain: String,
@@ -363,5 +352,23 @@ pub enum GuiError {
 impl From<GuiError> for JsValue {
     fn from(value: GuiError) -> Self {
         JsError::new(&value.to_string()).into()
+    }
+}
+
+impl<T> From<Result<T, GuiError>> for WasmEncodedResult<T> {
+    fn from(result: Result<T, GuiError>) -> Self {
+        match result {
+            Ok(value) => WasmEncodedResult {
+                value: Some(value),
+                error: None,
+            },
+            Err(err) => WasmEncodedResult {
+                value: None,
+                error: Some(WasmEncodedError {
+                    msg: err.to_string(),
+                    readable_msg: err.to_string(),
+                }),
+            },
+        }
     }
 }
