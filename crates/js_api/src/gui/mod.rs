@@ -59,12 +59,17 @@ pub struct OrderbookConfig {
 impl_wasm_traits!(OrderbookConfig);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkInfo {
     pub key: String,
+    #[tsify(type = "number")]
     pub chain_id: u64,
+    #[tsify(type = "number | undefined")]
     pub network_id: Option<u64>,
     pub rpc: String,
+    #[tsify(type = "string | undefined")]
     pub label: Option<String>,
+    #[tsify(type = "string | undefined")]
     pub currency: Option<String>,
 }
 impl_wasm_traits!(NetworkInfo);

@@ -8,6 +8,7 @@
 	import { useGui } from '../../hooks/useGui';
 	import { wagmiConfig } from '../../stores/wagmi';
 	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
+	import type { NetworkInfo } from '@rainlanguage/orderbook/js_api';
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
@@ -16,7 +17,7 @@
 	let checkingDeployment = false;
 	let gui = useGui();
 
-	const orderbookNetwork = gui.getOrderbookNetwork();
+	const orderbookNetwork: NetworkInfo = gui.getOrderbookNetwork();
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
