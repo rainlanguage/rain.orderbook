@@ -31,7 +31,6 @@
 	const gui = useGui();
 
 	export let settings: Writable<ConfigSource>;
-
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
