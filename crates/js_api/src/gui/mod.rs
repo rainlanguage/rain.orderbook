@@ -203,13 +203,6 @@ impl DotrainOrderGui {
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
     }
 
-    #[wasm_bindgen(js_name = "getGuiDetails")]
-    pub fn get_gui_details(&self) -> Result<DeploymentDetails, GuiError> {
-        let deployment_details =
-            GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
-    }
-
     #[wasm_bindgen(js_name = "generateDotrainText")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
