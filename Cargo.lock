@@ -6340,7 +6340,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
 ]
 
 [[package]]
@@ -6350,7 +6350,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
 ]
 
 [[package]]
@@ -6417,7 +6417,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
 ]
 
 [[package]]
@@ -6451,7 +6451,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "tokio",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
  "web-sys",
 ]
 
@@ -6489,7 +6489,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
 ]
 
 [[package]]
@@ -6513,7 +6513,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91)",
 ]
 
 [[package]]
@@ -8898,7 +8898,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils"
 version = "0.0.6"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846#740213ebce35ab3f15c74dc1af8b8124bcfa9846"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91#939b59f7b52798e04a988cef435030d78eb11e91"
 dependencies = [
  "js-sys",
  "paste",
@@ -8913,7 +8913,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils-macros"
 version = "0.0.6"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846#740213ebce35ab3f15c74dc1af8b8124bcfa9846"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=939b59f7b52798e04a988cef435030d78eb11e91#939b59f7b52798e04a988cef435030d78eb11e91"
 dependencies = [
  "proc-macro2",
  "quote",
