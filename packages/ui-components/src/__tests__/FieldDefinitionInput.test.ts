@@ -28,20 +28,11 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-
-		// Create a mock GUI instance
-		mockGui = {
-			saveFieldValue: vi.fn().mockImplementation(() => {
-				mockStateUpdateCallback();
-			}),
-			getFieldValue: vi.fn(),
-			isFieldPreset: vi.fn(),
-			getAllFieldValues: vi.fn(),
-			getCurrentDeployment: vi.fn()
-		} as unknown as DotrainOrderGui;
-
-		// Make useGui return our mock instance
-		vi.mocked(useGui).mockReturnValue(mockGui);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockGui = new (DotrainOrderGui as any)();
+		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
+			mockStateUpdateCallback();
+		});
 	});
 
 	it('renders field name and description', () => {

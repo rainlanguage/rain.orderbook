@@ -226,6 +226,31 @@ impl DotrainOrderGui {
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
     }
 
+    #[wasm_bindgen(js_name = "getDeploymentDetail")]
+    pub async fn get_deployment_detail(
+        dotrain: String,
+        key: String,
+    ) -> Result<NameAndDescriptionCfg, GuiError> {
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
+        let deployment_detail = deployment_details
+            .0
+            .get(&key)
+            .ok_or(GuiError::DeploymentNotFound(key))?;
+        Ok(deployment_detail.clone())
+    }
+
+    #[wasm_bindgen(js_name = "getCurrentDeploymentDetails")]
+    pub fn get_current_deployment_details(&self) -> Result<NameAndDescriptionCfg, GuiError> {
+        let deployment_details =
+            GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(deployment_details
+            .get(&self.selected_deployment)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.selected_deployment.clone(),
+            ))?
+            .clone())
+    }
+
     #[wasm_bindgen(js_name = "generateDotrainText")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
