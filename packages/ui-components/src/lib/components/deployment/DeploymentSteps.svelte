@@ -65,7 +65,6 @@
 	async function getAllDepositFields() {
 		try {
 			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
-			console.log(dep);
 			let depositFields: GuiDepositCfg[] = dep.deposits;
 
 			allDepositFields = depositFields;

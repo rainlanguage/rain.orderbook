@@ -58,7 +58,6 @@ export type DeploymentTransactionArgs = {
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
-	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -87,7 +86,6 @@ export type TransactionState = {
 	functionName: string;
 	message: string;
 	newOrderHash: string;
-	network: string;
 	explorerLink: string;
 };
 
@@ -112,7 +110,6 @@ const initialState: TransactionState = {
 	functionName: '',
 	message: '',
 	newOrderHash: '',
-	network: '',
 	explorerLink: ''
 };
 
@@ -152,7 +149,7 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
@@ -172,7 +169,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (addOrders?.length > 0) {
 				clearInterval(interval);
-				return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+				return transactionSuccess(txHash, '', addOrders[0].order.orderHash);
 			}
 		}, 1000);
 	};
@@ -263,8 +260,7 @@ const transactionStore = () => {
 		deploymentCalldata,
 		orderbookAddress,
 		chainId,
-		subgraphUrl,
-		network
+		subgraphUrl
 	}: DeploymentTransactionArgs) => {
 		try {
 			await switchChain(config, { chainId });
@@ -306,7 +302,7 @@ const transactionStore = () => {
 			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			return awaitNewOrderIndexing(subgraphUrl, hash);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

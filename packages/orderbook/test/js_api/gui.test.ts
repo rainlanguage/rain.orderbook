@@ -1657,5 +1657,12 @@ ${dotrainWithoutVaultIds}`;
 			const networkKey = gui.getNetworkKey();
 			assert.equal(networkKey, 'some-network');
 		});
+
+		it('should get orderbook network', async () => {
+			const orderbookNetwork = gui.getOrderbookNetwork();
+			assert.equal(orderbookNetwork.chainId, 123);
+			assert.equal(orderbookNetwork.networkKey, 'some-network');
+			assert.equal(orderbookNetwork.subgraphUrl, 'https://subgraph.com/some-network');
+		});
 	});
 });

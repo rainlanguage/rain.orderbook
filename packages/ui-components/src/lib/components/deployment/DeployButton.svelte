@@ -12,10 +12,11 @@
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let subgraphUrl: string;
-	let networkKey = '';
 
 	let checkingDeployment = false;
 	let gui = useGui();
+
+	const orderbookNetwork = gui.getOrderbookNetwork();
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
@@ -35,17 +36,12 @@
 		}
 		checkingDeployment = false;
 		const onAccept = () => {
-			if (!networkKey) {
-				DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-				return;
-			}
-
 			handleDeployModal({
 				open: true,
 				args: {
 					...result,
 					subgraphUrl: subgraphUrl,
-					network: networkKey
+					chainId: orderbookNetwork.chainId
 				}
 			});
 		};

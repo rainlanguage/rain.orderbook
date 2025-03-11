@@ -25,7 +25,6 @@
 			deployment.key,
 			stateFromUrl
 		);
-		console.log('error', error);
 		gui = initializedGui;
 		getGuiError = error;
 	});
