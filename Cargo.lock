@@ -6190,7 +6190,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -6236,7 +6236,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -6340,7 +6340,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
 ]
 
 [[package]]
@@ -6350,7 +6350,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
 ]
 
 [[package]]
@@ -6417,7 +6417,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
 ]
 
 [[package]]
@@ -6444,7 +6444,6 @@ dependencies = [
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
- "rain_orderbook_macros",
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
  "serde",
@@ -6452,17 +6451,8 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "tokio",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
  "web-sys",
-]
-
-[[package]]
-name = "rain_orderbook_macros"
-version = "0.0.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.74",
 ]
 
 [[package]]
@@ -6499,7 +6489,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
 ]
 
 [[package]]
@@ -6523,7 +6513,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6 (git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846)",
 ]
 
 [[package]]
@@ -8903,6 +8893,31 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.6"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846#740213ebce35ab3f15c74dc1af8b8124bcfa9846"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-utils-macros",
+]
+
+[[package]]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.6"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=740213ebce35ab3f15c74dc1af8b8124bcfa9846#740213ebce35ab3f15c74dc1af8b8124bcfa9846"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]
 
 [[package]]
