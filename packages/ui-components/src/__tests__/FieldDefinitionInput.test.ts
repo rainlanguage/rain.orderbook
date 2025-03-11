@@ -12,7 +12,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 describe('FieldDefinitionInput', () => {
 	let mockStateUpdateCallback: Mock;
-		let mockGui: DotrainOrderGui;
+	let mockGui: DotrainOrderGui;
 
 	const mockFieldDefinition = {
 		binding: 'test-binding',

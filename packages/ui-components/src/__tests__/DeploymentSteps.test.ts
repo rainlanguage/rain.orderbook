@@ -29,7 +29,7 @@ vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 });
 
 vi.mock('../lib/components/deployment/DeployButton.svelte', async () => {
-	const MockDeployButton = (await import('../lib/__mocks__/MockComponent.svelte'));
+	const MockDeployButton = await import('../lib/__mocks__/MockComponent.svelte');
 	return { default: MockDeployButton };
 });
 
@@ -259,7 +259,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, {
 			props: defaultProps
 		});
-		
+
 		await waitFor(() => {
 			expect(screen.getByText('Test Deployment')).toBeInTheDocument();
 			expect(screen.getByText('This is a test deployment description')).toBeInTheDocument();
