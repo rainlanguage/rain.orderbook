@@ -1,4 +1,3 @@
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { LayoutLoad } from '../$types';
 
 interface LayoutParentData {

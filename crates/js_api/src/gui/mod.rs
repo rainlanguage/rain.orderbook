@@ -196,7 +196,15 @@ impl DotrainOrderGui {
     }
 
     #[wasm_bindgen(js_name = "getDeploymentDetails")]
-    pub fn get_deployment_details(&self) -> Result<DeploymentDetails, GuiError> {
+    pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
+        let dotrain_order = DotrainOrder::new(dotrain, None).await?;
+        let deployment_details =
+            GuiCfg::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+    }
+
+    #[wasm_bindgen(js_name = "getGuiDetails")]
+    pub fn get_gui_details(&self) -> Result<DeploymentDetails, GuiError> {
         let deployment_details =
             GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(DeploymentDetails(deployment_details.into_iter().collect()))
