@@ -36,9 +36,10 @@
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
 	let allDepositFields: GuiDepositCfg[] = [];
-	let allTokenOutputs: OrderIOCfg[] = [];
 	let allFieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
+	let allTokenInputs: OrderIOCfg[] = [];
+	let allTokenOutputs: OrderIOCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
@@ -53,43 +54,6 @@
 		await areAllTokensSelected();
 	});
 
-	function getAllFieldDefinitions() {
-		try {
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
-		}
-	}
-
-	async function getAllDepositFields() {
-		try {
-			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
-			let depositFields: GuiDepositCfg[] = dep.deposits;
-
-			allDepositFields = depositFields;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_DEPOSITS);
-		}
-	}
-
-	let allTokenInputs: OrderIOCfg[] = [];
-	function getAllTokenInputs() {
-		try {
-			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_INPUTS);
-		}
-	}
-
-	function getAllTokenOutputs() {
-		try {
-			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
-		}
-	}
-
 	$: if (selectTokens?.length === 0 || allTokensSelected) {
 		updateFields();
 	}
@@ -97,12 +61,14 @@
 	async function updateFields() {
 		try {
 			DeploymentStepsError.clear();
-			getAllDepositFields();
-			getAllFieldDefinitions();
-			getAllTokenInputs();
-			getAllTokenOutputs();
+			let currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
+			allDepositFields = currentDeployment.deposits;
+			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
+			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
+			allTokenInputs = currentDeployment.deployment.order.inputs;
+			allTokenOutputs = currentDeployment.deployment.order.outputs;
 		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.DEPLOYMENT_UPDATE_ERROR);
 		}
 	}
 
@@ -116,8 +82,7 @@
 			let newAllTokenInfos = await gui.getAllTokenInfos();
 			if (allTokenInfos !== newAllTokenInfos) {
 				allTokenInfos = newAllTokenInfos;
-				getAllDepositFields();
-				getAllFieldDefinitions();
+				updateFields();
 			}
 		}
 	}
