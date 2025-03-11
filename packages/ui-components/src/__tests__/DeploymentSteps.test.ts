@@ -631,7 +631,6 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	mockSignerAdd,
 	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
@@ -680,7 +679,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
-		mockConnectedStore, mockSignerAdd.mockSetSubscribeValue(true);
+		mockConnectedStore.mockSetSubscribeValue(true);
 		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
@@ -691,7 +690,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows connect wallet button when not connected', async () => {
-		mockConnectedStore, mockSignerAdd.mockSetSubscribeValue(false);
+		mockConnectedStore.mockSetSubscribeValue(false);
 		setGui(defaultProps);
 
 		render(DeploymentSteps, { props: defaultProps });
