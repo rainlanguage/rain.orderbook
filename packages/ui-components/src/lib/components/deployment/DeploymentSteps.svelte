@@ -117,6 +117,15 @@
 	{/if}
 	{#if gui}
 		<div class="flex max-w-3xl flex-col gap-12" in:fade>
+			<div class="flex max-w-2xl flex-col gap-4 text-start">
+				<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
+					{gui.getCurrentDeploymentDetails().name}
+				</h1>
+				<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
+					{gui.getCurrentDeploymentDetails().description}
+				</p>
+			</div>
+
 			{#if selectTokens && selectTokens.length > 0}
 				<div class="flex w-full flex-col gap-4">
 					<DeploymentSectionHeader

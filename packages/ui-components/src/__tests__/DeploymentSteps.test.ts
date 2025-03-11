@@ -257,4 +257,24 @@ describe('DeploymentSteps', () => {
 			expect(mockGui.getAllFieldDefinitions).toHaveBeenCalled();
 		});
 	});
+
+	it('displays the correct deployment details', async () => {
+
+		mockGui.getCurrentDeploymentDetails = vi.fn().mockReturnValue({
+			name: 'Test Deployment',
+			description: 'This is a test deployment description'
+		});
+		
+		mockConnectedStore.mockSetSubscribeValue(true);
+		
+		render(DeploymentSteps, {
+			props: defaultProps
+		});
+		
+		await waitFor(() => {
+			expect(screen.getByText('Test Deployment')).toBeInTheDocument();
+			expect(screen.getByText('This is a test deployment description')).toBeInTheDocument();
+			expect(mockGui.getCurrentDeploymentDetails).toHaveBeenCalled();
+		});
+	});
 });

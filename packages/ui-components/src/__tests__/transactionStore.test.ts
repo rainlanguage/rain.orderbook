@@ -121,7 +121,7 @@ describe('transactionStore', () => {
 			deploymentCalldata: mockDeploymentCalldata,
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com',
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
@@ -138,7 +138,7 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com',
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -157,7 +157,7 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com',
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -177,7 +177,7 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com',
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -194,7 +194,7 @@ describe('transactionStore', () => {
 			deploymentCalldata: '0x',
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
-			subgraphUrl: 'test.com',
+			subgraphUrl: 'test.com'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -295,7 +295,6 @@ describe('transactionStore', () => {
 	it('should handle successful new order indexing', async () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 		const mockOrderHash = 'order123';
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([
@@ -323,7 +322,6 @@ describe('transactionStore', () => {
 		vi.useFakeTimers();
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([]);
 

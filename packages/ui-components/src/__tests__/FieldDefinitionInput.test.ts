@@ -4,17 +4,15 @@ import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionIn
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
-// Import the useGui hook to mock it
 import { useGui } from '$lib/hooks/useGui';
 
-// Mock the useGui hook
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
 
 describe('FieldDefinitionInput', () => {
-	let mockGui: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
+		let mockGui: DotrainOrderGui;
 
 	const mockFieldDefinition = {
 		binding: 'test-binding',
@@ -27,12 +25,18 @@ describe('FieldDefinitionInput', () => {
 	};
 
 	beforeEach(() => {
+		vi.clearAllMocks();
 		mockStateUpdateCallback = vi.fn();
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		mockGui = new (DotrainOrderGui as any)();
-		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
+		mockGui = {
+			saveFieldValue: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			}),
+			getFieldValue: vi.fn().mockReturnValue({
+				isPreset: false,
+				value: 'preset1'
+			})
+		} as unknown as DotrainOrderGui;
+		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
 
 	it('renders field name and description', () => {
@@ -106,6 +110,10 @@ describe('FieldDefinitionInput', () => {
 	});
 
 	it('renders default value if it exists', async () => {
+		(mockGui.getFieldValue as Mock).mockReturnValue({
+			isPreset: false,
+			value: 'default value'
+		});
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: {
