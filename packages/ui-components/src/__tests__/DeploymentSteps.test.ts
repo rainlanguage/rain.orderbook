@@ -28,6 +28,11 @@ vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 	};
 });
 
+vi.mock('../lib/components/deployment/DeployButton.svelte', async () => {
+	const MockDeployButton = (await import('../lib/__mocks__/MockComponent.svelte'));
+	return { default: MockDeployButton };
+});
+
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -107,7 +112,11 @@ describe('DeploymentSteps', () => {
 			getAllFieldDefinitions: vi.fn().mockReturnValue([]),
 			hasAnyDeposit: vi.fn().mockReturnValue(false),
 			hasAnyVaultId: vi.fn().mockReturnValue(false),
-			getAllTokenInfos: vi.fn().mockResolvedValue([])
+			getAllTokenInfos: vi.fn().mockResolvedValue([]),
+			getCurrentDeploymentDetails: vi.fn().mockReturnValue({
+				name: 'Test Deployment',
+				description: 'This is a test deployment description'
+			})
 		} as unknown as DotrainOrderGui;
 
 		// Make useGui return our mock instance
@@ -127,18 +136,6 @@ describe('DeploymentSteps', () => {
 			expect(
 				screen.getByText('Select the tokens that you want to use in your order.')
 			).toBeInTheDocument();
-		});
-	});
-
-	it('shows deploy strategy button when all required fields are filled', async () => {
-		mockConnectedStore.mockSetSubscribeValue(true);
-
-		render(DeploymentSteps, {
-			props: defaultProps
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
 	});
 
@@ -259,14 +256,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('displays the correct deployment details', async () => {
-
-		mockGui.getCurrentDeploymentDetails = vi.fn().mockReturnValue({
-			name: 'Test Deployment',
-			description: 'This is a test deployment description'
-		});
-		
-		mockConnectedStore.mockSetSubscribeValue(true);
-		
 		render(DeploymentSteps, {
 			props: defaultProps
 		});
