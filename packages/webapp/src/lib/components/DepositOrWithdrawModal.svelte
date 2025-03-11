@@ -81,6 +81,7 @@
 		approvalCalldata?: ApprovalCalldata | undefined
 	) {
 		transactionStore.handleDepositOrWithdrawTransaction({
+			rpcUrl,
 			config: $wagmiConfig,
 			transactionCalldata,
 			approvalCalldata,

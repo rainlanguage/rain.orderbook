@@ -1,7 +1,15 @@
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
-import type { DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook/js_api';
+import type { 
+	DepositAndAddOrderCalldataResult, 
+	DepositCalldataResult,
+	WithdrawCalldataResult,
+	ApprovalCalldata,
+	RemoveOrderCalldata,
+	SgOrder, 
+	SgVault 
+} from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import type { Config } from '@wagmi/core';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
@@ -11,19 +19,23 @@ export type DeploymentArgs = {
 	subgraphUrl: string;
 };
 
+export type DeploymentTransactionArgs = DeploymentArgs & { config: Config };
+
 export type DepositOrWithdrawArgs = {
-	vault: SgVault;
-	onDepositOrWithdraw: () => void;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	rpcUrl: string;
+	vault: SgVault;
 	subgraphUrl: string;
 };
 
-export type OrderRemoveArgs = {
+export type DepositOrWithdrawTransactionArgs = DepositOrWithdrawArgs & { config: Config, approvalCalldata?: ApprovalCalldata, transactionCalldata: DepositCalldataResult | WithdrawCalldataResult };
+
+export type RemoveOrderArgs = {
 	order: SgOrder;
-	onRemove: () => void;
 	chainId: number;
 	orderbookAddress: Hex;
 	subgraphUrl: string;
 };
+
+export type RemoveOrderTransactionArgs = RemoveOrderArgs & { config: Config, removeOrderCalldata: RemoveOrderCalldata };

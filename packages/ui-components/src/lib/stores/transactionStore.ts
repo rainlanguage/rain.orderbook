@@ -1,15 +1,9 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
-import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
-	DepositCalldataResult,
-	SgTransaction,
-	RemoveOrderCalldata,
-	SgVault,
-	WithdrawCalldataResult
+	SgTransaction
 } from '@rainlanguage/orderbook/js_api';
 import {
 	getTransaction,
@@ -17,6 +11,7 @@ import {
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook/js_api';
 import { getExplorerLink } from '../services/getExplorerLink';
+import type { DepositOrWithdrawTransactionArgs, RemoveOrderTransactionArgs, DeploymentTransactionArgs } from '$lib/types/transaction';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -51,32 +46,6 @@ export enum TransactionErrorMessage {
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
-export type DeploymentTransactionArgs = {
-	config: Config;
-	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl: string;
-};
-
-export type DepositOrWithdrawTransactionArgs = {
-	config: Config;
-	approvalCalldata?: ApprovalCalldata;
-	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
-	action: 'deposit' | 'withdraw';
-	chainId: number;
-	vault: SgVault;
-	subgraphUrl: string;
-};
-
-export type RemoveOrderTransactionArgs = {
-	config: Config;
-	orderbookAddress: Hex;
-	removeOrderCalldata: RemoveOrderCalldata;
-	chainId: number;
-	subgraphUrl: string;
-};
 
 export type TransactionState = {
 	status: TransactionStatus;
