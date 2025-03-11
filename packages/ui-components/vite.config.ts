@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => ({
 		'import.meta.vitest': 'undefined'
 	},
 
+	optimizeDeps: {
+		exclude: ['@rainlanguage/orderbook/js_api']
+	},
+
 	test: {
 		// Jest like globals
 		includeSource: ['src/**/*.{js,ts}'],
@@ -29,7 +33,7 @@ export default defineConfig(({ mode }) => ({
 				interopDefault: true,
 				fallbackCJS: true,
 				registerNodeLoader: true,
-				inline: [/@tanstack\/svelte-query/]
+				inline: [/@reown\/appkit/, /@tanstack\/svelte-query/, /@sveltejs\/kit/]
 			}
 		}
 	}
