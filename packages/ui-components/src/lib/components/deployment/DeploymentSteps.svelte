@@ -91,7 +91,6 @@
 		try {
 			allTokensSelected = gui.areAllTokensSelected();
 			if (!allTokensSelected) return;
-
 			allTokenInfos = await gui.getAllTokenInfos();
 
 			// if we have deposits or vault ids set, show advanced options
