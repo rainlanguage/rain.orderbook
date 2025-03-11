@@ -5,12 +5,8 @@ import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 import { transactionStore } from '@rainlanguage/ui-components';
-const {
-	mockSignerAddressStore,
-	mockConnectedStore,
-	mockAppKitModalStore,
-	mockWagmiConfigStore
-} = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore } =
+	await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
