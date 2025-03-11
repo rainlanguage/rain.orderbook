@@ -30,7 +30,6 @@
 		error = '';
 		try {
 			tokenInfo = await gui.getTokenInfo(token.key);
-			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');
 		}

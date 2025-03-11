@@ -397,8 +397,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment details', async () => {
-		const deploymentDetails: DeploymentDetails =
-			await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
+		const stateUpdateCallback = vi.fn();
+		const gui = await DotrainOrderGui.chooseDeployment(
+			dotrainWithGui,
+			'some-deployment',
+			stateUpdateCallback
+		);
+		const deploymentDetails: DeploymentDetails = await gui.getDeploymentDetails();
 		const entries = Array.from(deploymentDetails.entries());
 		assert.equal(entries[0][0], 'other-deployment');
 		assert.equal(entries[0][1].name, 'Test test');
@@ -406,15 +411,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		assert.equal(entries[1][0], 'some-deployment');
 		assert.equal(entries[1][1].name, 'Buy WETH with USDC on Base.');
 		assert.equal(entries[1][1].description, 'Buy WETH with USDC for fixed price on Base network.');
-	});
-
-	it('should get deployment detail', async () => {
-		const deploymentDetail: NameAndDescriptionCfg = await DotrainOrderGui.getDeploymentDetail(
-			dotrainWithGui,
-			'other-deployment'
-		);
-		assert.equal(deploymentDetail.name, 'Test test');
-		assert.equal(deploymentDetail.description, 'Test test test');
 	});
 
 	it('should get token infos', async () => {
