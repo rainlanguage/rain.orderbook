@@ -87,6 +87,7 @@ export type TransactionState = {
 	message: string;
 	newOrderHash: string;
 	explorerLink: string;
+	network: string;
 };
 
 export type TransactionStore = {
@@ -110,7 +111,8 @@ const initialState: TransactionState = {
 	functionName: '',
 	message: '',
 	newOrderHash: '',
-	explorerLink: ''
+	explorerLink: '',
+	network: ''
 };
 
 const transactionStore = () => {
