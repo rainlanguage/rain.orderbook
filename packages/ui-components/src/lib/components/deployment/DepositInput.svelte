@@ -10,9 +10,10 @@
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	export let deposit: GuiDepositCfg;
 
 	const gui = useGui();
+
+	export let deposit: GuiDepositCfg;
 
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;

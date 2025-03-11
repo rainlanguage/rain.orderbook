@@ -12,15 +12,14 @@
 		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button, Toggle, Spinner } from 'flowbite-svelte';
+	import { Toggle } from 'flowbite-svelte';
 	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
-	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
-	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
+
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
 	import DepositInput from './DepositInput.svelte';
@@ -129,56 +128,6 @@
 		}
 	}
 
-	async function handleDeployButtonClick() {
-		DeploymentStepsError.clear();
-
-		if (!allTokenOutputs) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
-			return;
-		}
-
-		// TODO: remove this once we have a way to get the network key
-		if (!networkKey) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-			return;
-		}
-
-		let result: HandleAddOrderResult | null = null;
-		checkingDeployment = true;
-		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
-		} catch (e) {
-			checkingDeployment = false;
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-		}
-		if (!result) {
-			checkingDeployment = false;
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-			return;
-		}
-		checkingDeployment = false;
-		const onAccept = () => {
-			if (!networkKey) {
-				DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-				return;
-			}
-
-			handleDeployModal({
-				open: true,
-				args: {
-					...result,
-					subgraphUrl: subgraphUrl,
-					network: networkKey
-				}
-			});
-		};
-
-		handleDisclaimerModal({
-			open: true,
-			onAccept
-		});
-	}
-
 	const areAllTokensSelected = async () => {
 		try {
 			allTokensSelected = gui.areAllTokensSelected();
@@ -267,18 +216,7 @@
 
 				<div class="flex flex-wrap items-start justify-start gap-2">
 					{#if $wagmiConnected}
-						<Button
-							size="lg"
-							on:click={handleDeployButtonClick}
-							class="bg-gradient-to-br from-blue-600 to-violet-600"
-						>
-							{#if checkingDeployment}
-								<Spinner size="4" color="white" />
-								<span class="ml-2">Checking deployment...</span>
-							{:else}
-								Deploy Strategy
-							{/if}
-						</Button>
+						<DeployButton />
 					{:else}
 						<WalletConnect {appKitModal} connected={wagmiConnected} />
 					{/if}
