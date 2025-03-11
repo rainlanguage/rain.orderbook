@@ -1,4 +1,3 @@
-use crate::result::{WasmEncodedError, WasmEncodedResult};
 use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
@@ -19,7 +18,7 @@ use rain_orderbook_common::{
     erc20::ERC20,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::prelude::*;
 use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
@@ -31,10 +30,6 @@ mod select_tokens;
 mod state_management;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DeploymentKeys(Vec<String>);
-impl_wasm_traits!(DeploymentKeys);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
     #[tsify(type = "string")]
     pub address: Address,
@@ -42,15 +37,6 @@ pub struct TokenInfo {
     pub name: String,
     pub symbol: String,
 }
-impl_wasm_traits!(TokenInfo);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AllTokenInfos(Vec<TokenInfo>);
-impl_wasm_traits!(AllTokenInfos);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DeploymentDetails(BTreeMap<String, NameAndDescriptionCfg>);
-impl_wasm_traits!(DeploymentDetails);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -79,14 +65,12 @@ impl DotrainOrderGui {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    #[wasm_export(
-        js_name = "getDeploymentKeys",
-        unchecked_return_type = "DeploymentKeys"
-    )]
-    pub async fn get_deployment_keys(dotrain: String) -> Result<DeploymentKeys, GuiError> {
+    #[wasm_export(js_name = "getDeploymentKeys", unchecked_return_type = "string[]")]
+    pub async fn get_deployment_keys(dotrain: String) -> Result<Vec<String>, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(DeploymentKeys(keys))
+        Ok(GuiCfg::parse_deployment_keys(
+            dotrain_order.dotrain_yaml().documents.clone(),
+        )?)
     }
 
     #[wasm_export(js_name = "chooseDeployment", unchecked_return_type = "void")]
@@ -179,8 +163,8 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
-    #[wasm_export(js_name = "getAllTokenInfos", unchecked_return_type = "AllTokenInfos")]
-    pub async fn get_all_token_infos(&self) -> Result<AllTokenInfos, GuiError> {
+    #[wasm_export(js_name = "getAllTokenInfos", unchecked_return_type = "TokenInfo[]")]
+    pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
         let token_keys = match select_tokens.0.is_empty() {
@@ -205,7 +189,7 @@ impl DotrainOrderGui {
         for key in token_keys.iter() {
             result.push(self.get_token_info(key.clone()).await?);
         }
-        Ok(AllTokenInfos(result))
+        Ok(result)
     }
 
     #[wasm_export(
@@ -221,13 +205,15 @@ impl DotrainOrderGui {
 
     #[wasm_export(
         js_name = "getDeploymentDetails",
-        unchecked_return_type = "DeploymentDetails"
+        unchecked_return_type = "Map<string, NameAndDescriptionCfg>"
     )]
-    pub async fn get_deployment_details(dotrain: String) -> Result<DeploymentDetails, GuiError> {
+    pub async fn get_deployment_details(
+        dotrain: String,
+    ) -> Result<HashMap<String, NameAndDescriptionCfg>, GuiError> {
         let dotrain_order = DotrainOrder::new(dotrain, None).await?;
-        let deployment_details =
-            GuiCfg::parse_deployment_details(dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(DeploymentDetails(deployment_details.into_iter().collect()))
+        Ok(GuiCfg::parse_deployment_details(
+            dotrain_order.dotrain_yaml().documents.clone(),
+        )?)
     }
 
     #[wasm_export(
@@ -240,7 +226,6 @@ impl DotrainOrderGui {
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
         let deployment_detail = deployment_details
-            .0
             .get(&key)
             .ok_or(GuiError::DeploymentNotFound(key))?;
         Ok(deployment_detail.clone())
@@ -355,17 +340,11 @@ impl From<GuiError> for JsValue {
     }
 }
 
-impl<T> From<Result<T, GuiError>> for WasmEncodedResult<T> {
-    fn from(result: Result<T, GuiError>) -> Self {
-        match result {
-            Ok(value) => WasmEncodedResult::Success { value, error: None },
-            Err(err) => WasmEncodedResult::Err {
-                value: None,
-                error: WasmEncodedError {
-                    msg: err.to_string(),
-                    readable_msg: err.to_string(),
-                },
-            },
+impl From<GuiError> for WasmEncodedError {
+    fn from(value: GuiError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_string(),
         }
     }
 }

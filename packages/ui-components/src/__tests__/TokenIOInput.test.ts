@@ -2,11 +2,14 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
-
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 export type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
 describe('TokenInput', () => {
+	let guiInstance: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
+	let mockProps: TokenIOInputComponentProps;
+	let outputMockProps: TokenIOInputComponentProps;
 
 	const mockInput = {
 		token: {
@@ -15,50 +18,49 @@ describe('TokenInput', () => {
 		}
 	};
 	const mockTokenInfo = {
-		symbol: 'MOCK',
-		name: 'Mock Token',
-		decimals: 18
+		value: {
+			symbol: 'MOCK',
+			name: 'Mock Token',
+			decimals: 18
+		}
 	};
 
-	const mockGui = {
-		setVaultId: vi.fn(),
-		getTokenInfo: vi.fn(),
-		getCurrentDeployment: vi.fn().mockResolvedValue({
+	beforeEach(() => {
+		vi.clearAllMocks();
+		guiInstance = new DotrainOrderGui();
+
+		mockStateUpdateCallback = vi.fn();
+
+		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue(mockTokenInfo);
+		(DotrainOrderGui.prototype.setVaultId as Mock).mockImplementation(() => {
+			mockStateUpdateCallback();
+		});
+		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockResolvedValue({
 			deployment: {
 				order: {
 					inputs: [mockInput]
 				}
 			}
-		}),
-		getVaultIds: vi.fn().mockReturnValue(
+		});
+		(DotrainOrderGui.prototype.getVaultIds as Mock).mockReturnValue(
 			new Map([
 				['input', ['vault1']],
 				['output', ['vault2']]
 			])
-		)
-	};
+		);
 
-	const mockProps: TokenIOInputComponentProps = {
-		i: 0,
-		label: 'Input',
-		vault: mockInput,
-		gui: mockGui
-	} as unknown as TokenIOInputComponentProps;
-
-	const outputMockProps: TokenIOInputComponentProps = {
-		i: 0,
-		label: 'Output',
-		vault: mockInput,
-		gui: mockGui
-	} as unknown as TokenIOInputComponentProps;
-
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockStateUpdateCallback = vi.fn();
-		mockGui.setVaultId.mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
-		mockGui.getTokenInfo = vi.fn().mockResolvedValue(mockTokenInfo);
+		mockProps = {
+			i: 0,
+			label: 'Input',
+			vault: mockInput,
+			gui: guiInstance
+		} as unknown as TokenIOInputComponentProps;
+		outputMockProps = {
+			i: 0,
+			label: 'Output',
+			vault: mockInput,
+			gui: guiInstance
+		} as unknown as TokenIOInputComponentProps;
 	});
 
 	it('renders with correct label and no token symbol', () => {
@@ -82,14 +84,14 @@ describe('TokenInput', () => {
 	it('calls setVaultId when input changes', async () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
-		expect(mockGui.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith(true, 0, 'vault1');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
-		expect(mockGui.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
+		expect(guiInstance.setVaultId).toHaveBeenCalledWith(false, 0, 'vault2');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
@@ -119,6 +121,6 @@ describe('TokenInput', () => {
 
 		const labelWithSymbol = await findByText('Input 1 (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
-		expect(mockGui.getTokenInfo).toHaveBeenCalledWith('0x456');
+		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});
 });

@@ -1,18 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
-import {
-	DotrainOrderGui,
-	type DeploymentDetails,
-	type WasmEncodedResult
-} from '@rainlanguage/orderbook/js_api';
-
-// Mock the DotrainOrderGui
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: {
-		getDeploymentDetails: vi.fn()
-	}
-}));
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 describe('DeploymentsSection', () => {
 	beforeEach(() => {
@@ -26,9 +15,8 @@ describe('DeploymentsSection', () => {
 				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
 			],
 			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
-		]) as unknown as WasmEncodedResult<DeploymentDetails>;
-
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockResolvedValue(mockDeployments);
+		]);
+		(DotrainOrderGui.getDeploymentDetails as Mock).mockResolvedValue({ value: mockDeployments });
 
 		render(DeploymentsSection, {
 			props: {
@@ -46,7 +34,9 @@ describe('DeploymentsSection', () => {
 	});
 
 	it('should handle error when fetching deployments fails', async () => {
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockRejectedValue(new Error('API Error'));
+		(DotrainOrderGui.getDeploymentDetails as Mock).mockReturnValue({
+			error: { msg: 'API Error' }
+		});
 
 		render(DeploymentsSection, {
 			props: {

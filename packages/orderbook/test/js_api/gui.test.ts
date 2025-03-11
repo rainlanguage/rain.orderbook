@@ -5,9 +5,6 @@ import {
 	AddOrderCalldataResult,
 	AllFieldValuesResult,
 	AllowancesResult,
-	AllTokenInfos,
-	DeploymentDetails,
-	DeploymentKeys,
 	DeploymentTransactionArgs,
 	DepositAndAddOrderCalldataResult,
 	GuiCfg,
@@ -368,7 +365,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	it('should return available deployments', async () => {
 		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
-		const deployments = extractWasmEncodedData<DeploymentKeys>(result);
+		const deployments = extractWasmEncodedData<string[]>(result);
 		assert.equal(deployments.length, 2);
 		assert.equal(deployments[0], 'some-deployment');
 		assert.equal(deployments[1], 'other-deployment');
@@ -418,7 +415,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	it('should get deployment details', async () => {
 		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
-		const deploymentDetails = extractWasmEncodedData<DeploymentDetails>(result);
+		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
 		assert.equal(entries[0][0], 'other-deployment');
 		assert.equal(entries[0][1].name, 'Test test');
@@ -500,7 +497,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		extractWasmEncodedData(result);
 
 		result = await gui.getAllTokenInfos();
-		const allTokenInfos = extractWasmEncodedData<AllTokenInfos>(result);
+		const allTokenInfos = extractWasmEncodedData<TokenInfo[]>(result);
 
 		assert.equal(allTokenInfos.length, 2);
 		assert.equal(allTokenInfos[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
