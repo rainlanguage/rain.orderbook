@@ -11,23 +11,14 @@
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
+	export let subgraphUrl: string;
+	let networkKey = '';
 
 	let checkingDeployment = false;
 	let gui = useGui();
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
-
-		if (!allTokenOutputs) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
-			return;
-		}
-
-		// TODO: remove this once we have a way to get the network key
-		if (!networkKey) {
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);
-			return;
-		}
 
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;

@@ -119,11 +119,7 @@ describe('DeploymentSteps', () => {
 		mockGui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
 
 		render(DeploymentSteps, {
-			props: {
-				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-				settings: writable({} as ConfigSource)
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -138,11 +134,7 @@ describe('DeploymentSteps', () => {
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		render(DeploymentSteps, {
-			props: {
-				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-				settings: writable({} as ConfigSource)
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -154,11 +146,7 @@ describe('DeploymentSteps', () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
 
 		render(DeploymentSteps, {
-			props: {
-				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-				settings: writable({} as ConfigSource)
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -206,11 +194,7 @@ describe('DeploymentSteps', () => {
 		const user = userEvent.setup();
 
 		render(DeploymentSteps, {
-			props: {
-				handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-				handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-				settings: writable({} as ConfigSource)
-			}
+			props: defaultProps
 		});
 
 		expect(mockGui.areAllTokensSelected).toHaveBeenCalled();

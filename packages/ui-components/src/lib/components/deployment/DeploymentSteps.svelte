@@ -211,7 +211,7 @@
 
 				<div class="flex flex-wrap items-start justify-start gap-2">
 					{#if $connected}
-						<DeployButton {handleDeployModal} {handleDisclaimerModal} />
+						<DeployButton {handleDeployModal} {handleDisclaimerModal} {subgraphUrl} />
 					{:else}
 						<WalletConnect />
 					{/if}
