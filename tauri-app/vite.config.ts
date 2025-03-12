@@ -57,9 +57,6 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./vitest-setup.ts'],
       server: {
         	deps: {
-          interopDefault: true,
-          fallbackCJS: true,
-          registerNodeLoader: true,
           inline: [/@tanstack\/svelte-query/, /@sveltejs\/kit/],
         },
       },
