@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
@@ -14,13 +14,6 @@ const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 );
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
-
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: {
-		chooseDeployment: vi.fn(),
-		getStrategyDetails: vi.fn()
-	}
-}));
 
 const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
 
@@ -639,22 +632,26 @@ const defaultProps: DeploymentStepsProps = {
 };
 
 describe('DeploymentSteps', () => {
+	let guiInstance: DotrainOrderGui;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+		guiInstance = new DotrainOrderGui();
+		defaultProps.gui = guiInstance;
 	});
 
-	const setGui = (defaultProps: DeploymentStepsProps) => {
-		defaultProps.gui = {
-			areAllTokensSelected: vi.fn(),
-			getSelectTokens: () => [],
-			getNetworkKey: vi.fn(),
-			getCurrentDeployment: () => mockDeployment,
-			getAllFieldDefinitions: () => []
-		} as unknown as DotrainOrderGui;
+	const setGui = () => {
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue([]);
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockImplementation(
+			() => mockDeployment
+		);
+		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
 	};
 
 	it('shows deployment details when provided', async () => {
-		setGui(defaultProps);
+		setGui();
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -664,8 +661,8 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
-		setGui(defaultProps);
-		defaultProps.gui.getSelectTokens = vi.fn().mockReturnValue(['token1', 'token2']);
+		setGui();
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(['token1', 'token2']);
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -679,7 +676,7 @@ describe('DeploymentSteps', () => {
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
 		mockConnectedStore.mockSetSubscribeValue(true);
-		setGui(defaultProps);
+		setGui();
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -690,7 +687,7 @@ describe('DeploymentSteps', () => {
 
 	it('shows connect wallet button when not connected', async () => {
 		mockConnectedStore.mockSetSubscribeValue(false);
-		setGui(defaultProps);
+		setGui();
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -706,23 +703,24 @@ describe('DeploymentSteps', () => {
 		];
 		const getAllTokenInfos = vi.fn();
 		const getAllFieldDefinitions = vi.fn();
-		const getAllDepositFields = vi.fn();
 		const getTokenInfo = vi.fn();
 		const areAllTokensSelected = vi.fn(() => true);
 
-		defaultProps.gui = {
-			getSelectTokens: () => mockSelectTokens,
-			getTokenInfo,
-			getNetworkKey: vi.fn(),
-			getAllTokenInfos,
-			getAllFieldDefinitions,
-			getAllDepositFields,
-			isSelectTokenSet: () => false,
-			saveSelectToken: vi.fn(),
-			areAllTokensSelected,
-			hasAnyDeposit: vi.fn(),
-			hasAnyVaultId: vi.fn(),
-			getCurrentDeployment: () => ({
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockImplementation(
+			areAllTokensSelected
+		);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(mockSelectTokens);
+		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(getTokenInfo);
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockImplementation(
+			getAllFieldDefinitions
+		);
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockImplementation(() => false);
+		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockImplementation(() => ({
+			value: {
 				deployment: {
 					order: {
 						inputs: [],
@@ -730,25 +728,26 @@ describe('DeploymentSteps', () => {
 					}
 				},
 				deposits: []
-			})
-		} as unknown as DotrainOrderGui;
-
-		getAllTokenInfos.mockResolvedValue([
-			{
-				address: '0x1',
-				decimals: 18,
-				name: 'Token 1',
-				symbol: 'TKN1'
-			},
-			{
-				address: '0x2',
-				decimals: 18,
-				name: 'Token 2',
-				symbol: 'TKN2'
 			}
-		]);
-		getAllFieldDefinitions.mockResolvedValue([]);
-		getAllDepositFields.mockResolvedValue([]);
+		}));
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockImplementation(getAllTokenInfos);
+		getAllTokenInfos.mockImplementation(() => ({
+			value: [
+				{
+					address: '0x1',
+					decimals: 18,
+					name: 'Token 1',
+					symbol: 'TKN1'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		}));
+		getAllFieldDefinitions.mockReturnValue({ value: [] });
 
 		const user = userEvent.setup();
 		render(DeploymentSteps, { props: defaultProps });
@@ -793,8 +792,8 @@ describe('DeploymentSteps', () => {
 		});
 		await user.type(selectTokenInput, '0x3');
 
-		getAllTokenInfos.mockReturnValue(
-			Promise.resolve([
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
 				{
 					address: '0x3',
 					decimals: 18,
@@ -807,8 +806,8 @@ describe('DeploymentSteps', () => {
 					name: 'Token 2',
 					symbol: 'TKN2'
 				}
-			])
-		);
+			]
+		});
 
 		await waitFor(() => {
 			expect(getAllTokenInfos).toHaveBeenCalled();

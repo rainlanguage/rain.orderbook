@@ -612,22 +612,33 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should save the field value as presets', async () => {
-			const allFieldDefinitions = gui.getAllFieldDefinitions();
+			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getAllFieldDefinitions()
+			);
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[0].id
+				value: allFieldDefinitions[0].presets?.[0]?.id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[0]);
+			assert.deepEqual(
+				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
+				allFieldDefinitions[0].presets?.[0]
+			);
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[1].id
+				value: allFieldDefinitions[0].presets?.[1]?.id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[1]);
+			assert.deepEqual(
+				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
+				allFieldDefinitions[0].presets?.[1]
+			);
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[2].id
+				value: allFieldDefinitions[0].presets?.[2]?.id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[2]);
+			assert.deepEqual(
+				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
+				allFieldDefinitions[0].presets?.[2]
+			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
@@ -666,7 +677,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 					}
 				}
 			]);
-			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
+			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 2);
 			assert.deepEqual(fieldValues[0], {
 				binding: 'binding-1',
@@ -690,18 +701,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error during save if preset is not found in field definition', () => {
-			expect(() =>
-				gui.saveFieldValue('binding-1', {
-					isPreset: true,
-					value: '89a3df5a-eee9-4af3-a10b-569f618f0f0c'
-				})
-			).toThrow('Invalid preset');
+			const result = gui.saveFieldValue('binding-1', {
+				isPreset: true,
+				value: '89a3df5a-eee9-4af3-a10b-569f618f0f0c'
+			});
+			expect(result.error.msg).toBe('Invalid preset');
 		});
 
 		it('should throw error during save if field binding is not found in field definitions', () => {
-			expect(() => gui.saveFieldValue('binding-3', { isPreset: false, value: '1' })).toThrow(
-				'Field binding not found: binding-3'
-			);
+			const result = gui.saveFieldValue('binding-3', { isPreset: false, value: '1' });
+			expect(result.error.msg).toBe('Field binding not found: binding-3');
 		});
 
 		it('should get field value', async () => {
@@ -709,7 +718,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				isPreset: false,
 				value: '0x1234567890abcdef1234567890abcdef12345678'
 			});
-			let fieldValue = gui.getFieldValue('binding-1');
+			let fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
 				id: '',
 				name: undefined,
@@ -717,7 +726,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			});
 
 			gui.saveFieldValue('binding-2', { isPreset: false, value: 'true' });
-			fieldValue = gui.getFieldValue('binding-2');
+			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
 				id: '',
 				name: undefined,
@@ -728,7 +737,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				isPreset: false,
 				value: 'some-string'
 			});
-			fieldValue = gui.getFieldValue('binding-1');
+			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
 				id: '',
 				name: undefined,
@@ -736,7 +745,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			});
 
 			gui.saveFieldValue('binding-2', { isPreset: false, value: '100.5' });
-			fieldValue = gui.getFieldValue('binding-2');
+			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
 				id: '',
 				name: undefined,
@@ -745,20 +754,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error during get if field binding is not found', () => {
-			expect(() => gui.getFieldValue('binding-3')).toThrow('Field binding not found: binding-3');
+			const result = gui.getFieldValue('binding-3');
+			expect(result.error.msg).toBe('Field binding not found: binding-3');
 		});
 
 		it('should correctly filter field definitions', async () => {
-			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
+			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getAllFieldDefinitions()
+			);
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] =
-				gui.getAllFieldDefinitions(true);
+			const fieldDefinitionsWithoutDefaults = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getAllFieldDefinitions(true)
+			);
 			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-1');
 
-			const fieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] =
-				gui.getAllFieldDefinitions(false);
+			const fieldDefinitionsWithDefaults = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getAllFieldDefinitions(false)
+			);
 			assert.equal(fieldDefinitionsWithDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-2');
 		});
@@ -778,10 +792,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should get field definition', async () => {
-			const allFieldDefinitions: GuiFieldDefinitionCfg[] = gui.getAllFieldDefinitions();
+			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+				gui.getAllFieldDefinitions()
+			);
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinition: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-1');
+			const fieldDefinition = extractWasmEncodedData<GuiFieldDefinitionCfg>(
+				gui.getFieldDefinition('binding-1')
+			);
 			assert.equal(fieldDefinition.name, 'Field 1 name');
 			assert.equal(fieldDefinition.description, 'Field 1 description');
 			assert.equal(fieldDefinition.presets?.length, 3);
@@ -796,7 +814,9 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			assert.equal(presets[2].name, 'Preset 3');
 			assert.equal(presets[2].value, 'some-string');
 
-			const fieldDefinition2: GuiFieldDefinitionCfg = gui.getFieldDefinition('binding-2');
+			const fieldDefinition2 = extractWasmEncodedData<GuiFieldDefinitionCfg>(
+				gui.getFieldDefinition('binding-2')
+			);
 			presets = fieldDefinition2.presets as GuiPresetCfg[];
 			assert.equal(presets[0].value, '99.2');
 			assert.equal(presets[1].value, '582.1');
@@ -806,9 +826,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should throw error during get if field binding is not found', () => {
-			expect(() => gui.getFieldDefinition('binding-3')).toThrow(
-				'Field binding not found: binding-3'
-			);
+			const result = gui.getFieldDefinition('binding-3');
+			expect(result.error.msg).toBe('Field binding not found: binding-3');
 		});
 	});
 
@@ -847,7 +866,8 @@ ${dotrain}`;
 
 			gui.saveFieldValue('test-binding', {
 				isPreset: true,
-				value: gui.getFieldDefinition('test-binding').presets[0].id
+				value: extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
+					.presets?.[0].id
 			});
 			gui.saveDeposit('token1', '50.6');
 			gui.saveDeposit('token2', '100');
@@ -865,7 +885,7 @@ ${dotrain}`;
 		it('should deserialize gui state', async () => {
 			let gui = await DotrainOrderGui.deserializeState(dotrain3, serializedState);
 
-			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
+			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
 				binding: 'test-binding',
@@ -904,7 +924,7 @@ ${dotrainWithoutTokens}`;
 
 		it('should clear state', async () => {
 			gui.clearState();
-			const fieldValues: AllFieldValuesResult[] = gui.getAllFieldValues();
+			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 0);
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 0);
@@ -913,7 +933,8 @@ ${dotrainWithoutTokens}`;
 		it('should check if field is preset', async () => {
 			gui.saveFieldValue('test-binding', {
 				isPreset: true,
-				value: gui.getFieldDefinition('test-binding').presets[0].id
+				value: extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
+					.presets?.[0].id
 			});
 			assert.equal(gui.isFieldPreset('test-binding'), true);
 			gui.saveFieldValue('test-binding', {
@@ -1226,7 +1247,7 @@ ${dotrainWithoutVaultIds}
 				);
 
 			gui.removeFieldValue('test-binding');
-			assert.deepEqual(gui.getAllFieldValues(), []);
+			assert.deepEqual(extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues()), []);
 
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
@@ -1387,7 +1408,7 @@ ${dotrainWithoutVaultIds}`;
 				'Missing field value: Test binding'
 			);
 
-			let missingFieldValues = gui.getMissingFieldValues();
+			let missingFieldValues = extractWasmEncodedData<string[]>(gui.getMissingFieldValues());
 			assert.equal(missingFieldValues.length, 1);
 			assert.equal(missingFieldValues[0], 'Test binding');
 		});
