@@ -641,9 +641,11 @@ describe('DeploymentSteps', () => {
 	});
 
 	const setGui = () => {
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue([]);
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockImplementation(() => ({
+			value: {}
+		}));
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => ({ value: {} }));
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockImplementation(
 			() => mockDeployment
 		);
@@ -662,7 +664,9 @@ describe('DeploymentSteps', () => {
 
 	it('shows select tokens section when tokens need to be selected', async () => {
 		setGui();
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(['token1', 'token2']);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: ['token1', 'token2']
+		});
 
 		render(DeploymentSteps, { props: defaultProps });
 
@@ -709,16 +713,20 @@ describe('DeploymentSteps', () => {
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockImplementation(
 			areAllTokensSelected
 		);
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(mockSelectTokens);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(getTokenInfo);
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockImplementation(() => ({ value: {} }));
 		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockImplementation(
 			getAllFieldDefinitions
 		);
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockImplementation(() => false);
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockImplementation(() => ({
+			value: false
+		}));
 		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockImplementation(() => ({ value: {} }));
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockImplementation(() => ({ value: {} }));
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockImplementation(() => ({
 			value: {
 				deployment: {

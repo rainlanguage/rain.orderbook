@@ -5,27 +5,26 @@ use rain_orderbook_app_settings::{
 };
 use std::str::FromStr;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct SelectTokens(pub Vec<GuiSelectTokensCfg>);
-impl_wasm_traits!(SelectTokens);
-
-#[wasm_bindgen]
+#[wasm_export]
 impl DotrainOrderGui {
-    #[wasm_bindgen(js_name = "getSelectTokens")]
-    pub fn get_select_tokens(&self) -> Result<SelectTokens, GuiError> {
+    #[wasm_export(
+        js_name = "getSelectTokens",
+        unchecked_return_type = "GuiSelectTokensCfg[]"
+    )]
+    pub fn get_select_tokens(&self) -> Result<Vec<GuiSelectTokensCfg>, GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
-        Ok(SelectTokens(select_tokens.unwrap_or(vec![])))
+        Ok(select_tokens.unwrap_or(vec![]))
     }
 
-    #[wasm_bindgen(js_name = "isSelectTokenSet")]
+    #[wasm_export(js_name = "isSelectTokenSet", unchecked_return_type = "boolean")]
     pub fn is_select_token_set(&self, key: String) -> Result<bool, GuiError> {
         Ok(self.dotrain_order.orderbook_yaml().get_token(&key).is_ok())
     }
 
-    #[wasm_bindgen(js_name = "checkSelectTokens")]
+    #[wasm_export(js_name = "checkSelectTokens", unchecked_return_type = "void")]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
@@ -48,7 +47,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getNetworkKey")]
+    #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
     pub fn get_network_key(&self) -> Result<String, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
@@ -59,7 +58,7 @@ impl DotrainOrderGui {
         Ok(network_key)
     }
 
-    #[wasm_bindgen(js_name = "saveSelectToken")]
+    #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
     pub async fn save_select_token(
         &mut self,
         key: String,
@@ -102,7 +101,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "replaceSelectToken")]
+    #[wasm_export(js_name = "replaceSelectToken", unchecked_return_type = "void")]
     pub async fn replace_select_token(
         &mut self,
         key: String,
@@ -113,7 +112,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "removeSelectToken")]
+    #[wasm_export(js_name = "removeSelectToken", unchecked_return_type = "void")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
@@ -130,10 +129,10 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "areAllTokensSelected")]
+    #[wasm_export(js_name = "areAllTokensSelected", unchecked_return_type = "boolean")]
     pub fn are_all_tokens_selected(&self) -> Result<bool, GuiError> {
         let select_tokens = self.get_select_tokens()?;
-        for token in select_tokens.0 {
+        for token in select_tokens {
             if !self.is_select_token_set(token.key)? {
                 return Ok(false);
             }

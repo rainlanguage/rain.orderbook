@@ -10,6 +10,7 @@ import {
 	GuiDeploymentCfg,
 	GuiFieldDefinitionCfg,
 	GuiPresetCfg,
+	GuiSelectTokensCfg,
 	NameAndDescriptionCfg,
 	TokenAllowance,
 	TokenDeposit,
@@ -895,8 +896,8 @@ ${dotrain}`;
 				}
 			});
 
-			assert.equal(gui.isSelectTokenSet('token1'), true);
-			assert.equal(gui.isSelectTokenSet('token2'), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token2')), true);
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 2);
 			assert.equal(deposits[0].token, 'token1');
@@ -1602,7 +1603,7 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get select tokens', async () => {
-			const selectTokens = gui.getSelectTokens();
+			const selectTokens = extractWasmEncodedData<GuiSelectTokensCfg[]>(gui.getSelectTokens());
 			assert.equal(selectTokens.length, 2);
 			assert.equal(selectTokens[0].key, 'token1');
 			assert.equal(selectTokens[1].key, 'token2');
@@ -1617,19 +1618,21 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
 			const testGui = new DotrainOrderGui();
-			const result = await testGui.chooseDeployment(dotrainWithGui, 'some-deployment');
+			let result = await testGui.chooseDeployment(dotrainWithGui, 'some-deployment');
 			extractWasmEncodedData(result);
 
-			assert.equal(testGui.getSelectTokens().length, 0);
-			await expect(async () => await testGui.saveSelectToken('token1', '0x1')).rejects.toThrow(
-				'Select tokens not set'
+			assert.equal(
+				extractWasmEncodedData<GuiSelectTokensCfg[]>(testGui.getSelectTokens()).length,
+				0
 			);
+
+			result = await testGui.saveSelectToken('token1', '0x1');
+			expect(result.error.msg).toBe('Select tokens not set');
 		});
 
 		it('should throw error if token not found', async () => {
-			await expect(async () => await gui.saveSelectToken('token3', '0x1')).rejects.toThrow(
-				'Token not found'
-			);
+			const result = await gui.saveSelectToken('token3', '0x1');
+			expect(result.error.msg).toBe('Token not found token3');
 		});
 
 		it('should save select token address', async () => {
@@ -1649,9 +1652,9 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			assert.equal(gui.isSelectTokenSet('token1'), false);
-			assert.equal(gui.isSelectTokenSet('token2'), false);
-			assert.equal(gui.areAllTokensSelected(), false);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), false);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token2')), false);
+			assert.equal(extractWasmEncodedData<boolean>(gui.areAllTokensSelected()), false);
 
 			let result = await gui.getTokenInfo('token1');
 			expect(result.error).toBeDefined();
@@ -1664,9 +1667,9 @@ ${dotrainWithoutVaultIds}`;
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			await gui.saveSelectToken('token2', '0x8888888888888888888888888888888888888888');
 
-			assert.equal(gui.isSelectTokenSet('token1'), true);
-			assert.equal(gui.isSelectTokenSet('token2'), true);
-			assert.equal(gui.areAllTokensSelected(), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token2')), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.areAllTokensSelected()), true);
 
 			result = await gui.getTokenInfo('token1');
 			const tokenInfo = extractWasmEncodedData<TokenInfo>(result);
@@ -1701,7 +1704,7 @@ ${dotrainWithoutVaultIds}`;
 				);
 
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
-			assert.equal(gui.isSelectTokenSet('token1'), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			let result = await gui.getTokenInfo('token1');
 			const tokenInfo1 = extractWasmEncodedData<TokenInfo>(result);
@@ -1710,7 +1713,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo1.decimals, 6);
 
 			await gui.replaceSelectToken('token1', '0x8888888888888888888888888888888888888888');
-			assert.equal(gui.isSelectTokenSet('token1'), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			result = await gui.getTokenInfo('token1');
 			const tokenInfo2 = extractWasmEncodedData<TokenInfo>(result);
@@ -1748,7 +1751,7 @@ ${dotrainWithoutVaultIds}`;
 				);
 
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
-			assert.equal(gui.isSelectTokenSet('token1'), true);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
 			result = await gui.getTokenInfo('token1');
 			const tokenInfo = extractWasmEncodedData<TokenInfo>(result);
@@ -1757,7 +1760,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.decimals, 6);
 
 			gui.removeSelectToken('token1');
-			assert.equal(gui.isSelectTokenSet('token1'), false);
+			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), false);
 
 			result = await gui.getTokenInfo('token1');
 			expect(result.error).toBeDefined();
@@ -1768,7 +1771,7 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get network key', async () => {
-			const networkKey = gui.getNetworkKey();
+			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
 			assert.equal(networkKey, 'some-network');
 		});
 	});
