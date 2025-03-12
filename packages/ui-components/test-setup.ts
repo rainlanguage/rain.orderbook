@@ -79,6 +79,8 @@ vi.mock('@rainlanguage/orderbook/js_api', () => {
 	DotrainOrderGui.prototype.hasAnyDeposit = vi.fn();
 	DotrainOrderGui.prototype.hasAnyVaultId = vi.fn();
 	DotrainOrderGui.prototype.areAllTokensSelected = vi.fn();
+	DotrainOrderGui.prototype.getDeploymentTransactionArgs = vi.fn();
+	DotrainOrderGui.prototype.generateApprovalCalldatas = vi.fn();
 	return {
 		DotrainOrderGui
 	};

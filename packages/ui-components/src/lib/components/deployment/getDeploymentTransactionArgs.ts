@@ -1,9 +1,6 @@
 import type { Config } from '@wagmi/core';
 import { getAccount } from '@wagmi/core';
-import type {
-	DepositAndAddOrderCalldataResult,
-	DotrainOrderGui
-} from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
@@ -16,7 +13,7 @@ export enum AddOrderErrors {
 
 export interface HandleAddOrderResult {
 	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
+	deploymentCalldata: string;
 	orderbookAddress: Hex;
 	chainId: number;
 }
@@ -34,8 +31,11 @@ export async function getDeploymentTransactionArgs(
 		throw new Error(AddOrderErrors.NO_WALLET);
 	}
 
-	const { approvals, deploymentCalldata, orderbookAddress, chainId } =
-		await gui.getDeploymentTransactionArgs(address);
+	const result = await gui.getDeploymentTransactionArgs(address);
+	if (result.error) {
+		throw new Error(result.error.msg);
+	}
+	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
 
 	return {
 		approvals,
