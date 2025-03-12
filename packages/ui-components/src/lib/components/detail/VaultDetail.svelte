@@ -31,6 +31,7 @@
 	export let network: string;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
+
 	// Tauri App modals
 	export let handleDepositModal: ((vault: SgVault, onDeposit: () => void) => void) | undefined =
 		undefined;

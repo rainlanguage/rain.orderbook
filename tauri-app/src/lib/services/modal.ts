@@ -7,6 +7,7 @@ import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
+import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
 
 export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
@@ -20,8 +21,14 @@ export const handleWithdrawModal = (vault: SgVault, onWithdraw: () => void) => {
   new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
 };
 
-export const handleOrderRemoveModal = (order: SgOrder, onOrderRemoved: () => void) => {
-  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
+export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {
+  new ModalOrderRemove({ 
+    target: document.body, 
+    props: { 
+      order: props.args.order, 
+      onOrderRemoved: props.args.onRemove 
+    }
+  });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {

@@ -29,6 +29,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import type { Readable } from 'svelte/store';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -37,6 +38,8 @@
 		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
+	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
+		undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
@@ -101,6 +104,21 @@
 								}
 							})}
 						disabled={!handleOrderRemoveModal}
+					>
+						Remove
+					</Button>
+				{:else if $walletAddressMatchesOrBlank?.(data.order.owner) && data.order.active && handleOrderRemoveModal}
+					<Button
+						data-testid="remove-button"
+						color="dark"
+						on:click={() =>
+							handleOrderRemoveModal({
+								open: true,
+								args: {
+									order: data.order,
+									onRemove: $orderDetailQuery.refetch
+								}
+							})}
 					>
 						Remove
 					</Button>
