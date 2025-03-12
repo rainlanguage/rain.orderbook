@@ -8,9 +8,31 @@ pub struct TokenDeposit {
     #[tsify(type = "string")]
     pub address: Address,
 }
-impl_wasm_traits!(TokenDeposit);
 
-#[wasm_bindgen]
+impl DotrainOrderGui {
+    pub fn check_deposits(&self) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
+
+        for deposit in deployment.deposits.iter() {
+            if deposit.token.is_none() {
+                return Err(GuiError::TokenMustBeSelected("deposit".to_string()));
+            }
+
+            let token = deposit.token.as_ref().unwrap();
+            if !self.deposits.contains_key(&token.key) {
+                return Err(GuiError::DepositNotSet(
+                    token
+                        .symbol
+                        .clone()
+                        .unwrap_or(token.label.clone().unwrap_or(token.key.clone())),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[wasm_export]
 impl DotrainOrderGui {
     fn get_gui_deposit(&self, key: &str) -> Result<GuiDepositCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -22,7 +44,7 @@ impl DotrainOrderGui {
         Ok(gui_deposit.clone())
     }
 
-    #[wasm_bindgen(js_name = "getDeposits")]
+    #[wasm_export(js_name = "getDeposits", unchecked_return_type = "TokenDeposit[]")]
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, GuiError> {
         self.deposits
             .iter()
@@ -58,7 +80,7 @@ impl DotrainOrderGui {
             .collect::<Result<Vec<TokenDeposit>, GuiError>>()
     }
 
-    #[wasm_bindgen(js_name = "saveDeposit")]
+    #[wasm_export(js_name = "saveDeposit", unchecked_return_type = "void")]
     pub fn save_deposit(&mut self, token: String, amount: String) -> Result<(), GuiError> {
         let gui_deposit = self.get_gui_deposit(&token)?;
 
@@ -90,41 +112,20 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "removeDeposit")]
+    #[wasm_export(js_name = "removeDeposit", unchecked_return_type = "void")]
     pub fn remove_deposit(&mut self, token: String) -> Result<(), GuiError> {
         self.deposits.remove(&token);
         self.execute_state_update_callback()?;
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getDepositPresets")]
+    #[wasm_export(js_name = "getDepositPresets", unchecked_return_type = "string[]")]
     pub fn get_deposit_presets(&self, key: String) -> Result<Vec<String>, GuiError> {
         let gui_deposit = self.get_gui_deposit(&key)?;
         Ok(gui_deposit.presets.clone().unwrap_or(vec![]))
     }
 
-    pub fn check_deposits(&self) -> Result<(), GuiError> {
-        let deployment = self.get_current_deployment()?;
-
-        for deposit in deployment.deposits.iter() {
-            if deposit.token.is_none() {
-                return Err(GuiError::TokenMustBeSelected("deposit".to_string()));
-            }
-
-            let token = deposit.token.as_ref().unwrap();
-            if !self.deposits.contains_key(&token.key) {
-                return Err(GuiError::DepositNotSet(
-                    token
-                        .symbol
-                        .clone()
-                        .unwrap_or(token.label.clone().unwrap_or(token.key.clone())),
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = "getMissingDeposits")]
+    #[wasm_export(js_name = "getMissingDeposits", unchecked_return_type = "string[]")]
     pub fn get_missing_deposits(&self) -> Result<Vec<String>, GuiError> {
         let deployment = self.get_current_deployment()?;
         let mut missing_deposits = Vec::new();
@@ -139,8 +140,8 @@ impl DotrainOrderGui {
         Ok(missing_deposits)
     }
 
-    #[wasm_bindgen(js_name = "hasAnyDeposit")]
-    pub fn has_any_deposit(&self) -> bool {
-        !self.deposits.is_empty()
+    #[wasm_export(js_name = "hasAnyDeposit", unchecked_return_type = "boolean")]
+    pub fn has_any_deposit(&self) -> Result<bool, GuiError> {
+        Ok(!self.deposits.is_empty())
     }
 }

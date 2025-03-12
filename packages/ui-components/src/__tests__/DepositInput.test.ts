@@ -21,9 +21,9 @@ describe('DepositInput', () => {
 		guiInstance = new DotrainOrderGui();
 
 		mockStateUpdateCallback = vi.fn();
-		(DotrainOrderGui.prototype.getDeposits as Mock).mockReturnValue([
-			{ token: 'output', amount: '10', address: '0x1234' }
-		]);
+		(DotrainOrderGui.prototype.getDeposits as Mock).mockReturnValue({
+			value: [{ token: 'output', amount: '10', address: '0x1234' }]
+		});
 		(DotrainOrderGui.prototype.saveDeposit as Mock).mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
