@@ -8,24 +8,24 @@ export const load: LayoutLoad = async ({ url }) => {
 	const registry = url.searchParams.get('registry');
 	try {
 		const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
-		
+
 		const validStrategies: ValidStrategyDetail[] = [];
 		const invalidStrategies: InvalidStrategyDetail[] = [];
-		
+
 		await Promise.all(
 			registryDotrains.map(async (registryDotrain) => {
 				try {
 					const details = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
 					validStrategies.push({ ...registryDotrain, details });
 				} catch (error) {
-					invalidStrategies.push({ 
-						name: registryDotrain.name, 
-						error: error as string 
+					invalidStrategies.push({
+						name: registryDotrain.name,
+						error: error as string
 					});
 				}
 			})
 		);
-		
+
 		return {
 			registry: registry || REGISTRY_URL,
 			registryDotrains,

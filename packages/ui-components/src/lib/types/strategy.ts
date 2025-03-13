@@ -7,10 +7,9 @@ export type ValidStrategyDetail = {
 };
 
 export type InvalidStrategyDetail = {
-    name: string;
-    error: string;
+	name: string;
+	error: string;
 };
 
 // Union type for both valid and invalid strategy details
 export type StrategyDetail = ValidStrategyDetail | InvalidStrategyDetail;
-
