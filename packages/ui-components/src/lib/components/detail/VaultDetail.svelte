@@ -26,7 +26,7 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-
+	export let isCurrentUserOwner: Readable<(owner: string) => boolean> | undefined = undefined;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
 
@@ -69,7 +69,9 @@
 	</svelte:fragment>
 	<svelte:fragment slot="action-buttons" let:data>
 		<div class="flex items-center gap-x-2">
-			<slot name="action-buttons" {data} query={vaultDetailQuery} />
+			{#if $isCurrentUserOwner && $isCurrentUserOwner(data.owner)}
+				<slot name="action-buttons" {data} query={vaultDetailQuery} />
+			{/if}
 			<Refresh
 				on:click={async () => await invalidateIdQuery(queryClient, id)}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
