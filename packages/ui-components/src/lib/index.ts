@@ -67,6 +67,7 @@ export { default as StrategiesSection } from './components/deployment/Strategies
 export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
+export { default as DepositOrWithdrawButtons } from './components/detail/DepositOrWithdrawButtons.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
@@ -104,6 +105,7 @@ export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
