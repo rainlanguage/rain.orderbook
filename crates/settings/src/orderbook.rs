@@ -140,7 +140,10 @@ impl YamlParsableHash for OrderbookCfg {
                     };
 
                     if orderbooks.contains_key(&orderbook_key) {
-                        return Err(YamlError::KeyShadowing(orderbook_key, "orderbooks".to_string()));
+                        return Err(YamlError::KeyShadowing(
+                            orderbook_key,
+                            "orderbooks".to_string(),
+                        ));
                     }
                     orderbooks.insert(orderbook_key, orderbook);
                 }
@@ -193,11 +196,11 @@ pub enum ParseOrderbookConfigSourceError {
 impl ParseOrderbookConfigSourceError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseOrderbookConfigSourceError::AddressParseError(err) => 
+            ParseOrderbookConfigSourceError::AddressParseError(err) =>
                 format!("The orderbook address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
-            ParseOrderbookConfigSourceError::NetworkNotFoundError(network) => 
+            ParseOrderbookConfigSourceError::NetworkNotFoundError(network) =>
                 format!("The network '{}' specified for this orderbook was not found in your YAML configuration. Please define this network or use an existing one.", network),
-            ParseOrderbookConfigSourceError::SubgraphNotFoundError(subgraph) => 
+            ParseOrderbookConfigSourceError::SubgraphNotFoundError(subgraph) =>
                 format!("The subgraph '{}' specified for this orderbook was not found in your YAML configuration. Please define this subgraph or use an existing one.", subgraph),
         }
     }
@@ -375,7 +378,10 @@ test: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'networks' in root");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'networks' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -392,7 +398,10 @@ test: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'subgraphs' in root");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'subgraphs' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -411,7 +420,10 @@ test: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'orderbooks' in root");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'orderbooks' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -431,7 +443,10 @@ orderbooks:
                 location: "orderbook 'TestOrderbook'".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'address' in orderbook 'TestOrderbook'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'address' in orderbook 'TestOrderbook'"
+        );
 
         let yaml = r#"
 networks:
@@ -606,7 +621,10 @@ orderbooks: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orderbooks' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orderbooks' in root must be a map"
+        );
 
         let yaml = r#"
 orderbooks:
@@ -624,7 +642,10 @@ orderbooks:
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orderbooks' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orderbooks' in root must be a map"
+        );
 
         let yaml = r#"
 orderbooks:
@@ -642,6 +663,9 @@ orderbooks:
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orderbooks' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orderbooks' in root must be a map"
+        );
     }
 }

@@ -30,13 +30,13 @@ pub enum ContextError {
 impl ContextError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ContextError::NoOrder => 
+            ContextError::NoOrder =>
                 "No order is available in the current context. Please ensure an order is specified in your YAML configuration.".to_string(),
-            ContextError::InvalidPath(path) => 
+            ContextError::InvalidPath(path) =>
                 format!("The path '{}' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct.", path),
-            ContextError::InvalidIndex(index) => 
+            ContextError::InvalidIndex(index) =>
                 format!("The index '{}' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array.", index),
-            ContextError::PropertyNotFound(property) => 
+            ContextError::PropertyNotFound(property) =>
                 format!("The property '{}' was not found in your YAML configuration. Please check that this property is defined correctly.", property),
         }
     }
@@ -287,13 +287,17 @@ mod tests {
             "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
         );
 
-        let invalid_index_error = context.interpolate("${order.inputs.999.token.address}").unwrap_err();
+        let invalid_index_error = context
+            .interpolate("${order.inputs.999.token.address}")
+            .unwrap_err();
         assert_eq!(
             invalid_index_error.to_readable_msg(),
             "The index '999' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array."
         );
 
-        let property_not_found_error = context.interpolate("${order.inputs.0.token.invalid}").unwrap_err();
+        let property_not_found_error = context
+            .interpolate("${order.inputs.0.token.invalid}")
+            .unwrap_err();
         assert_eq!(
             property_not_found_error.to_readable_msg(),
             "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
@@ -308,7 +312,9 @@ mod tests {
         );
 
         // Test that missing vault-id returns error
-        let missing_vault_error = context.interpolate("${order.outputs.0.vault-id}").unwrap_err();
+        let missing_vault_error = context
+            .interpolate("${order.outputs.0.vault-id}")
+            .unwrap_err();
         assert_eq!(
             missing_vault_error.to_readable_msg(),
             "The property 'vault-id' was not found in your YAML configuration. Please check that this property is defined correctly."
@@ -318,7 +324,9 @@ mod tests {
     #[test]
     fn test_context_no_order() {
         let context = Context::new();
-        let error = context.interpolate("${order.inputs.0.token.address}").unwrap_err();
+        let error = context
+            .interpolate("${order.inputs.0.token.address}")
+            .unwrap_err();
         assert_eq!(error, ContextError::NoOrder);
         assert_eq!(
             error.to_readable_msg(),

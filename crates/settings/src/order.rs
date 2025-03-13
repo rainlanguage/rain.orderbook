@@ -831,25 +831,25 @@ pub enum ParseOrderConfigSourceError {
 impl ParseOrderConfigSourceError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseOrderConfigSourceError::DeployerParseError(err) => 
+            ParseOrderConfigSourceError::DeployerParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::OrderbookParseError(err) => 
+            ParseOrderConfigSourceError::OrderbookParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::TokenParseError(err) => 
+            ParseOrderConfigSourceError::TokenParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::NetworkNotFoundError(_) => 
-                format!("No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."),
-            ParseOrderConfigSourceError::NetworkNotMatch => 
+            ParseOrderConfigSourceError::NetworkNotFoundError(_) =>
+                "No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks.".to_string(),
+            ParseOrderConfigSourceError::NetworkNotMatch =>
                 "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
-            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } => 
+            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The deployer is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
-            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } => 
+            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
-            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } => 
+            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
-            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } => 
+            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The output token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
-            ParseOrderConfigSourceError::VaultParseError(err) => 
+            ParseOrderConfigSourceError::VaultParseError(err) =>
                 format!("The vault ID in your YAML configuration is invalid. Please provide a valid number: {}", err),
         }
     }
@@ -1066,7 +1066,9 @@ mod tests {
             Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
         ));
         let error = result.unwrap_err();
-        assert!(error.to_readable_msg().contains("No network could be determined for this order"));
+        assert!(error
+            .to_readable_msg()
+            .contains("No network could be determined for this order"));
     }
 
     #[test]
@@ -1139,7 +1141,10 @@ test: test
                 location: "root".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'orders' in root");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'orders' in root"
+        );
 
         let yaml = r#"
 orders:
@@ -1153,7 +1158,10 @@ orders:
                 location: "order 'order1'".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'inputs' in order 'order1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'inputs' in order 'order1'"
+        );
 
         let yaml = r#"
 orders:
@@ -1169,7 +1177,10 @@ orders:
                 location: "input index '0' in order 'order1'".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'token' in input index '0' in order 'order1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'token' in input index '0' in order 'order1'"
+        );
 
         let yaml = r#"
 networks:
@@ -1193,7 +1204,10 @@ orders:
                 location: "order 'order1'".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'outputs' in order 'order1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'outputs' in order 'order1'"
+        );
 
         let yaml = r#"
 networks:
@@ -1219,7 +1233,10 @@ orders:
                 location: "output index '0' in order 'order1'".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'token' in output index '0' in order 'order1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'token' in output index '0' in order 'order1'"
+        );
     }
 
     #[test]
@@ -1331,7 +1348,10 @@ orders: test
                 location: "root".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
 
         let yaml = r#"
 orders:
@@ -1348,7 +1368,10 @@ orders:
                 location: "root".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
 
         let yaml = r#"
 orders:
@@ -1365,6 +1388,9 @@ orders:
                 location: "root".to_string()
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
     }
 }

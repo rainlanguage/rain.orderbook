@@ -97,9 +97,9 @@ pub enum ParseDeployerConfigSourceError {
 impl ParseDeployerConfigSourceError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseDeployerConfigSourceError::AddressParseError(err) => 
+            ParseDeployerConfigSourceError::AddressParseError(err) =>
                 format!("The deployer address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
-            ParseDeployerConfigSourceError::NetworkNotFoundError(network) => 
+            ParseDeployerConfigSourceError::NetworkNotFoundError(network) =>
                 format!("The network '{}' specified for this deployer was not found in your YAML configuration. Please define this network or use an existing one.", network),
         }
     }
@@ -186,7 +186,10 @@ impl YamlParsableHash for DeployerCfg {
                     };
 
                     if deployers.contains_key(&deployer_key) {
-                        return Err(YamlError::KeyShadowing(deployer_key, "deployers".to_string()));
+                        return Err(YamlError::KeyShadowing(
+                            deployer_key,
+                            "deployers".to_string(),
+                        ));
                     }
                     deployers.insert(deployer_key, deployer);
                 }
@@ -399,7 +402,10 @@ deployers: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployers' in root must be a map"
+        );
 
         let yaml = r#"
 networks:
@@ -421,7 +427,10 @@ deployers:
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployers' in root must be a map"
+        );
 
         let yaml = r#"
 networks:
@@ -443,7 +452,10 @@ deployers:
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployers' in root must be a map"
+        );
 
         let yaml = r#"
 networks:

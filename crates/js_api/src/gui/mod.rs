@@ -337,75 +337,75 @@ pub enum GuiError {
 impl GuiError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            GuiError::GuiConfigNotFound => 
+            GuiError::GuiConfigNotFound =>
                 "The GUI configuration could not be found. Please check your YAML configuration file.".to_string(),
-            GuiError::DeploymentNotFound(name) => 
+            GuiError::DeploymentNotFound(name) =>
                 format!("The deployment '{}' could not be found. Please select a valid deployment from your YAML configuration.", name),
-            GuiError::FieldBindingNotFound(field) => 
+            GuiError::FieldBindingNotFound(field) =>
                 format!("The field binding '{}' could not be found in the YAML configuration.", field),
-            GuiError::FieldValueNotSet(field) => 
+            GuiError::FieldValueNotSet(field) =>
                 format!("The value for field '{}' is required but has not been set.", field),
-            GuiError::DepositTokenNotFound(token) => 
+            GuiError::DepositTokenNotFound(token) =>
                 format!("The deposit token '{}' was not found in the YAML configuration.", token),
-            GuiError::DepositNotSet(token) => 
+            GuiError::DepositNotSet(token) =>
                 format!("A deposit for token '{}' is required but has not been set.", token),
-            GuiError::OrderbookNotFound => 
+            GuiError::OrderbookNotFound =>
                 "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
-            GuiError::OrderNotFound(order) => 
+            GuiError::OrderNotFound(order) =>
                 format!("The order '{}' could not be found in the YAML configuration.", order),
-            GuiError::DotrainMismatch => 
+            GuiError::DotrainMismatch =>
                 "There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency.".to_string(),
-            GuiError::VaultIdNotFound(index) => 
+            GuiError::VaultIdNotFound(index) =>
                 format!("The vault ID for output index '{}' could not be found in the YAML configuration.", index),
-            GuiError::DeployerNotFound => 
+            GuiError::DeployerNotFound =>
                 "The deployer configuration could not be found. Please check your YAML configuration.".to_string(),
-            GuiError::TokenNotFound(token) => 
+            GuiError::TokenNotFound(token) =>
                 format!("The token '{}' could not be found in the YAML configuration.", token),
-            GuiError::InvalidPreset => 
+            GuiError::InvalidPreset =>
                 "The selected preset is invalid. Please choose a different preset from your YAML configuration.".to_string(),
-            GuiError::PresetsNotSet => 
+            GuiError::PresetsNotSet =>
                 "No presets have been configured. Please check your YAML configuration.".to_string(),
-            GuiError::SelectTokensNotSet => 
+            GuiError::SelectTokensNotSet =>
                 "No tokens have been configured for selection. Please check your YAML configuration.".to_string(),
-            GuiError::TokenMustBeSelected(token) => 
+            GuiError::TokenMustBeSelected(token) =>
                 format!("The token '{}' must be selected to proceed.", token),
-            GuiError::BindingHasNoPresets(binding) => 
+            GuiError::BindingHasNoPresets(binding) =>
                 format!("The binding '{}' does not have any presets configured in the YAML configuration.", binding),
-            GuiError::TokenNotInSelectTokens(token) => 
+            GuiError::TokenNotInSelectTokens(token) =>
                 format!("The token '{}' is not in the list of selectable tokens defined in the YAML configuration.", token),
-            GuiError::JsError(msg) => 
+            GuiError::JsError(msg) =>
                 format!("A JavaScript error occurred: {}", msg),
-            GuiError::DotrainOrderError(err) => 
+            GuiError::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
-            GuiError::ParseGuiConfigSourceError(err) => 
+            GuiError::ParseGuiConfigSourceError(err) =>
                 format!("Failed to parse YAML GUI configuration: {}", err),
-            GuiError::IoError(err) => 
+            GuiError::IoError(err) =>
                 format!("I/O error: {}", err),
-            GuiError::BincodeError(err) => 
+            GuiError::BincodeError(err) =>
                 format!("Data serialization error: {}", err),
-            GuiError::Base64Error(err) => 
+            GuiError::Base64Error(err) =>
                 format!("Base64 encoding/decoding error: {}", err),
-            GuiError::FromHexError(err) => 
+            GuiError::FromHexError(err) =>
                 format!("Invalid hexadecimal value: {}", err),
-            GuiError::ReadableClientError(err) => 
+            GuiError::ReadableClientError(err) =>
                 format!("Network client error: {}", err),
-            GuiError::DepositError(err) => 
+            GuiError::DepositError(err) =>
                 format!("Deposit error: {}", err),
-            GuiError::ParseError(err) => 
+            GuiError::ParseError(err) =>
                 format!("Number parsing error: {}", err),
-            GuiError::ReadContractParametersBuilderError(err) => 
+            GuiError::ReadContractParametersBuilderError(err) =>
                 format!("Contract parameter error: {}", err),
-            GuiError::UnitsError(err) => 
+            GuiError::UnitsError(err) =>
                 format!("Unit conversion error: {}", err),
-            GuiError::WritableTransactionExecuteError(err) => 
+            GuiError::WritableTransactionExecuteError(err) =>
                 format!("Transaction execution error: {}", err),
-            GuiError::AddOrderArgsError(err) => 
+            GuiError::AddOrderArgsError(err) =>
                 format!("Invalid order arguments: {}", err),
-            GuiError::ERC20Error(err) => 
+            GuiError::ERC20Error(err) =>
                 format!("ERC20 token error: {}", err),
-            GuiError::SolTypesError(err) => 
+            GuiError::SolTypesError(err) =>
                 format!("Solidity type error: {}", err),
-            GuiError::SerdeWasmBindgenError(err) => 
+            GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
         }

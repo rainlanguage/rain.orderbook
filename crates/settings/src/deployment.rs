@@ -114,7 +114,10 @@ impl YamlParsableHash for DeploymentCfg {
                     };
 
                     if deployments.contains_key(&deployment_key) {
-                        return Err(YamlError::KeyShadowing(deployment_key.clone(), "deployers".to_string()));
+                        return Err(YamlError::KeyShadowing(
+                            deployment_key.clone(),
+                            "deployers".to_string(),
+                        ));
                     }
                     deployments.insert(deployment_key, deployment);
                 }
@@ -162,11 +165,11 @@ pub enum ParseDeploymentConfigSourceError {
 impl ParseDeploymentConfigSourceError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseDeploymentConfigSourceError::ScenarioNotFoundError(scenario) => 
+            ParseDeploymentConfigSourceError::ScenarioNotFoundError(scenario) =>
                 format!("The scenario '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this scenario is defined correctly.", scenario),
-            ParseDeploymentConfigSourceError::OrderNotFoundError(order) => 
+            ParseDeploymentConfigSourceError::OrderNotFoundError(order) =>
                 format!("The order '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this order is defined correctly.", order),
-            ParseDeploymentConfigSourceError::NoMatch => 
+            ParseDeploymentConfigSourceError::NoMatch =>
                 "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario.".to_string(),
         }
     }
@@ -314,7 +317,10 @@ test: test
                 location: "root".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'deployments' in root");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'deployments' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -348,7 +354,10 @@ deployments:
                 location: "deployment 'deployment1'".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'order' in deployment 'deployment1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'order' in deployment 'deployment1'"
+        );
 
         let yaml = r#"
 networks:
@@ -383,7 +392,10 @@ deployments:
                 location: "deployment 'deployment1'".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Missing required field 'scenario' in deployment 'deployment1'");
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'scenario' in deployment 'deployment1'"
+        );
 
         let yaml = r#"
 networks:
