@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import type { StrategyDetail } from '$lib/types/strategy';
+	import type { ValidStrategyDetail } from '$lib/types/strategy';
 
-	export let strategies: StrategyDetail[];
+	export let strategies: ValidStrategyDetail[];
 	let customRegistryParam = '';
 
 	onMount(async () => {
