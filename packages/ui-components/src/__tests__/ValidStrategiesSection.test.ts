@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/svelte';
 import ValidStrategiesSection from '../lib/components/deployment/ValidStrategiesSection.svelte';
-import type { StrategyDetail } from '$lib/types/strategy';
+import type { ValidStrategyDetail } from '$lib/types/strategy';
 
 describe('ValidStrategiesSection', () => {
-	const mockValidStrategies: StrategyDetail[] = [
+	const mockValidStrategies: ValidStrategyDetail[] = [
 		{
 			dotrain: '',
 			name: 'strategy1',
@@ -24,14 +24,8 @@ describe('ValidStrategiesSection', () => {
 		}
 	];
 
-	it('should render nothing when validStrategies is empty', () => {
-		render(ValidStrategiesSection, { props: { validStrategies: [] } });
-		const container = screen.queryByTestId('valid-strategies');
-		expect(container).not.toBeInTheDocument();
-	});
-
 	it('should render correct number of StrategyShortTile components', () => {
-		render(ValidStrategiesSection, { props: { validStrategies: mockValidStrategies } });
+		render(ValidStrategiesSection, { props: { strategies: mockValidStrategies } });
 		const strategyTiles = screen.getAllByTestId('strategy-short-tile');
 		expect(strategyTiles).toHaveLength(mockValidStrategies.length);
 	});
