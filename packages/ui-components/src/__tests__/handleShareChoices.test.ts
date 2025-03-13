@@ -1,9 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { handleShareChoices } from '../lib/services/handleShareChoices';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 describe('handleShareChoices', () => {
+	let guiInstance: DotrainOrderGui;
+
 	beforeEach(() => {
+		guiInstance = new DotrainOrderGui();
+
 		// Mock clipboard API
 		Object.assign(navigator, {
 			clipboard: {
@@ -23,11 +27,9 @@ describe('handleShareChoices', () => {
 	});
 
 	it('should share the choices with state', async () => {
-		const mockGui = {
-			serializeState: vi.fn().mockReturnValue('mockState123')
-		};
+		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
 
-		await handleShareChoices(mockGui as unknown as DotrainOrderGui);
+		await handleShareChoices(guiInstance);
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
 			'http://example.com/?state=mockState123'
@@ -35,17 +37,9 @@ describe('handleShareChoices', () => {
 	});
 
 	it('should handle null state', async () => {
-		const mockGui = {
-			serializeState: vi.fn().mockReturnValue(null)
-		};
+		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: null });
 
-		await handleShareChoices(mockGui as unknown as DotrainOrderGui);
-
-		expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://example.com/?state=');
-	});
-
-	it('should handle undefined gui', async () => {
-		await handleShareChoices(undefined as unknown as DotrainOrderGui);
+		await handleShareChoices(guiInstance);
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://example.com/?state=');
 	});

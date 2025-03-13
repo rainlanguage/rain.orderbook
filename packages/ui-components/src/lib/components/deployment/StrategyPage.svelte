@@ -27,7 +27,11 @@
 
 	const getStrategy = async () => {
 		try {
-			strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
+			let result = await DotrainOrderGui.getStrategyDetails(dotrain);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			strategyDetails = result.value;
 			if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
 				const content = await fetchMarkdownContent(strategyDetails.description);
 				if (content) {

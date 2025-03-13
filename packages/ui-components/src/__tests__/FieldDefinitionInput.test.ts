@@ -4,18 +4,8 @@ import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionIn
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: vi.fn().mockImplementation(() => ({
-		saveFieldValue: vi.fn(),
-		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn(),
-		getAllFieldValues: vi.fn(),
-		getCurrentDeployment: vi.fn()
-	}))
-}));
-
 describe('FieldDefinitionInput', () => {
-	let mockGui: DotrainOrderGui;
+	let guiInstance: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
 
 	const mockFieldDefinition = {
@@ -30,9 +20,10 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		mockGui = new (DotrainOrderGui as any)();
-		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
+		guiInstance = new DotrainOrderGui();
+
+		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({});
+		(DotrainOrderGui.prototype.saveFieldValue as Mock).mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
 	});
@@ -41,7 +32,7 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
@@ -53,7 +44,7 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
@@ -65,13 +56,13 @@ describe('FieldDefinitionInput', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: true,
 			value: 'preset1'
 		});
@@ -82,14 +73,14 @@ describe('FieldDefinitionInput', () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'custom value'
 		});
@@ -105,7 +96,7 @@ describe('FieldDefinitionInput', () => {
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
@@ -120,7 +111,7 @@ describe('FieldDefinitionInput', () => {
 					default: 'default value',
 					showCustomField: true
 				},
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
@@ -129,15 +120,17 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'default value@'
 		});
 	});
 	it('renders selected value instead of default value', async () => {
-		(mockGui.getFieldValue as Mock).mockReturnValue({
-			isPreset: false,
-			value: 'preset1'
+		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({
+			value: {
+				isPreset: false,
+				value: 'preset1'
+			}
 		});
 
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
@@ -147,7 +140,7 @@ describe('FieldDefinitionInput', () => {
 					default: 'default value',
 					showCustomField: true
 				},
-				gui: mockGui
+				gui: guiInstance
 			}
 		});
 
@@ -156,7 +149,7 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'preset1@'
 		});
