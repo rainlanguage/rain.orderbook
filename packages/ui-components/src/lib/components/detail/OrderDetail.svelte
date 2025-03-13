@@ -15,11 +15,10 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-	import type { Config } from 'wagmi';
+	import { signerAddress, wagmiConfig } from '../../stores/wagmi';
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
@@ -30,6 +29,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import type { Readable } from 'svelte/store';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -38,6 +38,8 @@
 		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
+	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
+		undefined;
 	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
@@ -46,8 +48,7 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -103,6 +104,21 @@
 								}
 							})}
 						disabled={!handleOrderRemoveModal}
+					>
+						Remove
+					</Button>
+				{:else if $walletAddressMatchesOrBlank?.(data.order.owner) && data.order.active && handleOrderRemoveModal}
+					<Button
+						data-testid="remove-button"
+						color="dark"
+						on:click={() =>
+							handleOrderRemoveModal({
+								open: true,
+								args: {
+									order: data.order,
+									onRemove: $orderDetailQuery.refetch
+								}
+							})}
 					>
 						Remove
 					</Button>

@@ -2,12 +2,10 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
-	import { wagmiConfig, connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
@@ -43,13 +41,9 @@
 		{gui}
 		{dotrain}
 		{deployment}
-		{wagmiConfig}
-		wagmiConnected={connected}
-		{appKitModal}
 		{handleDeployModal}
 		{settings}
 		{handleDisclaimerModal}
-		{signerAddress}
 	/>
 {:else if getGuiError}
 	<div>
