@@ -9,8 +9,8 @@ use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
+use rain_orderbook_app_settings::yaml::{default_document, YamlError, YamlParsable};
 use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::OrderbookYaml};
-use rain_orderbook_app_settings::yaml::{YamlError, YamlParsable};
 use rain_orderbook_app_settings::ParseConfigSourceError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -121,6 +121,17 @@ pub struct ScenarioWords {
     pub scenario: String,
     pub pragma_words: Vec<ContractWords>,
     pub deployer_words: ContractWords,
+}
+
+impl DotrainOrder {
+    pub fn dummy() -> Self {
+        Self {
+            dotrain: "".to_string(),
+            dotrain_yaml: DotrainYaml {
+                documents: vec![default_document()],
+            },
+        }
+    }
 }
 
 #[cfg_attr(target_family = "wasm", wasm_bindgen)]
