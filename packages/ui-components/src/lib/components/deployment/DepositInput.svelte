@@ -24,7 +24,11 @@
 
 	const setCurrentDeposit = async () => {
 		try {
-			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
+			const deposits = gui.getDeposits();
+			if (deposits.error) {
+				throw new Error(deposits.error.msg);
+			}
+			currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 			inputValue = currentDeposit?.amount || '';
 		} catch {
 			currentDeposit = undefined;
@@ -34,7 +38,11 @@
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(deposit.token?.key);
+			let result = await gui.getTokenInfo(deposit.token?.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message
@@ -48,7 +56,12 @@
 			inputValue = preset;
 			gui?.saveDeposit(deposit.token?.key, preset);
 			gui = gui;
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+
+			const deposits = gui.getDeposits();
+			if (deposits.error) {
+				throw new Error(deposits.error.msg);
+			}
+			currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 		}
 	}
 
@@ -58,7 +71,12 @@
 				inputValue = e.currentTarget.value;
 				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
 				gui = gui;
-				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+
+				const deposits = gui.getDeposits();
+				if (deposits.error) {
+					throw new Error(deposits.error.msg);
+				}
+				currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 			}
 		}
 	}

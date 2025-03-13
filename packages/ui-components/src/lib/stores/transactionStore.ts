@@ -4,7 +4,6 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	SgTransaction,
 	RemoveOrderCalldata,
@@ -54,7 +53,7 @@ export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 export type DeploymentTransactionArgs = {
 	config: Config;
 	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
+	deploymentCalldata: string;
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;
