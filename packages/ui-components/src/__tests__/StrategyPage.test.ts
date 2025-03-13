@@ -7,11 +7,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
-	const MockDeploymentsSection = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: MockDeploymentsSection };
-});
-
 // Mock DotrainOrderGui
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
