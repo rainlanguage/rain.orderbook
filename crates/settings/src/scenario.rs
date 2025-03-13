@@ -145,7 +145,7 @@ impl ScenarioCfg {
         }
 
         if scenarios.contains_key(&scenario_key) {
-            return Err(YamlError::KeyShadowing(scenario_key));
+            return Err(YamlError::KeyShadowing(scenario_key.clone(), "scenarios".to_string()));
         }
         let key = if parent_scenario.key.is_empty() {
             scenario_key.clone()
@@ -529,7 +529,6 @@ impl ScenarioConfigSource {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
     use crate::test::mock_deployer;
@@ -716,6 +715,7 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'scenarios' in root");
 
         let yaml = r#"
 networks:
@@ -743,6 +743,7 @@ scenarios:
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string");
 
         let yaml = r#"
 networks:
@@ -770,6 +771,7 @@ scenarios:
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string");
 
         let yaml = r#"
 networks:
@@ -798,6 +800,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Binding conflict in your YAML configuration: The child scenario is trying to override the binding 'key1' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.");
 
         let yaml = r#"
 networks:
@@ -833,6 +836,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
     }
 
     #[test]
@@ -950,7 +954,8 @@ scenarios:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateScenario".to_string())
+            YamlError::KeyShadowing("DuplicateScenario".to_string(), "scenarios".to_string())
         );
+        assert_eq!(error.to_readable_msg(), "The key 'DuplicateScenario' is defined multiple times in your YAML configuration at scenarios");
     }
 }

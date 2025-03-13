@@ -186,7 +186,7 @@ impl YamlParsableHash for DeployerCfg {
                     };
 
                     if deployers.contains_key(&deployer_key) {
-                        return Err(YamlError::KeyShadowing(deployer_key));
+                        return Err(YamlError::KeyShadowing(deployer_key, "deployers".to_string()));
                     }
                     deployers.insert(deployer_key, deployer);
                 }
@@ -247,6 +247,15 @@ mod tests {
             result,
             Err(ParseDeployerConfigSourceError::NetworkNotFoundError(_))
         ));
+        let error = result.unwrap_err();
+        assert_eq!(
+            error,
+            ParseDeployerConfigSourceError::NetworkNotFoundError(invalid_network_name.to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The network 'unknownnet' specified for this deployer was not found in your YAML configuration. Please define this network or use an existing one."
+        );
     }
 
     #[test]
@@ -330,7 +339,11 @@ deployers:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateDeployer".to_string())
+            YamlError::KeyShadowing("DuplicateDeployer".to_string(), "deployers".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The key 'DuplicateDeployer' is defined multiple times in your YAML configuration at deployers"
         );
     }
 
@@ -386,6 +399,7 @@ deployers: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
 
         let yaml = r#"
 networks:
@@ -407,6 +421,7 @@ deployers:
                 location: "root".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
 
         let yaml = r#"
 networks:
@@ -428,6 +443,7 @@ deployers:
                 location: "root".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'deployers' in root must be a map");
 
         let yaml = r#"
 networks:

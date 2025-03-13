@@ -116,8 +116,8 @@ pub enum YamlError {
 
     #[error("Key '{0}' not found")]
     KeyNotFound(String),
-    #[error("Key '{0}' is already defined")]
-    KeyShadowing(String),
+    #[error("Key '{0}' is already defined in {1}")]
+    KeyShadowing(String, String),
 
     #[error("Failed to acquire read lock")]
     ReadLockError,
@@ -165,7 +165,7 @@ impl PartialEq for YamlError {
             ) => k1 == k2 && l1 == l2,
             (Self::ParseError(s1), Self::ParseError(s2)) => s1 == s2,
             (Self::KeyNotFound(k1), Self::KeyNotFound(k2)) => k1 == k2,
-            (Self::KeyShadowing(k1), Self::KeyShadowing(k2)) => k1 == k2,
+            (Self::KeyShadowing(k1, l1), Self::KeyShadowing(k2, l2)) => k1 == k2 && l1 == l2,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
             (Self::EmptyFile, Self::EmptyFile) => true,
@@ -241,9 +241,9 @@ impl YamlError {
             YamlError::KeyNotFound(key) => {
                 format!("The key '{}' was not found in your YAML configuration", key)
             }
-            YamlError::KeyShadowing(key) => format!(
-                "The key '{}' is defined multiple times in your YAML configuration",
-                key
+            YamlError::KeyShadowing(key, location) => format!(
+                "The key '{}' is defined multiple times in your YAML configuration at {}",
+                key, location
             ),
             YamlError::ReadLockError => {
                 "Failed to read the YAML configuration due to a lock error".to_string()

@@ -749,7 +749,7 @@ impl YamlParsableHash for OrderCfg {
                     };
 
                     if orders.contains_key(&order_key) {
-                        return Err(YamlError::KeyShadowing(order_key));
+                        return Err(YamlError::KeyShadowing(order_key, "orders".to_string()));
                     }
                     orders.insert(order_key, order);
                 }
@@ -837,8 +837,8 @@ impl ParseOrderConfigSourceError {
                 err.to_readable_msg(),
             ParseOrderConfigSourceError::TokenParseError(err) => 
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::NetworkNotFoundError(network) => 
-                format!("No network was found for this order in your YAML configuration. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."),
+            ParseOrderConfigSourceError::NetworkNotFoundError(_) => 
+                format!("No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."),
             ParseOrderConfigSourceError::NetworkNotMatch => 
                 "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
             ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } => 
@@ -1065,6 +1065,8 @@ mod tests {
             result,
             Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
         ));
+        let error = result.unwrap_err();
+        assert!(error.to_readable_msg().contains("No network could be determined for this order"));
     }
 
     #[test]
@@ -1137,6 +1139,7 @@ test: test
                 location: "root".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'orders' in root");
 
         let yaml = r#"
 orders:
@@ -1150,6 +1153,7 @@ orders:
                 location: "order 'order1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'inputs' in order 'order1'");
 
         let yaml = r#"
 orders:
@@ -1165,6 +1169,7 @@ orders:
                 location: "input index '0' in order 'order1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'token' in input index '0' in order 'order1'");
 
         let yaml = r#"
 networks:
@@ -1188,6 +1193,7 @@ orders:
                 location: "order 'order1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'outputs' in order 'order1'");
 
         let yaml = r#"
 networks:
@@ -1213,6 +1219,7 @@ orders:
                 location: "output index '0' in order 'order1'".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'token' in output index '0' in order 'order1'");
     }
 
     #[test]
@@ -1301,7 +1308,11 @@ orders:
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
         let error = OrderCfg::parse_all_from_yaml(documents, None).unwrap_err();
 
-        assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("DuplicateOrder".to_string(), "orders".to_string())
+        );
+        assert_eq!(error.to_readable_msg(), "The key 'DuplicateOrder' is defined multiple times in your YAML configuration at orders");
     }
 
     #[test]
@@ -1320,6 +1331,7 @@ orders: test
                 location: "root".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
 
         let yaml = r#"
 orders:
@@ -1336,6 +1348,7 @@ orders:
                 location: "root".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
 
         let yaml = r#"
 orders:
@@ -1352,5 +1365,6 @@ orders:
                 location: "root".to_string()
             }
         );
+        assert_eq!(error.to_readable_msg(), "Field 'orders' in root must be a map");
     }
 }

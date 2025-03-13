@@ -114,7 +114,7 @@ impl YamlParsableHash for DeploymentCfg {
                     };
 
                     if deployments.contains_key(&deployment_key) {
-                        return Err(YamlError::KeyShadowing(deployment_key));
+                        return Err(YamlError::KeyShadowing(deployment_key.clone(), "deployers".to_string()));
                     }
                     deployments.insert(deployment_key, deployment);
                 }
@@ -314,6 +314,7 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'deployments' in root");
 
         let yaml = r#"
 networks:
@@ -347,6 +348,7 @@ deployments:
                 location: "deployment 'deployment1'".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'order' in deployment 'deployment1'");
 
         let yaml = r#"
 networks:
@@ -381,6 +383,7 @@ deployments:
                 location: "deployment 'deployment1'".to_string(),
             }
         );
+        assert_eq!(error.to_readable_msg(), "Missing required field 'scenario' in deployment 'deployment1'");
 
         let yaml = r#"
 networks:
@@ -423,6 +426,10 @@ deployments:
             error.to_string(),
             YamlError::ParseDeploymentConfigSourceError(ParseDeploymentConfigSourceError::NoMatch)
                 .to_string()
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario."
         );
     }
 
@@ -536,7 +543,11 @@ deployments:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateDeployment".to_string())
+            YamlError::KeyShadowing("DuplicateDeployment".to_string(), "deployers".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The key 'DuplicateDeployment' is defined multiple times in your YAML configuration at deployers"
         );
     }
 
@@ -557,6 +568,10 @@ deployments: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
+        );
 
         let yaml = r#"
 deployments:
@@ -574,6 +589,10 @@ deployments:
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
+        );
 
         let yaml = r#"
 deployments:
@@ -590,6 +609,10 @@ deployments:
                 },
                 location: "root".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
         );
 
         let yaml = r#"
