@@ -1,13 +1,20 @@
 <script lang="ts">
-	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
+	import {
+		PageHeader,
+		TransactionStatus,
+		transactionStore,
+		DepositOrWithdrawButtons,
+		signerAddress,
+		VaultDetail
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
-	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
-	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
-	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import { Toast } from 'flowbite-svelte';
+	import { fade } from 'svelte/transition';
+	import { derived } from 'svelte/store';
+
 	const queryClient = useQueryClient();
 
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
@@ -35,6 +42,10 @@
 		});
 		triggerToast();
 	}
+
+	const isCurrentUserOwner = derived(signerAddress, ($signerAddress) => {
+		return (owner: string) => $signerAddress === owner;
+	});
 </script>
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
@@ -54,7 +65,16 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
-	{signerAddress}
-/>
+	{isCurrentUserOwner}
+>
+	<svelte:fragment slot="action-buttons" let:data let:query>
+		<DepositOrWithdrawButtons
+			vault={data}
+			chainId={$settings?.networks?.[$page.params.network]?.['chain-id'] || 0}
+			rpcUrl={$settings?.networks?.[$page.params.network]?.['rpc'] || ''}
+			{query}
+			{handleDepositOrWithdrawModal}
+			subgraphUrl={$settings?.subgraphs?.[$page.params.network] || ''}
+		/>
+	</svelte:fragment>
+</VaultDetail>

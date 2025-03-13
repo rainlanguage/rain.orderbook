@@ -7,21 +7,32 @@ import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
+import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
+import type { CreateQueryResult } from '@tanstack/svelte-query';
+import { get } from 'svelte/store';
 
 export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
 };
 
-export const handleDepositModal = (vault: SgVault, onDeposit: () => void) => {
-  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit } });
+export const handleDepositModal = (vault: SgVault, query: CreateQueryResult) => {
+  const queryStore = get(query)
+  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit: queryStore.refetch } });
 };
 
-export const handleWithdrawModal = (vault: SgVault, onWithdraw: () => void) => {
-  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw } });
+export const handleWithdrawModal = (vault: SgVault, query: CreateQueryResult) => {
+  const queryStore = get(query)
+  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw: queryStore.refetch } });
 };
 
-export const handleOrderRemoveModal = (order: SgOrder, onOrderRemoved: () => void) => {
-  new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
+export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {
+  new ModalOrderRemove({
+    target: document.body,
+    props: {
+      order: props.args.order,
+      onOrderRemoved: props.args.onRemove,
+    },
+  });
 };
 
 export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
