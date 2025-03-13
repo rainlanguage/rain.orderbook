@@ -258,14 +258,36 @@ impl YamlError {
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
-            YamlError::ParseNetworkConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseTokenConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseOrderbookConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseDeployerConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseOrderConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseScenarioConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ParseDeploymentConfigSourceError(err) => err.to_readable_msg(),
-            YamlError::ContextError(err) => err.to_readable_msg(),
+            YamlError::ParseNetworkConfigSourceError(err) => {
+                format!("Network configuration error in your YAML: {}", err)
+            }
+            YamlError::ParseTokenConfigSourceError(err) => format!(
+                "Token configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseOrderbookConfigSourceError(err) => format!(
+                "Orderbook configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseDeployerConfigSourceError(err) => format!(
+                "Deployer configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseOrderConfigSourceError(err) => format!(
+                "Order configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseScenarioConfigSourceError(err) => format!(
+                "Scenario configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseDeploymentConfigSourceError(err) => format!(
+                "Deployment configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ContextError(err) => {
+                format!("Context error in your YAML: {}", err.to_readable_msg())
+            }
         }
     }
 }

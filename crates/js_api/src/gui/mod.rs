@@ -407,8 +407,7 @@ impl GuiError {
                 format!("Solidity type error: {}", err),
             GuiError::SerdeWasmBindgenError(err) => 
                 format!("Data serialization error: {}", err),
-            GuiError::YamlError(err) => 
-                err.to_readable_msg(),
+            GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
         }
     }
 }
