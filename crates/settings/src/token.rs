@@ -339,6 +339,19 @@ pub enum ParseTokenConfigSourceError {
     NetworkNotFoundError(String),
 }
 
+impl ParseTokenConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseTokenConfigSourceError::AddressParseError(err) => 
+                format!("The token address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
+            ParseTokenConfigSourceError::DecimalsParseError(err) => 
+                format!("The token decimals in your YAML configuration must be a valid number between 0 and 255: {}", err),
+            ParseTokenConfigSourceError::NetworkNotFoundError(network) => 
+                format!("The network '{}' specified for this token was not found in your YAML configuration. Please define this network or use an existing one.", network),
+        }
+    }
+}
+
 impl TokenConfigSource {
     pub fn try_into_token(
         self,

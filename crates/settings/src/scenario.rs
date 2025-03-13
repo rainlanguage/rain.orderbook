@@ -417,6 +417,25 @@ pub enum ParseScenarioConfigSourceError {
     BlocksParseError(String),
 }
 
+impl ParseScenarioConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseScenarioConfigSourceError::RunsParseError(err) => 
+                format!("The 'runs' value in your scenario YAML configuration must be a valid number: {}", err),
+            ParseScenarioConfigSourceError::ParentBindingShadowedError(binding) => 
+                format!("Binding conflict in your YAML configuration: The child scenario is trying to override the binding '{}' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.", binding),
+            ParseScenarioConfigSourceError::ParentDeployerShadowedError(deployer) => 
+                format!("Deployer conflict in your YAML configuration: The child scenario is trying to use deployer '{}' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.", deployer),
+            ParseScenarioConfigSourceError::DeployerNotFound(scenario) => 
+                format!("No deployer was found for scenario '{}' in your YAML configuration. Please specify a deployer for this scenario or ensure it inherits one from a parent scenario.", scenario),
+            ParseScenarioConfigSourceError::ParentOrderbookShadowedError(orderbook) => 
+                format!("Orderbook conflict in your YAML configuration: The child scenario is trying to use orderbook '{}' which differs from the orderbook specified in the parent scenario. Child scenarios must use the same orderbook as their parent.", orderbook),
+            ParseScenarioConfigSourceError::BlocksParseError(blocks) => 
+                format!("Failed to parse the 'blocks' configuration in your YAML: {}. Please ensure it follows the correct format.", blocks),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct ScenarioParent {
     key: String,

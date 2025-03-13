@@ -159,6 +159,19 @@ pub enum ParseDeploymentConfigSourceError {
     NoMatch,
 }
 
+impl ParseDeploymentConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseDeploymentConfigSourceError::ScenarioNotFoundError(scenario) => 
+                format!("The scenario '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this scenario is defined correctly.", scenario),
+            ParseDeploymentConfigSourceError::OrderNotFoundError(order) => 
+                format!("The order '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this order is defined correctly.", order),
+            ParseDeploymentConfigSourceError::NoMatch => 
+                "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario.".to_string(),
+        }
+    }
+}
+
 impl DeploymentConfigSource {
     pub fn try_into_deployment(
         self,

@@ -27,6 +27,21 @@ pub enum ContextError {
     PropertyNotFound(String),
 }
 
+impl ContextError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ContextError::NoOrder => 
+                "No order is available in the current context. Please ensure an order is specified in your YAML configuration.".to_string(),
+            ContextError::InvalidPath(path) => 
+                format!("The path '{}' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct.", path),
+            ContextError::InvalidIndex(index) => 
+                format!("The index '{}' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array.", index),
+            ContextError::PropertyNotFound(property) => 
+                format!("The property '{}' was not found in your YAML configuration. Please check that this property is defined correctly.", property),
+        }
+    }
+}
+
 pub trait OrderContext {
     fn order(&self) -> Option<&Arc<OrderCfg>>;
 

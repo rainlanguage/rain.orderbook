@@ -828,6 +828,33 @@ pub enum ParseOrderConfigSourceError {
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
+impl ParseOrderConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseOrderConfigSourceError::DeployerParseError(err) => 
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::OrderbookParseError(err) => 
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::TokenParseError(err) => 
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::NetworkNotFoundError(network) => 
+                format!("No network was found for this order in your YAML configuration. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."),
+            ParseOrderConfigSourceError::NetworkNotMatch => 
+                "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
+            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } => 
+                format!("Network mismatch in your YAML configuration: The deployer is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } => 
+                format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } => 
+                format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
+            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } => 
+                format!("Network mismatch in your YAML configuration: The output token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
+            ParseOrderConfigSourceError::VaultParseError(err) => 
+                format!("The vault ID in your YAML configuration is invalid. Please provide a valid number: {}", err),
+        }
+    }
+}
+
 impl OrderConfigSource {
     pub fn try_into_order(
         self,

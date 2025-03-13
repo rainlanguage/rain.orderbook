@@ -190,6 +190,19 @@ pub enum ParseOrderbookConfigSourceError {
     SubgraphNotFoundError(String),
 }
 
+impl ParseOrderbookConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseOrderbookConfigSourceError::AddressParseError(err) => 
+                format!("The orderbook address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
+            ParseOrderbookConfigSourceError::NetworkNotFoundError(network) => 
+                format!("The network '{}' specified for this orderbook was not found in your YAML configuration. Please define this network or use an existing one.", network),
+            ParseOrderbookConfigSourceError::SubgraphNotFoundError(subgraph) => 
+                format!("The subgraph '{}' specified for this orderbook was not found in your YAML configuration. Please define this subgraph or use an existing one.", subgraph),
+        }
+    }
+}
+
 impl OrderbookConfigSource {
     pub fn try_into_orderbook(
         self,

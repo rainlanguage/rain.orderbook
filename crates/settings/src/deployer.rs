@@ -94,6 +94,17 @@ pub enum ParseDeployerConfigSourceError {
     NetworkNotFoundError(String),
 }
 
+impl ParseDeployerConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseDeployerConfigSourceError::AddressParseError(err) => 
+                format!("The deployer address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
+            ParseDeployerConfigSourceError::NetworkNotFoundError(network) => 
+                format!("The network '{}' specified for this deployer was not found in your YAML configuration. Please define this network or use an existing one.", network),
+        }
+    }
+}
+
 impl DeployerConfigSource {
     pub fn try_into_deployer(
         self,

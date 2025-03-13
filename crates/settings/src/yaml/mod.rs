@@ -210,7 +210,6 @@ impl PartialEq for YamlError {
 }
 
 impl YamlError {
-    /// Converts the error into a user-friendly message suitable for frontend display
     pub fn to_readable_msg(&self) -> String {
         match self {
             YamlError::ScanError(err) => format!(
@@ -259,28 +258,14 @@ impl YamlError {
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
-            YamlError::ParseNetworkConfigSourceError(err) => {
-                format!("Error in network configuration: {}", err)
-            }
-            YamlError::ParseTokenConfigSourceError(err) => {
-                format!("Error in token configuration: {}", err)
-            }
-            YamlError::ParseOrderbookConfigSourceError(err) => {
-                format!("Error in orderbook configuration: {}", err)
-            }
-            YamlError::ParseDeployerConfigSourceError(err) => {
-                format!("Error in deployer configuration: {}", err)
-            }
-            YamlError::ParseOrderConfigSourceError(err) => {
-                format!("Error in order configuration: {}", err)
-            }
-            YamlError::ParseScenarioConfigSourceError(err) => {
-                format!("Error in scenario configuration: {}", err)
-            }
-            YamlError::ParseDeploymentConfigSourceError(err) => {
-                format!("Error in deployment configuration: {}", err)
-            }
-            YamlError::ContextError(err) => format!("Error in configuration context: {}", err),
+            YamlError::ParseNetworkConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseTokenConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseOrderbookConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseDeployerConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseOrderConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseScenarioConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ParseDeploymentConfigSourceError(err) => err.to_readable_msg(),
+            YamlError::ContextError(err) => err.to_readable_msg(),
         }
     }
 }

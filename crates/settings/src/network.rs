@@ -248,6 +248,25 @@ pub enum ParseNetworkConfigSourceError {
     NetworkIdParseError(ParseIntError),
 }
 
+impl ParseNetworkConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseNetworkConfigSourceError::RpcParseError(err) => format!(
+                "The RPC URL in your network configuration is invalid: {}",
+                err
+            ),
+            ParseNetworkConfigSourceError::ChainIdParseError(err) => format!(
+                "The chain ID in your network configuration must be a valid number: {}",
+                err
+            ),
+            ParseNetworkConfigSourceError::NetworkIdParseError(err) => format!(
+                "The network ID in your network configuration must be a valid number: {}",
+                err
+            ),
+        }
+    }
+}
+
 impl NetworkConfigSource {
     pub fn try_into_network(
         self,
