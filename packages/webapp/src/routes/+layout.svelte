@@ -12,8 +12,11 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
+	import { setWagmiContext } from '@rainlanguage/ui-components';
+	import * as wagmiStores from '$lib/stores/wagmi';
 
-	// Query client for caching
+	setWagmiContext(wagmiStores);
+
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {

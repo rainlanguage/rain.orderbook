@@ -125,6 +125,7 @@ export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';
+export { setWagmiContext, getWagmiContext } from './context/wagmi';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
