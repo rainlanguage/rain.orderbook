@@ -27,8 +27,6 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 
-	export let isCurrentUserOwner: Readable<(owner: string) => boolean> | undefined = undefined;
-
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
 
