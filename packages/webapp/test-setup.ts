@@ -8,3 +8,13 @@ vi.mock('@reown/appkit', () => ({
 vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
 }));
+
+vi.mock('@rainlanguage/orderbook/js_api', () => {
+	const DotrainOrderGui = vi.fn();
+	// @ts-expect-error - this is a mock
+	DotrainOrderGui.deserializeState = vi.fn();
+	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
+	return {
+		DotrainOrderGui
+	};
+});

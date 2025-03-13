@@ -34,7 +34,11 @@
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(deposit.token?.key);
+			let result = await gui.getTokenInfo(deposit.token?.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message

@@ -29,7 +29,12 @@
 	const handleGetTokenInfo = async () => {
 		if (!vault.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(vault.token?.key);
+			let result = await gui.getTokenInfo(vault.token?.key);
+			if (result.error) {
+				error = result.error.msg;
+				return;
+			}
+			tokenInfo = result.value;
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message

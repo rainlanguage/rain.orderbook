@@ -10,7 +10,11 @@
 
 	const getDeployments = async () => {
 		try {
-			const deploymentsWithDetails = await DotrainOrderGui.getDeploymentDetails(dotrain);
+			const result = await DotrainOrderGui.getDeploymentDetails(dotrain);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			const deploymentsWithDetails = result.value;
 			deployments = Array.from(deploymentsWithDetails, ([key, details]) => ({
 				key,
 				...details
