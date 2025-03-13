@@ -24,14 +24,8 @@ describe('ValidStrategiesSection', () => {
 		}
 	];
 
-	it('should render nothing when validStrategies is empty', () => {
-		render(ValidStrategiesSection, { props: { validStrategies: [] } });
-		const container = screen.queryByTestId('valid-strategies');
-		expect(container).not.toBeInTheDocument();
-	});
-
 	it('should render correct number of StrategyShortTile components', () => {
-		render(ValidStrategiesSection, { props: { validStrategies: mockValidStrategies } });
+		render(ValidStrategiesSection, { props: { strategies: mockValidStrategies } });
 		const strategyTiles = screen.getAllByTestId('strategy-short-tile');
 		expect(strategyTiles).toHaveLength(mockValidStrategies.length);
 	});

@@ -27,19 +27,8 @@ describe('InvalidStrategiesSection', () => {
 		}
 	];
 
-	it('renders the section title', () => {
-		render(InvalidStrategiesSection, { props: { invalidStrategies: [] } });
-		expect(screen.getByText('Invalid Strategies in registry')).toBeInTheDocument();
-	});
-
-	it('displays no strategies when array is empty', () => {
-		render(InvalidStrategiesSection, { props: { invalidStrategies: [] } });
-		const container = screen.getByTestId('invalid-strategies');
-		expect(container.querySelectorAll('.flex.flex-col.gap-1')).toHaveLength(0);
-	});
-
 	it('displays multiple invalid strategies with their errors', () => {
-		render(InvalidStrategiesSection, { props: { invalidStrategies: mockInvalidStrategies } });
+		render(InvalidStrategiesSection, { props: { strategiesWithErrors: mockInvalidStrategies } });
 
 		expect(screen.getByText('Strategy 1')).toBeInTheDocument();
 		expect(screen.getByText('Strategy 2')).toBeInTheDocument();

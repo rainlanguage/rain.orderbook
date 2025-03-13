@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { StrategyDetail } from '$lib/types/strategy';
-	export let invalidStrategies: StrategyDetail[];
+	export let strategiesWithErrors: StrategyDetail[];
 </script>
 
 <div
@@ -11,7 +11,7 @@
 		Invalid Strategies in registry
 	</h2>
 	<div class="flex flex-col gap-2">
-		{#each invalidStrategies as strategy}
+		{#each strategiesWithErrors as strategy}
 			<div class="flex flex-col gap-1">
 				<span class="font-medium">{strategy.name}</span>
 				<span class="text-red-600 dark:text-red-400">{strategy.error}</span>
