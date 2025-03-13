@@ -48,13 +48,13 @@
 			</h1>
 		</div>
 		{#await strategyDetails.filter((strategy) => !strategy.error) then strategies}
-			{#if validStrategies.length > 0}
+			{#if strategies.length > 0}
 				<ValidStrategiesSection {strategies} />
 			{/if}
 		{/await}
-		{#await strategyDetails.filter((strategy) => strategy.error) then invalidStrategies}
-			{#if invalidStrategies.length > 0}
-				<InvalidStrategiesSection {invalidStrategies} />
+		{#await strategyDetails.filter((strategy) => strategy.error) then strategiesWithErrors}
+			{#if strategiesWithErrors.length > 0}
+				<InvalidStrategiesSection {strategiesWithErrors} />
 			{/if}
 		{/await}
 	{/if}
