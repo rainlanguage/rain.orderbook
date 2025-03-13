@@ -30,17 +30,19 @@
   {isCurrentUserOwner}
 >
   <svelte:fragment slot="action-buttons" let:data let:query>
-    <Button
-      data-testid="vaultDetailDepositButton"
-      color="dark"
-      on:click={() => handleDepositModal(data, query)}
-      ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
-    >
-    <Button
-      data-testid="vaultDetailWithdrawButton"
-      color="dark"
-      on:click={() => handleWithdrawModal(data, query)}
-      ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
-    >
+    <div class="flex gap-x-2">
+      <Button
+        data-testid="vaultDetailDepositButton"
+        color="dark"
+        on:click={() => handleDepositModal(data, query)}
+        ><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
+      >
+      <Button
+        data-testid="vaultDetailWithdrawButton"
+        color="dark"
+        on:click={() => handleWithdrawModal(data, query)}
+        ><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
+      >
+    </div>
   </svelte:fragment>
 </VaultDetail>

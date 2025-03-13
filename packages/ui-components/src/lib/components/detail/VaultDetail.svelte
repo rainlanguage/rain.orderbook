@@ -68,7 +68,7 @@
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="action-buttons" let:data>
-		<div class="flex items-center gap-x-2">
+		<div data-testid="action-buttons" class="flex items-center gap-x-2">
 			{#if $isCurrentUserOwner && $isCurrentUserOwner(data.owner)}
 				<slot name="action-buttons" {data} query={vaultDetailQuery} />
 			{/if}
