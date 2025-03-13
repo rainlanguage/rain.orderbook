@@ -28,13 +28,6 @@ pub struct TokenAllowance {
 }
 impl_wasm_traits!(TokenAllowance);
 
-// @todo: these wrapper types are redundant and bloat, and they
-// just increase the .wasm output size
-// remove them and use wasmbg attrs to achieve the desired result
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AllowancesResult(Vec<TokenAllowance>);
-impl_wasm_traits!(AllowancesResult);
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum ApprovalCalldataResult {
     NoDeposits,
@@ -52,20 +45,6 @@ impl_wasm_traits!(DepositCalldataResult);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] Vec<Bytes>);
 impl_wasm_traits!(WithdrawCalldataResult);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct AddOrderCalldataResult(#[tsify(type = "string")] Bytes);
-impl_wasm_traits!(AddOrderCalldataResult);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "string")] Bytes);
-impl_wasm_traits!(DepositAndAddOrderCalldataResult);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct IOVaultIds(
-    #[tsify(type = "Map<string, (string | undefined)[]>")] HashMap<String, Vec<Option<U256>>>,
-);
-impl_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct ExtendedApprovalCalldata {
@@ -107,7 +86,7 @@ pub struct VaultAndDeposit {
     pub index: usize,
 }
 
-#[wasm_bindgen]
+#[wasm_export]
 impl DotrainOrderGui {
     fn get_orderbook(&self) -> Result<Arc<OrderbookCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -205,8 +184,14 @@ impl DotrainOrderGui {
     /// Check allowances for all inputs and outputs of the order
     ///
     /// Returns a vector of [`TokenAllowance`] objects
-    #[wasm_bindgen(js_name = "checkAllowances")]
-    pub async fn check_allowances(&mut self, owner: String) -> Result<AllowancesResult, GuiError> {
+    #[wasm_export(
+        js_name = "checkAllowances",
+        unchecked_return_type = "TokenAllowance[]"
+    )]
+    pub async fn check_allowances(
+        &mut self,
+        owner: String,
+    ) -> Result<Vec<TokenAllowance>, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::Allowance)?;
 
         let vaults_and_deposits = self.get_vaults_and_deposits(&deployment).await?;
@@ -235,13 +220,16 @@ impl DotrainOrderGui {
             results.push(allowance);
         }
 
-        Ok(AllowancesResult(results))
+        Ok(results)
     }
 
     /// Generate approval calldatas for deposits
     ///
     /// Returns a vector of [`ApprovalCalldata`] objects
-    #[wasm_bindgen(js_name = "generateApprovalCalldatas")]
+    #[wasm_export(
+        js_name = "generateApprovalCalldatas",
+        unchecked_return_type = "ApprovalCalldataResult"
+    )]
     pub async fn generate_approval_calldatas(
         &mut self,
         owner: String,
@@ -300,7 +288,10 @@ impl DotrainOrderGui {
     /// Generate deposit calldatas for all deposits
     ///
     /// Returns a vector of bytes
-    #[wasm_bindgen(js_name = "generateDepositCalldatas")]
+    #[wasm_export(
+        js_name = "generateDepositCalldatas",
+        unchecked_return_type = "DepositCalldataResult"
+    )]
     pub async fn generate_deposit_calldatas(&mut self) -> Result<DepositCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::Deposit)?;
 
@@ -341,10 +332,8 @@ impl DotrainOrderGui {
     }
 
     /// Generate add order calldata
-    #[wasm_bindgen(js_name = "generateAddOrderCalldata")]
-    pub async fn generate_add_order_calldata(
-        &mut self,
-    ) -> Result<AddOrderCalldataResult, GuiError> {
+    #[wasm_export(js_name = "generateAddOrderCalldata", unchecked_return_type = "string")]
+    pub async fn generate_add_order_calldata(&mut self) -> Result<Bytes, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
         let calldata = AddOrderArgs::new_from_deployment(
@@ -354,13 +343,14 @@ impl DotrainOrderGui {
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
         .await?;
-        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
+        Ok(Bytes::copy_from_slice(&calldata))
     }
 
-    #[wasm_bindgen(js_name = "generateDepositAndAddOrderCalldatas")]
-    pub async fn generate_deposit_and_add_order_calldatas(
-        &mut self,
-    ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
+    #[wasm_export(
+        js_name = "generateDepositAndAddOrderCalldatas",
+        unchecked_return_type = "string"
+    )]
+    pub async fn generate_deposit_and_add_order_calldatas(&mut self) -> Result<Bytes, GuiError> {
         self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
@@ -380,12 +370,12 @@ impl DotrainOrderGui {
             calls.push(Bytes::copy_from_slice(calldata));
         }
 
-        Ok(DepositAndAddOrderCalldataResult(Bytes::copy_from_slice(
+        Ok(Bytes::copy_from_slice(
             &multicallCall { data: calls }.abi_encode(),
-        )))
+        ))
     }
 
-    #[wasm_bindgen(js_name = "setVaultId")]
+    #[wasm_export(js_name = "setVaultId", unchecked_return_type = "void")]
     pub fn set_vault_id(
         &mut self,
         is_input: bool,
@@ -402,8 +392,11 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getVaultIds")]
-    pub fn get_vault_ids(&self) -> Result<IOVaultIds, GuiError> {
+    #[wasm_export(
+        js_name = "getVaultIds",
+        unchecked_return_type = "Map<string, (string | undefined)[]>"
+    )]
+    pub fn get_vault_ids(&self) -> Result<HashMap<String, Vec<Option<U256>>>, GuiError> {
         let deployment = self.get_current_deployment()?;
         let map = HashMap::from([
             (
@@ -427,23 +420,26 @@ impl DotrainOrderGui {
                     .collect(),
             ),
         ]);
-        Ok(IOVaultIds(map))
+        Ok(map)
     }
 
-    #[wasm_bindgen(js_name = "hasAnyVaultId")]
+    #[wasm_export(js_name = "hasAnyVaultId", unchecked_return_type = "boolean")]
     pub fn has_any_vault_id(&self) -> Result<bool, GuiError> {
         let map = self.get_vault_ids()?;
-        Ok(map.0.values().any(|ids| ids.iter().any(|id| id.is_some())))
+        Ok(map.values().any(|ids| ids.iter().any(|id| id.is_some())))
     }
 
-    #[wasm_bindgen(js_name = "updateScenarioBindings")]
+    #[wasm_export(js_name = "updateScenarioBindings", unchecked_return_type = "void")]
     pub fn update_scenario_bindings(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
         self.update_bindings(&deployment)?;
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getDeploymentTransactionArgs")]
+    #[wasm_export(
+        js_name = "getDeploymentTransactionArgs",
+        unchecked_return_type = "DeploymentTransactionArgs"
+    )]
     pub async fn get_deployment_transaction_args(
         &mut self,
         owner: String,
@@ -483,7 +479,7 @@ impl DotrainOrderGui {
 
         Ok(DeploymentTransactionArgs {
             approvals,
-            deployment_calldata: deposit_and_add_order_calldata.0,
+            deployment_calldata: deposit_and_add_order_calldata,
             orderbook_address: deployment
                 .deployment
                 .order

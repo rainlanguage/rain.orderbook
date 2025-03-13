@@ -14,7 +14,7 @@ struct SerializedGuiState {
     selected_deployment: String,
 }
 
-#[wasm_bindgen]
+#[wasm_export]
 impl DotrainOrderGui {
     fn get_dotrain_hash(dotrain: &str) -> Result<String, GuiError> {
         let dotrain_bytes = bincode::serialize(dotrain)?;
@@ -70,7 +70,7 @@ impl DotrainOrderGui {
         Ok(vault_ids)
     }
 
-    #[wasm_bindgen(js_name = "serializeState")]
+    #[wasm_export(js_name = "serializeState", unchecked_return_type = "string")]
     pub fn serialize_state(&self) -> Result<String, GuiError> {
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
@@ -147,12 +147,13 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
-    #[wasm_bindgen(js_name = "deserializeState")]
+    #[wasm_export(js_name = "deserializeState", unchecked_return_type = "void")]
     pub async fn deserialize_state(
+        &mut self,
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<DotrainOrderGui, GuiError> {
+    ) -> Result<(), GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -227,13 +228,20 @@ impl DotrainOrderGui {
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
-        Ok(dotrain_order_gui)
+        self.dotrain_order = dotrain_order_gui.dotrain_order;
+        self.field_values = dotrain_order_gui.field_values;
+        self.deposits = dotrain_order_gui.deposits;
+        self.selected_deployment = dotrain_order_gui.selected_deployment;
+        self.state_update_callback = dotrain_order_gui.state_update_callback;
+
+        Ok(())
     }
 
-    #[wasm_bindgen(js_name = "clearState")]
-    pub fn clear_state(&mut self) {
+    #[wasm_export(js_name = "clearState", unchecked_return_type = "void")]
+    pub fn clear_state(&mut self) -> Result<(), GuiError> {
         self.field_values.clear();
         self.deposits.clear();
+        Ok(())
     }
 
     fn is_preset<K: AsRef<str>>(
@@ -244,17 +252,23 @@ impl DotrainOrderGui {
         map.get(key.as_ref()).map(|v| v.is_preset)
     }
 
-    #[wasm_bindgen(js_name = "isFieldPreset")]
-    pub fn is_field_preset(&self, binding: String) -> Option<bool> {
-        self.is_preset(binding, &self.field_values)
+    #[wasm_export(
+        js_name = "isFieldPreset",
+        unchecked_return_type = "boolean | undefined"
+    )]
+    pub fn is_field_preset(&self, binding: String) -> Result<Option<bool>, GuiError> {
+        Ok(self.is_preset(binding, &self.field_values))
     }
 
-    #[wasm_bindgen(js_name = "isDepositPreset")]
-    pub fn is_deposit_preset(&self, token: String) -> Option<bool> {
-        self.is_preset(token, &self.deposits)
+    #[wasm_export(
+        js_name = "isDepositPreset",
+        unchecked_return_type = "boolean | undefined"
+    )]
+    pub fn is_deposit_preset(&self, token: String) -> Result<Option<bool>, GuiError> {
+        Ok(self.is_preset(token, &self.deposits))
     }
 
-    #[wasm_bindgen(js_name = "executeStateUpdateCallback")]
+    #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
             let state = to_js_value(&self.serialize_state()?)?;

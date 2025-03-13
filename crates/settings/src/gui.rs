@@ -795,7 +795,10 @@ impl YamlParseableValue for GuiCfg {
                     };
 
                     if gui_deployments_res.contains_key(&deployment_name) {
-                        return Err(YamlError::KeyShadowing(deployment_name));
+                        return Err(YamlError::KeyShadowing(
+                            deployment_name.clone(),
+                            "gui deployment".to_string(),
+                        ));
                     }
                     gui_deployments_res.insert(deployment_name, gui_deployment);
                 }
@@ -1788,7 +1791,10 @@ gui:
         )
         .unwrap_err();
 
-        assert_eq!(error, YamlError::KeyShadowing("deployment1".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("deployment1".to_string(), "gui deployment".to_string())
+        );
     }
 
     #[test]

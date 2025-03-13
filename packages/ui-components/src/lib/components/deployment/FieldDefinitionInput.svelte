@@ -20,7 +20,11 @@
 
 	onMount(() => {
 		try {
-			currentValue = gui.getFieldValue(fieldDefinition.binding);
+			const result = gui.getFieldValue(fieldDefinition.binding);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			currentValue = result.value;
 			inputValue = currentValue?.value ? currentValue?.value : fieldDefinition.default || null;
 		} catch {
 			currentValue = undefined;
@@ -33,7 +37,12 @@
 			isPreset: true,
 			value: preset.id
 		});
-		currentValue = gui.getFieldValue(fieldDefinition.binding);
+
+		const result = gui.getFieldValue(fieldDefinition.binding);
+		if (result.error) {
+			throw new Error(result.error.msg);
+		}
+		currentValue = result.value;
 	}
 
 	async function handleCustomInputChange(value: string) {
@@ -42,7 +51,12 @@
 			isPreset: false,
 			value: value
 		});
-		currentValue = gui.getFieldValue(fieldDefinition.binding);
+
+		const result = gui.getFieldValue(fieldDefinition.binding);
+		if (result.error) {
+			throw new Error(result.error.msg);
+		}
+		currentValue = result.value;
 	}
 </script>
 
