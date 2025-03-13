@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/svelte';
 import ValidStrategiesSection from '../lib/components/deployment/ValidStrategiesSection.svelte';
-import type { StrategyDetail } from '$lib/types/strategy';
+import type { ValidStrategyDetail } from '$lib/types/strategy';
 
 describe('ValidStrategiesSection', () => {
-	const mockValidStrategies: StrategyDetail[] = [
+	const mockValidStrategies: ValidStrategyDetail[] = [
 		{
 			dotrain: '',
 			name: 'strategy1',
