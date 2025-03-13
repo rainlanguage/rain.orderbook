@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { StrategyDetail } from '$lib/types/strategy';
-	export let strategiesWithErrors: StrategyDetail[];
+	import type { InvalidStrategyDetail } from '$lib/types/strategy';
+	export let strategiesWithErrors: InvalidStrategyDetail[];
 </script>
 
 <div
