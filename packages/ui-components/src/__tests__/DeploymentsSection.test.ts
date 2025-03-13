@@ -39,10 +39,8 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		// Wait for the promise to resolve and the component to update
 		await deploymentPromise;
 
-		// Check that the deployments are rendered
 		await waitFor(() => {
 			expect(screen.getByText('Deployment 1')).toBeInTheDocument();
 			expect(screen.getByText('Deployment 2')).toBeInTheDocument();
