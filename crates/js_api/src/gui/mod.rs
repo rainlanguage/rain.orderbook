@@ -408,7 +408,7 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) => 
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => 
-                format!("YAML configuration error: {}", err),
+                err.to_readable_msg(),
         }
     }
 }

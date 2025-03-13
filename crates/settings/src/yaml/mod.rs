@@ -209,6 +209,82 @@ impl PartialEq for YamlError {
     }
 }
 
+impl YamlError {
+    /// Converts the error into a user-friendly message suitable for frontend display
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            YamlError::ScanError(err) => format!(
+                "There is a syntax error in your YAML configuration: {}",
+                err
+            ),
+            YamlError::EmitError(err) => format!("Failed to generate YAML output: {}", err),
+            YamlError::UrlParseError(err) => {
+                format!("Invalid URL in your YAML configuration: {}", err)
+            }
+            YamlError::RuintParseError(err) => {
+                format!("Invalid number format in your YAML configuration: {}", err)
+            }
+            YamlError::Field { kind, location } => match kind {
+                FieldErrorKind::Missing(field) => {
+                    format!("Missing required field '{}' in {}", field, location)
+                }
+                FieldErrorKind::InvalidType { field, expected } => {
+                    format!("Field '{}' in {} must be {}", field, location, expected)
+                }
+                FieldErrorKind::InvalidValue { field, reason } => format!(
+                    "Invalid value for field '{}' in {}: {}",
+                    field, location, reason
+                ),
+            },
+            YamlError::ParseError(msg) => {
+                format!("Failed to parse your YAML configuration: {}", msg)
+            }
+            YamlError::KeyNotFound(key) => {
+                format!("The key '{}' was not found in your YAML configuration", key)
+            }
+            YamlError::KeyShadowing(key) => format!(
+                "The key '{}' is defined multiple times in your YAML configuration",
+                key
+            ),
+            YamlError::ReadLockError => {
+                "Failed to read the YAML configuration due to a lock error".to_string()
+            }
+            YamlError::WriteLockError => {
+                "Failed to modify the YAML configuration due to a lock error".to_string()
+            }
+            YamlError::EmptyFile => "Your YAML configuration file is empty".to_string(),
+            YamlError::ConvertError => {
+                "Failed to convert your configuration to YAML format".to_string()
+            }
+            YamlError::InvalidTraitFunction => {
+                "There is an internal error in the YAML processing".to_string()
+            }
+            YamlError::ParseNetworkConfigSourceError(err) => {
+                format!("Error in network configuration: {}", err)
+            }
+            YamlError::ParseTokenConfigSourceError(err) => {
+                format!("Error in token configuration: {}", err)
+            }
+            YamlError::ParseOrderbookConfigSourceError(err) => {
+                format!("Error in orderbook configuration: {}", err)
+            }
+            YamlError::ParseDeployerConfigSourceError(err) => {
+                format!("Error in deployer configuration: {}", err)
+            }
+            YamlError::ParseOrderConfigSourceError(err) => {
+                format!("Error in order configuration: {}", err)
+            }
+            YamlError::ParseScenarioConfigSourceError(err) => {
+                format!("Error in scenario configuration: {}", err)
+            }
+            YamlError::ParseDeploymentConfigSourceError(err) => {
+                format!("Error in deployment configuration: {}", err)
+            }
+            YamlError::ContextError(err) => format!("Error in configuration context: {}", err),
+        }
+    }
+}
+
 pub fn load_yaml(yaml: &str) -> Result<StrictYaml, YamlError> {
     let docs = StrictYamlLoader::load_from_str(yaml)?;
     if docs.is_empty() {
