@@ -10,7 +10,7 @@
 	import type { PageData } from './$types';
 
 	export let data: PageData;
-	const { error, strategyDetails } = data;
+	const { error, validStrategies, invalidStrategies } = data;
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
@@ -47,15 +47,11 @@
 				>
 			</h1>
 		</div>
-		{#await strategyDetails.filter((strategy) => !strategy.error) then strategies}
-			{#if strategies.length > 0}
-				<ValidStrategiesSection {strategies} />
-			{/if}
-		{/await}
-		{#await strategyDetails.filter((strategy) => strategy.error) then strategiesWithErrors}
-			{#if strategiesWithErrors.length > 0}
-				<InvalidStrategiesSection {strategiesWithErrors} />
-			{/if}
-		{/await}
+		{#if validStrategies.length > 0}
+			<ValidStrategiesSection strategies={validStrategies} />
+		{/if}
+		{#if invalidStrategies.length > 0}
+			<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
+		{/if}
 	{/if}
 </div>
