@@ -429,7 +429,7 @@ deployments:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario."
+            "Deployment configuration error in your YAML: The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario."
         );
     }
 

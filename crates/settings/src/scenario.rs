@@ -800,7 +800,7 @@ scenarios:
             )
             .to_string()
         );
-        assert_eq!(error.to_readable_msg(), "Binding conflict in your YAML configuration: The child scenario is trying to override the binding 'key1' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.");
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Binding conflict in your YAML configuration: The child scenario is trying to override the binding 'key1' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.");
 
         let yaml = r#"
 networks:
@@ -836,7 +836,7 @@ scenarios:
             )
             .to_string()
         );
-        assert_eq!(error.to_readable_msg(), "Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
     }
 
     #[test]
