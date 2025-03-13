@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { strategyName } = params;
-	const { registryDotrains, strategyDetails } = await parent();
+	const { registryDotrains, validStrategies } = await parent();
 
 	let dotrain: string;
 	let strategyDetail: NameAndDescriptionCfg;
@@ -14,7 +14,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 			throw redirect(307, '/deploy');
 		}
 		dotrain = _dotrain;
-		const _strategyDetail = strategyDetails.find((detail) => detail.name === strategyName)?.details;
+		const _strategyDetail = validStrategies.find((detail) => detail.name === strategyName)?.details;
 		if (!_strategyDetail) {
 			throw redirect(307, '/deploy');
 		}
