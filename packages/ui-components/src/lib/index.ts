@@ -125,7 +125,7 @@ export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';
-export { getWagmiContext, WAGMI_CONTEXT_KEY } from './context/wagmi';
+export { useWagmi, WAGMI_CONTEXT_KEY } from './context/wagmi';
 
 
 // Assets
