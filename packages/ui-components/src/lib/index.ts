@@ -61,9 +61,7 @@ export { default as StrategyPage } from './components/deployment/StrategyPage.sv
 export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
-export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as StrategiesSection } from './components/deployment/StrategiesSection.svelte';
 export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
@@ -90,7 +88,7 @@ export type {
 	DeployModalProps,
 	DisclaimerModalProps
 } from './types/modal';
-export type { StrategyDetail } from './types/strategy';
+export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -103,7 +101,7 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
 export { bigintToFloat } from './utils/number';
-
+export { getExplorerLink } from './services/getExplorerLink';
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
