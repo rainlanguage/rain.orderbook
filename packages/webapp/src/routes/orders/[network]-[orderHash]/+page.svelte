@@ -66,4 +66,6 @@
 	{chainId}
 	{handleDepositOrWithdrawModal}
 	{handleOrderRemoveModal}
+	{signerAddress}
+	{wagmiConfig}
 />

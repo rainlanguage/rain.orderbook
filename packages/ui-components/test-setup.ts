@@ -6,7 +6,9 @@ vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
 }));
 
-
+const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+	() => import('./src/lib/__mocks__/stores')
+);
 
 
 vi.mock('$app/stores', async () => {

@@ -2,7 +2,7 @@ import { render, fireEvent, screen } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import CheckboxMyItemsOnly from '../lib/components/CheckboxMyItemsOnly.svelte';
-
+const { mockSignerAddressStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 describe('CheckboxMyItemsOnly', () => {
 	let showMyItemsOnly: Writable<boolean>;
 	let context: 'orders' | 'vaults';
@@ -16,7 +16,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context
+				context,
+				signerAddress: mockSignerAddressStore
 			}
 		});
 		expect(screen.getByText('Only show my orders')).toBeInTheDocument();
@@ -25,7 +26,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context: 'vaults'
+				context: 'vaults',
+				signerAddress: mockSignerAddressStore
 			}
 		});
 		expect(screen.getByText('Only show my vaults')).toBeInTheDocument();
@@ -35,7 +37,8 @@ describe('CheckboxMyItemsOnly', () => {
 		render(CheckboxMyItemsOnly, {
 			props: {
 				showMyItemsOnly,
-				context
+				context,
+				signerAddress: mockSignerAddressStore
 			}
 		});
 

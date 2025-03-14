@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 
 	import { writable } from 'svelte/store';
-
+	import { signerAddress } from '$lib/stores/wagmi';
 	const {
 		activeOrderbook,
 		subgraphUrl,
@@ -70,4 +70,5 @@
 	{activeAccounts}
 	{walletAddressMatchesOrBlank}
 	currentRoute={$page.url.pathname}
+	{signerAddress}
 />

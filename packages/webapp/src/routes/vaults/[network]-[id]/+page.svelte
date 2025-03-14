@@ -8,6 +8,7 @@
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import { signerAddress } from '$lib/stores/wagmi';
 	const queryClient = useQueryClient();
 
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
@@ -55,4 +56,5 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{handleDepositOrWithdrawModal}
+	{signerAddress}
 />

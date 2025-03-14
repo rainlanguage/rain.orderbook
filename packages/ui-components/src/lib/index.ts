@@ -140,7 +140,7 @@ export {
 	appKitModal,
 	wagmiConfig,
 	initWagmi
-} from './stores/wagmi';
+} from '../../../webapp/src/lib/stores/wagmi.ts';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';

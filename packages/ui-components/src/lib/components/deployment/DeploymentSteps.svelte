@@ -25,8 +25,8 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { connected } from '../../stores/wagmi';
 	import DeployButton from './DeployButton.svelte';
+	import type { AppKit } from '@reown/appkit';
 
 	const gui = useGui();
 
@@ -49,6 +49,10 @@
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
+	export let appKitModal: Writable<AppKit>;
+	export let signerAddress: Writable<string | null>;
+	export let connected: Writable<boolean>;
+	export let wagmiConfig: Writable<Config>;
 	onMount(async () => {
 		await areAllTokensSelected();
 	});
@@ -187,9 +191,10 @@
 							{handleDisclaimerModal}
 							{subgraphUrl}
 							network={networkKey}
+							{wagmiConfig}
 						/>
 					{:else}
-						<WalletConnect />
+						<WalletConnect {appKitModal} {connected} {signerAddress} />
 					{/if}
 					<ComposedRainlangModal {gui} />
 					<ShareChoicesButton handleShareChoices={_handleShareChoices} />

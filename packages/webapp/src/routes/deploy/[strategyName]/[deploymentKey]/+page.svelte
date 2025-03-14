@@ -9,6 +9,7 @@
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
+	import { connected, signerAddress, wagmiConfig, appKitModal } from '@rainlanguage/ui-components';
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
@@ -37,7 +38,15 @@
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
 	<GuiProvider {gui}>
-		<DeploymentSteps {settings} {handleDeployModal} {handleDisclaimerModal} />
+		<DeploymentSteps
+			{settings}
+			{handleDeployModal}
+			{handleDisclaimerModal}
+			{wagmiConfig}
+			wagmiConnected={connected}
+			{appKitModal}
+			{signerAddress}
+		/>
 	</GuiProvider>
 {:else if getGuiError}
 	<div>

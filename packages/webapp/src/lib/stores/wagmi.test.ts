@@ -10,7 +10,7 @@ import {
 	defaultWagmiConfig,
 	initWagmi,
 	disconnectWagmi
-} from './wagmi';
+} from '$lib/stores/wagmi';
 import {
 	createConfig,
 	disconnect,

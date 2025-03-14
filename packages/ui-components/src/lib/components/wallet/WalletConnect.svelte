@@ -3,9 +3,17 @@
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { signerAddress, connected, appKitModal } from '../../stores/wagmi';
+	import type { AppKit } from '@reown/appkit';
+	import type { Writable } from 'svelte/store';
 
 	export let classes: string = '';
+
+	export let appKitModal: Writable<AppKit>;
+	export let connected: Writable<boolean>;
+	export let signerAddress: Writable<string | null>;
+
+	$: console.log('connected', $connected);
+	$: console.log('signerAddress', $signerAddress);
 
 	function handleClick() {
 		$appKitModal.open();

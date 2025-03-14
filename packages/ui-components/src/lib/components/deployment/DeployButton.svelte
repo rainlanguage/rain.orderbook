@@ -6,14 +6,16 @@
 		type HandleAddOrderResult
 	} from './getDeploymentTransactionArgs';
 	import { useGui } from '../../hooks/useGui';
-	import { wagmiConfig } from '../../stores/wagmi';
 	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
 	import type { NetworkInfo } from '@rainlanguage/orderbook/js_api';
+	import type { Writable } from 'svelte/store';
+	import type { Config } from 'wagmi';
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let subgraphUrl: string;
 	export let network: string;
+	export let wagmiConfig: Writable<Config>;
 
 	let checkingDeployment = false;
 	let gui = useGui();

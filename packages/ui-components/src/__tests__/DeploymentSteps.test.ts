@@ -9,6 +9,7 @@ import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal'
 import userEvent from '@testing-library/user-event';
 
 import { useGui } from '$lib/hooks/useGui';
+import type { AppKit } from '@reown/appkit';
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -24,7 +25,8 @@ vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 		...original,
 		connected: mockConnectedStore,
 		signerAddress: mockSignerAddressStore,
-		wagmiConfig: mockWagmiConfigStore
+		wagmiConfig: mockWagmiConfigStore,
+		appKitModal: writable({} as AppKit)
 	};
 });
 
@@ -94,7 +96,11 @@ const mockDeployment = {
 const defaultProps: DeploymentStepsProps = {
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-	settings: writable({} as ConfigSource)
+	settings: writable({} as ConfigSource),
+	wagmiConfig: mockWagmiConfigStore,
+	wagmiConnected: mockConnectedStore,
+	appKitModal: writable({} as AppKit),
+	signerAddress: mockSignerAddressStore
 };
 
 describe('DeploymentSteps', () => {

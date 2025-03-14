@@ -20,8 +20,8 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
-	import { signerAddress } from '../../stores/wagmi';
 
+	export let signerAddress: Writable<string | null>;
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let accounts: AppStoresInterface['accounts'] | undefined;
@@ -109,6 +109,7 @@
 		{hideZeroBalanceVaults}
 		{isVaultsPage}
 		{isOrdersPage}
+		{signerAddress}
 	/>
 	<AppTable
 		{query}

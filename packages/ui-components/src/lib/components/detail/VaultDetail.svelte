@@ -12,7 +12,7 @@
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
@@ -22,7 +22,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { signerAddress, wagmiConfig } from '../../stores/wagmi';
+	import type { Config } from 'wagmi';
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -41,6 +41,9 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+
+	export let signerAddress: Writable<string | null>;
+	export let wagmiConfig: Writable<Config>;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;

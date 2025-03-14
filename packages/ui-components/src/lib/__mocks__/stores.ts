@@ -144,5 +144,6 @@ export const mockPageStore = {
 export const mockAppKitModalStore = {
 	subscribe: mockAppKitModalWritable.subscribe,
 	set: mockAppKitModalWritable.set,
-	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
+	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value),
+	update: mockAppKitModalWritable.update
 };

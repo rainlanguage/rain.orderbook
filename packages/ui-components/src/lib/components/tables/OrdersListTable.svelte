@@ -19,7 +19,6 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { signerAddress } from '../../stores/wagmi';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +38,7 @@
 	export let currentRoute: string;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-
+	export let signerAddress: Writable<string | null>;
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
 	).map(([name, url]) => ({
@@ -99,6 +98,7 @@
 	{hideZeroBalanceVaults}
 	{isVaultsPage}
 	{isOrdersPage}
+	{signerAddress}
 />
 
 <AppTable
