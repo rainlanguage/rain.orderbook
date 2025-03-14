@@ -16,13 +16,19 @@ export const handleDepositGenericModal = () => {
 };
 
 export const handleDepositModal = (vault: SgVault, query: CreateQueryResult) => {
-  const queryStore = get(query)
-  new ModalVaultDeposit({ target: document.body, props: { open: true, vault, onDeposit: queryStore.refetch } });
+  const queryStore = get(query);
+  new ModalVaultDeposit({
+    target: document.body,
+    props: { open: true, vault, onDeposit: queryStore.refetch },
+  });
 };
 
 export const handleWithdrawModal = (vault: SgVault, query: CreateQueryResult) => {
-  const queryStore = get(query)
-  new ModalVaultWithdraw({ target: document.body, props: { open: true, vault, onWithdraw: queryStore.refetch } });
+  const queryStore = get(query);
+  new ModalVaultWithdraw({
+    target: document.body,
+    props: { open: true, vault, onWithdraw: queryStore.refetch },
+  });
 };
 
 export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {
