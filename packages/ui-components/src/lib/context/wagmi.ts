@@ -1,7 +1,7 @@
 import type { WagmiContext } from '$lib/types/wagmi';
 import { getContext, setContext } from 'svelte';
 
-const WAGMI_CONTEXT_KEY = 'wagmi-stores';
+export const WAGMI_CONTEXT_KEY = 'wagmi-stores';
 
 export function setWagmiContext(stores: WagmiContext) {
   setContext(WAGMI_CONTEXT_KEY, stores);
