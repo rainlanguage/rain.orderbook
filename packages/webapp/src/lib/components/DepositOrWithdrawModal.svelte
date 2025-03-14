@@ -3,9 +3,7 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs,
-		wagmiConfig,
-		signerAddress
+		type DepositOrWithdrawArgs
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -22,7 +20,7 @@
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
-
+	import { wagmiConfig, signerAddress, connected, appKitModal } from '$lib/stores/wagmi';
 	const { ...chains } = allChains;
 
 	function getTargetChain(chainId: number) {
@@ -163,7 +161,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect />
+						<WalletConnect {appKitModal} {connected} {signerAddress} />
 					{/if}
 				</div>
 				{#if errorMessage}

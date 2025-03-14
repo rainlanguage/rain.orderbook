@@ -2,9 +2,9 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-
 	import { writable } from 'svelte/store';
-	import { signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress, connected } from '$lib/stores/wagmi';
+
 	const {
 		activeOrderbook,
 		subgraphUrl,
