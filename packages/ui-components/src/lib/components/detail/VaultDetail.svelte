@@ -70,7 +70,8 @@
 	<svelte:fragment slot="action-buttons" let:data>
 		<div data-testid="action-buttons" class="flex items-center gap-x-2">
 			{#if $isCurrentUserOwner && $isCurrentUserOwner(data.owner)}
-				<slot name="action-buttons" {data} query={vaultDetailQuery} />
+				{@const slotProps = { data, query: vaultDetailQuery }}
+				<slot name="action-buttons" {...slotProps} />
 			{/if}
 			<Refresh
 				on:click={async () => await invalidateIdQuery(queryClient, id)}

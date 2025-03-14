@@ -68,15 +68,6 @@
 	{isCurrentUserOwner}
 >
 	<svelte:fragment slot="action-buttons" let:data let:query>
-		<DepositOrWithdrawButtons
-			{wagmiConfig}
-			{signerAddress}
-			vault={data}
-			chainId={$settings?.networks?.[$page.params.network]?.['chain-id'] || 0}
-			rpcUrl={$settings?.networks?.[$page.params.network]?.['rpc'] || ''}
-			{query}
-			{handleDepositOrWithdrawModal}
-			subgraphUrl={$settings?.subgraphs?.[$page.params.network] || ''}
-		/>
+		<DepositOrWithdrawButtons vault={data} />
 	</svelte:fragment>
 </VaultDetail>
