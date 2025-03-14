@@ -6,7 +6,35 @@ import * as getDeploymentTransactionArgsModule from '../lib/components/deploymen
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '../lib/hooks/useGui';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
+import type { ComponentProps } from 'svelte';
+import type { Config } from '@wagmi/core';
+import { writable, type Writable } from 'svelte/store';
+import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 
+// Define the component props type
+type DeployButtonProps = ComponentProps<DeployButton>;
+
+// Create a mock wagmi config store
+const mockWagmiConfigStore = writable<Config>({ mockWagmiConfig: true } as unknown as Config);
+
+// Define default props object
+const defaultProps: DeployButtonProps = {
+	handleDeployModal: vi.fn() as (args: DeployModalProps) => void,
+	handleDisclaimerModal: vi.fn() as (args: DisclaimerModalProps) => void,
+	subgraphUrl: 'https://test.subgraph',
+	network: 'testnet',
+	wagmiConfig: mockWagmiConfigStore
+};
+
+// Mock result for deployment transaction args
+const mockHandleAddOrderResult: HandleAddOrderResult = {
+	approvals: [],
+	deploymentCalldata: '0x123',
+	orderbookAddress: '0x456',
+	chainId: 1337
+};
+
+// Mocks
 vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
@@ -24,13 +52,6 @@ vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
 
-const mockHandleAddOrderResult: HandleAddOrderResult = {
-	approvals: [],
-	deploymentCalldata: '0x123',
-	orderbookAddress: '0x456',
-	chainId: 1337
-};
-
 describe('DeployButton', () => {
 	let mockGui: DotrainOrderGui;
 	let mockHandleDeployModal: ReturnType<typeof vi.fn>;
@@ -39,6 +60,7 @@ describe('DeployButton', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 
+		// Create a fresh GUI mock for each test
 		mockGui = {
 			getOrderbookNetwork: vi.fn().mockReturnValue({
 				key: 'testnet',
@@ -63,7 +85,9 @@ describe('DeployButton', () => {
 			props: {
 				handleDeployModal: mockHandleDeployModal,
 				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
+				subgraphUrl: 'https://test.subgraph',
+				network: 'testnet',
+				wagmiConfig: mockWagmiConfigStore
 			}
 		});
 
@@ -100,7 +124,9 @@ describe('DeployButton', () => {
 			props: {
 				handleDeployModal: mockHandleDeployModal,
 				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
+				subgraphUrl: 'https://test.subgraph',
+				network: 'testnet',
+				wagmiConfig: mockWagmiConfigStore
 			}
 		});
 
@@ -126,7 +152,9 @@ describe('DeployButton', () => {
 			props: {
 				handleDeployModal: mockHandleDeployModal,
 				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
+				subgraphUrl: 'https://test.subgraph',
+				network: 'testnet',
+				wagmiConfig: mockWagmiConfigStore
 			}
 		});
 
@@ -148,7 +176,9 @@ describe('DeployButton', () => {
 			props: {
 				handleDeployModal: mockHandleDeployModal,
 				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
+				subgraphUrl: 'https://test.subgraph',
+				network: 'testnet',
+				wagmiConfig: mockWagmiConfigStore
 			}
 		});
 
@@ -167,7 +197,8 @@ describe('DeployButton', () => {
 			args: {
 				...mockResult,
 				subgraphUrl: 'https://test.subgraph',
-				chainId: 1337
+				chainId: 1337,
+				network: 'testnet'
 			}
 		});
 	});
@@ -177,7 +208,9 @@ describe('DeployButton', () => {
 			props: {
 				handleDeployModal: mockHandleDeployModal,
 				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
+				subgraphUrl: 'https://test.subgraph',
+				network: 'testnet',
+				wagmiConfig: mockWagmiConfigStore
 			}
 		});
 

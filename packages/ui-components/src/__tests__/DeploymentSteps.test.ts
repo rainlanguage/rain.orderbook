@@ -98,7 +98,7 @@ const defaultProps: DeploymentStepsProps = {
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 	settings: writable({} as ConfigSource),
 	wagmiConfig: mockWagmiConfigStore,
-	wagmiConnected: mockConnectedStore,
+	connected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	signerAddress: mockSignerAddressStore
 };
