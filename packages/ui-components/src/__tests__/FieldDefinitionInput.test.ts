@@ -30,7 +30,8 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui = new DotrainOrderGui();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockGui = new (DotrainOrderGui as any)();
 		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
@@ -131,6 +132,33 @@ describe('FieldDefinitionInput', () => {
 		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
 			isPreset: false,
 			value: 'default value@'
+		});
+	});
+	it('renders selected value instead of default value', async () => {
+		(mockGui.getFieldValue as Mock).mockReturnValue({
+			isPreset: false,
+			value: 'preset1'
+		});
+
+		const { getByPlaceholderText } = render(FieldDefinitionInput, {
+			props: {
+				fieldDefinition: {
+					...mockFieldDefinition,
+					default: 'default value',
+					showCustomField: true
+				},
+				gui: mockGui
+			}
+		});
+
+		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
+		expect(input.value).toBe('preset1');
+
+		await userEvent.type(input, '@');
+
+		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
+			isPreset: false,
+			value: 'preset1@'
 		});
 	});
 });
