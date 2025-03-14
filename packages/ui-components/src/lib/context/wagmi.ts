@@ -3,6 +3,6 @@ import { getContext } from 'svelte';
 
 export const WAGMI_CONTEXT_KEY = 'wagmi-stores';
 
-export function getWagmiContext() {
+export function useWagmi() {
   return getContext<WagmiContext>(WAGMI_CONTEXT_KEY);
 }
