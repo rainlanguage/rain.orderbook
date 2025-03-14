@@ -1,9 +1,9 @@
 <script lang="ts" generics="T">
 	import { page } from '$app/stores';
-	import { OrdersListTable, PageHeader, connected } from '@rainlanguage/ui-components';
+	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import { writable } from 'svelte/store';
-	import { signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress, connected } from '$lib/stores/wagmi';
 
 	const {
 		activeSubgraphs,

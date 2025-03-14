@@ -9,7 +9,7 @@
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
-	import { connected, signerAddress, wagmiConfig, appKitModal } from '@rainlanguage/ui-components';
+	import { connected, signerAddress, wagmiConfig, appKitModal } from '$lib/stores/wagmi';
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;

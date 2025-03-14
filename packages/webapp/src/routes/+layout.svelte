@@ -5,7 +5,7 @@
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
-	import { defaultWagmiConfig } from '@rainlanguage/ui-components';
+	import { defaultWagmiConfig } from '$lib/stores/wagmi';
 	import { injected, walletConnect } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';

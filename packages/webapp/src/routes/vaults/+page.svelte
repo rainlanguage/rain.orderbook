@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable, connected } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 

@@ -13,6 +13,7 @@
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import { signerAddress, wagmiConfig } from '$lib/stores/wagmi';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
