@@ -129,18 +129,6 @@ export {
 	mockConnectedStore,
 	mockSignerAddressStore
 } from './__mocks__/stores';
-export {
-	defaultWagmiConfig,
-	signerAddress,
-	connected,
-	wagmiLoaded,
-	chainId,
-	configuredConnectors,
-	loading,
-	appKitModal,
-	wagmiConfig,
-	initWagmi
-} from '../../../webapp/src/lib/stores/wagmi.ts';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';

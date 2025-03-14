@@ -27,6 +27,7 @@
 	import { useGui } from '$lib/hooks/useGui';
 	import DeployButton from './DeployButton.svelte';
 	import type { AppKit } from '@reown/appkit';
+	import type { Config } from 'wagmi';
 
 	const gui = useGui();
 

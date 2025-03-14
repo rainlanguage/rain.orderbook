@@ -43,7 +43,7 @@
 			{handleDeployModal}
 			{handleDisclaimerModal}
 			{wagmiConfig}
-			wagmiConnected={connected}
+			{connected}
 			{appKitModal}
 			{signerAddress}
 		/>

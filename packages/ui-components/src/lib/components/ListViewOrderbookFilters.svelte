@@ -20,7 +20,7 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let signerAddress: Writable<string | null>;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 </script>
 
 <div

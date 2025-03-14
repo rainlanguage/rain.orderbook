@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import type { Writable } from 'svelte/store';
+
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
@@ -38,7 +40,7 @@
 	export let currentRoute: string;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-	export let signerAddress: Writable<string | null>;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
 	).map(([name, url]) => ({

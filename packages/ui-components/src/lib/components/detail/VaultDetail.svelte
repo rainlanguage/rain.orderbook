@@ -42,8 +42,8 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 
-	export let signerAddress: Writable<string | null>;
-	export let wagmiConfig: Writable<Config>;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;

@@ -57,7 +57,7 @@ const defaultProps: VaultDetailProps = {
 	signerAddress: mockSignerAddressStore,
 	wagmiConfig: mockWagmiConfigStore,
 	handleDepositOrWithdrawModal: vi.fn()
-};	
+};
 
 // Helper function to create a query client for tests
 const createQueryClient = () => new QueryClient();

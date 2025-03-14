@@ -48,8 +48,8 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 
-	export let signerAddress: Writable<string | null>;
-	export let wagmiConfig: Writable<Config>;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
