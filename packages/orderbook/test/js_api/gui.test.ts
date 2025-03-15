@@ -1678,5 +1678,13 @@ ${dotrainWithoutVaultIds}`;
 			const networkKey = gui.getNetworkKey();
 			assert.equal(networkKey, 'some-network');
 		});
+
+		it('should get orderbook network', async () => {
+			const orderbookNetwork = gui.getOrderbookNetwork();
+
+			assert.equal(orderbookNetwork.networkId, 123);
+			assert.equal(orderbookNetwork.chainId, 123);
+			assert.equal(orderbookNetwork.currency, 'ETH');
+		});
 	});
 });

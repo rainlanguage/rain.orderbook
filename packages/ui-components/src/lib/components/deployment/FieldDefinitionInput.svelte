@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-
-	import {
-		DotrainOrderGui,
-		type GuiFieldDefinitionCfg,
-		type GuiPresetCfg
-	} from '@rainlanguage/orderbook/js_api';
+	import { type GuiFieldDefinitionCfg, type GuiPresetCfg } from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	export let fieldDefinition: GuiFieldDefinitionCfg;
-	export let gui: DotrainOrderGui;
 
 	let currentValue: GuiPresetCfg | undefined;
 	let inputValue: string | null = currentValue?.value
@@ -29,7 +26,7 @@
 
 	async function handlePresetClick(preset: GuiPresetCfg) {
 		inputValue = preset.value;
-		gui?.saveFieldValue(fieldDefinition.binding, {
+		gui.saveFieldValue(fieldDefinition.binding, {
 			isPreset: true,
 			value: preset.id
 		});
@@ -38,7 +35,7 @@
 
 	async function handleCustomInputChange(value: string) {
 		inputValue = value;
-		gui?.saveFieldValue(fieldDefinition.binding, {
+		gui.saveFieldValue(fieldDefinition.binding, {
 			isPreset: false,
 			value: value
 		});

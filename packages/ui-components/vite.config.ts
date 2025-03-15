@@ -1,16 +1,26 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import {svelteTesting} from '@testing-library/svelte/vite'
+
 
 export default defineConfig(({ mode }) => ({
 	assetsInclude: ['**/*.rain'],
-	plugins: [sveltekit()],
+	plugins: [sveltekit(), svelteTesting({
+  autoCleanup: false,
+  resolveBrowser: false,
+})],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []
 	},
 	define: {
 		'process.env': {},
 		'import.meta.vitest': 'undefined'
+	},
+	
+
+	optimizeDeps: {
+		exclude: ['@rainlanguage/orderbook/js_api']
 	},
 
 	test: {
@@ -26,7 +36,10 @@ export default defineConfig(({ mode }) => ({
 		testTimeout: 10000,
 		server: {
 			deps: {
-				inline: [/@tanstack\/svelte-query/]
+				interopDefault: true,
+				fallbackCJS: true,
+				registerNodeLoader: true,
+				inline: [/@reown\/appkit/, /@tanstack\/svelte-query/, /@sveltejs\/kit/]
 			}
 		}
 	}

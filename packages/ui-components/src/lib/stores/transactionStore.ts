@@ -87,8 +87,8 @@ export type TransactionState = {
 	functionName: string;
 	message: string;
 	newOrderHash: string;
-	network: string;
 	explorerLink: string;
+	network: string;
 };
 
 export type TransactionStore = {
@@ -112,8 +112,8 @@ const initialState: TransactionState = {
 	functionName: '',
 	message: '',
 	newOrderHash: '',
-	network: '',
-	explorerLink: ''
+	explorerLink: '',
+	network: ''
 };
 
 const transactionStore = () => {
@@ -152,7 +152,7 @@ const transactionStore = () => {
 		}, 1000);
 	};
 
-	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network: string) => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,

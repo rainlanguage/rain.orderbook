@@ -1,6 +1,5 @@
 <script lang="ts">
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
@@ -10,9 +9,12 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	export let deposit: GuiDepositCfg;
-	export let gui: DotrainOrderGui;
+
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -34,7 +36,7 @@
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(deposit.token?.key);
+			tokenInfo = await gui.getTokenInfo(deposit.token?.key);
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message
@@ -46,9 +48,8 @@
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			gui?.saveDeposit(deposit.token?.key, preset);
-			gui = gui;
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+			gui.saveDeposit(deposit.token?.key, preset);
+			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
 		}
 	}
 
@@ -56,9 +57,8 @@
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
-				gui = gui;
-				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
+				currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
 			}
 		}
 	}

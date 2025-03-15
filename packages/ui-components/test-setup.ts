@@ -1,9 +1,15 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+
 vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
 }));
+
+const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+	() => import('./src/lib/__mocks__/stores')
+);
+
 
 vi.mock('$app/stores', async () => {
 	const { readable, writable } = await import('svelte/store');

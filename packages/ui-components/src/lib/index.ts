@@ -123,7 +123,19 @@ export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';
+export {
+	mockAppKitModalStore,
+	mockWagmiConfigStore,
+	mockConnectedStore,
+	mockSignerAddressStore
+} from './__mocks__/stores';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
+
+// Hooks
+export { useGui } from './hooks/useGui';
+
+// Providers
+export { default as GuiProvider } from './providers/GuiProvider.svelte';

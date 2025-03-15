@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { transactionStore, type DeploymentArgs } from '@rainlanguage/ui-components';
-	import { wagmiConfig } from '$lib/stores/wagmi';
 	import TransactionModal from './TransactionModal.svelte';
+	import { wagmiConfig } from '$lib/stores/wagmi';
+
+	console.log('CONFIG', $wagmiConfig);
 
 	export let open: boolean = false;
 	export let args: DeploymentArgs;
@@ -12,7 +14,7 @@
 		error: 'Could not deploy strategy.'
 	};
 
-	transactionStore.handleDeploymentTransaction({
+	$: transactionStore.handleDeploymentTransaction({
 		config: $wagmiConfig,
 		...args
 	});

@@ -1,15 +1,20 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import { CheckCircleOutline } from 'flowbite-svelte-icons';
-	import type { Writable } from 'svelte/store';
-	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
+	import type { AppKit } from '@reown/appkit';
+	import type { Writable } from 'svelte/store';
+
+	export let classes: string = '';
 
 	export let appKitModal: Writable<AppKit>;
 	export let connected: Writable<boolean>;
 	export let signerAddress: Writable<string | null>;
-	export let classes: string = '';
+
+	$: console.log('connected', $connected);
+	$: console.log('signerAddress', $signerAddress);
+
 	function handleClick() {
 		$appKitModal.open();
 	}

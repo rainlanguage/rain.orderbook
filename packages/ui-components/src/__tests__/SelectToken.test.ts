@@ -2,69 +2,85 @@ import { render, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
-import type { ComponentProps } from 'svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { GuiSelectTokensCfg } from '@rainlanguage/orderbook/js_api';
 
-export type SelectTokenComponentProps = ComponentProps<SelectToken>;
+import { useGui } from '$lib/hooks/useGui';
+
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
+
 describe('SelectToken', () => {
+	let mockGui: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
-	const mockGui: DotrainOrderGui = {
-		saveSelectToken: vi.fn(),
-		replaceSelectToken: vi.fn(),
-		isSelectTokenSet: vi.fn(),
-		getTokenInfo: vi.fn().mockResolvedValue({
-			symbol: 'ETH',
-			decimals: 18,
-			address: '0x456'
-		})
-	} as unknown as DotrainOrderGui;
 
-	const mockProps: SelectTokenComponentProps = {
-		gui: mockGui,
-		token: {
-			key: 'input',
-			name: 'test input',
-			description: 'test description'
-		},
-		onSelectTokenSelect: vi.fn()
+	const mockToken: GuiSelectTokensCfg = {
+		key: 'input',
+		name: 'test input',
+		description: 'test description'
 	};
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		mockGui.saveSelectToken = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-			return Promise.resolve();
-		});
-		mockGui.replaceSelectToken = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-			mockStateUpdateCallback();
-			return Promise.resolve();
-		});
+
+		mockGui = {
+			saveSelectToken: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+				return Promise.resolve();
+			}),
+			replaceSelectToken: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+				mockStateUpdateCallback();
+				return Promise.resolve();
+			}),
+			isSelectTokenSet: vi.fn(),
+			getTokenInfo: vi.fn().mockResolvedValue({
+				symbol: 'ETH',
+				decimals: 18,
+				address: '0x456'
+			})
+		} as unknown as DotrainOrderGui;
+
+		vi.mocked(useGui).mockReturnValue(mockGui);
+
 		vi.clearAllMocks();
 	});
 
 	it('renders token label correctly', () => {
-		const { getByText } = render(SelectToken, mockProps);
+		const { getByText } = render(SelectToken, {
+			props: {
+				token: mockToken,
+				onSelectTokenSelect: vi.fn()
+			}
+		});
 		expect(getByText('test input')).toBeInTheDocument();
 	});
 
 	it('renders input field', () => {
-		const { getByRole } = render(SelectToken, mockProps);
+		const { getByRole } = render(SelectToken, {
+			props: {
+				token: mockToken,
+				onSelectTokenSelect: vi.fn()
+			}
+		});
 		expect(getByRole('textbox')).toBeInTheDocument();
 	});
 
 	it('calls saveSelectToken and updates token info when input changes', async () => {
-		const user = userEvent.setup();
-		const mockGuiWithNoToken = {
-			...mockGui,
-			getTokenInfo: vi.fn().mockResolvedValue(null)
-		} as unknown as DotrainOrderGui;
-		const { getByRole } = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithNoToken
-		});
-		const input = getByRole('textbox');
+		mockGui.getTokenInfo = vi.fn().mockResolvedValue(null);
 
+		const user = userEvent.setup();
+		const onSelectTokenSelect = vi.fn();
+
+		const { getByRole } = render(SelectToken, {
+			props: {
+				token: mockToken,
+				onSelectTokenSelect
+			}
+		});
+
+		const input = getByRole('textbox');
 		await userEvent.clear(input);
 		await user.paste('0x456');
 
@@ -75,57 +91,44 @@ describe('SelectToken', () => {
 	});
 
 	it('shows error message for invalid address, and removes the selectToken', async () => {
+		// Override the saveSelectToken mock to reject
+		mockGui.saveSelectToken = vi.fn().mockRejectedValue(new Error('Invalid address'));
+
 		const user = userEvent.setup();
-		const mockGuiWithError = {
-			...mockGui,
-			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
-		} as unknown as DotrainOrderGui;
 
 		const screen = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithError
+			props: {
+				token: mockToken,
+				onSelectTokenSelect: vi.fn()
+			}
 		});
 
 		const input = screen.getByRole('textbox');
 		await userEvent.clear(input);
 		await user.paste('invalid');
+
 		await waitFor(() => {
 			expect(screen.getByTestId('error')).toBeInTheDocument();
 		});
 	});
 
-	it('does nothing if gui is not defined', async () => {
-		const user = userEvent.setup();
-		const { getByRole } = render(SelectToken, {
-			...mockProps,
-			gui: undefined
-		} as unknown as SelectTokenComponentProps);
-		const input = getByRole('textbox');
-
-		await userEvent.clear(input);
-		await user.paste('0x456');
-
-		await waitFor(() => {
-			expect(mockGui.saveSelectToken).not.toHaveBeenCalled();
-		});
-	});
-
 	it('replaces the token and triggers state update twice if the token is already set', async () => {
-		const mockGuiWithTokenSet = {
-			...mockGui,
-			isSelectTokenSet: vi.fn().mockResolvedValue(true)
-		} as unknown as DotrainOrderGui;
+		mockGui.isSelectTokenSet = vi.fn().mockReturnValue(true);
 
 		const user = userEvent.setup();
+		const onSelectTokenSelect = vi.fn();
 
 		const { getByRole } = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithTokenSet
+			props: {
+				token: mockToken,
+				onSelectTokenSelect
+			}
 		});
 
 		const input = getByRole('textbox');
 		await userEvent.clear(input);
 		await user.paste('invalid');
+
 		await waitFor(() => {
 			expect(mockGui.replaceSelectToken).toHaveBeenCalled();
 			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(2);
@@ -134,14 +137,21 @@ describe('SelectToken', () => {
 
 	it('calls onSelectTokenSelect after input changes', async () => {
 		const user = userEvent.setup();
-		const { getByRole } = render(SelectToken, mockProps);
-		const input = getByRole('textbox');
+		const onSelectTokenSelect = vi.fn();
 
+		const { getByRole } = render(SelectToken, {
+			props: {
+				token: mockToken,
+				onSelectTokenSelect
+			}
+		});
+
+		const input = getByRole('textbox');
 		await userEvent.clear(input);
 		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockProps.onSelectTokenSelect).toHaveBeenCalled();
+			expect(onSelectTokenSelect).toHaveBeenCalled();
 		});
 	});
 });
