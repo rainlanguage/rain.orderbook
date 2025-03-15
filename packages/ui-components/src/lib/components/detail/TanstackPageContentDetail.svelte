@@ -20,6 +20,7 @@
 {#if data}
 	<div class="mb-6 flex items-end justify-between">
 		<slot name="top" {data} />
+		<slot name="action-buttons" {data} />
 	</div>
 	<div class="tanstack-detail-grid">
 		<div class="flex flex-col gap-y-6 lg:col-span-1">
