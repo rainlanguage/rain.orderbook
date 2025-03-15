@@ -7,7 +7,7 @@
 		VaultDetail
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { useQueryClient } from '@tanstack/svelte-query';
