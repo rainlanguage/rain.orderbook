@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import DeployModal from '../lib/components/DeployModal.svelte';
-import { get } from 'svelte/store';
 import type { DeployModalProps } from '@rainlanguage/ui-components';
+import type { Config } from 'wagmi';
 
 const { mockTransactionStore, mockWagmiConfigStore } = await vi.hoisted(
 	() => import('@rainlanguage/ui-components')
@@ -11,7 +11,12 @@ const { mockTransactionStore, mockWagmiConfigStore } = await vi.hoisted(
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
-		transactionStore: mockTransactionStore,
+		transactionStore: mockTransactionStore
+	};
+});
+
+vi.mock('../lib/stores/wagmi', () => {
+	return {
 		wagmiConfig: mockWagmiConfigStore
 	};
 });
@@ -37,7 +42,11 @@ describe('DeployModal', () => {
 	} as unknown as DeployModalProps;
 
 	it('renders and initiates transaction handling', () => {
-		const config = get(mockWagmiConfigStore);
+		const mockConfig = {
+			appName: 'TESTCONFIG'
+		};
+
+		mockWagmiConfigStore.mockSetSubscribeValue(mockConfig as unknown as Config);
 		const handleDeploymentTransactionSpy = vi.spyOn(
 			mockTransactionStore,
 			'handleDeploymentTransaction'
@@ -46,7 +55,7 @@ describe('DeployModal', () => {
 		render(DeployModal, { props: mockProps });
 
 		expect(handleDeploymentTransactionSpy).toHaveBeenCalledWith({
-			config,
+			config: mockConfig,
 			...mockProps.args
 		});
 	});

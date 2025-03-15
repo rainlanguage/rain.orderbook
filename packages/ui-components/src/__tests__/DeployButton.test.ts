@@ -8,7 +8,7 @@ import { useGui } from '../lib/hooks/useGui';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
 import type { Config } from '@wagmi/core';
-import { writable, type Writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 
 // Define the component props type
@@ -82,13 +82,7 @@ describe('DeployButton', () => {
 
 	it('renders the deploy button correctly', () => {
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph',
-				network: 'testnet',
-				wagmiConfig: mockWagmiConfigStore
-			}
+			props: defaultProps
 		});
 
 		expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
@@ -100,11 +94,7 @@ describe('DeployButton', () => {
 		);
 
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph'
-			}
+			props: defaultProps
 		});
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
@@ -121,13 +111,7 @@ describe('DeployButton', () => {
 		);
 
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph',
-				network: 'testnet',
-				wagmiConfig: mockWagmiConfigStore
-			}
+			props: defaultProps
 		});
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
@@ -149,13 +133,7 @@ describe('DeployButton', () => {
 		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
 
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph',
-				network: 'testnet',
-				wagmiConfig: mockWagmiConfigStore
-			}
+			props: defaultProps
 		});
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
@@ -173,13 +151,7 @@ describe('DeployButton', () => {
 		);
 
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph',
-				network: 'testnet',
-				wagmiConfig: mockWagmiConfigStore
-			}
+			props: defaultProps
 		});
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
@@ -205,13 +177,7 @@ describe('DeployButton', () => {
 
 	it('gets the orderbook network from the GUI', () => {
 		render(DeployButton, {
-			props: {
-				handleDeployModal: mockHandleDeployModal,
-				handleDisclaimerModal: mockHandleDisclaimerModal,
-				subgraphUrl: 'https://test.subgraph',
-				network: 'testnet',
-				wagmiConfig: mockWagmiConfigStore
-			}
+			props: defaultProps
 		});
 
 		expect(mockGui.getOrderbookNetwork).toHaveBeenCalled();

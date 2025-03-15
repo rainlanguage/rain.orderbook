@@ -5,12 +5,13 @@ import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 import { transactionStore } from '@rainlanguage/ui-components';
+
 const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore } =
 	await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
-vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 	const original = (await importOriginal()) as object;
 	return {
 		...original,
@@ -58,6 +59,7 @@ describe('DepositOrWithdrawModal', () => {
 		vi.clearAllMocks();
 		transactionStore.reset();
 		mockSignerAddressStore.mockSetSubscribeValue('0x123');
+		mockConnectedStore.mockSetSubscribeValue(true);
 	});
 
 	it('renders deposit modal correctly', () => {
