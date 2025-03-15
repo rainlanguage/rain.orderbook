@@ -1681,9 +1681,10 @@ ${dotrainWithoutVaultIds}`;
 
 		it('should get orderbook network', async () => {
 			const orderbookNetwork = gui.getOrderbookNetwork();
+
+			assert.equal(orderbookNetwork.networkId, 123);
 			assert.equal(orderbookNetwork.chainId, 123);
-			assert.equal(orderbookNetwork.networkKey, 'some-network');
-			assert.equal(orderbookNetwork.subgraphUrl, 'https://subgraph.com/some-network');
+			assert.equal(orderbookNetwork.currency, 'ETH');
 		});
 	});
 });
