@@ -2,7 +2,7 @@
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { createInfiniteQuery, type CreateQueryResult } from '@tanstack/svelte-query';
+	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
@@ -37,9 +37,9 @@
 	}>;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
-	export let handleDepositModal: ((vault: SgVault, query: CreateQueryResult) => void) | undefined =
+	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
-	export let handleWithdrawModal: ((vault: SgVault, query: CreateQueryResult) => void) | undefined =
+	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
@@ -228,7 +228,7 @@
 							data-testid="deposit-button"
 							on:click={(e) => {
 								e.stopPropagation();
-								handleDepositModal(item.vault, $query);
+								handleDepositModal(item.vault, $query.refetch);
 							}}
 							>Deposit
 						</DropdownItem>
@@ -236,7 +236,7 @@
 							data-testid="withdraw-button"
 							on:click={(e) => {
 								e.stopPropagation();
-								handleWithdrawModal(item.vault, $query);
+								handleWithdrawModal(item.vault, $query.refetch);
 							}}
 							>Withdraw
 						</DropdownItem>
