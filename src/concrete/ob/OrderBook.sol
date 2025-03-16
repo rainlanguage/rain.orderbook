@@ -24,7 +24,7 @@ import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
-import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 import {
     IOrderBookV4,
@@ -41,7 +41,7 @@ import {
     TaskV1,
     Quote
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {IOrderBookV4OrderTaker} from "rain.orderbook.interface/interface/IOrderBookV4OrderTaker.sol";
+import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -96,6 +96,11 @@ error NegativeInput();
 
 /// Thrown when a negative output is being recorded against vault balances.
 error NegativeOutput();
+
+/// Thrown when a TOFU decimals read fails during deposit.
+/// @param token The token that failed to read decimals.
+/// @param tofuOutcome The outcome of the TOFU read.
+error TokenDecimalsReadFailure(address token, TOFUOutcome tofuOutcome);
 
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
@@ -162,6 +167,20 @@ struct OrderIOCalculationV2 {
     uint256[] kvs;
 }
 
+struct TOFUTokenDecimals {
+    bool initialized;
+    uint8 tokenDecimals;
+}
+
+enum TOFUOutcome {
+    /// The token's decimals are consistent with the stored value.
+    Consistent,
+    /// The token's decimals are inconsistent with the stored value.
+    Inconsistent,
+    /// The token's decimals could not be read from the external contract.
+    ReadFailure
+}
+
 type Output18Amount is uint256;
 
 type Input18Amount is uint256;
@@ -185,12 +204,14 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     //solhint-disable-next-line private-vars-leading-underscore
     mapping(bytes32 orderHash => uint256 liveness) internal sOrders;
 
+    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
+
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address owner => mapping(address token => mapping(uint256 vaultId => uint256 balance))) internal
+    mapping(address owner => mapping(address token => mapping(uint256 vaultId => PackedFloat balance))) internal
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV4
@@ -208,45 +229,100 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         LibOrderBook.doPost(new uint256[][](0), post);
     }
 
+    /// Trust on first use (TOFU) token decimals.
+    /// The first time we read the decimals from a token we store them in a
+    /// mapping. If the token's decimals change we will always use the stored
+    /// value. This is because the token's decimals could technically change and
+    /// are NOT intended for onchain use as they are optional, but we're doing
+    /// it anyway to convert to floating point numbers.
+    ///
+    /// If we have nothing stored we read from the token, store and return it
+    /// with TOFUOUTCOME.Consistent.
+    ///
+    /// If the call to `decimals` is not a success that deserializes cleanly to
+    /// a `uint8` we return the stored value and TOFUOUTCOME.ReadFailure.
+    ///
+    /// If the stored value is inconsistent with the token's decimals we return
+    /// the stored value and TOFUOUTCOME.Inconsistent.
+    ///
+    /// @return True if the token's decimals are consistent with the stored
+    /// value.
+    /// @return The token's decimals, prioritising the stored value if
+    /// inconsistent.
+    function fetchTofuTokenDecimals(address token) internal view returns (TOFUOutcome, uint8) {
+        TOFUTokenDecimals memory tofuTokenDecimals = sTOFUTokenDecimals[token];
+
+        // The default solidity try/catch logic will error if the return is a
+        // success but fails to deserialize to the target type. We need to handle
+        // all errors as read failures so that the calling context can decide
+        // whether to revert the current transaction or continue with the stored
+        // value. E.g. withdrawals will prefer to continue than trap funds, and
+        // deposits will prefer to revert and prevent new funds entering the
+        // DEX.
+        (bool success, bytes memory returnData) = token.staticcall(abi.encodeWithSignature("decimals()"));
+        if (!success || returnData.length != 0x20) {
+            return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
+        }
+
+        uint256 readDecimals = abi.decode(returnData, (uint256));
+        if (readDecimals > type(uint8).max) {
+            return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
+        }
+
+        if (!tofuTokenDecimals.initialized) {
+            sTOFUTokenDecimals[token] = TOFUTokenDecimals(true, readDecimals);
+            // First use is always consistent.
+            return (TOFUOutcome.Consistent, readDecimals);
+        } else {
+            return (
+                readDecimals == tofuTokenDecimals.tokenDecimals ? TOFUOutcome.Consistent : TOFUOutcome.Inconsistent,
+                tofuTokenDecimals.tokenDecimals
+            );
+        }
+    }
+
     /// @inheritdoc IOrderBookV4
-    function deposit2(address token, uint256 vaultId, uint256 depositAmount, TaskV1[] calldata post)
+    function deposit2(address token, uint256 vaultId, PackedFloat depositAmountPacked, TaskV1[] calldata post)
         external
         nonReentrant
     {
-        if (depositAmount == 0) {
+        (int256 depositAmountSignedCoefficient, int256 depositAmountExponent) = depositAmountPacked.unpack();
+        if (!LibDecimalFloat.gt(depositAmountSignedCoefficient, depositAmountExponent, 0, 0)) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
+
+        (TOFUOutcome tofuOutcome, uint8 decimals) = fetchTofuTokenDecimals(token);
+        if (tofuOutcome != TOFUOutcome.Consistent) {
+            revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+
+        uint256 depositAmount =
+            LibDecimalFloat.toFixedDecimalLossless(depositAmountSignedCoefficient, depositAmountExponent, decimals);
+
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
         emit Deposit(msg.sender, token, vaultId, depositAmount);
+
         //slither-disable-next-line reentrancy-benign
         IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
-        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-        sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance + depositAmount;
+
+        PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
+        (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
+            currentVaultBalancePacked.unpack();
+        sVaultBalances[msg.sender][token][vaultId] = LibDecimalFloat.add(
+            currentVaultBalanceSignedCoefficient,
+            currentVaultBalanceExponent,
+            depositAmountSignedCoefficient,
+            depositAmountExponent
+        );
 
         if (post.length != 0) {
-            // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
-            // It's incredibly common anyway. Please let us know if this actually a
-            // problem in practice.
-            uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
-            uint256 currentVaultBalance18 = LibFixedPointDecimalScale.scale18(
-                currentVaultBalance,
-                tokenDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
-            uint256 depositAmount18 = LibFixedPointDecimalScale.scale18(
-                depositAmount,
-                tokenDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
             LibOrderBook.doPost(
                 LibUint256Matrix.matrixFrom(
-                    LibUint256Array.arrayFrom(uint256(uint160(token)), vaultId, currentVaultBalance18, depositAmount18)
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)), vaultId, currentVaultBalancePacked, depositAmountPacked
+                    )
                 ),
                 post
             );
@@ -994,12 +1070,16 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     function calculateClearStateAlice(
         OrderIOCalculationV2 memory aliceOrderIOCalculation,
         OrderIOCalculationV2 memory bobOrderIOCalculation
-    ) internal pure returns (
-        int256 aliceInputSignedCoefficient,
-        int256 aliceInputExponent,
-        int256 aliceOutputMaxSignedCoefficient,
-        int256 aliceOutputMaxExponent
-    ) {
+    )
+        internal
+        pure
+        returns (
+            int256 aliceInputSignedCoefficient,
+            int256 aliceInputExponent,
+            int256 aliceOutputMaxSignedCoefficient,
+            int256 aliceOutputMaxExponent
+        )
+    {
         // Alice's input is her output * her IO ratio.
         (aliceInputSignedCoefficient, aliceInputExponent) = LibDecimalFloat.mul(
             aliceOrderIOCalculation.outputMaxSignedCoefficient,
@@ -1013,7 +1093,14 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         // If Alice's input is greater than Bob's max output, Alice's input is
         // capped at Bob's max output.
-        if (LibDecimalFloat.gt(aliceInputSignedCoefficient, aliceInputExponent, bobOrderIOCalculation.outputMaxSignedCoefficient, bobOrderIOCalculation.outputMaxExponent)) {
+        if (
+            LibDecimalFloat.gt(
+                aliceInputSignedCoefficient,
+                aliceInputExponent,
+                bobOrderIOCalculation.outputMaxSignedCoefficient,
+                bobOrderIOCalculation.outputMaxExponent
+            )
+        ) {
             aliceInputSignedCoefficient = bobOrderIOCalculation.outputMaxSignedCoefficient;
             aliceInputExponent = bobOrderIOCalculation.outputMaxExponent;
 
