@@ -29,7 +29,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/exten
 abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     IInterpreterV3 internal immutable iInterpreter;
     IInterpreterStoreV2 internal immutable iStore;
-    RainterpreterParserNPE2 internal immutable iParser;
+    RainterpreterParser internal immutable iParser;
     IParserV2 internal immutable iParserV2;
     IOrderBookV4 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
@@ -37,11 +37,11 @@ abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
     OrderBookSubParser internal immutable iSubParser;
 
     constructor() {
-        iInterpreter = IInterpreterV3(new RainterpreterNPE2());
-        iStore = IInterpreterStoreV2(new RainterpreterStoreNPE2());
-        iParser = new RainterpreterParserNPE2();
-        iParserV2 = new RainterpreterExpressionDeployerNPE2(
-            RainterpreterExpressionDeployerNPE2ConstructionConfigV2({
+        iInterpreter = IInterpreterV3(new Rainterpreter());
+        iStore = IInterpreterStoreV2(new RainterpreterStore());
+        iParser = new RainterpreterParser();
+        iParserV2 = new RainterpreterExpressionDeployer(
+            RainterpreterExpressionDeployerConstructionConfigV2({
                 interpreter: address(iInterpreter),
                 store: address(iStore),
                 parser: address(iParser)

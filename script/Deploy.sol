@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook, EvaluableV3, TaskV1, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
+import {OrderBook, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
@@ -12,7 +12,7 @@ import {OrderBookV4ArbConfigV2} from "src/abstract/OrderBookV4ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 
 bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -100,8 +100,8 @@ contract Deploy is Script {
             new GenericPoolOrderBookV4ArbOrderTaker(
                 OrderBookV4ArbConfigV2(
                     address(raindex),
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""
@@ -111,8 +111,8 @@ contract Deploy is Script {
             new RouteProcessorOrderBookV4ArbOrderTaker(
                 OrderBookV4ArbConfigV2(
                     address(raindex),
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     abi.encode(routeProcessor)
@@ -123,8 +123,8 @@ contract Deploy is Script {
             new GenericPoolOrderBookV4FlashBorrower(
                 OrderBookV4ArbConfigV2(
                     raindex,
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""

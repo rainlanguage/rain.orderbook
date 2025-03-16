@@ -13,7 +13,7 @@ import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
 import {LibExternOpContextSenderNPE2} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSenderNPE2.sol";
 import {LibExternOpContextCallingContractNPE2} from
     "rain.interpreter/lib/extern/reference/op/LibExternOpContextCallingContractNPE2.sol";
-import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
+import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
 import {
     LibOrderBookSubParser,
@@ -71,7 +71,7 @@ import {
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
 
 contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
-    using LibUint256Matrix for uint256[][];
+    using LibBytes32Matrix for bytes32[][];
 
     /// @inheritdoc IDescribedByMetaV1
     function describedByMetaV1() external pure returns (bytes32) {
@@ -103,48 +103,48 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         // Add 2 columns for signers and signed context start.
         // Add 1 for deposit context
         // Add 1 for withdraw context
-        function(uint256[] memory) internal pure returns (OperandV2)[][] memory handlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+        function(bytes32[] memory) internal pure returns (OperandV2)[][] memory handlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextBaseHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_BASE_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextBaseHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_BASE_ROWS);
         contextBaseHandlers[CONTEXT_BASE_ROW_SENDER] = LibParseOperand.handleOperandDisallowed;
         contextBaseHandlers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibParseOperand.handleOperandDisallowed;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextCallingContextHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_CALLING_CONTEXT_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextCallingContextHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
             LibParseOperand.handleOperandDisallowed;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextCalculationsHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_CALCULATIONS_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextCalculationsHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_CALCULATIONS_ROWS);
         contextCalculationsHandlers[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = LibParseOperand.handleOperandDisallowed;
         contextCalculationsHandlers[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = LibParseOperand.handleOperandDisallowed;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextVaultInputsHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_VAULT_IO_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextVaultInputsHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_VAULT_IO_ROWS);
         contextVaultInputsHandlers[CONTEXT_VAULT_IO_TOKEN] = LibParseOperand.handleOperandDisallowed;
         contextVaultInputsHandlers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibParseOperand.handleOperandDisallowed;
         contextVaultInputsHandlers[CONTEXT_VAULT_IO_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
         contextVaultInputsHandlers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibParseOperand.handleOperandDisallowed;
         contextVaultInputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextVaultOutputsHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_VAULT_IO_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextVaultOutputsHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_VAULT_IO_ROWS);
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_TOKEN] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibParseOperand.handleOperandDisallowed;
         contextVaultOutputsHandlers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibParseOperand.handleOperandDisallowed;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextSignersHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextSignersHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
         contextSignersHandlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibParseOperand.handleOperandSingleFullNoDefault;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextSignedContextHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextSignedContextHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
         contextSignedContextHandlers[CONTEXT_SIGNED_CONTEXT_START_ROW] =
             LibParseOperand.handleOperandDoublePerByteNoDefault;
 
@@ -156,8 +156,8 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
         handlers[CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN] = contextSignersHandlers;
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedContextHandlers;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextDepositContextHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](DEPOSIT_WORDS_LENGTH);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextDepositContextHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](DEPOSIT_WORDS_LENGTH);
         contextDepositContextHandlers[DEPOSIT_WORD_DEPOSITOR] = LibParseOperand.handleOperandDisallowed;
         contextDepositContextHandlers[DEPOSIT_WORD_TOKEN] = LibParseOperand.handleOperandDisallowed;
         contextDepositContextHandlers[DEPOSIT_WORD_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
@@ -166,8 +166,8 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
 
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = contextDepositContextHandlers;
 
-        function(uint256[] memory) internal pure returns (OperandV2)[] memory contextWithdrawContextHandlers =
-            new function(uint256[] memory) internal pure returns (OperandV2)[](WITHDRAW_WORDS_LENGTH);
+        function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextWithdrawContextHandlers =
+            new function(bytes32[] memory) internal pure returns (OperandV2)[](WITHDRAW_WORDS_LENGTH);
         contextWithdrawContextHandlers[WITHDRAW_WORD_WITHDRAWER] = LibParseOperand.handleOperandDisallowed;
         contextWithdrawContextHandlers[WITHDRAW_WORD_TOKEN] = LibParseOperand.handleOperandDisallowed;
         contextWithdrawContextHandlers[WITHDRAW_WORD_VAULT_ID] = LibParseOperand.handleOperandDisallowed;
@@ -177,12 +177,12 @@ contract OrderBookSubParser is BaseRainterpreterSubParserNPE2 {
 
         handlers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = contextWithdrawContextHandlers;
 
-        uint256[][] memory handlersUint256;
+        bytes32[][] memory handlersBytes32;
         assembly ("memory-safe") {
-            handlersUint256 := handlers
+            handlersBytes32 := handlers
         }
 
-        return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
+        return LibConvert.unsafeTo16BitBytes(handlersBytes32.flatten());
     }
 
     function buildSubParserWordParsers() external pure returns (bytes memory) {

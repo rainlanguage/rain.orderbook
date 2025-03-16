@@ -2,12 +2,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV1} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrderBook} from "./LibOrderBook.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
@@ -19,7 +20,7 @@ error BadLender(address badLender);
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
-    function finalizeArb(TaskV1 memory task, address ordersInputToken, address ordersOutputToken) internal {
+    function finalizeArb(TaskV2 memory task, address ordersInputToken, address ordersOutputToken) internal {
         uint256[][] memory context = new uint256[][](1);
         uint256[] memory col = new uint256[](3);
 
@@ -30,13 +31,10 @@ library LibOrderBookArb {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
             uint256 inputDecimals = IERC20Metadata(ordersInputToken).decimals();
-            col[0] = LibFixedPointDecimalScale.scale18(
-                inputBalance,
-                inputDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
+            (int256 inputSignedCoefficient, int256 inputExponent, bool lossless) =
+                LibDecimalFloat.fromFixedDecimalLossy(inputBalance, inputDecimals);
+            (lossless);
+            col[0] = LibDecimalFloat.pack(inputSignedCoefficient, inputExponent);
         }
 
         {
@@ -47,13 +45,10 @@ library LibOrderBookArb {
             }
 
             uint256 outputDecimals = IERC20Metadata(ordersOutputToken).decimals();
-            col[1] = LibFixedPointDecimalScale.scale18(
-                outputBalance,
-                outputDecimals,
-                // Error on overflow.
-                // Rounding down is the default.
-                0
-            );
+            (int256 outputSignedCoefficient, int256 outputExponent, bool lossless) =
+                LibDecimalFloat.fromFixedDecimalLossy(outputBalance, outputDecimals);
+            (lossless);
+            col[1] = LibDecimalFloat.pack(outputSignedCoefficient, outputExponent);
         }
 
         {
@@ -70,7 +65,7 @@ library LibOrderBookArb {
 
         context[0] = col;
 
-        TaskV1[] memory post = new TaskV1[](1);
+        TaskV2[] memory post = new TaskV2[](1);
         post[0] = task;
         LibOrderBook.doPost(context, post);
     }

@@ -37,8 +37,8 @@ import {
     ClearStateChange,
     ZeroMaximumInput,
     SignedContextV1,
-    EvaluableV3,
-    TaskV1,
+    EvaluableV4,
+    TaskV2,
     QuoteV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
@@ -230,7 +230,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function entask(TaskV1[] calldata post) external nonReentrant {
+    function entask2(TaskV2[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new uint256[][](0), post);
     }
 
@@ -254,7 +254,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// value.
     /// @return The token's decimals, prioritising the stored value if
     /// inconsistent.
-    function fetchTofuTokenDecimals(address token) internal view returns (TOFUOutcome, uint8) {
+    function decimalsForToken(address token) internal view returns (TOFUOutcome, uint8) {
         TOFUTokenDecimals memory tofuTokenDecimals = sTOFUTokenDecimals[token];
 
         // The default solidity try/catch logic will error if the return is a
@@ -286,7 +286,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function deposit2(address token, uint256 vaultId, PackedFloat depositAmountPacked, TaskV1[] calldata post)
+    function deposit3(address token, uint256 vaultId, PackedFloat depositAmountPacked, TaskV2[] calldata post)
         external
         nonReentrant
     {
@@ -295,21 +295,12 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
 
-        (TOFUOutcome tofuOutcome, uint8 decimals) = fetchTofuTokenDecimals(token);
-        if (tofuOutcome != TOFUOutcome.Consistent) {
-            revert TokenDecimalsReadFailure(token, tofuOutcome);
-        }
-
-        uint256 depositAmount =
-            LibDecimalFloat.toFixedDecimalLossless(depositAmountSignedCoefficient, depositAmountExponent, decimals);
+        uint256 depositAmount = pullTokens(token, depositAmountSignedCoefficient, depositAmountExponent);
 
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
         emit Deposit(msg.sender, token, vaultId, depositAmount);
-
-        //slither-disable-next-line reentrancy-benign
-        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
 
         PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
         (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
@@ -334,21 +325,13 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function withdraw2(address token, uint256 vaultId, PackedFloat targetAmountPacked, TaskV1[] calldata post)
+    function withdraw2(address token, uint256 vaultId, PackedFloat targetAmountPacked, TaskV2[] calldata post)
         external
         nonReentrant
     {
         (int256 targetAmountSignedCoefficient, int256 targetAmountExponent) = targetAmountPacked.unpack();
         if (!LibDecimalFloat.gt(targetAmountSignedCoefficient, targetAmountExponent, 0, 0)) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
-        }
-
-        // Withdrawals cannot initialize token decimals as at least one deposit
-        // must be made before a withdrawal can be made, and this will have
-        // initialized the token decimals.
-        (TOFUOutcome tofuOutcome, uint8 decimals) = fetchTofuTokenDecimals(token);
-        if (tofuOutcome == TOFUOutcome.Initial) {
-            revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
 
         PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
@@ -361,14 +344,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             currentVaultBalanceSignedCoefficient,
             currentVaultBalanceExponent
         );
-
-        (uint256 withdrawAmount, bool lossless) =
-            LibDecimalFloat.toFixedDecimalLossy(withdrawAmountSignedCoefficient, withdrawAmountExponent, decimals);
-        // If the conversion is lossy it will truncate so the actual amount of
-        // tokens withdrawn in the transfer to the recipient will be less than
-        // their vault balance decreases by. This favours the DEX so is the
-        // safest direction to round.
-        (lossless);
 
         // The overflow check here is redundant with .min above, so
         // technically this is overly conservative but we REALLY don't want
@@ -386,10 +361,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
 
         PackedFloat withdrawAmountPacked = LibDecimalFloat.pack(withdrawAmountSignedCoefficient, withdrawAmountExponent);
+
+        (uint256 withdrawAmount, uint8 decimals) =
+            pushTokens(token, withdrawAmountSignedCoefficient, withdrawAmountExponent);
+
         emit WithdrawV2(msg.sender, token, vaultId, targetAmountPacked, withdrawAmountPacked, withdrawAmount);
-        if (withdrawAmount > 0) {
-            IERC20(token).safeTransfer(msg.sender, withdrawAmount);
-        }
 
         if (post.length != 0) {
             LibOrderBook.doPost(
@@ -404,7 +380,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function addOrder2(OrderConfigV4 calldata orderConfig, TaskV1[] calldata post)
+    function addOrder3(OrderConfigV4 calldata orderConfig, TaskV2[] calldata post)
         external
         nonReentrant
         returns (bool)
@@ -452,7 +428,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function removeOrder2(OrderV4 calldata order, TaskV1[] calldata post)
+    function removeOrder3(OrderV4 calldata order, TaskV2[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -474,7 +450,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function quote(QuoteV2 calldata quoteConfig) external view returns (bool, uint256, uint256) {
+    function quote2(QuoteV2 calldata quoteConfig) external view returns (bool, uint256, uint256) {
         bytes32 orderHash = quoteConfig.order.hash();
 
         if (sOrders[orderHash] != ORDER_LIVE) {
@@ -502,15 +478,10 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders2(TakeOrdersConfigV4 calldata config)
+    function takeOrders3(TakeOrdersConfigV4 calldata config)
         external
         nonReentrant
-        returns (
-            int256 totalTakerInputSignedCoefficient,
-            int256 totalTakerInputExponent,
-            int256 totalTakerOutputSignedCoefficient,
-            int256 totalTakerOutputExponent
-        )
+        returns (PackedFloat totalTakerInput, PackedFloat totalTakerOutput)
     {
         if (config.orders.length == 0) {
             revert NoOrders();
@@ -518,6 +489,10 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         TakeOrderConfigV4 memory takeOrderConfig;
         OrderV4 memory order;
+        int256 totalTakerInputSignedCoefficient = 0;
+        int256 totalTakerInputExponent = 0;
+        int256 totalTakerOutputSignedCoefficient = 0;
+        int256 totalTakerOutputExponent = 0;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
@@ -536,12 +511,19 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
 
         {
-            uint256 remainingTakerInput = config.maximumInput;
-            if (remainingTakerInput == 0) {
+            (int256 remainingTakerInputSignedCoefficient, int256 remainingTakerInputExponent) =
+                LibDecimalFloat.unpack(config.maximumInput);
+            if (!LibDecimalFloat.gt(remainingTakerInputSignedCoefficient, remainingTakerInputExponent, 0, 0)) {
                 revert ZeroMaximumInput();
             }
+            int256 maximumInputSignedCoefficient = remainingTakerInputSignedCoefficient;
+            int256 maximumInputExponent = remainingTakerInputExponent;
+
             uint256 i = 0;
-            while (i < config.orders.length && remainingTakerInput > 0) {
+            while (
+                i < config.orders.length
+                    && LibDecimalFloat.gt(remainingTakerInputSignedCoefficient, remainingTakerInputExponent, 0, 0)
+            ) {
                 takeOrderConfig = config.orders[i];
                 order = takeOrderConfig.order;
                 // Every order needs the same input token.
@@ -660,7 +642,12 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     i++;
                 }
             }
-            totalTakerInput = config.maximumInput - remainingTakerInput;
+            (totalTakerInputSignedCoefficient, totalTakerInputExponent) = LibDecimalFloat.sub(
+                maximumInputSignedCoefficient,
+                maximumInputExponent,
+                remainingTakerInputSignedCoefficient,
+                remainingTakerInputExponent
+            );
         }
 
         {
@@ -721,7 +708,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function clear2(
+    function clear3(
         OrderV4 memory aliceOrder,
         OrderV4 memory bobOrder,
         ClearConfig calldata clearConfig,
@@ -1129,8 +1116,15 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    function pullTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent) internal {
-        uint8 decimals = decimalsForToken(token);
+    function pullTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent)
+        internal
+        returns (uint256, uint8)
+    {
+        (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
+        if (tofuOutcome != TOFUOutcome.Consistent) {
+            revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+
         (uint256 amount, bool lossless) =
             LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
         // Round truncation up when pulling.
@@ -1140,10 +1134,21 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         if (amount > 0) {
             token.safeTransferFrom(msg.sender, address(this), amount);
         }
+        return (amount, decimals);
     }
 
-    function pushTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent) internal {
-        uint8 decimals = decimalsForToken(token);
+    function pushTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent)
+        internal
+        returns (uint256, uint8)
+    {
+        // Push cannot initialize token decimals as at least one pull must be
+        // made before a push can be made, and this will have initialized the
+        // token decimals.
+        (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
+        if (tofuOutcome == TOFUOutcome.Initial) {
+            revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+
         (uint256 amount, bool lossless) =
             LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
         // Truncate when pushing.
@@ -1151,17 +1156,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         if (amount > 0) {
             token.safeTransfer(msg.sender, amount);
         }
-    }
 
-    // @TODO enforce the decimals never change for trades and deposits. If it
-    // changes only allow withdrawals.
-    function decimalsForToken(IERC20 token) internal view returns (uint8) {
-        // @TODO fix the path where decimals does not exist and the return can't
-        // deserialize to a uint8, whic will error instead of entering the catch.
-        try IERC20Metadata(address(token)).decimals() returns (uint8 decimals) {
-            return decimals;
-        } catch {
-            return 18;
-        }
+        return (amount, decimals);
     }
 }
