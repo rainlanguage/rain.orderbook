@@ -27,20 +27,20 @@ import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 import {
-    IOrderBookV4,
+    IOrderBookV5,
     NoOrders,
-    OrderV3,
-    OrderConfigV3,
-    TakeOrderConfigV3,
-    TakeOrdersConfigV3,
+    OrderV4,
+    OrderConfigV4,
+    TakeOrderConfigV4,
+    TakeOrdersConfigV4,
     ClearConfig,
     ClearStateChange,
     ZeroMaximumInput,
     SignedContextV1,
     EvaluableV3,
     TaskV1,
-    Quote
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    QuoteV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
@@ -96,6 +96,9 @@ error NegativeInput();
 
 /// Thrown when a negative output is being recorded against vault balances.
 error NegativeOutput();
+
+/// Thrown when a negative vault balance is being recorded.
+error NegativeVaultBalance();
 
 /// Thrown when a TOFU decimals read fails during deposit.
 /// @param token The token that failed to read decimals.
@@ -156,8 +159,8 @@ uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 /// IO state changes.
 /// @param kvs KVs returned from calculate order entrypoint to pass to the store
 /// before calling handle IO entrypoint.
-struct OrderIOCalculationV2 {
-    OrderV3 order;
+struct OrderIOCalculationV3 {
+    OrderV4 order;
     uint256 outputIOIndex;
     Output18Amount outputMax;
     //solhint-disable-next-line var-name-mixedcase
@@ -173,11 +176,13 @@ struct TOFUTokenDecimals {
 }
 
 enum TOFUOutcome {
-    /// The token's decimals are consistent with the stored value.
+    /// Token's decimals have not been read from the external contract before.
+    Initial,
+    /// Token's decimals are consistent with the stored value.
     Consistent,
-    /// The token's decimals are inconsistent with the stored value.
+    /// Token's decimals are inconsistent with the stored value.
     Inconsistent,
-    /// The token's decimals could not be read from the external contract.
+    /// Token's decimals could not be read from the external contract.
     ReadFailure
 }
 
@@ -187,10 +192,10 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
+contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
-    using LibOrder for OrderV3;
+    using LibOrder for OrderV4;
     using LibUint256Array for uint256;
 
     /// All hashes of all active orders. There's nothing interesting in the value
@@ -214,17 +219,17 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     mapping(address owner => mapping(address token => mapping(uint256 vaultId => PackedFloat balance))) internal
         sVaultBalances;
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
         return sVaultBalances[owner][token][vaultId];
     }
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     function entask(TaskV1[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new uint256[][](0), post);
     }
@@ -271,8 +276,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         if (!tofuTokenDecimals.initialized) {
             sTOFUTokenDecimals[token] = TOFUTokenDecimals(true, readDecimals);
-            // First use is always consistent.
-            return (TOFUOutcome.Consistent, readDecimals);
+            return (TOFUOutcome.Initial, readDecimals);
         } else {
             return (
                 readDecimals == tofuTokenDecimals.tokenDecimals ? TOFUOutcome.Consistent : TOFUOutcome.Inconsistent,
@@ -281,7 +285,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     function deposit2(address token, uint256 vaultId, PackedFloat depositAmountPacked, TaskV1[] calldata post)
         external
         nonReentrant
@@ -329,67 +333,78 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV4
-    function withdraw2(address token, uint256 vaultId, uint256 targetAmount, TaskV1[] calldata post)
+    /// @inheritdoc IOrderBookV5
+    function withdraw2(address token, uint256 vaultId, PackedFloat targetAmountPacked, TaskV1[] calldata post)
         external
         nonReentrant
     {
-        if (targetAmount == 0) {
+        (int256 targetAmountSignedCoefficient, int256 targetAmountExponent) = targetAmountPacked.unpack();
+        if (!LibDecimalFloat.gt(targetAmountSignedCoefficient, targetAmountExponent, 0, 0)) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
-        uint256 currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-        // Don't allow withdrawals to exceed the current vault balance.
-        uint256 withdrawAmount = targetAmount.min(currentVaultBalance);
+
+        // Withdrawals cannot initialize token decimals as at least one deposit
+        // must be made before a withdrawal can be made, and this will have
+        // initialized the token decimals.
+        (TOFUOutcome tofuOutcome, uint8 decimals) = fetchTofuTokenDecimals(token);
+        if (tofuOutcome == TOFUOutcome.Initial) {
+            revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+
+        PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
+        (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
+            currentVaultBalancePacked.unpack();
+
+        (int256 withdrawAmountSignedCoefficient, int256 withdrawAmountExponent) = LibDecimalFloat.min(
+            targetAmountSignedCoefficient,
+            targetAmountExponent,
+            currentVaultBalanceSignedCoefficient,
+            currentVaultBalanceExponent
+        );
+
+        (uint256 withdrawAmount, bool lossless) =
+            LibDecimalFloat.toFixedDecimalLossy(withdrawAmountSignedCoefficient, withdrawAmountExponent, decimals);
+        // If the conversion is lossy it will truncate so the actual amount of
+        // tokens withdrawn in the transfer to the recipient will be less than
+        // their vault balance decreases by. This favours the DEX so is the
+        // safest direction to round.
+        (lossless);
+
+        // The overflow check here is redundant with .min above, so
+        // technically this is overly conservative but we REALLY don't want
+        // withdrawals to exceed vault balances.
+        (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.sub(
+            currentVaultBalanceSignedCoefficient,
+            currentVaultBalanceExponent,
+            withdrawAmountSignedCoefficient,
+            withdrawAmountExponent
+        );
+        if (LibDecimalFloat.lt(newBalanceSignedCoefficient, newBalanceExponent, 0, 0)) {
+            revert NegativeVaultBalance();
+        }
+        sVaultBalances[msg.sender][token][vaultId] =
+            LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
+
+        PackedFloat withdrawAmountPacked = LibDecimalFloat.pack(withdrawAmountSignedCoefficient, withdrawAmountExponent);
+        emit WithdrawV2(msg.sender, token, vaultId, targetAmountPacked, withdrawAmountPacked, withdrawAmount);
         if (withdrawAmount > 0) {
-            // The overflow check here is redundant with .min above, so
-            // technically this is overly conservative but we REALLY don't want
-            // withdrawals to exceed vault balances.
-            sVaultBalances[msg.sender][token][vaultId] = currentVaultBalance - withdrawAmount;
-            emit Withdraw(msg.sender, token, vaultId, targetAmount, withdrawAmount);
             IERC20(token).safeTransfer(msg.sender, withdrawAmount);
+        }
 
-            if (post.length != 0) {
-                // This can fail as `decimals` is an OPTIONAL part of the ERC20 standard.
-                // It's incredibly common anyway. Please let us know if this actually a
-                // problem in practice.
-                uint256 tokenDecimals = IERC20Metadata(address(uint160(token))).decimals();
-
-                LibOrderBook.doPost(
-                    LibUint256Matrix.matrixFrom(
-                        LibUint256Array.arrayFrom(
-                            uint256(uint160(token)),
-                            vaultId,
-                            LibFixedPointDecimalScale.scale18(
-                                currentVaultBalance,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                withdrawAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            ),
-                            LibFixedPointDecimalScale.scale18(
-                                targetAmount,
-                                tokenDecimals,
-                                // Error on overflow.
-                                // Rounding down is the default.
-                                0
-                            )
-                        )
-                    ),
-                    post
-                );
-            }
+        if (post.length != 0) {
+            LibOrderBook.doPost(
+                LibUint256Matrix.matrixFrom(
+                    LibUint256Array.arrayFrom(
+                        uint256(uint160(token)), vaultId, currentVaultBalancePacked, withdrawAmountPacked, decimals
+                    )
+                ),
+                post
+            );
         }
     }
 
-    /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV3 calldata orderConfig, TaskV1[] calldata post)
+    /// @inheritdoc IOrderBookV5
+    function addOrder2(OrderConfigV4 calldata orderConfig, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool)
@@ -404,7 +419,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // Merge our view on the sender/owner and handle IO emptiness with the
         // config and deployer's view on the `EvaluableV2` to produce the final
         // order.
-        OrderV3 memory order = OrderV3(
+        OrderV4 memory order = OrderV4(
             msg.sender, orderConfig.evaluable, orderConfig.validInputs, orderConfig.validOutputs, orderConfig.nonce
         );
         bytes32 orderHash = order.hash();
@@ -418,7 +433,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             // addresses.
             //slither-disable-next-line reentrancy-benign
             sOrders[orderHash] = ORDER_LIVE;
-            emit AddOrderV2(order.owner, orderHash, order);
+            emit AddOrderV3(order.owner, orderHash, order);
 
             // We only emit the meta event if there is meta to emit. We do require
             // that the meta self describes as a Rain meta document.
@@ -436,8 +451,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return stateChange;
     }
 
-    /// @inheritdoc IOrderBookV4
-    function removeOrder2(OrderV3 calldata order, TaskV1[] calldata post)
+    /// @inheritdoc IOrderBookV5
+    function removeOrder2(OrderV4 calldata order, TaskV1[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -449,7 +464,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         if (sOrders[orderHash] == ORDER_LIVE) {
             stateChanged = true;
             sOrders[orderHash] = ORDER_DEAD;
-            emit RemoveOrderV2(msg.sender, orderHash, order);
+            emit RemoveOrderV3(msg.sender, orderHash, order);
 
             LibOrderBook.doPost(
                 LibUint256Matrix.matrixFrom(LibUint256Array.arrayFrom(uint256(orderHash), uint256(uint160(msg.sender)))),
@@ -458,8 +473,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV4
-    function quote(Quote calldata quoteConfig) external view returns (bool, uint256, uint256) {
+    /// @inheritdoc IOrderBookV5
+    function quote(QuoteV2 calldata quoteConfig) external view returns (bool, uint256, uint256) {
         bytes32 orderHash = quoteConfig.order.hash();
 
         if (sOrders[orderHash] != ORDER_LIVE) {
@@ -473,7 +488,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert TokenSelfTrade();
         }
 
-        OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
+        OrderIOCalculationV3 memory orderIOCalculation = calculateOrderIO(
             quoteConfig.order,
             quoteConfig.inputIOIndex,
             quoteConfig.outputIOIndex,
@@ -483,11 +498,11 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (true, Output18Amount.unwrap(orderIOCalculation.outputMax), orderIOCalculation.IORatio);
     }
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders2(TakeOrdersConfigV3 calldata config)
+    function takeOrders2(TakeOrdersConfigV4 calldata config)
         external
         nonReentrant
         returns (
@@ -501,8 +516,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert NoOrders();
         }
 
-        TakeOrderConfigV3 memory takeOrderConfig;
-        OrderV3 memory order;
+        TakeOrderConfigV4 memory takeOrderConfig;
+        OrderV4 memory order;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
@@ -510,7 +525,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // resize the array later. There's no guarantee that a dynamic solution
         // would even be cheaper gas-wise, and it would almost certainly be more
         // complex.
-        OrderIOCalculationV2[] memory orderIOCalculationsToHandle;
+        OrderIOCalculationV3[] memory orderIOCalculationsToHandle;
         {
             uint256 length = config.orders.length;
             assembly ("memory-safe") {
@@ -555,7 +570,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 if (sOrders[orderHash] == ORDER_DEAD) {
                     emit OrderNotFound(msg.sender, order.owner, orderHash);
                 } else {
-                    OrderIOCalculationV2 memory orderIOCalculation = calculateOrderIO(
+                    OrderIOCalculationV3 memory orderIOCalculation = calculateOrderIO(
                         order,
                         takeOrderConfig.inputIOIndex,
                         takeOrderConfig.outputIOIndex,
@@ -620,7 +635,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
                             takerInputExponent,
                             orderIOCalculation
                         );
-                        emit TakeOrderV2(
+                        emit TakeOrderV3(
                             msg.sender,
                             takeOrderConfig,
                             LibDecimalFloat.pack(takerInputSignedCoefficient, takerInputExponent),
@@ -705,10 +720,10 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV4
+    /// @inheritdoc IOrderBookV5
     function clear2(
-        OrderV3 memory aliceOrder,
-        OrderV3 memory bobOrder,
+        OrderV4 memory aliceOrder,
+        OrderV4 memory bobOrder,
         ClearConfig calldata clearConfig,
         SignedContextV1[] memory aliceSignedContext,
         SignedContextV1[] memory bobSignedContext
@@ -763,12 +778,12 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
 
             // Emit the Clear event before `eval2`.
-            emit ClearV2(msg.sender, aliceOrder, bobOrder, clearConfig);
+            emit ClearV3(msg.sender, aliceOrder, bobOrder, clearConfig);
         }
-        OrderIOCalculationV2 memory aliceOrderIOCalculation = calculateOrderIO(
+        OrderIOCalculationV3 memory aliceOrderIOCalculation = calculateOrderIO(
             aliceOrder, clearConfig.aliceInputIOIndex, clearConfig.aliceOutputIOIndex, bobOrder.owner, bobSignedContext
         );
-        OrderIOCalculationV2 memory bobOrderIOCalculation = calculateOrderIO(
+        OrderIOCalculationV3 memory bobOrderIOCalculation = calculateOrderIO(
             bobOrder, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, aliceOrder.owner, aliceSignedContext
         );
         ClearStateChange memory clearStateChange =
@@ -810,12 +825,12 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// @param signedContext Any signed context provided by the clearer/taker
     /// that the order may need for its calculations.
     function calculateOrderIO(
-        OrderV3 memory order,
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         address counterparty,
         SignedContextV1[] memory signedContext
-    ) internal view returns (OrderIOCalculationV2 memory) {
+    ) internal view returns (OrderIOCalculationV3 memory) {
         unchecked {
             bytes32 orderHash = order.hash();
 
@@ -917,7 +932,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
             context[CONTEXT_CALCULATIONS_COLUMN] =
                 LibUint256Array.arrayFrom(Output18Amount.unwrap(orderOutputMax18), orderIORatio);
 
-            return OrderIOCalculationV2({
+            return OrderIOCalculationV3({
                 order: order,
                 outputIOIndex: outputIOIndex,
                 outputMax: orderOutputMax18,
@@ -943,7 +958,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         int256 inputExponent,
         int256 outputSignedCoefficient,
         int256 outputExponent,
-        OrderIOCalculationV2 memory orderIOCalculation
+        OrderIOCalculationV3 memory orderIOCalculation
     ) internal {
         orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
             LibDecimalFloat.pack(inputSignedCoefficient, inputExponent);
@@ -1000,7 +1015,7 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
         emit Context(msg.sender, orderIOCalculation.context);
     }
 
-    function handleIO(OrderIOCalculationV2 memory orderIOCalculation) internal {
+    function handleIO(OrderIOCalculationV3 memory orderIOCalculation) internal {
         // Apply state changes to the interpreter store after the vault balances
         // are updated, but before we call handle IO. We want handle IO to see
         // a consistent view on sets from calculate IO.
@@ -1055,8 +1070,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// @return clearStateChange The clear state change with absolute inputs and
     /// outputs for Alice and Bob.
     function calculateClearStateChange(
-        OrderIOCalculationV2 memory aliceOrderIOCalculation,
-        OrderIOCalculationV2 memory bobOrderIOCalculation
+        OrderIOCalculationV3 memory aliceOrderIOCalculation,
+        OrderIOCalculationV3 memory bobOrderIOCalculation
     ) internal pure returns (ClearStateChange memory clearStateChange) {
         // Calculate the clear state change for Alice.
         (clearStateChange.aliceInput, clearStateChange.aliceOutput) =
@@ -1068,8 +1083,8 @@ contract OrderBook is IOrderBookV4, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     function calculateClearStateAlice(
-        OrderIOCalculationV2 memory aliceOrderIOCalculation,
-        OrderIOCalculationV2 memory bobOrderIOCalculation
+        OrderIOCalculationV3 memory aliceOrderIOCalculation,
+        OrderIOCalculationV3 memory bobOrderIOCalculation
     )
         internal
         pure
