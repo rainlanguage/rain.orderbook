@@ -2,13 +2,13 @@
 	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress, wagmiConfig } from '$lib/stores/wagmi';
+
 	const queryClient = useQueryClient();
 
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
@@ -57,4 +57,5 @@
 	{activeOrderbookRef}
 	{handleDepositOrWithdrawModal}
 	{signerAddress}
+	{wagmiConfig}
 />

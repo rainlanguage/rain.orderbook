@@ -11,13 +11,10 @@ import type { Config } from '@wagmi/core';
 import { writable } from 'svelte/store';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 
-// Define the component props type
 type DeployButtonProps = ComponentProps<DeployButton>;
 
-// Create a mock wagmi config store
-const mockWagmiConfigStore = writable<Config>({ mockWagmiConfig: true } as unknown as Config);
+const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
-// Define default props object
 const defaultProps: DeployButtonProps = {
 	handleDeployModal: vi.fn() as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as (args: DisclaimerModalProps) => void,
@@ -26,7 +23,6 @@ const defaultProps: DeployButtonProps = {
 	wagmiConfig: mockWagmiConfigStore
 };
 
-// Mock result for deployment transaction args
 const mockHandleAddOrderResult: HandleAddOrderResult = {
 	approvals: [],
 	deploymentCalldata: '0x123',
