@@ -57,7 +57,7 @@ describe('DeployButton', () => {
 		} as unknown as DotrainOrderGui;
 
 		vi.mocked(useGui).mockReturnValue(mockGui);
-		
+
 		DeploymentStepsError.clear();
 	});
 
