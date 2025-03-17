@@ -93,7 +93,7 @@
 					vault={data}
 					{chainId}
 					{rpcUrl}
-					query={vaultDetailQuery}
+					refetch={$vaultDetailQuery.refetch}
 					{handleDepositOrWithdrawModal}
 					{subgraphUrl}
 				/>
