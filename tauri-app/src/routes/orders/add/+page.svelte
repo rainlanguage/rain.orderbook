@@ -223,6 +223,7 @@
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
+      onTextChange={(text) => globalDotrainFile.set({ ...$globalDotrainFile, text })}
     />
   </svelte:fragment>
 
