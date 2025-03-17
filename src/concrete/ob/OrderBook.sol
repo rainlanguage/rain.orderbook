@@ -55,6 +55,8 @@ import {
     CONTEXT_VAULT_IO_VAULT_ID
 } from "../../lib/LibOrderBook.sol";
 import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol";
+import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
+import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -99,6 +101,12 @@ error NegativeOutput();
 
 /// Thrown when a negative vault balance is being recorded.
 error NegativeVaultBalance();
+
+/// Thrown when a negative pull is attempted.
+error NegativePull();
+
+/// Thrown when a negative push is attempted.
+error NegativePush();
 
 /// Thrown when a TOFU decimals read fails during deposit.
 /// @param token The token that failed to read decimals.
@@ -197,6 +205,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
     using LibUint256Array for uint256;
+    using LibDecimalFloat for PackedFloat;
 
     /// All hashes of all active orders. There's nothing interesting in the value
     /// it's just nonzero if the order is live. The key is the hash of the order.
@@ -220,7 +229,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV5
-    function vaultBalance(address owner, address token, uint256 vaultId) external view override returns (uint256) {
+    function vaultBalance2(address owner, address token, uint256 vaultId) external view override returns (PackedFloat) {
         return sVaultBalances[owner][token][vaultId];
     }
 
@@ -231,7 +240,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
     /// @inheritdoc IOrderBookV5
     function entask2(TaskV2[] calldata post) external nonReentrant {
-        LibOrderBook.doPost(new uint256[][](0), post);
+        LibOrderBook.doPost(new bytes32[][](0), post);
     }
 
     /// Trust on first use (TOFU) token decimals.
@@ -269,13 +278,14 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
         }
 
-        uint256 readDecimals = abi.decode(returnData, (uint256));
-        if (readDecimals > type(uint8).max) {
+        uint256 decodedDecimals = abi.decode(returnData, (uint256));
+        if (decodedDecimals > type(uint8).max) {
             return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
         }
+        uint8 readDecimals = uint8(decodedDecimals);
 
         if (!tofuTokenDecimals.initialized) {
-            sTOFUTokenDecimals[token] = TOFUTokenDecimals(true, readDecimals);
+            sTOFUTokenDecimals[token] = TOFUTokenDecimals({initialized: true, tokenDecimals: readDecimals});
             return (TOFUOutcome.Initial, readDecimals);
         } else {
             return (
@@ -295,7 +305,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
 
-        uint256 depositAmount = pullTokens(token, depositAmountSignedCoefficient, depositAmountExponent);
+        (uint256 depositAmount, uint8 decimals) = pullTokens(IERC20(token), depositAmountSignedCoefficient, depositAmountExponent);
+        (decimals);
 
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
@@ -305,18 +316,19 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
         (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
             currentVaultBalancePacked.unpack();
-        sVaultBalances[msg.sender][token][vaultId] = LibDecimalFloat.add(
+        (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.add(
             currentVaultBalanceSignedCoefficient,
             currentVaultBalanceExponent,
             depositAmountSignedCoefficient,
             depositAmountExponent
         );
+        sVaultBalances[msg.sender][token][vaultId] = LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
 
         if (post.length != 0) {
             LibOrderBook.doPost(
-                LibUint256Matrix.matrixFrom(
-                    LibUint256Array.arrayFrom(
-                        uint256(uint160(token)), vaultId, currentVaultBalancePacked, depositAmountPacked
+                LibBytes32Matrix.matrixFrom(
+                    LibBytes32Array.arrayFrom(
+                        bytes32(uint256(uint160(token))), bytes32(vaultId), bytes32(currentVaultBalancePacked), bytes32(depositAmountPacked)
                     )
                 ),
                 post
@@ -1116,13 +1128,16 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    function pullTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent)
+    function pullTokens(IERC20 token, int256 amountSignedCoefficient, int256 amountExponent)
         internal
         returns (uint256, uint8)
     {
         (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+        if (LibDecimalFloat.lt(amountSignedCoefficient, amountExponent, 0, 0)) {
+            revert NegativePull();
         }
 
         (uint256 amount, bool lossless) =
@@ -1137,7 +1152,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (amount, decimals);
     }
 
-    function pushTokens(IERC20 token, uint256 amountSignedCoefficient, uint256 amountExponent)
+    function pushTokens(IERC20 token, int256 amountSignedCoefficient, int256 amountExponent)
         internal
         returns (uint256, uint8)
     {
@@ -1147,6 +1162,10 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
         if (tofuOutcome == TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+
+        if (LibDecimalFloat.lt(amountSignedCoefficient, amountExponent, 0, 0)) {
+            revert NegativePush();
         }
 
         (uint256 amount, bool lossless) =

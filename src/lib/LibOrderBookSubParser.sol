@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {AuthoringMetaV2, Operand} from "rain.interpreter.interface/interface/ISubParserV3.sol";
+import {AuthoringMetaV2, OperandV2} from "rain.interpreter.interface/interface/unstable/ISubParserV4.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {LibSubParse} from "rain.interpreter/lib/parse/LibSubParse.sol";
 import {
@@ -98,12 +98,12 @@ uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
-    function subParserSender(uint256, uint256, Operand) internal pure returns (bool, bytes memory, bytes32[] memory) {
+    function subParserSender(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
 
-    function subParserCallingContract(uint256, uint256, Operand)
+    function subParserCallingContract(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -112,7 +112,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_CALLING_CONTRACT);
     }
 
-    function subParserOrderHash(uint256, uint256, Operand)
+    function subParserOrderHash(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -121,7 +121,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH);
     }
 
-    function subParserOrderOwner(uint256, uint256, Operand)
+    function subParserOrderOwner(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -130,7 +130,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER);
     }
 
-    function subParserOrderCounterparty(uint256, uint256, Operand)
+    function subParserOrderCounterparty(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -140,7 +140,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY);
     }
 
-    function subParserMaxOutput(uint256, uint256, Operand)
+    function subParserMaxOutput(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -149,12 +149,12 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT);
     }
 
-    function subParserIORatio(uint256, uint256, Operand) internal pure returns (bool, bytes memory, bytes32[] memory) {
+    function subParserIORatio(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_IO_RATIO);
     }
 
-    function subParserInputToken(uint256, uint256, Operand)
+    function subParserInputToken(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -163,7 +163,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
-    function subParserInputTokenDecimals(uint256, uint256, Operand)
+    function subParserInputTokenDecimals(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -172,7 +172,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
-    function subParserInputVaultId(uint256, uint256, Operand)
+    function subParserInputVaultId(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -181,7 +181,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
-    function subParserInputBalanceBefore(uint256, uint256, Operand)
+    function subParserInputBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -190,7 +190,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
-    function subParserInputBalanceDiff(uint256, uint256, Operand)
+    function subParserInputBalanceDiff(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -199,7 +199,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
-    function subParserOutputToken(uint256, uint256, Operand)
+    function subParserOutputToken(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -208,7 +208,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
-    function subParserOutputTokenDecimals(uint256, uint256, Operand)
+    function subParserOutputTokenDecimals(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -217,7 +217,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
-    function subParserOutputVaultId(uint256, uint256, Operand)
+    function subParserOutputVaultId(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -226,7 +226,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
-    function subParserOutputBalanceBefore(uint256, uint256, Operand)
+    function subParserOutputBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -235,7 +235,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
-    function subParserOutputBalanceDiff(uint256, uint256, Operand)
+    function subParserOutputBalanceDiff(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -244,16 +244,16 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
-    function subParserSigners(uint256, uint256, Operand operand)
+    function subParserSigners(uint256, uint256, OperandV2 operand)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, Operand.unwrap(operand));
+        return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, uint256(OperandV2.unwrap(operand)));
     }
 
-    function subParserDepositToken(uint256, uint256, Operand)
+    function subParserDepositToken(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -262,7 +262,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN);
     }
 
-    function subParserDepositVaultId(uint256, uint256, Operand)
+    function subParserDepositVaultId(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -272,7 +272,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
     }
 
-    function subParserDepositVaultBalance(uint256, uint256, Operand)
+    function subParserDepositVaultBalance(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -283,7 +283,7 @@ library LibOrderBookSubParser {
         );
     }
 
-    function subParserDepositAmount(uint256, uint256, Operand)
+    function subParserDepositAmount(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -292,7 +292,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
     }
 
-    function subParserWithdrawToken(uint256, uint256, Operand)
+    function subParserWithdrawToken(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -301,7 +301,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN);
     }
 
-    function subParserWithdrawVaultId(uint256, uint256, Operand)
+    function subParserWithdrawVaultId(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -311,7 +311,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID);
     }
 
-    function subParserWithdrawVaultBalance(uint256, uint256, Operand)
+    function subParserWithdrawVaultBalance(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -322,7 +322,7 @@ library LibOrderBookSubParser {
         );
     }
 
-    function subParserWithdrawAmount(uint256, uint256, Operand)
+    function subParserWithdrawAmount(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -331,7 +331,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_AMOUNT);
     }
 
-    function subParserWithdrawTargetAmount(uint256, uint256, Operand)
+    function subParserWithdrawTargetAmount(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
@@ -342,13 +342,13 @@ library LibOrderBookSubParser {
         );
     }
 
-    function subParserSignedContext(uint256, uint256, Operand operand)
+    function subParserSignedContext(uint256, uint256, OperandV2 operand)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
-        uint256 column = Operand.unwrap(operand) & 0xFF;
-        uint256 row = (Operand.unwrap(operand) >> 8) & 0xFF;
+        uint256 column = uint256(OperandV2.unwrap(operand)) & 0xFF;
+        uint256 row = (uint256(OperandV2.unwrap(operand)) >> 8) & 0xFF;
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_START_COLUMN + column, row);
     }
