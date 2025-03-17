@@ -8,7 +8,6 @@ import { useGui } from '../lib/hooks/useGui';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
-import { writable } from 'svelte/store';
 
 type DeployButtonProps = ComponentProps<DeployButton>;
 
