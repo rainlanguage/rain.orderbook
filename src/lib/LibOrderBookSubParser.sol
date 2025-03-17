@@ -98,7 +98,11 @@ uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
-    function subParserSender(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
+    function subParserSender(uint256, uint256, OperandV2)
+        internal
+        pure
+        returns (bool, bytes memory, bytes32[] memory)
+    {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
@@ -149,7 +153,11 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT);
     }
 
-    function subParserIORatio(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
+    function subParserIORatio(uint256, uint256, OperandV2)
+        internal
+        pure
+        returns (bool, bytes memory, bytes32[] memory)
+    {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_IO_RATIO);
     }

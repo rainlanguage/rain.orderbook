@@ -4,19 +4,19 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3,
-    EvaluableV3,
-    TaskV1,
-    OrderV3,
+    OrderConfigV4,
+    EvaluableV4,
+    TaskV2,
+    OrderV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
-    using LibOrder for OrderV3;
+    using LibOrder for OrderV4;
     using Strings for address;
     using Strings for uint256;
 
@@ -39,14 +39,14 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
 
     function checkAddOrder(
         address owner,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(owner);
-        TaskV1[] memory actions = evalsToActions(evalStrings);
+        TaskV2[] memory actions = evalsToActions(evalStrings);
         vm.record();
         bool stateChanged = iOrderbook.addOrder2(config, actions);
         assert(stateChanged != nonces[config.nonce]);
@@ -59,27 +59,27 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderEmptyNoop(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderEmptyNoop(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](0);
         checkAddOrder(alice, config, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderOneStateless(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderOneStateless(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkAddOrder(alice, config, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderOneReadState(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderOneReadState(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         checkAddOrder(alice, config, evals, 2, 1);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderWriteStateSingle(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderWriteStateSingle(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
         config.nonce = bytes32(uint256(0));
@@ -92,7 +92,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderWriteStateSequential(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderWriteStateSequential(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
@@ -102,7 +102,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderWriteStateDifferentOwnersNamespaced(address alice, address bob, OrderConfigV3 memory config)
+    function testAddOrderWriteStateDifferentOwnersNamespaced(address alice, address bob, OrderConfigV4 memory config)
         external
     {
         vm.assume(alice != bob);
@@ -138,7 +138,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     /// Evals DO NOT eval if the adding of an order is a noop.
     /// I.e. if the order is added twice the second time nothing happens.
     /// forge-config: default.fuzz.runs = 10
-    function testAddLiveOrderNoop(address alice, OrderConfigV3 memory config) external {
+    function testAddLiveOrderNoop(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](0);
         checkAddOrder(alice, config, evals0, 0, 0);
 
@@ -153,31 +153,31 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
     /// forge-config: default.assertions_revert = false
     /// forge-config: default.legacy_assertions = true
     /// forge-config: default.fuzz.runs = 10
-    function testAddLiveOrderRevertNoAdd(address alice, OrderConfigV3 memory config) external {
+    function testAddLiveOrderRevertNoAdd(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":ensure(0 \"always revert\");");
 
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(alice);
-        TaskV1[] memory actions = evalsToActions(evals0);
+        TaskV2[] memory actions = evalsToActions(evals0);
         vm.expectRevert("always revert");
         bool stateChanged = iOrderbook.addOrder2(config, actions);
         assert(!stateChanged);
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         assert(!iOrderbook.orderExists(order.hash()));
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testAddOrderContext(address alice, OrderConfigV3 memory config) external {
+    function testAddOrderContext(address alice, OrderConfigV4 memory config) external {
         // Need this conform here so that the order doesn't get mutated and
         // change the hash.
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         bytes32 orderHash = order.hash();
 
         bytes[] memory evals = new bytes[](3);
