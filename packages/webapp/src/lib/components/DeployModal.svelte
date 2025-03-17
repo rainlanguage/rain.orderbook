@@ -3,8 +3,6 @@
 	import TransactionModal from './TransactionModal.svelte';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 
-	console.log('CONFIG', $wagmiConfig);
-
 	export let open: boolean = false;
 	export let args: DeploymentArgs;
 
