@@ -5,6 +5,9 @@ import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
+import { type ComponentProps } from 'svelte';
+
+type OrderDetailProps = ComponentProps<OrderDetail>;
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -13,7 +16,7 @@ const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 const mockOrder: SgOrder = {
 	id: 'mockId',
 	owner: 'mockOwner',
-	orderHash: 'mockOrderHash',
+	orderHash: 'mockOrderHash',fix test
 	active: true,
 	meta: '0x',
 	timestampAdded: '1234567890',
@@ -22,10 +25,15 @@ const mockOrder: SgOrder = {
 	outputs: []
 } as unknown as SgOrder;
 
-vi.mock('@tanstack/svelte-query');
+const defaultProps: OrderDetailProps = {
+	orderHash: 'mockHash',
+	subgraphUrl: 'https://example.com',
+	walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+	chainId: 1,
+	orderbookAddress: '0x123'
+};
 
-const chainId = 1;
-const orderbookAddress = '0x123';
+vi.mock('@tanstack/svelte-query');
 
 describe('OrderDetail Component', () => {
 	it('shows the correct empty message when the query returns no data', async () => {
@@ -43,13 +51,7 @@ describe('OrderDetail Component', () => {
 		})) as Mock;
 
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => expect(screen.getByText('Order not found')).toBeInTheDocument());
@@ -74,14 +76,7 @@ describe('OrderDetail Component', () => {
 		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
 
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -94,14 +89,7 @@ describe('OrderDetail Component', () => {
 		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
 
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal: vi.fn(),
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -198,13 +186,7 @@ describe('OrderDetail Component', () => {
 		})) as Mock;
 		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
 		render(OrderDetail, {
-			props: {
-				orderHash: mockOrderWithVaults.orderHash,
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps
 		});
 
 		await waitFor(() => {
@@ -239,13 +221,7 @@ describe('OrderDetail Component', () => {
 		})) as any;
 
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps
 		});
 
 		const refreshButton = screen.getByTestId('refresh-button');
