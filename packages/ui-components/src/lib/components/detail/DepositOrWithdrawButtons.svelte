@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
@@ -8,11 +9,10 @@
 	export let vault: SgVault;
 	export let chainId: number;
 	export let rpcUrl: string;
-	export let refetch: () => void;
+	export let query: CreateQueryResult;
 	export let subgraphUrl: string;
 </script>
 
-a
 <Button
 	data-testid="depositOrWithdrawButton"
 	color="light"
@@ -22,7 +22,7 @@ a
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: refetch,
+				onDepositOrWithdraw: $query.refetch,
 				action: 'deposit',
 				chainId,
 				rpcUrl,
@@ -39,7 +39,7 @@ a
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: refetch,
+				onDepositOrWithdraw: $query.refetch,
 				action: 'withdraw',
 				chainId,
 				rpcUrl,
