@@ -15,10 +15,11 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-
+	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
@@ -29,8 +30,6 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
-	import type { Config } from 'wagmi';
-	import type { Writable } from 'svelte/store';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -47,10 +46,8 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -162,7 +159,7 @@
 													{vault}
 													{chainId}
 													{rpcUrl}
-													refetch={$orderDetailQuery.refetch}
+													query={orderDetailQuery}
 													{handleDepositOrWithdrawModal}
 													{subgraphUrl}
 												/>
