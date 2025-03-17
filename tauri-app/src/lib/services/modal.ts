@@ -8,26 +8,23 @@ import ModalTradeDebug from '$lib/components/modal/ModalTradeDebug.svelte';
 import type { Hex } from 'viem';
 import ModalQuoteDebug from '$lib/components/modal/ModalQuoteDebug.svelte';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
-import type { CreateQueryResult } from '@tanstack/svelte-query';
-import { get } from 'svelte/store';
 
 export const handleDepositGenericModal = () => {
   new ModalVaultDepositGeneric({ target: document.body, props: { open: true } });
 };
 
-export const handleDepositModal = (vault: SgVault, query: CreateQueryResult) => {
-  const queryStore = get(query);
+export const handleDepositModal = (vault: SgVault, onDeposit: () => void) => {
+
   new ModalVaultDeposit({
     target: document.body,
-    props: { open: true, vault, onDeposit: queryStore.refetch },
+    props: { open: true, vault, onDeposit },
   });
 };
 
-export const handleWithdrawModal = (vault: SgVault, query: CreateQueryResult) => {
-  const queryStore = get(query);
+export const handleWithdrawModal = (vault: SgVault, onWithdraw: () => void) => {
   new ModalVaultWithdraw({
     target: document.body,
-    props: { open: true, vault, onWithdraw: queryStore.refetch },
+    props: { open: true, vault, onWithdraw },
   });
 };
 
