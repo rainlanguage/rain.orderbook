@@ -14,7 +14,6 @@ export const handleDepositGenericModal = () => {
 };
 
 export const handleDepositModal = (vault: SgVault, onDeposit: () => void) => {
-
   new ModalVaultDeposit({
     target: document.body,
     props: { open: true, vault, onDeposit },
