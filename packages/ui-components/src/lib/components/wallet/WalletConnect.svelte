@@ -12,9 +12,6 @@
 	export let connected: Writable<boolean>;
 	export let signerAddress: Writable<string | null>;
 
-	$: console.log('connected', $connected);
-	$: console.log('signerAddress', $signerAddress);
-
 	function handleClick() {
 		$appKitModal.open();
 	}
