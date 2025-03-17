@@ -172,7 +172,6 @@
 				</p>
 			</svelte:fragment>
 		</CardProperty>
-
 		<CardProperty>
 			<svelte:fragment slot="key">Orders as output</svelte:fragment>
 			<svelte:fragment slot="value">
