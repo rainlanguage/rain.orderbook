@@ -15,11 +15,10 @@ import {
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV4, NoOrders} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
-    IOrderBookV4,
-    IOrderBookV4ArbOrderTakerV2,
-    IOrderBookV4OrderTaker,
-    TaskV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV4ArbOrderTakerV2.sol";
+    IOrderBookV5,
+    IOrderBookV5ArbOrderTaker,
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5ArbOrderTaker.sol";
 import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
@@ -36,8 +35,8 @@ error NonZeroBeforeArbInputs(uint256 inputs);
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
-abstract contract OrderBookV4ArbOrderTaker is
-    IOrderBookV4ArbOrderTakerV2,
+abstract contract OrderBookV5ArbOrderTaker is
+    IOrderBookV5ArbOrderTaker,
     ReentrancyGuard,
     ERC165,
     OrderBookV4ArbCommon
@@ -53,7 +52,7 @@ abstract contract OrderBookV4ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV4ArbOrderTakerV2
-    function arb3(IOrderBookV4 orderBook, TakeOrdersConfigV3 calldata takeOrders, TaskV1 calldata task)
+    function arb3(IOrderBookV4 orderBook, TakeOrdersConfigV3 calldata takeOrders, TaskV2 calldata task)
         external
         payable
         nonReentrant
