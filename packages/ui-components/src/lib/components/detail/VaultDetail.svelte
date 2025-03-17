@@ -11,18 +11,20 @@
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
+
 	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
+
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
+	import type { Config } from 'wagmi';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import type { Config } from 'wagmi';
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -31,7 +33,6 @@
 	export let network: string;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
-
 	// Tauri App modals
 	export let handleDepositModal: ((vault: SgVault, onDeposit: () => void) => void) | undefined =
 		undefined;
@@ -42,9 +43,8 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
@@ -93,7 +93,7 @@
 					vault={data}
 					{chainId}
 					{rpcUrl}
-					refetch={$vaultDetailQuery.refetch}
+					query={vaultDetailQuery}
 					{handleDepositOrWithdrawModal}
 					{subgraphUrl}
 				/>
