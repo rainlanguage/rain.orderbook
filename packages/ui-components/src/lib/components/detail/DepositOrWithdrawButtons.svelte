@@ -3,13 +3,15 @@
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
+	import type { CreateQueryResult } from '@tanstack/svelte-query';
 
 	export let vault: SgVault;
 	export let chainId: number;
 	export let rpcUrl: string;
-	export let refetch: () => void;
 	export let subgraphUrl: string;
+	export let query: CreateQueryResult;
 	export let handleDepositOrWithdrawModal: (props: DepositOrWithdrawModalProps) => void;
+	export let onDepositOrWithdraw: () => void = $query.refetch;
 </script>
 
 <div class="flex gap-x-2">
@@ -22,7 +24,7 @@
 				open: true,
 				args: {
 					vault,
-					onDepositOrWithdraw: refetch,
+					onDepositOrWithdraw,
 					action: 'deposit',
 					chainId,
 					rpcUrl,
@@ -39,7 +41,7 @@
 				open: true,
 				args: {
 					vault,
-					onDepositOrWithdraw: refetch,
+					onDepositOrWithdraw,
 					action: 'withdraw',
 					chainId,
 					rpcUrl,

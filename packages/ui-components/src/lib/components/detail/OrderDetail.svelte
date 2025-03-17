@@ -68,7 +68,7 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
-
+	$: onDepositOrWithdraw = $orderDetailQuery.refetch;
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
 </script>
 
@@ -159,9 +159,10 @@
 													{vault}
 													{chainId}
 													{rpcUrl}
-													onDepositOrWithdraw={$orderDetailQuery.refetch}
+													{onDepositOrWithdraw}
 													{handleDepositOrWithdrawModal}
 													{subgraphUrl}
+													query={orderDetailQuery}
 												/>
 											{/if}
 										</svelte:fragment>
