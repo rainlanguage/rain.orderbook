@@ -16,7 +16,7 @@ const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 const mockOrder: SgOrder = {
 	id: 'mockId',
 	owner: 'mockOwner',
-	orderHash: 'mockOrderHash',fix test
+	orderHash: 'mockOrderHash',
 	active: true,
 	meta: '0x',
 	timestampAdded: '1234567890',
