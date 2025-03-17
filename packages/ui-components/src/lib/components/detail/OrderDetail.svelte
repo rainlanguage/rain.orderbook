@@ -159,7 +159,7 @@
 													{vault}
 													{chainId}
 													{rpcUrl}
-													query={orderDetailQuery}
+													onDepositOrWithdraw={$orderDetailQuery.refetch}
 													{handleDepositOrWithdrawModal}
 													{subgraphUrl}
 												/>
