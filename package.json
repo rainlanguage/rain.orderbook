@@ -26,6 +26,10 @@
         "check:all": "npm run check --workspaces --if-present",
         "lint-format-check:all": "npm run lint:all && npm run format:all && npm run check:all"
     },
+    "workspaces": [
+        "packages/*",
+        "tauri-app"
+    ],
     "devDependencies": {
         "@square/svelte-store": "1.0.18",
         "@sveltejs/adapter-auto": "3.3.1",
@@ -83,9 +87,5 @@
         "svelte-markdown": "0.4.1",
         "truncate-eth-address": "1.0.2",
         "wagmi": "2.14.7"
-    },
-    "workspaces": [
-        "packages/*",
-        "tauri-app"
-    ]
+    }
 }
