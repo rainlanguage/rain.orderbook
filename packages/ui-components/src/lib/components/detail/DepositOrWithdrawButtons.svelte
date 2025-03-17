@@ -9,7 +9,7 @@
 	export let vault: SgVault;
 	export let chainId: number;
 	export let rpcUrl: string;
-	export let query: CreateQueryResult;
+	export let refetch: () => void;
 	export let subgraphUrl: string;
 </script>
 
@@ -22,7 +22,7 @@
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: $query.refetch,
+				onDepositOrWithdraw: refetch,
 				action: 'deposit',
 				chainId,
 				rpcUrl,
@@ -39,7 +39,7 @@
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: $query.refetch,
+				onDepositOrWithdraw: refetch,
 				action: 'withdraw',
 				chainId,
 				rpcUrl,
