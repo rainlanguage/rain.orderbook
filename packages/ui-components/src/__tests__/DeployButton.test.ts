@@ -7,9 +7,8 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '../lib/hooks/useGui';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
-import type { Config } from '@wagmi/core';
-import { writable } from 'svelte/store';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
+import { writable } from 'svelte/store';
 
 type DeployButtonProps = ComponentProps<DeployButton>;
 
@@ -35,23 +34,12 @@ vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
 
-vi.mock('../lib/stores/wagmi', () => ({
-	wagmiConfig: {
-		subscribe: vi.fn((callback) => {
-			callback({ mockWagmiConfig: true });
-			return () => {};
-		})
-	}
-}));
-
 vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
 
 describe('DeployButton', () => {
 	let mockGui: DotrainOrderGui;
-	let mockHandleDeployModal: ReturnType<typeof vi.fn>;
-	let mockHandleDisclaimerModal: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -69,10 +57,7 @@ describe('DeployButton', () => {
 		} as unknown as DotrainOrderGui;
 
 		vi.mocked(useGui).mockReturnValue(mockGui);
-
-		mockHandleDeployModal = vi.fn();
-		mockHandleDisclaimerModal = vi.fn();
-
+		
 		DeploymentStepsError.clear();
 	});
 
@@ -113,10 +98,7 @@ describe('DeployButton', () => {
 		fireEvent.click(screen.getByText('Deploy Strategy'));
 
 		await waitFor(() => {
-			expect(mockHandleDisclaimerModal).toHaveBeenCalledWith({
-				open: true,
-				onAccept: expect.any(Function)
-			});
+			expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
 		});
 	});
 
@@ -141,29 +123,30 @@ describe('DeployButton', () => {
 	});
 
 	it('opens the deploy modal when disclaimer is accepted', async () => {
-		const mockResult = { mockResult: true };
+		const props = { ...defaultProps };
 		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
-			mockResult as unknown as HandleAddOrderResult
+			mockHandleAddOrderResult
 		);
 
-		render(DeployButton, {
-			props: defaultProps
-		});
+		render(DeployButton, { props });
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
 
 		await waitFor(() => {
-			expect(mockHandleDisclaimerModal).toHaveBeenCalled();
+			expect(props.handleDisclaimerModal).toHaveBeenCalledWith({
+				open: true,
+				onAccept: expect.any(Function)
+			});
 		});
 
-		const onAccept = mockHandleDisclaimerModal.mock.calls[0][0].onAccept;
-
+		// Get the onAccept callback from the disclaimer modal call
+		const onAccept = vi.mocked(props.handleDisclaimerModal).mock.calls[0][0].onAccept;
 		onAccept();
 
-		expect(mockHandleDeployModal).toHaveBeenCalledWith({
+		expect(props.handleDeployModal).toHaveBeenCalledWith({
 			open: true,
 			args: {
-				...mockResult,
+				...mockHandleAddOrderResult,
 				subgraphUrl: 'https://test.subgraph',
 				chainId: 1337,
 				network: 'testnet'
