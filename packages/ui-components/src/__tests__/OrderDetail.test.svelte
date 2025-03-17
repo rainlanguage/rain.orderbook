@@ -81,7 +81,7 @@
 											{vault}
 											chainId={1}
 											rpcUrl="https://example.com"
-											query={orderDetailQuery}
+											refetch={$orderDetailQuery.refetch}
 											handleDepositOrWithdrawModal={() => {}}
 											{subgraphUrl}
 										/>
