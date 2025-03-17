@@ -122,7 +122,7 @@ describe('SelectToken', () => {
 		await user.paste('invalid');
 		await waitFor(() => {
 			expect(mockGui.saveSelectToken).toHaveBeenCalled();
-			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(2);
+			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
 
