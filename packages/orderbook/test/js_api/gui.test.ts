@@ -974,22 +974,20 @@ ${dotrain}`;
 
 			const yamlFields: YamlFields = await gui.getYamlFields();
 
-			console.log(yamlFields);
+			assert.equal(yamlFields.fieldDefinitionsWithoutDefaults.length, 1);
+			assert.equal(yamlFields.fieldDefinitionsWithoutDefaults[0].binding, 'binding-2');
 
-			assert.equal(yamlFields.field_definitions_without_defaults.length, 1);
-			assert.equal(yamlFields.field_definitions_without_defaults[0].binding, 'binding-2');
-
-			assert.equal(yamlFields.field_definitions_with_defaults.length, 1);
-			assert.equal(yamlFields.field_definitions_with_defaults[0].binding, 'binding-1');
+			assert.equal(yamlFields.fieldDefinitionsWithDefaults.length, 1);
+			assert.equal(yamlFields.fieldDefinitionsWithDefaults[0].binding, 'binding-1');
 
 			assert.equal(yamlFields.deposits.length, 1);
 			assert.equal(yamlFields.deposits[0].token?.key, 'token1');
 
-			assert.equal(yamlFields.order_inputs.length, 1);
-			assert.equal(yamlFields.order_inputs[0].token?.key, 'token1');
+			assert.equal(yamlFields.orderInputs.length, 1);
+			assert.equal(yamlFields.orderInputs[0].token?.key, 'token1');
 
-			assert.equal(yamlFields.order_outputs.length, 1);
-			assert.equal(yamlFields.order_outputs[0].token?.key, 'token2');
+			assert.equal(yamlFields.orderOutputs.length, 1);
+			assert.equal(yamlFields.orderOutputs[0].token?.key, 'token2');
 		});
 	});
 
