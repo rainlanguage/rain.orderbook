@@ -1,19 +1,8 @@
 name: Manual Packages Release
 on:
-  workflow_dispatch:
-    inputs:
-      version-level:
-        description: "Select Version Level"
-        required: true
-        type: choice
-        options:
-          - alpha # Increase the alpha pre-version (x.y.z-alpha.M)
-          - beta # Increase the beta pre-version (x.y.z-beta.M)
-          - patch # Increase the patch version (x.y.z)
-          - minor # Increase the minor version (x.y.0)
-          - major # Increase the major version (x.0.0)
-          - release # Remove the pre-version, ie remove alpha/beta/rc (x.y.z)
-          - rc # Increase the rc pre-version (x.y.z-rc.M)
+  push:
+    branches:
+      - main
 
 jobs:
   release:
@@ -81,24 +70,8 @@ jobs:
       # set npm version
       - name: Set Version
         run: |
-          if [ "${{ inputs.level }}" == "alpha" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid alpha --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "beta" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid beta --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "rc" ]; then
-            echo "NEW_VERSION=$(npm version prerelease --preid rc --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "patch" ]; then
-            echo "NEW_VERSION=$(npm version patch --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "minor" ]; then
-            echo "NEW_VERSION=$(npm version minor --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "major" ]; then
-            echo "NEW_VERSION=$(npm version major --no-git-tag-version -ws)" >> $GITHUB_ENV
-          elif [ "${{ inputs.level }}" == "release" ]; then
-            echo "NEW_VERSION=$(npm version patch --no-git-tag-version -ws)" >> $GITHUB_ENV
-          else
-            echo "Invalid version level: ${{ inputs.level }}"
-            exit 1
-          fi
+          npm version prerelease --preid alpha --no-git-tag-version -ws -w @rainlanguage/ui-components -w @rainlanguage/orderbook
+          echo "NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)" >> $GITHUB_ENV
 
       - name: Update orderbook Dependency Version for ui-components
         run: npm install -w @rainlanguage/ui-components @rainlanguage/orderbook@${{ env.NEW_VERSION }}
@@ -108,8 +81,6 @@ jobs:
         run: |
           git add "packages/orderbook/package.json"
           git add "packages/ui-components/package.json"
-          git add "packages/webapp/package.json"
-          git add "tauri-app/package.json"
           git add "package-lock.json"
           git commit -m "NPM Package Release ${{ env.NEW_VERSION }}"
           git tag ${{ env.NEW_VERSION }}
