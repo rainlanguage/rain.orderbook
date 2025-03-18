@@ -204,7 +204,7 @@ test('renders table with correct data', async () => {
 test('renders a debug button for each trade', async () => {
 	const queryClient = new QueryClient();
 
-	mockIPC((cmd) => {
+	mockIPC((cmd: string) => {
 		if (cmd === 'order_trades_list') {
 			return mockTradeOrdersList;
 		}

@@ -4,19 +4,15 @@ import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionIn
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: vi.fn().mockImplementation(() => ({
-		saveFieldValue: vi.fn(),
-		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn(),
-		getAllFieldValues: vi.fn(),
-		getCurrentDeployment: vi.fn()
-	}))
+import { useGui } from '$lib/hooks/useGui';
+
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
 }));
 
 describe('FieldDefinitionInput', () => {
-	let mockGui: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
+	let mockGui: DotrainOrderGui;
 
 	const mockFieldDefinition = {
 		binding: 'test-binding',
@@ -29,19 +25,24 @@ describe('FieldDefinitionInput', () => {
 	};
 
 	beforeEach(() => {
+		vi.clearAllMocks();
 		mockStateUpdateCallback = vi.fn();
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		mockGui = new (DotrainOrderGui as any)();
-		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
+		mockGui = {
+			saveFieldValue: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			}),
+			getFieldValue: vi.fn().mockReturnValue({
+				isPreset: false,
+				value: 'preset1'
+			})
+		} as unknown as DotrainOrderGui;
+		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -52,8 +53,7 @@ describe('FieldDefinitionInput', () => {
 	it('renders preset buttons', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -64,8 +64,7 @@ describe('FieldDefinitionInput', () => {
 	it('handles preset button clicks and triggers state update', async () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
+				fieldDefinition: mockFieldDefinition
 			}
 		});
 
@@ -81,8 +80,7 @@ describe('FieldDefinitionInput', () => {
 	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
-				gui: mockGui
+				fieldDefinition: { ...mockFieldDefinition, showCustomField: true }
 			}
 		});
 
@@ -104,8 +102,7 @@ describe('FieldDefinitionInput', () => {
 
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
+				fieldDefinition: fastExitFieldDef
 			}
 		});
 
@@ -113,14 +110,17 @@ describe('FieldDefinitionInput', () => {
 	});
 
 	it('renders default value if it exists', async () => {
+		(mockGui.getFieldValue as Mock).mockReturnValue({
+			isPreset: false,
+			value: 'default value'
+		});
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
 				fieldDefinition: {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
+				}
 			}
 		});
 
@@ -146,8 +146,7 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
+				}
 			}
 		});
 

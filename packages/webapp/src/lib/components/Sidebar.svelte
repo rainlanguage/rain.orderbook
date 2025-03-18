@@ -26,6 +26,7 @@
 
 	import { onMount } from 'svelte';
 	import { connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+
 	export let colorTheme;
 	export let page;
 

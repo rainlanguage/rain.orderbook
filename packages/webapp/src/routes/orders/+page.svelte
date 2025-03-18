@@ -2,9 +2,8 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { signerAddress } from '$lib/stores/wagmi';
-	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
+	import { signerAddress, connected } from '$lib/stores/wagmi';
 
 	const {
 		activeSubgraphs,
@@ -33,9 +32,9 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
 	{currentRoute}
+	{signerAddress}
 />

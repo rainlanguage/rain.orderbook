@@ -64,8 +64,8 @@ describe('transactionStore', () => {
 			functionName: '',
 			message: '',
 			newOrderHash: '',
-			network: '',
-			explorerLink: ''
+			explorerLink: '',
+			network: ''
 		});
 	});
 
@@ -123,7 +123,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
@@ -141,7 +141,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -161,7 +161,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -182,7 +182,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -200,7 +200,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -219,7 +219,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
@@ -246,7 +246,7 @@ describe('transactionStore', () => {
 			orderbookAddress: mockOrderbookAddress as `0x${string}`,
 			chainId: 1,
 			subgraphUrl: 'test.com',
-			network: 'flare'
+			network: 'test'
 		});
 
 		expect(sendTransaction).toHaveBeenCalledTimes(3); // 2 approvals + 1 deployment
@@ -303,7 +303,6 @@ describe('transactionStore', () => {
 	it('should handle successful new order indexing', async () => {
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 		const mockOrderHash = 'order123';
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([
@@ -316,7 +315,7 @@ describe('transactionStore', () => {
 
 		vi.useFakeTimers({ shouldAdvanceTime: true });
 
-		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, 'test');
 
 		vi.runOnlyPendingTimers();
 
@@ -324,7 +323,6 @@ describe('transactionStore', () => {
 			expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 			expect(get(transactionStore).hash).toBe(mockTxHash);
 			expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
-			expect(get(transactionStore).network).toBe(mockNetwork);
 		});
 	});
 
@@ -332,11 +330,10 @@ describe('transactionStore', () => {
 		vi.useFakeTimers();
 		const mockSubgraphUrl = 'test.com';
 		const mockTxHash = 'mockHash';
-		const mockNetwork = 'flare';
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([]);
 
-		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
+		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, 'test');
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).message).toBe('Waiting for new order to be indexed...');
