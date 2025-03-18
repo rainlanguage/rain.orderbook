@@ -12,8 +12,16 @@ vi.mock('$lib/hooks/useGui', () => ({
 }));
 
 describe('SelectToken', () => {
-	let mockGui: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
+	const mockGui: DotrainOrderGui = {
+		saveSelectToken: vi.fn(),
+		isSelectTokenSet: vi.fn(),
+		getTokenInfo: vi.fn().mockResolvedValue({
+			symbol: 'ETH',
+			decimals: 18,
+			address: '0x456'
+		})
+	} as unknown as DotrainOrderGui;
 
 	const mockToken: GuiSelectTokensCfg = {
 		key: 'input',
@@ -23,27 +31,10 @@ describe('SelectToken', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-
-		mockGui = {
-			saveSelectToken: vi.fn().mockImplementation(() => {
-				mockStateUpdateCallback();
-				return Promise.resolve();
-			}),
-			replaceSelectToken: vi.fn().mockImplementation(() => {
-				mockStateUpdateCallback();
-				mockStateUpdateCallback();
-				return Promise.resolve();
-			}),
-			isSelectTokenSet: vi.fn(),
-			getTokenInfo: vi.fn().mockResolvedValue({
-				symbol: 'ETH',
-				decimals: 18,
-				address: '0x456'
-			})
-		} as unknown as DotrainOrderGui;
-
-		vi.mocked(useGui).mockReturnValue(mockGui);
-
+		mockGui.saveSelectToken = vi.fn().mockImplementation(() => {
+			mockStateUpdateCallback();
+			return Promise.resolve();
+		});
 		vi.clearAllMocks();
 	});
 
@@ -130,8 +121,8 @@ describe('SelectToken', () => {
 		await user.paste('invalid');
 
 		await waitFor(() => {
-			expect(mockGui.replaceSelectToken).toHaveBeenCalled();
-			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(2);
+			expect(mockGui.saveSelectToken).toHaveBeenCalled();
+			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
 
