@@ -301,7 +301,9 @@ mod tests {
             "mainnet"
         );
         let orderbook_by_address = ob_yaml
-            .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
+            .get_orderbook_by_address(
+                Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            )
             .unwrap();
         assert_eq!(orderbook_by_address, orderbook);
 
