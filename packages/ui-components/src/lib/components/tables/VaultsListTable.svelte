@@ -21,8 +21,6 @@
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 
-	export let signerAddress: Writable<string | null> | undefined = undefined;
-
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
 	export let accounts: AppStoresInterface['accounts'] | undefined;
@@ -45,6 +43,7 @@
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let signerAddress: Writable<string | null> | undefined;
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
