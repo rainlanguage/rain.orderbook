@@ -4,7 +4,7 @@
 
 	export let showMyItemsOnly: Writable<boolean>;
 	export let context: 'orders' | 'vaults';
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined;
 
 	function handleShowMyItemsChange() {
 		$showMyItemsOnly = !$showMyItemsOnly;
