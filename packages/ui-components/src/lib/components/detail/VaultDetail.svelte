@@ -111,6 +111,7 @@
 					><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
 				>
 			{/if}
+
 			<Refresh
 				on:click={async () => await invalidateIdQuery(queryClient, id)}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
@@ -171,6 +172,7 @@
 				</p>
 			</svelte:fragment>
 		</CardProperty>
+
 		<CardProperty>
 			<svelte:fragment slot="key">Orders as output</svelte:fragment>
 			<svelte:fragment slot="value">
