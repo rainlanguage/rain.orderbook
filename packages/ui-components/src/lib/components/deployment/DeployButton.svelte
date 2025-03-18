@@ -18,7 +18,7 @@
 	export let wagmiConfig: Writable<Config>;
 
 	let checkingDeployment = false;
-	let gui = useGui();
+	const gui = useGui();
 
 	const orderbookNetwork: NetworkInfo = gui.getOrderbookNetwork();
 
