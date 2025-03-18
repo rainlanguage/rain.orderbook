@@ -20,7 +20,7 @@
 	let checkingDeployment = false;
 	const gui = useGui();
 
-	const orderbookNetwork: NetworkInfo = gui.getOrderbookNetwork();
+	// TODO: Add getting network info
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
