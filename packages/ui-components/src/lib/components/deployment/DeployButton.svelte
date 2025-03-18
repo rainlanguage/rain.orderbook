@@ -7,7 +7,6 @@
 	} from './getDeploymentTransactionArgs';
 	import { useGui } from '../../hooks/useGui';
 	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
-	import type { NetworkInfo } from '@rainlanguage/orderbook/js_api';
 	import type { Writable } from 'svelte/store';
 	import type { Config } from 'wagmi';
 
@@ -45,7 +44,7 @@
 				args: {
 					...result,
 					subgraphUrl,
-					chainId: orderbookNetwork.chainId,
+					chainId: 1,
 					network
 				}
 			});

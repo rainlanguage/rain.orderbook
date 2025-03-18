@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { GuiSelectTokensCfg } from '@rainlanguage/orderbook/js_api';
-
 import { useGui } from '$lib/hooks/useGui';
 
 vi.mock('$lib/hooks/useGui', () => ({
@@ -12,9 +11,17 @@ vi.mock('$lib/hooks/useGui', () => ({
 }));
 
 describe('SelectToken', () => {
-	let mockStateUpdateCallback: Mock;
+	let mockStateUpdateCallback: Mock = vi.fn();
 	const mockGui: DotrainOrderGui = {
-		saveSelectToken: vi.fn(),
+		saveSelectToken: vi.fn().mockImplementation(() => {
+			mockStateUpdateCallback();
+			return Promise.resolve();
+		}),
+		replaceSelectToken: vi.fn().mockImplementation(() => {
+			mockStateUpdateCallback();
+			mockStateUpdateCallback();
+			return Promise.resolve();
+		}),
 		isSelectTokenSet: vi.fn(),
 		getTokenInfo: vi.fn().mockResolvedValue({
 			symbol: 'ETH',
@@ -30,11 +37,7 @@ describe('SelectToken', () => {
 	};
 
 	beforeEach(() => {
-		mockStateUpdateCallback = vi.fn();
-		mockGui.saveSelectToken = vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-			return Promise.resolve();
-		});
+		vi.mocked(useGui).mockReturnValue(mockGui);
 		vi.clearAllMocks();
 	});
 
