@@ -5,6 +5,8 @@ use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
+
 pub struct YamlFields {
     pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
     pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
