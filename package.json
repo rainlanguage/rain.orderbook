@@ -82,7 +82,7 @@
         "@sveltejs/package": "2.3.7",
         "@wagmi/core": "2.16.3",
         "flowbite": "2.5.2",
-        "flowbite-svelte": "0.44.24",
+        "flowbite-svelte": "0.44.21",
         "flowbite-svelte-icons": "0.4.5",
         "svelte-markdown": "0.4.1",
         "truncate-eth-address": "1.0.2",
