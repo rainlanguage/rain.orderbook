@@ -3,21 +3,21 @@
 pragma solidity =0.8.25;
 
 import {
-    OrderBookV4ArbOrderTaker,
+    OrderBookV5ArbOrderTaker,
     SignedContextV1,
     EvaluableV3,
     TaskV1,
-    OrderBookV4ArbConfigV2
-} from "src/abstract/OrderBookV4ArbOrderTaker.sol";
+    OrderBookV5ArbConfig
+} from "src/abstract/OrderBookV5ArbOrderTaker.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
 /// @dev We need a contract that is deployable in order to test the abstract
 /// base contract.
-contract ChildOrderBookV4ArbOrderTaker is OrderBookV4ArbOrderTaker {
+contract ChildOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
     constructor()
-        OrderBookV4ArbOrderTaker(
-            OrderBookV4ArbConfigV2(
+        OrderBookV5ArbOrderTaker(
+            OrderBookV5ArbConfig(
                 address(0),
                 TaskV1({
                     evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), ""),

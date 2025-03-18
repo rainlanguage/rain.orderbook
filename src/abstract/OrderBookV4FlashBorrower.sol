@@ -16,7 +16,7 @@ import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface
 import {IOrderBookV4, TakeOrdersConfigV3, NoOrders, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {OrderBookV4ArbConfigV2, OrderBookV4ArbCommon} from "./OrderBookV4ArbCommon.sol";
+import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon.sol";
 import {EvaluableV3, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
@@ -61,11 +61,11 @@ error SwapFailed();
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV4ArbCommon {
+abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV5ArbCommon {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
+    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -130,7 +130,7 @@ abstract contract OrderBookV4FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
-    /// the external liquidity. For example, `GenericPoolOrderBookV4FlashBorrower`
+    /// the external liquidity. For example, `GenericPoolOrderBookV5FlashBorrower`
     /// uses this data as a literal encoded external call.
     function arb3(
         IOrderBookV4 orderBook,

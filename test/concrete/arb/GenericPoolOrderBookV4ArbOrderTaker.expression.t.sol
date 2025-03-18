@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {GenericPoolOrderBookV4ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV4ArbOrderTakerTest.sol";
+import {GenericPoolOrderBookV5ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV5ArbOrderTakerTest.sol";
 import {
-    GenericPoolOrderBookV4ArbOrderTaker,
-    OrderBookV4ArbConfigV2
-} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
+    GenericPoolOrderBookV5ArbOrderTaker,
+    OrderBookV5ArbConfig
+} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
 import {
     OrderV3,
     EvaluableV3,
@@ -23,11 +23,11 @@ import {
     DEFAULT_STATE_NAMESPACE,
     BEFORE_ARB_SOURCE_INDEX,
     WrongTask
-} from "src/abstract/OrderBookV4ArbCommon.sol";
+} from "src/abstract/OrderBookV5ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
-contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBookV4ArbOrderTakerTest {
+contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
         // We're going to test with a mock so it doesn't matter what the expression is.
         return hex"deadbeef";
@@ -47,7 +47,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
@@ -85,7 +85,7 @@ contract GenericPoolOrderBookV4ArbOrderTakerExpressionTest is GenericPoolOrderBo
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns, kvs));
         }
 
-        GenericPoolOrderBookV4ArbOrderTaker(iArb).arb3(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({

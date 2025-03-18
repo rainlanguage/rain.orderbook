@@ -18,9 +18,9 @@ import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.s
 /// @param tasks The tasks to use as post for each arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
-struct OrderBookV4ArbConfigV2 {
+struct OrderBookV5ArbConfig {
     address orderBook;
-    TaskV1 task;
+    TaskV2 task;
     bytes implementationData;
 }
 
@@ -31,14 +31,14 @@ error WrongTask();
 /// allows for some kind of access control to the arb.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
-abstract contract OrderBookV4ArbCommon {
+abstract contract OrderBookV5ArbCommon {
     using LibEvaluable for EvaluableV3;
 
-    event Construct(address sender, OrderBookV4ArbConfigV2 config);
+    event Construct(address sender, OrderBookV5ArbConfig config);
 
     bytes32 public immutable iTaskHash = 0;
 
-    constructor(OrderBookV4ArbConfigV2 memory config) {
+    constructor(OrderBookV5ArbConfig memory config) {
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
 

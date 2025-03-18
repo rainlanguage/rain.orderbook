@@ -22,7 +22,7 @@ import {
 import {IInterpreterV3, DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {TakeOrdersConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {OrderBookV4ArbConfigV2, EvaluableV3, OrderBookV4ArbCommon, SignedContextV1} from "./OrderBookV4ArbCommon.sol";
+import {OrderBookV5ArbConfig, EvaluableV3, OrderBookV5ArbCommon, SignedContextV1} from "./OrderBookV5ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
@@ -39,19 +39,19 @@ abstract contract OrderBookV5ArbOrderTaker is
     IOrderBookV5ArbOrderTaker,
     ReentrancyGuard,
     ERC165,
-    OrderBookV4ArbCommon
+    OrderBookV5ArbCommon
 {
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4ArbCommon(config) {}
+    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return (interfaceId == type(IOrderBookV4OrderTaker).interfaceId)
-            || (interfaceId == type(IOrderBookV4ArbOrderTakerV2).interfaceId) || super.supportsInterface(interfaceId);
+        return (interfaceId == type(IOrderBookV5OrderTaker).interfaceId)
+            || (interfaceId == type(IOrderBookV5ArbOrderTakerV2).interfaceId) || super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IOrderBookV4ArbOrderTakerV2
+    /// @inheritdoc IOrderBookV5ArbOrderTakerV2
     function arb3(IOrderBookV4 orderBook, TakeOrdersConfigV3 calldata takeOrders, TaskV2 calldata task)
         external
         payable
@@ -75,6 +75,6 @@ abstract contract OrderBookV5ArbOrderTaker is
         LibOrderBookArb.finalizeArb(task, ordersInputToken, ordersOutputToken);
     }
 
-    /// @inheritdoc IOrderBookV4OrderTaker
+    /// @inheritdoc IOrderBookV5OrderTaker
     function onTakeOrders(address, address, uint256, uint256, bytes calldata) public virtual override {}
 }

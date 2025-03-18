@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RouteProcessorOrderBookV4ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV4ArbOrderTakerTest.sol";
+import {RouteProcessorOrderBookV5ArbOrderTakerTest} from
+    "test/util/abstract/RouteProcessorOrderBookV5ArbOrderTakerTest.sol";
 import {
     OrderV3,
     EvaluableV3,
@@ -14,11 +14,11 @@ import {
     TaskV1,
     SignedContextV1
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTask} from "src/abstract/OrderBookV4ArbCommon.sol";
-import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
+import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTask} from "src/abstract/OrderBookV5ArbCommon.sol";
+import {RouteProcessorOrderBookV5ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
 import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 
-contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorOrderBookV4ArbOrderTakerTest {
+contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
         // We're going to test with a mock so it doesn't matter what the expression is.
         return hex"deadbeef";
@@ -38,7 +38,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
+        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
@@ -74,7 +74,7 @@ contract RouteProcessorOrderBookV4ArbOrderTakerExpressionTest is RouteProcessorO
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns));
         }
 
-        RouteProcessorOrderBookV4ArbOrderTaker(iArb).arb3(
+        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({

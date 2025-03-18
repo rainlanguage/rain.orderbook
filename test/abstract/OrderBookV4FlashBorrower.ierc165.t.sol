@@ -7,7 +7,7 @@ import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC
 import {
     OrderBookV4FlashBorrower,
     IERC3156FlashBorrower,
-    OrderBookV4ArbConfigV2,
+    OrderBookV5ArbConfig,
     TaskV1,
     SignedContextV1,
     EvaluableV3
@@ -20,7 +20,7 @@ import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpr
 contract ChildOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
     constructor()
         OrderBookV4FlashBorrower(
-            OrderBookV4ArbConfigV2(
+            OrderBookV5ArbConfig(
                 address(0),
                 TaskV1({
                     evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),

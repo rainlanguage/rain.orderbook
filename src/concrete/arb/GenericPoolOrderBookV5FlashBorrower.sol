@@ -11,10 +11,10 @@ import {
     IERC20,
     Address,
     TakeOrdersConfigV3,
-    OrderBookV4ArbConfigV2
+    OrderBookV5ArbConfig
 } from "../../abstract/OrderBookV4FlashBorrower.sol";
 
-/// @title GenericPoolOrderBookV4FlashBorrower
+/// @title GenericPoolOrderBookV5FlashBorrower
 /// Implements the OrderBookV4FlashBorrower interface for a external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
 /// `arb` is decoded into a spender, pool and callData. The `callData` is
@@ -24,11 +24,11 @@ import {
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
-contract GenericPoolOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
+contract GenericPoolOrderBookV5FlashBorrower is OrderBookV4FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV4ArbConfigV2 memory config) OrderBookV4FlashBorrower(config) {}
+    constructor(OrderBookV5ArbConfig memory config) OrderBookV4FlashBorrower(config) {}
 
     /// @inheritdoc OrderBookV4FlashBorrower
     function _exchange(TakeOrdersConfigV3 memory takeOrders, bytes memory exchangeData) internal virtual override {
