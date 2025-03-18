@@ -51,29 +51,6 @@ impl_wasm_traits!(AllTokenInfos);
 pub struct DeploymentDetails(BTreeMap<String, NameAndDescriptionCfg>);
 impl_wasm_traits!(DeploymentDetails);
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct OrderbookConfig {
-    pub id: String,
-    pub address: String,
-}
-impl_wasm_traits!(OrderbookConfig);
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct NetworkInfo {
-    pub key: String,
-    #[tsify(type = "number")]
-    pub chain_id: u64,
-    #[tsify(type = "number | undefined")]
-    pub network_id: Option<u64>,
-    pub rpc: String,
-    #[tsify(type = "string | undefined")]
-    pub label: Option<String>,
-    #[tsify(type = "string | undefined")]
-    pub currency: Option<String>,
-}
-impl_wasm_traits!(NetworkInfo);
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct DotrainOrderGui {
@@ -272,30 +249,6 @@ impl DotrainOrderGui {
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
         Ok(rainlang)
-    }
-
-    #[wasm_bindgen(js_name = "getOrderbookNetwork")]
-    pub fn get_orderbook_network(&self) -> Result<NetworkInfo, GuiError> {
-        let deployment = self.get_current_deployment()?;
-        let orderbook = deployment
-            .deployment
-            .as_ref()
-            .order
-            .as_ref()
-            .orderbook
-            .as_ref()
-            .ok_or(GuiError::OrderbookNotFound)?;
-
-        let network = &orderbook.network;
-
-        Ok(NetworkInfo {
-            key: network.key.clone(),
-            chain_id: network.chain_id,
-            network_id: network.network_id,
-            rpc: network.rpc.to_string(),
-            label: network.label.clone(),
-            currency: network.currency.clone(),
-        })
     }
 }
 
