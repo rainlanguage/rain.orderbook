@@ -1,0 +1,32 @@
+name: Manual Packages Release
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
+
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Install NodeJS v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      
+      # set npm version
+      - name: Set Version
+        run: |
+          jq -r '.version' ./packages/orderbook/package.json
