@@ -48,11 +48,7 @@
 			}
 			checking = true;
 			try {
-				if (gui.isSelectTokenSet(token.key)) {
-					await gui.replaceSelectToken(token.key, currentTarget.value);
-				} else {
-					await gui.saveSelectToken(token.key, currentTarget.value);
-				}
+				await gui.saveSelectToken(token.key, currentTarget.value);
 				await getInfoForSelectedToken();
 			} catch (e) {
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';
