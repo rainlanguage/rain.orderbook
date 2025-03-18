@@ -115,7 +115,13 @@ describe('DeploymentSteps', () => {
 			getSelectTokens: vi.fn().mockReturnValue([]),
 			getNetworkKey: vi.fn().mockReturnValue('flare'),
 			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
-			getAllFieldDefinitions: vi.fn().mockReturnValue([]),
+			getYamlFields: vi.fn().mockReturnValue({
+				deposits: [],
+				fieldDefinitionsWithoutDefaults: [],
+				fieldDefinitionsWithDefaults: [],
+				orderInputs: [],
+				orderOutputs: []
+			}),
 			hasAnyDeposit: vi.fn().mockReturnValue(false),
 			hasAnyVaultId: vi.fn().mockReturnValue(false),
 			getAllTokenInfos: vi.fn().mockResolvedValue([]),
@@ -228,7 +234,7 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
-			expect(mockGui.getAllFieldDefinitions).toHaveBeenCalled();
+			expect(mockGui.getYamlFields).toHaveBeenCalled();
 		});
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
@@ -257,7 +263,7 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
-			expect(mockGui.getAllFieldDefinitions).toHaveBeenCalled();
+			expect(mockGui.getYamlFields).toHaveBeenCalled();
 		});
 	});
 

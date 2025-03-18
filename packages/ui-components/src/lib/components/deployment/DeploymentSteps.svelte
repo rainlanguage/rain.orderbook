@@ -2,14 +2,13 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
-		type GuiDeploymentCfg,
 		type OrderIOCfg,
-		type AllTokenInfos
+		type AllTokenInfos,
+		type ConfigSource
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Toggle } from 'flowbite-svelte';
@@ -17,7 +16,6 @@
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
-
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
 	import DepositInput from './DepositInput.svelte';
@@ -35,11 +33,11 @@
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
-	let allDepositFields: GuiDepositCfg[] = [];
-	let allFieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
-	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
-	let allTokenInputs: OrderIOCfg[] = [];
-	let allTokenOutputs: OrderIOCfg[] = [];
+	let deposits: GuiDepositCfg[] = [];
+	let fieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
+	let fieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
+	let orderInputs: OrderIOCfg[] = [];
+	let orderOutputs: OrderIOCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
@@ -65,15 +63,13 @@
 	async function updateFields() {
 		try {
 			DeploymentStepsError.clear();
-			console.log('updateFields');
-			const yamlFields = gui.getYamlFields();
-			console.log('yamlFields', yamlFields);
-			let currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
-			allDepositFields = currentDeployment.deposits;
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
-			allTokenInputs = currentDeployment.deployment.order.inputs;
-			allTokenOutputs = currentDeployment.deployment.order.outputs;
+			({
+				deposits,
+				fieldDefinitionsWithoutDefaults,
+				fieldDefinitionsWithDefaults,
+				orderInputs,
+				orderOutputs
+			} = gui.getYamlFields());
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.DEPLOYMENT_UPDATE_ERROR);
 		}
@@ -145,35 +141,35 @@
 			{/if}
 
 			{#if allTokensSelected || selectTokens?.length === 0}
-				{#if allFieldDefinitionsWithoutDefaults.length > 0}
-					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+				{#if fieldDefinitionsWithDefaults.length > 0}
+					{#each fieldDefinitionsWithDefaults as fieldDefinition}
 						<FieldDefinitionInput {fieldDefinition} />
 					{/each}
 				{/if}
 
 				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
-				{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+				{#if fieldDefinitionsWithoutDefaults.length > 0 && showAdvancedOptions}
+					{#each fieldDefinitionsWithoutDefaults as fieldDefinition}
 						<FieldDefinitionInput {fieldDefinition} />
 					{/each}
 				{/if}
 
-				{#if allDepositFields.length > 0 && showAdvancedOptions}
-					{#each allDepositFields as deposit}
+				{#if deposits.length > 0 && showAdvancedOptions}
+					{#each deposits as deposit}
 						<DepositInput {deposit} />
 					{/each}
 				{/if}
 
-				{#if (allTokenInputs.length > 0 || allTokenOutputs.length > 0) && showAdvancedOptions}
-					{#if allTokenInputs.length > 0}
-						{#each allTokenInputs as input, i}
+				{#if (orderInputs.length > 0 || orderOutputs.length > 0) && showAdvancedOptions}
+					{#if orderInputs.length > 0}
+						{#each orderInputs as input, i}
 							<TokenIOInput {i} label="Input" vault={input} />
 						{/each}
 					{/if}
 
-					{#if allTokenOutputs.length > 0}
-						{#each allTokenOutputs as output, i}
+					{#if orderOutputs.length > 0}
+						{#each orderOutputs as output, i}
 							<TokenIOInput {i} label="Output" vault={output} />
 						{/each}
 					{/if}

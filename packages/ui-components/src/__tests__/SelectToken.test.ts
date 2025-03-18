@@ -11,7 +11,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 }));
 
 describe('SelectToken', () => {
-	let mockStateUpdateCallback: Mock = vi.fn();
+	const mockStateUpdateCallback: Mock = vi.fn();
 	const mockGui: DotrainOrderGui = {
 		saveSelectToken: vi.fn().mockImplementation(() => {
 			mockStateUpdateCallback();
