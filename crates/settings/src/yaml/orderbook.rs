@@ -3,6 +3,7 @@ use crate::{
     metaboard::MetaboardCfg, raindex_version::RaindexVersion, sentry::Sentry,
     subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
+use alloy::primitives::Address;
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     ser::{Serialize, SerializeSeq, Serializer},
@@ -87,6 +88,15 @@ impl OrderbookYaml {
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
         OrderbookCfg::parse_from_yaml(self.documents.clone(), key, None)
+    }
+    pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        for (_, orderbook) in orderbooks {
+            if orderbook.address == address {
+                return Ok(orderbook);
+            }
+        }
+        Err(YamlError::KeyNotFound(address.to_string()))
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -290,6 +300,10 @@ mod tests {
             OrderbookCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
             "mainnet"
         );
+        let orderbook_by_address = ob_yaml
+            .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
+            .unwrap();
+        assert_eq!(orderbook_by_address, orderbook);
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
         assert_eq!(
