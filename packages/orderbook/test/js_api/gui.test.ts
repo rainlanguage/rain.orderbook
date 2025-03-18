@@ -1618,14 +1618,14 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(tokenInfo.symbol, 'T1');
 			assert.equal(tokenInfo.decimals, 6);
 
-			await gui.replaceSelectToken('token1', '0x8888888888888888888888888888888888888888');
+			await gui.saveSelectToken('token1', '0x8888888888888888888888888888888888888888');
 			assert.equal(gui.isSelectTokenSet('token1'), true);
 			tokenInfo = await gui.getTokenInfo('token1');
 			assert.equal(tokenInfo.name, 'Teken 2');
 			assert.equal(tokenInfo.symbol, 'T2');
 			assert.equal(tokenInfo.decimals, 18);
 
-			assert.equal(stateUpdateCallback.mock.calls.length, 3);
+			assert.equal(stateUpdateCallback.mock.calls.length, 2);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
 		});
 
@@ -1677,14 +1677,6 @@ ${dotrainWithoutVaultIds}`;
 		it('should get network key', async () => {
 			const networkKey = gui.getNetworkKey();
 			assert.equal(networkKey, 'some-network');
-		});
-
-		it('should get orderbook network', async () => {
-			const orderbookNetwork = gui.getOrderbookNetwork();
-
-			assert.equal(orderbookNetwork.networkId, 123);
-			assert.equal(orderbookNetwork.chainId, 123);
-			assert.equal(orderbookNetwork.currency, 'ETH');
 		});
 	});
 });
