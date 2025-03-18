@@ -4,7 +4,6 @@ import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
-import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
@@ -12,6 +11,16 @@ import userEvent from '@testing-library/user-event';
 const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
+
+vi.mock('../lib/stores/wagmi', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		connected: mockConnectedStore,
+		signerAddress: mockSignerAddressStore,
+		wagmiConfig: mockWagmiConfigStore
+	};
+});
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
@@ -629,10 +638,6 @@ const defaultProps: DeploymentStepsProps = {
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
 	},
 	deployment: mockDeployment,
-	wagmiConfig: mockWagmiConfigStore,
-	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
-	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
 	settings: writable({} as ConfigSource),

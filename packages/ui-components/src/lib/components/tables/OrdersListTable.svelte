@@ -19,7 +19,7 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import type { Writable } from 'svelte/store';
+	import { signerAddress } from '../../stores/wagmi';
 
 	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,7 +37,6 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let currentRoute: string;
-	export let signerAddress: Writable<string | null> | undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
@@ -100,7 +99,6 @@
 	{hideZeroBalanceVaults}
 	{isVaultsPage}
 	{isOrdersPage}
-	{signerAddress}
 />
 
 <AppTable

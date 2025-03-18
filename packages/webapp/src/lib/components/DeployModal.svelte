@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { transactionStore, type DeploymentArgs } from '@rainlanguage/ui-components';
-	import { wagmiConfig } from '$lib/stores/wagmi';
+	import { transactionStore, type DeploymentArgs, wagmiConfig } from '@rainlanguage/ui-components';
 	import TransactionModal from './TransactionModal.svelte';
 
 	export let open: boolean = false;

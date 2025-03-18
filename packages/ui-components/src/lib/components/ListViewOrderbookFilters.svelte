@@ -9,6 +9,7 @@
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
+	import { signerAddress, wagmiConfig } from '../stores/wagmi';
 	export let settings: Writable<ConfigSource | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
@@ -19,7 +20,6 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let signerAddress: Writable<string | null> | undefined;
 </script>
 
 <div
@@ -31,13 +31,9 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		{#if $accounts && !Object.values($accounts).length}
+		{#if $wagmiConfig && $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-				<CheckboxMyItemsOnly
-					context={isVaultsPage ? 'vaults' : 'orders'}
-					{showMyItemsOnly}
-					{signerAddress}
-				/>
+				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 				{#if !$signerAddress}
 					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
 				{/if}

@@ -24,7 +24,7 @@ export type DepositOrWithdrawArgs = {
 export type OrderRemoveArgs = {
 	order: SgOrder;
 	onRemove: () => void;
-	chainId: number;
-	orderbookAddress: Hex;
-	subgraphUrl: string;
+	chainId?: number;
+	orderbookAddress?: Hex;
+	subgraphUrl?: string;
 };
