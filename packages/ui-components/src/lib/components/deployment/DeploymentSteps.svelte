@@ -65,6 +65,9 @@
 	async function updateFields() {
 		try {
 			DeploymentStepsError.clear();
+			console.log('updateFields');
+			const yamlFields = gui.getYamlFields();
+			console.log('yamlFields', yamlFields);
 			let currentDeployment: GuiDeploymentCfg = gui.getCurrentDeployment();
 			allDepositFields = currentDeployment.deposits;
 			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
