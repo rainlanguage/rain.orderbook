@@ -58,6 +58,7 @@
 		"@reown/appkit-adapter-wagmi": "1.6.4",
 		"@sentry/sveltekit": "7.107.0",
 		"@square/svelte-store": "1.0.18",
+		"@sveltejs/vite-plugin-svelte": "3.1.2",
 		"@sveltejs/kit": "2.8.1",
 		"@tanstack/svelte-query": "5.59.20",
 		"@wagmi/core": "2.16.3",
