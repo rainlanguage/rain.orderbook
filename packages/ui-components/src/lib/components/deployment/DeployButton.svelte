@@ -21,7 +21,9 @@
 
 	let checkingDeployment = false;
 	const gui = useGui();
-	const { chainId } = gui.getCurrentDeployment().deployment.order?.orderbook?.network as NetworkCfg;
+
+	const orderbookYaml = new OrderbookYaml([gui.generateDotrainText()]);
+	console.log('orderbookYaml', orderbookYaml);
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
