@@ -115,7 +115,7 @@ describe('DeploymentSteps', () => {
 			getSelectTokens: vi.fn().mockReturnValue([]),
 			getNetworkKey: vi.fn().mockReturnValue('flare'),
 			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
-			getYamlFields: vi.fn().mockReturnValue({
+			getAllGuiConfig: vi.fn().mockReturnValue({
 				deposits: [],
 				fieldDefinitionsWithoutDefaults: [],
 				fieldDefinitionsWithDefaults: [],
@@ -234,7 +234,7 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
-			expect(mockGui.getYamlFields).toHaveBeenCalled();
+			expect(mockGui.getAllGuiConfig).toHaveBeenCalled();
 		});
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
@@ -263,7 +263,7 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
-			expect(mockGui.getYamlFields).toHaveBeenCalled();
+			expect(mockGui.getAllGuiConfig).toHaveBeenCalled();
 		});
 	});
 

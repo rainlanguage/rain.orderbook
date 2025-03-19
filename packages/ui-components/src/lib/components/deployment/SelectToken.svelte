@@ -8,6 +8,7 @@
 
 	export let token: GuiSelectTokensCfg;
 	export let onSelectTokenSelect: () => void;
+
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';

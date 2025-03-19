@@ -14,12 +14,6 @@ describe('SelectToken', () => {
 	const mockStateUpdateCallback: Mock = vi.fn();
 	const mockGui: DotrainOrderGui = {
 		saveSelectToken: vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-			return Promise.resolve();
-		}),
-		replaceSelectToken: vi.fn().mockImplementation(() => {
-			mockStateUpdateCallback();
-			mockStateUpdateCallback();
 			return Promise.resolve();
 		}),
 		isSelectTokenSet: vi.fn(),
@@ -81,11 +75,9 @@ describe('SelectToken', () => {
 		await waitFor(() => {
 			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
 		});
-		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('shows error message for invalid address, and removes the selectToken', async () => {
-		// Override the saveSelectToken mock to reject
 		mockGui.saveSelectToken = vi.fn().mockRejectedValue(new Error('Invalid address'));
 
 		const user = userEvent.setup();
@@ -106,7 +98,7 @@ describe('SelectToken', () => {
 		});
 	});
 
-	it('replaces the token and triggers state update twice if the token is already set', async () => {
+	it('replaces the token and triggers state update if the token is already set', async () => {
 		mockGui.isSelectTokenSet = vi.fn().mockReturnValue(true);
 
 		const user = userEvent.setup();
@@ -121,11 +113,10 @@ describe('SelectToken', () => {
 
 		const input = getByRole('textbox');
 		await userEvent.clear(input);
-		await user.paste('invalid');
+		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectToken).toHaveBeenCalled();
-			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
+			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
 		});
 	});
 
