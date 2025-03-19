@@ -331,7 +331,7 @@ impl YamlParsableHash for ScenarioCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
