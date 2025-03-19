@@ -13,7 +13,8 @@ import {
 import { type Chain } from '@wagmi/core/chains';
 import { AppKit, createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-export const supportedChains: Chain[] = [];
+import { supportedChainsList } from '$lib/chains';
+
 export const connected = writable<boolean>(false);
 export const wagmiLoaded = writable<boolean>(false);
 export const chainId = writable<number | null | undefined>(null);
@@ -33,10 +34,9 @@ type DefaultConfigProps = {
 	chains?: Chain[] | null;
 	connectors: CreateConnectorFn[];
 	projectId: string;
-	supportedChains: Chain[];
 };
 
-export const defaultWagmiConfig = ({
+export const defaultConfig = ({
 	appName,
 	appDescription = null,
 	appUrl = null,
@@ -44,8 +44,7 @@ export const defaultWagmiConfig = ({
 	autoConnect = true,
 	chains = [],
 	connectors,
-	projectId,
-	supportedChains
+	projectId
 }: DefaultConfigProps) => {
 	if (connectors) configuredConnectors.set(connectors);
 
@@ -62,7 +61,7 @@ export const defaultWagmiConfig = ({
 			)
 		: {};
 	const config = createConfig({
-		chains: [supportedChains[0], ...supportedChains.slice(1)] as [Chain, ...Chain[]],
+		chains: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
 		transports,
 		connectors: get(configuredConnectors)
 	});
@@ -85,7 +84,7 @@ export const defaultWagmiConfig = ({
 
 	const modal = createAppKit({
 		adapters: [wagmiAdapter],
-		networks: [supportedChains[0], ...supportedChains.slice(1)] as [Chain, ...Chain[]],
+		networks: [supportedChainsList[0], ...supportedChainsList.slice(1)] as [Chain, ...Chain[]],
 		metadata,
 		projectId,
 		features: {
@@ -98,10 +97,10 @@ export const defaultWagmiConfig = ({
 	appKitModal.set(modal);
 	wagmiLoaded.set(true);
 
-	return { initWagmi };
+	return { init };
 };
 
-export const initWagmi = async () => {
+export const init = async () => {
 	try {
 		setupListeners();
 		const account = await waitForConnection();

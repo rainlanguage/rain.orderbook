@@ -7,10 +7,10 @@ import {
 	signerAddress,
 	configuredConnectors,
 	loading,
-	defaultWagmiConfig,
-	initWagmi,
+	defaultConfig,
+	init,
 	disconnectWagmi
-} from '$lib/stores/wagmi';
+} from './wagmi';
 import {
 	createConfig,
 	disconnect,
@@ -53,24 +53,23 @@ describe('wagmi store', () => {
 		vi.clearAllMocks();
 	});
 
-	describe('defaultWagmiConfig', () => {
+	describe('defaultConfig', () => {
 		it('should initialize with correct default values', () => {
 			const mockConfig = { chains: [mainnet], subscribe: vi.fn() };
 			vi.mocked(createConfig).mockReturnValue(mockConfig as unknown as Config);
 
-			const result = defaultWagmiConfig({
+			const result = defaultConfig({
 				appName: 'Test App',
 				projectId: 'test-project-id',
-				connectors: [],
-				supportedChains: [mainnet]
+				connectors: []
 			});
 
-			expect(result).toHaveProperty('initWagmi');
+			expect(result).toHaveProperty('init');
 			expect(get(wagmiLoaded)).toBe(true);
 		});
 	});
 
-	describe('initWagmi', () => {
+	describe('init', () => {
 		it('should initialize wallet connection successfully', async () => {
 			const mockAccount = {
 				address: '0x123' as `0x${string}`,
@@ -92,7 +91,7 @@ describe('wagmi store', () => {
 				return () => {};
 			});
 
-			await initWagmi();
+			await init();
 
 			expect(get(connected)).toBe(true);
 			expect(get(signerAddress)).toBe('0x123');
@@ -104,7 +103,7 @@ describe('wagmi store', () => {
 				throw new Error('Connection failed');
 			});
 
-			await initWagmi();
+			await init();
 
 			expect(get(connected)).toBe(false);
 			expect(get(loading)).toBe(false);
