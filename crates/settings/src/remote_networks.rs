@@ -1,4 +1,3 @@
-use crate::caching::{get_cache, CacheError};
 use crate::remote::chains::chainid::{ChainId, ChainIdError};
 use crate::yaml::context::Context;
 use crate::yaml::{
@@ -41,58 +40,43 @@ impl RemoteNetworksCfg {
     pub async fn fetch_networks(
         remote_networks: HashMap<String, RemoteNetworksCfg>,
     ) -> Result<HashMap<String, NetworkCfg>, ParseRemoteNetworksError> {
-        let cache = get_cache();
+        let mut networks = HashMap::new();
 
-        match cache.get_networks() {
-            Ok(networks) => {
-                return Ok(networks);
-            }
-            _ => {
-                let networks = HashMap::new();
+        for (_, remote_network) in remote_networks {
+            match remote_network.format.as_str() {
+                "chainid" => {
+                    let chains = reqwest::get(remote_network.url.to_string())
+                        .await?
+                        .json::<Vec<ChainId>>()
+                        .await?;
 
-                for (_, remote_network) in remote_networks {
-                    match remote_network.format.as_str() {
-                        "chainid" => {
-                            let chains = reqwest::get(remote_network.url.clone())
-                                .await?
-                                .json::<Vec<ChainId>>()
-                                .await?;
+                    for chain in &chains {
+                        let network: NetworkCfg = chain
+                            .clone()
+                            .try_into_network_cfg(remote_network.document.clone())?;
 
-                            let mut networks = HashMap::new();
-                            for chain in &chains {
-                                let network: NetworkCfg = chain.clone().try_into()?;
-
-                                if networks.contains_key(&network.key) {
-                                    return Err(ParseRemoteNetworksError::ConflictingNetworks(
-                                        network.key.clone(),
-                                    ));
-                                }
-                                networks.insert(network.key.clone(), network);
-                            }
-
-                            networks
+                        if networks.contains_key(&network.key) {
+                            return Err(ParseRemoteNetworksError::ConflictingNetworks(
+                                network.key.clone(),
+                            ));
                         }
-                        _ => {
-                            return Err(ParseRemoteNetworksError::UnknownFormat(
-                                remote_network.format.clone(),
-                            ))
-                        }
-                    };
+                        networks.insert(network.key.clone(), network);
+                    }
                 }
-
-                cache
-                    .set_networks(networks.clone())
-                    .map_err(|e| ParseRemoteNetworksError::CacheError(e))?;
-
-                Ok(networks)
-            }
+                _ => {
+                    return Err(ParseRemoteNetworksError::UnknownFormat(
+                        remote_network.format.clone(),
+                    ))
+                }
+            };
         }
+
+        Ok(networks)
     }
 }
 
-#[async_trait::async_trait]
 impl YamlParsableHash for RemoteNetworksCfg {
-    async fn parse_all_from_yaml(
+    fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         _: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
@@ -172,8 +156,6 @@ pub enum ParseRemoteNetworksError {
     ConflictingNetworks(String),
     #[error(transparent)]
     ChainIdError(#[from] ChainIdError),
-    #[error("Cache error: {0}")]
-    CacheError(#[from] CacheError),
 }
 
 #[cfg(test)]
