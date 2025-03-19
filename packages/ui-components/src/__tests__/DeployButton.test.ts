@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import DeployButton from '../lib/components/deployment/DeployButton.svelte';
 import { DeploymentStepsError } from '../lib/errors';
 import * as getDeploymentTransactionArgsModule from '../lib/components/deployment/getDeploymentTransactionArgs';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, OrderbookYaml } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '../lib/hooks/useGui';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
@@ -13,11 +13,19 @@ type DeployButtonProps = ComponentProps<DeployButton>;
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
+const mockOrderbook = {
+	subgraph: {
+		url: 'https://test.subgraph'
+	},
+	network: {
+		chainId: 1337
+	},
+	address: '0x456'
+};
+
 const defaultProps: DeployButtonProps = {
 	handleDeployModal: vi.fn() as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as (args: DisclaimerModalProps) => void,
-	subgraphUrl: 'https://test.subgraph',
-	network: 'testnet',
 	wagmiConfig: mockWagmiConfigStore
 };
 
@@ -29,6 +37,16 @@ const mockHandleAddOrderResult: HandleAddOrderResult = {
 };
 
 // Mocks
+vi.mock('@rainlanguage/orderbook/js_api', async () => {
+	const actual = await vi.importActual('@rainlanguage/orderbook/js_api');
+	return {
+		...actual,
+		OrderbookYaml: vi.fn().mockImplementation(() => ({
+			getOrderbookByAddress: vi.fn().mockReturnValue(mockOrderbook)
+		}))
+	};
+});
+
 vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
@@ -45,6 +63,16 @@ describe('DeployButton', () => {
 
 		// Create a fresh GUI mock for each test
 		mockGui = {
+			generateDotrainText: vi.fn().mockReturnValue('mock dotrain text'),
+			getCurrentDeployment: vi.fn().mockReturnValue({
+				deployment: {
+					order: {
+						orderbook: {
+							address: '0x456'
+						}
+					}
+				}
+			}),
 			getOrderbookNetwork: vi.fn().mockReturnValue({
 				key: 'testnet',
 				chainId: 1337,
@@ -56,7 +84,7 @@ describe('DeployButton', () => {
 		} as unknown as DotrainOrderGui;
 
 		vi.mocked(useGui).mockReturnValue(mockGui);
-
+		
 		DeploymentStepsError.clear();
 	});
 
@@ -146,18 +174,21 @@ describe('DeployButton', () => {
 			open: true,
 			args: {
 				...mockHandleAddOrderResult,
-				subgraphUrl: 'https://test.subgraph',
-				chainId: 1337,
-				network: 'testnet'
+				subgraphUrl: mockOrderbook.subgraph.url,
+				chainId: mockOrderbook.network.chainId,
+				orderbookAddress: mockOrderbook.address
 			}
 		});
 	});
 
-	it('gets the orderbook network from the GUI', () => {
-		render(DeployButton, {
-			props: defaultProps
-		});
+	it('initializes OrderbookYaml with generated dotrain text', () => {
+		render(DeployButton, { props: defaultProps });
+		expect(mockGui.generateDotrainText).toHaveBeenCalled();
+		expect(OrderbookYaml).toHaveBeenCalledWith(['mock dotrain text']);
+	});
 
-		expect(mockGui.getOrderbookNetwork).toHaveBeenCalled();
+	it('gets the current deployment from GUI', () => {
+		render(DeployButton, { props: defaultProps });
+		expect(mockGui.getCurrentDeployment).toHaveBeenCalled();
 	});
 });

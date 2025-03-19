@@ -10,7 +10,6 @@
 	import type { Writable } from 'svelte/store';
 	import type { Config } from 'wagmi';
 	import { OrderbookYaml } from '@rainlanguage/orderbook/js_api';
-
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 	export let wagmiConfig: Writable<Config>;
@@ -20,9 +19,8 @@
 
 	const orderbookYaml = new OrderbookYaml([gui.generateDotrainText()]);
 	const deployment = gui.getCurrentDeployment();
-	const orderbookAddress = deployment.deployment.order?.orderbook?.address;
+	const orderbookAddress = deployment.deployment.order?.orderbook?.address as string;
 	const orderbook = orderbookYaml.getOrderbookByAddress(orderbookAddress);
-	console.log('orderbookAddress', orderbookAddress);
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
@@ -46,8 +44,9 @@
 				open: true,
 				args: {
 					...result,
-					subgraphUrl,
-					chainId
+					subgraphUrl: orderbook.subgraph.url,
+					chainId: orderbook.network.chainId,
+					orderbookAddress: orderbook.address
 				}
 			});
 		};

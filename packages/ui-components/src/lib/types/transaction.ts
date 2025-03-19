@@ -6,10 +6,9 @@ import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
+	orderbookAddress: string;
 	chainId: number;
 	subgraphUrl: string;
-	network: string;
 };
 
 export type DepositOrWithdrawArgs = {
