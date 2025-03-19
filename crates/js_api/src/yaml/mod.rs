@@ -3,6 +3,7 @@ use std::str::FromStr;
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
+    subgraph::SubgraphCfg,
     yaml::{orderbook::OrderbookYaml as OrderbookYamlCfg, YamlError, YamlParsable},
 };
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,12 @@ impl OrderbookYaml {
     #[wasm_bindgen(constructor)]
     pub fn new(yaml: Vec<String>) -> Result<Self, OrderbookYamlError> {
         Ok(Self { yaml })
+    }
+
+    #[wasm_bindgen(js_name = "getSubgraphByKey")]
+    pub fn get_subgraph_by_key(&self, key: &str) -> Result<SubgraphCfg, OrderbookYamlError> {
+        let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
+        Ok(orderbook_yaml.get_subgraph(key)?)
     }
 
     #[wasm_bindgen(js_name = "getOrderbookByAddress")]
