@@ -6,7 +6,6 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-	const { settings } = $page.data.stores;
 	const { dotrain, deployment } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 	import { connected, signerAddress, wagmiConfig, appKitModal } from '$lib/stores/wagmi';
@@ -39,7 +38,6 @@
 {:else if gui}
 	<GuiProvider {gui}>
 		<DeploymentSteps
-			{settings}
 			{handleDeployModal}
 			{handleDisclaimerModal}
 			{wagmiConfig}

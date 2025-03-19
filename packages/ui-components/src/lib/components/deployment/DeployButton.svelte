@@ -9,17 +9,19 @@
 	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
 	import type { Writable } from 'svelte/store';
 	import type { Config } from 'wagmi';
+	import {
+		OrderbookYaml,
+		type NetworkCfg,
+		type OrderbookCfg
+	} from '@rainlanguage/orderbook/js_api';
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
-	export let subgraphUrl: string;
-	export let network: string;
 	export let wagmiConfig: Writable<Config>;
 
 	let checkingDeployment = false;
 	const gui = useGui();
-
-	// TODO: Add getting network info
+	const { chainId } = gui.getCurrentDeployment().deployment.order?.orderbook?.network as NetworkCfg;
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
@@ -44,8 +46,7 @@
 				args: {
 					...result,
 					subgraphUrl,
-					chainId: 1,
-					network
+					chainId
 				}
 			});
 		};

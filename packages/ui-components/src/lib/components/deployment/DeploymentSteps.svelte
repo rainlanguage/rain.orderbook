@@ -7,8 +7,7 @@
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type OrderIOCfg,
-		type AllTokenInfos,
-		type ConfigSource
+		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Toggle } from 'flowbite-svelte';
@@ -29,7 +28,6 @@
 
 	const gui = useGui();
 
-	export let settings: Writable<ConfigSource>;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -41,17 +39,15 @@
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
+	let deploymentStepsError = DeploymentStepsError.error;
 
 	const selectTokens = gui.getSelectTokens();
-	const networkKey = gui.getNetworkKey();
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
-
-	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let appKitModal: Writable<AppKit>;
 	export let signerAddress: Writable<string | null>;
 	export let connected: Writable<boolean>;
 	export let wagmiConfig: Writable<Config>;
+
 	onMount(async () => {
 		await areAllTokensSelected();
 	});
@@ -69,7 +65,7 @@
 				fieldDefinitionsWithDefaults,
 				orderInputs,
 				orderOutputs
-			} = gui.getYamlFields());
+			} = gui.getAllGuiConfig());
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.DEPLOYMENT_UPDATE_ERROR);
 		}
@@ -186,13 +182,7 @@
 
 				<div class="flex flex-wrap items-start justify-start gap-2">
 					{#if $connected}
-						<DeployButton
-							{handleDeployModal}
-							{handleDisclaimerModal}
-							{subgraphUrl}
-							network={networkKey}
-							{wagmiConfig}
-						/>
+						<DeployButton {handleDeployModal} {handleDisclaimerModal} {wagmiConfig} />
 					{:else}
 						<WalletConnect {appKitModal} {connected} {signerAddress} />
 					{/if}
