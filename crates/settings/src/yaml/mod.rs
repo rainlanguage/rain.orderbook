@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod context;
 pub mod dotrain;
 pub mod orderbook;
@@ -9,6 +10,8 @@ use crate::{
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
+use dotrain::DotrainYaml;
+use orderbook::OrderbookYaml;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -22,7 +25,8 @@ use url::ParseError as UrlParseError;
 pub trait YamlParsable: Sized {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
-    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
+    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self;
+    fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self;
 
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();

@@ -1,5 +1,5 @@
-use crate::{OrderCfg, OrderIOCfg, TokenCfg};
-use std::sync::Arc;
+use crate::{NetworkCfg, OrderCfg, OrderIOCfg, TokenCfg};
+use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -13,6 +13,7 @@ pub struct Context {
     pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
+    pub remote_networks: Option<HashMap<String, NetworkCfg>>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -128,12 +129,31 @@ impl GuiContextTrait for Context {
     }
 }
 
+pub trait RemoteNetworksTrait {
+    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>>;
+
+    fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg>;
+}
+
+impl RemoteNetworksTrait for Context {
+    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>> {
+        self.remote_networks.as_ref()
+    }
+
+    fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg> {
+        self.remote_networks
+            .as_ref()
+            .and_then(|networks| networks.get(key))
+    }
+}
+
 impl Context {
     pub fn new() -> Self {
         Self {
             order: None,
             select_tokens: None,
             gui_context: None,
+            remote_networks: None,
         }
     }
 
@@ -143,6 +163,9 @@ impl Context {
             new_context.order.clone_from(&context.order);
             new_context.select_tokens.clone_from(&context.select_tokens);
             new_context.gui_context.clone_from(&context.gui_context);
+            new_context
+                .remote_networks
+                .clone_from(&context.remote_networks);
         }
         new_context
     }
@@ -170,6 +193,14 @@ impl Context {
             current_deployment: None,
             current_order: Some(order),
         });
+        self
+    }
+
+    pub fn add_remote_networks(
+        &mut self,
+        remote_networks: HashMap<String, NetworkCfg>,
+    ) -> &mut Self {
+        self.remote_networks = Some(remote_networks);
         self
     }
 
