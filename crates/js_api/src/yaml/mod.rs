@@ -3,7 +3,6 @@ use std::str::FromStr;
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
-    subgraph::SubgraphCfg,
     yaml::{orderbook::OrderbookYaml as OrderbookYamlCfg, YamlError, YamlParsable},
 };
 use serde::{Deserialize, Serialize};
