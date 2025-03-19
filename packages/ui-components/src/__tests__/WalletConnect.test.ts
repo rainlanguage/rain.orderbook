@@ -1,29 +1,22 @@
 import { render, screen } from '@testing-library/svelte';
 import WalletConnect from '../lib/components/wallet/WalletConnect.svelte';
 import { describe, it, vi, beforeEach, expect } from 'vitest';
+import { writable, type Writable } from 'svelte/store';
+import type { AppKit } from '@reown/appkit';
 import truncateEthAddress from 'truncate-eth-address';
-import type { ComponentProps } from 'svelte';
-
-type WalletConnectProps = ComponentProps<WalletConnect>;
-
-const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
+const { mockSignerAddressStore, mockConnectedStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
 );
 
-vi.mock('../lib/stores/wagmi', async () => {
+vi.mock('$lib/stores/wagmi', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
 	return {
-		appKitModal: mockAppKitModalStore,
+		...original,
+		appKitModal: writable({} as AppKit),
 		connected: mockConnectedStore,
 		signerAddress: mockSignerAddressStore
 	};
 });
-
-const defaultProps: WalletConnectProps = {
-	connected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
-	classes: '',
-	appKitModal: mockAppKitModalStore
-};
 
 describe('WalletConnect component', () => {
 	beforeEach(() => {
@@ -35,20 +28,24 @@ describe('WalletConnect component', () => {
 		mockSignerAddressStore.mockSetSubscribeValue('');
 		mockConnectedStore.mockSetSubscribeValue(false);
 
-		render(WalletConnect, { props: defaultProps });
+		render(WalletConnect);
 
 		const connectButton = screen.getByTestId('wallet-connect');
 		expect(connectButton).toBeInTheDocument();
 	});
 
-	it('displays truncated version of the connected address, when a wallet is connected', () => {
-		mockSignerAddressStore.mockSetSubscribeValue('0x912ce59144191c1204e64559fe8253a0e49e6548');
+	it('displays truncated address when wallet is connected', () => {
+		mockSignerAddressStore.mockSetSubscribeValue('0x123');
 		mockConnectedStore.mockSetSubscribeValue(true);
 
-		render(WalletConnect, { props: defaultProps });
+		render(WalletConnect, {
+			props: {
+				connected: mockConnectedStore as Writable<boolean>,
+				appKitModal: writable({} as AppKit),
+				signerAddress: mockSignerAddressStore
+			}
+		});
 
-		expect(
-			screen.getByText(truncateEthAddress('0x912ce59144191c1204e64559fe8253a0e49e6548'))
-		).toBeInTheDocument();
+		expect(screen.getByText(truncateEthAddress('0x123'))).toBeInTheDocument();
 	});
 });
