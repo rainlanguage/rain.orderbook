@@ -20,11 +20,6 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	}
 }));
 
-vi.mock('svelte-markdown', async () => {
-	const mockMarkdown = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: mockMarkdown };
-});
-
 describe('StrategyPage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -149,6 +144,7 @@ describe('StrategyPage', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
 			expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
+			expect(mockFetch).toHaveBeenCalledWith('https://example.com/description.md');
 		});
 	});
 
