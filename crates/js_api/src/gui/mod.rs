@@ -83,6 +83,9 @@ impl DotrainOrderGui {
             return Err(GuiError::DeploymentNotFound(deployment_name.clone()));
         }
 
+        // Try to get networks keys - fails for invalid remote networks
+        dotrain_order.orderbook_yaml().get_network_keys()?;
+
         Ok(Self {
             dotrain_order,
             selected_deployment: deployment_name.clone(),

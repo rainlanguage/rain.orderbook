@@ -163,15 +163,14 @@ mod tests {
     use super::*;
     use crate::yaml::{tests::get_document, FieldErrorKind};
 
-    #[tokio::test]
-    async fn test_parse_remote_networks_from_yaml() {
+    #[test]
+    fn test_parse_remote_networks_from_yaml() {
         let yaml = r#"
 using-networks-from:
     test: test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -186,9 +185,8 @@ using-networks-from:
       url:
         - test: test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -206,9 +204,8 @@ using-networks-from:
       url:
         - test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -225,9 +222,8 @@ using-networks-from:
     test:
       url: test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -245,9 +241,8 @@ using-networks-from:
       url: https://example.com
       test: test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -263,9 +258,8 @@ using-networks-from:
       format:
         - test: test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -284,9 +278,8 @@ using-networks-from:
       format:
         - test
 "#;
-        let error = RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None)
-            .await
-            .unwrap_err();
+        let error =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -299,8 +292,8 @@ using-networks-from:
         );
     }
 
-    #[tokio::test]
-    async fn test_parse_remote_networks_from_yaml_duplicate_key() {
+    #[test]
+    fn test_parse_remote_networks_from_yaml_duplicate_key() {
         let yaml = r#"
 using-networks-from:
     test:
@@ -311,7 +304,6 @@ using-networks-from:
             vec![get_document(yaml), get_document(yaml)],
             None,
         )
-        .await
         .unwrap_err();
         assert_eq!(error, YamlError::KeyShadowing("test".to_string()),);
     }
