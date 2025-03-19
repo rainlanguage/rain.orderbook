@@ -7,14 +7,14 @@ use strict_yaml_rust::StrictYaml;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
 
-pub struct YamlFields {
+pub struct AllGuiConfig {
     pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
     pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
     pub deposits: Vec<GuiDepositCfg>,
     pub order_inputs: Vec<OrderIOCfg>,
     pub order_outputs: Vec<OrderIOCfg>,
 }
-impl_wasm_traits!(YamlFields);
+impl_wasm_traits!(AllGuiConfig);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
@@ -277,8 +277,8 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getYamlFields")]
-    pub fn get_yaml_fields(&self) -> Result<YamlFields, GuiError> {
+    #[wasm_bindgen(js_name = "getAllGuiConfig")]
+    pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, GuiError> {
         let deployment = self.get_current_deployment()?;
 
         let field_definitions_without_defaults = self.get_all_field_definitions(Some(false))?;
@@ -287,13 +287,12 @@ impl DotrainOrderGui {
         let order_inputs = deployment.deployment.order.inputs.clone();
         let order_outputs = deployment.deployment.order.outputs.clone();
 
-        let yaml_fields = YamlFields {
+        Ok(AllGuiConfig {
             field_definitions_without_defaults,
             field_definitions_with_defaults,
             deposits,
             order_inputs,
             order_outputs,
-        };
-        Ok(yaml_fields)
+        })
     }
 }

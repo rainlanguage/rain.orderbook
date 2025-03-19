@@ -6,7 +6,6 @@ import {
 	AllFieldValuesResult,
 	AllowancesResult,
 	AllTokenInfos,
-	YamlFields,
 	DeploymentDetails,
 	DeploymentKeys,
 	DeploymentTransactionArgs,
@@ -18,7 +17,8 @@ import {
 	IOVaultIds,
 	NameAndDescriptionCfg,
 	TokenDeposit,
-	TokenInfo
+	TokenInfo,
+	AllGuiConfig
 } from '../../dist/types/js_api.js';
 import { getLocal } from 'mockttp';
 
@@ -972,22 +972,28 @@ ${dotrainWithoutVaultIds}
 ${dotrain}`;
 			let gui = await DotrainOrderGui.chooseDeployment(dotrain3, 'some-deployment');
 
-			const yamlFields: YamlFields = await gui.getYamlFields();
+			const {
+				fieldDefinitionsWithoutDefaults,
+				fieldDefinitionsWithDefaults,
+				deposits,
+				orderInputs,
+				orderOutputs
+			}: AllGuiConfig = await gui.getAllGuiConfig();
 
-			assert.equal(yamlFields.fieldDefinitionsWithoutDefaults.length, 1);
-			assert.equal(yamlFields.fieldDefinitionsWithoutDefaults[0].binding, 'binding-2');
+			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-2');
 
-			assert.equal(yamlFields.fieldDefinitionsWithDefaults.length, 1);
-			assert.equal(yamlFields.fieldDefinitionsWithDefaults[0].binding, 'binding-1');
+			assert.equal(fieldDefinitionsWithDefaults.length, 1);
+			assert.equal(fieldDefinitionsWithDefaults[0].binding, 'binding-1');
 
-			assert.equal(yamlFields.deposits.length, 1);
-			assert.equal(yamlFields.deposits[0].token?.key, 'token1');
+			assert.equal(deposits.length, 1);
+			assert.equal(deposits[0].token?.key, 'token1');
 
-			assert.equal(yamlFields.orderInputs.length, 1);
-			assert.equal(yamlFields.orderInputs[0].token?.key, 'token1');
+			assert.equal(orderInputs.length, 1);
+			assert.equal(orderInputs[0].token?.key, 'token1');
 
-			assert.equal(yamlFields.orderOutputs.length, 1);
-			assert.equal(yamlFields.orderOutputs[0].token?.key, 'token2');
+			assert.equal(orderOutputs.length, 1);
+			assert.equal(orderOutputs[0].token?.key, 'token2');
 		});
 	});
 
