@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, expect, it } from 'vitest';
 import { OrderbookYaml } from '../../dist/cjs/js_api.js';
-import { OrderbookCfg } from '../../dist/types/js_api.js';
+import { OrderbookCfg, SubgraphCfg } from '../../dist/types/js_api.js';
 
 const YAML_WITHOUT_ORDERBOOK = `
 networks:
@@ -85,7 +85,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
 			);
 			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
-			assert.equal(orderbook.network['chain-id'], 123);
+			assert.equal(orderbook.network.chainId, 123);
 			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
 
 			expect(() => {
@@ -96,6 +96,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			}).toThrow(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
 			);
+		});
+
+		it('should get the subgraph', async function () {
+			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+			const subgraph: SubgraphCfg = orderbookYaml.getSubgraphByKey('some-sg');
+			assert.equal(subgraph.url, 'https://www.some-sg.com/');
 		});
 	});
 });
