@@ -1,9 +1,9 @@
 import assert from 'assert';
 import { describe, expect, it } from 'vitest';
-import { Settings } from '../../dist/cjs/js_api.js';
+import { OrderbookYaml } from '../../dist/cjs/js_api.js';
 import { OrderbookCfg } from '../../dist/types/js_api.js';
 
-const SETTINGS_WITHOUT_ORDERBOOK = `
+const YAML_WITHOUT_ORDERBOOK = `
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -85,19 +85,13 @@ orders:
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
-		const settings = new Settings([SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
+		const settings = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
 		assert.ok(settings);
-
-		const settings2 = new Settings(
-			[SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITHOUT_ORDERBOOK],
-			'some-deployment'
-		);
-		assert.ok(settings2);
 	});
 
 	describe('orderbook tests', async function () {
 		it('should get the orderbook', async function () {
-			const settings = new Settings([SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
+			const settings = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
 
 			const orderbook: OrderbookCfg = settings.getOrderbookByAddress(
 				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
@@ -114,30 +108,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			}).toThrow(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
 			);
-		});
-
-		it('should get the orderbook for the current deployment', async function () {
-			const settings = new Settings(
-				[SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK],
-				'some-deployment'
-			);
-			const orderbook: OrderbookCfg = settings.getCurrentOrderbookForDeployment();
-			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
-			assert.equal(orderbook.network['chain-id'], 123);
-			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
-
-			const noDeploymentSettings = new Settings([SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
-			expect(() => {
-				noDeploymentSettings.getCurrentOrderbookForDeployment();
-			}).toThrow('No deployment selected');
-
-			const noOrderbookSettings = new Settings(
-				[SETTINGS_WITHOUT_ORDERBOOK, ORDER_WITHOUT_ORDERBOOK],
-				'some-deployment'
-			);
-			expect(() => {
-				noOrderbookSettings.getCurrentOrderbookForDeployment();
-			}).toThrow('Orderbook not found in order for deployment some-deployment');
 		});
 	});
 });
