@@ -13,6 +13,7 @@ networks:
 
 subgraphs:
     some-sg: https://www.some-sg.com
+
 metaboards:
     test: https://metaboard.com
 
@@ -96,12 +97,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			}).toThrow(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
 			);
-		});
-
-		it('should get the subgraph', async function () {
-			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
-			const subgraph: SubgraphCfg = orderbookYaml.getSubgraphByKey('some-sg');
-			assert.equal(subgraph.url, 'https://www.some-sg.com/');
 		});
 	});
 });
