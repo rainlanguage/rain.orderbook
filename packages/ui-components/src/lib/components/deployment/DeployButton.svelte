@@ -9,11 +9,7 @@
 	import type { DeployModalProps, DisclaimerModalProps } from '$lib/types/modal';
 	import type { Writable } from 'svelte/store';
 	import type { Config } from 'wagmi';
-	import {
-		OrderbookYaml,
-		type NetworkCfg,
-		type OrderbookCfg
-	} from '@rainlanguage/orderbook/js_api';
+	import { OrderbookYaml } from '@rainlanguage/orderbook/js_api';
 
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
@@ -23,7 +19,10 @@
 	const gui = useGui();
 
 	const orderbookYaml = new OrderbookYaml([gui.generateDotrainText()]);
-	console.log('orderbookYaml', orderbookYaml);
+	const deployment = gui.getCurrentDeployment();
+	const orderbookAddress = deployment.deployment.order?.orderbook?.address;
+	const orderbook = orderbookYaml.getOrderbookByAddress(orderbookAddress);
+	console.log('orderbookAddress', orderbookAddress);
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
