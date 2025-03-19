@@ -5,25 +5,25 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 import {
-    OrderBookV4FlashBorrower,
+    OrderBookV5FlashBorrower,
     IERC3156FlashBorrower,
     OrderBookV5ArbConfig,
-    TaskV1,
+    TaskV2,
     SignedContextV1,
-    EvaluableV3
-} from "src/abstract/OrderBookV4FlashBorrower.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+    EvaluableV4
+} from "src/abstract/OrderBookV5FlashBorrower.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 
 /// @dev We need a contract that is deployable in order to test the abstract
 /// base contract.
-contract ChildOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
+contract ChildOrderBookV5FlashBorrower is OrderBookV5FlashBorrower {
     constructor()
-        OrderBookV4FlashBorrower(
+        OrderBookV5FlashBorrower(
             OrderBookV5ArbConfig(
                 address(0),
-                TaskV1({
-                    evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                TaskV2({
+                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
                 }),
                 abi.encode(address(0))
@@ -32,14 +32,14 @@ contract ChildOrderBookV4FlashBorrower is OrderBookV4FlashBorrower {
     {}
 }
 
-contract OrderBookV4FlashBorrowerIERC165Test is Test {
+contract OrderBookV5FlashBorrowerIERC165Test is Test {
     /// Test that ERC165 and IERC3156FlashBorrower are supported interfaces
     /// as per ERC165.
-    function testOrderBookV4FlashBorrowerIERC165(bytes4 badInterfaceId) external {
+    function testOrderBookV5FlashBorrowerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
         vm.assume(badInterfaceId != type(IERC3156FlashBorrower).interfaceId);
 
-        ChildOrderBookV4FlashBorrower flashBorrower = new ChildOrderBookV4FlashBorrower();
+        ChildOrderBookV5FlashBorrower flashBorrower = new ChildOrderBookV5FlashBorrower();
         assertTrue(flashBorrower.supportsInterface(type(IERC165).interfaceId));
         assertTrue(flashBorrower.supportsInterface(type(IERC3156FlashBorrower).interfaceId));
         assertFalse(flashBorrower.supportsInterface(badInterfaceId));

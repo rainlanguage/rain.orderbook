@@ -97,22 +97,22 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
             // Order takers.
-            new GenericPoolOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV2(
+            new GenericPoolOrderBookV5ArbOrderTaker(
+                OrderBookV5ArbConfig(
                     address(raindex),
                     TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""
                 )
             );
 
-            new RouteProcessorOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV2(
+            new RouteProcessorOrderBookV5ArbOrderTaker(
+                OrderBookV5ArbConfig(
                     address(raindex),
                     TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     abi.encode(routeProcessor)
@@ -120,11 +120,11 @@ contract Deploy is Script {
             );
 
             // Flash borrowers.
-            new GenericPoolOrderBookV4FlashBorrower(
-                OrderBookV4ArbConfigV2(
+            new GenericPoolOrderBookV5FlashBorrower(
+                OrderBookV5ArbConfig(
                     raindex,
                     TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""

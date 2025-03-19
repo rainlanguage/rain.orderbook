@@ -6,7 +6,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
-import {OrderBookV5ArbOrderTaker, OrderBookV5ArbConfig} from "../../abstract/OrderBookV5ArbOrderTaker.sol";
+import {OrderBookV5ArbOrderTaker, OrderBookV5ArbConfig, Float} from "../../abstract/OrderBookV5ArbOrderTaker.sol";
 
 contract GenericPoolOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
     using SafeERC20 for IERC20;
@@ -15,14 +15,14 @@ contract GenericPoolOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
     constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbOrderTaker(config) {}
 
     /// @inheritdoc OrderBookV5ArbOrderTaker
-    function onTakeOrders(
+    function onTakeOrders2(
         address inputToken,
         address outputToken,
-        uint256 inputAmountSent,
-        uint256 totalOutputAmount,
+        Float calldata inputAmountSent,
+        Float calldata totalOutputAmount,
         bytes calldata takeOrdersData
     ) public virtual override {
-        super.onTakeOrders(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
+        super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(takeOrdersData, (address, address, bytes));
 

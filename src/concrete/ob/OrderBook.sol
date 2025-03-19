@@ -400,8 +400,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         PackedFloat withdrawAmountPacked =
             LibDecimalFloat.pack(withdrawAmount.signedCoefficient, withdrawAmount.exponent);
 
-        (uint256 withdrawAmountUint256, uint8 decimals) =
-            pushTokens(token, withdrawAmount.signedCoefficient, withdrawAmount.exponent);
+        (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(token, withdrawAmount);
 
         emit WithdrawV2(msg.sender, token, vaultId, targetAmount, withdrawAmount, withdrawAmountUint256);
 
@@ -702,18 +701,14 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        pushTokens(
-            config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
-            totalTakerInput.signedCoefficient,
-            totalTakerInput.exponent
-        );
+        pushTokens(config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token, totalTakerInput);
 
         if (config.data.length > 0) {
             IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
                 config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
                 config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
-                LibDecimalFloat.pack(totalTakerInput.signedCoefficient, totalTakerInput.exponent),
-                LibDecimalFloat.pack(totalTakerOutput.signedCoefficient, totalTakerOutput.exponent),
+                totalTakerInput,
+                totalTakerOutput,
                 config.data
             );
         }
@@ -1204,10 +1199,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (amount, decimals);
     }
 
-    function pushTokens(address token, int256 amountSignedCoefficient, int256 amountExponent)
-        internal
-        returns (uint256, uint8)
-    {
+    function pushTokens(address token, Float memory amountFloat) internal returns (uint256, uint8) {
         // Push cannot initialize token decimals as at least one pull must be
         // made before a push can be made, and this will have initialized the
         // token decimals.
@@ -1216,12 +1208,12 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
 
-        if (LibDecimalFloat.lt(amountSignedCoefficient, amountExponent, 0, 0)) {
+        if (LibDecimalFloat.lt(amountFloat.signedCoefficient, amountFloat.exponent, 0, 0)) {
             revert NegativePush();
         }
 
         (uint256 amount, bool lossless) =
-            LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
+            LibDecimalFloat.toFixedDecimalLossy(amountFloat.signedCoefficient, amountFloat.exponent, decimals);
         // Truncate when pushing.
         (lossless);
         if (amount > 0) {

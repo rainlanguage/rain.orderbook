@@ -7,10 +7,10 @@ import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC
 import {
     OrderBookV5ArbOrderTaker,
     IOrderBookV5ArbOrderTaker,
-    EvaluableV3,
+    EvaluableV4,
     OrderBookV5ArbConfig,
     IOrderBookV5OrderTaker,
-    TaskV1,
+    TaskV2,
     SignedContextV1
 } from "src/abstract/OrderBookV5ArbOrderTaker.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
@@ -22,13 +22,13 @@ contract OrderBookV5ArbOrderTakerIERC165Test is Test {
     /// as per ERC165.
     function testOrderBookV4ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
-        vm.assume(badInterfaceId != type(IOrderBookV4ArbOrderTakerV2).interfaceId);
-        vm.assume(badInterfaceId != type(IOrderBookV4OrderTaker).interfaceId);
+        vm.assume(badInterfaceId != type(IOrderBookV5ArbOrderTaker).interfaceId);
+        vm.assume(badInterfaceId != type(IOrderBookV5OrderTaker).interfaceId);
 
         ChildOrderBookV5ArbOrderTaker arbOrderTaker = new ChildOrderBookV5ArbOrderTaker();
         assertTrue(arbOrderTaker.supportsInterface(type(IERC165).interfaceId));
-        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV4ArbOrderTakerV2).interfaceId));
-        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV4OrderTaker).interfaceId));
+        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV5ArbOrderTaker).interfaceId));
+        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV5OrderTaker).interfaceId));
         assertFalse(arbOrderTaker.supportsInterface(badInterfaceId));
     }
 }
