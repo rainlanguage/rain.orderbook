@@ -51,15 +51,6 @@ scenarios:
                 bindings:
                     another-binding: 300
 
-deployments:
-    some-deployment:
-        scenario: some-scenario
-        order: some-order
-    other-deployment:
-        scenario: some-scenario.sub-scenario
-        order: some-order
-`;
-const ORDER_WITH_ORDERBOOK = `
 orders:
     some-order:
       inputs:
@@ -70,30 +61,27 @@ orders:
           vault-id: 1
       deployer: some-deployer
       orderbook: some-orderbook
-`;
-const ORDER_WITHOUT_ORDERBOOK = `
-orders:
-    some-order:
-      inputs:
-        - token: token1
-          vault-id: 1
-      outputs:
-        - token: token2
-          vault-id: 1
-      deployer: some-deployer
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
+        scenario: some-scenario.sub-scenario
+        order: some-order
 `;
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
-		const settings = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
-		assert.ok(settings);
+		const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+		assert.ok(orderbookYaml);
 	});
 
 	describe('orderbook tests', async function () {
 		it('should get the orderbook', async function () {
-			const settings = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK, ORDER_WITH_ORDERBOOK]);
+			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
 
-			const orderbook: OrderbookCfg = settings.getOrderbookByAddress(
+			const orderbook: OrderbookCfg = orderbookYaml.getOrderbookByAddress(
 				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
 			);
 			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
@@ -101,10 +89,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
 
 			expect(() => {
-				settings.getOrderbookByAddress('invalid-address');
+				orderbookYaml.getOrderbookByAddress('invalid-address');
 			}).toThrow();
 			expect(() => {
-				settings.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
+				orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
 			}).toThrow(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
 			);
