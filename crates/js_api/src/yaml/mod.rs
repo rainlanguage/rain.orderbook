@@ -34,12 +34,6 @@ impl OrderbookYaml {
         Ok(Self { yaml })
     }
 
-    #[wasm_bindgen(js_name = "getSubgraphByKey")]
-    pub fn get_subgraph_by_key(&self, key: &str) -> Result<SubgraphCfg, OrderbookYamlError> {
-        let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
-        Ok(orderbook_yaml.get_subgraph(key)?)
-    }
-
     #[wasm_bindgen(js_name = "getOrderbookByAddress")]
     pub fn get_orderbook_by_address(
         &self,
