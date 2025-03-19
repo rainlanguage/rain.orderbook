@@ -75,7 +75,7 @@ jobs:
           echo "NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)" >> $GITHUB_ENV
 
       - name: Update orderbook Dependency Version for ui-components
-        run: npm install -w @rainlanguage/ui-components @rainlanguage/orderbook@${{ env.NEW_VERSION }} --save-exact
+        run: npm install -w @rainlanguage/ui-components @rainlanguage/orderbook@=${{ env.NEW_VERSION }} --save-exact
 
       # Commit changes and tag
       - name: Commit And Tag
