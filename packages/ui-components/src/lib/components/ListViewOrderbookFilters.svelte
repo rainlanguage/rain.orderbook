@@ -9,7 +9,6 @@
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
-
 	export let settings: Writable<ConfigSource | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
@@ -20,7 +19,7 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined;
 </script>
 
 <div
@@ -35,9 +34,9 @@
 		{#if $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly
-					{signerAddress}
 					context={isVaultsPage ? 'vaults' : 'orders'}
 					{showMyItemsOnly}
+					{signerAddress}
 				/>
 				{#if !$signerAddress}
 					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
