@@ -25,6 +25,7 @@ use url::ParseError as UrlParseError;
 pub trait YamlParsable: Sized {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
     fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self;
     fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self;
 

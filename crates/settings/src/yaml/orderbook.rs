@@ -56,6 +56,13 @@ impl YamlParsable for OrderbookYaml {
         })
     }
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        OrderbookYaml {
+            documents,
+            cache: Cache::default(),
+        }
+    }
+
     fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
         OrderbookYaml {
             documents: orderbook_yaml.documents,
@@ -84,6 +91,17 @@ impl OrderbookYaml {
         context.add_remote_networks(self.cache.get_remote_networks());
 
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+    }
+    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
+        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        networks
+            .values()
+            .find(|network| network.chain_id == chain_id)
+            .ok_or(YamlError::KeyNotFound(format!(
+                "network with chain_id {}",
+                chain_id
+            )))
+            .cloned()
     }
 
     pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
@@ -306,6 +324,7 @@ mod tests {
             NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
             Url::parse("https://mainnet.infura.io").unwrap()
         );
+        assert_eq!(ob_yaml.get_network_by_chain_id(1).unwrap(), network);
 
         let remote_networks = ob_yaml.get_remote_networks().unwrap();
         assert_eq!(remote_networks.len(), 1);

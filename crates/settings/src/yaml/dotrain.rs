@@ -49,6 +49,13 @@ impl YamlParsable for DotrainYaml {
         })
     }
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        DotrainYaml {
+            documents,
+            cache: Cache::default(),
+        }
+    }
+
     fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
         DotrainYaml {
             documents: dotrain_yaml.documents,
