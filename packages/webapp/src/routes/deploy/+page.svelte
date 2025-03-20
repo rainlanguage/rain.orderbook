@@ -1,18 +1,9 @@
 <script lang="ts">
-	import {
-		PageHeader,
-		ValidStrategiesSection,
-		InvalidStrategiesSection,
-		InputRegistryUrl
-	} from '@rainlanguage/ui-components';
-	import { Toggle } from 'flowbite-svelte';
-	import { page } from '$app/stores';
+	import { ValidStrategiesSection, InvalidStrategiesSection } from '@rainlanguage/ui-components';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 	const { error, validStrategies, invalidStrategies } = data;
-
-	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
 
 <div class="flex w-full max-w-6xl flex-col gap-y-6">
