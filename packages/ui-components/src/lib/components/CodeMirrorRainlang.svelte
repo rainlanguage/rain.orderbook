@@ -13,7 +13,7 @@
 	$: extendedOrder = order ? extendOrder(order) : undefined;
 </script>
 
-{#if extendedOrder?.rainlang}
+{#if rainlangText || extendedOrder?.rainlang}
 	<CodeMirror
 		value={rainlangText || extendedOrder.rainlang}
 		extensions={[RainlangLR]}
