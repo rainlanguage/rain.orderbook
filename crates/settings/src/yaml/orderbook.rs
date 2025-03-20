@@ -64,6 +64,17 @@ impl OrderbookYaml {
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
+    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
+        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        networks
+            .values()
+            .find(|network| network.chain_id == chain_id)
+            .ok_or(YamlError::KeyNotFound(format!(
+                "network with chain_id {}",
+                chain_id
+            )))
+            .cloned()
+    }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
         let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -255,6 +266,8 @@ mod tests {
             NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
             Url::parse("https://mainnet.infura.io").unwrap()
         );
+
+        assert_eq!(ob_yaml.get_network_by_chain_id(1).unwrap(), network);
 
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
