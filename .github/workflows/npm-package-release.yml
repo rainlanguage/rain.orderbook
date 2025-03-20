@@ -108,7 +108,7 @@ jobs:
       # Push the commit to remote
       - name: Push Changes To Remote
         run: |
-          git push origin 
+          git push origin
           git push -u origin npm-v${{ env.NEW_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
