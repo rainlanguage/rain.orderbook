@@ -5,7 +5,6 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 
 // Mock the js_api getVault function
@@ -156,8 +155,6 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
 
 	render(VaultDetail, {
 		props: {
@@ -167,15 +164,13 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
-			handleDepositOrWithdrawModal: vi.fn()
+			isCurrentUserOwner: readable((owner: string) => owner === '0x123')
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 
 	await waitFor(() => {
-		expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
+		expect(screen.getAllByTestId('action-buttons')).toHaveLength(1);
 	});
 });
 
@@ -215,9 +210,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	const queryClient = new QueryClient();
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
-	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
-
 	render(VaultDetail, {
 		props: {
 			id: '100',
@@ -226,9 +218,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 			activeOrderbookRef: writable('0x00'),
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
-			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
-			handleDepositOrWithdrawModal: vi.fn()
+			isCurrentUserOwner: readable((owner: string) => owner === '0x123')
 		},
 		context: new Map([['$$_queryClient', queryClient]])
 	});
