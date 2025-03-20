@@ -6,7 +6,7 @@ on:
 
 jobs:
   release:
-    if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'NPM Package Release') }}
+    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -102,14 +102,14 @@ jobs:
           git add "packages/orderbook/package.json"
           git add "packages/ui-components/package.json"
           git add "package-lock.json"
-          git commit -m "NPM Package Release ${{ env.NEW_VERSION }}"
-          git tag ${{ env.NEW_VERSION }}
+          git commit -m "NPM Package Release v${{ env.NEW_VERSION }}"
+          git tag npm-v${{ env.NEW_VERSION }}
 
       # Push the commit to remote
       - name: Push Changes To Remote
         run: |
           git push origin 
-          git push -u origin ${{ env.NEW_VERSION }}
+          git push -u origin npm-v${{ env.NEW_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -148,8 +148,8 @@ jobs:
         id: gh_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.NEW_VERSION }}
-          name: NPM Package Release ${{ env.NEW_VERSION }}
+          tag_name: npm-v${{ env.NEW_VERSION }}
+          name: NPM Package Release v${{ env.NEW_VERSION }}
           files: |
             orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
             ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
