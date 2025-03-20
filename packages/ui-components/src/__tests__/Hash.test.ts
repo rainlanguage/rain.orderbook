@@ -1,31 +1,34 @@
-import { render } from '@testing-library/svelte';
+import { render, waitFor } from '@testing-library/svelte';
 import Hash from '../lib/components/Hash.svelte';
 import { describe, it, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'svelte';
+import truncateEthAddress from 'truncate-eth-address';
+type HashComponentProps = ComponentProps<Hash>;
+
+const mockProps: HashComponentProps = {
+	value: 'abcdef1234567890',
+	type: 1, // HashType.Wallet
+	shorten: true
+};
 
 describe('Hash Component', () => {
 	it('renders with shortened hash display', () => {
 		const { getByText } = render(Hash, {
-			props: {
-				value: 'abcdef1234567890',
-				type: 1, // HashType.Wallet
-				shorten: true,
-				sliceLen: 5
-			}
+			props: mockProps
 		});
-		expect(getByText('abcde...67890')).toBeInTheDocument();
+		expect(getByText(truncateEthAddress(mockProps.value))).toBeInTheDocument();
 	});
 
 	it('renders full hash when shorten is false', () => {
 		const { getByText } = render(Hash, {
 			props: {
-				value: 'abcdef1234567890',
-				type: 1,
+				...mockProps,
 				shorten: false
 			}
 		});
 
-		expect(getByText('abcdef1234567890')).toBeInTheDocument();
+		expect(getByText(mockProps.value)).toBeInTheDocument();
 	});
 
 	it('copies hash to clipboard and shows copied message', async () => {
@@ -33,8 +36,7 @@ describe('Hash Component', () => {
 
 		const { getByRole, findByText } = render(Hash, {
 			props: {
-				value: 'abcdef1234567890',
-				type: 1,
+				...mockProps,
 				copyOnClick: true
 			}
 		});
@@ -43,7 +45,7 @@ describe('Hash Component', () => {
 		await user.click(button);
 		expect(await findByText('Copied to clipboard')).toBeInTheDocument();
 		const clipboardText = await navigator.clipboard.readText();
-		expect(clipboardText).toBe('abcdef1234567890');
+		expect(clipboardText).toBe(mockProps.value);
 	});
 
 	it('does not copy to clipboard if copyOnClick is false', async () => {
@@ -51,8 +53,7 @@ describe('Hash Component', () => {
 
 		const { getByRole } = render(Hash, {
 			props: {
-				value: 'abcdef1234567890',
-				type: 1,
+				...mockProps,
 				copyOnClick: false
 			}
 		});
@@ -61,5 +62,19 @@ describe('Hash Component', () => {
 		await user.click(button);
 		const clipboardText = await navigator.clipboard.readText();
 		expect(clipboardText).toBe('');
+	});
+
+	it('renders with external link when linkType is provided', async () => {
+		const { getByTestId } = render(Hash, {
+			props: {
+				...mockProps,
+				linkType: 'address',
+				network: 'ethereum'
+			}
+		});
+		await waitFor(() => {
+			const link = getByTestId('external-link');
+			expect(link).toHaveAttribute('href', `https://etherscan.io/address/${mockProps.value}`);
+		});
 	});
 });
