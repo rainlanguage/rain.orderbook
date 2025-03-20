@@ -10,6 +10,7 @@ use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
+use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::OrderbookYaml};
 use rain_orderbook_app_settings::yaml::{YamlError, YamlParsable};
 use rain_orderbook_app_settings::ParseConfigSourceError;
@@ -83,6 +84,8 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
+    #[error(transparent)]
+    ParseRemoteTokensError(#[from] ParseRemoteTokensError),
 }
 
 #[cfg(target_family = "wasm")]
@@ -144,11 +147,19 @@ impl DotrainOrder {
         }
 
         let orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
+
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
+        if !remote_networks.is_empty() {
+            dotrain_yaml.cache.update_remote_networks(remote_networks);
+        }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
-        dotrain_yaml.cache.update_remote_networks(remote_networks);
+        let remote_tokens_cfg = orderbook_yaml.get_remote_tokens()?;
+        if let Some(remote_tokens_cfg) = remote_tokens_cfg {
+            let remote_tokens = RemoteTokensCfg::fetch_tokens(remote_tokens_cfg).await?;
+            dotrain_yaml.cache.update_remote_tokens(remote_tokens);
+        }
 
         Ok(Self {
             dotrain,

@@ -1,7 +1,8 @@
 use super::{cache::Cache, *};
 use crate::{
     metaboard::MetaboardCfg, raindex_version::RaindexVersion, remote_networks::RemoteNetworksCfg,
-    sentry::Sentry, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    remote_tokens::RemoteTokensCfg, sentry::Sentry, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg,
+    OrderbookCfg, TokenCfg,
 };
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -121,6 +122,12 @@ impl OrderbookYaml {
         context.add_remote_networks(self.cache.get_remote_networks());
 
         TokenCfg::parse_from_yaml(self.documents.clone(), key, None)
+    }
+
+    pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
+        let remote_tokens =
+            RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), None)?;
+        Ok(remote_tokens)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
