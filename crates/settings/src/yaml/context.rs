@@ -9,11 +9,17 @@ pub struct GuiContext {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct YamlCache {
+    pub remote_networks: HashMap<String, NetworkCfg>,
+    pub remote_tokens: HashMap<String, TokenCfg>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
-    pub remote_networks: Option<HashMap<String, NetworkCfg>>,
+    pub yaml_cache: Option<YamlCache>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -129,21 +135,45 @@ impl GuiContextTrait for Context {
     }
 }
 
-pub trait RemoteNetworksTrait {
+pub trait YamlCacheTrait {
+    fn get_yaml_cache(&self) -> Option<&YamlCache>;
+
     fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>>;
 
     fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg>;
+
+    fn get_remote_tokens(&self) -> Option<&HashMap<String, TokenCfg>>;
+
+    fn get_remote_token(&self, key: &str) -> Option<&TokenCfg>;
 }
 
-impl RemoteNetworksTrait for Context {
+impl YamlCacheTrait for Context {
+    fn get_yaml_cache(&self) -> Option<&YamlCache> {
+        self.yaml_cache.as_ref()
+    }
+
     fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>> {
-        self.remote_networks.as_ref()
+        self.yaml_cache
+            .as_ref()
+            .and_then(|cache| Some(&cache.remote_networks))
     }
 
     fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg> {
-        self.remote_networks
+        self.yaml_cache
             .as_ref()
-            .and_then(|networks| networks.get(key))
+            .and_then(|cache| cache.remote_networks.get(key))
+    }
+
+    fn get_remote_tokens(&self) -> Option<&HashMap<String, TokenCfg>> {
+        self.yaml_cache
+            .as_ref()
+            .and_then(|cache| Some(&cache.remote_tokens))
+    }
+
+    fn get_remote_token(&self, key: &str) -> Option<&TokenCfg> {
+        self.yaml_cache
+            .as_ref()
+            .and_then(|cache| cache.remote_tokens.get(key))
     }
 }
 
@@ -153,7 +183,7 @@ impl Context {
             order: None,
             select_tokens: None,
             gui_context: None,
-            remote_networks: None,
+            yaml_cache: None,
         }
     }
 
@@ -163,9 +193,7 @@ impl Context {
             new_context.order.clone_from(&context.order);
             new_context.select_tokens.clone_from(&context.select_tokens);
             new_context.gui_context.clone_from(&context.gui_context);
-            new_context
-                .remote_networks
-                .clone_from(&context.remote_networks);
+            new_context.yaml_cache.clone_from(&context.yaml_cache);
         }
         new_context
     }
@@ -200,7 +228,26 @@ impl Context {
         &mut self,
         remote_networks: HashMap<String, NetworkCfg>,
     ) -> &mut Self {
-        self.remote_networks = Some(remote_networks);
+        if let Some(yaml_cache) = self.yaml_cache.as_mut() {
+            yaml_cache.remote_networks = remote_networks;
+        } else {
+            self.yaml_cache = Some(YamlCache {
+                remote_networks,
+                remote_tokens: HashMap::new(),
+            });
+        }
+        self
+    }
+
+    pub fn add_remote_tokens(&mut self, remote_tokens: HashMap<String, TokenCfg>) -> &mut Self {
+        if let Some(yaml_cache) = self.yaml_cache.as_mut() {
+            yaml_cache.remote_tokens = remote_tokens;
+        } else {
+            self.yaml_cache = Some(YamlCache {
+                remote_networks: HashMap::new(),
+                remote_tokens,
+            });
+        }
         self
     }
 

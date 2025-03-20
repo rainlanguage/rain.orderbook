@@ -1,9 +1,10 @@
-use crate::NetworkCfg;
+use crate::{NetworkCfg, TokenCfg};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]
 pub struct Cache {
     pub remote_networks: HashMap<String, NetworkCfg>,
+    pub remote_tokens: HashMap<String, TokenCfg>,
 }
 impl Cache {
     pub fn update_remote_networks(&mut self, remote_networks: HashMap<String, NetworkCfg>) {
@@ -17,5 +18,18 @@ impl Cache {
     }
     pub fn get_remote_network(&self, key: &str) -> Option<NetworkCfg> {
         self.remote_networks.get(key).cloned()
+    }
+
+    pub fn update_remote_tokens(&mut self, remote_tokens: HashMap<String, TokenCfg>) {
+        self.remote_tokens = remote_tokens;
+    }
+    pub fn update_remote_token(&mut self, key: String, remote_token: TokenCfg) {
+        self.remote_tokens.insert(key, remote_token);
+    }
+    pub fn get_remote_tokens(&self) -> HashMap<String, TokenCfg> {
+        self.remote_tokens.clone()
+    }
+    pub fn get_remote_token(&self, key: &str) -> Option<TokenCfg> {
+        self.remote_tokens.get(key).cloned()
     }
 }
