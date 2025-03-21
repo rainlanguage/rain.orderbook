@@ -1,11 +1,9 @@
 <script context="module" lang="ts">
 	export const SIGNER_ADDRESS_KEY = 'signer_address_key';
 	export const USE_ACCOUNT_KEY = 'use_account_key';
-
 	export type UseAccountResult = {
 		account: Readable<string | null>;
 	};
-
 	export type UseAccount = () => UseAccountResult;
 </script>
 
