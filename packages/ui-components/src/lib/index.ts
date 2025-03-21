@@ -127,3 +127,11 @@ export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
+
+// Providers
+export { default as WalletProvider } from './providers/WalletProvider.svelte';
+export {
+	SIGNER_ADDRESS_KEY,
+	USE_ACCOUNT_KEY,
+	type UseAccount
+} from './providers/WalletProvider.svelte';
