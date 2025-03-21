@@ -6,6 +6,11 @@
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
 	$: customRegistry = $page.url.searchParams.get('registry');
+	$: if (advancedMode) {
+	  localStorage.setItem('registry', 'true');
+	} else {
+	  localStorage.removeItem('registry');
+	}
 </script>
 
 <PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
