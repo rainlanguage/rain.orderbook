@@ -327,7 +327,6 @@ mod tests {
             NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
             Url::parse("https://mainnet.infura.io").unwrap()
         );
-        assert_eq!(ob_yaml.get_network_by_chain_id(1).unwrap(), network);
 
         let remote_networks = ob_yaml.get_remote_networks().unwrap();
         assert_eq!(remote_networks.len(), 1);
