@@ -3,7 +3,6 @@ import { render } from '@testing-library/svelte';
 import WalletProvider, {
 	ACCOUNT_KEY,
 	USE_ACCOUNT_KEY,
-	type UseAccount
 } from '../lib/providers/wallet/WalletProvider.svelte';
 import { setContext } from 'svelte';
 import { readable } from 'svelte/store';
