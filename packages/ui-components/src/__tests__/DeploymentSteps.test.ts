@@ -644,35 +644,34 @@ const defaultProps: DeploymentStepsProps = {
 };
 
 describe('DeploymentSteps', () => {
-
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
-		let mockGui: DotrainOrderGui;
+	let mockGui: DotrainOrderGui;
 
-		// Create a mock GUI instance
-		mockGui = {
-			areAllTokensSelected: vi.fn().mockReturnValue(false),
-			getSelectTokens: vi.fn().mockReturnValue([]),
-			getNetworkKey: vi.fn().mockReturnValue('flare'),
-			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
-			getAllGuiConfig: vi.fn().mockReturnValue({
-				deposits: [],
-				fieldDefinitionsWithoutDefaults: [],
-				fieldDefinitionsWithDefaults: [],
-				orderInputs: [],
-				orderOutputs: []
-			}),
-			hasAnyDeposit: vi.fn().mockReturnValue(false),
-			hasAnyVaultId: vi.fn().mockReturnValue(false),
-			getAllTokenInfos: vi.fn().mockResolvedValue([]),
-			getAllFieldDefinitions: vi.fn().mockReturnValue([]),
-			getCurrentDeploymentDetails: vi.fn().mockReturnValue({
-				name: 'Test Deployment',
-				description: 'This is a test deployment description'
-			})
-		} as unknown as DotrainOrderGui;
-				vi.mocked(useGui).mockReturnValue(mockGui);
+	// Create a mock GUI instance
+	mockGui = {
+		areAllTokensSelected: vi.fn().mockReturnValue(false),
+		getSelectTokens: vi.fn().mockReturnValue([]),
+		getNetworkKey: vi.fn().mockReturnValue('flare'),
+		getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
+		getAllGuiConfig: vi.fn().mockReturnValue({
+			deposits: [],
+			fieldDefinitionsWithoutDefaults: [],
+			fieldDefinitionsWithDefaults: [],
+			orderInputs: [],
+			orderOutputs: []
+		}),
+		hasAnyDeposit: vi.fn().mockReturnValue(false),
+		hasAnyVaultId: vi.fn().mockReturnValue(false),
+		getAllTokenInfos: vi.fn().mockResolvedValue([]),
+		getAllFieldDefinitions: vi.fn().mockReturnValue([]),
+		getCurrentDeploymentDetails: vi.fn().mockReturnValue({
+			name: 'Test Deployment',
+			description: 'This is a test deployment description'
+		})
+	} as unknown as DotrainOrderGui;
+	vi.mocked(useGui).mockReturnValue(mockGui);
 
 	it('shows deployment details when provided', async () => {
 		render(DeploymentSteps, { props: defaultProps });
@@ -699,7 +698,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy strategy button when all required fields are filled', async () => {
-				const mockSelectTokens = [
+		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
 		];
