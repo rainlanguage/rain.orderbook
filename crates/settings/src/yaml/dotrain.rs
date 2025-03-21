@@ -66,7 +66,7 @@ impl YamlParsable for DotrainYaml {
     fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
         DotrainYaml {
             documents: orderbook_yaml.documents,
-            cache: Cache::default(),
+            cache: orderbook_yaml.cache,
         }
     }
 }
