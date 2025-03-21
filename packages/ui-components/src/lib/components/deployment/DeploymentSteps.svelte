@@ -247,7 +247,9 @@
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					{#if allDepositFields.length > 0 && showAdvancedOptions}
