@@ -28,6 +28,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
 		key: string;
@@ -39,7 +40,6 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -52,6 +52,7 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
 
+	const gui = useGui();
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
