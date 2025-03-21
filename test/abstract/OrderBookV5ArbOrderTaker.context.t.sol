@@ -3,11 +3,11 @@
 pragma solidity =0.8.25;
 
 import {
-    ChildOrderBookV4ArbOrderTaker,
-    TaskV1,
+    ChildOrderBookV5ArbOrderTaker,
+    TaskV2,
     SignedContextV1,
-    EvaluableV3
-} from "../util/concrete/ChildOrderBookV4ArbOrderTaker.sol";
+    EvaluableV4
+} from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
 import {OrderBookExternalRealTest} from "../util/abstract/OrderBookExternalRealTest.sol";
 import {
     TakeOrdersConfigV3,
@@ -21,11 +21,11 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
 
-contract OrderBookV4ArbOrderTakerContextTest is OrderBookExternalRealTest {
-    function testOrderBookV4ArbOrderTakerContext() external {
+contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
+    function testOrderBookV5ArbOrderTakerContext() external {
         address alice = address(999999);
         address bob = address(999998);
-        ChildOrderBookV4ArbOrderTaker arbOrderTaker = new ChildOrderBookV4ArbOrderTaker();
+        ChildOrderBookV5ArbOrderTaker arbOrderTaker = new ChildOrderBookV5ArbOrderTaker();
 
         OrderConfigV3 memory aliceOrderConfig;
         {
@@ -36,7 +36,7 @@ contract OrderBookV4ArbOrderTakerContextTest is OrderBookExternalRealTest {
             aliceValidOutputs[0] = IO({token: address(iToken1), decimals: 12, vaultId: 0});
 
             aliceOrderConfig = OrderConfigV3({
-                evaluable: EvaluableV3(iInterpreter, iStore, ""),
+                evaluable: EvaluableV4(iInterpreter, iStore, ""),
                 validInputs: aliceValidInputs,
                 validOutputs: aliceValidOutputs,
                 nonce: 0,
@@ -70,8 +70,8 @@ contract OrderBookV4ArbOrderTakerContextTest is OrderBookExternalRealTest {
             data: ""
         });
 
-        TaskV1 memory task = TaskV1({
-            evaluable: EvaluableV3({
+        TaskV2 memory task = TaskV2({
+            evaluable: EvaluableV4({
                 interpreter: iInterpreter,
                 store: iStore,
                 bytecode: iParserV2.parse2(

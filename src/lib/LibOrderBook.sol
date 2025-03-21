@@ -8,8 +8,13 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {EvaluableV3, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {SourceIndexV2, StateNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {EvaluableV4, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {
+    SourceIndexV2,
+    StateNamespace,
+    StackItem,
+    EvalV4
+} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 
@@ -89,19 +94,22 @@ uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
 
 library LibOrderBook {
-    function doPost(uint256[][] memory context, TaskV1[] memory post) internal {
+    function doPost(bytes32[][] memory context, TaskV2[] memory post) internal {
         StateNamespace namespace = StateNamespace.wrap(uint256(uint160(msg.sender)));
-        TaskV1 memory task;
+        TaskV2 memory task;
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
             if (task.evaluable.bytecode.length > 0) {
-                (uint256[] memory stack, uint256[] memory writes) = task.evaluable.interpreter.eval3(
-                    task.evaluable.store,
-                    LibNamespace.qualifyNamespace(namespace, address(this)),
-                    task.evaluable.bytecode,
-                    SourceIndexV2.wrap(0),
-                    LibContext.build(context, task.signedContext),
-                    new uint256[](0)
+                (StackItem[] memory stack, bytes32[] memory writes) = task.evaluable.interpreter.eval4(
+                    EvalV4({
+                        store: task.evaluable.store,
+                        namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
+                        bytecode: task.evaluable.bytecode,
+                        sourceIndex: SourceIndexV2.wrap(0),
+                        context: LibContext.build(context, task.signedContext),
+                        inputs: new StackItem[](0),
+                        stateOverlay: new bytes32[](0)
+                    })
                 );
                 (stack);
                 if (writes.length > 0) {
