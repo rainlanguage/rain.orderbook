@@ -6,9 +6,7 @@ import type { AppKit } from '@reown/appkit';
 import truncateEthAddress from 'truncate-eth-address';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-const { mockConnectedStore } = await vi.hoisted(
-	() => import('$lib/__mocks__/stores')
-);
+const { mockConnectedStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -19,7 +17,7 @@ vi.mock('$lib/stores/wagmi', async (importOriginal) => {
 	return {
 		...original,
 		appKitModal: writable({} as AppKit),
-		connected: mockConnectedStore,
+		connected: mockConnectedStore
 	};
 });
 
@@ -50,7 +48,7 @@ describe('WalletConnect component', () => {
 		render(WalletConnect, {
 			props: {
 				connected: mockConnectedStore as Writable<boolean>,
-				appKitModal: writable({} as AppKit),
+				appKitModal: writable({} as AppKit)
 			}
 		});
 

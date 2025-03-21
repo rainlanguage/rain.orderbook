@@ -42,11 +42,11 @@ if (import.meta.vitest) {
 			const mockUseAccountFn = vi.fn().mockReturnValue({
 				account: mockAccount
 			});
-			
+
 			mockGetUseAccountContext.mockReturnValue(mockUseAccountFn);
-			
+
 			const result = useAccount();
-			
+
 			expect(mockGetUseAccountContext).toHaveBeenCalled();
 			expect(mockUseAccountFn).toHaveBeenCalled();
 			expect(result).toEqual({
@@ -57,12 +57,12 @@ if (import.meta.vitest) {
 
 		it('should fall back to direct account context when useAccount function is not available', () => {
 			const mockAccount = readable('0x456');
-			
+
 			mockGetUseAccountContext.mockReturnValue(undefined);
 			mockGetAccountContext.mockReturnValue(mockAccount);
-			
+
 			const result = useAccount();
-			
+
 			expect(mockGetUseAccountContext).toHaveBeenCalled();
 			expect(mockGetAccountContext).toHaveBeenCalled();
 			expect(result).toEqual({
