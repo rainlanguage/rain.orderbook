@@ -80,11 +80,15 @@ impl YamlParsable for OrderbookYaml {
 }
 
 impl OrderbookYaml {
-    pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
+    pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
         let mut context = Context::new();
         context.add_remote_networks(self.cache.get_remote_networks());
 
         let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
+        Ok(networks)
+    }
+    pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
+        let networks = self.get_networks()?;
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
@@ -92,17 +96,6 @@ impl OrderbookYaml {
         context.add_remote_networks(self.cache.get_remote_networks());
 
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
-    }
-    pub fn get_network_by_chain_id(&self, chain_id: u64) -> Result<NetworkCfg, YamlError> {
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        networks
-            .values()
-            .find(|network| network.chain_id == chain_id)
-            .ok_or(YamlError::KeyNotFound(format!(
-                "network with chain_id {}",
-                chain_id
-            )))
-            .cloned()
     }
 
     pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
@@ -121,10 +114,13 @@ impl OrderbookYaml {
         let mut context = Context::new();
         context.add_remote_networks(self.cache.get_remote_networks());
 
-        TokenCfg::parse_from_yaml(self.documents.clone(), key, None)
+        TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
+        let mut context = Context::new();
+        context.add_remote_networks(self.cache.get_remote_networks());
+
         let remote_tokens =
             RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), None)?;
         Ok(remote_tokens)

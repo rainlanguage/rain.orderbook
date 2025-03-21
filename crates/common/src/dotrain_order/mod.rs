@@ -146,18 +146,23 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
         let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
         if !remote_networks.is_empty() {
-            dotrain_yaml.cache.update_remote_networks(remote_networks);
+            orderbook_yaml
+                .cache
+                .update_remote_networks(remote_networks.clone());
+            dotrain_yaml
+                .cache
+                .update_remote_networks(remote_networks.clone());
         }
 
-        let remote_tokens_cfg = orderbook_yaml.get_remote_tokens()?;
-        if let Some(remote_tokens_cfg) = remote_tokens_cfg {
-            let remote_tokens = RemoteTokensCfg::fetch_tokens(remote_tokens_cfg).await?;
+        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
+            let networks = orderbook_yaml.get_networks()?;
+            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 
