@@ -61,7 +61,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let signerAddress: Readable<string | null>;
+	export let account: Readable<string | null>;
 
 	onMount(async () => {
 		await areAllTokensSelected();
