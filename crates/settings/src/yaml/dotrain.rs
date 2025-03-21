@@ -107,6 +107,7 @@ impl DotrainYaml {
             context.add_current_deployment(deployment);
         }
         context.add_remote_networks(self.cache.get_remote_networks());
+        context.add_remote_tokens(self.cache.get_remote_tokens());
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
