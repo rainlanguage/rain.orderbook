@@ -335,7 +335,7 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
-const dotrainForRemoteNetwork = `
+const dotrainForRemotes = `
 gui:
   name: Test
   description: Fixed limit order strategy
@@ -345,6 +345,16 @@ gui:
       description: Test description
       deposits:
         - token: token1
+        - token: token2
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          default: some-default-value
+    other-deployment:
+      name: Test deployment
+      description: Test description
+      deposits:
+        - token: token3
       fields:
         - binding: binding-1
           name: Field 1 name
@@ -361,17 +371,26 @@ using-networks-from:
     format: chainid
 subgraphs:
     some-sg: https://www.some-sg.com
+    other-sg: https://www.other-sg.com
 metaboards:
     test: https://metaboard.com
 deployers:
     some-deployer:
         network: remote-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+    other-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+    other-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: other-sg
+using-tokens-from: http://localhost:8085/remote-tokens
 tokens:
     token1:
         network: remote-network
@@ -385,9 +404,17 @@ tokens:
         decimals: 18
         label: Token 2
         symbol: T2
+    token3:
+        network: some-network
+        address: 0xadf0000000000000000000000000000000000000
+        decimals: 6
+        label: Token 3
+        symbol: T3
 scenarios:
     some-scenario:
         deployer: some-deployer
+    other-scenario:
+        deployer: other-deployer
 orders:
     some-order:
       inputs:
@@ -396,10 +423,20 @@ orders:
         - token: token2
       deployer: some-deployer
       orderbook: some-orderbook
+    other-order:
+      inputs:
+        - token: token3
+      outputs:
+        - token: token3
+      deployer: other-deployer
+      orderbook: other-orderbook
 deployments:
     test-deployment:
         scenario: some-scenario
         order: some-order
+    other-deployment:
+        scenario: other-scenario
+        order: other-order
 ---
 _: 10,
 _: 20;
@@ -1770,12 +1807,66 @@ ${dotrainWithoutVaultIds}`;
 						shortName: 'remote-network'
 					}
 				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [],
+					logoUri: 'http://localhost.com'
+				});
 
-			const gui = await DotrainOrderGui.chooseDeployment(
-				dotrainForRemoteNetwork,
-				'test-deployment'
-			);
+			const gui = await DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'test-deployment');
 			assert.ok(gui.getCurrentDeployment());
+		});
+
+		it('should fail for same remote token key in response', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					},
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+
+			expect(() =>
+				DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'test-deployment')
+			).rejects.toThrow(
+				"Conflicting remote network in response, a network with key 'remote-network' already exists"
+			);
 		});
 
 		it('should fail for duplicate network', async () => {
@@ -1812,15 +1903,182 @@ ${dotrainWithoutVaultIds}`;
 						shortName: 'some-network'
 					}
 				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [],
+					logoUri: 'http://localhost.com'
+				});
 
-			const gui = await DotrainOrderGui.chooseDeployment(
-				dotrainForRemoteNetwork,
-				'test-deployment'
-			);
+			expect(() =>
+				DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'test-deployment')
+			).rejects.toThrow('Remote network key shadowing: some-network');
+		});
+	});
 
-			expect(async () => gui.getCurrentDeployment()).rejects.toThrow(
-				'Remote network key shadowing: some-network'
+	describe('remote tokens tests', () => {
+		it('should fetch remote tokens', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			const gui = await DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			assert.ok(gui.getCurrentDeployment());
+		});
+
+		it('should fail for same remote token key in response', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			expect(() =>
+				DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'other-deployment')
+			).rejects.toThrow(
+				"Conflicting remote token in response, a token with key 'remote' already exists"
 			);
+		});
+
+		it('should fail for duplicate network', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Token1',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			const gui = await DotrainOrderGui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+
+			expect(() => gui.getCurrentDeployment()).toThrow('Remote token key shadowing: token1');
 		});
 	});
 });
