@@ -19,7 +19,7 @@
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
 
-  const signerAddress = derived(
+  const account = derived(
     [ledgerWalletAddress, walletconnectAccount],
     ([$ledgerWalletAddress, $walletconnectAccount]) => {
       return $ledgerWalletAddress || $walletconnectAccount || null;
@@ -29,7 +29,7 @@
 
 <WindowDraggableArea />
 
-<WalletProvider {signerAddress}>
+<WalletProvider {account}>
   <QueryClientProvider client={queryClient}>
     <div
       class="mb-10 flex h-[calc(100vh-2.5rem)] w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"

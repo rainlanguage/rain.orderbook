@@ -5,7 +5,7 @@
 	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { useAccount } from '$lib/hooks/wallet';
+	import { useAccount } from '../../providers/wallet/useAccount';
 
 	const { account } = useAccount();
 
