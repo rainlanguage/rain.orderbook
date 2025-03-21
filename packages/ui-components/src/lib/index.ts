@@ -130,4 +130,4 @@ export { default as logoDark } from './assets/logo-dark.svg';
 
 // Providers
 export { default as WalletProvider } from './providers/WalletProvider.svelte';
-export { useAccount } from './providers/WalletProvider.svelte';
+export { useAccount } from './hooks/wallet';

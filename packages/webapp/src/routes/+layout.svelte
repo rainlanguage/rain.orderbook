@@ -39,7 +39,7 @@
 	}
 </script>
 
-<WalletProvider {signerAddress}>
+<WalletProvider account={signerAddress}>
 	<QueryClientProvider client={queryClient}>
 		<LoadingWrapper>
 			{#if $page.url.pathname === '/'}

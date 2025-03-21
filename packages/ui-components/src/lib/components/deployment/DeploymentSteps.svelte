@@ -61,7 +61,6 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let account: Readable<string | null>;
 
 	onMount(async () => {
 		await areAllTokensSelected();
@@ -283,7 +282,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
