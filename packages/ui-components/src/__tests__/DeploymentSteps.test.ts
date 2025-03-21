@@ -647,10 +647,7 @@ describe('DeploymentSteps', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
-	let mockGui: DotrainOrderGui;
-
-	// Create a mock GUI instance
-	mockGui = {
+	const mockGui: DotrainOrderGui = {
 		areAllTokensSelected: vi.fn().mockReturnValue(false),
 		getSelectTokens: vi.fn().mockReturnValue([]),
 		getNetworkKey: vi.fn().mockReturnValue('flare'),
