@@ -3,7 +3,7 @@ use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, FieldErrorKind, YamlError, YamlParseableValue,
 };
-use crate::TokenCfg;
+use crate::{NetworkCfg, TokenCfg};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -30,6 +30,7 @@ impl RemoteTokensCfg {
     }
 
     pub async fn fetch_tokens(
+        networks: &HashMap<String, NetworkCfg>,
         remote_tokens: RemoteTokensCfg,
     ) -> Result<HashMap<String, TokenCfg>, ParseRemoteTokensError> {
         let mut tokens: HashMap<String, TokenCfg> = HashMap::new();
@@ -42,7 +43,7 @@ impl RemoteTokensCfg {
         for token in &tokens_res.tokens {
             let token_cfg = token
                 .clone()
-                .try_into_token_cfg(remote_tokens.document.clone())?;
+                .try_into_token_cfg(networks, remote_tokens.document.clone())?;
 
             if tokens.contains_key(&token_cfg.key) {
                 return Err(ParseRemoteTokensError::ConflictingTokens(
@@ -115,7 +116,7 @@ impl PartialEq for RemoteTokensCfg {
 
 #[derive(Error, Debug)]
 pub enum ParseRemoteTokensError {
-    #[error("Conflicting remote tokens, a token with key '{0}' already exists")]
+    #[error("Conflicting remote token in response, a token with key '{0}' already exists")]
     ConflictingTokens(String),
     #[error(transparent)]
     UrlParseError(ParseError),
