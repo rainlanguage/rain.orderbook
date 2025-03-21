@@ -697,7 +697,7 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	it('shows deploy strategy button when all required fields are filled', async () => {
+	it('shows deploy strategy or wallet connect button when all required fields are filled', async () => {
 		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
@@ -739,6 +739,11 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+		mockConnectedStore.mockSetSubscribeValue(false);
+
+		await waitFor(() => {
+			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
 	});
 
