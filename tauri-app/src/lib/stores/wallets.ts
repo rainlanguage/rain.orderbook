@@ -1,18 +1,18 @@
 import { derived } from 'svelte/store';
+import { walletconnectAccount } from '$lib/stores/walletconnect';
 import { writable } from '@square/svelte-store';
-import { useAccount } from '@rainlanguage/ui-components';
 
-const { account } = useAccount();
-
+export const ledgerWalletAddress = writable<string | undefined>(undefined);
 export const ledgerWalletDerivationIndex = writable<number>(0);
 
 export const walletAddressMatchesOrBlank = derived(
-  [account],
-  ([$account]) => {
+  [ledgerWalletAddress, walletconnectAccount],
+  ([$ledgerWalletAddress, $walletconnectAccount]) => {
     return (otherAddress: string) => {
       const otherAddressLowercase = otherAddress.toLowerCase();
       return (
-        $account?.toLowerCase() === otherAddressLowercase
+        $ledgerWalletAddress?.toLowerCase() === otherAddressLowercase ||
+        $walletconnectAccount?.toLowerCase() === otherAddressLowercase
       );
     };
   },
