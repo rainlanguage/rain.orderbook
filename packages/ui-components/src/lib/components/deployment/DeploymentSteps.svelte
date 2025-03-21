@@ -17,15 +17,13 @@
 		type AllTokenInfos
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
-	import { Button, Toggle, Spinner } from 'flowbite-svelte';
+	import { Toggle } from 'flowbite-svelte';
 	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
-	import { getDeploymentTransactionArgs } from './getDeploymentTransactionArgs';
-	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
 	import DeployButton from './DeployButton.svelte';
@@ -50,7 +48,6 @@
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
-	let checkingDeployment: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
 
 	const selectTokens = gui.getSelectTokens();
