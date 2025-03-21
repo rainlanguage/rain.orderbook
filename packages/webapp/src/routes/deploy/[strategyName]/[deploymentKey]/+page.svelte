@@ -7,8 +7,7 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-
-	const { account } = useAccount();
+	import { signerAddress } from '$lib/stores/wagmi';
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
@@ -51,6 +50,7 @@
 		{handleDeployModal}
 		{settings}
 		{handleDisclaimerModal}
+		{signerAddress}
 	/>
 {:else if getGuiError}
 	<div>
