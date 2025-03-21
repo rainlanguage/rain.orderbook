@@ -6,17 +6,13 @@
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
 	$: customRegistry = $page.url.searchParams.get('registry');
-	$: if (advancedMode) {
-	  localStorage.setItem('registry', 'true');
-	} else {
-	  localStorage.removeItem('registry');
-	}
+	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
 <PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
 	<svelte:fragment slot="actions">
 		<div class="flex flex-col gap-2">
-			{#if $page.url.pathname === '/deploy'}
+			{#if isDeployPage}
 				<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 					<span class="whitespace-nowrap">Advanced mode</span>
 				</Toggle>
@@ -30,8 +26,8 @@
 	</svelte:fragment>
 </PageHeader>
 <div class="flex flex-col items-end gap-4">
-	{#if advancedMode && $page.url.pathname === '/deploy'}
-		<div class="flex w-2/3 flex-col items-start gap-4">
+	{#if advancedMode && isDeployPage}
+		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
 			<InputRegistryUrl />
 		</div>
 	{/if}
