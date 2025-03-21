@@ -2,8 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import WalletProvider, {
 	ACCOUNT_KEY,
-	USE_ACCOUNT_KEY,
-	type UseAccount
+	USE_ACCOUNT_KEY
 } from '../lib/providers/wallet/WalletProvider.svelte';
 import { setContext } from 'svelte';
 import { readable } from 'svelte/store';
