@@ -1,7 +1,8 @@
 import { writable } from 'svelte/store';
 
 export enum DeploymentStepsErrorCode {
-	NO_GUI = 'Error loading GUI',
+	NO_GUI_PROVIDER = 'No GUI provider found.',
+	NO_GUI = 'Error loading GUI.',
 	NO_STRATEGY = 'No valid strategy exists at this URL',
 	NO_SELECT_TOKENS = 'Error loading tokens',
 	NO_TOKEN_INFO = 'Error loading token information',
