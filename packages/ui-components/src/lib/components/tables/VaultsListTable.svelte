@@ -46,7 +46,7 @@
 	export let signerAddress: Writable<string | null> | undefined;
 
 	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
+		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : $settings?.subgraphs ?? {}
 	).map(([name, url]) => ({
 		name,
 		url
