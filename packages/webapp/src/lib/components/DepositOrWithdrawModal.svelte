@@ -161,7 +161,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect {appKitModal} {connected} {signerAddress} />
+						<WalletConnect {appKitModal} {connected} />
 					{/if}
 				</div>
 				{#if errorMessage}
