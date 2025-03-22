@@ -41,14 +41,6 @@
             "require": "./dist/cjs/js_api.js",
             "import": "./dist/esm/js_api.js",
             "types": "./dist/types/js_api.d.ts"
-        },
-        "./cjs": {
-            "default": "./cjs.js",
-            "types": "./cjs.d.ts"
-        },
-        "./esm": {
-            "default": "./esm.js",
-            "types": "./esm.d.ts"
         }
     },
     "typesVersions": {
@@ -61,12 +53,6 @@
             ],
             "js_api": [
                 "./dist/types/js_api.d.ts"
-            ],
-            "cjs": [
-                "./cjs.d.ts"
-            ],
-            "esm": [
-                "./esm.d.ts"
             ]
         }
     },
