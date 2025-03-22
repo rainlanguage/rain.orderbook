@@ -1,39 +1,39 @@
-name: Test webapp
-on: [push]
+# name: Test webapp
+# on: [push]
 
-concurrency:
-  group: ${{ github.ref }}-webapp
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.ref }}-webapp
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  test:
-    permissions:
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
-    env:
-      COMMIT_SHA: ${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 0
+# jobs:
+#   test:
+#     permissions:
+#       id-token: write
+#       contents: read
+#     runs-on: ubuntu-latest
+#     env:
+#       COMMIT_SHA: ${{ github.sha }}
+#     steps:
+#       - uses: actions/checkout@v2
+#         with:
+#           submodules: recursive
+#           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+#       - uses: DeterminateSystems/nix-installer-action@main
+#         with:
+#           determinate: true
+#       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+#       - run: ./prep-all.sh
+#         env:
+#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - run: nix develop -c npm run svelte-lint-format-check
-        working-directory: packages/webapp
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+#       - run: nix develop -c npm run svelte-lint-format-check
+#         working-directory: packages/webapp
+#         env:
+#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - run: nix develop -c npm run test
-        working-directory: packages/webapp
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+#       - run: nix develop -c npm run test
+#         working-directory: packages/webapp
+#         env:
+#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}

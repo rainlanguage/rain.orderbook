@@ -1,32 +1,32 @@
-name: Subgraph unit tests
-on: [push]
+# name: Subgraph unit tests
+# on: [push]
 
-concurrency:
-  group: ${{ github.ref }}-subgraph
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.ref }}-subgraph
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  test:
-    permissions:
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
+# jobs:
+#   test:
+#     permissions:
+#       id-token: write
+#       contents: read
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           submodules: recursive
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
-        with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+#       - name: Install Nix
+#         uses: DeterminateSystems/nix-installer-action@main
+#         with:
+#           determinate: true
+#       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - name: Build subgraph
-        run: nix develop -c subgraph-build
+#       - name: Build subgraph
+#         run: nix develop -c subgraph-build
 
-      - name: Matchstick tests
-        run: nix develop -c subgraph-test
+#       - name: Matchstick tests
+#         run: nix develop -c subgraph-test

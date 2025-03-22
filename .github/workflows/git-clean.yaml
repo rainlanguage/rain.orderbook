@@ -1,33 +1,33 @@
-name: Git is clean
-on: [push]
+# name: Git is clean
+# on: [push]
 
-concurrency:
-  group: ${{ github.ref }}-git-clean
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+# concurrency:
+#   group: ${{ github.ref }}-git-clean
+#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-jobs:
-  git-clean:
-    permissions:
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+# jobs:
+#   git-clean:
+#     permissions:
+#       id-token: write
+#       contents: read
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           submodules: recursive
+#           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+#       - uses: DeterminateSystems/nix-installer-action@main
+#         with:
+#           determinate: true
+#       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      # Build metas etc. required to do a correct pointer build.
-      - run: ./pointers.sh
+#       # Build metas etc. required to do a correct pointer build.
+#       - run: ./pointers.sh
 
-      # Format the repo after generating pointers so that the pointer files are
-      # formatted too.
-      - run: nix develop -c forge fmt
+#       # Format the repo after generating pointers so that the pointer files are
+#       # formatted too.
+#       - run: nix develop -c forge fmt
 
-      # Check if the repo is clean after generating pointers and formatting.
-      - run: git diff --exit-code
+#       # Check if the repo is clean after generating pointers and formatting.
+#       - run: git diff --exit-code

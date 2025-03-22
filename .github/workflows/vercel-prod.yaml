@@ -1,42 +1,42 @@
-name: GitHub Actions Vercel Production Deployment
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-on:
-  push:
-    branches:
-      - main
-jobs:
-  Deploy-Preview:
-    permissions:
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
-    env:
-      COMMIT_SHA: ${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 0
+# name: GitHub Actions Vercel Production Deployment
+# env:
+#   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+#   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+# on:
+#   push:
+#     branches:
+#       - main
+# jobs:
+#   Deploy-Preview:
+#     permissions:
+#       id-token: write
+#       contents: read
+#     runs-on: ubuntu-latest
+#     env:
+#       COMMIT_SHA: ${{ github.sha }}
+#     steps:
+#       - uses: actions/checkout@v2
+#         with:
+#           submodules: recursive
+#           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@main
-        with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
+#       - uses: DeterminateSystems/nix-installer-action@main
+#         with:
+#           determinate: true
+#       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+#       - run: ./prep-all.sh
+#         env:
+#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - run: nix develop .#webapp-shell -c npm run build
-        working-directory: packages/webapp
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+#       - run: nix develop .#webapp-shell -c npm run build
+#         working-directory: packages/webapp
+#         env:
+#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@canary
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} packages/webapp
+#       - name: Install Vercel CLI
+#         run: npm install --global vercel@canary
+#       - name: Pull Vercel Environment Information
+#         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+#       - name: Deploy Project Artifacts to Vercel
+#         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} packages/webapp

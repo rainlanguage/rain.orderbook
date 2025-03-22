@@ -284,11 +284,14 @@
             packages.ob-tauri-before-release
             packages.tauri-rs-test
           ];
-          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + ''
-            export TMP_SETFILE_PATH=$(mktemp -d)
-            cp /Library/Developer/CommandLineTools/usr/bin/SetFile "$TMP_SETFILE_PATH/SetFile"
-            export PATH="$TMP_SETFILE_PATH:$PATH"
-          '';
+          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + (pkgs.lib.optionals pkgs.stdenv.isDarwin ''
+            # export TMP_SETFILE_PATH=$(mktemp -d)
+            # cp /Library/Developer/CommandLineTools/usr/bin/SetFile "$TMP_SETFILE_PATH/SetFile"
+            # export PATH="$TMP_SETFILE_PATH:$PATH"
+            # export PATH=$(echo $PATH | sd "${pkgs.xcbuild.xcrun}/bin" "")
+            export PATH=''${PATH//'${pkgs.xcbuild.xcrun}/bin:'/}
+            unset DEVELOPER_DIR
+          '');
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
