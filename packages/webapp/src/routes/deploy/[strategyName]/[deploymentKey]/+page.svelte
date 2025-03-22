@@ -33,9 +33,6 @@
 	});
 </script>
 
-<PageHeader title={$page.data.deployment.name || 'Deploy'} pathname={$page.url.pathname}
-></PageHeader>
-
 {#if !dotrain || !deployment}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
