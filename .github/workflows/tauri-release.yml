@@ -85,7 +85,7 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
           SENTRY_LOG_LEVEL: debug
 
-      - uses: tauri-apps/tauri-action@v0
+      - run: nix develop -i -k COMMIT_SHA -k APPLE_CERTIFICATE -k APPLE_CERTIFICATE_PASSWORD -k APPLE_SIGNING_IDENTITY -k APPLE_ID -k APPLE_PASSWORD -k APPLE_TEAM_ID -k CI_DEPLOY_SEPOLIA_RPC_URL -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS -k CI_FORK_SEPOLIA_BLOCK_NUMBER -k CI_DEPLOY_POLYGON_RPC_URL -k CI_SEPOLIA_METABOARD_URL -k RPC_URL_ETHEREUM_FORK .#tauri-shell --command cargo tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -95,8 +95,4 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           COMMIT_SHA: ${{ github.sha }}
-        with:
-          tauriScript: "nix develop -i -k COMMIT_SHA -k APPLE_CERTIFICATE -k APPLE_CERTIFICATE_PASSWORD -k APPLE_SIGNING_IDENTITY -k APPLE_ID -k APPLE_PASSWORD -k APPLE_TEAM_ID -k CI_DEPLOY_SEPOLIA_RPC_URL -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS -k CI_FORK_SEPOLIA_BLOCK_NUMBER -k CI_DEPLOY_POLYGON_RPC_URL -k CI_SEPOLIA_METABOARD_URL -k RPC_URL_ETHEREUM_FORK .#tauri-shell --command cargo tauri"
-          tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: "App v__VERSION__-${{ github.sha }}"
-          releaseBody: "See the assets to download this version and install."
+
