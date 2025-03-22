@@ -1,38 +1,13 @@
 <script lang="ts">
-	import {
-		PageHeader,
-		ValidStrategiesSection,
-		InvalidStrategiesSection,
-		InputRegistryUrl
-	} from '@rainlanguage/ui-components';
-	import { Toggle } from 'flowbite-svelte';
-	import { page } from '$app/stores';
+	import { ValidStrategiesSection, InvalidStrategiesSection } from '@rainlanguage/ui-components';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 	const { error, validStrategies, invalidStrategies } = data;
-
-	let advancedMode = localStorage.getItem('registry') ? true : false;
 </script>
 
-<PageHeader title={$page.data.name || 'Deploy'} pathname={$page.url.pathname}>
-	<svelte:fragment slot="actions">
-		<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
-			<span class="whitespace-nowrap">Advanced mode</span>
-		</Toggle></svelte:fragment
-	>
-</PageHeader>
-
-<div class="flex items-start justify-end gap-4">
-	{#if advancedMode}
-		<div class="mb-12 flex w-2/3 flex-col items-start gap-4">
-			<InputRegistryUrl />
-		</div>
-	{/if}
-</div>
 <div class="flex w-full max-w-6xl flex-col gap-y-6">
 	<div class="text-4xl font-semibold text-gray-900 dark:text-white">Strategies</div>
-
 	{#if error}
 		<div class="flex gap-2 text-lg">
 			Error loading registry:<span class="text-red-500">{error}</span>

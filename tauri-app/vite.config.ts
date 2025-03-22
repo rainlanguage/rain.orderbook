@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
     },
 
- test: {
+   test: {
 		// Jest like globals
 		includeSource: ['src/**/*.{js,ts}'],
 		globals: true,
@@ -67,7 +67,7 @@ export default defineConfig(({ mode }) => {
 				inline: [/@tanstack\/svelte-query/]
 			}
 		}
-	},
+	  },
 
     define: {
       'import.meta.vitest': 'undefined',
