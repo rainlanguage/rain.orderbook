@@ -51,16 +51,23 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
     },
 
-    test: {
-      includeSource: ['src/**/*.{js,ts}'],
-      environment: 'jsdom',
-      setupFiles: ['./vitest-setup.ts'],
-      server: {
-        deps: {
-          inline: [/@sveltejs\/kit/, /@tanstack\/svelte-query/],
-        }
-      },
-    },
+ test: {
+		// Jest like globals
+		includeSource: ['src/**/*.{js,ts}'],
+		globals: true,
+		environment: 'jsdom',
+		include: ['src/**/*.{test,spec}.ts'],
+		// Extend jest-dom matchers
+		setupFiles: ['./vitest-setup.ts'],
+		// load env vars
+		env: loadEnv('', process.cwd(), ''),
+		testTimeout: 10000,
+		server: {
+			deps: {
+				inline: [/@tanstack\/svelte-query/]
+			}
+		}
+	},
 
     define: {
       'import.meta.vitest': 'undefined',
