@@ -50,7 +50,7 @@ const { Buffer } = require('buffer');
 const wasmB64 = require('../${package}.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
 );
-cjs = cjs.replace("const { TextDecoder, TextEncoder } = require(`util`);", "");
+cjs = cjs.replace("const { TextEncoder, TextDecoder } = require(`util`);", "");
 cjs = "/* this file is auto-generated, do not modify */\n" + cjs;
 fs.writeFileSync(`./dist/cjs/${package}.js`, cjs);
 
