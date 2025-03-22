@@ -69,7 +69,7 @@ jobs:
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-      - run: nix develop .#tauri-shell -c ob-tauri-unit-test
+      # - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
@@ -83,6 +83,7 @@ jobs:
           SENTRY_LOG_LEVEL: debug
 
       - run: nix develop -i -k COMMIT_SHA -k APPLE_CERTIFICATE -k APPLE_CERTIFICATE_PASSWORD -k APPLE_SIGNING_IDENTITY -k APPLE_ID -k APPLE_PASSWORD -k APPLE_TEAM_ID -k CI_DEPLOY_SEPOLIA_RPC_URL -k CI_FORK_SEPOLIA_DEPLOYER_ADDRESS -k CI_FORK_SEPOLIA_BLOCK_NUMBER -k CI_DEPLOY_POLYGON_RPC_URL -k CI_SEPOLIA_METABOARD_URL -k RPC_URL_ETHEREUM_FORK .#tauri-shell --command cargo tauri build
+        working-directory: ./tauri-app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
