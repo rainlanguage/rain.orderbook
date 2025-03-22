@@ -9,7 +9,7 @@ import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
@@ -631,7 +631,6 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
