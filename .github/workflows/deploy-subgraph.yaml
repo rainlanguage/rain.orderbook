@@ -1,53 +1,53 @@
-# name: Deploy subgraph
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       network:
-#         description: "Network to deploy to"
-#         required: true
-#         type: choice
-#         options:
-#           - arbitrum-one
-#           - arbitrum_sepolia
-#           - avalanche
-#           - base
-#           - bsc
-#           - mainnet
-#           - flare
-#           - mumbai
-#           - oasis_sapphire
-#           - matic
-#           - sepolia
-#           - songbird
-#           - linea
+name: Deploy subgraph
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Network to deploy to"
+        required: true
+        type: choice
+        options:
+          - arbitrum-one
+          - arbitrum_sepolia
+          - avalanche
+          - base
+          - bsc
+          - mainnet
+          - flare
+          - mumbai
+          - oasis_sapphire
+          - matic
+          - sepolia
+          - songbird
+          - linea
 
-# jobs:
-#   deploy:
-#     permissions:
-#       id-token: write
-#       contents: read
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           submodules: recursive
-#           fetch-depth: 0
+jobs:
+  deploy:
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
-#       - uses: DeterminateSystems/nix-installer-action@main
-#         with:
-#           determinate: true
-#       - uses: DeterminateSystems/flakehub-cache-action@main
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
-#       - run: nix develop -c rainix-sol-prelude
+      - run: nix develop -c rainix-sol-prelude
 
-#       - run: nix develop -c graph codegen
-#         working-directory: subgraph
-#       - run: nix develop -c graph build --network ${{ inputs.network }}
-#         working-directory: subgraph
-#       - run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
+      - run: nix develop -c graph codegen
+        working-directory: subgraph
+      - run: nix develop -c graph build --network ${{ inputs.network }}
+        working-directory: subgraph
+      - run: nix develop -c goldsky login --token ${{ secrets.CI_GOLDSKY_TOKEN }}
 
-#       # Check if the repo is clean before deploying.
-#       - run: git diff --exit-code -- . ':(exclude)subgraph/subgraph.yaml'
-#       - run: >
-#           nix develop -c goldsky subgraph deploy "ob4-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
-#         working-directory: subgraph
+      # Check if the repo is clean before deploying.
+      - run: git diff --exit-code -- . ':(exclude)subgraph/subgraph.yaml'
+      - run: >
+          nix develop -c goldsky subgraph deploy "ob4-${{ inputs.network }}/$(date -Idate)-$(openssl rand -hex 2)"
+        working-directory: subgraph

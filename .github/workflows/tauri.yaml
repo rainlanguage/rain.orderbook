@@ -1,86 +1,86 @@
-# name: Tauri builds
-# on: [push]
+name: Tauri builds
+on: [push]
 
-# concurrency:
-#   group: ${{ github.ref }}-tauri-build
-#   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+concurrency:
+  group: ${{ github.ref }}-tauri-build
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# jobs:
-#   build-tauri:
-#     permissions:
-#       id-token: write
-#       contents: read
-#     strategy:
-#       fail-fast: ${{ github.ref != 'refs/heads/main' }}
-#       matrix:
-#         os: [ubuntu-22.04, macos-13, macos-14]
-#         is-not-main:
-#           - ${{ github.ref != 'refs/heads/main' }}
-#         exclude:
-#           - is-not-main: true
-#             os: macos-13
-#           - is-not-main: true
-#             os: macos-14
+jobs:
+  build-tauri:
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: ${{ github.ref != 'refs/heads/main' }}
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-14]
+        is-not-main:
+          - ${{ github.ref != 'refs/heads/main' }}
+        exclude:
+          - is-not-main: true
+            os: macos-13
+          - is-not-main: true
+            os: macos-14
 
-#     runs-on: ${{ matrix.os }}
-#     env:
-#       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
-#       CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
-#       CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
-#       CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
-#       CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
-#       CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
-#       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
-#       COMMIT_SHA: ${{ github.sha }}
-#     steps:
-#       - name: Free up disk space in action runner (Ubuntu)
-#         if: matrix.os == 'ubuntu-22.04'
-#         run: |
-#           sudo apt-get clean
-#           sudo rm -rf "/usr/local/share/boost"
-#           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-#       - name: Free up disk space in action runner (Macos)
-#         if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
-#         run: |
-#           sudo rm -rf \
-#           "$AGENT_TOOLSDIRECTORY" \
-#           /opt/google/chrome \
-#           /opt/microsoft/msedge \
-#           /opt/microsoft/powershell \
-#           /opt/pipx \
-#           /usr/lib/mono \
-#           /usr/local/julia* \
-#           /usr/local/lib/android \
-#           /usr/local/lib/node_modules \
-#           /usr/local/share/chromium \
-#           /usr/local/share/powershell \
-#           /usr/share/dotnet \
-#           /usr/share/swift
-#           df -h /
-#           find /Applications/ -name "Xcode*" | sort -r | tail --lines=+2 | xargs rm -rf
+    runs-on: ${{ matrix.os }}
+    env:
+      DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
+      CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
+      CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
+      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
+      CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
+      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
+      RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Free up disk space in action runner (Ubuntu)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get clean
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      - name: Free up disk space in action runner (Macos)
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+        run: |
+          sudo rm -rf \
+          "$AGENT_TOOLSDIRECTORY" \
+          /opt/google/chrome \
+          /opt/microsoft/msedge \
+          /opt/microsoft/powershell \
+          /opt/pipx \
+          /usr/lib/mono \
+          /usr/local/julia* \
+          /usr/local/lib/android \
+          /usr/local/lib/node_modules \
+          /usr/local/share/chromium \
+          /usr/local/share/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift
+          df -h /
+          find /Applications/ -name "Xcode*" | sort -r | tail --lines=+2 | xargs rm -rf
 
-#       - uses: actions/checkout@v4
-#         with:
-#           submodules: recursive
-#           fetch-depth: 0
-#       - name: Install Nix
-#         uses: DeterminateSystems/nix-installer-action@main
-#         with:
-#           determinate: true
-#       - uses: DeterminateSystems/flakehub-cache-action@main
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
-#       - run: ./prep-all.sh
-#         env:
-#           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: ./prep-all.sh
+        env:
+          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
 
-#       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
+      - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
-#       - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
-#         working-directory: ./tauri-app
-#         env:
-#           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
-#       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
-#         working-directory: ./tauri-app
-#       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
-#         working-directory: ./tauri-app
-#       - run: nix develop .#tauri-shell --command tauri-rs-test
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
+        working-directory: ./tauri-app
+      - run: nix develop .#tauri-shell --command cargo tauri build --verbose
+        working-directory: ./tauri-app
+      - run: nix develop .#tauri-shell --command tauri-rs-test
