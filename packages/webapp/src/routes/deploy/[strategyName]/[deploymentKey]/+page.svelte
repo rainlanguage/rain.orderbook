@@ -8,8 +8,6 @@
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
-	const { account } = useAccount();
-
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
