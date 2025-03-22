@@ -28,7 +28,6 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	interface Deployment {
 		key: string;
@@ -62,8 +61,6 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-
-	const { account } = useAccount();
 
 	onMount(async () => {
 		await areAllTokensSelected();
