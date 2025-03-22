@@ -284,7 +284,11 @@
             packages.ob-tauri-before-release
             packages.tauri-rs-test
           ];
-          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + '' unset DEVELOPER_DIR SDKROOT '';
+          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + ''
+            export TMP_SETFILE_PATH=$(mktemp -d)
+            cp /Library/Developer/CommandLineTools/usr/bin/SetFile "$TMP_SETFILE_PATH/SetFile"
+            export PATH="$TMP_SETFILE_PATH:$PATH"
+          '';
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
