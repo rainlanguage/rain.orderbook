@@ -26,6 +26,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 	return {
 		dotrain,
 		strategyName,
-		strategyDetail
+		strategyDetail,
+		pageName: strategyName
 	};
 };
