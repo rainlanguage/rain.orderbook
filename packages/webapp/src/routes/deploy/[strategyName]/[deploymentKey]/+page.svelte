@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps } from '@rainlanguage/ui-components';
-	import { wagmiConfig, connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+	import { DeploymentSteps, PageHeader } from '@rainlanguage/ui-components';
+	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
+	import { signerAddress } from '$lib/stores/wagmi';
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
