@@ -139,4 +139,28 @@ describe('DeployButton', () => {
 			);
 		});
 	});
+
+	it('does not open the deploy modal when disclaimer is rejected', async () => {
+		const props = { ...defaultProps };
+		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
+			mockHandleAddOrderResult
+		);
+
+		render(DeployButton, { props });
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		await waitFor(() => {
+			expect(props.handleDisclaimerModal).toHaveBeenCalledWith({
+				open: true,
+				onAccept: expect.any(Function)
+			});
+		});
+
+		// Get the onAccept callback but don't call it (simulating rejection)
+		// Either by closing the modal or clicking a reject button
+
+		// Verify the deploy modal was never opened
+		expect(props.handleDeployModal).not.toHaveBeenCalled();
+	});
 });
