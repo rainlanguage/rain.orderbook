@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TokenIOInput from './TokenIOInput.svelte';
-	import type { DotrainOrderGui, OrderIOCfg } from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, OrderIOCfg } from '@rainlanguage/orderbook';
 
 	export let allTokenInputs: OrderIOCfg[] = [];
 	export let allTokenOutputs: OrderIOCfg[] = [];

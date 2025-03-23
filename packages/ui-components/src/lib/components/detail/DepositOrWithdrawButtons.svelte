@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';

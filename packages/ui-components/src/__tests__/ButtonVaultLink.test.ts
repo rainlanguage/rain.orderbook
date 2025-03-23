@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
-import type { SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook';
 
 describe('ButtonVaultLink', () => {
 	const mockVault = {

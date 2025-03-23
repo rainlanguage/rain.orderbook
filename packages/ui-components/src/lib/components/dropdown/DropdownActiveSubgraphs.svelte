@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+	import type { ConfigSource } from '@rainlanguage/orderbook';
 
 	export let settings: ConfigSource;
 	export let activeSubgraphs: Writable<Record<string, string>>;

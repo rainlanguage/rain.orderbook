@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { SgTrade } from '@rainlanguage/orderbook/js_api';
+import type { SgTrade } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';

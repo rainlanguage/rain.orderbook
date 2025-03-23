@@ -2,14 +2,14 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
-	import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook/js_api';
+	import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
-	import type { SgTrade } from '@rainlanguage/orderbook/js_api';
+	import type { SgTrade } from '@rainlanguage/orderbook';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 
 	export let id: string;

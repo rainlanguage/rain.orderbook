@@ -1,9 +1,6 @@
 import type { Config } from '@wagmi/core';
 import { getAccount } from '@wagmi/core';
-import type {
-	DepositAndAddOrderCalldataResult,
-	DotrainOrderGui
-} from '@rainlanguage/orderbook/js_api';
+import type { DepositAndAddOrderCalldataResult, DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 

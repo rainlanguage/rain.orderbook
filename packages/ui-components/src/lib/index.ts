@@ -68,11 +68,7 @@ export { default as InputRegistryUrl } from './components/input/InputRegistryUrl
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type {
-	ConfigSource,
-	OrderbookConfigSource,
-	OrderbookCfgRef
-} from '@rainlanguage/orderbook/js_api';
+export type { ConfigSource, OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatus,
 	TransactionErrorMessage,

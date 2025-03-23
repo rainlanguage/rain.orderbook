@@ -1,4 +1,4 @@
-import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook';
 import type { DepositOrWithdrawArgs, OrderRemoveArgs, DeploymentArgs } from './transaction';
 
 export type DepositOrWithdrawModalProps = {

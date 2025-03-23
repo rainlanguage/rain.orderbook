@@ -2,7 +2,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
-	import { getOrderVaultsVolume, type VaultVolume } from '@rainlanguage/orderbook/js_api';
+	import { getOrderVaultsVolume, type VaultVolume } from '@rainlanguage/orderbook';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';

@@ -2,7 +2,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_ORDER_APY } from '../../queries/keys';
-	import { getOrderPerformance, type OrderPerformance } from '@rainlanguage/orderbook/js_api';
+	import { getOrderPerformance, type OrderPerformance } from '@rainlanguage/orderbook';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import ApyTimeFilters from '../charts/APYTimeFilters.svelte';
 	import { bigintStringToPercentage } from '$lib/utils/number';

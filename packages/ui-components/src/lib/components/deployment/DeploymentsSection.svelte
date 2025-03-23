@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import DeploymentTile from './DeploymentTile.svelte';
 	export let dotrain: string;
 	export let strategyName: string;

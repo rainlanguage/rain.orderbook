@@ -1,4 +1,4 @@
-import type { SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 
 export const vaultBalanceDisplay = (vault: SgVault) => {

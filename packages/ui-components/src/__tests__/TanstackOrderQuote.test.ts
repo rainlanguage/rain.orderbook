@@ -4,10 +4,10 @@ import { QueryClient } from '@tanstack/svelte-query';
 import TanstackOrderQuote from '../lib/components/detail/TanstackOrderQuote.svelte';
 import { expect } from '../lib/test/matchers';
 import { mockOrderDetailsExtended } from '../lib/__fixtures__/orderDetail';
-import { getOrderQuote } from '@rainlanguage/orderbook/quote';
-import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+import { getOrderQuote } from '@rainlanguage/orderbook';
+import type { SgOrder } from '@rainlanguage/orderbook';
 
-vi.mock('@rainlanguage/orderbook/quote', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderQuote: vi.fn()
 }));
 

@@ -9,7 +9,7 @@ import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 
 // Mock the js_api getVault function
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getVault: vi.fn()
 }));
 
@@ -31,7 +31,7 @@ const mockSettings = readable({
 });
 
 test('calls the vault detail query fn with the correct vault id', async () => {
-	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	const { getVault } = await import('@rainlanguage/orderbook');
 	const queryClient = new QueryClient();
 
 	render(VaultDetail, {
@@ -50,7 +50,7 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 });
 
 test('shows the correct empty message when the query returns no data', async () => {
-	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	const { getVault } = await import('@rainlanguage/orderbook');
 	vi.mocked(getVault).mockResolvedValue(null);
 
 	const queryClient = new QueryClient();
@@ -93,7 +93,7 @@ test('shows the correct data when the query returns data', async () => {
 		}
 	};
 
-	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	const { getVault } = await import('@rainlanguage/orderbook');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
@@ -152,7 +152,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 		}
 	};
 
-	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	const { getVault } = await import('@rainlanguage/orderbook');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
@@ -210,7 +210,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 		}
 	};
 
-	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	const { getVault } = await import('@rainlanguage/orderbook');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 	const queryClient = new QueryClient();
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');

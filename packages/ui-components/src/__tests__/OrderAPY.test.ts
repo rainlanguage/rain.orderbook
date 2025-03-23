@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import type { OrderPerformance } from '@rainlanguage/orderbook/js_api';
+import type { OrderPerformance } from '@rainlanguage/orderbook';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderApy from '../lib/components/tables/OrderAPY.svelte';
 import { bigintStringToPercentage } from '../lib/utils/number';
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderPerformance: vi.fn(() => Promise.resolve(mockOrderApy))
 }));
 

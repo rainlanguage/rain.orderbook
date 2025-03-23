@@ -1,4 +1,4 @@
-import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { ConfigSource } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 

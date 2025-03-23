@@ -1,4 +1,4 @@
-import type { OrderDetailExtended } from '@rainlanguage/orderbook/js_api';
+import type { OrderDetailExtended } from '@rainlanguage/orderbook';
 
 export const mockOrderDetailsExtended: OrderDetailExtended = {
 	order: {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
-	import { type DotrainOrderGui, type GuiFieldDefinitionCfg } from '@rainlanguage/orderbook/js_api';
+	import { type DotrainOrderGui, type GuiFieldDefinitionCfg } from '@rainlanguage/orderbook';
 
 	export let allFieldDefinitions: GuiFieldDefinitionCfg[];
 	export let gui: DotrainOrderGui;

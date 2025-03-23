@@ -1,7 +1,6 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, beforeAll, afterAll } from 'vitest';
-import { SgVault, SgVaultWithSubgraphName, SgDeposit } from '../../dist/types/js_api.js';
 import {
 	getVaults,
 	getVault,
@@ -9,8 +8,11 @@ import {
 	getVaultDepositCalldata,
 	getVaultWithdrawCalldata,
 	checkVaultAllowance,
-	getVaultApprovalCalldata
-} from '../../dist/cjs/js_api.js';
+	getVaultApprovalCalldata,
+	SgVault,
+	SgVaultWithSubgraphName,
+	SgDeposit
+} from '../../dist/cjs';
 
 const vault1: SgVault = {
 	id: 'vault1',

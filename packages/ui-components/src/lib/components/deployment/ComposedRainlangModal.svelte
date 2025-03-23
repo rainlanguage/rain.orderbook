@@ -3,7 +3,7 @@
 	import { RainlangLR } from 'codemirror-rainlang';
 	import { lightCodeMirrorTheme } from '../../utils/codeMirrorThemes';
 	import { Button, Modal } from 'flowbite-svelte';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 	export let gui: DotrainOrderGui;
 

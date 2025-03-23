@@ -1,4 +1,4 @@
-import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
+import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 
 export type ValidStrategyDetail = {
 	details: NameAndDescriptionCfg;

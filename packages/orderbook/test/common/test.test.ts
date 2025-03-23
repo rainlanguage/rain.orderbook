@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { getAddOrderCalldata, DotrainOrder } from '../../dist/cjs/common.js';
+import { getAddOrderCalldata, DotrainOrder } from '../../dist/cjs';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const mockServer = getLocal();

@@ -10,12 +10,12 @@ import type {
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';

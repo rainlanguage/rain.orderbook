@@ -7,7 +7,7 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import { getVault } from '@rainlanguage/orderbook/js_api';
+	import { getVault } from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
@@ -17,7 +17,7 @@
 	import { useQueryClient } from '@tanstack/svelte-query';
 
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Config } from 'wagmi';

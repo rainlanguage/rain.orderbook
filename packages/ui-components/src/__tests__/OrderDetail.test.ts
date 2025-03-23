@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(

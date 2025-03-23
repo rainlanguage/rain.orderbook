@@ -1,9 +1,9 @@
 <script lang="ts" generics="T">
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
+	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
+	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';

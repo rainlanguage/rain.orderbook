@@ -5,7 +5,7 @@
 	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource } from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
@@ -14,7 +14,7 @@
 		type GuiDeploymentCfg,
 		type OrderIOCfg,
 		type AllTokenInfos
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
 	import { type Config } from '@wagmi/core';

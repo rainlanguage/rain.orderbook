@@ -9,7 +9,7 @@ import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { waitFor } from '@testing-library/svelte';
 
@@ -19,7 +19,7 @@ vi.mock('@wagmi/core', () => ({
 	switchChain: vi.fn()
 }));
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
 	getTransactionAddOrders: vi.fn(),
 	getTransactionRemoveOrders: vi.fn()

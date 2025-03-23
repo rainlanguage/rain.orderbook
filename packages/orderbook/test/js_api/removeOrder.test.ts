@@ -1,8 +1,7 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { SgTransaction, SgRemoveOrderWithOrder } from '../../dist/types/js_api.js';
-import { getTransactionRemoveOrders } from '../../dist/cjs/js_api.js';
+import { getTransactionRemoveOrders, SgTransaction, SgRemoveOrderWithOrder } from '../../dist/cjs';
 
 const transaction1: SgTransaction = {
 	id: '0x0da3659c0fd5258e962bf339afeaffddb06cc7a473802228b9586fe7503ed13a',
