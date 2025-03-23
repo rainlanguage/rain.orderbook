@@ -81,7 +81,7 @@
         "@reown/appkit-adapter-wagmi": "1.6.4",
         "@sveltejs/kit": "2.8.1",
         "@sveltejs/package": "2.3.7",
-        "@wagmi/core": "2.16.3",
+        "@wagmi/core": "2.16.7",
         "flowbite": "2.5.2",
         "flowbite-svelte": "0.44.24",
         "flowbite-svelte-icons": "0.4.5",

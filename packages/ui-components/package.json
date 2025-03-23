@@ -62,7 +62,7 @@
 		"@sveltejs/vite-plugin-svelte": "3.1.2",
 		"@tanstack/svelte-query": "5.59.20",
 		"@tauri-apps/api": "2.3.0",
-		"@wagmi/core": "2.16.3",
+		"@wagmi/core": "2.16.7",
 		"@walletconnect/ethereum-provider": "2.11.3",
 		"@walletconnect/modal": "2.6.2",
 		"@web3modal/ethers5": "4.1.1",
