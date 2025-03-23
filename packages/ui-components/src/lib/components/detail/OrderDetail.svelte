@@ -11,7 +11,7 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';

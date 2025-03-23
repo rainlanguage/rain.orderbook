@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
+import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
@@ -20,7 +20,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: {
 		chooseDeployment: vi.fn(),
 		getStrategyDetails: vi.fn()

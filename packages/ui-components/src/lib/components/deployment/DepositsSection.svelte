@@ -1,6 +1,6 @@
 <script lang="ts">
 	import DepositInput from './DepositInput.svelte';
-	import type { DotrainOrderGui, GuiDepositCfg } from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, GuiDepositCfg } from '@rainlanguage/orderbook';
 
 	export let allDepositFields: GuiDepositCfg[];
 	export let gui: DotrainOrderGui;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
-import type { GuiDepositCfg } from '@rainlanguage/orderbook/js_api';
+import type { GuiDepositCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
 type DepositInputProps = ComponentProps<DepositInput>;

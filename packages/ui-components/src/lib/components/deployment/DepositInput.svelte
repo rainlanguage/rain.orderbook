@@ -4,7 +4,7 @@
 		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';

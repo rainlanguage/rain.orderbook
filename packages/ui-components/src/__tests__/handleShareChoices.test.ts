@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleShareChoices } from '../lib/services/handleShareChoices';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 describe('handleShareChoices', () => {
 	beforeEach(() => {

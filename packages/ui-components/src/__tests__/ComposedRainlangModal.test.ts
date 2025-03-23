@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ComposedRainlangModal from '../lib/components/deployment/ComposedRainlangModal.svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 vi.mock('svelte-codemirror-editor', async () => {
 	const mockCodeMirror = (await import('../lib/__mocks__/MockComponent.svelte')).default;

@@ -5,7 +5,7 @@ import {
 } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { getAccount } from '@wagmi/core';
 import type { Config } from '@wagmi/core';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 // Mock wagmi/core
 vi.mock('@wagmi/core', () => ({

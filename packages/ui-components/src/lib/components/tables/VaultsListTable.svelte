@@ -10,14 +10,14 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook/js_api';
-	import { type SgVault } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook';
+	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
 		type MultiSubgraphArgs,
 		type SgVaultWithSubgraphName
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 

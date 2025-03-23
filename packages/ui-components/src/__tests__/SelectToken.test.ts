@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 export type SelectTokenComponentProps = ComponentProps<SelectToken>;
 describe('SelectToken', () => {

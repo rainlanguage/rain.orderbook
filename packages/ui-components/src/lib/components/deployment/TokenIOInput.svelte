@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import {
-		type OrderIOCfg,
-		type TokenInfo,
-		type DotrainOrderGui
-	} from '@rainlanguage/orderbook/js_api';
+	import { type OrderIOCfg, type TokenInfo, type DotrainOrderGui } from '@rainlanguage/orderbook';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 

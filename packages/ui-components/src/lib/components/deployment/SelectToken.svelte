@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type {
-		DotrainOrderGui,
-		GuiSelectTokensCfg,
-		TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import type { DotrainOrderGui, GuiSelectTokensCfg, TokenInfo } from '@rainlanguage/orderbook';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';

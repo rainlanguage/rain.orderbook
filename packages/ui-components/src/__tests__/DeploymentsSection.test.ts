@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 // Mock the DotrainOrderGui
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: {
 		getDeploymentDetails: vi.fn()
 	}

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
-import { DotrainOrderGui } from '../../dist/cjs/js_api.js';
 import {
+	DotrainOrderGui,
 	AddOrderCalldataResult,
 	AllFieldValuesResult,
 	AllowancesResult,
@@ -17,8 +17,9 @@ import {
 	IOVaultIds,
 	NameAndDescriptionCfg,
 	TokenDeposit,
-	TokenInfo
-} from '../../dist/types/js_api.js';
+	TokenInfo,
+	ApprovalCalldata
+} from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
 const guiConfig = `
@@ -607,19 +608,19 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const allFieldDefinitions = gui.getAllFieldDefinitions();
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[0].id
+				value: allFieldDefinitions[0].presets![0].id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[0]);
+			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets![0]);
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[1].id
+				value: allFieldDefinitions[0].presets![1].id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[1]);
+			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets![1]);
 			gui.saveFieldValue('binding-1', {
 				isPreset: true,
-				value: allFieldDefinitions[0].presets[2].id
+				value: allFieldDefinitions[0].presets![2].id
 			});
-			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets[2]);
+			assert.deepEqual(gui.getFieldValue('binding-1'), allFieldDefinitions[0].presets![2]);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(gui.serializeState());
@@ -837,7 +838,7 @@ ${dotrain}`;
 
 			gui.saveFieldValue('test-binding', {
 				isPreset: true,
-				value: gui.getFieldDefinition('test-binding').presets[0].id
+				value: gui.getFieldDefinition('test-binding').presets![0].id
 			});
 			gui.saveDeposit('token1', '50.6');
 			gui.saveDeposit('token2', '100');
@@ -902,7 +903,7 @@ ${dotrainWithoutTokens}`;
 		it('should check if field is preset', async () => {
 			gui.saveFieldValue('test-binding', {
 				isPreset: true,
-				value: gui.getFieldDefinition('test-binding').presets[0].id
+				value: gui.getFieldDefinition('test-binding').presets![0].id
 			});
 			assert.equal(gui.isFieldPreset('test-binding'), true);
 			gui.saveFieldValue('test-binding', {
@@ -1004,9 +1005,9 @@ ${dotrainWithoutVaultIds}
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
 
-			const result = await gui.generateApprovalCalldatas(
+			const result = (await gui.generateApprovalCalldatas(
 				'0x1234567890abcdef1234567890abcdef12345678'
-			);
+			)) as { Calldatas: ApprovalCalldata[] };
 
 			assert.equal(result.Calldatas.length, 1);
 			assert.equal(result.Calldatas[0].token, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
@@ -1051,7 +1052,7 @@ ${dotrainWithoutVaultIds}
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
 
-			const result = await gui.generateDepositCalldatas();
+			const result = (await gui.generateDepositCalldatas()) as { Calldatas: string[] };
 
 			assert.equal(result.Calldatas.length, 1);
 			assert.equal(
@@ -1441,7 +1442,7 @@ ${dotrainWithoutVaultIds}`;
 
 			gui.saveDeposit('token1', '0');
 			gui.saveDeposit('token2', '0');
-			const calldatas = await gui.generateDepositCalldatas();
+			const calldatas = (await gui.generateDepositCalldatas()) as { Calldatas: string[] };
 			assert.equal(calldatas.Calldatas.length, 0);
 		});
 
