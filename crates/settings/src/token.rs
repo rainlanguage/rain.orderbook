@@ -227,11 +227,11 @@ impl TokenCfg {
 impl YamlParsableHash for TokenCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -294,6 +294,19 @@ impl YamlParsableHash for TokenCfg {
             }
         }
 
+        if let Some(context) = context {
+            if let Some(yaml_cache) = &context.yaml_cache {
+                for (key, token) in &yaml_cache.remote_tokens {
+                    if tokens.contains_key(key) {
+                        return Err(YamlError::ParseTokenConfigSourceError(
+                            ParseTokenConfigSourceError::RemoteTokenKeyShadowing(key.clone()),
+                        ));
+                    }
+                    tokens.insert(key.clone(), token.clone());
+                }
+            }
+        }
+
         if tokens.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("tokens".to_string()),
@@ -337,6 +350,8 @@ pub enum ParseTokenConfigSourceError {
     DecimalsParseError(std::num::ParseIntError),
     #[error("Network not found for token: {0}")]
     NetworkNotFoundError(String),
+    #[error("Remote token key shadowing: {0}")]
+    RemoteTokenKeyShadowing(String),
 }
 
 impl TokenConfigSource {
