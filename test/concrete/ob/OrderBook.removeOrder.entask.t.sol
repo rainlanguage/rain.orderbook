@@ -4,19 +4,19 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3,
-    EvaluableV3,
-    OrderV3,
-    TaskV1,
+    OrderConfigV4,
+    EvaluableV4,
+    OrderV4,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
-    using LibOrder for OrderV3;
+    using LibOrder for OrderV4;
     using Strings for address;
     using Strings for uint256;
 
@@ -37,7 +37,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
 
     function checkRemoveOrder(
         address owner,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites,
@@ -45,17 +45,17 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(owner);
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         // Hacky way to give a unique nonce to each order passed in.
         config.nonce = keccak256(abi.encode(evalStrings));
         if (addOrder) {
-            iOrderbook.addOrder2(config, new TaskV1[](0));
+            iOrderbook.addOrder2(config, new TaskV2[](0));
         }
-        OrderV3 memory order = OrderV3(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         vm.record();
         bool stateChanged = iOrderbook.removeOrder2(order, actions);
         assertEq(stateChanged, addOrder);
@@ -67,27 +67,27 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderEmptyNoop(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderEmptyNoop(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](0);
         checkRemoveOrder(alice, config, evals, 0, 0, true);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderOneStateless(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderOneStateless(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkRemoveOrder(alice, config, evals, 0, 0, true);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderOneReadState(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderOneReadState(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         checkRemoveOrder(alice, config, evals, 2, 1, true);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderWriteStateSingle(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderWriteStateSingle(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
         checkRemoveOrder(alice, config, evals0, 1, 1, true);
@@ -98,7 +98,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderWriteStateSequential(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderWriteStateSequential(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
@@ -108,7 +108,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderWriteStateDifferentOwnersNamespaced(address alice, address bob, OrderConfigV3 memory config)
+    function testRemoveOrderWriteStateDifferentOwnersNamespaced(address alice, address bob, OrderConfigV4 memory config)
         external
     {
         vm.assume(alice != bob);
@@ -139,7 +139,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
 
     /// Removing a dead order is a noop so evals DO NOT run.
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderDeadOrder(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderDeadOrder(address alice, OrderConfigV4 memory config) external {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"always error\");");
         checkRemoveOrder(alice, config, evals, 0, 0, false);
@@ -149,23 +149,23 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     /// forge-config: default.assertions_revert = false
     /// forge-config: default.legacy_assertions = true
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderRevertInAction(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderRevertInAction(address alice, OrderConfigV4 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.startPrank(alice);
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":;");
-        TaskV1[] memory actions = evalsToActions(evals0);
+        TaskV2[] memory actions = evalsToActions(evals0);
         bool stateChanged = iOrderbook.addOrder2(config, actions);
         assert(stateChanged);
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         assert(iOrderbook.orderExists(order.hash()));
 
         bytes[] memory evals1 = new bytes[](1);
         evals1[0] = bytes(":ensure(0 \"always revert\");");
 
-        TaskV1[] memory actions1 = evalsToActions(evals1);
+        TaskV2[] memory actions1 = evalsToActions(evals1);
 
         vm.expectRevert("always revert");
         bool stateChanged2 = iOrderbook.removeOrder2(order, actions1);
@@ -176,14 +176,14 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testRemoveOrderContext(address alice, OrderConfigV3 memory config) external {
+    function testRemoveOrderContext(address alice, OrderConfigV4 memory config) external {
         // Need this conform here so that the order doesn't get mutated and
         // change the hash.
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         bytes32 orderHash = order.hash();
 
         bytes[] memory evals = new bytes[](3);

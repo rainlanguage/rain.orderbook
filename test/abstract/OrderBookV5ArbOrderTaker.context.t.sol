@@ -106,6 +106,6 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
 
         vm.deal(address(arbOrderTaker), 5e18);
         vm.prank(bob);
-        arbOrderTaker.arb3(iOrderbook, takeOrdersConfig, task);
+        arbOrderTaker.arb4(iOrderbook, takeOrdersConfig, task);
     }
 }

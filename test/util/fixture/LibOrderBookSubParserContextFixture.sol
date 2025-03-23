@@ -47,49 +47,48 @@ import {
 } from "src/lib/LibOrderBookSubParser.sol";
 
 library LibOrderBookSubParserContextFixture {
-    function hashedNamesContext() internal pure returns (uint256[][] memory) {
+    function hashedNamesContext() internal pure returns (bytes32[][] memory) {
         // Add 3 to account for the signers and 2x signed context columns.
-        uint256[][] memory context = new uint256[][](CONTEXT_COLUMNS + 3);
+        bytes32[][] memory context = new bytes32[][](CONTEXT_COLUMNS + 3);
 
-        uint256[] memory contextBase = new uint256[](CONTEXT_BASE_ROWS);
-        contextBase[CONTEXT_BASE_ROW_SENDER] = uint256(keccak256(WORD_ORDER_CLEARER));
-        contextBase[CONTEXT_BASE_ROW_CALLING_CONTRACT] = uint256(keccak256(WORD_ORDERBOOK));
+        bytes32[] memory contextBase = new bytes32[](CONTEXT_BASE_ROWS);
+        contextBase[CONTEXT_BASE_ROW_SENDER] = keccak256(WORD_ORDER_CLEARER);
+        contextBase[CONTEXT_BASE_ROW_CALLING_CONTRACT] = keccak256(WORD_ORDERBOOK);
 
-        uint256[] memory contextCallingContext = new uint256[](CONTEXT_CALLING_CONTEXT_ROWS);
-        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = uint256(keccak256(WORD_ORDER_HASH));
-        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = uint256(keccak256(WORD_ORDER_OWNER));
-        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
-            uint256(keccak256(WORD_ORDER_COUNTERPARTY));
+        bytes32[] memory contextCallingContext = new bytes32[](CONTEXT_CALLING_CONTEXT_ROWS);
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = keccak256(WORD_ORDER_HASH);
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = keccak256(WORD_ORDER_OWNER);
+        contextCallingContext[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] = keccak256(WORD_ORDER_COUNTERPARTY);
 
-        uint256[] memory contextCalculations = new uint256[](CONTEXT_CALCULATIONS_ROWS);
-        contextCalculations[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = uint256(keccak256(WORD_CALCULATED_MAX_OUTPUT));
-        contextCalculations[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = uint256(keccak256(WORD_CALCULATED_IO_RATIO));
+        bytes32[] memory contextCalculations = new bytes32[](CONTEXT_CALCULATIONS_ROWS);
+        contextCalculations[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = keccak256(WORD_CALCULATED_MAX_OUTPUT);
+        contextCalculations[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = keccak256(WORD_CALCULATED_IO_RATIO);
 
-        uint256[] memory contextVaultInputs = new uint256[](CONTEXT_VAULT_IO_ROWS);
-        contextVaultInputs[CONTEXT_VAULT_IO_TOKEN] = uint256(keccak256(WORD_INPUT_TOKEN));
-        contextVaultInputs[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_INPUT_TOKEN_DECIMALS));
-        contextVaultInputs[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_INPUT_VAULT_ID));
-        contextVaultInputs[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_BEFORE));
-        contextVaultInputs[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_INPUT_VAULT_BALANCE_INCREASE));
+        bytes32[] memory contextVaultInputs = new bytes32[](CONTEXT_VAULT_IO_ROWS);
+        contextVaultInputs[CONTEXT_VAULT_IO_TOKEN] = keccak256(WORD_INPUT_TOKEN);
+        contextVaultInputs[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = keccak256(WORD_INPUT_TOKEN_DECIMALS);
+        contextVaultInputs[CONTEXT_VAULT_IO_VAULT_ID] = keccak256(WORD_INPUT_VAULT_ID);
+        contextVaultInputs[CONTEXT_VAULT_IO_BALANCE_BEFORE] = keccak256(WORD_INPUT_VAULT_BALANCE_BEFORE);
+        contextVaultInputs[CONTEXT_VAULT_IO_BALANCE_DIFF] = keccak256(WORD_INPUT_VAULT_BALANCE_INCREASE);
 
-        uint256[] memory contextVaultOutputs = new uint256[](CONTEXT_VAULT_IO_ROWS);
-        contextVaultOutputs[CONTEXT_VAULT_IO_TOKEN] = uint256(keccak256(WORD_OUTPUT_TOKEN));
-        contextVaultOutputs[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = uint256(keccak256(WORD_OUTPUT_TOKEN_DECIMALS));
-        contextVaultOutputs[CONTEXT_VAULT_IO_VAULT_ID] = uint256(keccak256(WORD_OUTPUT_VAULT_ID));
-        contextVaultOutputs[CONTEXT_VAULT_IO_BALANCE_BEFORE] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_BEFORE));
-        contextVaultOutputs[CONTEXT_VAULT_IO_BALANCE_DIFF] = uint256(keccak256(WORD_OUTPUT_VAULT_BALANCE_DECREASE));
+        bytes32[] memory contextVaultOutputs = new bytes32[](CONTEXT_VAULT_IO_ROWS);
+        contextVaultOutputs[CONTEXT_VAULT_IO_TOKEN] = keccak256(WORD_OUTPUT_TOKEN);
+        contextVaultOutputs[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = keccak256(WORD_OUTPUT_TOKEN_DECIMALS);
+        contextVaultOutputs[CONTEXT_VAULT_IO_VAULT_ID] = keccak256(WORD_OUTPUT_VAULT_ID);
+        contextVaultOutputs[CONTEXT_VAULT_IO_BALANCE_BEFORE] = keccak256(WORD_OUTPUT_VAULT_BALANCE_BEFORE);
+        contextVaultOutputs[CONTEXT_VAULT_IO_BALANCE_DIFF] = keccak256(WORD_OUTPUT_VAULT_BALANCE_DECREASE);
 
-        uint256[] memory contextSigners = new uint256[](2);
-        contextSigners[0] = uint256(keccak256("signer-0"));
-        contextSigners[1] = uint256(keccak256("signer-1"));
+        bytes32[] memory contextSigners = new bytes32[](2);
+        contextSigners[0] = keccak256("signer-0");
+        contextSigners[1] = keccak256("signer-1");
 
-        uint256[] memory contextSignedContext0 = new uint256[](2);
-        contextSignedContext0[0] = uint256(keccak256("signed-context-0-0"));
-        contextSignedContext0[1] = uint256(keccak256("signed-context-0-1"));
+        bytes32[] memory contextSignedContext0 = new bytes32[](2);
+        contextSignedContext0[0] = keccak256("signed-context-0-0");
+        contextSignedContext0[1] = keccak256("signed-context-0-1");
 
-        uint256[] memory contextSignedContext1 = new uint256[](2);
-        contextSignedContext1[0] = uint256(keccak256("signed-context-1-0"));
-        contextSignedContext1[1] = uint256(keccak256("signed-context-1-1"));
+        bytes32[] memory contextSignedContext1 = new bytes32[](2);
+        contextSignedContext1[0] = keccak256("signed-context-1-0");
+        contextSignedContext1[1] = keccak256("signed-context-1-1");
 
         context[CONTEXT_BASE_COLUMN] = contextBase;
         context[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContext;

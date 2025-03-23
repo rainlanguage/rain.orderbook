@@ -47,7 +47,7 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb3(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
@@ -69,11 +69,11 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
 
         vm.mockCall(
             address(iInterpreter),
-            abi.encodeWithSelector(IInterpreterV4.eval3.selector, iInterpreterStore, fqns),
+            abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns),
             abi.encode(stack, kvs)
         );
         vm.expectCall(
-            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval3.selector, iInterpreterStore, fqns)
+            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns)
         );
 
         if (kvs.length > 0) {
@@ -85,7 +85,7 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns, kvs));
         }
 
-        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb3(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({

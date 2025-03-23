@@ -8,24 +8,24 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {NoOrders} from "src/concrete/ob/OrderBook.sol";
 import {
-    OrderV3,
-    TakeOrdersConfigV3,
-    TakeOrderConfigV3,
+    OrderV4,
+    TakeOrdersConfigV4,
+    TakeOrderConfigV4,
     SignedContextV1,
-    EvaluableV3
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    EvaluableV4
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
 /// on the no-op case.
 contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
-    using LibOrder for OrderV3;
+    using LibOrder for OrderV4;
 
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
-        TakeOrdersConfigV3 memory config =
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV3[](0), "");
+        TakeOrdersConfigV4 memory config =
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV4[](0), "");
         vm.expectRevert(NoOrders.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
@@ -38,7 +38,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// in the general case.
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderNoopNonLiveOrderOne(
-        OrderV3 memory order,
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         SignedContextV1 memory signedContext
@@ -54,10 +54,10 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         // malformed orders to be passed in, and still show that nothing happens.
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        TakeOrderConfigV3 memory orderConfig = TakeOrderConfigV3(order, inputIOIndex, outputIOIndex, signedContexts);
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        TakeOrderConfigV4 memory orderConfig = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, signedContexts);
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -71,8 +71,8 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// Same as above but with two orders.
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderNoopNonLiveOrderTwo(
-        OrderV3 memory order1,
-        OrderV3 memory order2,
+        OrderV4 memory order1,
+        OrderV4 memory order2,
         uint256 inputIOIndex1,
         uint256 outputIOIndex1,
         uint256 inputIOIndex2,
@@ -95,30 +95,28 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         // The inputs and outputs need to match or we will trigger the token
         // mismatch error.
         order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
-        order1.validInputs[inputIOIndex1].decimals = order2.validInputs[inputIOIndex2].decimals;
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
-        order1.validOutputs[outputIOIndex1].decimals = order2.validOutputs[outputIOIndex2].decimals;
 
-        TakeOrdersConfigV3 memory config;
+        TakeOrdersConfigV4 memory config;
         {
-            TakeOrderConfigV3[] memory orders;
+            TakeOrderConfigV4[] memory orders;
             {
                 // We don't bound the input or output indexes as we want to allow
                 // malformed orders to be passed in, and still show that nothing happens.
                 SignedContextV1[] memory signedContexts1 = new SignedContextV1[](1);
                 signedContexts1[0] = signedContext1;
-                TakeOrderConfigV3 memory orderConfig1 =
-                    TakeOrderConfigV3(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
+                TakeOrderConfigV4 memory orderConfig1 =
+                    TakeOrderConfigV4(order1, inputIOIndex1, outputIOIndex1, signedContexts1);
                 SignedContextV1[] memory signedContexts2 = new SignedContextV1[](1);
                 signedContexts2[0] = signedContext2;
-                TakeOrderConfigV3 memory orderConfig2 =
-                    TakeOrderConfigV3(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
-                orders = new TakeOrderConfigV3[](2);
+                TakeOrderConfigV4 memory orderConfig2 =
+                    TakeOrderConfigV4(order2, inputIOIndex2, outputIOIndex2, signedContexts2);
+                orders = new TakeOrderConfigV4[](2);
                 orders[0] = orderConfig1;
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+            config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
         }
 
         vm.recordLogs();

@@ -38,7 +38,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb3(
+        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
@@ -74,7 +74,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns));
         }
 
-        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb3(
+        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV1({

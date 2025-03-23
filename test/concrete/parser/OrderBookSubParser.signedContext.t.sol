@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {StackAllocationMismatch} from "rain.interpreter/error/ErrIntegrity.sol";
 import {ExpectedOperand, UnexpectedOperandValue} from "rain.interpreter/error/ErrParse.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
-import {OpTest} from "rain.interpreter/../test/abstract/OpTest.sol";
+import {OpTest, StackItem} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";
 
@@ -16,8 +16,8 @@ contract OrderBookSubParserSignedContextTest is OpTest {
     function testSubParserContextSignedContextHappy0() external {
         OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        uint256[] memory expectedStack = new uint256[](1);
-        expectedStack[0] = uint256(keccak256(bytes("signed-context-0-0")));
+        StackItem[] memory expectedStack = new StackItem[](1);
+        expectedStack[0] = StackItem.wrap(keccak256(bytes("signed-context-0-0")));
 
         bytes memory rainlang = bytes(
             string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signed-context<0 0>();")
@@ -32,8 +32,8 @@ contract OrderBookSubParserSignedContextTest is OpTest {
     function testSubParserContextSignedContextHappy1() external {
         OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        uint256[] memory expectedStack = new uint256[](1);
-        expectedStack[0] = uint256(keccak256(bytes("signed-context-0-1")));
+        StackItem[] memory expectedStack = new StackItem[](1);
+        expectedStack[0] = StackItem.wrap(keccak256(bytes("signed-context-0-1")));
 
         bytes memory rainlang = bytes(
             string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signed-context<0 1>();")
