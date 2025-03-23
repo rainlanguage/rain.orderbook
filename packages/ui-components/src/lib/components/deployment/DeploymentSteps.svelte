@@ -251,7 +251,7 @@
 						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
+					{#if showAdvancedOptions}
 						{#each allDepositFields as deposit}
 							<DepositInput {deposit} {gui} />
 						{/each}
