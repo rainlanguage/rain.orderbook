@@ -38,8 +38,6 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let handleDeployModal: (args: DeployModalProps) => void;
-	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -53,7 +51,7 @@
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
-	const eventDispatcher = createEventDispatcher<{
+	const dispatch = createEventDispatcher<{
 		acceptDisclaimer: () => void;
 	}>();
 
@@ -157,8 +155,10 @@
 		}
 	};
 
-	function handleShowDisclaimer() {
-
+	// Forward deposit and withdraw events to parent component
+	function forwardEvent(event: CustomEvent) {
+		dispatch(event.detail.action, event.detail);
+	}
 </script>
 
 <div>
