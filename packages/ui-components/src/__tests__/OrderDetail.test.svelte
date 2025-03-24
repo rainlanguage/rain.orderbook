@@ -8,7 +8,6 @@
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
-	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
@@ -76,16 +75,7 @@
 						<div class="mt-2 space-y-2">
 							{#each data.vaults.get(type) || [] as vault}
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
-									<svelte:fragment slot="buttons">
-										<DepositOrWithdrawButtons
-											{vault}
-											chainId={1}
-											rpcUrl="https://example.com"
-											query={orderDetailQuery}
-											handleDepositOrWithdrawModal={() => {}}
-											{subgraphUrl}
-										/>
-									</svelte:fragment>
+									<svelte:fragment slot="buttons"></svelte:fragment>
 								</ButtonVaultLink>
 							{/each}
 						</div>
