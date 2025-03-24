@@ -53,6 +53,9 @@
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	const eventDispatcher = createEventDispatcher<{
+		acceptDisclaimer: () => void;
+	}>();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -153,6 +156,9 @@
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 		}
 	};
+
+	function handleShowDisclaimer() {
+
 </script>
 
 <div>
@@ -217,8 +223,7 @@
 						{#if $wagmiConnected && $wagmiConfig}
 							<DeployButton
 								{gui}
-								{handleDeployModal}
-								{handleDisclaimerModal}
+								on:showDisclaimer={handleShowDisclaimer}
 								{wagmiConfig}
 								{subgraphUrl}
 							/>
