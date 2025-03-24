@@ -38,13 +38,13 @@ Provider.init({
 })
   .then(async (provider) => {
     provider.on('connect', () => {
-      walletconnectAccount.set(provider?.accounts?.[0] as Hex ?? null);
+      walletconnectAccount.set((provider?.accounts?.[0] as Hex) ?? null);
     });
     provider.on('disconnect', () => {
       walletconnectAccount.set(null);
     });
     provider.on('accountsChanged', (accounts) => {
-      walletconnectAccount.set(accounts?.[0] as Hex ?? null);
+      walletconnectAccount.set((accounts?.[0] as Hex) ?? null);
     });
     provider.on('chainChanged', (chain) => {
       if (isHex(chain)) walletConnectNetwork.set(hexToNumber(chain));

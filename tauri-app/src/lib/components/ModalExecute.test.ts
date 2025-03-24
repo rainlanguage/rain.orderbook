@@ -11,15 +11,15 @@ vi.mock('$lib/stores/walletconnect', () => ({
   walletconnectProvider: writable(undefined),
   walletConnectNetwork: writable(1),
   walletConnectConnect: vi.fn(),
-  walletconnectDisconnect: vi.fn()
+  walletconnectDisconnect: vi.fn(),
 }));
 
 vi.mock('@walletconnect/modal', () => ({
-  WalletConnectModal: vi.fn()
+  WalletConnectModal: vi.fn(),
 }));
 
 vi.mock('$lib/stores/settings', async (importOriginal) => ({
-  ...((await importOriginal()) as object)
+  ...((await importOriginal()) as object),
 }));
 
 // Import components and stores after mocks
@@ -31,7 +31,7 @@ describe('ModalExecute', () => {
     vi.clearAllMocks();
     // Reset settings store before each test
     settings.set({
-      networks: {}
+      networks: {},
     });
   });
 
@@ -48,14 +48,14 @@ describe('ModalExecute', () => {
           overrideNetwork: {
             key: 'test',
             rpc: 'https://test.com',
-            'chain-id': 2
-          }
-        }
+            'chain-id': 2,
+          },
+        },
       });
 
       const errorElement = screen.getByTestId('network-connection-error');
       expect(errorElement).toHaveTextContent(
-        'You are connected to an unknown network. Please connect your wallet to test network.'
+        'You are connected to an unknown network. Please connect your wallet to test network.',
       );
     });
 
@@ -64,9 +64,9 @@ describe('ModalExecute', () => {
         networks: {
           mainnet: {
             'chain-id': 1,
-            rpc: 'https://mainnet.com'
-          }
-        }
+            rpc: 'https://mainnet.com',
+          },
+        },
       });
 
       render(ModalExecute, {
@@ -80,14 +80,14 @@ describe('ModalExecute', () => {
           overrideNetwork: {
             key: 'test',
             rpc: 'https://test.com',
-            'chain-id': 2
-          }
-        }
+            'chain-id': 2,
+          },
+        },
       });
 
       const errorElement = screen.getByTestId('network-connection-error');
       expect(errorElement).toHaveTextContent(
-        'You are connected to mainnet network. Please connect your wallet to test network.'
+        'You are connected to mainnet network. Please connect your wallet to test network.',
       );
     });
   });
