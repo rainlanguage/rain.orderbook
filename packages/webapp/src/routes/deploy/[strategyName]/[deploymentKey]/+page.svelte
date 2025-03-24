@@ -30,6 +30,23 @@
 		gui = initializedGui;
 		getGuiError = error;
 	});
+
+	function handleShowDisclaimer(e: CustomEvent) {
+		const { result, subgraphUrl, networkKey } = e.detail;
+		handleDisclaimerModal({
+			open: true,
+			onAccept: () => {
+				handleDeployModal({
+					open: true,
+					args: {
+						...result,
+						subgraphUrl,
+						network: networkKey
+					}
+				});
+			}
+		});
+	}
 </script>
 
 {#if !dotrain || !deployment}
@@ -43,10 +60,9 @@
 			{wagmiConfig}
 			wagmiConnected={connected}
 			{appKitModal}
-			{handleDeployModal}
 			{settings}
-			{handleDisclaimerModal}
 			{signerAddress}
+			on:showDisclaimer={handleShowDisclaimer}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

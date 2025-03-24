@@ -24,7 +24,7 @@
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { onMount } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import DeployButton from './DeployButton.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 
@@ -51,8 +51,9 @@
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+
 	const dispatch = createEventDispatcher<{
-		acceptDisclaimer: () => void;
+		showDisclaimer: () => void;
 	}>();
 
 	let deploymentStepsError = DeploymentStepsError.error;
@@ -155,8 +156,8 @@
 		}
 	};
 
-	// Forward deposit and withdraw events to parent component
-	function forwardEvent(event: CustomEvent) {
+	// Forward  events to parent component
+	function handleClickDeploy(event: CustomEvent) {
 		dispatch(event.detail.action, event.detail);
 	}
 </script>
@@ -221,12 +222,7 @@
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $wagmiConnected && $wagmiConfig}
-							<DeployButton
-								{gui}
-								on:showDisclaimer={handleShowDisclaimer}
-								{wagmiConfig}
-								{subgraphUrl}
-							/>
+							<DeployButton on:click={handleClickDeploy} {wagmiConfig} {subgraphUrl} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}

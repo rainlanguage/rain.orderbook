@@ -6,15 +6,13 @@
 		getDeploymentTransactionArgs,
 		type HandleAddOrderResult
 	} from './getDeploymentTransactionArgs';
-
 	import type { Writable } from 'svelte/store';
 	import type { Config } from 'wagmi';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { useGui } from '$lib/hooks/useGui';
 
-	// Create event dispatcher for custom events
 	const dispatch = createEventDispatcher<{
 		click: {
-			type: 'showDisclaimer' | 'deploy';
+			action: 'showDisclaimer' | 'deploy';
 			result: HandleAddOrderResult;
 			networkKey: string;
 			subgraphUrl: string;
@@ -22,15 +20,15 @@
 			[key: string]: any;
 		};
 	}>();
+	const gui = useGui();
+	const networkKey = gui.getNetworkKey();
 
 	export let wagmiConfig: Writable<Config | undefined>;
-	export let gui: DotrainOrderGui;
 	export let subgraphUrl: string;
 	export let testId = 'deploy-button';
 	export let disabled = false;
 
 	let checkingDeployment = false;
-	const networkKey = gui.getNetworkKey();
 
 	async function handleDeployButtonClick() {
 		DeploymentStepsError.clear();
@@ -49,16 +47,15 @@
 
 		if (!result) return;
 
-		// Emit the acceptDisclaimer event
 		dispatch('click', {
-			type: 'showDisclaimer',
+			action: 'showDisclaimer',
 			result,
 			networkKey,
 			subgraphUrl,
 			onSuccess: () => {
-				// When disclaimer is accepted, emit the deploy event
+				console.log('onSuccess');
 				dispatch('click', {
-					type: 'deploy',
+					action: 'deploy',
 					result,
 					networkKey,
 					subgraphUrl
