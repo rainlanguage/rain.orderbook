@@ -1,7 +1,8 @@
 import { getContext, setContext } from 'svelte';
-import { ACCOUNT_KEY } from './WalletProvider.svelte';
 import { readable } from 'svelte/store';
 import type { Account } from '../../types/account';
+
+export const ACCOUNT_KEY = 'account_key';
 
 /**
  * Retrieves the account store directly from Svelte's context
