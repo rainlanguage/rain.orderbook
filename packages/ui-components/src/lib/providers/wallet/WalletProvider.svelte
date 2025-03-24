@@ -1,28 +1,15 @@
 <script context="module" lang="ts">
 	export const ACCOUNT_KEY = 'account_key';
-	export const USE_ACCOUNT_KEY = 'use_account_key';
-	export type UseAccountResult = {
-		account: Readable<string | null>;
-	};
-	export type UseAccount = () => UseAccountResult;
 </script>
 
 <script lang="ts">
-	import { setContext } from 'svelte';
 	import { readable, type Readable } from 'svelte/store';
+	import { setAccountContext } from './context';
+	import type { Account } from '$lib/types/account';
 
-	export let account: Readable<string | null> = readable(null);
+	export let account: Account = readable(null);
 
-	// Set the account address store in the context
-	setContext(ACCOUNT_KEY, account);
-
-	const useAccount: UseAccount = () => {
-		return {
-			account: account
-		};
-	};
-	// Set the useAccount function in the context
-	setContext(USE_ACCOUNT_KEY, useAccount);
+	setAccountContext(account);
 </script>
 
 <slot />
