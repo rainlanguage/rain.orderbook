@@ -27,7 +27,8 @@ export const setAccountContext = (account: Account) => {
 if (import.meta.vitest) {
 	const { describe, it, expect, vi, beforeEach } = import.meta.vitest;
 
-	vi.mock('svelte', () => ({
+	vi.mock('svelte', async (importOriginal) => ({
+		...((await importOriginal()) as object),
 		getContext: vi.fn()
 	}));
 
