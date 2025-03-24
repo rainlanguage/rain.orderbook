@@ -11,7 +11,7 @@ import {
 } from "rain.interpreter/concrete/RainterpreterExpressionDeployer.sol";
 import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IOrderBookV4Stub} from "test/util/abstract/IOrderBookV4Stub.sol";
+import {IOrderBookV5Stub} from "test/util/abstract/IOrderBookV5Stub.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {
@@ -26,7 +26,7 @@ import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-abstract contract OrderBookExternalRealTest is Test, IOrderBookV4Stub {
+abstract contract OrderBookExternalRealTest is Test, IOrderBookV5Stub {
     IInterpreterV4 internal immutable iInterpreter;
     IInterpreterStoreV3 internal immutable iStore;
     RainterpreterParser internal immutable iParser;

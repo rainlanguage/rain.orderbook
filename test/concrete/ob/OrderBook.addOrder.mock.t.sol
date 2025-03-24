@@ -3,7 +3,13 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {OrderConfigV3, OrderV3, IO, EvaluableV3, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {
+    OrderConfigV3,
+    OrderV3,
+    IO,
+    EvaluableV3,
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
@@ -19,7 +25,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.prank(owner);
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = "";
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(iOrderbook.orderExists(orderHash));
@@ -32,7 +38,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         config.evaluable.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
@@ -46,7 +52,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IO[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
@@ -82,7 +88,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.assume(config.meta.length > 0);
 
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
 
         (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);

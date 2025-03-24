@@ -4,8 +4,11 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderConfigV3,
+    EvaluableV3,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 
 contract OrderBookEnactTest is OrderBookExternalRealTest {
     function checkReentrancyRW() internal {
@@ -24,10 +27,10 @@ contract OrderBookEnactTest is OrderBookExternalRealTest {
         internal
     {
         vm.startPrank(owner);
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
         iOrderbook.entask(actions);

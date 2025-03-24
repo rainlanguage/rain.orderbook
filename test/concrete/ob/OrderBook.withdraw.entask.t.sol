@@ -4,8 +4,11 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderConfigV3,
+    EvaluableV3,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -46,20 +49,20 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
         if (depositAmount > 0) {
-            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
+            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         }
 
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         uint256 withdrawAmount = depositAmount > targetAmount ? targetAmount : depositAmount;
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, owner, withdrawAmount), abi.encode(true)
         );
         vm.record();
-        iOrderbook.withdraw2(address(iToken0), vaultId, targetAmount, actions);
+        iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
         checkReentrancyRW(depositAmount > 0 ? 5 : 4, depositAmount > 0 ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -233,7 +236,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
 
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
@@ -241,12 +244,12 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
-        TaskV1[] memory actions = evalsToActions(evals);
+        TaskV2[] memory actions = evalsToActions(evals);
 
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
 
         vm.expectRevert("revert in action");
-        iOrderbook.withdraw2(address(iToken0), vaultId, withdrawAmount, actions);
+        iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, actions);
 
         assertEq(depositAmount, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
     }

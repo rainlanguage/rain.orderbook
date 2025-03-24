@@ -11,9 +11,9 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2,
-    TaskV1,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTask} from "src/abstract/OrderBookV5ArbCommon.sol";
 import {RouteProcessorOrderBookV5ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
 import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
@@ -41,7 +41,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            TaskV1({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
+            TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
 
@@ -77,7 +77,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
-            TaskV1({
+            TaskV2({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
             })

@@ -9,7 +9,7 @@ import {
     EvaluableV3,
     ClearConfig,
     SignedContextV1,
-    TaskV1
+    TaskV2
 } from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
@@ -37,10 +37,10 @@ contract OrderBookClearSameTokenTest is OrderBookExternalRealTest {
             OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
+        iOrderbook.addOrder2(configAlice, new TaskV2[](0));
 
         vm.prank(bob);
-        iOrderbook.addOrder2(configBob, new TaskV1[](0));
+        iOrderbook.addOrder2(configBob, new TaskV2[](0));
 
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
         iOrderbook.clear2(

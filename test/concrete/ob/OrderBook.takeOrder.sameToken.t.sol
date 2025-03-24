@@ -6,11 +6,11 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     OrderConfigV3,
     OrderV3,
-    TaskV1,
+    TaskV2,
     TakeOrderConfigV3,
     SignedContextV1,
     TakeOrdersConfigV3
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
@@ -25,7 +25,7 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
             OrderV3(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
+        iOrderbook.addOrder2(configAlice, new TaskV2[](0));
 
         TakeOrderConfigV3[] memory takeOrders = new TakeOrderConfigV3[](1);
         takeOrders[0] = TakeOrderConfigV3({

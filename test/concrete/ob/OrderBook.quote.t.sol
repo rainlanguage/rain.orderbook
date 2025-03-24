@@ -7,10 +7,10 @@ import {IOrderBookV4, Quote} from "rain.orderbook.interface/interface/IOrderBook
 import {
     OrderConfigV3,
     EvaluableV3,
-    TaskV1,
+    TaskV2,
     OrderV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -57,13 +57,13 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
         vm.prank(owner);
         iOrderbook.deposit2(
-            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV1[](0)
+            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV2[](0)
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
-            iOrderbook.addOrder2(config, new TaskV1[](0));
+            iOrderbook.addOrder2(config, new TaskV2[](0));
 
             OrderV3 memory order = OrderV3({
                 owner: owner,

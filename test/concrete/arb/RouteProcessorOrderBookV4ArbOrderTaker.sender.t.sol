@@ -11,9 +11,9 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2,
-    TaskV1,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {
     RouteProcessorOrderBookV5ArbOrderTaker,
     OrderBookV5ArbConfig
@@ -29,7 +29,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrder
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
-            TaskV1({
+            TaskV2({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)
             })

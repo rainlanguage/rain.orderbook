@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {Quote, OrderConfigV3, TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {Quote, OrderConfigV3, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookQuoteSameTokenTest
@@ -26,7 +26,7 @@ contract OrderBookQuoteSameTokenTest is OrderBookExternalRealTest {
                 secret: bytes32(0),
                 meta: ""
             }),
-            new TaskV1[](0)
+            new TaskV2[](0)
         );
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
         (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);

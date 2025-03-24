@@ -15,9 +15,9 @@ import {
     TakeOrdersConfigV3,
     IInterpreterV3,
     IInterpreterStoreV2,
-    TaskV1,
+    TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 
 contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
     function buildArb(OrderBookV5ArbConfig memory config) internal override returns (address) {
@@ -38,7 +38,7 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             abi.encode(iRefundoor, iRefundoor, ""),
-            TaskV1({
+            TaskV2({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)
             })

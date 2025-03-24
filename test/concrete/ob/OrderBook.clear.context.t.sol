@@ -7,12 +7,12 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV3,
     OrderV3,
-    TaskV1,
+    TaskV2,
     ClearConfig,
     SignedContextV1,
     IO,
     EvaluableV3
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -169,20 +169,20 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new TaskV1[](0));
+        iOrderbook.addOrder3(configAlice, new TaskV2[](0));
 
         vm.prank(alice);
-        iOrderbook.deposit2(
-            configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, 100e6, new TaskV1[](0)
+        iOrderbook.deposit3(
+            configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, 100e6, new TaskV2[](0)
         );
 
         vm.prank(bob);
-        iOrderbook.addOrder2(configBob, new TaskV1[](0));
+        iOrderbook.addOrder3(configBob, new TaskV2[](0));
 
         vm.prank(bob);
-        iOrderbook.deposit2(configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new TaskV1[](0));
+        iOrderbook.deposit3(configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new TaskV2[](0));
 
-        iOrderbook.clear2(
+        iOrderbook.clear3(
             orderAlice, orderBob, ClearConfig(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
         );
     }

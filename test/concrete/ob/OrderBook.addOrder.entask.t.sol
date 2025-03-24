@@ -48,7 +48,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         vm.startPrank(owner);
         TaskV2[] memory actions = evalsToActions(evalStrings);
         vm.record();
-        bool stateChanged = iOrderbook.addOrder2(config, actions);
+        bool stateChanged = iOrderbook.addOrder3(config, actions);
         assert(stateChanged != nonces[config.nonce]);
         checkReentrancyRW(nonces[config.nonce] ? 4 : 5, nonces[config.nonce] ? 2 : 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
@@ -161,7 +161,7 @@ contract OrderBookAddOrderEnactTest is OrderBookExternalRealTest {
         vm.startPrank(alice);
         TaskV2[] memory actions = evalsToActions(evals0);
         vm.expectRevert("always revert");
-        bool stateChanged = iOrderbook.addOrder2(config, actions);
+        bool stateChanged = iOrderbook.addOrder3(config, actions);
         assert(!stateChanged);
 
         OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);

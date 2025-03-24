@@ -12,8 +12,8 @@ import {
     OrderConfigV3,
     EvaluableV3,
     SignedContextV1,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest
@@ -44,8 +44,8 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV1[](0));
-        assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
+        iOrderbook.deposit3(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
+        assertEq(iOrderbook.vaultBalance2(owner, outputToken, vaultId), type(uint256).max);
 
         bytes memory bytecode = iParserV2.parse2(rainString);
         EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
@@ -53,7 +53,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));

@@ -26,6 +26,8 @@ import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
+import {LibTOFUTokenDecimals, TOFUTokenDecimals, TOFUOutcome} from "../lib/LibTOFUTokenDecimals.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the initiator is not the order book.
 /// @param badInitiator The untrusted initiator of the flash loan.
@@ -72,6 +74,8 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     using SafeERC20 for IERC20;
 
     constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
+
+    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -156,9 +160,14 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
 
+        (TOFUOutcome inputOutcome, uint8 inputDecimals) =
+            LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, ordersInputToken);
+
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
-        uint256 flashLoanAmount = takeOrders.minimumInput;
+        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(
+            takeOrders.minimumInput.signedCoefficient, takeOrders.minimumInput.exponent, inputDecimals
+        );
 
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the

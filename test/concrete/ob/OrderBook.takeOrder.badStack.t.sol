@@ -9,8 +9,8 @@ import {
     SignedContextV1,
     OrderV3,
     EvaluableV3,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
@@ -34,7 +34,7 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, takeOrderConfigs, "");
 
         vm.prank(alice);
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));

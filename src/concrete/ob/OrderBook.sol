@@ -31,6 +31,12 @@ import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {
+    LibTOFUTokenDecimals,
+    TOFUTokenDecimals,
+    TOFUOutcome,
+    TokenDecimalsReadFailure
+} from "../../lib/LibTOFUTokenDecimals.sol";
 
 import {
     IOrderBookV5,
@@ -118,11 +124,6 @@ error NegativePush();
 /// Throws when a negative bounty is calculated.
 error NegativeBounty();
 
-/// Thrown when a TOFU decimals read fails during deposit.
-/// @param token The token that failed to read decimals.
-/// @param tofuOutcome The outcome of the TOFU read.
-error TokenDecimalsReadFailure(address token, TOFUOutcome tofuOutcome);
-
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -188,22 +189,6 @@ struct OrderIOCalculationV4 {
     bytes32[] kvs;
 }
 
-struct TOFUTokenDecimals {
-    bool initialized;
-    uint8 tokenDecimals;
-}
-
-enum TOFUOutcome {
-    /// Token's decimals have not been read from the external contract before.
-    Initial,
-    /// Token's decimals are consistent with the stored value.
-    Consistent,
-    /// Token's decimals are inconsistent with the stored value.
-    Inconsistent,
-    /// Token's decimals could not be read from the external contract.
-    ReadFailure
-}
-
 type Output18Amount is uint256;
 
 type Input18Amount is uint256;
@@ -259,58 +244,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         LibOrderBook.doPost(new bytes32[][](0), post);
     }
 
-    /// Trust on first use (TOFU) token decimals.
-    /// The first time we read the decimals from a token we store them in a
-    /// mapping. If the token's decimals change we will always use the stored
-    /// value. This is because the token's decimals could technically change and
-    /// are NOT intended for onchain use as they are optional, but we're doing
-    /// it anyway to convert to floating point numbers.
-    ///
-    /// If we have nothing stored we read from the token, store and return it
-    /// with TOFUOUTCOME.Consistent.
-    ///
-    /// If the call to `decimals` is not a success that deserializes cleanly to
-    /// a `uint8` we return the stored value and TOFUOUTCOME.ReadFailure.
-    ///
-    /// If the stored value is inconsistent with the token's decimals we return
-    /// the stored value and TOFUOUTCOME.Inconsistent.
-    ///
-    /// @return True if the token's decimals are consistent with the stored
-    /// value.
-    /// @return The token's decimals, prioritising the stored value if
-    /// inconsistent.
-    function decimalsForToken(address token) internal view returns (TOFUOutcome, uint8) {
-        TOFUTokenDecimals memory tofuTokenDecimals = sTOFUTokenDecimals[token];
-
-        // The default solidity try/catch logic will error if the return is a
-        // success but fails to deserialize to the target type. We need to handle
-        // all errors as read failures so that the calling context can decide
-        // whether to revert the current transaction or continue with the stored
-        // value. E.g. withdrawals will prefer to continue than trap funds, and
-        // deposits will prefer to revert and prevent new funds entering the
-        // DEX.
-        (bool success, bytes memory returnData) = token.staticcall(abi.encodeWithSignature("decimals()"));
-        if (!success || returnData.length != 0x20) {
-            return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
-        }
-
-        uint256 decodedDecimals = abi.decode(returnData, (uint256));
-        if (decodedDecimals > type(uint8).max) {
-            return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
-        }
-        uint8 readDecimals = uint8(decodedDecimals);
-
-        if (!tofuTokenDecimals.initialized) {
-            sTOFUTokenDecimals[token] = TOFUTokenDecimals({initialized: true, tokenDecimals: readDecimals});
-            return (TOFUOutcome.Initial, readDecimals);
-        } else {
-            return (
-                readDecimals == tofuTokenDecimals.tokenDecimals ? TOFUOutcome.Consistent : TOFUOutcome.Inconsistent,
-                tofuTokenDecimals.tokenDecimals
-            );
-        }
-    }
-
     /// @inheritdoc IOrderBookV5
     function deposit3(address token, bytes32 vaultId, Float memory depositAmount, TaskV2[] calldata post)
         external
@@ -360,7 +293,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// @inheritdoc IOrderBookV5
-    function withdraw2(address token, bytes32 vaultId, Float memory targetAmount, TaskV2[] calldata post)
+    function withdraw3(address token, bytes32 vaultId, Float memory targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
     {
@@ -875,7 +808,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
                 {
                     (TOFUOutcome inputOutcome, uint8 inputDecimals) =
-                        decimalsForToken(order.validInputs[inputIOIndex].token);
+                        LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, order.validInputs[inputIOIndex].token);
                     if (inputOutcome != TOFUOutcome.Consistent) {
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
@@ -893,8 +826,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 {
-                    (TOFUOutcome outputOutcome, uint8 outputDecimals) =
-                        decimalsForToken(order.validOutputs[outputIOIndex].token);
+                    (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForToken(
+                        sTOFUTokenDecimals, order.validOutputs[outputIOIndex].token
+                    );
                     if (outputOutcome != TOFUOutcome.Consistent) {
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
@@ -1179,7 +1113,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         internal
         returns (uint256, uint8)
     {
-        (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
+        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
         if (tofuOutcome != TOFUOutcome.Consistent) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
@@ -1203,7 +1137,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // Push cannot initialize token decimals as at least one pull must be
         // made before a push can be made, and this will have initialized the
         // token decimals.
-        (TOFUOutcome tofuOutcome, uint8 decimals) = decimalsForToken(token);
+        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
         if (tofuOutcome == TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }

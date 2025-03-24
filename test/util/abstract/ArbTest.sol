@@ -18,7 +18,7 @@ import {
     EvaluableV3
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
-import {TaskV1} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
@@ -66,7 +66,7 @@ abstract contract ArbTest is Test {
 
         OrderBookV5ArbConfig memory config = OrderBookV5ArbConfig(
             address(iOrderBook),
-            TaskV1({
+            TaskV2({
                 evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
             }),
