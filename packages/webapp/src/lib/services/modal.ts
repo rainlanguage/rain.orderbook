@@ -1,5 +1,7 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
+import DepositModal from '$lib/components/DepositModal.svelte';
+import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import {
 	DisclaimerModal,
@@ -15,6 +17,14 @@ export const handleDeployModal = (props: DeployModalProps) => {
 
 export const handleDepositOrWithdrawModal = (props: DepositOrWithdrawModalProps) => {
 	new DepositOrWithdrawModal({ target: document.body, props });
+};
+
+export const handleDepositModal = (props) => {
+	new DepositModal({ target: document.body, props });
+};
+
+export const handleWithdrawModal = (props) => {
+	new WithdrawModal({ target: document.body, props });
 };
 
 export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {

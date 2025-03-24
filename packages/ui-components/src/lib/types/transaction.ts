@@ -21,6 +21,22 @@ export type DepositOrWithdrawArgs = {
 	subgraphUrl: string;
 };
 
+export type DepositArgs = {
+	vault: SgVault;
+	onDeposit: () => void;
+	chainId: number;
+	rpcUrl: string;
+	subgraphUrl: string;
+};
+
+export type WithdrawArgs = {
+	vault: SgVault;
+	onWithdraw: () => void;
+	chainId: number;
+	rpcUrl: string;
+	subgraphUrl: string;
+};
+
 export type OrderRemoveArgs = {
 	order: SgOrder;
 	onRemove: () => void;

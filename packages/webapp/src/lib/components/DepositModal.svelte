@@ -9,9 +9,7 @@
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
-		type WithdrawCalldataResult,
-		type ApprovalCalldata,
-		getVaultWithdrawCalldata
+		type ApprovalCalldata
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button, Badge } from 'flowbite-svelte';
@@ -35,10 +33,7 @@
 	export let open: boolean;
 	export let args: DepositOrWithdrawArgs;
 
-	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
-
-	type Action = 'deposit' | 'withdraw';
-	const actionType = action as Action;
+	const { vault, chainId, rpcUrl, subgraphUrl } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -46,7 +41,6 @@
 	let errorMessage = '';
 	let depositCalldata: DepositCalldataResult | undefined = undefined;
 	let approvalCalldata: ApprovalCalldata | undefined = undefined;
-	let withdrawCalldata: WithdrawCalldataResult | undefined = undefined;
 	let isCheckingCalldata = false;
 
 	const messages = {
@@ -55,19 +49,18 @@
 		error: 'Transaction failed.'
 	};
 
-	$: if ($signerAddress && action === 'deposit') {
+	$: if ($signerAddress) {
 		getUserBalance();
 	}
-
-	$: console.log('userBalance', userBalance);
 
 	const getUserBalance = async () => {
 		const targetChain = getTargetChain(chainId);
 		try {
 			await switchChain($wagmiConfig, { chainId });
-		} catch {
-			errorMessage = `Switch to ${targetChain.name} to check your balance.`;
+		} catch (error) {
+			throw new Error(`Switch to ${targetChain.name} to check your balance.`);
 		}
+
 		userBalance = await readContract($wagmiConfig, {
 			abi: erc20Abi,
 			address: vault.token.address as Hex,
@@ -78,14 +71,14 @@
 	};
 
 	async function handleTransaction(
-		transactionCalldata: DepositCalldataResult | WithdrawCalldataResult,
+		transactionCalldata: DepositCalldataResult,
 		approvalCalldata?: ApprovalCalldata | undefined
 	) {
 		transactionStore.handleDepositOrWithdrawTransaction({
 			config: $wagmiConfig,
 			transactionCalldata,
 			approvalCalldata,
-			action,
+			action: 'deposit',
 			chainId,
 			vault,
 			subgraphUrl
@@ -95,21 +88,14 @@
 	async function handleContinue() {
 		isCheckingCalldata = true;
 		try {
-			if (action === 'deposit') {
-				try {
-					approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
-				} catch {
-					approvalCalldata = undefined;
-				}
-				depositCalldata = await getVaultDepositCalldata(vault, amount.toString());
-				if (depositCalldata) {
-					handleTransaction(depositCalldata, approvalCalldata);
-				}
-			} else if (action === 'withdraw') {
-				withdrawCalldata = await getVaultWithdrawCalldata(vault, amount.toString());
-				if (withdrawCalldata) {
-					handleTransaction(withdrawCalldata);
-				}
+			try {
+				approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+			} catch {
+				approvalCalldata = undefined;
+			}
+			depositCalldata = await getVaultDepositCalldata(vault, amount.toString());
+			if (depositCalldata) {
+				handleTransaction(depositCalldata, approvalCalldata);
 			}
 			currentStep = 2;
 		} catch {
@@ -126,40 +112,32 @@
 		amount = 0n;
 	}
 
-	$: amountGreaterThanBalance = {
-		deposit: amount > userBalance,
-		withdraw: amount > BigInt(vault.balance)
-	};
+	$: amountGreaterThanBalance = amount > userBalance;
 </script>
 
 {#if currentStep === 1}
 	<Modal bind:open autoclose={false} size="md">
 		<div class="space-y-6">
 			<div class="flex flex-col gap-4">
-				<h3 class="text-xl font-medium">Enter Amount</h3>
+				<h3 class="text-xl font-medium">Enter Deposit Amount</h3>
 			</div>
 			<div class="flex flex-col gap-2">
 				<Badge color="yellow" class="w-fit" data-testid="balance-badge">
-					{#if action === 'deposit'}
-						{#await getUserBalance()}
-							Loading your balance...
-						{:then balance}
-							Your balance: {formatUnits(balance, Number(vault.token.decimals))}
-							{vault.token.symbol}
-						{:catch error}
-							Error loading balance: {error.message}
-						{/await}
-					{:else if action === 'withdraw'}
-						Vault balance: {formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
+					{#await getUserBalance()}
+						Loading your balance...
+					{:then balance}
+						Your balance: {formatUnits(balance, Number(vault.token.decimals))}
 						{vault.token.symbol}
-					{/if}
+					{:catch error}
+						Error loading balance: {error.message}
+					{/await}
 				</Badge>
 
 				<InputTokenAmount
 					bind:value={amount}
 					symbol={vault.token.symbol}
 					decimals={Number(vault.token.decimals)}
-					maxValue={action === 'deposit' ? userBalance : BigInt(vault.balance)}
+					maxValue={userBalance}
 				/>
 			</div>
 			<div class="flex flex-col justify-end gap-2">
@@ -170,14 +148,12 @@
 							<Button
 								color="blue"
 								on:click={handleContinue}
-								disabled={amount <= 0n ||
-									amountGreaterThanBalance[actionType] ||
-									isCheckingCalldata}
+								disabled={amount <= 0n || amountGreaterThanBalance || isCheckingCalldata}
 							>
 								{#if isCheckingCalldata}
 									Checking...
 								{:else}
-									{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+									Deposit
 								{/if}
 							</Button>
 						</div>
@@ -188,7 +164,7 @@
 				{#if errorMessage}
 					<p data-testid="error-message">{errorMessage}</p>
 				{/if}
-				{#if amountGreaterThanBalance[actionType]}
+				{#if amountGreaterThanBalance}
 					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
 				{/if}
 			</div>
