@@ -26,4 +26,18 @@ describe('WalletProvider', () => {
 
 		expect(setAccountContext).toHaveBeenCalledWith(mockAccount);
 	});
+
+	it('should use default null account when no account is provided', () => {
+		render(WalletProvider);
+
+		expect(setAccountContext).toHaveBeenCalled();
+		const accountArg = vi.mocked(setAccountContext).mock.calls[0][0];
+		expect(accountArg).toBeDefined();
+
+		let value;
+		accountArg.subscribe((v) => {
+			value = v;
+		})();
+		expect(value).toBeNull();
+	});
 });
