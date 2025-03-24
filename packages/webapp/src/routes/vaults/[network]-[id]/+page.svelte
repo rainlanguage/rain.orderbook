@@ -108,7 +108,7 @@
 	network={$page.params.network}
 	{lightweightChartsTheme}
 	{settings}
-	{signerAddress}
+	signerAddress={$signerAddress || ''}
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	on:deposit={onDeposit}

@@ -42,7 +42,8 @@ beforeEach(() => {
 		activeNetworkRef: writable('mainnet'),
 		activeOrderbookRef: writable('0x00'),
 		settings: mockSettings,
-		lightweightChartsTheme: readable(darkChartTheme)
+		lightweightChartsTheme: readable(darkChartTheme),
+		signerAddress: '0x123'
 	};
 });
 
@@ -147,7 +148,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 
 	const propsWithSigner = {
 		...defaultProps,
-		signerAddress: writable('0x123')
+		signerAddress: '0x123'
 	};
 
 	render(VaultDetail, {
@@ -189,7 +190,7 @@ test('emits deposit event when deposit button is clicked', async () => {
 
 	const propsWithEventsAndSigner = {
 		...defaultProps,
-		signerAddress: writable('0x123')
+		signerAddress: '0x123'
 	};
 
 	const { component } = render(VaultDetail, {
@@ -235,7 +236,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 
 	const propsWithSigner = {
 		...defaultProps,
-		signerAddress: writable('0x123')
+		signerAddress: '0x123'
 	};
 
 	render(VaultDetail, {

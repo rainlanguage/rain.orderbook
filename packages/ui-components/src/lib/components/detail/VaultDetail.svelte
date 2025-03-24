@@ -27,7 +27,7 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let signerAddress: string;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
@@ -79,7 +79,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $signerAddress === data.owner}
+			{#if signerAddress === data.owner}
 				<VaultActionButton
 					action="deposit"
 					vault={data}

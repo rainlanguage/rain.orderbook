@@ -6,7 +6,6 @@
 	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { getOrderByHash } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
-	import type { Readable } from 'svelte/store';
 	import { Button } from 'flowbite-svelte';
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
@@ -16,14 +15,13 @@
 
 	const queryClient = useQueryClient();
 
-	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
-		undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
 	export let orderHash: string;
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
+	export let signerAddress: string;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -37,7 +35,7 @@
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
 		<div>Order {data.order.orderHash}</div>
-		{#if data && $walletAddressMatchesOrBlank?.(data.order.owner) && data.order.active && handleOrderRemoveModal}
+		{#if data && signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal}
 			<Button
 				data-testid="remove-button"
 				color="dark"

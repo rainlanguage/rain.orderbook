@@ -6,13 +6,9 @@ import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 
-const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
-);
-
 const mockOrder: SgOrder = {
 	id: 'mockId',
-	owner: 'mockOwner',
+	owner: '0x123',
 	orderHash: 'mockOrderHash',
 	active: true,
 	meta: '0x',
@@ -46,7 +42,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				signerAddress: '0x123',
 				chainId,
 				orderbookAddress
 			}
@@ -71,13 +67,11 @@ describe('OrderDetail Component', () => {
 			}
 		})) as Mock;
 
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
-
 		render(OrderDetail, {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				signerAddress: '0x123',
 				handleOrderRemoveModal,
 				chainId,
 				orderbookAddress
@@ -91,13 +85,11 @@ describe('OrderDetail Component', () => {
 	});
 
 	it('does not render the remove button if conditions are not met', async () => {
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
-
 		render(OrderDetail, {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				signerAddress: 'notTheOwner',
 				handleOrderRemoveModal: vi.fn(),
 				chainId,
 				orderbookAddress
@@ -196,12 +188,12 @@ describe('OrderDetail Component', () => {
 				return { unsubscribe: () => {} };
 			}
 		})) as Mock;
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
+
 		render(OrderDetail, {
 			props: {
 				orderHash: mockOrderWithVaults.orderHash,
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				signerAddress: '0x123',
 				chainId,
 				orderbookAddress
 			}
@@ -242,7 +234,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				signerAddress: '0x123',
 				chainId,
 				orderbookAddress
 			}
