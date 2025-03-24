@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { loadEnv } from 'vite';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
 export default defineConfig(({ mode }) => ({
 	assetsInclude: ['**/*.rain'],
-	plugins: [sveltekit()],
+	plugins: [sveltekit(), svelteTesting()],
 	resolve: {
 		conditions: mode === 'test' ? ['browser'] : []
 	},
