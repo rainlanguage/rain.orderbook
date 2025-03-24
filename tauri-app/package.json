@@ -24,7 +24,7 @@
   "devDependencies": {
     "postcss": "8.4.32",
     "postcss-load-config": "5.0.2",
-    "prettier": "3.1.1",
+    "prettier": "3.3.2",
     "tslib": "2.4.1",
     "vite-plugin-checker": "0.6.2"
   },
