@@ -30,7 +30,6 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 
-
 	interface Deployment {
 		key: string;
 		name: string;
