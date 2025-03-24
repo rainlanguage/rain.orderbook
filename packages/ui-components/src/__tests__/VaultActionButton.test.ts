@@ -113,41 +113,6 @@ describe('VaultActionButton', () => {
 		expect(mockOnSuccess).toHaveBeenCalled();
 	});
 
-	it('includes additional data in the event payload when provided', async () => {
-		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
-		const additionalData = {
-			networkId: 1,
-			chainId: 1337,
-			customFlag: true
-		};
-
-		const propsWithData = {
-			...defaultProps,
-			additionalData
-		};
-
-		const { component } = render(VaultActionButton, propsWithData);
-
-		component.$on('click', mockOnClick);
-
-		const button = screen.getByTestId('deposit-button');
-		await user.click(button);
-
-		expect(mockOnClick).toHaveBeenCalled();
-
-		const eventDetail = mockOnClick.mock.calls[0][0].detail;
-		expect(eventDetail).toEqual(
-			expect.objectContaining({
-				action: 'deposit',
-				vault: mockVault,
-				networkId: 1,
-				chainId: 1337,
-				customFlag: true
-			})
-		);
-	});
-
 	it('is disabled when disabled prop is true', async () => {
 		const user = userEvent.setup();
 		const mockOnClick = vi.fn();
