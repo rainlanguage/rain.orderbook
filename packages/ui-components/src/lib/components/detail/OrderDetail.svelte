@@ -22,7 +22,6 @@
 	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
-		DepositOrWithdrawModalProps,
 		OrderRemoveModalProps,
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler

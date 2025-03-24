@@ -5,7 +5,6 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'svelte';
 

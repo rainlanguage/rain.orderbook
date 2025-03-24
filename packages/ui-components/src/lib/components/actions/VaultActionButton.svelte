@@ -9,14 +9,12 @@
 			action: 'deposit' | 'withdraw';
 			vault: SgVault;
 			onSuccess?: () => void;
-			[key: string]: any;
 		};
 	}>();
 
 	export let action: 'deposit' | 'withdraw';
 	export let vault: SgVault;
 	export let onSuccess: (() => void) | undefined = undefined;
-	export let additionalData: Record<string, any> = {};
 	export let testId = `${action}-button`;
 	export let disabled = false;
 	export let label = '';
@@ -25,8 +23,7 @@
 		dispatch('click', {
 			action,
 			vault,
-			onSuccess,
-			...additionalData
+			onSuccess
 		});
 	}
 </script>
