@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
 	import { bigintStringToHex } from '../../utils/hex';
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
@@ -12,7 +11,7 @@
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { createEventDispatcher, onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
