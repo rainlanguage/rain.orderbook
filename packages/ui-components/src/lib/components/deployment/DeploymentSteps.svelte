@@ -8,6 +8,7 @@
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
+		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -27,7 +28,6 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
-	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
 		key: string;
@@ -39,6 +39,7 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
+	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -51,7 +52,6 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
 
-	const gui = useGui();
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
@@ -255,18 +255,14 @@
 						<DepositsSection bind:allDepositFields {gui} />
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						{#if allTokenInputs.length > 0}
-							{#each allTokenInputs as input, i}
-								<TokenIOInput {i} label="Input" vault={input} {gui} />
-							{/each}
-						{/if}
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
 
-						{#if allTokenOutputs.length > 0}
-							{#each allTokenOutputs as output, i}
-								<TokenIOInput {i} label="Output" vault={output} {gui} />
-							{/each}
-						{/if}
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}
