@@ -5,7 +5,7 @@ import { get, writable } from '@square/svelte-store';
 import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
-import { hexToNumber, isHex } from 'viem';
+import { hexToNumber, isHex, type Hex } from 'viem';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -19,7 +19,7 @@ const metadata = {
   ],
 };
 
-export const walletconnectAccount = writable<string | undefined>(undefined);
+export const walletconnectAccount = writable<Hex | null>(null);
 export const walletconnectIsDisconnecting = writable<boolean>(false);
 export const walletconnectIsConnecting = writable<boolean>(false);
 export let walletconnectProvider: Provider | undefined;

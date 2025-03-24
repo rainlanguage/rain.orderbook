@@ -5,25 +5,25 @@ import { readable } from 'svelte/store';
 import type { Account } from '$lib/types/account';
 
 vi.mock('../lib/providers/wallet/context', () => ({
-  setAccountContext: vi.fn()
+	setAccountContext: vi.fn()
 }));
 
 import { setAccountContext } from '../lib/providers/wallet/context';
 
 describe('WalletProvider', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
 
-  it('should call setAccountContext with the account prop', () => {
-    const mockAccount = readable('0x123') as Account;
+	it('should call setAccountContext with the account prop', () => {
+		const mockAccount = readable('0x123') as Account;
 
-    render(WalletProvider, {
-      props: {
-        account: mockAccount
-      }
-    });
+		render(WalletProvider, {
+			props: {
+				account: mockAccount
+			}
+		});
 
-    expect(setAccountContext).toHaveBeenCalledWith(mockAccount);
-  });
+		expect(setAccountContext).toHaveBeenCalledWith(mockAccount);
+	});
 });
