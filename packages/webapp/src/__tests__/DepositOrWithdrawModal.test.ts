@@ -17,9 +17,12 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
 }));
 
-vi.mock('@rainlanguage/ui-components', () => ({
-	useAccount: vi.fn()
-}));
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		useAccount: vi.fn()
+	};
+});
 
 vi.mock('@wagmi/core', () => ({
 	readContract: vi.fn(),
