@@ -197,13 +197,12 @@ test('emits deposit event when deposit button is clicked', async () => {
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 
-
 	component.$on('deposit', mockDepositHandler);
 
 	await waitFor(async () => {
 		const depositButton = await screen.findByTestId('deposit-button');
 		await userEvent.click(depositButton);
-		
+
 		expect(mockDepositHandler).toHaveBeenCalled();
 		expect(mockDepositHandler.mock.calls[0][0].detail.vault).toEqual(mockData);
 	});
@@ -247,11 +246,12 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	await waitFor(async () => {
 		const refreshButton = await screen.findByTestId('refresh-button');
 		await userEvent.click(refreshButton);
-		
-		expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({
-			queryKey: ['100'],
-			exact: false
-		}));
-	});
 
+		expect(invalidateQueries).toHaveBeenCalledWith(
+			expect.objectContaining({
+				queryKey: ['100'],
+				exact: false
+			})
+		);
+	});
 });
