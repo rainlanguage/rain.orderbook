@@ -1,49 +1,51 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import WalletProvider, {
-	ACCOUNT_KEY,
-	USE_ACCOUNT_KEY
-} from '../lib/providers/wallet/WalletProvider.svelte';
-import { setContext } from 'svelte';
+import WalletProvider, { ACCOUNT_KEY } from '../lib/providers/wallet/WalletProvider.svelte';
 import { readable } from 'svelte/store';
+import type { Hex } from 'viem';
 
-vi.mock('svelte', () => ({
-	getContext: vi.fn(),
-	setContext: vi.fn()
+// Mock the context module
+vi.mock('./context', () => ({
+  setAccountContext: vi.fn()
 }));
 
+// Import the mocked function after mocking
+import { setAccountContext } from '../lib/providers/wallet/context';
+
 describe('WalletProvider', () => {
-	it('should set account store in context', () => {
-		const mockAccount = readable('0x123');
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-		render(WalletProvider, {
-			props: {
-				account: mockAccount
-			}
-		});
+  it('should set account store in context via setAccountContext', () => {
+    const mockAccount = readable('0x123' as unknown as Hex);
 
-		expect(vi.mocked(setContext)).toHaveBeenCalledWith(ACCOUNT_KEY, mockAccount);
-	});
+    render(WalletProvider, {
+      props: {
+        account: mockAccount
+      }
+    });
 
-	it('should set useAccount function in context', () => {
-		const mockAccount = readable('0x123');
+    expect(setAccountContext).toHaveBeenCalledWith(mockAccount);
+  });
 
-		render(WalletProvider, {
-			props: {
-				account: mockAccount
-			}
-		});
+  it('should use default null account when no account prop provided', () => {
+    render(WalletProvider);
 
-		expect(vi.mocked(setContext)).toHaveBeenCalledWith(USE_ACCOUNT_KEY, expect.any(Function));
-	});
+    // Check that setAccountContext was called with a readable store containing null
+    expect(setAccountContext).toHaveBeenCalled();
+    
+    const accountPassedToContext = vi.mocked(setAccountContext).mock.calls[0][0];
+    
+    // Subscribe to the store to get its value
+    let value;
+    const unsubscribe = accountPassedToContext.subscribe((val: Hex | null) => {
+      value = val;
+    });
+    
+    expect(value).toBeNull();
+    unsubscribe();
+  });
 
-	it('should use default null account when no account prop provided', () => {
-		render(WalletProvider);
 
-		const setContextCalls = vi.mocked(setContext).mock.calls;
-		const accountCall = setContextCalls.find((call) => call[0] === ACCOUNT_KEY);
-		const defaultAccount = accountCall![1];
-
-		expect(defaultAccount).toBeDefined();
-	});
 });
