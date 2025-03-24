@@ -59,8 +59,6 @@
 		getUserBalance();
 	}
 
-	$: console.log('userBalance', userBalance);
-
 	const getUserBalance = async () => {
 		const targetChain = getTargetChain(chainId);
 		try {

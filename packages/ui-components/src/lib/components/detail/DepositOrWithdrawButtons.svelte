@@ -18,7 +18,7 @@
 	color="light"
 	size="xs"
 	on:click={() =>
-		handleDepositOrWithdrawModal({
+		handleDepositModal({
 			open: true,
 			args: {
 				vault,
