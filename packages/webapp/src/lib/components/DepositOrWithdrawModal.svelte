@@ -3,7 +3,8 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type DepositOrWithdrawArgs,
+		useAccount
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -16,12 +17,13 @@
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
-	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
+	import { appKitModal, connected } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
 
 	const { ...chains } = allChains;
+	const { account } = useAccount();
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {
@@ -55,7 +57,7 @@
 		error: 'Transaction failed.'
 	};
 
-	$: if ($signerAddress && action === 'deposit') {
+	$: if ($account && action === 'deposit') {
 		getUserBalance();
 	}
 
@@ -70,7 +72,7 @@
 			abi: erc20Abi,
 			address: vault.token.address as Hex,
 			functionName: 'balanceOf',
-			args: [$signerAddress as Hex]
+			args: [$account as Hex]
 		});
 	};
 
@@ -144,7 +146,7 @@
 			<div class="flex flex-col justify-end gap-2">
 				<div class="flex gap-2">
 					<Button color="alternative" on:click={handleClose}>Cancel</Button>
-					{#if $signerAddress}
+					{#if $account}
 						<div class="flex flex-col gap-2">
 							<Button
 								color="blue"
