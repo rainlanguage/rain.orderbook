@@ -50,7 +50,7 @@ const { Buffer } = require('buffer');
 const wasmB64 = require('../${package}.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
 );
-cjs = cjs.replace("const { TextDecoder, TextEncoder } = require(`util`);", "");
+cjs = cjs.replace("const { TextEncoder, TextDecoder } = require(`util`);", "");
 cjs = "/* this file is auto-generated, do not modify */\n" + cjs;
 fs.writeFileSync(`./dist/cjs/${package}.js`, cjs);
 
@@ -58,7 +58,7 @@ fs.writeFileSync(`./dist/cjs/${package}.js`, cjs);
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
   encoding: "utf-8",
 });
-const index = esm.indexOf("function __wbg_init_memory(imports, maybe_memory)");
+const index = esm.indexOf("function __wbg_init_memory(imports, memory)");
 esm = esm.slice(0, index);
 esm =
   "let imports = {};\n" +
