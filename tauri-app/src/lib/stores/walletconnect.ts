@@ -38,13 +38,13 @@ Provider.init({
 })
   .then(async (provider) => {
     provider.on('connect', () => {
-      walletconnectAccount.set(provider?.accounts?.[0] ?? undefined);
+      walletconnectAccount.set(provider?.accounts?.[0] as Hex ?? null);
     });
     provider.on('disconnect', () => {
-      walletconnectAccount.set(undefined);
+      walletconnectAccount.set(null);
     });
     provider.on('accountsChanged', (accounts) => {
-      walletconnectAccount.set(accounts?.[0] ?? undefined);
+      walletconnectAccount.set(accounts?.[0] as Hex ?? null);
     });
     provider.on('chainChanged', (chain) => {
       if (isHex(chain)) walletConnectNetwork.set(hexToNumber(chain));
@@ -103,7 +103,7 @@ export async function walletconnectDisconnect() {
     reportErrorToSentry(e);
   }
   walletconnectIsDisconnecting.set(false);
-  walletconnectAccount.set(undefined);
+  walletconnectAccount.set(null);
 }
 
 // set theme when changed by user

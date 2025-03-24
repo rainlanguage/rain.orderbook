@@ -109,7 +109,7 @@ export const init = async () => {
 			const chain = get(wagmiConfig).chains.find((chain) => chain.id === account.chainId);
 			if (chain) chainId.set(chain.id);
 			connected.set(true);
-			signerAddress.set(account.address.toLowerCase());
+			signerAddress.set(account.address);
 		}
 		loading.set(false);
 	} catch {
@@ -133,7 +133,7 @@ const handleAccountChange = (data: GetAccountReturnType) => {
 			if (chain) chainId.set(chain.id);
 			connected.set(true);
 			loading.set(false);
-			signerAddress.set(data.address.toLowerCase());
+			signerAddress.set(data.address);
 		} else if (data.isDisconnected && get(connected)) {
 			loading.set(false);
 			await disconnectWagmi();

@@ -8,7 +8,7 @@
   import { IconWarning, ButtonLoading } from '@rainlanguage/ui-components';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { Hash, HashType } from '@rainlanguage/ui-components';
-
+  import type { Hex } from 'viem';
   const maskOptions = {
     mask: Number,
     min: 0,
@@ -32,7 +32,7 @@
     if (!$ledgerWalletAddress) {
       isConnecting = true;
       try {
-        const res: string = await getAddressFromLedger(derivationIndex);
+        const res: Hex = await getAddressFromLedger(derivationIndex);
         ledgerWalletAddress.set(res);
         onConnect();
       } catch (e) {
@@ -45,7 +45,7 @@
 
   function ledgerDisconnect() {
     isDisconnecting = true;
-    ledgerWalletAddress.set(undefined);
+    ledgerWalletAddress.set(null);
     ledgerWalletDerivationIndex.set(0);
     isDisconnecting = false;
   }
@@ -96,7 +96,7 @@
       <div class="w-32 grow-0 break-all">
         <input
           type="text"
-          class="block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500 rtl:text-right"
+          class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-32 rounded-xl border-gray-300 bg-gray-50 p-1.5 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 rtl:text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
           value={derivationIndex}
           use:imask={maskOptions}
           on:complete={completeDerivationIndex}
