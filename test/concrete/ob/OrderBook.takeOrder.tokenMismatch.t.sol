@@ -6,11 +6,11 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     OrderV3,
     IO,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     TakeOrdersConfigV3,
-    EvaluableV3,
+    EvaluableV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest
@@ -50,9 +50,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up outputs so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].token = a.validOutputs[aOutputIOIndex].token;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
@@ -88,9 +88,9 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up inputs so we don't trigger that code path.
         b.validInputs[bInputIOIndex].token = a.validInputs[aInputIOIndex].token;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);

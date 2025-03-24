@@ -7,19 +7,19 @@ import {Test, stdError} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     OrderV3,
     IO,
     ClearConfig,
-    EvaluableV3,
+    EvaluableV4,
     SignedContextV1,
-    IInterpreterV3,
+    IInterpreterV4,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {StateNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {StateNamespace} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -43,7 +43,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         assertEq(iOrderbook.vaultBalance(depositor, token, vaultId), amount);
     }
 
-    function conformBasicConfig(OrderConfigV3 memory aliceConfig, OrderConfigV3 memory bobConfig) internal view {
+    function conformBasicConfig(OrderConfigV4 memory aliceConfig, OrderConfigV4 memory bobConfig) internal view {
         vm.assume(aliceConfig.validInputs.length > 0);
         vm.assume(aliceConfig.validOutputs.length > 0);
         vm.assume(bobConfig.validInputs.length > 0);
@@ -72,9 +72,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
     struct CheckClear {
         address alice;
-        OrderConfigV3 aliceConfig;
+        OrderConfigV4 aliceConfig;
         address bob;
-        OrderConfigV3 bobConfig;
+        OrderConfigV4 bobConfig;
         address bountyBot;
         uint256 aliceBountyVaultId;
         uint256 bobBountyVaultId;
@@ -141,7 +141,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         {
             {
                 bytes memory call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
+                    IInterpreterV4.eval4.selector,
                     clear.aliceConfig.evaluable.store,
                     LibNamespace.qualifyNamespace(
                         StateNamespace.wrap(uint256(uint160(clear.alice))), address(iOrderbook)
@@ -151,7 +151,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackAlice, new uint256[](0)));
 
                 call = abi.encodeWithSelector(
-                    IInterpreterV3.eval3.selector,
+                    IInterpreterV4.eval4.selector,
                     clear.bobConfig.evaluable.store,
                     LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(clear.bob))), address(iOrderbook))
                 );
@@ -238,9 +238,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClearSimple(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
@@ -281,9 +281,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClearFuzzIoRatio(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
@@ -339,9 +339,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClearFuzzIoRatioError(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
@@ -388,9 +388,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClear2ZeroRatioAliceOnly(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
@@ -433,9 +433,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClear2ZeroRatioBobOnly(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,
@@ -478,9 +478,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     /// forge-config: default.fuzz.runs = 100
     function testClear2ZeroRatioAliceAndBob(
         address alice,
-        OrderConfigV3 memory aliceConfig,
+        OrderConfigV4 memory aliceConfig,
         address bob,
-        OrderConfigV3 memory bobConfig,
+        OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
         uint256 aliceBountyVaultId,

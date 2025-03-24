@@ -6,12 +6,12 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     TakeOrdersConfigV3,
     ZeroMaximumInput,
     IO,
-    EvaluableV3,
-    OrderConfigV3,
+    EvaluableV4,
+    OrderConfigV4,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
@@ -24,10 +24,10 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     function testTakeOrderNoopZeroMaxTakerInput(OrderV3 memory order, SignedContextV1 memory signedContext) external {
         vm.assume(order.validInputs.length > 0);
         vm.assume(order.validOutputs.length > 0);
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
-        orders[0] = TakeOrderConfigV3(order, 0, 0, signedContexts);
+        orders[0] = TakeOrderConfigV4(order, 0, 0, signedContexts);
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, 0, type(uint256).max, orders, "");
         vm.expectRevert(ZeroMaximumInput.selector);
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
@@ -60,15 +60,15 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
         for (uint256 i = 0; i < testOrders.length; i++) {
             {
-                OrderConfigV3 memory orderConfig;
+                OrderConfigV4 memory orderConfig;
                 {
                     bytes memory bytecode = iParserV2.parse2(testOrders[i].orderString);
                     IO[] memory inputs = new IO[](1);
                     inputs[0] = IO(address(iToken0), 18, vaultId);
                     IO[] memory outputs = new IO[](1);
                     outputs[0] = IO(address(iToken1), 18, vaultId);
-                    EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-                    orderConfig = OrderConfigV3(evaluable, inputs, outputs, bytes32(0), bytes32(0), "");
+                    EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
+                    orderConfig = OrderConfigV4(evaluable, inputs, outputs, bytes32(0), bytes32(0), "");
                 }
 
                 vm.prank(testOrders[i].owner);
@@ -109,9 +109,9 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             }
         }
 
-        TakeOrderConfigV3[] memory takeOrders = new TakeOrderConfigV3[](orders.length);
+        TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            takeOrders[i] = TakeOrderConfigV3(orders[i], 0, 0, new SignedContextV1[](0));
+            takeOrders[i] = TakeOrderConfigV4(orders[i], 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maximumTakerInput, type(uint256).max, takeOrders, "");
 

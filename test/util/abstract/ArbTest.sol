@@ -12,14 +12,14 @@ import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {
     FlashLendingMockOrderBook,
     OrderV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     IO,
     SignedContextV1,
-    EvaluableV3
+    EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 
 contract Token is ERC20 {
@@ -31,7 +31,7 @@ contract Token is ERC20 {
 }
 
 abstract contract ArbTest is Test {
-    IInterpreterV3 immutable iInterpreter;
+    IInterpreterV4 immutable iInterpreter;
     IInterpreterStoreV2 immutable iInterpreterStore;
 
     Token immutable iTakerInput;
@@ -50,7 +50,7 @@ abstract contract ArbTest is Test {
     function buildArb(OrderBookV5ArbConfig memory config) internal virtual returns (address);
 
     constructor() {
-        iInterpreter = IInterpreterV3(address(uint160(uint256(keccak256("interpreter.rain.test")))));
+        iInterpreter = IInterpreterV4(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.label(address(iInterpreter), "iInterpreter");
         iInterpreterStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("interpreter.store.rain.test")))));
         vm.label(address(iInterpreterStore), "iInterpreterStore");
@@ -67,7 +67,7 @@ abstract contract ArbTest is Test {
         OrderBookV5ArbConfig memory config = OrderBookV5ArbConfig(
             address(iOrderBook),
             TaskV2({
-                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, expression()),
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
             }),
             abi.encode(iRefundoor)
@@ -82,7 +82,7 @@ abstract contract ArbTest is Test {
     function buildTakeOrderConfig(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
-        returns (TakeOrderConfigV3[] memory)
+        returns (TakeOrderConfigV4[] memory)
     {
         if (order.validInputs.length == 0) {
             order.validInputs = new IO[](1);
@@ -96,8 +96,8 @@ abstract contract ArbTest is Test {
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
-        orders[0] = TakeOrderConfigV3(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
+        orders[0] = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
         return orders;
     }
 

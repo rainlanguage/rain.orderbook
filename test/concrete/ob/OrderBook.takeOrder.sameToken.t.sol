@@ -4,10 +4,10 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     OrderV3,
     TaskV2,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     SignedContextV1,
     TakeOrdersConfigV3
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -16,7 +16,7 @@ import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
-    function testTakeOrderSameToken(address alice, OrderConfigV3 memory configAlice) external {
+    function testTakeOrderSameToken(address alice, OrderConfigV4 memory configAlice) external {
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         configAlice.validInputs[0].token = address(0);
         configAlice.validOutputs[0].token = address(0);
@@ -27,8 +27,8 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
         vm.prank(alice);
         iOrderbook.addOrder2(configAlice, new TaskV2[](0));
 
-        TakeOrderConfigV3[] memory takeOrders = new TakeOrderConfigV3[](1);
-        takeOrders[0] = TakeOrderConfigV3({
+        TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](1);
+        takeOrders[0] = TakeOrderConfigV4({
             order: orderAlice,
             inputIOIndex: 0,
             outputIOIndex: 0,

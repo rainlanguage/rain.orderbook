@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {Quote, OrderConfigV3, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {Quote, OrderConfigV4, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 
 /// @title OrderBookQuoteSameTokenTest
@@ -18,7 +18,7 @@ contract OrderBookQuoteSameTokenTest is OrderBookExternalRealTest {
         quoteConfig.outputIOIndex = 0;
         vm.prank(quoteConfig.order.owner);
         iOrderbook.addOrder2(
-            OrderConfigV3({
+            OrderConfigV4({
                 evaluable: quoteConfig.order.evaluable,
                 validInputs: quoteConfig.order.validInputs,
                 validOutputs: quoteConfig.order.validOutputs,

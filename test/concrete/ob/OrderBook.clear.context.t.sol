@@ -5,13 +5,13 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     OrderV3,
     TaskV2,
     ClearConfig,
     SignedContextV1,
     IO,
-    EvaluableV3
+    EvaluableV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -115,14 +115,14 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             )
         );
 
-        OrderConfigV3 memory configAlice;
+        OrderConfigV4 memory configAlice;
         {
             IO[] memory validInputsAlice = new IO[](1);
             validInputsAlice[0] = IO({token: address(iToken0), decimals: 12, vaultId: aliceInputVaultId});
             IO[] memory validOutputsAlice = new IO[](1);
             validOutputsAlice[0] = IO({token: address(iToken1), decimals: 6, vaultId: aliceOutputVaultId});
-            configAlice = OrderConfigV3({
-                evaluable: EvaluableV3({
+            configAlice = OrderConfigV4({
+                evaluable: EvaluableV4({
                     bytecode: iParserV2.parse2(rainStringAlice),
                     interpreter: iInterpreter,
                     store: iStore
@@ -134,7 +134,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
                 meta: ""
             });
         }
-        OrderConfigV3 memory configBob;
+        OrderConfigV4 memory configBob;
         {
             IO[] memory validInputsBob = new IO[](1);
             validInputsBob[0] = IO({token: address(iToken1), decimals: 6, vaultId: bobInputVaultId});
@@ -142,8 +142,8 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             IO[] memory validOutputsBob = new IO[](1);
             validOutputsBob[0] = IO({token: address(iToken0), decimals: 12, vaultId: bobOutputVaultId});
 
-            configBob = OrderConfigV3({
-                evaluable: EvaluableV3({bytecode: iParserV2.parse2(rainStringBob), interpreter: iInterpreter, store: iStore}),
+            configBob = OrderConfigV4({
+                evaluable: EvaluableV4({bytecode: iParserV2.parse2(rainStringBob), interpreter: iInterpreter, store: iStore}),
                 validInputs: validInputsBob,
                 validOutputs: validOutputsBob,
                 nonce: 0,

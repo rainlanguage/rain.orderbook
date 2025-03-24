@@ -7,7 +7,7 @@ import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderConfigV4, OrderV4, IOV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IInterpreterV4, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {EvaluableV3} from "rain.interpreter.interface/interface/IInterpreterCallerV3.sol";
+import {EvaluableV4} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {HANDLE_IO_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 

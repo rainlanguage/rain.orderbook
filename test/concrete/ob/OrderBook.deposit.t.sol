@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {stdError} from "forge-std/Test.sol";
 import {REVERTING_MOCK_BYTECODE, CONSOLE_ADDRESS} from "test/util/lib/LibTestConstants.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
-import {TaskV2, EvaluableV3, IOrderBookV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2, EvaluableV4, IOrderBookV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 

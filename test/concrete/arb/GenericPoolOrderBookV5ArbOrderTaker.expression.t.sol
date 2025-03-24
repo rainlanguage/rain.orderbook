@@ -25,7 +25,9 @@ import {
     WrongTask
 } from "src/abstract/OrderBookV5ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
-import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {
+    StateNamespace, FullyQualifiedNamespace
+} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 
 contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {

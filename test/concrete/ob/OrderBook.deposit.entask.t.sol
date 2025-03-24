@@ -4,8 +4,8 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3,
-    EvaluableV3,
+    OrderConfigV4,
+    EvaluableV4,
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -51,7 +51,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV2(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
         iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);

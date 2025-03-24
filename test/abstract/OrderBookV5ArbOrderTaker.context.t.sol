@@ -11,12 +11,12 @@ import {
 import {OrderBookExternalRealTest} from "../util/abstract/OrderBookExternalRealTest.sol";
 import {
     TakeOrdersConfigV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     IO,
-    OrderConfigV3,
+    OrderConfigV4,
     OrderV3,
-    IInterpreterV3
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    IInterpreterV4
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
@@ -27,7 +27,7 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
         address bob = address(999998);
         ChildOrderBookV5ArbOrderTaker arbOrderTaker = new ChildOrderBookV5ArbOrderTaker();
 
-        OrderConfigV3 memory aliceOrderConfig;
+        OrderConfigV4 memory aliceOrderConfig;
         {
             IO[] memory aliceValidInputs = new IO[](1);
             aliceValidInputs[0] = IO({token: address(iToken0), decimals: 12, vaultId: 0});
@@ -35,7 +35,7 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
             IO[] memory aliceValidOutputs = new IO[](1);
             aliceValidOutputs[0] = IO({token: address(iToken1), decimals: 12, vaultId: 0});
 
-            aliceOrderConfig = OrderConfigV3({
+            aliceOrderConfig = OrderConfigV4({
                 evaluable: EvaluableV4(iInterpreter, iStore, ""),
                 validInputs: aliceValidInputs,
                 validOutputs: aliceValidOutputs,
@@ -53,14 +53,14 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
             nonce: aliceOrderConfig.nonce
         });
 
-        TakeOrderConfigV3 memory aliceTakeOrderConfig = TakeOrderConfigV3({
+        TakeOrderConfigV4 memory aliceTakeOrderConfig = TakeOrderConfigV4({
             order: aliceOrder,
             inputIOIndex: 0,
             outputIOIndex: 0,
             signedContext: new SignedContextV1[](0)
         });
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = aliceTakeOrderConfig;
         TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3({
             minimumInput: 0,

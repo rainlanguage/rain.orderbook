@@ -10,10 +10,10 @@ import {
 } from "src/concrete/arb/GenericPoolOrderBookV5FlashBorrower.sol";
 import {
     OrderV3,
-    TakeOrderConfigV3,
-    EvaluableV3,
+    TakeOrderConfigV4,
+    EvaluableV4,
     TakeOrdersConfigV3,
-    IInterpreterV3,
+    IInterpreterV4,
     IInterpreterStoreV2,
     TaskV2,
     SignedContextV1
@@ -32,14 +32,14 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
         uint256 inputIOIndex,
         uint256 outputIOIndex
     ) public {
-        TakeOrderConfigV3[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+        TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
             iOrderBook,
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
             abi.encode(iRefundoor, iRefundoor, ""),
             TaskV2({
-                evaluable: EvaluableV3(iInterpreter, iInterpreterStore, ""),
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)
             })
         );

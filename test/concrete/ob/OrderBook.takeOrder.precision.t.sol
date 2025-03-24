@@ -7,10 +7,10 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     OrderV3,
     TakeOrdersConfigV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     IO,
-    OrderConfigV3,
-    EvaluableV3,
+    OrderConfigV4,
+    EvaluableV4,
     SignedContextV1,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -28,7 +28,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         uint256 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
-        OrderConfigV3 memory config;
+        OrderConfigV4 memory config;
         {
             IO[] memory validInputs = new IO[](1);
             validInputs[0] = IO(inputToken, inputTokenDecimals, vaultId);
@@ -37,8 +37,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
             bytes memory bytecode = iParserV2.parse2(rainString);
-            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
+            EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
+            config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");
@@ -57,8 +57,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         assertEq(entries.length, 1);
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](1);
-        orders[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
+        orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory takeOrdersConfig =
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);

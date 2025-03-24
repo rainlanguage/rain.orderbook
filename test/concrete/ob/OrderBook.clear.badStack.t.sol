@@ -5,9 +5,9 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     OrderV3,
-    EvaluableV3,
+    EvaluableV4,
     ClearConfig,
     SignedContextV1,
     TaskV2
@@ -18,8 +18,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob,
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob,
         bytes memory rainStringAlice,
         bytes memory rainStringBob,
         uint256 badStackHeight
@@ -55,8 +55,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackEmptyStack(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, ":;:;", ":;:;", 0);
     }
@@ -65,8 +65,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackOneStack(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, "_:1;:;", "_:1;:;", 1);
     }
@@ -75,8 +75,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackOneEmpty(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, "_ _:1 1;:;", ":;:;", 0);
     }
@@ -85,8 +85,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackOtherEmpty(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, ":;:;", "_ _:1 1;:;", 0);
     }
@@ -95,8 +95,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackOneOne(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, "_ _:1 1;:;", "_:1;:;", 1);
     }
@@ -105,8 +105,8 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function testClearOrderBadStackOneOtherOne(
         address alice,
         address bob,
-        OrderConfigV3 memory configAlice,
-        OrderConfigV3 memory configBob
+        OrderConfigV4 memory configAlice,
+        OrderConfigV4 memory configBob
     ) external {
         checkBadStack(alice, bob, configAlice, configBob, "_:1;:;", "_ _:1 1;:;", 1);
     }

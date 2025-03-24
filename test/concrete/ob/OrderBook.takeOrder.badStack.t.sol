@@ -5,20 +5,20 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
-    OrderConfigV3,
+    OrderConfigV4,
     SignedContextV1,
     OrderV3,
-    EvaluableV3,
+    EvaluableV4,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {TakeOrdersConfigV3, TakeOrderConfigV3} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+import {TakeOrdersConfigV3, TakeOrderConfigV4} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
         address alice,
         address bob,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes memory rainString,
         uint256 badStackHeight
     ) internal {
@@ -28,8 +28,8 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
 
         OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
-        TakeOrderConfigV3[] memory takeOrderConfigs = new TakeOrderConfigV3[](1);
-        takeOrderConfigs[0] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory takeOrderConfigs = new TakeOrderConfigV4[](1);
+        takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory takeOrdersConfig =
             TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, takeOrderConfigs, "");
 
@@ -42,12 +42,12 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderBadStackEmptyStack(address alice, address bob, OrderConfigV3 memory config) external {
+    function testTakeOrderBadStackEmptyStack(address alice, address bob, OrderConfigV4 memory config) external {
         checkBadStack(alice, bob, config, ":;:;", 0);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderBadStackOneStack(address alice, address bob, OrderConfigV3 memory config) external {
+    function testTakeOrderBadStackOneStack(address alice, address bob, OrderConfigV4 memory config) external {
         checkBadStack(alice, bob, config, "_:1;:;", 1);
     }
 }

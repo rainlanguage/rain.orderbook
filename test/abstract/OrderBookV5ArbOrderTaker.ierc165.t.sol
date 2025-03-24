@@ -13,7 +13,7 @@ import {
     TaskV2,
     SignedContextV1
 } from "src/abstract/OrderBookV5ArbOrderTaker.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
 import {ChildOrderBookV5ArbOrderTaker} from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
 
