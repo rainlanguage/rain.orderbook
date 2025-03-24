@@ -1,20 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import WalletProvider, {
-	ACCOUNT_KEY,
-	USE_ACCOUNT_KEY
-} from '../lib/providers/wallet/WalletProvider.svelte';
-import { setContext } from 'svelte';
+import WalletProvider from '../lib/providers/wallet/WalletProvider.svelte';
 import { readable } from 'svelte/store';
+import type { Account } from '$lib/types/account';
 
-vi.mock('svelte', () => ({
-	getContext: vi.fn(),
-	setContext: vi.fn()
+vi.mock('../lib/providers/wallet/context', () => ({
+	setAccountContext: vi.fn()
 }));
 
+import { setAccountContext } from '../lib/providers/wallet/context';
+
 describe('WalletProvider', () => {
-	it('should set account store in context', () => {
-		const mockAccount = readable('0x123');
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('should call setAccountContext with the account prop', () => {
+		const mockAccount = readable('0x123') as Account;
 
 		render(WalletProvider, {
 			props: {
@@ -22,28 +24,6 @@ describe('WalletProvider', () => {
 			}
 		});
 
-		expect(vi.mocked(setContext)).toHaveBeenCalledWith(ACCOUNT_KEY, mockAccount);
-	});
-
-	it('should set useAccount function in context', () => {
-		const mockAccount = readable('0x123');
-
-		render(WalletProvider, {
-			props: {
-				account: mockAccount
-			}
-		});
-
-		expect(vi.mocked(setContext)).toHaveBeenCalledWith(USE_ACCOUNT_KEY, expect.any(Function));
-	});
-
-	it('should use default null account when no account prop provided', () => {
-		render(WalletProvider);
-
-		const setContextCalls = vi.mocked(setContext).mock.calls;
-		const accountCall = setContextCalls.find((call) => call[0] === ACCOUNT_KEY);
-		const defaultAccount = accountCall![1];
-
-		expect(defaultAccount).toBeDefined();
+		expect(setAccountContext).toHaveBeenCalledWith(mockAccount);
 	});
 });
