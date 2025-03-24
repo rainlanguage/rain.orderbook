@@ -6,7 +6,7 @@ import { signerAddress } from '$lib/stores/wagmi';
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
+import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook/js_api';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
@@ -48,6 +48,7 @@ describe('DepositOrWithdrawModal', () => {
 		vi.clearAllMocks();
 		transactionStore.reset();
 		signerAddress.set('0x123');
+		(readContract as Mock).mockResolvedValue(BigInt(1000000000000000000));
 	});
 
 	it('renders deposit modal correctly', () => {
@@ -224,6 +225,32 @@ describe('DepositOrWithdrawModal', () => {
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
 			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
+	});
+
+	it('shows correct vault balance for withdraw', async () => {
+		render(DepositOrWithdrawModal, {
+			...defaultProps,
+			args: {
+				...defaultProps.args,
+				action: 'withdraw',
+				vault: {
+					...mockVault,
+					balance: '3000000000000000000' // 3 TEST tokens
+				} as unknown as SgVault
+			}
+		});
+
+		const balanceBadge = screen.getByTestId('balance-badge');
+		expect(balanceBadge).toHaveTextContent(`Vault balance: 3 TEST`);
+	});
+
+	it('shows correct user balance when making a deposit', async () => {
+		render(DepositOrWithdrawModal, defaultProps);
+
+		const balanceBadge = screen.getByTestId('balance-badge');
+		await waitFor(() => {
+			expect(balanceBadge).toHaveTextContent(`Your balance: 1 TEST`);
 		});
 	});
 });

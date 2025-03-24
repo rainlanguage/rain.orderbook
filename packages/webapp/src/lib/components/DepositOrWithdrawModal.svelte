@@ -14,11 +14,11 @@
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
 	import { wagmiConfig } from '$lib/stores/wagmi';
-	import { Modal, Button } from 'flowbite-svelte';
+	import { Modal, Button, Badge } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, signerAddress } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
-	import { erc20Abi, type Hex } from 'viem';
+	import { erc20Abi, formatUnits, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
 
 	const { ...chains } = allChains;
@@ -59,12 +59,14 @@
 		getUserBalance();
 	}
 
+	$: console.log('userBalance', userBalance);
+
 	const getUserBalance = async () => {
 		const targetChain = getTargetChain(chainId);
 		try {
 			await switchChain($wagmiConfig, { chainId });
 		} catch {
-			return (errorMessage = `Switch to ${targetChain.name} to check your balance.`);
+			errorMessage = `Switch to ${targetChain.name} to check your balance.`;
 		}
 		userBalance = await readContract($wagmiConfig, {
 			abi: erc20Abi,
@@ -72,6 +74,7 @@
 			functionName: 'balanceOf',
 			args: [$signerAddress as Hex]
 		});
+		return userBalance;
 	};
 
 	async function handleTransaction(
@@ -135,12 +138,30 @@
 			<div class="flex flex-col gap-4">
 				<h3 class="text-xl font-medium">Enter Amount</h3>
 			</div>
-			<InputTokenAmount
-				bind:value={amount}
-				symbol={vault.token.symbol}
-				decimals={Number(vault.token.decimals)}
-				maxValue={action === 'deposit' ? userBalance : BigInt(vault.balance)}
-			/>
+			<div class="flex flex-col gap-2">
+				<Badge color="yellow" class="w-fit" data-testid="balance-badge">
+					{#if action === 'deposit'}
+						{#await getUserBalance()}
+							Loading your balance...
+						{:then balance}
+							Your balance: {formatUnits(balance, Number(vault.token.decimals))}
+							{vault.token.symbol}
+						{:catch error}
+							Error loading balance: {error.message}
+						{/await}
+					{:else if action === 'withdraw'}
+						Vault balance: {formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
+						{vault.token.symbol}
+					{/if}
+				</Badge>
+
+				<InputTokenAmount
+					bind:value={amount}
+					symbol={vault.token.symbol}
+					decimals={Number(vault.token.decimals)}
+					maxValue={action === 'deposit' ? userBalance : BigInt(vault.balance)}
+				/>
+			</div>
 			<div class="flex flex-col justify-end gap-2">
 				<div class="flex gap-2">
 					<Button color="alternative" on:click={handleClose}>Cancel</Button>
