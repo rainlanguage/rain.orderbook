@@ -13,6 +13,7 @@
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -23,9 +24,11 @@
 	const chainId = $settings.networks[network]?.['chain-id'];
 
 	let toastOpen: boolean = false;
+	let toastMessage: string = 'Vault balance updated';
 	let counter: number = 5;
 
-	function triggerToast() {
+	function triggerToast(message: string = 'Vault balance updated') {
+		toastMessage = message;
 		toastOpen = true;
 		counter = 5;
 		timeout();
@@ -44,6 +47,52 @@
 		});
 		triggerToast();
 	}
+
+	// Handle deposit event from OrderDetail
+	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
+		const { vault } = event.detail;
+
+		// Show deposit modal
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action: 'deposit',
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
+		});
+	}
+
+	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
+		const { vault } = event.detail;
+
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action: 'withdraw',
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
+		});
+	}
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -51,10 +100,11 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		Vault balance updated
+		{toastMessage}
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
+
 <OrderDetail
 	{orderHash}
 	{subgraphUrl}
@@ -65,7 +115,7 @@
 	{orderbookAddress}
 	{chainId}
 	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
-	{handleOrderRemoveModal}
 	{signerAddress}
+	on:deposit={onDeposit}
+	on:withdraw={onWithdraw}
 />

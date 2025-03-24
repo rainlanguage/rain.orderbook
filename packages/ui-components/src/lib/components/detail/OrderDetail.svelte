@@ -14,11 +14,11 @@
 	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import VaultActionButton from '../actions/VaultActionButton.svelte';
 	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
@@ -30,10 +30,14 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
-	export let handleDepositOrWithdrawModal:
-		| ((props: DepositOrWithdrawModalProps) => void)
-		| undefined = undefined;
+	// Create event dispatcher for vault actions
+	const dispatch = createEventDispatcher<{
+		deposit: { vault: SgVault };
+		withdraw: { vault: SgVault };
+	}>();
+
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
@@ -70,6 +74,18 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
+
+	function handleVaultAction(
+		event: CustomEvent<{ action: 'deposit' | 'withdraw'; vault: SgVault }>
+	) {
+		const { action, vault } = event.detail;
+
+		if (action === 'deposit') {
+			dispatch('deposit', { vault });
+		} else if (action === 'withdraw') {
+			dispatch('withdraw', { vault });
+		}
+	}
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -154,15 +170,23 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
-												<DepositOrWithdrawButtons
-													{vault}
-													{chainId}
-													{rpcUrl}
-													query={orderDetailQuery}
-													{handleDepositOrWithdrawModal}
-													{subgraphUrl}
-												/>
+											{#if $signerAddress === vault.owner && chainId}
+												<div class="flex gap-1">
+													<VaultActionButton
+														action="deposit"
+														{vault}
+														onSuccess={() => $orderDetailQuery.refetch()}
+														testId="deposit-button"
+														on:click={handleVaultAction}
+													/>
+													<VaultActionButton
+														action="withdraw"
+														{vault}
+														onSuccess={() => $orderDetailQuery.refetch()}
+														testId="withdraw-button"
+														on:click={handleVaultAction}
+													/>
+												</div>
 											{/if}
 										</svelte:fragment>
 									</ButtonVaultLink>
