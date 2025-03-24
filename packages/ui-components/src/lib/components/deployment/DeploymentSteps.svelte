@@ -7,7 +7,6 @@
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -29,6 +28,7 @@
 	import { onMount } from 'svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
 		key: string;
@@ -40,7 +40,6 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -53,6 +52,7 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: AllTokenInfos = [];
 
+	const gui = useGui();
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
