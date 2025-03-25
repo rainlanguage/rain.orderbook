@@ -61,9 +61,7 @@ export { default as StrategyPage } from './components/deployment/StrategyPage.sv
 export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
-export { default as StrategyShortTile } from './components/deployment/StrategyShortTile.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as StrategiesSection } from './components/deployment/StrategiesSection.svelte';
 export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
@@ -90,7 +88,7 @@ export type {
 	DeployModalProps,
 	DisclaimerModalProps
 } from './types/modal';
-export type { StrategyDetail } from './types/strategy';
+export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -129,3 +127,9 @@ export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
+
+// Hooks
+export { useGui } from './hooks/useGui';
+
+// Providers
+export { default as GuiProvider } from './providers/GuiProvider.svelte';
