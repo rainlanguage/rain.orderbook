@@ -5,6 +5,7 @@ import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
+import { writable } from 'svelte/store';
 
 const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -203,7 +204,8 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				signerAddress: writable('mockOwner')
 			}
 		});
 
@@ -244,7 +246,8 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				signerAddress: writable('mockOwner')
 			}
 		});
 
@@ -257,6 +260,87 @@ describe('OrderDetail Component', () => {
 				refetchType: 'all',
 				exact: false
 			});
+		});
+	});
+
+	it('does not render remove button if signer address does not match and tauri check fails', async () => {
+		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
+		render(OrderDetail, {
+			props: {
+				orderHash: 'mockHash',
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				chainId,
+				orderbookAddress,
+				signerAddress: writable('notTheOwner')
+			}
+		});
+
+		expect(screen.queryByTestId('remove-order-button')).toBeNull();
+	});
+
+	it('renders remove button if signer address matches or tauri check passes', async () => {
+		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
+		render(OrderDetail, {
+			props: {
+				orderHash: 'mockHash',
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				chainId,
+				orderbookAddress,
+				signerAddress: writable('notTheOwner')
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('remove-order-button')).toBeInTheDocument();
+		});
+	});
+
+	it('calls handleRemoveOrder when remove button is clicked', async () => {
+		const mockRemoveHandler = vi.fn();
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		const mockInvalidateQueries = vi.fn();
+
+		// Mock the createQuery as in other tests
+		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { order: mockOrder, vaults: new Map() },
+					status: 'success',
+					isFetching: false,
+					refetch: () => {}
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		// Mock the useQueryClient hook
+		mockQuery.useQueryClient = vi.fn(() => ({
+			invalidateQueries: mockInvalidateQueries
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		})) as any;
+
+		const { component } = render(OrderDetail, {
+			props: {
+				orderHash: 'mockHash',
+				subgraphUrl: 'https://example.com',
+				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
+				chainId,
+				orderbookAddress,
+				signerAddress: writable('mockOwner')
+			}
+		});
+
+		component.$on('remove', mockRemoveHandler);
+
+		const removeButton = screen.getByTestId('remove-order-button');
+		await userEvent.click(removeButton);
+
+		await waitFor(() => {
+			expect(mockRemoveHandler).toHaveBeenCalled();
+			expect(mockRemoveHandler.mock.calls[0][0].detail.order).toEqual(mockOrder);
 		});
 	});
 });
