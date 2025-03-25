@@ -1,48 +1,29 @@
 import { REGISTRY_URL } from '$lib/constants';
-import { fetchRegistryDotrains } from '@rainlanguage/ui-components/services';
+import { validateStrategies, fetchRegistryDotrains } from '@rainlanguage/ui-components/services';
 import type { LayoutLoad } from './$types';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import type { ValidStrategyDetail, InvalidStrategyDetail } from '@rainlanguage/ui-components';
 
 export const load: LayoutLoad = async ({ url }) => {
-	const registry = url.searchParams.get('registry');
-	try {
-		const registryDotrains = await fetchRegistryDotrains(registry || REGISTRY_URL);
+    const registry = url.searchParams.get('registry') || REGISTRY_URL;
 
-		const validStrategies: ValidStrategyDetail[] = [];
-		const invalidStrategies: InvalidStrategyDetail[] = [];
+    try {
+        const registryDotrains = await fetchRegistryDotrains(registry);
 
-		await Promise.all(
-			registryDotrains.map(async (registryDotrain) => {
-				try {
-					const result = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
-					if (result.error) {
-						throw new Error(result.error.msg);
-					}
-					return { ...registryDotrain, details: result.value };
-				} catch (error) {
-					invalidStrategies.push({
-						name: registryDotrain.name,
-						error: error as string
-					});
-				}
-			})
-		);
+        const { validStrategies, invalidStrategies } = await validateStrategies(registryDotrains);
 
-		return {
-			registry: registry || REGISTRY_URL,
-			registryDotrains,
-			validStrategies,
-			invalidStrategies,
-			error: null
-		};
-	} catch (error: unknown) {
-		return {
-			registry: registry || REGISTRY_URL,
-			registryDotrains: [],
-			validStrategies: [],
-			invalidStrategies: [],
-			error: error instanceof Error ? error.message : 'Unknown error occurred'
-		};
-	}
+        return {
+            registry,
+            registryDotrains,
+            validStrategies,
+            invalidStrategies,
+            error: null
+        };
+    } catch (error: unknown) {
+        return {
+            registry,
+            registryDotrains: [],
+            validStrategies: [],
+            invalidStrategies: [],
+            error: error instanceof Error ? error.message : 'Unknown error occurred'
+        };
+    }
 };
