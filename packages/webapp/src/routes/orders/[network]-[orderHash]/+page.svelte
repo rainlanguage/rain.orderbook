@@ -89,7 +89,6 @@
 	{colorTheme}
 	{orderbookAddress}
 	{chainId}
-	{wagmiConfig}
 	{handleDepositOrWithdrawModal}
 	{signerAddress}
 	on:remove={handleRemoveOrder}

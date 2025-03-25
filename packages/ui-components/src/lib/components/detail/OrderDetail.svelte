@@ -19,15 +19,14 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { createEventDispatcher, onDestroy } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-	import type { Config } from 'wagmi';
+
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
-		OrderRemoveModalProps,
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
 	} from '../../types/modal';
@@ -36,6 +35,8 @@
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import RemoveOrderButton from '../actions/RemoveOrderButton.svelte';
 
+	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
+		undefined;
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
@@ -97,12 +98,15 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active}
-					<RemoveOrderButton
-						order={data.order}
-						onSuccess={() => $orderDetailQuery.refetch()}
-						on:click={handleRemoveOrder}
-					/>
+				{$walletAddressMatchesOrBlank?.(data.order.owner)}
+				{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
+					{#if data.order.active}
+						<RemoveOrderButton
+							order={data.order}
+							onSuccess={() => $orderDetailQuery.refetch()}
+							on:click={handleRemoveOrder}
+						/>
+					{/if}
 				{/if}
 				<Refresh
 					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
