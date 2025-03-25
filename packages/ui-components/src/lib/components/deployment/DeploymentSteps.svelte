@@ -156,7 +156,6 @@
 		}
 	};
 
-	// Forward  events to parent component
 	function handleClickDeploy(event: CustomEvent) {
 		dispatch(event.detail.action, event.detail);
 	}

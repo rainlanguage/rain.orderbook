@@ -1,14 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import DeployButton from '../lib/components/deployment/DeployButton.svelte';
 import { DeploymentStepsError, DeploymentStepsErrorCode } from '../lib/errors';
 import * as getDeploymentTransactionArgsModule from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
-import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
-
+import { useGui } from '../lib/hooks/useGui';
 type DeployButtonProps = ComponentProps<DeployButton>;
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -35,21 +34,25 @@ const mockGui = {
 } as unknown as DotrainOrderGui;
 
 const defaultProps: DeployButtonProps = {
-	handleDeployModal: vi.fn() as (args: DeployModalProps) => void,
-	handleDisclaimerModal: vi.fn() as (args: DisclaimerModalProps) => void,
 	wagmiConfig: mockWagmiConfigStore,
-	gui: mockGui,
-	subgraphUrl: 'https://test.subgraph'
+	subgraphUrl: 'https://test.subgraph',
+	testId: 'deploy-button',
+	disabled: false
 };
 
 vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 	getDeploymentTransactionArgs: vi.fn()
 }));
 
+vi.mock('../lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
+
 describe('DeployButton', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		DeploymentStepsError.clear();
+		(useGui as Mock).mockReturnValue(mockGui);
 	});
 
 	it('renders the deploy button correctly', () => {
@@ -58,6 +61,7 @@ describe('DeployButton', () => {
 		});
 
 		expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		expect(screen.getByTestId('deploy-button')).toBeInTheDocument();
 	});
 
 	it('shows loading state when checking deployment', async () => {
@@ -96,34 +100,29 @@ describe('DeployButton', () => {
 		});
 	});
 
-	it('opens the deploy modal with correct args when disclaimer is accepted', async () => {
-		const props = { ...defaultProps };
+	it('dispatches showDisclaimer event with correct data when deployment check succeeds', async () => {
 		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
 			mockHandleAddOrderResult
 		);
 
-		render(DeployButton, { props });
+		const { component } = render(DeployButton, { props: defaultProps });
+
+		const mockDispatch = vi.fn();
+		component.$on('click', mockDispatch);
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
 
 		await waitFor(() => {
-			expect(props.handleDisclaimerModal).toHaveBeenCalledWith({
-				open: true,
-				onAccept: expect.any(Function)
-			});
-		});
-
-		// Get the onAccept callback from the disclaimer modal call
-		const onAccept = vi.mocked(props.handleDisclaimerModal).mock.calls[0][0].onAccept;
-		onAccept();
-
-		expect(props.handleDeployModal).toHaveBeenCalledWith({
-			open: true,
-			args: {
-				...mockHandleAddOrderResult,
-				subgraphUrl: props.subgraphUrl,
-				network: 'testnet'
-			}
+			expect(mockDispatch).toHaveBeenCalledWith(
+				expect.objectContaining({
+					detail: {
+						action: 'showDisclaimer',
+						result: mockHandleAddOrderResult,
+						networkKey: 'testnet',
+						subgraphUrl: defaultProps.subgraphUrl
+					}
+				})
+			);
 		});
 	});
 
@@ -134,33 +133,32 @@ describe('DeployButton', () => {
 
 		await waitFor(() => {
 			expect(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).toHaveBeenCalledWith(
-				defaultProps.gui,
+				mockGui,
 				mockWeb3Config
 			);
 		});
 	});
 
-	it('does not open the deploy modal when disclaimer is rejected', async () => {
-		const props = { ...defaultProps };
-		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
-			mockHandleAddOrderResult
-		);
-
-		render(DeployButton, { props });
-
-		fireEvent.click(screen.getByText('Deploy Strategy'));
-
-		await waitFor(() => {
-			expect(props.handleDisclaimerModal).toHaveBeenCalledWith({
-				open: true,
-				onAccept: expect.any(Function)
-			});
+	it('handles disabled state correctly', () => {
+		render(DeployButton, {
+			props: {
+				...defaultProps,
+				disabled: true
+			}
 		});
 
-		// Get the onAccept callback but don't call it (simulating rejection)
-		// Either by closing the modal or clicking a reject button
+		const button = screen.getByTestId('deploy-button');
+		expect(button).toBeDisabled();
+	});
 
-		// Verify the deploy modal was never opened
-		expect(props.handleDeployModal).not.toHaveBeenCalled();
+	it('applies custom testId when provided', () => {
+		render(DeployButton, {
+			props: {
+				...defaultProps,
+				testId: 'custom-test-id'
+			}
+		});
+
+		expect(screen.getByTestId('custom-test-id')).toBeInTheDocument();
 	});
 });

@@ -17,7 +17,6 @@
 			networkKey: string;
 			subgraphUrl: string;
 			onSuccess?: () => void;
-			[key: string]: any;
 		};
 	}>();
 	const gui = useGui();
@@ -51,16 +50,7 @@
 			action: 'showDisclaimer',
 			result,
 			networkKey,
-			subgraphUrl,
-			onSuccess: () => {
-				console.log('onSuccess');
-				dispatch('click', {
-					action: 'deploy',
-					result,
-					networkKey,
-					subgraphUrl
-				});
-			}
+			subgraphUrl
 		});
 	}
 </script>
