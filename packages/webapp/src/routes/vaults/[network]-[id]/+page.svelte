@@ -29,14 +29,14 @@
 		toastOpen = false;
 	}
 
-	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
+	function handleVaultAction(event: CustomEvent<{ vault: SgVault }>, action: 'deposit' | 'withdraw') {
 		const { vault } = event.detail;
-
+	
 		const network = $page.params.network;
 		const subgraphUrl = $settings?.subgraphs?.[network] || '';
 		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
-
+	
 		handleDepositOrWithdrawModal({
 			open: true,
 			args: {
@@ -48,12 +48,20 @@
 						exact: false
 					});
 				},
-				action: 'deposit',
+				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl
 			}
 		});
+	}
+	
+	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
+		handleVaultAction(event, 'deposit');
+	}
+	
+	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
+		handleVaultAction(event, 'withdraw');
 	}
 
 	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
