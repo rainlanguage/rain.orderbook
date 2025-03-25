@@ -77,7 +77,8 @@ impl DotrainYaml {
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_order(key.to_string());
+        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
+
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -95,16 +96,14 @@ impl DotrainYaml {
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_deployment(key.to_string());
+        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
+
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
-
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
+        self.expand_context_with_current_deployment(&mut context, current_deployment);
         self.expand_context_with_remote_networks(&mut context);
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
