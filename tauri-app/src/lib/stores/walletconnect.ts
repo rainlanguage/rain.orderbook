@@ -107,6 +107,6 @@ export async function walletconnectDisconnect() {
 }
 
 // set theme when changed by user
-colorTheme.subscribe(
-  (v) => (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({ themeMode: v }),
+colorTheme.subscribe((v) =>
+  (walletconnectProvider?.modal as WalletConnectModal)?.setTheme({ themeMode: v }),
 );
