@@ -1,7 +1,7 @@
 use super::*;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
-    token::TokenCfg,
+    token::TokenCfg, yaml::YamlParsableHash,
 };
 use std::str::FromStr;
 
@@ -73,6 +73,12 @@ impl DotrainOrderGui {
             return Err(GuiError::TokenNotFound(key.clone()));
         }
 
+        if TokenCfg::parse_from_yaml(self.dotrain_order.dotrain_yaml().documents, &key, None)
+            .is_ok()
+        {
+            TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
+        }
+
         let address = Address::from_str(&address)?;
 
         let order_key = DeploymentCfg::parse_order_key(
@@ -98,17 +104,6 @@ impl DotrainOrderGui {
         )?;
 
         self.execute_state_update_callback()?;
-        Ok(())
-    }
-
-    #[wasm_export(js_name = "replaceSelectToken", unchecked_return_type = "void")]
-    pub async fn replace_select_token(
-        &mut self,
-        key: String,
-        address: String,
-    ) -> Result<(), GuiError> {
-        self.remove_select_token(key.clone())?;
-        self.save_select_token(key, address).await?;
         Ok(())
     }
 

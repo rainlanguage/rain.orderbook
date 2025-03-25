@@ -2,7 +2,6 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOSection from './TokenIOSection.svelte';
 	import DepositsSection from './DepositsSection.svelte';
-	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import {
@@ -12,7 +11,6 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -30,6 +28,9 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import SelectToken from './SelectToken.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
 		key: string;
@@ -41,7 +42,6 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -54,6 +54,7 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 
+	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] = [];
 	let networkKey: string = '';
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
@@ -63,6 +64,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
+	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -284,7 +286,15 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+					<div class="flex w-full flex-col gap-4">
+						<DeploymentSectionHeader
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
+						/>
+						{#each selectTokens as token}
+							<SelectToken {token} {onSelectTokenSelect} {gui} />
+						{/each}
+					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
@@ -333,7 +343,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
