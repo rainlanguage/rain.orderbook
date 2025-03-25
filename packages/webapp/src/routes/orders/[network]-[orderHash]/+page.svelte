@@ -48,11 +48,12 @@
 		triggerToast();
 	}
 
-	// Handle vault action events from OrderDetail
-	function handleVaultAction(event: CustomEvent<{ vault: SgVault }>, action: 'deposit' | 'withdraw') {
+	function handleVaultAction(
+		event: CustomEvent<{ vault: SgVault }>,
+		action: 'deposit' | 'withdraw'
+	) {
 		const { vault } = event.detail;
 
-		// Show action modal
 		handleDepositOrWithdrawModal({
 			open: true,
 			args: {
@@ -72,31 +73,9 @@
 		});
 	}
 
-	// Event handler functions
 	const onDeposit = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'deposit');
-	const onWithdraw = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'withdraw');
-
-	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
-		const { vault } = event.detail;
-
-		handleDepositOrWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					queryClient.invalidateQueries({
-						queryKey: [orderHash],
-						refetchType: 'all',
-						exact: false
-					});
-				},
-				action: 'withdraw',
-				chainId,
-				rpcUrl,
-				subgraphUrl
-			}
-		});
-	}
+	const onWithdraw = (event: CustomEvent<{ vault: SgVault }>) =>
+		handleVaultAction(event, 'withdraw');
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
