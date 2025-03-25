@@ -44,8 +44,6 @@
 
 		checkingDeployment = false;
 
-		if (!result) return;
-
 		dispatch('click', {
 			action: 'showDisclaimer',
 			result,
