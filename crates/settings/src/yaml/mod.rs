@@ -4,7 +4,7 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
 };
@@ -84,6 +84,17 @@ pub trait YamlParseableValue: Sized {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
+}
+
+pub trait ContextProvider {
+    fn create_context(&self) -> Context {
+        Context::new()
+    }
+
+    fn expand_context_with_remote_networks(&self, context: &mut Context) {
+        context.set_remote_networks(self.get_remote_networks_from_cache());
+    }
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg>;
 }
 
 #[derive(Debug, Error, PartialEq)]

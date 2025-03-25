@@ -64,6 +64,12 @@ impl YamlParsable for DotrainYaml {
     }
 }
 
+impl ContextProvider for DotrainYaml {
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
+        self.cache.get_remote_networks()
+    }
+}
+
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
         let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -99,7 +105,7 @@ impl DotrainYaml {
         if let Some(deployment) = current_deployment {
             context.add_current_deployment(deployment);
         }
-        context.set_remote_networks(self.cache.get_remote_networks());
+        self.expand_context_with_remote_networks(&mut context);
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
