@@ -208,6 +208,53 @@ test('emits deposit event when deposit button is clicked', async () => {
 	});
 });
 
+test('emits withdraw event when withdraw button is clicked', async () => {
+	const mockData = {
+		id: '1',
+		vaultId: '0xabc',
+		owner: '0x123',
+		token: {
+			id: '0x456',
+			address: '0x456',
+			name: 'USDC coin',
+			symbol: 'USDC',
+			decimals: '6'
+		},
+		balance: '100000000000',
+		ordersAsInput: [],
+		ordersAsOutput: [],
+		balanceChanges: [],
+		orderbook: {
+			id: '0x00'
+		}
+	};
+
+	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	vi.mocked(getVault).mockResolvedValue(mockData);
+
+	const mockWithdrawHandler = vi.fn();
+
+	const propsWithEventsAndSigner = {
+		...defaultProps,
+		signerAddress: '0x123'
+	};
+
+	const { component } = render(VaultDetail, {
+		props: propsWithEventsAndSigner,
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	component.$on('withdraw', mockWithdrawHandler);
+
+	await waitFor(async () => {
+		const withdrawButton = await screen.findByTestId('withdraw-button');
+		await userEvent.click(withdrawButton);
+
+		expect(mockWithdrawHandler).toHaveBeenCalled();
+		expect(mockWithdrawHandler.mock.calls[0][0].detail.vault).toEqual(mockData);
+	});
+});
+
 test('refresh button triggers query invalidation when clicked', async () => {
 	const mockData = {
 		id: '1',
