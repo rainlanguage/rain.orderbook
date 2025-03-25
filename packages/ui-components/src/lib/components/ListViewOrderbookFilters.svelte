@@ -38,7 +38,9 @@
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 				{#if !$account}
-					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
+					<Tooltip class="z-50"
+						>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip
+					>
 				{/if}
 			</div>
 		{/if}
