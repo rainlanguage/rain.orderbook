@@ -98,7 +98,6 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{$walletAddressMatchesOrBlank?.(data.order.owner)}
 				{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
 					{#if data.order.active}
 						<RemoveOrderButton
