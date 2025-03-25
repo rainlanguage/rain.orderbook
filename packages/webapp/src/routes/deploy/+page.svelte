@@ -32,5 +32,5 @@
 				<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
 			{/if}
 		{/if}
-	</div>
+	{/if}
 </div>
