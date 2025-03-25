@@ -478,9 +478,9 @@ impl YamlParsableHash for OrderCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None);
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), None);
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context);
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
