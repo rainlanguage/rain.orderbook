@@ -11,11 +11,12 @@
 	let open = false;
 
 	async function generateRainlang() {
-		const rainlang = await gui.getComposedRainlang();
-		if (rainlang) {
-			rainlangText = rainlang;
-			open = true;
+		let result = await gui.getComposedRainlang();
+		if (result.error) {
+			throw new Error(result.error.msg);
 		}
+		rainlangText = result.value;
+		open = true;
 	}
 </script>
 

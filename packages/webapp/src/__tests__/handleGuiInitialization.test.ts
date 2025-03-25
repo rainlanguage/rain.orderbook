@@ -1,48 +1,44 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { handleGuiInitialization } from '../lib/services/handleGuiInitialization';
 import { pushGuiStateToUrlHistory } from '../lib/services/handleUpdateGuiState';
-
-const mockDotrainOrderGui = await vi.hoisted(() => ({
-	deserializeState: vi.fn(),
-	chooseDeployment: vi.fn()
-}));
-
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: mockDotrainOrderGui
-}));
+import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook/js_api';
 
 describe('handleGuiInitialization', () => {
+	let guiInstance: DotrainOrderGui;
 	const mockDotrain = 'mockDotrain';
 	const mockDeploymentKey = 'mockDeploymentKey';
 	const mockGui = { id: 'mockGui' };
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		guiInstance = new DotrainOrderGui();
 	});
 
 	it('should initialize GUI with state from URL when valid', async () => {
-		mockDotrainOrderGui.deserializeState.mockResolvedValue(mockGui);
+		(DotrainOrderGui.deserializeState as Mock).mockResolvedValue(mockGui);
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'validStateUrl');
 
 		expect(result).toEqual({ gui: mockGui, error: null });
-		expect(mockDotrainOrderGui.deserializeState).toHaveBeenCalledWith(
+		expect(DotrainOrderGui.deserializeState).toHaveBeenCalledWith(
 			mockDotrain,
 			'validStateUrl',
 			pushGuiStateToUrlHistory
 		);
-		expect(mockDotrainOrderGui.chooseDeployment).not.toHaveBeenCalled();
+		expect(guiInstance.chooseDeployment).not.toHaveBeenCalled();
 	});
 
 	it('should fall back to chooseDeployment when deserializeState fails', async () => {
-		mockDotrainOrderGui.deserializeState.mockRejectedValue(new Error('deserialize failed'));
-		mockDotrainOrderGui.chooseDeployment.mockResolvedValue(mockGui);
+		(DotrainOrderGui.deserializeState as Mock).mockRejectedValue(new Error('deserialize failed'));
+		(DotrainOrderGui.prototype.chooseDeployment as Mock).mockResolvedValue(
+			{} as WasmEncodedResult<void>
+		);
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'invalidStateUrl');
 
-		expect(result).toEqual({ gui: mockGui, error: null });
-		expect(mockDotrainOrderGui.deserializeState).toHaveBeenCalled();
-		expect(mockDotrainOrderGui.chooseDeployment).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: guiInstance, error: null });
+		expect(DotrainOrderGui.deserializeState).toHaveBeenCalled();
+		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
@@ -50,13 +46,13 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should use chooseDeployment when no state URL is provided', async () => {
-		mockDotrainOrderGui.chooseDeployment.mockResolvedValue(mockGui);
+		(guiInstance.chooseDeployment as Mock).mockResolvedValue({} as WasmEncodedResult<void>);
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 
-		expect(result).toEqual({ gui: mockGui, error: null });
-		expect(mockDotrainOrderGui.deserializeState).not.toHaveBeenCalled();
-		expect(mockDotrainOrderGui.chooseDeployment).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: guiInstance, error: null });
+		expect(DotrainOrderGui.deserializeState).not.toHaveBeenCalled();
+		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
@@ -64,7 +60,7 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should handle errors and return error message', async () => {
-		mockDotrainOrderGui.chooseDeployment.mockRejectedValue(new Error('deployment failed'));
+		(guiInstance.chooseDeployment as Mock).mockRejectedValue(new Error('deployment failed'));
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 
