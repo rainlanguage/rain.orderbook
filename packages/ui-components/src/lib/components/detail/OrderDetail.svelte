@@ -11,10 +11,14 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import {
+		getOrderByHash,
+		type OrderWithSortedVaults,
+		type SgOrder
+	} from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
-	import { onDestroy } from 'svelte';
+	import { TabItem, Tabs, Tooltip } from 'flowbite-svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
@@ -30,12 +34,11 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import RemoveOrderButton from '../actions/RemoveOrderButton.svelte';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
-	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
-		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
@@ -46,12 +49,15 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
 	export let signerAddress: Writable<string | null> | undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
+	const dispatch = createEventDispatcher<{
+		remove: { order: SgOrder };
+	}>();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -70,6 +76,10 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
+
+	function handleRemoveOrder(e: CustomEvent<{ order: SgOrder }>) {
+		dispatch('remove', { order: e.detail.order });
+	}
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -87,25 +97,12 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
-					<Button
-						data-testid="remove-button"
-						color="dark"
-						on:click={() =>
-							handleOrderRemoveModal({
-								open: true,
-								args: {
-									order: data.order,
-									onRemove: $orderDetailQuery.refetch,
-									chainId,
-									orderbookAddress,
-									subgraphUrl
-								}
-							})}
-						disabled={!handleOrderRemoveModal}
-					>
-						Remove
-					</Button>
+				{#if data && $signerAddress === data.order.owner && data.order.active}
+					<RemoveOrderButton
+						order={data.order}
+						onSuccess={() => $orderDetailQuery.refetch()}
+						on:click={handleRemoveOrder}
+					/>
 				{/if}
 				<Refresh
 					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
