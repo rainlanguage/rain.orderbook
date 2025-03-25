@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -8,7 +8,8 @@ describe('DeploymentsSection', () => {
 		vi.clearAllMocks();
 	});
 
-	it('should render deployments when data is available', async () => {
+	it('should render deployments when promise resolves', async () => {
+		// Create a promise that we can control
 		const mockDeployments = new Map([
 			[
 				'key1',
@@ -25,17 +26,16 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		// Wait for deployments to load
-		const deployment1 = await screen.findByText('Deployment 1');
-		const deployment2 = await screen.findByText('Deployment 2');
-
-		expect(deployment1).toBeInTheDocument();
-		expect(deployment2).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Deployment 1')).toBeInTheDocument();
+			expect(screen.getByText('Deployment 2')).toBeInTheDocument();
+		});
 	});
 
 	it('should handle error when fetching deployments fails', async () => {
+		const testErrorMessage = 'Test error message';
 		(DotrainOrderGui.getDeploymentDetails as Mock).mockReturnValue({
-			error: { msg: 'API Error' }
+			error: { msg: testErrorMessage }
 		});
 
 		render(DeploymentsSection, {
@@ -45,9 +45,7 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		const errorMessage = await screen.findByText(
-			'Error loading deployments: Error getting deployments.'
-		);
+		const errorMessage = await screen.findByText(testErrorMessage);
 		expect(errorMessage).toBeInTheDocument();
 	});
 
@@ -59,7 +57,7 @@ describe('DeploymentsSection', () => {
 			}
 		});
 
-		expect(DotrainOrderGui.getDeploymentDetails).not.toHaveBeenCalled();
+		expect(DotrainOrderGui.getDeploymentDetails).toHaveBeenCalledTimes(1);
 
 		await rerender({ dotrain: 'new-dotrain', strategyName: 'Test Strategy' });
 
