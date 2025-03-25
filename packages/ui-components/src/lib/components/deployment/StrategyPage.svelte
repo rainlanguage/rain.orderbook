@@ -1,15 +1,13 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui, type NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
 
 	export let strategyName: string = '';
 	export let dotrain: string = '';
-	let strategyDetails: NameAndDescriptionCfg;
-	let error: string;
-	let errorDetails: string;
 	let markdownContent: string = '';
+	let error: string | undefined;
 
 	const isMarkdownUrl = (url: string): boolean => {
 		return url.trim().toLowerCase().endsWith('.md');
@@ -18,56 +16,55 @@
 	const fetchMarkdownContent = async (url: string) => {
 		try {
 			const response = await fetch(url);
-			if (!response.ok) throw new Error(`Failed to fetch markdown: ${response.statusText}`);
-			return await response.text();
+			if (response.ok) {
+				markdownContent = await response.text();
+			}
 		} catch {
-			return null;
+			error = `Failed to fetch markdown`;
 		}
 	};
 
-	const getStrategy = async () => {
+	const getStrategyWithMarkdown = async () => {
 		try {
-			let result = await DotrainOrderGui.getStrategyDetails(dotrain);
+			const result = await DotrainOrderGui.getStrategyDetails(dotrain);
 			if (result.error) {
 				throw new Error(result.error.msg);
 			}
-			strategyDetails = result.value;
+			const strategyDetails = result.value;
+
 			if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
-				const content = await fetchMarkdownContent(strategyDetails.description);
-				if (content) {
-					markdownContent = content;
-				} else {
-					error = 'Error fetching markdown';
-					errorDetails = 'Failed to fetch markdown content';
-				}
+				await fetchMarkdownContent(strategyDetails.description);
 			}
-		} catch (e: unknown) {
-			error = 'Error getting strategy details';
-			errorDetails = e instanceof Error ? e.message : 'Unknown error';
+			return strategyDetails;
+		} catch {
+			throw new Error('Failed to get strategy details');
 		}
 	};
-
-	getStrategy();
 </script>
 
-{#if dotrain && strategyDetails}
+{#await getStrategyWithMarkdown() then strategyDetails}
 	<div>
 		<div in:fade class="flex flex-col gap-8">
 			<div class="flex max-w-2xl flex-col gap-3 text-start lg:gap-6">
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 					{strategyDetails.name}
 				</h1>
-				{#if isMarkdownUrl(strategyDetails.description) && markdownContent}
-					<div data-testId="markdown-content" class="prose dark:prose-invert">
+				{#if markdownContent}
+					<div data-testid="markdown-content" class="prose dark:prose-invert">
 						<SvelteMarkdown source={markdownContent} />
 					</div>
 				{:else}
-					<p
-						data-testId="plain-description"
-						class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
-					>
-						{strategyDetails.description}
-					</p>
+					<div class="flex flex-col gap-2">
+						{#if error}
+							<p data-testid="markdown-error" class="text-red-500">{error}</p>
+						{/if}
+						<p
+							data-testid="plain-description"
+							class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
+						>
+							{strategyDetails.description}
+						</p>
+					</div>
 				{/if}
 			</div>
 			<div class="u flex flex-col gap-4">
@@ -76,9 +73,8 @@
 			</div>
 		</div>
 	</div>
-{:else if error}
+{:catch error}
 	<div>
-		<p>{error}</p>
-		<p>{errorDetails}</p>
+		<p class="text-red-500">{error}</p>
 	</div>
-{/if}
+{/await}

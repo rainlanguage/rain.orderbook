@@ -1,8 +1,12 @@
 import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
 
-export type StrategyDetail = {
+export type ValidStrategyDetail = {
 	details: NameAndDescriptionCfg;
 	name: string;
 	dotrain: string;
-	error?: unknown;
+};
+
+export type InvalidStrategyDetail = {
+	name: string;
+	error: string;
 };

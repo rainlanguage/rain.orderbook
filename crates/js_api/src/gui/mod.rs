@@ -231,6 +231,21 @@ impl DotrainOrderGui {
         Ok(deployment_detail.clone())
     }
 
+    #[wasm_export(
+        js_name = "getCurrentDeploymentDetails",
+        unchecked_return_type = "NameAndDescriptionCfg"
+    )]
+    pub fn get_current_deployment_details(&self) -> Result<NameAndDescriptionCfg, GuiError> {
+        let deployment_details =
+            GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
+        Ok(deployment_details
+            .get(&self.selected_deployment)
+            .ok_or(GuiError::DeploymentNotFound(
+                self.selected_deployment.clone(),
+            ))?
+            .clone())
+    }
+
     #[wasm_export(js_name = "generateDotrainText", unchecked_return_type = "string")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);

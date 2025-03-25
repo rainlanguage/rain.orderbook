@@ -15,5 +15,9 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 	}
 	const { name, description } = result.value;
 
-	return { deployment: { key: deploymentKey, name, description }, dotrain };
+	return {
+		deployment: { key: deploymentKey, name, description },
+		dotrain,
+		pageName: deploymentKey
+	};
 };
