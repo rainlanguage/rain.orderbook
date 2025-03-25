@@ -10,7 +10,7 @@
 	};
 </script>
 
-<div class="flex w-full items-start gap-4">
+<div class="mb-4 flex w-full items-start gap-4">
 	<Input
 		id="strategy-url"
 		type="url"

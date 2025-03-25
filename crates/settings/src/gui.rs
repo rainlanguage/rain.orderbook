@@ -453,12 +453,14 @@ impl GuiCfg {
                         Some(location.clone()),
                     )?;
 
+                    let short_description = optional_string(deployment_yaml, "short-description");
+
                     deployment_details.insert(
                         deployment_key,
                         NameAndDescriptionCfg {
                             name,
                             description,
-                            short_description: None,
+                            short_description,
                         },
                     );
                 }
