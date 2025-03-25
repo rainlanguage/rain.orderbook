@@ -176,7 +176,7 @@
 		<CardProperty>
 			<svelte:fragment slot="key">Orders as output</svelte:fragment>
 			<svelte:fragment slot="value">
-				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
+				<p data-testid="vaultDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
 							<OrderOrVaultHash

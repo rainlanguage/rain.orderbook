@@ -134,7 +134,7 @@ describe('VaultDetail', () => {
 			);
 			expect(screen.getByTestId('vaultDetailBalance')).toHaveTextContent('Balance 100000 USDC');
 			expect(screen.queryByTestId('vaultDetailOrdersAsInput')).toHaveTextContent('None');
-			expect(screen.queryByTestId('vaulDetailOrdersAsOutput')).toHaveTextContent('None');
+			expect(screen.queryByTestId('vaultDetailOrdersAsOutput')).toHaveTextContent('None');
 		});
 	});
 
