@@ -1,6 +1,6 @@
-import type { InvalidStrategyDetail, ValidStrategyDetail } from "$lib/types/strategy";
-import { DotrainOrderGui } from "@rainlanguage/orderbook/js_api";
-import type { Mock } from "vitest";
+import type { InvalidStrategyDetail, ValidStrategyDetail } from '$lib/types/strategy';
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { Mock } from 'vitest';
 
 export type RegistryFile = {
 	name: string;
@@ -13,8 +13,8 @@ export type RegistryDotrain = {
 };
 
 export interface StrategyValidationResult {
-    validStrategies: ValidStrategyDetail[];
-    invalidStrategies: InvalidStrategyDetail[];
+	validStrategies: ValidStrategyDetail[];
+	invalidStrategies: InvalidStrategyDetail[];
 }
 
 /**
@@ -77,45 +77,45 @@ export const fetchRegistryDotrains = async (url: string): Promise<RegistryDotrai
 };
 
 export async function validateStrategies(
-    registryDotrains: RegistryDotrain[]
+	registryDotrains: RegistryDotrain[]
 ): Promise<StrategyValidationResult> {
-    const strategiesPromises = registryDotrains.map(async (registryDotrain) => {
-        try {
-            const result = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
-            
-            if (result.error) {
-                throw new Error(result.error.msg);
-            }
+	const strategiesPromises = registryDotrains.map(async (registryDotrain) => {
+		try {
+			const result = await DotrainOrderGui.getStrategyDetails(registryDotrain.dotrain);
 
-            return {
-                valid: true,
-                data: { 
-                    ...registryDotrain, 
-                    details: result.value 
-                }
-            };
-        } catch (error) {
-            return {
-                valid: false,
-                data: {
-                    name: registryDotrain.name,
-                    error: error instanceof Error ? error.message : String(error)
-                }
-            };
-        }
-    });
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
 
-    const strategiesResults = await Promise.all(strategiesPromises);
+			return {
+				valid: true,
+				data: {
+					...registryDotrain,
+					details: result.value
+				}
+			};
+		} catch (error) {
+			return {
+				valid: false,
+				data: {
+					name: registryDotrain.name,
+					error: error instanceof Error ? error.message : String(error)
+				}
+			};
+		}
+	});
 
-    const validStrategies = strategiesResults
-        .filter(result => result.valid)
-        .map(result => result.data as ValidStrategyDetail);
+	const strategiesResults = await Promise.all(strategiesPromises);
 
-    const invalidStrategies = strategiesResults
-        .filter(result => !result.valid)
-        .map(result => result.data as InvalidStrategyDetail);
+	const validStrategies = strategiesResults
+		.filter((result) => result.valid)
+		.map((result) => result.data as ValidStrategyDetail);
 
-    return { validStrategies, invalidStrategies };
+	const invalidStrategies = strategiesResults
+		.filter((result) => !result.valid)
+		.map((result) => result.data as InvalidStrategyDetail);
+
+	return { validStrategies, invalidStrategies };
 }
 
 if (import.meta.vitest) {
@@ -222,7 +222,7 @@ file2.rain https://example.com/file2.rain`;
 		});
 	});
 
-	describe('validateStrategies', async() => {
+	describe('validateStrategies', async () => {
 		// Mock the DotrainOrderGui dependency
 		vi.mock('@rainlanguage/orderbook/js_api', () => ({
 			DotrainOrderGui: {
@@ -246,15 +246,16 @@ file2.rain https://example.com/file2.rain`;
 			];
 
 			// Set up mock responses for the DotrainOrderGui
-			(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({ 
-				value: { name: 'Valid Strategy', description: 'A valid strategy' },
-				error: null
-			})
-				.mockResolvedValueOnce({ 
+			(DotrainOrderGui.getStrategyDetails as Mock)
+				.mockResolvedValueOnce({
+					value: { name: 'Valid Strategy', description: 'A valid strategy' },
+					error: null
+				})
+				.mockResolvedValueOnce({
 					error: { msg: 'Invalid syntax' },
 					value: null
 				})
-				.mockResolvedValueOnce({ 
+				.mockResolvedValueOnce({
 					value: { name: 'Another Valid', description: 'Another valid strategy' },
 					error: null
 				});
@@ -272,9 +273,9 @@ file2.rain https://example.com/file2.rain`;
 			expect(result.validStrategies).toHaveLength(2);
 			expect(result.validStrategies[0].name).toBe('valid.rain');
 			expect(result.validStrategies[0].dotrain).toBe('valid dotrain content');
-			expect(result.validStrategies[0].details).toEqual({ 
-				name: 'Valid Strategy', 
-				description: 'A valid strategy' 
+			expect(result.validStrategies[0].details).toEqual({
+				name: 'Valid Strategy',
+				description: 'A valid strategy'
 			});
 
 			// Verify the invalid strategies are processed correctly
@@ -285,9 +286,7 @@ file2.rain https://example.com/file2.rain`;
 
 		it('should handle exceptions thrown during strategy validation', async () => {
 			// Input data
-			const registryDotrains = [
-				{ name: 'error.rain', dotrain: 'will throw error' }
-			];
+			const registryDotrains = [{ name: 'error.rain', dotrain: 'will throw error' }];
 
 			// Mock the DotrainOrderGui to throw an exception
 			(DotrainOrderGui.getStrategyDetails as Mock).mockRejectedValueOnce(
@@ -306,12 +305,10 @@ file2.rain https://example.com/file2.rain`;
 
 		it('should handle non-Error objects being thrown', async () => {
 			// Input data
-			const registryDotrains = [
-				{ name: 'string-error.rain', dotrain: 'will throw string' }
-			];
+			const registryDotrains = [{ name: 'string-error.rain', dotrain: 'will throw string' }];
 
 			// Mock the DotrainOrderGui to throw a string instead of an Error
-		(	DotrainOrderGui.getStrategyDetails as Mock).mockRejectedValueOnce('String error message');
+			(DotrainOrderGui.getStrategyDetails as Mock).mockRejectedValueOnce('String error message');
 
 			// Call the function
 			const result = await validateStrategies(registryDotrains);
@@ -325,7 +322,7 @@ file2.rain https://example.com/file2.rain`;
 
 		it('should process an empty array of strategies', async () => {
 			const result = await validateStrategies([]);
-			
+
 			expect(result.validStrategies).toEqual([]);
 			expect(result.invalidStrategies).toEqual([]);
 			expect(DotrainOrderGui.getStrategyDetails).not.toHaveBeenCalled();
@@ -341,16 +338,17 @@ file2.rain https://example.com/file2.rain`;
 			];
 
 			// Set up mock responses
-			(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({ 
-				value: { strategyName: 'Strategy 1', description: 'Description 1' },
-				error: null
-			})
+			(DotrainOrderGui.getStrategyDetails as Mock)
+				.mockResolvedValueOnce({
+					value: { strategyName: 'Strategy 1', description: 'Description 1' },
+					error: null
+				})
 				.mockRejectedValueOnce(new Error('Processing error'))
-				.mockResolvedValueOnce({ 
+				.mockResolvedValueOnce({
 					value: { strategyName: 'Strategy 2', description: 'Description 2' },
 					error: null
 				})
-				.mockResolvedValueOnce({ 
+				.mockResolvedValueOnce({
 					error: { msg: 'Validation failed' },
 					value: null
 				});
@@ -362,7 +360,7 @@ file2.rain https://example.com/file2.rain`;
 			expect(result.validStrategies).toHaveLength(2);
 			expect(result.validStrategies[0].name).toBe('valid1.rain');
 			expect(result.validStrategies[1].name).toBe('valid2.rain');
-			
+
 			expect(result.invalidStrategies).toHaveLength(2);
 			expect(result.invalidStrategies[0].name).toBe('error.rain');
 			expect(result.invalidStrategies[0].error).toBe('Processing error');
