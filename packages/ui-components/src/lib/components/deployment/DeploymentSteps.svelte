@@ -2,7 +2,6 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOSection from './TokenIOSection.svelte';
 	import DepositsSection from './DepositsSection.svelte';
-	import SelectTokensSection from './SelectTokensSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
@@ -22,10 +21,11 @@
 	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
-	import type { DisclaimerModalProps, DeployModalProps } from '../../types/modal';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { createEventDispatcher, onMount } from 'svelte';
 	import DeployButton from './DeployButton.svelte';
+	import SelectToken from './SelectToken.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
@@ -186,7 +186,15 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+					<div class="flex w-full flex-col gap-4">
+						<DeploymentSectionHeader
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
+						/>
+						{#each selectTokens as token}
+							<SelectToken {token} {onSelectTokenSelect} {gui} />
+						{/each}
+					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
