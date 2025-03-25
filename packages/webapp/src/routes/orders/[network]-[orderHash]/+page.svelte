@@ -48,11 +48,11 @@
 		triggerToast();
 	}
 
-	// Handle deposit event from OrderDetail
-	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
+	// Handle vault action events from OrderDetail
+	function handleVaultAction(event: CustomEvent<{ vault: SgVault }>, action: 'deposit' | 'withdraw') {
 		const { vault } = event.detail;
 
-		// Show deposit modal
+		// Show action modal
 		handleDepositOrWithdrawModal({
 			open: true,
 			args: {
@@ -64,13 +64,17 @@
 						exact: false
 					});
 				},
-				action: 'deposit',
+				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl
 			}
 		});
 	}
+
+	// Event handler functions
+	const onDeposit = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'deposit');
+	const onWithdraw = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'withdraw');
 
 	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
 		const { vault } = event.detail;
