@@ -12,7 +12,11 @@ vi.mock('$app/stores', async () => {
 	 */
 	const getStores = () => ({
 		navigating: readable(null),
-		page: readable({ url: new URL('http://localhost'), params: {}, searchParams: new URLSearchParams() }),
+		page: readable({
+			url: new URL('http://localhost'),
+			params: {},
+			searchParams: new URLSearchParams()
+		}),
 		session: writable(null),
 		updated: readable(false)
 	});
@@ -46,5 +50,23 @@ vi.mock('$app/stores', async () => {
 		page,
 		session,
 		updated
+	};
+});
+
+vi.mock('@rainlanguage/orderbook/js_api', () => {
+	const DotrainOrderGui = vi.fn();
+	// @ts-expect-error - static method
+	DotrainOrderGui.getStrategyDetails = vi.fn();
+	// @ts-expect-error - static method
+	DotrainOrderGui.getDeploymentDetails = vi.fn();
+	DotrainOrderGui.prototype.setVaultId = vi.fn();
+	DotrainOrderGui.prototype.getTokenInfo = vi.fn();
+	DotrainOrderGui.prototype.getCurrentDeployment = vi.fn();
+	DotrainOrderGui.prototype.getVaultIds = vi.fn();
+	DotrainOrderGui.prototype.saveDeposit = vi.fn();
+	DotrainOrderGui.prototype.isDepositPreset = vi.fn();
+	DotrainOrderGui.prototype.getDeposits = vi.fn();
+	return {
+		DotrainOrderGui
 	};
 });
