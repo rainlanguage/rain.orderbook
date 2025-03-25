@@ -212,15 +212,13 @@ impl YamlParsableHash for NetworkCfg {
         }
 
         if let Some(context) = context {
-            if let Some(remote_networks) = &context.remote_networks {
-                for (key, network) in remote_networks {
-                    if networks.contains_key(key) {
-                        return Err(YamlError::ParseNetworkConfigSourceError(
-                            ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key.clone()),
-                        ));
-                    }
-                    networks.insert(key.clone(), network.clone());
+            for (key, network) in &context.remote_networks {
+                if networks.contains_key(key) {
+                    return Err(YamlError::ParseNetworkConfigSourceError(
+                        ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key.clone()),
+                    ));
                 }
+                networks.insert(key.clone(), network.clone());
             }
         }
 

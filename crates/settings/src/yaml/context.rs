@@ -13,7 +13,7 @@ pub struct Context {
     pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
-    pub remote_networks: Option<HashMap<String, NetworkCfg>>,
+    pub remote_networks: HashMap<String, NetworkCfg>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -130,20 +130,18 @@ impl GuiContextTrait for Context {
 }
 
 pub trait RemoteNetworksTrait {
-    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>>;
+    fn get_remote_networks(&self) -> HashMap<String, NetworkCfg>;
 
     fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg>;
 }
 
 impl RemoteNetworksTrait for Context {
-    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>> {
-        self.remote_networks.as_ref()
+    fn get_remote_networks(&self) -> HashMap<String, NetworkCfg> {
+        self.remote_networks.clone()
     }
 
     fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg> {
-        self.remote_networks
-            .as_ref()
-            .and_then(|networks| networks.get(key))
+        self.remote_networks.get(key)
     }
 }
 
@@ -153,7 +151,7 @@ impl Context {
             order: None,
             select_tokens: None,
             gui_context: None,
-            remote_networks: None,
+            remote_networks: HashMap::new(),
         }
     }
 
@@ -196,11 +194,11 @@ impl Context {
         self
     }
 
-    pub fn add_remote_networks(
+    pub fn set_remote_networks(
         &mut self,
         remote_networks: HashMap<String, NetworkCfg>,
     ) -> &mut Self {
-        self.remote_networks = Some(remote_networks);
+        self.remote_networks = remote_networks;
         self
     }
 

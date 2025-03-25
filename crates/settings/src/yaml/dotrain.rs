@@ -99,7 +99,7 @@ impl DotrainYaml {
         if let Some(deployment) = current_deployment {
             context.add_current_deployment(deployment);
         }
-        context.add_remote_networks(self.cache.get_remote_networks());
+        context.set_remote_networks(self.cache.get_remote_networks());
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
