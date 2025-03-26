@@ -42,6 +42,7 @@ describe('Layout load function', () => {
 		const result = await load({
 			params: { strategyName: mockStrategyName },
 			parent: mockParent
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
 		expect(mockParent).toHaveBeenCalled();
@@ -58,6 +59,7 @@ describe('Layout load function', () => {
 			await load({
 				params: { strategyName: 'non-existent-strategy' },
 				parent: mockParent
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
 		} catch (error) {
 			expect(redirect).toHaveBeenCalledWith(307, '/deploy');
@@ -78,6 +80,7 @@ describe('Layout load function', () => {
 			await load({
 				params: { strategyName: 'incomplete-strategy' },
 				parent: mockParent
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
 			expect(redirect).toHaveBeenCalled();
 		} catch (error) {
