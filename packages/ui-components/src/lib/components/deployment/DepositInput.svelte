@@ -30,8 +30,9 @@
 			}
 			currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 			inputValue = currentDeposit?.amount || '';
-		} catch {
+		} catch (e) {
 			currentDeposit = undefined;
+			error = (e as Error).message ? (e as Error).message : 'Error setting current deposit.';
 		}
 	};
 
@@ -57,11 +58,15 @@
 			gui?.saveDeposit(deposit.token?.key, preset);
 			gui = gui;
 
-			const deposits = gui.getDeposits();
-			if (deposits.error) {
-				throw new Error(deposits.error.msg);
+			try {
+				const deposits = gui.getDeposits();
+				if (deposits.error) {
+					throw new Error(deposits.error.msg);
+				}
+				currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
+			} catch (e) {
+				error = (e as Error).message ? (e as Error).message : 'Error handling preset click.';
 			}
-			currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 		}
 	}
 
