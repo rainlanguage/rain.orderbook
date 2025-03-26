@@ -10,11 +10,11 @@ import {
 } from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
 import {OrderBookExternalRealTest} from "../util/abstract/OrderBookExternalRealTest.sol";
 import {
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     TakeOrderConfigV4,
-    IO,
+    IOV2,
     OrderConfigV4,
-    OrderV3,
+    OrderV4,
     IInterpreterV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -29,11 +29,11 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
 
         OrderConfigV4 memory aliceOrderConfig;
         {
-            IO[] memory aliceValidInputs = new IO[](1);
-            aliceValidInputs[0] = IO({token: address(iToken0), decimals: 12, vaultId: 0});
+            IOV2[] memory aliceValidInputs = new IOV2[](1);
+            aliceValidInputs[0] = IOV2({token: address(iToken0), decimals: 12, vaultId: 0});
 
-            IO[] memory aliceValidOutputs = new IO[](1);
-            aliceValidOutputs[0] = IO({token: address(iToken1), decimals: 12, vaultId: 0});
+            IOV2[] memory aliceValidOutputs = new IOV2[](1);
+            aliceValidOutputs[0] = IOV2({token: address(iToken1), decimals: 12, vaultId: 0});
 
             aliceOrderConfig = OrderConfigV4({
                 evaluable: EvaluableV4(iInterpreter, iStore, ""),
@@ -45,7 +45,7 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
             });
         }
 
-        OrderV3 memory aliceOrder = OrderV3({
+        OrderV4 memory aliceOrder = OrderV4({
             owner: alice,
             evaluable: aliceOrderConfig.evaluable,
             validInputs: aliceOrderConfig.validInputs,
@@ -62,7 +62,7 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = aliceTakeOrderConfig;
-        TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3({
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
             minimumInput: 0,
             maximumInput: type(uint256).max,
             maximumIORatio: type(uint256).max,

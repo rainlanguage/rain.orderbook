@@ -14,13 +14,13 @@ import {
     SignedContextV1
 } from "src/abstract/OrderBookV5ArbOrderTaker.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {ChildOrderBookV5ArbOrderTaker} from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
 
 contract OrderBookV5ArbOrderTakerIERC165Test is Test {
-    /// Test that ERC165 and IOrderBookV4ArbOrderTaker are supported interfaces
+    /// Test that ERC165 and IOrderBookV5ArbOrderTaker are supported interfaces
     /// as per ERC165.
-    function testOrderBookV4ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
+    function testOrderBookV5ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
         vm.assume(badInterfaceId != type(IOrderBookV5ArbOrderTaker).interfaceId);
         vm.assume(badInterfaceId != type(IOrderBookV5OrderTaker).interfaceId);

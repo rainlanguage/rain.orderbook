@@ -6,8 +6,8 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {TokenDecimalsMismatch} from "src/concrete/ob/OrderBook.sol";
 import {
     TakeOrderConfigV4,
-    TakeOrdersConfigV3,
-    OrderV3,
+    TakeOrdersConfigV4,
+    OrderV4,
     EvaluableV4,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -23,10 +23,10 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
     /// Test a mismatch in the input tokens decimals.
     /// forge-config: default.fuzz.runs = 10
     function testTokenMismatchInputs(
-        OrderV3 memory a,
+        OrderV4 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        OrderV3 memory b,
+        OrderV4 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex
     ) external {
@@ -53,7 +53,7 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenDecimalsMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);
@@ -62,10 +62,10 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
     /// Test a mismatch in the output tokens decimals.
     /// forge-config: default.fuzz.runs = 10
     function testTokenDecimalsMismatchOutputs(
-        OrderV3 memory a,
+        OrderV4 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        OrderV3 memory b,
+        OrderV4 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex
     ) external {
@@ -92,7 +92,7 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenDecimalsMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
         (totalTakerInput, totalTakerOutput);

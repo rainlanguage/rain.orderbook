@@ -5,10 +5,10 @@ pragma solidity =0.8.25;
 import {Vm} from "forge-std/Test.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV3,
-    TakeOrdersConfigV3,
+    OrderV4,
+    TakeOrdersConfigV4,
     TakeOrderConfigV4,
-    IO,
+    IOV2,
     OrderConfigV4,
     EvaluableV4,
     SignedContextV1,
@@ -30,10 +30,10 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         address outputToken = address(0x101);
         OrderConfigV4 memory config;
         {
-            IO[] memory validInputs = new IO[](1);
-            validInputs[0] = IO(inputToken, inputTokenDecimals, vaultId);
-            IO[] memory validOutputs = new IO[](1);
-            validOutputs[0] = IO(outputToken, outputTokenDecimals, vaultId);
+            IOV2[] memory validInputs = new IOV2[](1);
+            validInputs[0] = IOV2(inputToken, inputTokenDecimals, vaultId);
+            IOV2[] memory validOutputs = new IOV2[](1);
+            validOutputs[0] = IOV2(outputToken, outputTokenDecimals, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
             bytes memory bytecode = iParserV2.parse2(rainString);
@@ -48,19 +48,19 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             vm.mockCall(inputToken, "", abi.encode(true));
         }
         if (expectedTakerTotalInput > 0) {
-            iOrderbook.deposit2(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
+            iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
         }
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), expectedTakerTotalInput);
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new TaskV2[](0));
+        iOrderbook.addOrder3(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
-        (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
+        (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory takeOrdersConfig =
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory takeOrdersConfig =
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
         assertEq(totalTakerInput, expectedTakerTotalInput);
         assertEq(totalTakerOutput, expectedTakerTotalOutput);

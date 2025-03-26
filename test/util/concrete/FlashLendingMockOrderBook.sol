@@ -4,11 +4,11 @@ pragma solidity =0.8.25;
 
 import {
     TakeOrderConfigV4,
-    IO,
-    OrderV3,
+    IOV2,
+    OrderV4,
     SignedContextV1,
-    IOrderBookV4,
-    TakeOrdersConfigV3,
+    IOrderBookV5,
+    TakeOrdersConfigV4,
     OrderConfigV4,
     ClearConfigV2,
     EvaluableV4,
@@ -17,7 +17,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-contract FlashLendingMockOrderBook is IOrderBookV4 {
+contract FlashLendingMockOrderBook is IOrderBookV5 {
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
         external
         returns (bool)
@@ -28,18 +28,18 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
 
     function entask(TaskV2[] calldata) external pure {}
 
-    /// @inheritdoc IOrderBookV4
-    function quote(QuoteV2 calldata) external pure returns (bool, uint256, uint256) {
+    /// @inheritdoc IOrderBookV5
+    function quote2(QuoteV2 calldata) external pure returns (bool, uint256, uint256) {
         revert("quote");
     }
 
-    /// @inheritdoc IOrderBookV4
-    function takeOrders2(TakeOrdersConfigV3 calldata) external pure returns (uint256, uint256) {
+    /// @inheritdoc IOrderBookV5
+    function takeOrders3(TakeOrdersConfigV4 calldata) external pure returns (uint256, uint256) {
         return (0, 0);
     }
 
-    /// @inheritdoc IOrderBookV4
-    function addOrder2(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
+    /// @inheritdoc IOrderBookV5
+    function addOrder3(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         return false;
     }
 
@@ -47,18 +47,18 @@ contract FlashLendingMockOrderBook is IOrderBookV4 {
         return false;
     }
 
-    /// @inheritdoc IOrderBookV4
-    function clear2(
-        OrderV3 memory,
-        OrderV3 memory,
-        ClearConfig calldata,
+    /// @inheritdoc IOrderBookV5
+    function clear3(
+        OrderV4 memory,
+        OrderV4 memory,
+        ClearConfigV2 calldata,
         SignedContextV1[] memory,
         SignedContextV1[] memory
     ) external {}
-    function deposit2(address, uint256, uint256, TaskV2[] calldata) external {}
+    function deposit3(address, uint256, uint256, TaskV2[] calldata) external {}
     function flashFee(address, uint256) external view returns (uint256) {}
     function maxFlashLoan(address) external view returns (uint256) {}
-    function removeOrder2(OrderV3 calldata, TaskV2[] calldata) external returns (bool) {}
+    function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external returns (bool) {}
 
     function vaultBalance(address, address, uint256) external view returns (uint256) {}
     function withdraw3(address, uint256, uint256, TaskV2[] calldata) external {}

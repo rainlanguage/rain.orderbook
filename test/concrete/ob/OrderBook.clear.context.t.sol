@@ -6,11 +6,11 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV4,
-    OrderV3,
+    OrderV4,
     TaskV2,
-    ClearConfig,
+    ClearConfigV2,
     SignedContextV1,
-    IO,
+    IOV2,
     EvaluableV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
@@ -117,10 +117,10 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
 
         OrderConfigV4 memory configAlice;
         {
-            IO[] memory validInputsAlice = new IO[](1);
-            validInputsAlice[0] = IO({token: address(iToken0), decimals: 12, vaultId: aliceInputVaultId});
-            IO[] memory validOutputsAlice = new IO[](1);
-            validOutputsAlice[0] = IO({token: address(iToken1), decimals: 6, vaultId: aliceOutputVaultId});
+            IOV2[] memory validInputsAlice = new IOV2[](1);
+            validInputsAlice[0] = IOV2({token: address(iToken0), decimals: 12, vaultId: aliceInputVaultId});
+            IOV2[] memory validOutputsAlice = new IOV2[](1);
+            validOutputsAlice[0] = IOV2({token: address(iToken1), decimals: 6, vaultId: aliceOutputVaultId});
             configAlice = OrderConfigV4({
                 evaluable: EvaluableV4({
                     bytecode: iParserV2.parse2(rainStringAlice),
@@ -136,11 +136,11 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         }
         OrderConfigV4 memory configBob;
         {
-            IO[] memory validInputsBob = new IO[](1);
-            validInputsBob[0] = IO({token: address(iToken1), decimals: 6, vaultId: bobInputVaultId});
+            IOV2[] memory validInputsBob = new IOV2[](1);
+            validInputsBob[0] = IOV2({token: address(iToken1), decimals: 6, vaultId: bobInputVaultId});
 
-            IO[] memory validOutputsBob = new IO[](1);
-            validOutputsBob[0] = IO({token: address(iToken0), decimals: 12, vaultId: bobOutputVaultId});
+            IOV2[] memory validOutputsBob = new IOV2[](1);
+            validOutputsBob[0] = IOV2({token: address(iToken0), decimals: 12, vaultId: bobOutputVaultId});
 
             configBob = OrderConfigV4({
                 evaluable: EvaluableV4({bytecode: iParserV2.parse2(rainStringBob), interpreter: iInterpreter, store: iStore}),
@@ -163,10 +163,10 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        OrderV3 memory orderAlice =
-            OrderV3(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
-        OrderV3 memory orderBob =
-            OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
+        OrderV4 memory orderAlice =
+            OrderV4(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
+        OrderV4 memory orderBob =
+            OrderV4(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
         iOrderbook.addOrder3(configAlice, new TaskV2[](0));
@@ -183,7 +183,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         iOrderbook.deposit3(configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, 100e12, new TaskV2[](0));
 
         iOrderbook.clear3(
-            orderAlice, orderBob, ClearConfig(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
+            orderAlice, orderBob, ClearConfigV2(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
         );
     }
 }

@@ -9,7 +9,7 @@ import {
     TaskV2,
     OrderBookV5ArbConfig
 } from "src/abstract/OrderBookV5ArbOrderTaker.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 
 /// @dev We need a contract that is deployable in order to test the abstract
@@ -20,7 +20,7 @@ contract ChildOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
             OrderBookV5ArbConfig(
                 address(0),
                 TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV2(address(0)), ""),
+                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), ""),
                     signedContext: new SignedContextV1[](0)
                 }),
                 abi.encode(address(0))

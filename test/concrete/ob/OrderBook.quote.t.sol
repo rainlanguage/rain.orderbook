@@ -3,12 +3,11 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {IOrderBookV4, Quote} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
-import {
+import {IOrderBookV5, QuoteV2,
     OrderConfigV4,
     EvaluableV4,
     TaskV2,
-    OrderV3,
+    OrderV4,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
@@ -25,7 +24,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
     /// Dead orders always eval to false.
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteDeadOrder(Quote memory quoteConfig) external view {
+    function testQuoteDeadOrder(QuoteV2 memory quoteConfig) external view {
         (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
         assert(!success);
         assertEq(maxOutput, 0);
@@ -56,16 +55,16 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
         vm.prank(owner);
-        iOrderbook.deposit2(
+        iOrderbook.deposit3(
             config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV2[](0)
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
-            iOrderbook.addOrder2(config, new TaskV2[](0));
+            iOrderbook.addOrder3(config, new TaskV2[](0));
 
-            OrderV3 memory order = OrderV3({
+            OrderV4 memory order = OrderV4({
                 owner: owner,
                 evaluable: config.evaluable,
                 validInputs: config.validInputs,
@@ -73,8 +72,8 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 nonce: config.nonce
             });
 
-            Quote memory quoteConfig =
-                Quote({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
+            QuoteV2 memory quoteConfig =
+            QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
             (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
             assert(success);
             assertEq(maxOutput, expectedMaxOutput[i], "max output");

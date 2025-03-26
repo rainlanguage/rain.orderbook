@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    ClearConfig,
-    OrderV3,
+    ClearConfigV2,
+    OrderV4,
     TakeOrderConfigV4,
-    IO,
+    IOV2,
     OrderConfigV4,
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     EvaluableV4,
     SignedContextV1,
     TaskV2
@@ -27,13 +27,13 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         address outputToken = address(0x101);
 
         OrderConfigV4 memory config;
-        IO[] memory validOutputs;
-        IO[] memory validInputs;
+        IOV2[] memory validOutputs;
+        IOV2[] memory validInputs;
         {
-            validInputs = new IO[](1);
-            validInputs[0] = IO(inputToken, 18, vaultId);
-            validOutputs = new IO[](1);
-            validOutputs[0] = IO(outputToken, 18, vaultId);
+            validInputs = new IOV2[](1);
+            validInputs[0] = IOV2(inputToken, 18, vaultId);
+            validOutputs = new IOV2[](1);
+            validOutputs[0] = IOV2(outputToken, 18, vaultId);
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");
@@ -42,7 +42,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
+        iOrderbook.deposit3(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);
@@ -53,14 +53,14 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder2(config, new TaskV2[](0));
+            iOrderbook.addOrder3(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
-            (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
+            (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
             orders[i] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3(0, maxInput, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(0, maxInput, type(uint256).max, orders, "");
 
         if (err.length > 0) {
             vm.expectRevert(err);

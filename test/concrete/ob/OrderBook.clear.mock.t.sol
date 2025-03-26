@@ -8,9 +8,9 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {
     OrderConfigV4,
-    OrderV3,
-    IO,
-    ClearConfig,
+    OrderV4,
+    IOV2,
+    ClearConfigV2,
     EvaluableV4,
     SignedContextV1,
     IInterpreterV4,
@@ -38,7 +38,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(token), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit3(address(token), vaultId, amount, new TaskV2[](0));
 
         assertEq(iOrderbook.vaultBalance(depositor, token, vaultId), amount);
     }
@@ -159,14 +159,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackBob, new uint256[](0)));
             }
 
-            OrderV3 memory aliceOrder;
-            OrderV3 memory bobOrder;
+            OrderV4 memory aliceOrder;
+            OrderV4 memory bobOrder;
             {
                 (aliceOrder,) = addOrderWithChecks(clear.alice, clear.aliceConfig, clear.expression);
                 (bobOrder,) = addOrderWithChecks(clear.bob, clear.bobConfig, clear.expression);
             }
 
-            ClearConfig memory configClear = ClearConfig({
+            ClearConfigV2 memory configClear = ClearConfigV2({
                 aliceInputIOIndex: 0,
                 aliceOutputIOIndex: 0,
                 bobInputIOIndex: 0,
@@ -179,7 +179,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             if (clear.expectedError.length > 0) {
                 vm.expectRevert(clear.expectedError);
             }
-            iOrderbook.clear2(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
+            iOrderbook.clear3(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
         assertEq(

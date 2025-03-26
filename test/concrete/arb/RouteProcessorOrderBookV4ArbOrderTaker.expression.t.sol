@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {RouteProcessorOrderBookV5ArbOrderTakerTest} from
     "test/util/abstract/RouteProcessorOrderBookV5ArbOrderTakerTest.sol";
 import {
-    OrderV3,
+    OrderV4,
     EvaluableV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     IInterpreterV4,
-    IInterpreterStoreV2,
+    IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -28,7 +28,7 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
 
     /// forge-config: default.fuzz.runs = 100
     function testRouteProcessorTakeOrdersWrongExpression(
-        OrderV3 memory order,
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         EvaluableV4 memory evaluable
@@ -42,14 +42,14 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
 
     /// forge-config: default.fuzz.runs = 100
     function testRouteProcessorTakeOrdersExpression(
-        OrderV3 memory order,
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256[] memory stack,
@@ -71,14 +71,14 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
 
         if (kvs.length > 0) {
             vm.mockCall(
-                address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns), abi.encode("")
+                address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns), abi.encode("")
             );
-            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns));
+            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns));
         }
 
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)

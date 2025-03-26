@@ -6,9 +6,9 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV4,
-    OrderV3,
+    OrderV4,
     EvaluableV4,
-    ClearConfig,
+    ClearConfigV2,
     SignedContextV1,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -34,10 +34,10 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
         configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);
 
-        OrderV3 memory orderAlice =
-            OrderV3(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
-        OrderV3 memory orderBob =
-            OrderV3(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
+        OrderV4 memory orderAlice =
+            OrderV4(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
+        OrderV4 memory orderBob =
+            OrderV4(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
         iOrderbook.addOrder3(configAlice, new TaskV2[](0));
@@ -47,7 +47,7 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
 
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
         iOrderbook.clear3(
-            orderAlice, orderBob, ClearConfig(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
+            orderAlice, orderBob, ClearConfigV2(0, 0, 0, 0, 0, 0), new SignedContextV1[](0), new SignedContextV1[](0)
         );
     }
 

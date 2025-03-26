@@ -21,7 +21,7 @@ import {
     Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
@@ -136,7 +136,7 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// Finally the orders are taken and the remaining assets are sent to the
     /// sender.
     ///
-    /// @param takeOrders As per `IOrderBookV4.takeOrders2`.
+    /// @param takeOrders As per `IOrderBookV5.takeOrders3`.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with

@@ -5,11 +5,11 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderConfigV4,
-    OrderV3,
+    OrderV4,
     TaskV2,
     TakeOrderConfigV4,
     SignedContextV1,
-    TakeOrdersConfigV3
+    TakeOrdersConfigV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
@@ -21,11 +21,11 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
         configAlice.validInputs[0].token = address(0);
         configAlice.validOutputs[0].token = address(0);
 
-        OrderV3 memory orderAlice =
-            OrderV3(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
+        OrderV4 memory orderAlice =
+            OrderV4(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder2(configAlice, new TaskV2[](0));
+        iOrderbook.addOrder3(configAlice, new TaskV2[](0));
 
         TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](1);
         takeOrders[0] = TakeOrderConfigV4({
@@ -35,7 +35,7 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
             signedContext: new SignedContextV1[](0)
         });
 
-        TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3({
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
             minimumInput: 0,
             maximumInput: type(uint256).max,
             maximumIORatio: type(uint256).max,

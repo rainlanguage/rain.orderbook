@@ -11,16 +11,16 @@ import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {
     FlashLendingMockOrderBook,
-    OrderV3,
+    OrderV4,
     TakeOrderConfigV4,
-    IO,
+    IOV2,
     SignedContextV1,
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -32,7 +32,7 @@ contract Token is ERC20 {
 
 abstract contract ArbTest is Test {
     IInterpreterV4 immutable iInterpreter;
-    IInterpreterStoreV2 immutable iInterpreterStore;
+    IInterpreterStoreV3 immutable iInterpreterStore;
 
     Token immutable iTakerInput;
     Token immutable iTakerOutput;
@@ -52,7 +52,7 @@ abstract contract ArbTest is Test {
     constructor() {
         iInterpreter = IInterpreterV4(address(uint160(uint256(keccak256("interpreter.rain.test")))));
         vm.label(address(iInterpreter), "iInterpreter");
-        iInterpreterStore = IInterpreterStoreV2(address(uint160(uint256(keccak256("interpreter.store.rain.test")))));
+        iInterpreterStore = IInterpreterStoreV3(address(uint160(uint256(keccak256("interpreter.store.rain.test")))));
         vm.label(address(iInterpreterStore), "iInterpreterStore");
 
         iTakerInput = new Token();
@@ -79,16 +79,16 @@ abstract contract ArbTest is Test {
         vm.label(iArb, "iArb");
     }
 
-    function buildTakeOrderConfig(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function buildTakeOrderConfig(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
         returns (TakeOrderConfigV4[] memory)
     {
         if (order.validInputs.length == 0) {
-            order.validInputs = new IO[](1);
+            order.validInputs = new IOV2[](1);
         }
         if (order.validOutputs.length == 0) {
-            order.validOutputs = new IO[](1);
+            order.validOutputs = new IOV2[](1);
         }
         inputIOIndex = bound(inputIOIndex, 0, order.validInputs.length - 1);
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);

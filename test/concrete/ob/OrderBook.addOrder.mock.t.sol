@@ -5,8 +5,8 @@ pragma solidity =0.8.25;
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {
     OrderConfigV4,
-    OrderV3,
-    IO,
+    OrderV4,
+    IOV2,
     EvaluableV4,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -25,8 +25,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.prank(owner);
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = "";
-        iOrderbook.addOrder2(config, new TaskV2[](0));
-        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
+        iOrderbook.addOrder3(config, new TaskV2[](0));
+        (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(iOrderbook.orderExists(orderHash));
     }
@@ -36,10 +36,10 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     function testAddOrderWithoutInputsReverts(address owner, OrderConfigV4 memory config) public {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
-        config.validInputs = new IO[](0);
+        config.validInputs = new IOV2[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
-        iOrderbook.addOrder2(config, new TaskV2[](0));
-        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
+        iOrderbook.addOrder3(config, new TaskV2[](0));
+        (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -50,10 +50,10 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.prank(owner);
         config.evaluable.bytecode = hex"02000000040000000000000000";
         vm.assume(config.validInputs.length > 0);
-        config.validOutputs = new IO[](0);
+        config.validOutputs = new IOV2[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
-        iOrderbook.addOrder2(config, new TaskV2[](0));
-        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
+        iOrderbook.addOrder3(config, new TaskV2[](0));
+        (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -71,7 +71,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.assume(config.validInputs.length > 0);
         vm.assume(config.validOutputs.length > 0);
         config.meta = new bytes(0);
-        (OrderV3 memory order, bytes32 orderhash) = addOrderWithChecks(owner, config, expression);
+        (OrderV4 memory order, bytes32 orderhash) = addOrderWithChecks(owner, config, expression);
         (order);
         (orderhash);
     }
@@ -88,9 +88,9 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.assume(config.meta.length > 0);
 
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
-        iOrderbook.addOrder2(config, new TaskV2[](0));
+        iOrderbook.addOrder3(config, new TaskV2[](0));
 
-        (OrderV3 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
+        (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
     }
@@ -112,7 +112,7 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         // meta document.
         config.meta = abi.encodePacked(META_MAGIC_NUMBER_V1, config.meta);
 
-        (OrderV3 memory order, bytes32 orderHash) = addOrderWithChecks(owner, config, expression);
+        (OrderV4 memory order, bytes32 orderHash) = addOrderWithChecks(owner, config, expression);
         (order);
         (orderHash);
     }
@@ -128,8 +128,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     ) public {
         vm.assume(alice != bob);
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
-        (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
-        (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
+        (OrderV4 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, config, expression);
+        (OrderV4 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, config, expression);
         (aliceOrder);
         (bobOrder);
         assertTrue(aliceOrderHash != bobOrderHash);
@@ -149,8 +149,8 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
         vm.assume(alice != bob);
         LibTestAddOrder.conformConfig(aliceConfig, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
-        (OrderV3 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
-        (OrderV3 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
+        (OrderV4 memory aliceOrder, bytes32 aliceOrderHash) = addOrderWithChecks(alice, aliceConfig, aliceExpression);
+        (OrderV4 memory bobOrder, bytes32 bobOrderHash) = addOrderWithChecks(bob, bobConfig, bobExpression);
         (aliceOrder);
         (bobOrder);
         assertTrue(aliceOrderHash != bobOrderHash);
@@ -168,15 +168,15 @@ contract OrderBookAddOrderMockTest is OrderBookExternalMockTest {
     ) public {
         LibTestAddOrder.conformConfig(configOne, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(configTwo, iInterpreter, iStore);
-        (OrderV3 memory expectedOrderOne, bytes32 expectedOrderOneHash) =
+        (OrderV4 memory expectedOrderOne, bytes32 expectedOrderOneHash) =
             LibTestAddOrder.expectedOrder(alice, configOne);
-        (OrderV3 memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =
+        (OrderV4 memory expectedOrderTwo, bytes32 expectedOrderTwoHash) =
             LibTestAddOrder.expectedOrder(alice, configTwo);
         (expectedOrderOne);
         (expectedOrderTwo);
         assertTrue(expectedOrderOneHash != expectedOrderTwoHash);
-        (OrderV3 memory orderOne, bytes32 orderOneHash) = addOrderWithChecks(alice, configOne, expressionOne);
-        (OrderV3 memory orderTwo, bytes32 orderTwoHash) = addOrderWithChecks(alice, configTwo, expressionTwo);
+        (OrderV4 memory orderOne, bytes32 orderOneHash) = addOrderWithChecks(alice, configOne, expressionOne);
+        (OrderV4 memory orderTwo, bytes32 orderTwoHash) = addOrderWithChecks(alice, configTwo, expressionTwo);
         (orderOne);
         (orderTwo);
         assertTrue(orderOneHash != orderTwoHash);

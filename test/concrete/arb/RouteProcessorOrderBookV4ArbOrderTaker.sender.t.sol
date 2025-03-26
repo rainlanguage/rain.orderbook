@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {RouteProcessorOrderBookV5ArbOrderTakerTest} from
     "test/util/abstract/RouteProcessorOrderBookV5ArbOrderTakerTest.sol";
 import {
-    OrderV3,
+    OrderV4,
     EvaluableV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     IInterpreterV4,
-    IInterpreterStoreV2,
+    IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -21,14 +21,14 @@ import {
 
 contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
     /// forge-config: default.fuzz.runs = 100
-    function testRouteProcessorTakeOrdersSender(OrderV3 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+    function testRouteProcessorTakeOrdersSender(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         public
     {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)

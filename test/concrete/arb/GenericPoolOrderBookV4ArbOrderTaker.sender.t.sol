@@ -26,7 +26,7 @@ contract GenericPoolOrderBookV5ArbOrderTakerSenderTest is GenericPoolOrderBookV5
     {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb5(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({

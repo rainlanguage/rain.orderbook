@@ -49,7 +49,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
         if (depositAmount > 0) {
-            iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+            iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         }
 
         TaskV2[] memory actions = new TaskV2[](evalStrings.length);
@@ -236,7 +236,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
 
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)

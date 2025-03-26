@@ -22,7 +22,7 @@ import {
 import {
     IInterpreterV4, DEFAULT_STATE_NAMESPACE
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {TakeOrdersConfigV4, Float} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {OrderBookV5ArbConfig, EvaluableV4, OrderBookV5ArbCommon, SignedContextV1} from "./OrderBookV5ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";

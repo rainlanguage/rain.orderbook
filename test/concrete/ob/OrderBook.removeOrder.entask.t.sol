@@ -53,7 +53,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         // Hacky way to give a unique nonce to each order passed in.
         config.nonce = keccak256(abi.encode(evalStrings));
         if (addOrder) {
-            iOrderbook.addOrder2(config, new TaskV2[](0));
+            iOrderbook.addOrder3(config, new TaskV2[](0));
         }
         OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         vm.record();
@@ -155,7 +155,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":;");
         TaskV2[] memory actions = evalsToActions(evals0);
-        bool stateChanged = iOrderbook.addOrder2(config, actions);
+        bool stateChanged = iOrderbook.addOrder3(config, actions);
         assert(stateChanged);
 
         OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);

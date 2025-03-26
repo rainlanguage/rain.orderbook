@@ -9,12 +9,12 @@ import {
     OrderBookV5ArbConfig
 } from "src/concrete/arb/GenericPoolOrderBookV5FlashBorrower.sol";
 import {
-    OrderV3,
+    OrderV4,
     TakeOrderConfigV4,
     EvaluableV4,
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     IInterpreterV4,
-    IInterpreterStoreV2,
+    IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
@@ -28,7 +28,7 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
 
     /// forge-config: default.fuzz.runs = 10
     function testGenericPoolOrderBookV5FlashBorrowerTakeOrdersSender(
-        OrderV3 memory order,
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex
     ) public {
@@ -36,7 +36,7 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
 
         GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, ""),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, ""),
             abi.encode(iRefundoor, iRefundoor, ""),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),

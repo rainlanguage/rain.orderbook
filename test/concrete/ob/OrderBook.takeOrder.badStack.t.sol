@@ -7,11 +7,11 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV4,
     SignedContextV1,
-    OrderV3,
+    OrderV4,
     EvaluableV4,
-    TaskV2
+    TaskV2,
+    TakeOrdersConfigV4, TakeOrderConfigV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {TakeOrdersConfigV3, TakeOrderConfigV4} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
@@ -26,15 +26,15 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
 
         config.evaluable.bytecode = iParserV2.parse2(rainString);
 
-        OrderV3 memory order = OrderV3(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
+        OrderV4 memory order = OrderV4(alice, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         TakeOrderConfigV4[] memory takeOrderConfigs = new TakeOrderConfigV4[](1);
         takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory takeOrdersConfig =
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, takeOrderConfigs, "");
+        TakeOrdersConfigV4 memory takeOrdersConfig =
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, takeOrderConfigs, "");
 
         vm.prank(alice);
-        iOrderbook.addOrder2(config, new TaskV2[](0));
+        iOrderbook.addOrder3(config, new TaskV2[](0));
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));

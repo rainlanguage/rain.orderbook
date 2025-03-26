@@ -81,7 +81,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         vm.prank(alice);
@@ -109,7 +109,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
             abi.encode(true)
         );
-        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
 
         // The token contract always reverts when not mocked.
@@ -171,8 +171,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     abi.encode(true)
                 );
                 vm.expectEmit(false, false, false, true);
-                emit Deposit(action.alice, action.token, action.vaultId, action.amount);
-                iOrderbook.deposit2(action.token, action.vaultId, action.amount, new TaskV2[](0));
+                emit DepositV2(action.alice, action.token, action.vaultId, action.amount);
+                iOrderbook.deposit3(action.token, action.vaultId, action.amount, new TaskV2[](0));
                 assertEq(
                     iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
                     balance + action.amount,
@@ -187,7 +187,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                 );
                 if (expectedActualAmount > 0) {
                     vm.expectEmit(false, false, false, true);
-                    emit Withdraw(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
+                    emit WithdrawV2(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
                 }
                 iOrderbook.withdraw3(action.token, action.vaultId, action.amount, new TaskV2[](0));
                 assertEq(

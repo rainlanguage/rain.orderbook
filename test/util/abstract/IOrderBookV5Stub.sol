@@ -19,7 +19,7 @@ import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156
 
 abstract contract IOrderBookV5Stub is IOrderBookV5 {
     /// @inheritdoc IOrderBookV5
-    function entask(TaskV2[] calldata) external pure {
+    function entask2(TaskV2[] calldata) external pure {
         revert("eval");
     }
 
@@ -44,7 +44,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function clear2(
+    function clear3(
         OrderV4 memory,
         OrderV4 memory,
         ClearConfigV2 calldata,
@@ -70,7 +70,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function withdraw3(address, Float calldata, Float calldata, TaskV2[] calldata) external pure {
+    function withdraw3(address, bytes32, Float calldata, Float calldata, TaskV2[] calldata) external pure {
         revert("withdraw");
     }
 

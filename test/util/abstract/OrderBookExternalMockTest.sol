@@ -29,7 +29,7 @@ import {EvaluableV4} from "rain.interpreter.interface/interface/unstable/IInterp
 /// - Deploys a mockable deployer contract for a DISpair.
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
-/// Implements IOrderBookV4 so that it has access to all the relevant events.
+/// Implements IOrderBookV5 so that it has access to all the relevant events.
 abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub {
     IInterpreterV4 immutable iInterpreter;
     IInterpreterStoreV3 immutable iStore;
@@ -70,7 +70,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertTrue(iOrderbook.addOrder2(config, new TaskV2[](0)));
+        assertTrue(iOrderbook.addOrder3(config, new TaskV2[](0)));
         // MetaV1 is NOT emitted if the meta is empty.
         assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -87,7 +87,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertFalse(iOrderbook.addOrder2(config, new TaskV2[](0)));
+        assertFalse(iOrderbook.addOrder3(config, new TaskV2[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (reads, writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.
@@ -111,7 +111,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
         vm.recordLogs();
         vm.prank(owner);
         // An order was removed so this is true as there is a state change.
-        assertTrue(iOrderbook.removeOrder2(order, new TaskV2[](0)));
+        assertTrue(iOrderbook.removeOrder3(order, new TaskV2[](0)));
         assertEq(vm.getRecordedLogs().length, 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check, 1x for dead write.
@@ -125,7 +125,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
         vm.recordLogs();
         vm.prank(owner);
         // There is no state change so this is false.
-        assertFalse(iOrderbook.removeOrder2(order, new TaskV2[](0)));
+        assertFalse(iOrderbook.removeOrder3(order, new TaskV2[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (reads, writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.
