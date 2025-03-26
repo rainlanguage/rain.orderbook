@@ -182,8 +182,8 @@
 		}
 	};
 
-	function handleClickDeploy(event: CustomEvent) {
-		dispatch(event.detail.action, event.detail);
+	function handleShowDisclaimer(event: CustomEvent) {
+		dispatch('showDisclaimer', event.detail);
 	}
 </script>
 
@@ -263,7 +263,7 @@
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $wagmiConnected && $wagmiConfig}
-							<DeployButton on:click={handleClickDeploy} {wagmiConfig} {subgraphUrl} />
+							<DeployButton on:showDisclaimer={handleShowDisclaimer} {wagmiConfig} {subgraphUrl} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}

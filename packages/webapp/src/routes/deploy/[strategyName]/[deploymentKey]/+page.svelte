@@ -32,6 +32,7 @@
 	});
 
 	function handleShowDisclaimer(e: CustomEvent) {
+		console.log('handleShowDisclaimer', e);
 		const { result, subgraphUrl, networkKey } = e.detail;
 		handleDisclaimerModal({
 			open: true,

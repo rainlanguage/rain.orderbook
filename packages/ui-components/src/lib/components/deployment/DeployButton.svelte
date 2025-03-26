@@ -42,6 +42,11 @@
 
 		checkingDeployment = false;
 
+		console.log('dispatching showDisclaimer', {
+			result,
+			networkKey,
+			subgraphUrl
+		});
 		dispatch('showDisclaimer', {
 			result,
 			networkKey,
