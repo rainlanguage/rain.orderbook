@@ -72,11 +72,15 @@
 				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
 				gui = gui;
 
-				const deposits = gui.getDeposits();
-				if (deposits.error) {
-					throw new Error(deposits.error.msg);
+				try {
+					const deposits = gui.getDeposits();
+					if (deposits.error) {
+						throw new Error(deposits.error.msg);
+					}
+					currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
+				} catch (e) {
+					error = (e as Error).message ? (e as Error).message : 'Error handling input.';
 				}
-				currentDeposit = deposits.value.find((d) => d.token === deposit.token?.key);
 			}
 		}
 	}
