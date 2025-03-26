@@ -42,7 +42,6 @@
 			{#if data.order.active}
 				<RemoveOrderButton
 					order={data.order}
-					onSuccess={() => $orderDetailQuery.refetch()}
 					on:remove={(e) => dispatch('remove', { order: e.detail.order })}
 				/>
 			{/if}

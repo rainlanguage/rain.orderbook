@@ -95,29 +95,4 @@ describe('RemoveOrderButton', () => {
 			})
 		);
 	});
-
-	it('includes onSuccess callback in event payload if provided', async () => {
-		const user = userEvent.setup();
-		const mockOnRemove = vi.fn();
-		const mockOnSuccess = vi.fn();
-
-		const propsWithSuccess = {
-			...defaultProps,
-			onSuccess: mockOnSuccess
-		};
-
-		const { component } = render(RemoveOrderButton, propsWithSuccess);
-		component.$on('remove', mockOnRemove);
-
-		const button = screen.getByTestId('remove-order-button');
-		await user.click(button);
-
-		expect(mockOnRemove).toHaveBeenCalled();
-
-		const eventDetail = mockOnRemove.mock.calls[0][0].detail;
-		expect(eventDetail.onSuccess).toBe(mockOnSuccess);
-
-		eventDetail.onSuccess();
-		expect(mockOnSuccess).toHaveBeenCalled();
-	});
 });
