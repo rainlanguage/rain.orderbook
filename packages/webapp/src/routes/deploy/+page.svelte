@@ -22,11 +22,15 @@
 				>
 			</h1>
 		</div>
-		{#if validStrategies.length > 0}
-			<ValidStrategiesSection strategies={validStrategies} />
-		{/if}
-		{#if invalidStrategies.length > 0}
-			<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
+		{#if validStrategies.length === 0 && invalidStrategies.length === 0}
+			<div class="text-center text-lg">No strategies found</div>
+		{:else}
+			{#if validStrategies.length > 0}
+				<ValidStrategiesSection strategies={validStrategies} />
+			{/if}
+			{#if invalidStrategies.length > 0}
+				<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
+			{/if}
 		{/if}
 	{/if}
 </div>
