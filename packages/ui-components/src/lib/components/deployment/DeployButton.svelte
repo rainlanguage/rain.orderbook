@@ -24,7 +24,6 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let subgraphUrl: string;
 	export let testId = 'deploy-button';
-	export let disabled = false;
 
 	let checkingDeployment = false;
 
@@ -54,7 +53,7 @@
 <Button
 	data-testid={testId}
 	size="lg"
-	{disabled}
+	disabled={checkingDeployment}
 	on:click={handleDeployButtonClick}
 	class="bg-gradient-to-br from-blue-600 to-violet-600"
 >
