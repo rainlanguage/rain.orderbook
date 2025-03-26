@@ -61,22 +61,18 @@ describe('OrderRemoveModal', () => {
 	});
 
 		it('calls onRemove callback after successful transaction', async () => {
-		// Use real timers for this test
 		vi.useRealTimers();
 		
 		render(OrderRemoveModal, defaultProps);
 		const onRemoveSpy = vi.fn();
 		defaultProps.args.onRemove = onRemoveSpy;
 
-		// Trigger successful transaction
 		transactionStore.transactionSuccess('0x123');
-		
-		// Wait for the setTimeout to complete (with a bit of buffer)
-		await new Promise(resolve => setTimeout(resolve, 5100));
-		
+
+		await new Promise((resolve) => setTimeout(resolve, 5100));
+
 		expect(onRemoveSpy).toHaveBeenCalled();
-		
-		// Reset to fake timers for other tests
+
 		vi.useFakeTimers();
 	});
 });
