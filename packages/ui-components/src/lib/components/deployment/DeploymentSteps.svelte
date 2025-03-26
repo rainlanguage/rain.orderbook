@@ -68,8 +68,17 @@
 
 	function getAllFieldDefinitions() {
 		try {
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
+			const allFieldDefinitionsResult = gui.getAllFieldDefinitions(false);
+			if (allFieldDefinitionsResult.error) {
+				throw new Error(allFieldDefinitionsResult.error.msg);
+			}
+			allFieldDefinitionsWithoutDefaults = allFieldDefinitionsResult.value;
+
+			const allFieldDefinitionsWithDefaultsResult = gui.getAllFieldDefinitions(true);
+			if (allFieldDefinitionsWithDefaultsResult.error) {
+				throw new Error(allFieldDefinitionsWithDefaultsResult.error.msg);
+			}
+			allFieldDefinitionsWithDefaults = allFieldDefinitionsWithDefaultsResult.value;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
