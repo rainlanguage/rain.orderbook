@@ -73,18 +73,6 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
-
-	function handleVaultAction(
-		event: CustomEvent<{ action: 'deposit' | 'withdraw'; vault: SgVault }>
-	) {
-		const { action, vault } = event.detail;
-
-		if (action === 'deposit') {
-			dispatch('deposit', { vault });
-		} else if (action === 'withdraw') {
-			dispatch('withdraw', { vault });
-		}
-	}
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -176,14 +164,14 @@
 														{vault}
 														onSuccess={() => $orderDetailQuery.refetch()}
 														testId="deposit-button"
-														on:click={handleVaultAction}
+														on:deposit={(event) => dispatch('deposit', event.detail)}
 													/>
 													<VaultActionButton
 														action="withdraw"
 														{vault}
 														onSuccess={() => $orderDetailQuery.refetch()}
 														testId="withdraw-button"
-														on:click={handleVaultAction}
+														on:withdraw={(event) => dispatch('withdraw', event.detail)}
 													/>
 												</div>
 											{/if}

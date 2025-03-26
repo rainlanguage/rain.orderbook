@@ -5,8 +5,11 @@
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	const dispatch = createEventDispatcher<{
-		click: {
-			action: 'deposit' | 'withdraw';
+		deposit: {
+			vault: SgVault;
+			onSuccess?: () => void;
+		};
+		withdraw: {
 			vault: SgVault;
 			onSuccess?: () => void;
 		};
@@ -20,8 +23,7 @@
 	export let label = '';
 
 	function handleClick() {
-		dispatch('click', {
-			action,
+		dispatch(action, {
 			vault,
 			onSuccess
 		});

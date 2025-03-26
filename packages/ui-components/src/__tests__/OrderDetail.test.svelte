@@ -3,7 +3,7 @@
 	import CardProperty from '../lib/components/CardProperty.svelte';
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import type { OrderWithSortedVaults, SgVault } from '@rainlanguage/orderbook/js_api';
 	import { getOrderByHash } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
 	import { Button } from 'flowbite-svelte';
@@ -12,8 +12,15 @@
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
 	import type { Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import VaultActionButton from '$lib/components/actions/VaultActionButton.svelte';
+	import { createEventDispatcher } from 'svelte';
 
 	const queryClient = useQueryClient();
+
+	const dispatch = createEventDispatcher<{
+		deposit: { vault: SgVault };
+		withdraw: { vault: SgVault };
+	}>();
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
@@ -72,8 +79,32 @@
 					<svelte:fragment slot="value">
 						<div class="mt-2 space-y-2">
 							{#each data.vaults.get(type) || [] as vault}
+								{signerAddress}
+								{vault.owner}
+								{chainId}
+								{signerAddress === vault.owner && chainId
+									? 'matching for acton buttons!'
+									: 'not matching for acton buttons!'}
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
-									<svelte:fragment slot="buttons"></svelte:fragment>
+									<svelte:fragment slot="buttons">
+										{#if signerAddress === vault.owner && chainId}
+											{'matching for acton buttons!'}
+											<div class="flex gap-1">
+												<VaultActionButton
+													action="deposit"
+													{vault}
+													testId="deposit-button"
+													on:deposit={(event) => dispatch('deposit', event.detail)}
+												/>
+												<VaultActionButton
+													action="withdraw"
+													{vault}
+													testId="withdraw-button"
+													on:withdraw={(event) => dispatch('withdraw', event.detail)}
+												/>
+											</div>
+										{/if}
+									</svelte:fragment>
 								</ButtonVaultLink>
 							{/each}
 						</div>

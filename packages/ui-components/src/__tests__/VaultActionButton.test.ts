@@ -65,22 +65,47 @@ describe('VaultActionButton', () => {
 		expect(screen.getByText('Test Label')).toBeInTheDocument();
 	});
 
-	it('emits click event with vault and action when clicked', async () => {
+	it('emits deposit event with vault when clicked with deposit action', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnDeposit = vi.fn();
 
 		const { component } = render(VaultActionButton, defaultProps);
 
-		component.$on('click', mockOnClick);
+		component.$on('deposit', mockOnDeposit);
 
 		const button = screen.getByTestId('deposit-button');
 		await user.click(button);
 
-		expect(mockOnClick).toHaveBeenCalled();
+		expect(mockOnDeposit).toHaveBeenCalled();
 
-		expect(mockOnClick.mock.calls[0][0].detail).toEqual(
+		expect(mockOnDeposit.mock.calls[0][0].detail).toEqual(
 			expect.objectContaining({
-				action: 'deposit',
+				vault: mockVault
+			})
+		);
+	});
+
+	it('emits withdraw event with vault when clicked with withdraw action', async () => {
+		const user = userEvent.setup();
+		const mockOnWithdraw = vi.fn();
+
+		const withdrawProps = {
+			...defaultProps,
+			action: 'withdraw' as const,
+			testId: 'withdraw-button'
+		};
+
+		const { component } = render(VaultActionButton, withdrawProps);
+
+		component.$on('withdraw', mockOnWithdraw);
+
+		const button = screen.getByTestId('withdraw-button');
+		await user.click(button);
+
+		expect(mockOnWithdraw).toHaveBeenCalled();
+
+		expect(mockOnWithdraw.mock.calls[0][0].detail).toEqual(
+			expect.objectContaining({
 				vault: mockVault
 			})
 		);
@@ -88,7 +113,7 @@ describe('VaultActionButton', () => {
 
 	it('includes onSuccess callback in event payload if provided', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnDeposit = vi.fn();
 		const mockOnSuccess = vi.fn();
 
 		const propsWithSuccess = {
@@ -98,14 +123,14 @@ describe('VaultActionButton', () => {
 
 		const { component } = render(VaultActionButton, propsWithSuccess);
 
-		component.$on('click', mockOnClick);
+		component.$on('deposit', mockOnDeposit);
 
 		const button = screen.getByTestId('deposit-button');
 		await user.click(button);
 
-		expect(mockOnClick).toHaveBeenCalled();
+		expect(mockOnDeposit).toHaveBeenCalled();
 
-		const eventDetail = mockOnClick.mock.calls[0][0].detail;
+		const eventDetail = mockOnDeposit.mock.calls[0][0].detail;
 		expect(eventDetail.onSuccess).toBe(mockOnSuccess);
 
 		eventDetail.onSuccess();
@@ -115,7 +140,7 @@ describe('VaultActionButton', () => {
 
 	it('is disabled when disabled prop is true', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnDeposit = vi.fn();
 
 		const disabledProps = {
 			...defaultProps,
@@ -123,13 +148,13 @@ describe('VaultActionButton', () => {
 		};
 
 		const { component } = render(VaultActionButton, disabledProps);
-		component.$on('click', mockOnClick);
+		component.$on('deposit', mockOnDeposit);
 
 		const button = screen.getByTestId('deposit-button');
 		expect(button).toBeDisabled();
 
 		await user.click(button);
 
-		expect(mockOnClick).not.toHaveBeenCalled();
+		expect(mockOnDeposit).not.toHaveBeenCalled();
 	});
 });

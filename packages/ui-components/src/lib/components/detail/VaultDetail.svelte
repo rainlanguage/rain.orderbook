@@ -62,11 +62,6 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
-
-	// Forward deposit and withdraw events to parent component
-	function forwardEvent(event: CustomEvent) {
-		dispatch(event.detail.action, event.detail);
-	}
 </script>
 
 <TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
@@ -83,13 +78,13 @@
 					action="deposit"
 					vault={data}
 					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:click={forwardEvent}
+					on:deposit={(event) => dispatch('deposit', event.detail)}
 				/>
 				<VaultActionButton
 					action="withdraw"
 					vault={data}
 					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:click={forwardEvent}
+					on:withdraw={(event) => dispatch('withdraw', event.detail)}
 				/>
 			{/if}
 
