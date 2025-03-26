@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-	import { type ConfigSource } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource, type TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type GuiDeploymentCfg,
-		type OrderIOCfg,
-		type AllTokenInfos
+		type OrderIOCfg
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -26,6 +23,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -50,7 +48,7 @@
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let checkingDeployment: boolean = false;
-	let allTokenInfos: AllTokenInfos = [];
+	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
 	const selectTokens = gui.getSelectTokens();
@@ -70,8 +68,17 @@
 
 	function getAllFieldDefinitions() {
 		try {
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
+			const allFieldDefinitionsResult = gui.getAllFieldDefinitions(false);
+			if (allFieldDefinitionsResult.error) {
+				throw new Error(allFieldDefinitionsResult.error.msg);
+			}
+			allFieldDefinitionsWithoutDefaults = allFieldDefinitionsResult.value;
+
+			const allFieldDefinitionsWithDefaultsResult = gui.getAllFieldDefinitions(true);
+			if (allFieldDefinitionsWithDefaultsResult.error) {
+				throw new Error(allFieldDefinitionsWithDefaultsResult.error.msg);
+			}
+			allFieldDefinitionsWithDefaults = allFieldDefinitionsWithDefaultsResult.value;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
@@ -79,8 +86,11 @@
 
 	async function getAllDepositFields() {
 		try {
-			let dep: GuiDeploymentCfg = gui.getCurrentDeployment();
-			let depositFields: GuiDepositCfg[] = dep.deposits;
+			let result = gui.getCurrentDeployment();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			let depositFields = result.value.deposits;
 
 			allDepositFields = depositFields;
 		} catch (e) {
@@ -91,7 +101,11 @@
 	let allTokenInputs: OrderIOCfg[] = [];
 	function getAllTokenInputs() {
 		try {
-			allTokenInputs = gui.getCurrentDeployment().deployment.order.inputs;
+			let result = gui.getCurrentDeployment();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			allTokenInputs = result.value.deployment.order.inputs;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_INPUTS);
 		}
@@ -99,7 +113,11 @@
 
 	function getAllTokenOutputs() {
 		try {
-			allTokenOutputs = gui.getCurrentDeployment().deployment.order.outputs;
+			let result = gui.getCurrentDeployment();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			allTokenOutputs = result.value.deployment.order.outputs;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_TOKEN_OUTPUTS);
 		}
@@ -130,7 +148,11 @@
 		await areAllTokensSelected();
 
 		if (allTokensSelected) {
-			let newAllTokenInfos = await gui.getAllTokenInfos();
+			let result = await gui.getAllTokenInfos();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			let newAllTokenInfos = result.value;
 			if (allTokenInfos !== newAllTokenInfos) {
 				allTokenInfos = newAllTokenInfos;
 				getAllDepositFields();
@@ -197,7 +219,11 @@
 			allTokensSelected = gui.areAllTokensSelected();
 			if (!allTokensSelected) return;
 
-			allTokenInfos = await gui.getAllTokenInfos();
+			let result = await gui.getAllTokenInfos();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			allTokenInfos = result.value;
 
 			// if we have deposits or vault ids set, show advanced options
 			const hasDeposits = gui.hasAnyDeposit();
@@ -260,12 +286,20 @@
 						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+					{#if showAdvancedOptions}
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
+
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}
