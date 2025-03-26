@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
-	import DepositsSection from './DepositsSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource, type TokenInfo } from '@rainlanguage/orderbook/js_api';
@@ -24,6 +23,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -68,8 +68,17 @@
 
 	function getAllFieldDefinitions() {
 		try {
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
+			const allFieldDefinitionsResult = gui.getAllFieldDefinitions(false);
+			if (allFieldDefinitionsResult.error) {
+				throw new Error(allFieldDefinitionsResult.error.msg);
+			}
+			allFieldDefinitionsWithoutDefaults = allFieldDefinitionsResult.value;
+
+			const allFieldDefinitionsWithDefaultsResult = gui.getAllFieldDefinitions(true);
+			if (allFieldDefinitionsWithDefaultsResult.error) {
+				throw new Error(allFieldDefinitionsWithDefaultsResult.error.msg);
+			}
+			allFieldDefinitionsWithDefaults = allFieldDefinitionsWithDefaultsResult.value;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
@@ -277,8 +286,10 @@
 						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+					{#if showAdvancedOptions}
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
 					{#if showAdvancedOptions}
