@@ -69,18 +69,8 @@
 		</div>
 		<div class="flex items-center gap-2">
 			{#if signerAddress === data.owner}
-				<VaultActionButton
-					action="deposit"
-					vault={data}
-					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:deposit
-				/>
-				<VaultActionButton
-					action="withdraw"
-					vault={data}
-					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:withdraw
-				/>
+				<VaultActionButton action="deposit" vault={data} on:deposit />
+				<VaultActionButton action="withdraw" vault={data} on:withdraw />
 			{/if}
 
 			<Refresh
