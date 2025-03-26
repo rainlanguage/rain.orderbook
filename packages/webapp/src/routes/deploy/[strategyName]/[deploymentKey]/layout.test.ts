@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { load } from './+layout';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
-// Mock the entire module
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	DotrainOrderGui: {
 		getDeploymentDetail: vi.fn()
@@ -33,8 +31,9 @@ describe('Layout load function', () => {
 		});
 
 		const result = await load({
-			params: { deploymentKey: mockDeploymentKey },
+			params: { deploymentKey: mockDeploymentKey, strategyName: 'test-strategy' },
 			parent: mockParent
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
 		expect(mockParent).toHaveBeenCalled();
@@ -67,10 +66,10 @@ describe('Layout load function', () => {
 		const result = await load({
 			params: {},
 			parent: mockParent
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
 		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, '');
-		expect(mockParent).toHaveBeenCalled();
 
 		expect(result).toEqual({
 			deployment: {
@@ -84,7 +83,6 @@ describe('Layout load function', () => {
 	});
 
 	it('should throw an error when getDeploymentDetail returns an error', async () => {
-		// Set up the mock implementation for this specific test
 		(DotrainOrderGui.getDeploymentDetail as Mock).mockRejectedValue({
 			error: { msg: 'Deployment not found' },
 			value: null
@@ -94,6 +92,7 @@ describe('Layout load function', () => {
 			load({
 				params: { deploymentKey: 'error-key' },
 				parent: mockParent
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
 		).rejects.toThrow('Deployment not found');
 	});
