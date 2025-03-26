@@ -14,7 +14,7 @@
 	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
-	import { onDestroy, createEventDispatcher } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
@@ -29,13 +29,6 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
-
-	// Create event dispatcher for vault actions
-	const dispatch = createEventDispatcher<{
-		deposit: { vault: SgVault };
-		withdraw: { vault: SgVault };
-	}>();
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
@@ -162,16 +155,16 @@
 													<VaultActionButton
 														action="deposit"
 														{vault}
-														onSuccess={() => $orderDetailQuery.refetch()}
+														onSuccess={async () => await invalidateIdQuery(queryClient, orderHash)}
 														testId="deposit-button"
-														on:deposit={(event) => dispatch('deposit', event.detail)}
+														on:deposit
 													/>
 													<VaultActionButton
 														action="withdraw"
 														{vault}
-														onSuccess={() => $orderDetailQuery.refetch()}
+														onSuccess={async () => await invalidateIdQuery(queryClient, orderHash)}
 														testId="withdraw-button"
-														on:withdraw={(event) => dispatch('withdraw', event.detail)}
+														on:withdraw
 													/>
 												</div>
 											{/if}
