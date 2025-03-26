@@ -56,12 +56,18 @@ describe('Layout load function', () => {
 	it('should handle empty deploymentKey', async () => {
 		// Set up the mock implementation for this specific test
 		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
-			error: null,
-			value: {
-				name: 'Empty Deployment',
-				description: ''
-			}
-		});
+(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
+  error: null,
+  value: {
+    name: 'Empty Deployment',
+    description: ''
+  }
+});
+
+// Add assertions to verify error is null
+const response = await DotrainOrderGui.getDeploymentDetail(mockDotrain, '');
+expect(response.error).toBeNull();
+expect(response.value).toBeDefined();
 
 		const result = await load({
 			params: {},
