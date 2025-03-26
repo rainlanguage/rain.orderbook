@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import DepositsSection from './DepositsSection.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
@@ -290,8 +290,14 @@
 						<DepositsSection bind:allDepositFields {gui} />
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
+
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}
