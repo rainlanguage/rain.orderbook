@@ -61,7 +61,7 @@ describe('Layout load function', () => {
 				parent: mockParent
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
-		} catch (error) {
+		} catch {
 			expect(redirect).toHaveBeenCalledWith(307, '/deploy');
 		}
 	});
@@ -83,7 +83,7 @@ describe('Layout load function', () => {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
 			expect(redirect).toHaveBeenCalled();
-		} catch (error) {
+		} catch {
 			expect(redirect).toHaveBeenCalledWith(307, '/deploy');
 		}
 	});
