@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { load } from './+layout';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -82,7 +83,8 @@ describe('Layout load function', () => {
 	});
 
 	it('should throw an error when getDeploymentDetail returns an error', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
+		// Set up the mock implementation for this specific test
+		(DotrainOrderGui.getDeploymentDetail as Mock).mockRejectedValue({
 			error: { msg: 'Deployment not found' },
 			value: null
 		});
