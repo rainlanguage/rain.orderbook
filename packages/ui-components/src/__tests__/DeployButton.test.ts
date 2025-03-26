@@ -36,8 +36,7 @@ const mockGui = {
 const defaultProps: DeployButtonProps = {
 	wagmiConfig: mockWagmiConfigStore,
 	subgraphUrl: 'https://test.subgraph',
-	testId: 'deploy-button',
-	disabled: false
+	testId: 'deploy-button'
 };
 
 vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
@@ -136,18 +135,6 @@ describe('DeployButton', () => {
 				mockWeb3Config
 			);
 		});
-	});
-
-	it('handles disabled state correctly', () => {
-		render(DeployButton, {
-			props: {
-				...defaultProps,
-				disabled: true
-			}
-		});
-
-		const button = screen.getByTestId('deploy-button');
-		expect(button).toBeDisabled();
 	});
 
 	it('applies custom testId when provided', () => {
