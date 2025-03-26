@@ -49,7 +49,7 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress
+				signerAddress: writable('mockOwner')
 			}
 		});
 
@@ -79,9 +79,8 @@ describe('OrderDetail Component', () => {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal,
 				chainId,
-				orderbookAddress
+				signerAddress: writable('mockOwner')
 			}
 		});
 
@@ -99,9 +98,8 @@ describe('OrderDetail Component', () => {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal: vi.fn(),
 				chainId,
-				orderbookAddress
+				signerAddress: writable('mockOwner')
 			}
 		});
 
@@ -204,7 +202,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress,
 				signerAddress: writable('mockOwner')
 			}
 		});
@@ -246,7 +243,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress,
 				signerAddress: writable('mockOwner')
 			}
 		});
@@ -271,7 +267,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress,
 				signerAddress: writable('notTheOwner')
 			}
 		});
@@ -287,7 +282,6 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				orderbookAddress,
 				signerAddress: writable('notTheOwner')
 			}
 		});
@@ -327,9 +321,8 @@ describe('OrderDetail Component', () => {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress,
-				signerAddress: writable('mockOwner')
+				signerAddress: writable('mockOwner'),
+				chainId
 			}
 		});
 

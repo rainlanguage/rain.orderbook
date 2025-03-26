@@ -24,6 +24,7 @@
 	export let orderHash: string;
 	export let subgraphUrl: string;
 	export let signerAddress: Writable<string>;
+	export let chainId: number;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -32,10 +33,6 @@
 		},
 		enabled: !!subgraphUrl
 	});
-
-	function handleRemoveOrder(e: CustomEvent<{ order: SgOrder }>) {
-		dispatch('remove', { order: e.detail.order });
-	}
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -46,7 +43,7 @@
 				<RemoveOrderButton
 					order={data.order}
 					onSuccess={() => $orderDetailQuery.refetch()}
-					on:click={handleRemoveOrder}
+					on:remove={(e) => dispatch('remove', { order: e.detail.order })}
 				/>
 			{/if}
 		{/if}
@@ -69,14 +66,16 @@
 							{#each data.vaults.get(type) || [] as vault}
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
 									<svelte:fragment slot="buttons">
-										<DepositOrWithdrawButtons
-											{vault}
-											chainId={1}
-											rpcUrl="https://example.com"
-											query={orderDetailQuery}
-											handleDepositOrWithdrawModal={() => {}}
-											{subgraphUrl}
-										/>
+										{#if $signerAddress === data.order.owner && chainId}
+											<DepositOrWithdrawButtons
+												{vault}
+												chainId={1}
+												rpcUrl="https://example.com"
+												query={orderDetailQuery}
+												handleDepositOrWithdrawModal={() => {}}
+												{subgraphUrl}
+											/>
+										{/if}
 									</svelte:fragment>
 								</ButtonVaultLink>
 							{/each}

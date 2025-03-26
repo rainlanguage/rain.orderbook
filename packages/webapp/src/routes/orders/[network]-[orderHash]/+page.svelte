@@ -48,7 +48,6 @@
 		triggerToast($transactionStore.message);
 	}
 
-	// Handle remove event from OrderDetail
 	function handleRemoveOrder(event: CustomEvent<{ order: SgOrder }>) {
 		const { order } = event.detail;
 		handleOrderRemoveModal({

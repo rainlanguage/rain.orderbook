@@ -61,7 +61,7 @@ describe('RemoveOrderButton', () => {
 
 	it('disables the button when disabled prop is true', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnRemove = vi.fn();
 
 		const disabledProps = {
 			...defaultProps,
@@ -69,29 +69,28 @@ describe('RemoveOrderButton', () => {
 		};
 
 		const { component } = render(RemoveOrderButton, disabledProps);
-		component.$on('click', mockOnClick);
+		component.$on('remove', mockOnRemove);
 
 		const button = screen.getByTestId('remove-order-button');
 		expect(button).toBeDisabled();
 
 		await user.click(button);
-		expect(mockOnClick).not.toHaveBeenCalled();
+		expect(mockOnRemove).not.toHaveBeenCalled();
 	});
 
-	it('emits click event with order and action when clicked', async () => {
+	it('emits remove event with order when clicked', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnRemove = vi.fn();
 
 		const { component } = render(RemoveOrderButton, defaultProps);
-		component.$on('click', mockOnClick);
+		component.$on('remove', mockOnRemove);
 
 		const button = screen.getByTestId('remove-order-button');
 		await user.click(button);
 
-		expect(mockOnClick).toHaveBeenCalled();
-		expect(mockOnClick.mock.calls[0][0].detail).toEqual(
+		expect(mockOnRemove).toHaveBeenCalled();
+		expect(mockOnRemove.mock.calls[0][0].detail).toEqual(
 			expect.objectContaining({
-				action: 'remove',
 				order: mockOrder
 			})
 		);
@@ -99,7 +98,7 @@ describe('RemoveOrderButton', () => {
 
 	it('includes onSuccess callback in event payload if provided', async () => {
 		const user = userEvent.setup();
-		const mockOnClick = vi.fn();
+		const mockOnRemove = vi.fn();
 		const mockOnSuccess = vi.fn();
 
 		const propsWithSuccess = {
@@ -108,14 +107,14 @@ describe('RemoveOrderButton', () => {
 		};
 
 		const { component } = render(RemoveOrderButton, propsWithSuccess);
-		component.$on('click', mockOnClick);
+		component.$on('remove', mockOnRemove);
 
 		const button = screen.getByTestId('remove-order-button');
 		await user.click(button);
 
-		expect(mockOnClick).toHaveBeenCalled();
+		expect(mockOnRemove).toHaveBeenCalled();
 
-		const eventDetail = mockOnClick.mock.calls[0][0].detail;
+		const eventDetail = mockOnRemove.mock.calls[0][0].detail;
 		expect(eventDetail.onSuccess).toBe(mockOnSuccess);
 
 		eventDetail.onSuccess();

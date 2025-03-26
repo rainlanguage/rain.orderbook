@@ -57,7 +57,10 @@
 
 	const queryClient = useQueryClient();
 	const dispatch = createEventDispatcher<{
-		remove: { order: SgOrder };
+		remove: {
+			order: SgOrder;
+			onSuccess?: () => void;
+		};
 	}>();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
@@ -77,10 +80,6 @@
 	});
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
-
-	function handleRemoveOrder(e: CustomEvent<{ order: SgOrder }>) {
-		dispatch('remove', { order: e.detail.order });
-	}
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -103,7 +102,10 @@
 						<RemoveOrderButton
 							order={data.order}
 							onSuccess={() => $orderDetailQuery.refetch()}
-							on:click={handleRemoveOrder}
+							on:remove={() =>
+								dispatch('remove', {
+									order: data.order
+								})}
 						/>
 					{/if}
 				{/if}

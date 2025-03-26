@@ -4,8 +4,7 @@
 	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 
 	const dispatch = createEventDispatcher<{
-		click: {
-			action: 'remove';
+		remove: {
 			order: SgOrder;
 			onSuccess?: () => void;
 		};
@@ -19,8 +18,7 @@
 	export let customClass: string = '';
 
 	function handleClick() {
-		dispatch('click', {
-			action: 'remove',
+		dispatch('remove', {
 			order,
 			onSuccess
 		});
