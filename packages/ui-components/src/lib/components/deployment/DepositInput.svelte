@@ -22,12 +22,21 @@
 		setCurrentDeposit();
 	});
 
-	const setCurrentDeposit = async () => {
+	const getCurrentDeposit = () => {
+		const deposits = gui.getDeposits();
+		if (deposits.error) {
+			throw new Error(deposits.error.msg);
+		}
+		return deposits.value.find((d) => d.token === deposit.token?.key);
+	};
+
+	const setCurrentDeposit = () => {
 		try {
-			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
+			currentDeposit = getCurrentDeposit();
 			inputValue = currentDeposit?.amount || '';
-		} catch {
+		} catch (e) {
 			currentDeposit = undefined;
+			error = (e as Error).message ? (e as Error).message : 'Error setting current deposit.';
 		}
 	};
 
@@ -52,7 +61,12 @@
 			inputValue = preset;
 			gui?.saveDeposit(deposit.token?.key, preset);
 			gui = gui;
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+
+			try {
+				currentDeposit = getCurrentDeposit();
+			} catch (e) {
+				error = (e as Error).message ? (e as Error).message : 'Error handling preset click.';
+			}
 		}
 	}
 
@@ -62,7 +76,12 @@
 				inputValue = e.currentTarget.value;
 				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
 				gui = gui;
-				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+
+				try {
+					currentDeposit = getCurrentDeposit();
+				} catch (e) {
+					error = (e as Error).message ? (e as Error).message : 'Error handling input.';
+				}
 			}
 		}
 	}

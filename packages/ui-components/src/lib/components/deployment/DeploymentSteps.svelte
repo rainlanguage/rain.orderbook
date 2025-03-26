@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource, type TokenInfo } from '@rainlanguage/orderbook/js_api';
@@ -22,6 +21,7 @@
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { createEventDispatcher, onMount } from 'svelte';
 	import DeployButton from './DeployButton.svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -43,7 +43,7 @@
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
-	let allTokenInfos: AllTokenInfos = [];
+	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
 	const selectTokens = gui.getSelectTokens();
@@ -67,8 +67,17 @@
 
 	function getAllFieldDefinitions() {
 		try {
-			allFieldDefinitionsWithoutDefaults = gui.getAllFieldDefinitions(false);
-			allFieldDefinitionsWithDefaults = gui.getAllFieldDefinitions(true);
+			const allFieldDefinitionsResult = gui.getAllFieldDefinitions(false);
+			if (allFieldDefinitionsResult.error) {
+				throw new Error(allFieldDefinitionsResult.error.msg);
+			}
+			allFieldDefinitionsWithoutDefaults = allFieldDefinitionsResult.value;
+
+			const allFieldDefinitionsWithDefaultsResult = gui.getAllFieldDefinitions(true);
+			if (allFieldDefinitionsWithDefaultsResult.error) {
+				throw new Error(allFieldDefinitionsWithDefaultsResult.error.msg);
+			}
+			allFieldDefinitionsWithDefaults = allFieldDefinitionsWithDefaultsResult.value;
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_FIELD_DEFINITIONS);
 		}
@@ -227,12 +236,20 @@
 						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+					{#if showAdvancedOptions}
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
+
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}
