@@ -70,6 +70,7 @@ describe('Layout load function', () => {
 		} as any);
 
 		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, '');
+		expect(mockParent).toHaveBeenCalled();
 
 		expect(result).toEqual({
 			deployment: {
