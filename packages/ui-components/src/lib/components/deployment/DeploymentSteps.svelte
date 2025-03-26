@@ -19,7 +19,7 @@
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import DeployButton from './DeployButton.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
@@ -49,10 +49,6 @@
 	const selectTokens = gui.getSelectTokens();
 	const networkKey = gui.getNetworkKey();
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
-
-	const dispatch = createEventDispatcher<{
-		showDisclaimer: () => void;
-	}>();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -181,10 +177,6 @@
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 		}
 	};
-
-	function handleShowDisclaimer(event: CustomEvent) {
-		dispatch('showDisclaimer', event.detail);
-	}
 </script>
 
 <div>
@@ -263,7 +255,7 @@
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $wagmiConnected && $wagmiConfig}
-							<DeployButton on:showDisclaimer={handleShowDisclaimer} {wagmiConfig} {subgraphUrl} />
+							<DeployButton on:clickDeploy {wagmiConfig} {subgraphUrl} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}

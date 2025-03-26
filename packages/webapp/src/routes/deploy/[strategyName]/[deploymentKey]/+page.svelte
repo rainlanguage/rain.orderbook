@@ -31,8 +31,7 @@
 		getGuiError = error;
 	});
 
-	function handleShowDisclaimer(e: CustomEvent) {
-		console.log('handleShowDisclaimer', e);
+	function handleClickDeploy(e: CustomEvent) {
 		const { result, subgraphUrl, networkKey } = e.detail;
 		handleDisclaimerModal({
 			open: true,
@@ -63,7 +62,7 @@
 			{appKitModal}
 			{settings}
 			{signerAddress}
-			on:showDisclaimer={handleShowDisclaimer}
+			on:clickDeploy={handleClickDeploy}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

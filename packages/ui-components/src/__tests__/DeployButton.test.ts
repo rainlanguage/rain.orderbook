@@ -99,7 +99,7 @@ describe('DeployButton', () => {
 		});
 	});
 
-	it('dispatches showDisclaimer event with correct data when deployment check succeeds', async () => {
+	it('dispatches event with correct data when deployment check succeeds', async () => {
 		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
 			mockHandleAddOrderResult
 		);
@@ -107,7 +107,7 @@ describe('DeployButton', () => {
 		const { component } = render(DeployButton, { props: defaultProps });
 
 		const mockDispatch = vi.fn();
-		component.$on('showDisclaimer', mockDispatch);
+		component.$on('clickDeploy', mockDispatch);
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
 

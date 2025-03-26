@@ -11,13 +11,13 @@
 	import { useGui } from '$lib/hooks/useGui';
 
 	const dispatch = createEventDispatcher<{
-		showDisclaimer: {
+		clickDeploy: {
 			result: HandleAddOrderResult;
 			networkKey: string;
 			subgraphUrl: string;
-			onSuccess?: () => void;
 		};
 	}>();
+
 	const gui = useGui();
 	const networkKey = gui.getNetworkKey();
 
@@ -42,12 +42,7 @@
 
 		checkingDeployment = false;
 
-		console.log('dispatching showDisclaimer', {
-			result,
-			networkKey,
-			subgraphUrl
-		});
-		dispatch('showDisclaimer', {
+		dispatch('clickDeploy', {
 			result,
 			networkKey,
 			subgraphUrl
