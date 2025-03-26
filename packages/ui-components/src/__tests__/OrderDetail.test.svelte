@@ -88,7 +88,6 @@
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
 									<svelte:fragment slot="buttons">
 										{#if signerAddress === vault.owner && chainId}
-											{'matching for acton buttons!'}
 											<div class="flex gap-1">
 												<VaultActionButton
 													action="deposit"
