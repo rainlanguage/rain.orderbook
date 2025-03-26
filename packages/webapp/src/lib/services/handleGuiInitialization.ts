@@ -1,4 +1,4 @@
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook/js_api';
 import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
 
 export async function handleGuiInitialization(
@@ -7,7 +7,8 @@ export async function handleGuiInitialization(
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
 	try {
-		let gui: DotrainOrderGui | null = null;
+		let gui = new DotrainOrderGui();
+		let result: WasmEncodedResult<void>;
 
 		if (stateFromUrl) {
 			try {
@@ -17,18 +18,16 @@ export async function handleGuiInitialization(
 					pushGuiStateToUrlHistory
 				);
 			} catch {
-				gui = await DotrainOrderGui.chooseDeployment(
-					dotrain,
-					deploymentKey,
-					pushGuiStateToUrlHistory
-				);
+				result = await gui.chooseDeployment(dotrain, deploymentKey, pushGuiStateToUrlHistory);
+				if (result.error) {
+					throw new Error(result.error.msg);
+				}
 			}
 		} else {
-			gui = await DotrainOrderGui.chooseDeployment(
-				dotrain,
-				deploymentKey,
-				pushGuiStateToUrlHistory
-			);
+			result = await gui.chooseDeployment(dotrain, deploymentKey, pushGuiStateToUrlHistory);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
 		}
 		return { gui, error: null };
 	} catch {
