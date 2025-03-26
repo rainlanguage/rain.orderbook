@@ -10,7 +10,7 @@
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { createEventDispatcher, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
@@ -31,12 +31,7 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
 
-	const dispatch = createEventDispatcher<{
-		deposit: { vault: SgVault };
-		withdraw: { vault: SgVault };
-	}>();
-
-	$: vaultDetailQuery = createQuery({
+	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
 		queryFn: () => {
 			return getVault(subgraphUrl || '', id);
@@ -78,13 +73,13 @@
 					action="deposit"
 					vault={data}
 					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:deposit={(event) => dispatch('deposit', event.detail)}
+					on:deposit
 				/>
 				<VaultActionButton
 					action="withdraw"
 					vault={data}
 					onSuccess={() => $vaultDetailQuery.refetch()}
-					on:withdraw={(event) => dispatch('withdraw', event.detail)}
+					on:withdraw
 				/>
 			{/if}
 
