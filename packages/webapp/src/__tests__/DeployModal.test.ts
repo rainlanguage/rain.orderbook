@@ -28,10 +28,7 @@ describe('DeployModal', () => {
 				token: '0x',
 				spender: '0x'
 			},
-			deploymentCalldata: {
-				calldata: '0x',
-				value: 0n
-			},
+			deploymentCalldata: '0x',
 			orderbookAddress: '0x123' as const,
 			chainId: 1,
 			subgraphUrl: 'https://example.com',
