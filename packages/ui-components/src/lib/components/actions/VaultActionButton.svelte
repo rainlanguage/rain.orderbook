@@ -7,25 +7,21 @@
 	const dispatch = createEventDispatcher<{
 		deposit: {
 			vault: SgVault;
-			onSuccess?: () => void;
 		};
 		withdraw: {
 			vault: SgVault;
-			onSuccess?: () => void;
 		};
 	}>();
 
 	export let action: 'deposit' | 'withdraw';
 	export let vault: SgVault;
-	export let onSuccess: (() => void) | undefined = undefined;
 	export let testId = `${action}-button`;
 	export let disabled = false;
 	export let label = '';
 
 	function handleClick() {
 		dispatch(action, {
-			vault,
-			onSuccess
+			vault
 		});
 	}
 </script>

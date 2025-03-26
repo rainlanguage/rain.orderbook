@@ -111,33 +111,6 @@ describe('VaultActionButton', () => {
 		);
 	});
 
-	it('includes onSuccess callback in event payload if provided', async () => {
-		const user = userEvent.setup();
-		const mockOnDeposit = vi.fn();
-		const mockOnSuccess = vi.fn();
-
-		const propsWithSuccess = {
-			...defaultProps,
-			onSuccess: mockOnSuccess
-		};
-
-		const { component } = render(VaultActionButton, propsWithSuccess);
-
-		component.$on('deposit', mockOnDeposit);
-
-		const button = screen.getByTestId('deposit-button');
-		await user.click(button);
-
-		expect(mockOnDeposit).toHaveBeenCalled();
-
-		const eventDetail = mockOnDeposit.mock.calls[0][0].detail;
-		expect(eventDetail.onSuccess).toBe(mockOnSuccess);
-
-		eventDetail.onSuccess();
-
-		expect(mockOnSuccess).toHaveBeenCalled();
-	});
-
 	it('is disabled when disabled prop is true', async () => {
 		const user = userEvent.setup();
 		const mockOnDeposit = vi.fn();
