@@ -108,7 +108,7 @@ describe('DeployButton', () => {
 		const { component } = render(DeployButton, { props: defaultProps });
 
 		const mockDispatch = vi.fn();
-		component.$on('click', mockDispatch);
+		component.$on('showDisclaimer', mockDispatch);
 
 		fireEvent.click(screen.getByText('Deploy Strategy'));
 
@@ -116,7 +116,6 @@ describe('DeployButton', () => {
 			expect(mockDispatch).toHaveBeenCalledWith(
 				expect.objectContaining({
 					detail: {
-						action: 'showDisclaimer',
 						result: mockHandleAddOrderResult,
 						networkKey: 'testnet',
 						subgraphUrl: defaultProps.subgraphUrl

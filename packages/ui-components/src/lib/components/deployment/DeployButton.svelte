@@ -11,8 +11,7 @@
 	import { useGui } from '$lib/hooks/useGui';
 
 	const dispatch = createEventDispatcher<{
-		click: {
-			action: 'showDisclaimer' | 'deploy';
+		showDisclaimer: {
 			result: HandleAddOrderResult;
 			networkKey: string;
 			subgraphUrl: string;
@@ -44,8 +43,7 @@
 
 		checkingDeployment = false;
 
-		dispatch('click', {
-			action: 'showDisclaimer',
+		dispatch('showDisclaimer', {
 			result,
 			networkKey,
 			subgraphUrl
