@@ -6,12 +6,10 @@
 	const dispatch = createEventDispatcher<{
 		remove: {
 			order: SgOrder;
-			onSuccess?: () => void;
 		};
 	}>();
 
 	export let order: SgOrder;
-	export let onSuccess: (() => void) | undefined = undefined;
 	export let testId = 'remove-order-button';
 	export let disabled = false;
 	export let label = 'Remove';
@@ -19,8 +17,7 @@
 
 	function handleClick() {
 		dispatch('remove', {
-			order,
-			onSuccess
+			order
 		});
 	}
 </script>

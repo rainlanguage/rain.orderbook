@@ -11,14 +11,10 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import {
-		getOrderByHash,
-		type OrderWithSortedVaults,
-		type SgOrder
-	} from '@rainlanguage/orderbook/js_api';
+	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { TabItem, Tabs, Tooltip } from 'flowbite-svelte';
-	import { createEventDispatcher, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import type { Readable, Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
@@ -56,12 +52,6 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const dispatch = createEventDispatcher<{
-		remove: {
-			order: SgOrder;
-			onSuccess?: () => void;
-		};
-	}>();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -99,14 +89,7 @@
 			<div class="flex items-center gap-2">
 				{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
 					{#if data.order.active}
-						<RemoveOrderButton
-							order={data.order}
-							onSuccess={() => $orderDetailQuery.refetch()}
-							on:remove={() =>
-								dispatch('remove', {
-									order: data.order
-								})}
-						/>
+						<RemoveOrderButton order={data.order} on:remove />
 					{/if}
 				{/if}
 				<Refresh
