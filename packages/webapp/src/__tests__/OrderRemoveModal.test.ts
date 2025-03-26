@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
@@ -37,16 +37,17 @@ describe('OrderRemoveModal', () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleRemoveOrderTransaction');
 		render(OrderRemoveModal, defaultProps);
 
-		await vi.runAllTimersAsync();
 
+		await waitFor(() => {
 		expect(handleTransactionSpy).toHaveBeenCalledWith(
 			expect.objectContaining({
-				chainId: 1,
-				orderbookAddress: '0x789',
-				config: {},
-				removeOrderCalldata: '0x123'
-			})
-		);
+					chainId: 1,
+					orderbookAddress: '0x789',
+					config: {},
+					removeOrderCalldata: '0x123'
+				})
+			);
+		});
 	});
 
 	it('closes modal and resets transaction store', async () => {
@@ -59,12 +60,23 @@ describe('OrderRemoveModal', () => {
 		expect(resetSpy).toHaveBeenCalled();
 	});
 
-	it('calls onRemove callback after successful transaction', async () => {
+		it('calls onRemove callback after successful transaction', async () => {
+		// Use real timers for this test
+		vi.useRealTimers();
+		
 		render(OrderRemoveModal, defaultProps);
+		const onRemoveSpy = vi.fn();
+		defaultProps.args.onRemove = onRemoveSpy;
 
+		// Trigger successful transaction
 		transactionStore.transactionSuccess('0x123');
-		await vi.runAllTimersAsync();
-
-		expect(defaultProps.args.onRemove).toHaveBeenCalled();
+		
+		// Wait for the setTimeout to complete (with a bit of buffer)
+		await new Promise(resolve => setTimeout(resolve, 5100));
+		
+		expect(onRemoveSpy).toHaveBeenCalled();
+		
+		// Reset to fake timers for other tests
+		vi.useFakeTimers();
 	});
 });
