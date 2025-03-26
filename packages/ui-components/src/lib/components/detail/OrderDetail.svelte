@@ -155,14 +155,12 @@
 													<VaultActionButton
 														action="deposit"
 														{vault}
-														onSuccess={async () => await invalidateIdQuery(queryClient, orderHash)}
 														testId="deposit-button"
 														on:deposit
 													/>
 													<VaultActionButton
 														action="withdraw"
 														{vault}
-														onSuccess={async () => await invalidateIdQuery(queryClient, orderHash)}
 														testId="withdraw-button"
 														on:withdraw
 													/>
