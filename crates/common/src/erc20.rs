@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use alloy::primitives::U256;
-use alloy::sol_types::sol_data::Address;
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
@@ -15,7 +14,6 @@ use alloy_ethers_typecast::{
     transaction::ReadContractParametersBuilderError,
 };
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_metaboard_subgraph::schema::__fields::MetaBoard::address;
 use rain_orderbook_bindings::IERC20::{balanceOfCall, decimalsCall, nameCall, symbolCall};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
