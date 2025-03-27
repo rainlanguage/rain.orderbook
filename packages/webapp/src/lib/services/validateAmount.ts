@@ -11,7 +11,7 @@ import { test } from '@fast-check/vitest';
 
 export function validateAmount(
 	amount: bigint,
-	balance: bigint,
+	balance: bigint
 ): {
 	isValid: boolean;
 	isZero: boolean;
@@ -40,25 +40,25 @@ export function validateAmount(
 if (import.meta.vitest) {
 	const { expect } = import.meta.vitest;
 
-	test.prop([
-		fc.bigInt(),
-		fc.bigInt(), 
-	])('validates amounts against balances correctly', (amount, balance) => {
-		const result = validateAmount(amount, balance);
+	test.prop([fc.bigInt(), fc.bigInt()])(
+		'validates amounts against balances correctly',
+		(amount, balance) => {
+			const result = validateAmount(amount, balance);
 
-		expect(result.isZero).toBe(amount <= 0n);
-		expect(result.exceedsBalance).toBe(amount > balance);
-		expect(result.isValid).toBe(amount > 0n && amount <= balance);
+			expect(result.isZero).toBe(amount <= 0n);
+			expect(result.exceedsBalance).toBe(amount > balance);
+			expect(result.isValid).toBe(amount > 0n && amount <= balance);
 
-		if (amount <= 0n) {
-			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toContain('greater than zero');
-		} else if (amount > balance) {
-			expect(result.isValid).toBe(false);
-			expect(result.errorMessage).toContain('exceed available balance');
-		} else {
-			expect(result.isValid).toBe(true);
-			expect(result.errorMessage).toBeNull();
+			if (amount <= 0n) {
+				expect(result.isValid).toBe(false);
+				expect(result.errorMessage).toContain('greater than zero');
+			} else if (amount > balance) {
+				expect(result.isValid).toBe(false);
+				expect(result.errorMessage).toContain('exceed available balance');
+			} else {
+				expect(result.isValid).toBe(true);
+				expect(result.errorMessage).toBeNull();
+			}
 		}
-	});
+	);
 }
