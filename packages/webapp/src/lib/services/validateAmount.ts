@@ -12,7 +12,6 @@ import { test } from '@fast-check/vitest';
 export function validateAmount(
 	amount: bigint,
 	balance: bigint,
-	action: 'deposit' | 'withdraw'
 ): {
 	isValid: boolean;
 	isZero: boolean;
@@ -44,9 +43,8 @@ if (import.meta.vitest) {
 	test.prop([
 		fc.bigInt(),
 		fc.bigInt(), 
-		fc.constantFrom('deposit', 'withdraw')
-	])('validates amounts against balances correctly', (amount, balance, action) => {
-		const result = validateAmount(amount, balance, action);
+	])('validates amounts against balances correctly', (amount, balance) => {
+		const result = validateAmount(amount, balance);
 
 		expect(result.isZero).toBe(amount <= 0n);
 		expect(result.exceedsBalance).toBe(amount > balance);

@@ -125,8 +125,7 @@
 
 	$: validation = validateAmount(
 		amount,
-		action === 'deposit' ? userBalance : BigInt(vault.balance),
-		actionType
+		action === 'deposit' ? userBalance : BigInt(vault.balance)
 	);
 </script>
 
