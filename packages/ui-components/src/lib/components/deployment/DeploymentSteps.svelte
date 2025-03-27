@@ -2,7 +2,6 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import { type ConfigSource, type TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
@@ -23,6 +22,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
@@ -274,16 +274,17 @@
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					{#if showAdvancedOptions}
