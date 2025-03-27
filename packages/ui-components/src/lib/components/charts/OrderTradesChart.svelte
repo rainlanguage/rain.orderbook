@@ -4,6 +4,7 @@
 	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
+	import { bigintToFloat } from '$lib/utils/number';
 
 	export let id: string;
 	export let subgraphUrl: string;
@@ -27,13 +28,17 @@
 		},
 		enabled: !!subgraphUrl
 	});
+
+	const Chart = TanstackLightweightChartLine;
 </script>
 
-<TanstackLightweightChartLine
-	title="Trades"
-	{query}
-	timeTransform={(d) => d.time}
-	valueTransform={(d) => d.value}
-	emptyMessage="No trades found"
-	{lightweightChartsTheme}
-/>
+{#if $query.data}
+	<Chart
+		title="Trades"
+		{query}
+		timeTransform={(d) => d.time}
+		valueTransform={(d) => bigintToFloat(BigInt(d.outputAmount), 18)}
+		emptyMessage="No trades found"
+		{lightweightChartsTheme}
+	/>
+{/if}

@@ -32,6 +32,8 @@
 	const Chart = TanstackLightweightChartLine<
 		SgWithdrawal | SgDeposit | SgTradeVaultBalanceChange | SgClearBounty
 	>;
+
+	$: console.log($query.data);
 </script>
 
 {#if vault && $query.data}
