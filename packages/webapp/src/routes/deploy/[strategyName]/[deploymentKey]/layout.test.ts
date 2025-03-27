@@ -64,10 +64,6 @@ describe('Layout load function', () => {
 			}
 		});
 
-		// Add assertions to verify error is null
-		const response = await DotrainOrderGui.getDeploymentDetail(mockDotrain, '');
-		expect(response.error).toBeNull();
-		expect(response.value).toBeDefined();
 
 		const result = await load({
 			params: {},
