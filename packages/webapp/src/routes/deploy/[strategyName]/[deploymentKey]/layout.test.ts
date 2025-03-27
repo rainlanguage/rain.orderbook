@@ -16,12 +16,10 @@ describe('Layout load function', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 
-		// Mock the parent function to return the dotrain value
 		mockParent.mockResolvedValue({ dotrain: mockDotrain });
 	});
 
 	it('should load deployment details successfully', async () => {
-		// Set up the mock implementation for this specific test
 		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
 			error: null,
 			value: {
@@ -54,8 +52,6 @@ describe('Layout load function', () => {
 	});
 
 	it('should handle empty deploymentKey', async () => {
-		// Set up the mock implementation for this specific test
-
 		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
 			error: null,
 			value: {
@@ -63,7 +59,6 @@ describe('Layout load function', () => {
 				description: ''
 			}
 		});
-
 
 		const result = await load({
 			params: {},
@@ -85,7 +80,6 @@ describe('Layout load function', () => {
 	});
 
 	it('should throw an error when getDeploymentDetail returns an error', async () => {
-		// Test with resolved promise but with error object
 		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
 			error: { msg: 'Deployment not found' },
 			value: null
