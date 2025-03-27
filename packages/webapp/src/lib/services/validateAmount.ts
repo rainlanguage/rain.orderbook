@@ -5,10 +5,8 @@ import { test } from '@fast-check/vitest';
  *
  * @param amount The amount being entered
  * @param balance The available balance
- * @param action The action type ('deposit' or 'withdraw')
  * @returns Validation results object
  */
-
 export function validateAmount(
 	amount: bigint,
 	balance: bigint
