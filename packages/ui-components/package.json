@@ -83,8 +83,5 @@
 		"uuid": "9.0.1",
 		"viem": "2.22.8",
 		"wagmi": "2.14.7"
-	},
-	"optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.9.5"
-  	}
+	}
 }
