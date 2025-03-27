@@ -47,7 +47,7 @@
     "install": "0.13.0",
     "lightweight-charts": "4.2.1",
     "npm": "10.9.0",
-    "svelte-codemirror-editor": "1.4.0",
+    "svelte-codemirror-editor": "1.4.1",
     "svelte-markdown": "0.4.1",
     "thememirror": "2.0.1",
     "uuid": "9.0.1"
