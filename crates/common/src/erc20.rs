@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
@@ -13,7 +14,8 @@ use alloy_ethers_typecast::{
     transaction::ReadContractParametersBuilderError,
 };
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
+use rain_metaboard_subgraph::schema::__fields::MetaBoard::address;
+use rain_orderbook_bindings::IERC20::{balanceOfCall, decimalsCall, nameCall, symbolCall};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -98,6 +100,24 @@ impl ERC20 {
             .await
             .map_err(|err| Error::ReadableClientError {
                 msg: format!("address: {}", self.address),
+                source: err,
+            })?
+            ._0)
+    }
+
+    pub async fn balance_of(&self, account: Address) -> Result<U256, Error> {
+        let client = self.get_client().await?;
+        let parameters = ReadContractParameters {
+            address: self.address,
+            call: balanceOfCall { account: account },
+            block_number: None,
+            gas: None,
+        };
+        Ok(client
+            .read(parameters)
+            .await
+            .map_err(|err| Error::ReadableClientError {
+                msg: format!("account balance: {}", self.address),
                 source: err,
             })?
             ._0)
