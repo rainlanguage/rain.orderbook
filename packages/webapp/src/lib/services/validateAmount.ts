@@ -7,6 +7,7 @@ import { test } from '@fast-check/vitest';
  * @param balance The available balance
  * @returns Validation results object
  */
+
 export function validateAmount(
 	amount: bigint,
 	balance: bigint
@@ -36,7 +37,7 @@ export function validateAmount(
 }
 
 if (import.meta.vitest) {
-	const { expect } = import.meta.vitest;
+	const { expect, it } = import.meta.vitest;
 
 	test.prop([fc.bigInt(), fc.bigInt()])(
 		'validates amounts against balances correctly',
@@ -59,4 +60,39 @@ if (import.meta.vitest) {
 			}
 		}
 	);
+
+	it('handles edge cases correctly', () => {
+		// Test with zero amount
+		expect(validateAmount(0n, 100n)).toEqual({
+			isValid: false,
+			isZero: true,
+			exceedsBalance: false,
+			errorMessage: 'Amount must be greater than zero.'
+		});
+
+		// Test with negative amount
+		expect(validateAmount(-1n, 100n)).toEqual({
+			isValid: false,
+			isZero: true,
+			exceedsBalance: false,
+			errorMessage: 'Amount must be greater than zero.'
+		});
+
+		// Test with amount equal to balance
+		expect(validateAmount(100n, 100n)).toEqual({
+			isValid: true,
+			isZero: false,
+			exceedsBalance: false,
+			errorMessage: null
+		});
+
+		// Test with very large numbers
+		const maxBigInt = BigInt(Number.MAX_SAFE_INTEGER);
+		expect(validateAmount(maxBigInt, maxBigInt)).toEqual({
+			isValid: true,
+			isZero: false,
+			exceedsBalance: false,
+			errorMessage: null
+		});
+	});
 }
