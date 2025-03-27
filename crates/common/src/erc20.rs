@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use alloy::primitives::U256;
+use alloy::sol_types::sol_data::Address;
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
@@ -37,6 +38,7 @@ pub struct ERC20 {
     pub rpc_url: Url,
     pub address: Address,
 }
+
 impl ERC20 {
     pub fn new(rpc_url: Url, address: Address) -> Self {
         Self { rpc_url, address }
