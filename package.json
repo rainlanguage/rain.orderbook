@@ -75,6 +75,7 @@
         "tauri-app"
     ],
     "dependencies": {
+        "@fast-check/vitest": "^0.2.0",
         "@rainlanguage/orderbook": "workspace:*",
         "@rainlanguage/ui-components": "workspace:*",
         "@reown/appkit": "^1.6.4",
