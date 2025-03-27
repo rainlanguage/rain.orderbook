@@ -55,7 +55,7 @@
 	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
-	let selectTokens: GuiSelectTokensCfg[] = [];
+	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
@@ -237,6 +237,7 @@
 				throw new Error(areAllTokensSelectedResult.error.msg);
 			}
 			allTokensSelected = areAllTokensSelectedResult.value;
+			if (!allTokensSelected) return;
 
 			const getAllTokenInfosResult = await gui.getAllTokenInfos();
 			if (getAllTokenInfosResult.error) {
