@@ -555,11 +555,11 @@ deployments:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateDeployment".to_string(), "deployers".to_string())
+            YamlError::KeyShadowing("DuplicateDeployment".to_string(), "deployments".to_string())
         );
         assert_eq!(
             error.to_readable_msg(),
-            "The key 'DuplicateDeployment' is defined multiple times in your YAML configuration at deployers"
+            "The key 'DuplicateDeployment' is defined multiple times in your YAML configuration at deployments"
         );
     }
 
