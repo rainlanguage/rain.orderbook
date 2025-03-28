@@ -167,7 +167,7 @@ impl DotrainOrderGui {
     pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
-        let token_keys = match select_tokens.0.is_empty() {
+        let token_keys = match select_tokens.is_empty() {
             true => {
                 let order_key = DeploymentCfg::parse_order_key(
                     self.dotrain_order.dotrain_yaml().documents,
@@ -179,7 +179,6 @@ impl DotrainOrderGui {
                 )?
             }
             false => select_tokens
-                .0
                 .iter()
                 .map(|token| token.key.clone())
                 .collect(),

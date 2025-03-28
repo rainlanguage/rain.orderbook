@@ -7,7 +7,6 @@ describe('handleGuiInitialization', () => {
 	let guiInstance: DotrainOrderGui;
 	const mockDotrain = 'mockDotrain';
 	const mockDeploymentKey = 'mockDeploymentKey';
-	const mockGui = { id: 'mockGui' };
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -15,12 +14,11 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should initialize GUI with state from URL when valid', async () => {
-		(DotrainOrderGui.deserializeState as Mock).mockResolvedValue(mockGui);
-
+		(DotrainOrderGui.prototype.deserializeState as Mock).mockImplementation(() => ({ value: {} }));
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'validStateUrl');
 
-		expect(result).toEqual({ gui: mockGui, error: null });
-		expect(DotrainOrderGui.deserializeState).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: guiInstance, error: null });
+		expect(DotrainOrderGui.prototype.deserializeState).toHaveBeenCalledWith(
 			mockDotrain,
 			'validStateUrl',
 			pushGuiStateToUrlHistory
@@ -29,7 +27,9 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should fall back to chooseDeployment when deserializeState fails', async () => {
-		(DotrainOrderGui.deserializeState as Mock).mockRejectedValue(new Error('deserialize failed'));
+		(DotrainOrderGui.prototype.deserializeState as Mock).mockReturnValue({
+			error: { msg: 'deserialize failed' }
+		});
 		(DotrainOrderGui.prototype.chooseDeployment as Mock).mockResolvedValue(
 			{} as WasmEncodedResult<void>
 		);
@@ -37,7 +37,7 @@ describe('handleGuiInitialization', () => {
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'invalidStateUrl');
 
 		expect(result).toEqual({ gui: guiInstance, error: null });
-		expect(DotrainOrderGui.deserializeState).toHaveBeenCalled();
+		expect(DotrainOrderGui.prototype.deserializeState).toHaveBeenCalled();
 		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
@@ -51,7 +51,7 @@ describe('handleGuiInitialization', () => {
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 
 		expect(result).toEqual({ gui: guiInstance, error: null });
-		expect(DotrainOrderGui.deserializeState).not.toHaveBeenCalled();
+		expect(DotrainOrderGui.prototype.deserializeState).not.toHaveBeenCalled();
 		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
@@ -60,7 +60,9 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should handle errors and return error message', async () => {
-		(guiInstance.chooseDeployment as Mock).mockRejectedValue(new Error('deployment failed'));
+		(guiInstance.chooseDeployment as Mock).mockReturnValue({
+			error: { msg: 'deployment failed' }
+		});
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 

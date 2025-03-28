@@ -11,8 +11,7 @@ vi.mock('codemirror-rainlang', () => ({
 
 vi.mock('@rainlanguage/orderbook/js_api', () => {
 	const DotrainOrderGui = vi.fn();
-	// @ts-expect-error - this is a mock
-	DotrainOrderGui.deserializeState = vi.fn();
+	DotrainOrderGui.prototype.deserializeState = vi.fn();
 	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
 	return {
 		DotrainOrderGui

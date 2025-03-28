@@ -7,16 +7,15 @@ export async function handleGuiInitialization(
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
 	try {
-		let gui = new DotrainOrderGui();
+		const gui = new DotrainOrderGui();
 		let result: WasmEncodedResult<void>;
 
 		if (stateFromUrl) {
 			try {
-				gui = await DotrainOrderGui.deserializeState(
-					dotrain,
-					stateFromUrl,
-					pushGuiStateToUrlHistory
-				);
+				result = await gui.deserializeState(dotrain, stateFromUrl, pushGuiStateToUrlHistory);
+				if (result.error) {
+					throw new Error(result.error.msg);
+				}
 			} catch {
 				result = await gui.chooseDeployment(dotrain, deploymentKey, pushGuiStateToUrlHistory);
 				if (result.error) {

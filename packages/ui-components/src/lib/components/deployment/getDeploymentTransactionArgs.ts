@@ -34,8 +34,11 @@ export async function getDeploymentTransactionArgs(
 		throw new Error(AddOrderErrors.NO_WALLET);
 	}
 
-	const { approvals, deploymentCalldata, orderbookAddress, chainId } =
-		await gui.getDeploymentTransactionArgs(address);
+	const result = await gui.getDeploymentTransactionArgs(address);
+	if (result.error) {
+		throw new Error(result.error.msg);
+	}
+	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
 
 	return {
 		approvals,
