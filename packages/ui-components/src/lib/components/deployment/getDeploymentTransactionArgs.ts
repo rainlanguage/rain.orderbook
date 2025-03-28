@@ -34,11 +34,9 @@ export async function getDeploymentTransactionArgs(
 	if (!address) {
 		throw new Error(AddOrderErrors.NO_WALLET);
 	}
-	try {
-		const { approvals, deploymentCalldata, orderbookAddress, chainId } =
-			await gui.getDeploymentTransactionArgs(address);
 
 	const result = await gui.getDeploymentTransactionArgs(address);
+	console.log('result', result);
 	if (result.error) {
 		throw new Error(result.error.msg);
 	}
