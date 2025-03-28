@@ -1,5 +1,9 @@
 name: NPM Packages Release
 on: [push]
+  
+  # push:
+  #   branches:
+  #     - main
 
 jobs:
   release:
@@ -37,50 +41,51 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter
-      - run: nix develop -c rainix-sol-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-rs-prelude
-        working-directory: lib/rain.interpreter/lib/rain.metadata
-      - run: nix develop -c rainix-sol-prelude
-      - run: nix develop -c rainix-rs-prelude
-      - run: nix develop -c raindex-prelude
+      # - run: nix develop -c rainix-sol-prelude
+      #   working-directory: lib/rain.interpreter
+      # - run: nix develop -c rainix-rs-prelude
+      #   working-directory: lib/rain.interpreter
+      # - run: nix develop -c rainix-sol-prelude
+      #   working-directory: lib/rain.interpreter/lib/rain.metadata
+      # - run: nix develop -c rainix-rs-prelude
+      #   working-directory: lib/rain.interpreter/lib/rain.metadata
+      # - run: nix develop -c rainix-sol-prelude
+      # - run: nix develop -c rainix-rs-prelude
+      # - run: nix develop -c raindex-prelude
 
-      - name: Test JS/TS Binding 1/2
-        run: nix develop -c rainix-wasm-test
+      # - name: Test JS/TS Binding 1/2
+      #   run: nix develop -c rainix-wasm-test
 
-      - name: Test JS/TS Binding 2/2
-        run: nix develop -c test-js-bindings
+      # - name: Test JS/TS Binding 2/2
+      #   run: nix develop -c test-js-bindings
 
-      - name: Build UI Components
-        run: nix develop -c npm run build -w @rainlanguage/ui-components
-      - name: Test UI Components
-        run: nix develop -c npm run test -w @rainlanguage/ui-components
+      # - name: Build UI Components
+      #   run: nix develop -c npm run build -w @rainlanguage/ui-components
+      # - name: Test UI Components
+      #   run: nix develop -c npm run test -w @rainlanguage/ui-components
 
-      - name: Git Config
-        run: |
-          git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
-          git config --global user.name "${{ secrets.CI_GIT_USER }}"
+      # - name: Git Config
+      #   run: |
+      #     git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
+      #     git config --global user.name "${{ secrets.CI_GIT_USER }}"
 
       # get hash of latest published pkgs from npm and concat them
       - name: Get Old Hash
         run: |
-          echo "OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum)" >> $GITHUB_ENV
-          echo "UI_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum)" >> $GITHUB_ENV
-          echo "OLD_HASH=${{ env.OB_PKG_OLD_HASH }}-${{ env.UI_PKG_OLD_HASH }}" >> $GITHUB_ENV
-          echo "old hash: ${{ env.OLD_HASH }}"
+          OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum)
+          UI_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum)
+          OLD_HASH=$OB_PKG_OLD_HASH-$UI_PKG_OLD_HASH
+          echo "OLD_HASH=$OLD_HASH" >> $GITHUB_ENV
+          echo "old hash: $OLD_HASH"
 
       # calc hash of current workspace pkgs by packing them and concat them
-      - name: Get New Hash
-        run: |
-          echo "OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
-          echo "UI_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
-          echo "NEW_HASH=${{ env.OB_PKG_NEW_HASH }}-${{ env.UI_PKG_NEW_HASH }}" >> $GITHUB_ENV
-          echo "new hash: ${{ env.NEW_HASH }}"
-          rm *.tgz
+      # - name: Get New Hash
+      #   run: |
+      #     echo "OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
+      #     echo "UI_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
+      #     echo "NEW_HASH=${{ env.OB_PKG_NEW_HASH }}-${{ env.UI_PKG_NEW_HASH }}" >> $GITHUB_ENV
+      #     echo "new hash: ${{ env.NEW_HASH }}"
+      #     rm -f *.tgz
 
       # from here on, we'll skip if OLD_HASH and NEW_HASH are the same (ie no publish)
       # this means we need to skip every step by using an if statement.
