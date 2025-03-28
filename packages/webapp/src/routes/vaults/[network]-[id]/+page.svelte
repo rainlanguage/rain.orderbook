@@ -9,9 +9,9 @@
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	const queryClient = useQueryClient();
+	import { lightweightChartsTheme } from '$lib/darkMode';
 
-	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
-		$page.data.stores;
+	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
