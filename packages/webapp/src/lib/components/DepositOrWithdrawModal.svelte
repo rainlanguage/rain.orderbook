@@ -37,9 +37,6 @@
 
 	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
 
-	type Action = 'deposit' | 'withdraw';
-	const actionType = action as Action;
-
 	let currentStep = 1;
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;

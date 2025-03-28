@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, fireEvent, screen, waitFor, cleanup } from '@testing-library/svelte';
+import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
