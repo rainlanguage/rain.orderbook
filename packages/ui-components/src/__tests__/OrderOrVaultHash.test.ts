@@ -66,4 +66,20 @@ describe('OrderOrVaultHash', () => {
 
 		expect(mockUpdateFn).toHaveBeenCalledWith(mockSubgraphName);
 	});
+
+		it('constructs correct href for order navigation', () => {
+		const { container } = render(OrderOrVaultHash, {
+			props: {
+				type: 'orders',
+				orderOrVault: mockOrder,
+				network: mockSubgraphName,
+				updateActiveNetworkAndOrderbook: mockUpdateFn
+			}
+		});
+
+		const anchor = container.querySelector('a');
+		expect(anchor).toBeTruthy();
+		expect(anchor?.getAttribute('href')).toBe('/orders/test-subgraph-0x123abc');
+	});
+
 });
