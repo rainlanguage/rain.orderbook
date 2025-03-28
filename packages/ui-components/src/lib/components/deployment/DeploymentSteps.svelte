@@ -301,7 +301,7 @@
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
 						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 

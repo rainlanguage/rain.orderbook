@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
+import { useGui } from '$lib/hooks/useGui';
+import type { ComponentProps } from 'svelte';
+
+type FieldDefinitionInputProps = ComponentProps<FieldDefinitionInput>;
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
 
 describe('FieldDefinitionInput', () => {
 	let guiInstance: DotrainOrderGui;
@@ -26,14 +33,14 @@ describe('FieldDefinitionInput', () => {
 		(DotrainOrderGui.prototype.saveFieldValue as Mock).mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
+		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: guiInstance
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(getByText('Test Field')).toBeTruthy();
@@ -43,9 +50,8 @@ describe('FieldDefinitionInput', () => {
 	it('renders preset buttons', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: guiInstance
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(getByText('Preset 1')).toBeTruthy();
@@ -55,9 +61,8 @@ describe('FieldDefinitionInput', () => {
 	it('handles preset button clicks and triggers state update', async () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: guiInstance
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		await fireEvent.click(getByText('Preset 1'));
@@ -72,9 +77,8 @@ describe('FieldDefinitionInput', () => {
 	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
-				gui: guiInstance
-			}
+				fieldDefinition: { ...mockFieldDefinition, showCustomField: true }
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value');
@@ -95,9 +99,8 @@ describe('FieldDefinitionInput', () => {
 
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: fastExitFieldDef,
-				gui: guiInstance
-			}
+				fieldDefinition: fastExitFieldDef
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(queryByText('Custom')).toBeNull();
@@ -110,9 +113,8 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: guiInstance
-			}
+				}
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
@@ -139,9 +141,8 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: guiInstance
-			}
+				}
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
