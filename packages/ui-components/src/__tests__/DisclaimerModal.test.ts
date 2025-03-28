@@ -22,4 +22,18 @@ describe('DisclaimerModal', () => {
 
 		expect(mockOnAccept).toHaveBeenCalled();
 	});
+
+	it('does not call onAccept when cancel button is clicked', async () => {
+		render(DisclaimerModal, {
+			props: {
+				open: true,
+				onAccept: mockOnAccept
+			}
+		});
+
+		const cancelButton = await screen.findByText('Cancel');
+		await fireEvent.click(cancelButton);
+
+		expect(mockOnAccept).not.toHaveBeenCalled();
+	});
 });
