@@ -110,7 +110,7 @@ impl DotrainAddOrderLsp {
                 };
             } else {
                 bindings_problems.push(Problem {
-                    msg: "undefined deployer address".to_owned(),
+                    msg: "Choose a deployment to get Rainlang diagnostics".to_owned(),
                     position: [0, 0],
                     code: ErrorCode::NativeParserError,
                 });

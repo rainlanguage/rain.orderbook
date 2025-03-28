@@ -39,5 +39,6 @@
 		disabled={false}
 		styles={{ '&': { minHeight: '400px' } }}
 		{rainlangExtension}
+		onTextChange={() => {}}
 	/>
 </div>
