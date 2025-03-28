@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { useGui } from '$lib/hooks/useGui';
+
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
 
 type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
@@ -50,17 +55,17 @@ describe('TokenInput', () => {
 			])
 		});
 
+		(useGui as Mock).mockReturnValue(guiInstance);
+
 		mockProps = {
 			i: 0,
 			label: 'Input',
-			vault: mockInput,
-			gui: guiInstance
+			vault: mockInput
 		} as unknown as TokenIOInputComponentProps;
 		outputMockProps = {
 			i: 0,
 			label: 'Output',
-			vault: mockInput,
-			gui: guiInstance
+			vault: mockInput
 		} as unknown as TokenIOInputComponentProps;
 	});
 
