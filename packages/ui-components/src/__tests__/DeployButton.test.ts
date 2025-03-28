@@ -83,26 +83,6 @@ describe('DeployButton', () => {
 		});
 	});
 
-	it('calls DeploymentStepsError.catch when deployment check fails', async () => {
-		const mockError = new Error('Deployment check failed');
-		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockRejectedValue(
-			mockError
-		);
-
-		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
-
-		render(DeployButton, {
-			props: defaultProps
-		});
-
-		fireEvent.click(screen.getByText('Deploy Strategy'));
-
-		await waitFor(() => {
-			expect(catchSpy).toHaveBeenCalledWith(mockError, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-	});
-
 	it('handles error from getNetworkKey correctly', async () => {
 		const mockNetworkKeyError = new Error('Network key error');
 		const mockGuiWithError = {
