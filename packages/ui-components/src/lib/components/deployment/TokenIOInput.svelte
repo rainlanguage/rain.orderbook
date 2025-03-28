@@ -1,17 +1,15 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import {
-		type OrderIOCfg,
-		type TokenInfo,
-		type DotrainOrderGui
-	} from '@rainlanguage/orderbook/js_api';
+	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
-	export let gui: DotrainOrderGui;
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
