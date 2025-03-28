@@ -9,7 +9,7 @@ import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
 import { get } from 'svelte/store';
 
-export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
+type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
 const { mockWagmiConfigStore, mockSignerAddressStore, mockAppKitModalStore, mockConnectedStore } =
 	await vi.hoisted(() => import('../lib/__mocks__/stores'));
