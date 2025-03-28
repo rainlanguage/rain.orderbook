@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
-import { transactionStore } from '@rainlanguage/ui-components';
-import { signerAddress } from '$lib/stores/wagmi';
+import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
+import { readable } from 'svelte/store';
 
 export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -16,6 +16,13 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultApprovalCalldata: vi.fn().mockResolvedValue({ to: '0x789', data: '0xabc' }),
 	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
 }));
+
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		useAccount: vi.fn()
+	};
+});
 
 vi.mock('@wagmi/core', () => ({
 	readContract: vi.fn(),
@@ -47,7 +54,9 @@ describe('DepositOrWithdrawModal', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		transactionStore.reset();
-		signerAddress.set('0x123');
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x')
+		});
 	});
 
 	it('renders deposit modal correctly', () => {

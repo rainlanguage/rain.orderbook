@@ -40,8 +40,7 @@ describe('ListViewOrderbookFilters', () => {
 		isVaultsPage: false,
 		isOrdersPage: false,
 		query,
-		showMyItemsOnly: writable(false),
-		signerAddress: writable('')
+		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
@@ -94,7 +93,6 @@ describe('ListViewOrderbookFilters', () => {
 	test('shows common components when networks exist', () => {
 		const props = {
 			...defaultProps,
-			signerAddress: writable('0x123'),
 			showMyItemsOnly: writable(true),
 			activeAccountsItems: undefined,
 			accounts: undefined

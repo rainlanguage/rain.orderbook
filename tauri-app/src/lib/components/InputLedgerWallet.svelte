@@ -8,7 +8,7 @@
   import { IconWarning, ButtonLoading } from '@rainlanguage/ui-components';
   import { ledgerWalletAddress, ledgerWalletDerivationIndex } from '$lib/stores/wallets';
   import { Hash, HashType } from '@rainlanguage/ui-components';
-
+  import type { Hex } from 'viem';
   const maskOptions = {
     mask: Number,
     min: 0,
@@ -32,7 +32,7 @@
     if (!$ledgerWalletAddress) {
       isConnecting = true;
       try {
-        const res: string = await getAddressFromLedger(derivationIndex);
+        const res: Hex = await getAddressFromLedger(derivationIndex);
         ledgerWalletAddress.set(res);
         onConnect();
       } catch (e) {
@@ -45,7 +45,7 @@
 
   function ledgerDisconnect() {
     isDisconnecting = true;
-    ledgerWalletAddress.set(undefined);
+    ledgerWalletAddress.set(null);
     ledgerWalletDerivationIndex.set(0);
     isDisconnecting = false;
   }

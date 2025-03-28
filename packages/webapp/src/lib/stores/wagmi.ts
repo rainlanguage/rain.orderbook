@@ -14,11 +14,12 @@ import { type Chain } from '@wagmi/core/chains';
 import { AppKit, createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { supportedChainsList } from '$lib/chains';
+import type { Hex } from 'viem';
 
 export const connected = writable<boolean>(false);
 export const wagmiLoaded = writable<boolean>(false);
 export const chainId = writable<number | null | undefined>(null);
-export const signerAddress = writable<string | null>(null);
+export const signerAddress = writable<Hex | null>(null);
 export const configuredConnectors = writable<CreateConnectorFn[]>([]);
 export const loading = writable<boolean>(true);
 export const appKitModal = writable<AppKit>();
@@ -108,7 +109,7 @@ export const init = async () => {
 			const chain = get(wagmiConfig).chains.find((chain) => chain.id === account.chainId);
 			if (chain) chainId.set(chain.id);
 			connected.set(true);
-			signerAddress.set(account.address.toLowerCase());
+			signerAddress.set(account.address);
 		}
 		loading.set(false);
 	} catch {
@@ -132,7 +133,7 @@ const handleAccountChange = (data: GetAccountReturnType) => {
 			if (chain) chainId.set(chain.id);
 			connected.set(true);
 			loading.set(false);
-			signerAddress.set(data.address.toLowerCase());
+			signerAddress.set(data.address);
 		} else if (data.isDisconnected && get(connected)) {
 			loading.set(false);
 			await disconnectWagmi();
