@@ -315,7 +315,7 @@
 
 					{#if showAdvancedOptions}
 						{#each allDepositFields as deposit}
-							<DepositInput {deposit} {gui} />
+							<DepositInput {deposit} />
 						{/each}
 					{/if}
 
