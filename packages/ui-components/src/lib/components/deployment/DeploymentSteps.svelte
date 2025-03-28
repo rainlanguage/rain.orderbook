@@ -325,7 +325,7 @@
 						{/each}
 
 						{#each allTokenOutputs as output, i}
-							<TokenIOInput {i} label="Output" vault={output} {gui} />
+							<TokenIOInput {i} label="Output" vault={output} />
 						{/each}
 					{/if}
 
