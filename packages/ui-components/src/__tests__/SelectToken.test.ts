@@ -6,7 +6,7 @@ import type { ComponentProps } from 'svelte';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '$lib/hooks/useGui';
 
-export type SelectTokenComponentProps = ComponentProps<SelectToken>;
+type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
 const mockGui: DotrainOrderGui = {
 	saveSelectToken: vi.fn(),
