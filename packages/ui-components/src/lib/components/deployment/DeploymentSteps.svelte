@@ -309,7 +309,7 @@
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
 						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
