@@ -11,7 +11,8 @@ export enum AddOrderErrors {
 	ADD_ORDER_FAILED = 'Failed to add order',
 	MISSING_GUI = 'Order GUI is required',
 	MISSING_CONFIG = 'Wagmi config is required',
-	NO_WALLET = 'No wallet address found'
+	NO_WALLET = 'No wallet address found',
+	ERROR_GETTING_ARGS = 'Error getting deployment transaction args'
 }
 
 export interface HandleAddOrderResult {
@@ -33,14 +34,17 @@ export async function getDeploymentTransactionArgs(
 	if (!address) {
 		throw new Error(AddOrderErrors.NO_WALLET);
 	}
+	try {
+		const { approvals, deploymentCalldata, orderbookAddress, chainId } =
+			await gui.getDeploymentTransactionArgs(address);
 
-	const { approvals, deploymentCalldata, orderbookAddress, chainId } =
-		await gui.getDeploymentTransactionArgs(address);
-
-	return {
-		approvals,
-		deploymentCalldata,
-		orderbookAddress: orderbookAddress as Hex,
-		chainId
-	};
+		return {
+			approvals,
+			deploymentCalldata,
+			orderbookAddress: orderbookAddress as Hex,
+			chainId
+		};
+	} catch (error) {
+		throw new Error(AddOrderErrors.ERROR_GETTING_ARGS);
+	}
 }

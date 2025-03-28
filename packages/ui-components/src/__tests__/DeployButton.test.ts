@@ -8,6 +8,7 @@ import { type HandleAddOrderResult } from '../lib/components/deployment/getDeplo
 import type { ComponentProps } from 'svelte';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 import { useGui } from '../lib/hooks/useGui';
+
 type DeployButtonProps = ComponentProps<DeployButton>;
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -146,5 +147,23 @@ describe('DeployButton', () => {
 		});
 
 		expect(screen.getByTestId('custom-test-id')).toBeInTheDocument();
+	});
+
+	it('handles failed deployment transaction args correctly', async () => {
+		const mockError = new Error('error getting args');
+		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockRejectedValue(
+			mockError
+		);
+
+		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+
+		render(DeployButton, { props: defaultProps });
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		await waitFor(() => {
+			expect(catchSpy).toHaveBeenCalledWith(mockError, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
 	});
 });
