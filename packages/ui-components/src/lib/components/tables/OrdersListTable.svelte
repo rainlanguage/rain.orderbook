@@ -114,7 +114,10 @@
 	}}
 >
 	<svelte:fragment slot="title">
-		<slot name="filters" />
+		<div class="mt-2 flex w-full justify-between">
+			<div class="text-3xl font-medium dark:text-white" data-testid="title">Orders</div>
+			<slot name="filters" />
+		</div>
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
