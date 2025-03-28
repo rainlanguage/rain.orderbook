@@ -65,24 +65,28 @@ jobs:
           git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
           git config --global user.name "${{ secrets.CI_GIT_USER }}"
 
+      # get hash of latest published pkgs from npm and concat them
       - name: Get Old Hash
         run: |
           echo "OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum)" >> $GITHUB_ENV
           echo "UI_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum)" >> $GITHUB_ENV
-          echo "OLD_HASH="${OB_PKG_OLD_HASH}-${UI_PKG_OLD_HASH}"" >> $GITHUB_ENV
-          echo "old hash: $OLD_HASH"
+          echo "OLD_HASH=${{ env.OB_PKG_OLD_HASH }}-${{ env.UI_PKG_OLD_HASH }}" >> $GITHUB_ENV
+          echo "old hash: ${{ env.OLD_HASH }}"
 
+      # calc hash of current workspace pkgs by packing them and concat them
       - name: Get New Hash
         run: |
           echo "OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
           echo "UI_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)" >> $GITHUB_ENV
-          echo "NEW_HASH="${OB_PKG_NEW_HASH}-${UI_PKG_NEW_HASH}"" >> $GITHUB_ENV
-          echo "new hash: $NEW_HASH"
+          echo "NEW_HASH=${{ env.OB_PKG_NEW_HASH }}-${{ env.UI_PKG_NEW_HASH }}" >> $GITHUB_ENV
+          echo "new hash: ${{ env.NEW_HASH }}"
           rm *.tgz
 
-      # # set npm version
+      # from here on, we'll skip if OLD_HASH and NEW_HASH are the same (ie no publish)
+      # this means we need to skip every step by using an if statement.
+      # set npm version
       # - name: Set Version
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: |
       #     npm version prerelease --preid alpha --no-git-tag-version -w @rainlanguage/ui-components -w @rainlanguage/orderbook
       #     echo "NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)" >> $GITHUB_ENV
@@ -90,7 +94,7 @@ jobs:
       # # sometimes the first or second try to update the version fails (npm bug?) so we retry max 5 times to
       # # make sure it updates the version successfully before proceeding and bail out if it failed to update
       # - name: Update orderbook Dependency Version for ui-components
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: |
       #     set -e
       #     current_version() {
@@ -112,7 +116,7 @@ jobs:
 
       # # Commit changes and tag
       # - name: Commit And Tag
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: |
       #     git add "packages/orderbook/package.json"
       #     git add "packages/ui-components/package.json"
@@ -122,7 +126,7 @@ jobs:
 
       # # Push the commit to remote
       # - name: Push Changes To Remote
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: |
       #     git push origin
       #     git push -u origin npm-v${{ env.NEW_VERSION }}
@@ -131,16 +135,16 @@ jobs:
 
       # # Create orderbook npm package tarball
       # - name: Create orderbook NPM Package Tarball
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
 
       # - name: Rename orderbook NPM Package Tarball
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: mv ${{ env.NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
 
       # # publish orderbook pkg to npm
       # - name: Publish orderbook pkg To NPM
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   uses: JS-DevTools/npm-publish@v3
       #   with:
       #     token: ${{ secrets.NPM_TOKEN }}
@@ -149,16 +153,16 @@ jobs:
 
       # # Create npm package tarball for ui-components
       # - name: Create ui-components NPM Package Tarball
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
 
       # - name: Rename ui-components NPM Package Tarball
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   run: mv ${{ env.NPM_PACKAGE }} ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
 
       # # publish ui-components to npm
       # - name: Publish ui-components To NPM
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   uses: JS-DevTools/npm-publish@v3
       #   with:
       #     token: ${{ secrets.NPM_TOKEN }}
@@ -167,7 +171,7 @@ jobs:
 
       # # Create gitHub release with tarballs
       # - name: Create GitHub Release with orderbook pkg
-      #   if: ${{ env.OLD_HASH == env.NEW_HASH }}
+      #   if: ${{ env.OLD_HASH != env.NEW_HASH }}
       #   id: gh_release
       #   uses: softprops/action-gh-release@v2
       #   with:
