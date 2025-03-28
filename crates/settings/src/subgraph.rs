@@ -57,7 +57,10 @@ impl SubgraphCfg {
                 document_hash.get_mut(&StrictYaml::String("subgraphs".to_string()))
             {
                 if subgraphs.contains_key(&StrictYaml::String(key.to_string())) {
-                    return Err(YamlError::KeyShadowing(key.to_string()));
+                    return Err(YamlError::KeyShadowing(
+                        key.to_string(),
+                        "subgraphs".to_string(),
+                    ));
                 }
 
                 subgraphs.insert(
@@ -118,7 +121,10 @@ impl YamlParsableHash for SubgraphCfg {
                     };
 
                     if subgraphs.contains_key(&subgraph_key) {
-                        return Err(YamlError::KeyShadowing(subgraph_key));
+                        return Err(YamlError::KeyShadowing(
+                            subgraph_key,
+                            "subgraphs".to_string(),
+                        ));
                     }
                     subgraphs.insert(subgraph_key, subgraph);
                 }
@@ -284,6 +290,9 @@ subgraphs:
             None,
         )
         .unwrap_err();
-        assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("mainnet".to_string(), "subgraphs".to_string())
+        );
     }
 }
