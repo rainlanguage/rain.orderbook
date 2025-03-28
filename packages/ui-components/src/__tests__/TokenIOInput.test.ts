@@ -43,12 +43,12 @@ describe('TokenInput', () => {
 				}
 			}
 		});
-		(DotrainOrderGui.prototype.getVaultIds as Mock).mockReturnValue(
-			new Map([
+		(DotrainOrderGui.prototype.getVaultIds as Mock).mockReturnValue({
+			value: new Map([
 				['input', ['vault1']],
 				['output', ['vault2']]
 			])
-		);
+		});
 
 		mockProps = {
 			i: 0,
