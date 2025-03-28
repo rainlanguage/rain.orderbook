@@ -38,13 +38,16 @@ export async function getDeploymentTransactionArgs(
 		const { approvals, deploymentCalldata, orderbookAddress, chainId } =
 			await gui.getDeploymentTransactionArgs(address);
 
-		return {
-			approvals,
-			deploymentCalldata,
-			orderbookAddress: orderbookAddress as Hex,
-			chainId
-		};
-	} catch (error) {
-		throw new Error(AddOrderErrors.ERROR_GETTING_ARGS);
+	const result = await gui.getDeploymentTransactionArgs(address);
+	if (result.error) {
+		throw new Error(result.error.msg);
 	}
+	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
+
+	return {
+		approvals,
+		deploymentCalldata,
+		orderbookAddress: orderbookAddress as Hex,
+		chainId
+	};
 }

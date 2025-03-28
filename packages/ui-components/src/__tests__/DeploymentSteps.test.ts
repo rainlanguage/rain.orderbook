@@ -641,14 +641,14 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 		guiInstance = new DotrainOrderGui();
 
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue(false);
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue([]);
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
 		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue('flare');
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue(mockDeployment);
 		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue(false);
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue([]);
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({ value: [] });
 		(DotrainOrderGui.prototype.getCurrentDeploymentDetails as Mock).mockReturnValue({
 			value: {
 				name: 'Test Deployment',
@@ -668,7 +668,9 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(['token1', 'token2']);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: ['token1', 'token2']
+		});
 
 		render(DeploymentSteps, {
 			props: defaultProps
@@ -689,10 +691,12 @@ describe('DeploymentSteps', () => {
 		];
 
 		// Set up specific mocks for this test
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(mockSelectTokens);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue(true);
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue(false);
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
@@ -706,20 +710,22 @@ describe('DeploymentSteps', () => {
 			}
 		});
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue([
-			{
-				address: '0x1',
-				decimals: 18,
-				name: 'Token 1',
-				symbol: 'TKN1'
-			},
-			{
-				address: '0x2',
-				decimals: 18,
-				name: 'Token 2',
-				symbol: 'TKN2'
-			}
-		]);
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
+				{
+					address: '0x1',
+					decimals: 18,
+					name: 'Token 1',
+					symbol: 'TKN1'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		});
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		render(DeploymentSteps, { props: defaultProps });
@@ -741,10 +747,12 @@ describe('DeploymentSteps', () => {
 		];
 
 		// Set up specific mocks for this test
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue(mockSelectTokens);
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue(true);
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue(false);
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
@@ -758,20 +766,22 @@ describe('DeploymentSteps', () => {
 			}
 		});
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue([
-			{
-				address: '0x1',
-				decimals: 18,
-				name: 'Token 1',
-				symbol: 'TKN1'
-			},
-			{
-				address: '0x2',
-				decimals: 18,
-				name: 'Token 2',
-				symbol: 'TKN2'
-			}
-		]);
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
+				{
+					address: '0x1',
+					decimals: 18,
+					name: 'Token 1',
+					symbol: 'TKN1'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		});
 
 		const user = userEvent.setup();
 
@@ -789,19 +799,23 @@ describe('DeploymentSteps', () => {
 
 		let selectTokenInput = screen.getAllByRole('textbox')[0];
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
-			address: '0x1',
-			decimals: 18,
-			name: 'Token 1',
-			symbol: 'TKN1'
+			value: {
+				address: '0x1',
+				decimals: 18,
+				name: 'Token 1',
+				symbol: 'TKN1'
+			}
 		});
 		await user.type(selectTokenInput, '0x1');
 
 		const selectTokenOutput = screen.getAllByRole('textbox')[1];
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
-			address: '0x2',
-			decimals: 18,
-			name: 'Token 2',
-			symbol: 'TKN2'
+			value: {
+				address: '0x2',
+				decimals: 18,
+				name: 'Token 2',
+				symbol: 'TKN2'
+			}
 		});
 		await user.type(selectTokenOutput, '0x2');
 
@@ -811,27 +825,31 @@ describe('DeploymentSteps', () => {
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
 		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
-			address: '0x3',
-			decimals: 18,
-			name: 'Token 3',
-			symbol: 'TKN3'
-		});
-		await user.type(selectTokenInput, '0x3');
-
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue([
-			{
+			value: {
 				address: '0x3',
 				decimals: 18,
 				name: 'Token 3',
 				symbol: 'TKN3'
-			},
-			{
-				address: '0x2',
-				decimals: 18,
-				name: 'Token 2',
-				symbol: 'TKN2'
 			}
-		]);
+		});
+		await user.type(selectTokenInput, '0x3');
+
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
+				{
+					address: '0x3',
+					decimals: 18,
+					name: 'Token 3',
+					symbol: 'TKN3'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		});
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
