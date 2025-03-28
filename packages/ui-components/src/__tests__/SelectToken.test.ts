@@ -4,22 +4,28 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { useGui } from '$lib/hooks/useGui';
 
 export type SelectTokenComponentProps = ComponentProps<SelectToken>;
+
+const mockGui: DotrainOrderGui = {
+	saveSelectToken: vi.fn(),
+	isSelectTokenSet: vi.fn(),
+	getTokenInfo: vi.fn().mockResolvedValue({
+		symbol: 'ETH',
+		decimals: 18,
+		address: '0x456'
+	})
+} as unknown as DotrainOrderGui;
+
+vi.mock('../lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
+
 describe('SelectToken', () => {
 	let mockStateUpdateCallback: Mock;
-	const mockGui: DotrainOrderGui = {
-		saveSelectToken: vi.fn(),
-		isSelectTokenSet: vi.fn(),
-		getTokenInfo: vi.fn().mockResolvedValue({
-			symbol: 'ETH',
-			decimals: 18,
-			address: '0x456'
-		})
-	} as unknown as DotrainOrderGui;
 
 	const mockProps: SelectTokenComponentProps = {
-		gui: mockGui,
 		token: {
 			key: 'input',
 			name: 'test input',
@@ -53,9 +59,11 @@ describe('SelectToken', () => {
 			...mockGui,
 			getTokenInfo: vi.fn().mockResolvedValue(null)
 		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiWithNoToken);
+
 		const { getByRole } = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithNoToken
+			...mockProps
 		});
 		const input = getByRole('textbox');
 
@@ -75,9 +83,10 @@ describe('SelectToken', () => {
 			saveSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
 		} as unknown as DotrainOrderGui;
 
+		(useGui as Mock).mockReturnValue(mockGuiWithError);
+
 		const screen = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithError
+			...mockProps
 		});
 
 		const input = screen.getByRole('textbox');
@@ -110,11 +119,12 @@ describe('SelectToken', () => {
 			isSelectTokenSet: vi.fn().mockResolvedValue(true)
 		} as unknown as DotrainOrderGui;
 
+		(useGui as Mock).mockReturnValue(mockGuiWithTokenSet);
+
 		const user = userEvent.setup();
 
 		const { getByRole } = render(SelectToken, {
-			...mockProps,
-			gui: mockGuiWithTokenSet
+			...mockProps
 		});
 
 		const input = getByRole('textbox');
