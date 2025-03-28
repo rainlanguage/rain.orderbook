@@ -1565,8 +1565,8 @@ ${dotrainWithoutVaultIds}`;
 			expect(result.error.msg).toBe(
 				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
-			expect(result.error.msg).toBe(
-				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
+			expect(result.error.readableMsg).toBe(
+				"YAML configuration error: Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
