@@ -117,7 +117,7 @@ test('shows the correct data when the query returns data', async () => {
 		expect(screen.getByTestId('vaultDetailTokenAddress')).toHaveTextContent('Token address 0x456');
 		expect(screen.getByTestId('vaultDetailBalance')).toHaveTextContent('Balance 100000 USDC');
 		expect(screen.queryByTestId('vaultDetailOrdersAsInput')).toHaveTextContent('None');
-		expect(screen.queryByTestId('vaulDetailOrdersAsOutput')).toHaveTextContent('None');
+		expect(screen.queryByTestId('vaultDetailOrdersAsOutput')).toHaveTextContent('None');
 	});
 });
 
