@@ -116,7 +116,7 @@ impl YamlParsableHash for DeploymentCfg {
                     if deployments.contains_key(&deployment_key) {
                         return Err(YamlError::KeyShadowing(
                             deployment_key.clone(),
-                            "deployers".to_string(),
+                            "deployments".to_string(),
                         ));
                     }
                     deployments.insert(deployment_key, deployment);
