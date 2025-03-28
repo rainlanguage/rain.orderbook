@@ -4,8 +4,12 @@ import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import type { GuiDepositCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
+import { useGui } from '$lib/hooks/useGui';
 type DepositInputProps = ComponentProps<DepositInput>;
+
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
+}));
 
 describe('DepositInput', () => {
 	let mockStateUpdateCallback: Mock;
@@ -27,6 +31,7 @@ describe('DepositInput', () => {
 		(DotrainOrderGui.prototype.saveDeposit as Mock).mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
+		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
 	it('renders token name and presets', async () => {
@@ -39,8 +44,7 @@ describe('DepositInput', () => {
 
 		const { getByText } = render(DepositInput, {
 			props: {
-				deposit: mockDeposit,
-				gui: guiInstance
+				deposit: mockDeposit
 			} as unknown as DepositInputProps
 		});
 		await waitFor(() => {
@@ -54,8 +58,7 @@ describe('DepositInput', () => {
 	it('handles preset button clicks', async () => {
 		const { getByText } = render(DepositInput, {
 			props: {
-				deposit: mockDeposit,
-				gui: guiInstance
+				deposit: mockDeposit
 			} as unknown as DepositInputProps
 		});
 
@@ -69,7 +72,6 @@ describe('DepositInput', () => {
 		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,
-				gui: guiInstance,
 				onStateUpdate: mockStateUpdateCallback
 			} as unknown as DepositInputProps
 		});

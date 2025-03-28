@@ -1,6 +1,5 @@
 <script lang="ts">
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type TokenDeposit,
 		type TokenInfo
@@ -10,9 +9,12 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	export let deposit: GuiDepositCfg;
-	export let gui: DotrainOrderGui;
+
+	const gui = useGui();
+
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -59,8 +61,7 @@
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			gui?.saveDeposit(deposit.token?.key, preset);
-			gui = gui;
+			gui.saveDeposit(deposit.token?.key, preset);
 
 			try {
 				currentDeposit = getCurrentDeposit();
@@ -74,9 +75,7 @@
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
-				gui = gui;
-
+				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
 				try {
 					currentDeposit = getCurrentDeposit();
 				} catch (e) {
