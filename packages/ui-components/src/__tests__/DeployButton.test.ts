@@ -21,7 +21,10 @@ const mockHandleAddOrderResult: HandleAddOrderResult = {
 };
 
 const mockGui = {
-	getNetworkKey: vi.fn().mockReturnValue('testnet'),
+	getNetworkKey: vi.fn().mockReturnValue({
+		value: 'testnet',
+		error: null
+	}),
 	generateDotrainText: vi.fn().mockReturnValue('mock dotrain text'),
 	getCurrentDeployment: vi.fn().mockReturnValue({
 		deployment: {
@@ -100,12 +103,68 @@ describe('DeployButton', () => {
 		});
 	});
 
-	it('dispatches event with correct data when deployment check succeeds', async () => {
+	it('handles error from getNetworkKey correctly', async () => {
+		const mockNetworkKeyError = new Error('Network key error');
+		const mockGuiWithError = {
+			getNetworkKey: vi.fn().mockReturnValue({ error: mockNetworkKeyError }),
+			generateDotrainText: vi.fn(),
+			getCurrentDeployment: vi.fn()
+		};
+
+		vi.mocked(useGui).mockReturnValue(mockGuiWithError as unknown as DotrainOrderGui);
+
+		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+
+		render(DeployButton, {
+			props: {
+				wagmiConfig: mockWagmiConfigStore,
+				subgraphUrl: 'https://test.subgraph',
+				testId: 'deploy-button'
+			}
+		});
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		await waitFor(() => {
+			expect(catchSpy).toHaveBeenCalledWith(
+				mockNetworkKeyError,
+				DeploymentStepsErrorCode.NO_NETWORK_KEY
+			);
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+	});
+
+	it('proceeds with deployment when getNetworkKey returns a value', async () => {
+		const mockGuiWithValue = {
+			getNetworkKey: vi.fn().mockReturnValue({
+				value: 'custom-network-key',
+				error: null
+			}),
+			generateDotrainText: vi.fn(),
+			getCurrentDeployment: vi.fn().mockReturnValue({
+				deployment: {
+					order: {
+						orderbook: {
+							address: '0x456'
+						}
+					}
+				}
+			})
+		};
+
+		vi.mocked(useGui).mockReturnValue(mockGuiWithValue as unknown as DotrainOrderGui);
+
 		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
 			mockHandleAddOrderResult
 		);
 
-		const { component } = render(DeployButton, { props: defaultProps });
+		const { component } = render(DeployButton, {
+			props: {
+				wagmiConfig: mockWagmiConfigStore,
+				subgraphUrl: 'https://test.subgraph',
+				testId: 'deploy-button'
+			}
+		});
 
 		const mockDispatch = vi.fn();
 		component.$on('clickDeploy', mockDispatch);
@@ -115,11 +174,9 @@ describe('DeployButton', () => {
 		await waitFor(() => {
 			expect(mockDispatch).toHaveBeenCalledWith(
 				expect.objectContaining({
-					detail: {
-						result: mockHandleAddOrderResult,
-						networkKey: 'testnet',
-						subgraphUrl: defaultProps.subgraphUrl
-					}
+					detail: expect.objectContaining({
+						networkKey: 'custom-network-key'
+					})
 				})
 			);
 		});

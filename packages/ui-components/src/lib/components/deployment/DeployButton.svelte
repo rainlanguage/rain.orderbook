@@ -19,12 +19,12 @@
 	}>();
 
 	const gui = useGui();
-	const networkKey = gui.getNetworkKey();
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let subgraphUrl: string;
 	export let testId = 'deploy-button';
 
+	let networkKey: string;
 	let checkingDeployment = false;
 
 	async function handleDeployButtonClick() {
@@ -34,19 +34,24 @@
 		checkingDeployment = true;
 
 		try {
+			const { value: networkKeyValue, error: networkKeyError } = gui.getNetworkKey();
+			if (networkKeyError) {
+				return DeploymentStepsError.catch(networkKeyError, DeploymentStepsErrorCode.NO_NETWORK_KEY);
+			} else {
+				networkKey = networkKeyValue;
+			}
 			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			checkingDeployment = false;
+
+			dispatch('clickDeploy', {
+				result,
+				networkKey,
+				subgraphUrl
+			});
 		} catch (e) {
 			checkingDeployment = false;
 			return DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		}
-
-		checkingDeployment = false;
-
-		dispatch('clickDeploy', {
-			result,
-			networkKey,
-			subgraphUrl
-		});
 	}
 </script>
 
