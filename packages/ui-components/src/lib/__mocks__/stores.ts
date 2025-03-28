@@ -20,7 +20,7 @@ const mockSubgraphUrlWritable = writable<string>('');
 const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
 const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
-const mockConnectedWritable = writable<boolean>(false);
+const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockPageWritable = writable<Page>();
