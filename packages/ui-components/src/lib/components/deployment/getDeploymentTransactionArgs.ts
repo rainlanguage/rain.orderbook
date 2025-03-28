@@ -36,7 +36,6 @@ export async function getDeploymentTransactionArgs(
 	}
 
 	const result = await gui.getDeploymentTransactionArgs(address);
-	console.log('result', result);
 	if (result.error) {
 		throw new Error(result.error.msg);
 	}
