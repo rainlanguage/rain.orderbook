@@ -8,7 +8,8 @@ import type {
 	SgTransaction,
 	RemoveOrderCalldata,
 	SgVault,
-	WithdrawCalldataResult
+	WithdrawCalldataResult,
+	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 import {
 	getTransaction,
@@ -53,7 +54,7 @@ export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 export type DeploymentTransactionArgs = {
 	config: Config;
 	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: string;
+	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
 	subgraphUrl: string;

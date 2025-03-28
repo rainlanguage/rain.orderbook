@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import {
 		type ConfigSource,
 		type GuiSelectTokensCfg,
@@ -28,6 +26,8 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -55,7 +55,7 @@
 	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
-	let selectTokens: GuiSelectTokensCfg[] = [];
+	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
@@ -237,6 +237,7 @@
 				throw new Error(areAllTokensSelectedResult.error.msg);
 			}
 			allTokensSelected = areAllTokensSelectedResult.value;
+			if (!allTokensSelected) return;
 
 			const getAllTokenInfosResult = await gui.getAllTokenInfos();
 			if (getAllTokenInfosResult.error) {
@@ -299,24 +300,33 @@
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+					{#if showAdvancedOptions}
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
+
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}

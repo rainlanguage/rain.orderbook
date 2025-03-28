@@ -586,11 +586,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should remove deposit', async () => {
 			gui.saveDeposit('token1', '50.6');
-			let deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
+			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 1);
 
 			gui.removeDeposit('token1');
-			let depositsAfterRemove = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
+			const depositsAfterRemove = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(depositsAfterRemove.length, 0);
 
 			gui.saveDeposit('token1', '50.6');

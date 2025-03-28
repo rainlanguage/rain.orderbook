@@ -1,6 +1,9 @@
 import type { Config } from '@wagmi/core';
 import { getAccount } from '@wagmi/core';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type {
+	DepositAndAddOrderCalldataResult,
+	DotrainOrderGui
+} from '@rainlanguage/orderbook/js_api';
 import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
@@ -13,7 +16,7 @@ export enum AddOrderErrors {
 
 export interface HandleAddOrderResult {
 	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: string;
+	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
 }
