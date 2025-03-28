@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { Alert } from 'flowbite-svelte';
-	import TokenIOSection from './TokenIOSection.svelte';
-	import DepositsSection from './DepositsSection.svelte';
-	import SelectTokensSection from './SelectTokensSection.svelte';
+	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
 	import {
 		type ConfigSource,
 		type GuiSelectTokensCfg,
@@ -12,7 +9,6 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
-		DotrainOrderGui,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -30,6 +26,11 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
+	import DepositInput from './DepositInput.svelte';
+	import SelectToken from './SelectToken.svelte';
+	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	interface Deployment {
 		key: string;
@@ -41,7 +42,6 @@
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
-	export let gui: DotrainOrderGui;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
 
@@ -54,7 +54,8 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 
-	let selectTokens: GuiSelectTokensCfg[] = [];
+	const gui = useGui();
+	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
 	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
@@ -63,6 +64,7 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
+	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -235,6 +237,7 @@
 				throw new Error(areAllTokensSelectedResult.error.msg);
 			}
 			allTokensSelected = areAllTokensSelectedResult.value;
+			if (!allTokensSelected) return;
 
 			const getAllTokenInfosResult = await gui.getAllTokenInfos();
 			if (getAllTokenInfosResult.error) {
@@ -284,29 +287,46 @@
 				{/if}
 
 				{#if selectTokens && selectTokens.length > 0}
-					<SelectTokensSection {gui} {selectTokens} {onSelectTokenSelect} />
+					<div class="flex w-full flex-col gap-4">
+						<DeploymentSectionHeader
+							title="Select Tokens"
+							description="Select the tokens that you want to use in your order."
+						/>
+						{#each selectTokens as token}
+							<SelectToken {token} {onSelectTokenSelect} {gui} />
+						{/each}
+					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
-					{#if allDepositFields.length > 0 && showAdvancedOptions}
-						<DepositsSection bind:allDepositFields {gui} />
+					{#if showAdvancedOptions}
+						{#each allDepositFields as deposit}
+							<DepositInput {deposit} {gui} />
+						{/each}
 					{/if}
 
-					{#if allTokenInputs.length > 0 && allTokenOutputs.length > 0 && showAdvancedOptions}
-						<TokenIOSection bind:allTokenInputs bind:allTokenOutputs {gui} />
+					{#if showAdvancedOptions}
+						{#each allTokenInputs as input, i}
+							<TokenIOInput {i} label="Input" vault={input} {gui} />
+						{/each}
+
+						{#each allTokenOutputs as output, i}
+							<TokenIOInput {i} label="Output" vault={output} {gui} />
+						{/each}
 					{/if}
 
 					{#if $deploymentStepsError}
@@ -333,7 +353,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
