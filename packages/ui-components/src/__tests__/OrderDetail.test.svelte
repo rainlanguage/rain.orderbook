@@ -3,28 +3,28 @@
 	import CardProperty from '../lib/components/CardProperty.svelte';
 	import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import type { OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import type { OrderWithSortedVaults, SgOrder } from '@rainlanguage/orderbook/js_api';
 	import { getOrderByHash } from '@rainlanguage/orderbook/js_api';
 	import { QKEY_ORDER } from '../lib/queries/keys';
-	import type { Readable } from 'svelte/store';
-	import { Button } from 'flowbite-svelte';
+	import type { Readable, Writable } from 'svelte/store';
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { OrderRemoveModalProps } from '../lib/types/modal';
-	import type { Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { createEventDispatcher } from 'svelte';
+	import RemoveOrderButton from '../lib/components/actions/RemoveOrderButton.svelte';
 
 	const queryClient = useQueryClient();
+	const dispatch = createEventDispatcher<{
+		remove: { order: SgOrder };
+	}>();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
-	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
-		undefined;
 	export let orderHash: string;
 	export let subgraphUrl: string;
+	export let signerAddress: Writable<string>;
 	export let chainId: number;
-	export let orderbookAddress: Hex;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -38,25 +38,13 @@
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
 		<div>Order {data.order.orderHash}</div>
-		{#if data && $walletAddressMatchesOrBlank?.(data.order.owner) && data.order.active && handleOrderRemoveModal}
-			<Button
-				data-testid="remove-button"
-				color="dark"
-				on:click={() =>
-					handleOrderRemoveModal({
-						open: true,
-						args: {
-							order: data.order,
-							onRemove: $orderDetailQuery.refetch,
-							chainId,
-							orderbookAddress,
-							subgraphUrl
-						}
-					})}
-				disabled={!handleOrderRemoveModal}
-			>
-				Remove
-			</Button>
+		{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
+			{#if data.order.active}
+				<RemoveOrderButton
+					order={data.order}
+					on:remove={(e) => dispatch('remove', { order: e.detail.order })}
+				/>
+			{/if}
 		{/if}
 
 		<Refresh
@@ -77,14 +65,16 @@
 							{#each data.vaults.get(type) || [] as vault}
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
 									<svelte:fragment slot="buttons">
-										<DepositOrWithdrawButtons
-											{vault}
-											chainId={1}
-											rpcUrl="https://example.com"
-											query={orderDetailQuery}
-											handleDepositOrWithdrawModal={() => {}}
-											{subgraphUrl}
-										/>
+										{#if $signerAddress === data.order.owner && chainId}
+											<DepositOrWithdrawButtons
+												{vault}
+												chainId={1}
+												rpcUrl="https://example.com"
+												query={orderDetailQuery}
+												handleDepositOrWithdrawModal={() => {}}
+												{subgraphUrl}
+											/>
+										{/if}
 									</svelte:fragment>
 								</ButtonVaultLink>
 							{/each}

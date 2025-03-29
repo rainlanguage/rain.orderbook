@@ -4,14 +4,33 @@
   import { OrderDetail } from '@rainlanguage/ui-components';
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
   import { settings } from '$lib/stores/settings';
-  import { handleDebugTradeModal, handleQuoteDebugModal } from '$lib/services/modal';
+  import {
+    handleDebugTradeModal,
+    handleOrderRemoveModal,
+    handleQuoteDebugModal,
+  } from '$lib/services/modal';
   import type { Hex } from 'viem';
-  const { orderHash, network } = $page.params;
+  import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+  import { useQueryClient } from '@tanstack/svelte-query';
+  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
+  const { orderHash, network } = $page.params;
+  const queryClient = useQueryClient();
   const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
   const subgraphUrl = $settings?.subgraphs?.[network];
   const rpcUrl = $settings?.networks?.[network]?.rpc;
   const chainId = $settings?.networks?.[network]?.['chain-id'];
+
+  function handleRemoveOrder(event: CustomEvent<{ order: SgOrder }>) {
+    const { order } = event.detail;
+    handleOrderRemoveModal(order, () => {
+      queryClient.invalidateQueries({
+        queryKey: [$page.params.orderHash],
+        refetchType: 'all',
+        exact: false,
+      });
+    });
+  }
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -27,5 +46,7 @@
     {handleDebugTradeModal}
     {orderbookAddress}
     {chainId}
+    on:remove={handleRemoveOrder}
+    {walletAddressMatchesOrBlank}
   />
 {/if}
