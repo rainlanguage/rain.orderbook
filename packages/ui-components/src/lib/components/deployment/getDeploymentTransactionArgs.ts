@@ -11,7 +11,8 @@ export enum AddOrderErrors {
 	ADD_ORDER_FAILED = 'Failed to add order',
 	MISSING_GUI = 'Order GUI is required',
 	MISSING_CONFIG = 'Wagmi config is required',
-	NO_WALLET = 'No wallet address found'
+	NO_WALLET = 'No wallet address found',
+	ERROR_GETTING_ARGS = 'Error getting deployment transaction args'
 }
 
 export interface HandleAddOrderResult {
