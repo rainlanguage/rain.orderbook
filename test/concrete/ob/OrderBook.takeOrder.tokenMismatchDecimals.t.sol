@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {TokenDecimalsMismatch} from "src/concrete/ob/OrderBook.sol";
 import {
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     TakeOrdersConfigV3,
     OrderV3,
-    EvaluableV3,
+    EvaluableV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchDecimalsTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -50,9 +50,9 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         // Line up output decimals so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].decimals = a.validOutputs[aOutputIOIndex].decimals;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenDecimalsMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
@@ -89,9 +89,9 @@ contract OrderBookTakeOrderTokenMismatchDecimalsTest is OrderBookExternalRealTes
         // Line up input decimals so we don't trigger that code path.
         b.validInputs[bInputIOIndex].decimals = a.validInputs[aInputIOIndex].decimals;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, "");
         vm.expectRevert(abi.encodeWithSelector(TokenDecimalsMismatch.selector));
         (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);

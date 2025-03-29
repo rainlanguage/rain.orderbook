@@ -2,33 +2,42 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RouteProcessorOrderBookV5ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV5ArbOrderTakerTest.sol";
+import {GenericPoolOrderBookV5ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV5ArbOrderTakerTest.sol";
 import {
-    OrderV3,
+    GenericPoolOrderBookV5ArbOrderTaker,
+    OrderBookV5ArbConfig
+} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
+import {
+    OrderV4,
     EvaluableV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV3,
+    TakeOrdersConfigV4,
     IInterpreterV4,
-    IInterpreterStoreV2,
-    TaskV2,
-    SignedContextV1
+    IInterpreterStoreV3,
+    SignedContextV1,
+    TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {LibNamespace, DEFAULT_STATE_NAMESPACE, WrongTask} from "src/abstract/OrderBookV5ArbCommon.sol";
-import {RouteProcessorOrderBookV5ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
+import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {
+    LibNamespace,
+    DEFAULT_STATE_NAMESPACE,
+    BEFORE_ARB_SOURCE_INDEX,
+    WrongTask
+} from "src/abstract/OrderBookV5ArbCommon.sol";
+import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {
     StateNamespace, FullyQualifiedNamespace
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 
-contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
+contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
         // We're going to test with a mock so it doesn't matter what the expression is.
         return hex"deadbeef";
     }
 
-    /// forge-config: default.fuzz.runs = 100
-    function testRouteProcessorTakeOrdersWrongExpression(
-        OrderV3 memory order,
+    /// forge-config: default.fuzz.runs = 10
+    function testGenericPoolTakeOrdersWrongExpression(
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         EvaluableV4 memory evaluable
@@ -40,16 +49,16 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
 
-    /// forge-config: default.fuzz.runs = 100
-    function testRouteProcessorTakeOrdersExpression(
-        OrderV3 memory order,
+    /// forge-config: default.fuzz.runs = 10
+    function testGenericPoolTakeOrdersExpression(
+        OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex,
         uint256[] memory stack,
@@ -71,14 +80,16 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
 
         if (kvs.length > 0) {
             vm.mockCall(
-                address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns), abi.encode("")
+                address(iInterpreterStore),
+                abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns, kvs),
+                abi.encode("")
             );
-            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV2.set.selector, ns));
+            vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns, kvs));
         }
 
-        RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
+        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV3(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)

@@ -7,14 +7,14 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     ClearConfig,
     OrderV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     IO,
-    OrderConfigV3,
+    OrderConfigV4,
     TakeOrdersConfigV3,
-    EvaluableV3,
+    EvaluableV4,
     SignedContextV1,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
@@ -26,7 +26,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
-        OrderConfigV3 memory config;
+        OrderConfigV4 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -42,23 +42,23 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV1[](0));
+        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
         assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), type(uint256).max);
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](configs.length);
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);
 
         for (uint256 i = 0; i < configs.length; i++) {
             bytes memory bytecode = iParserV2.parse2(configs[i]);
-            EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-            config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
+            EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
+            config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder2(config, new TaskV1[](0));
+            iOrderbook.addOrder2(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
             (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
 
-            orders[i] = TakeOrderConfigV3(order, 0, 0, new SignedContextV1[](0));
+            orders[i] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         }
         TakeOrdersConfigV3 memory takeOrdersConfig = TakeOrdersConfigV3(0, maxInput, type(uint256).max, orders, "");
 

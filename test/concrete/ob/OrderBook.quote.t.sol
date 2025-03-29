@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {IOrderBookV4, Quote} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
 import {
-    OrderConfigV3,
-    EvaluableV3,
-    TaskV1,
+    OrderConfigV4,
+    EvaluableV4,
+    TaskV2,
     OrderV3,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -34,7 +34,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
     function checkQuote(
         address owner,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes[] memory rainlang,
         uint256 depositAmount,
         uint256[] memory expectedMaxOutput,
@@ -57,13 +57,13 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
         vm.prank(owner);
         iOrderbook.deposit2(
-            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV1[](0)
+            config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV2[](0)
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
-            iOrderbook.addOrder2(config, new TaskV1[](0));
+            iOrderbook.addOrder2(config, new TaskV2[](0));
 
             OrderV3 memory order = OrderV3({
                 owner: owner,
@@ -84,7 +84,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
     function checkQuote(
         address owner,
-        OrderConfigV3 memory config,
+        OrderConfigV4 memory config,
         bytes memory rainlang,
         uint256 depositAmount,
         uint256 expectedMaxOutput,
@@ -103,21 +103,21 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteSimple(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
+    function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
         depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
         checkQuote(owner, config, "_ _:1 2;", depositAmount, 1e18, 2e18);
     }
 
     /// The output will be maxed at the deposit in the vault.
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteMaxOutput(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
+    function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
         depositAmount = bound(depositAmount, 1, 1e12);
         checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount * 1e6, 2e18);
     }
 
     /// Can access context.
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteContextSender(address owner, OrderConfigV3 memory config, uint256 depositAmount) external {
+    function testQuoteContextSender(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
         // Max amount needs to be small enough to be scaled up to 18 decimals
         // from 12 decimals.
         depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);

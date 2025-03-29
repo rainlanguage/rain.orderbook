@@ -7,13 +7,13 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {
     ClearConfig,
     OrderV3,
-    TakeOrderConfigV3,
+    TakeOrderConfigV4,
     IO,
-    OrderConfigV3,
-    EvaluableV3,
+    OrderConfigV4,
+    EvaluableV4,
     SignedContextV1,
-    TaskV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 
 /// @title OrderBookClearHandleIORevertTest
@@ -26,7 +26,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
     {
         uint256 vaultId = 0;
 
-        OrderConfigV3 memory config;
+        OrderConfigV4 memory config;
         IO[] memory validOutputs;
         IO[] memory validInputs;
         {
@@ -44,16 +44,16 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit2(outputToken, vaultId, type(uint256).max, new TaskV1[](0));
-        assertEq(iOrderbook.vaultBalance(owner, outputToken, vaultId), type(uint256).max);
+        iOrderbook.deposit3(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
+        assertEq(iOrderbook.vaultBalance2(owner, outputToken, vaultId), type(uint256).max);
 
         bytes memory bytecode = iParserV2.parse2(rainString);
-        EvaluableV3 memory evaluable = EvaluableV3(iInterpreter, iStore, bytecode);
-        config = OrderConfigV3(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
+        EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
+        config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder2(config, new TaskV1[](0));
+        iOrderbook.addOrder2(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
         (,, OrderV3 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV3));
