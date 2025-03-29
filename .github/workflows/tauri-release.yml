@@ -8,6 +8,8 @@ on:
 
 jobs:
   publish-tauri:
+    # prevent releasing again on npm release commit and tag
+    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     permissions:
       id-token: write
       contents: write
