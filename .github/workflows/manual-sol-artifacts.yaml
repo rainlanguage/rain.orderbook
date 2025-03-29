@@ -21,6 +21,8 @@ on:
           - songbird
           - linea
           - matchain
+          - bera
+          - sonic
 
       suite:
         description: "Suite to deploy"
