@@ -7,12 +7,13 @@
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
+	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -23,9 +24,11 @@
 	const chainId = $settings.networks[network]?.['chain-id'];
 
 	let toastOpen: boolean = false;
+	let toastMessage: string = 'Vault balance updated';
 	let counter: number = 5;
 
-	function triggerToast() {
+	function triggerToast(message: string = 'Vault balance updated') {
+		toastMessage = message;
 		toastOpen = true;
 		counter = 5;
 		timeout();
@@ -44,6 +47,35 @@
 		});
 		triggerToast();
 	}
+
+	function handleVaultAction(
+		event: CustomEvent<{ vault: SgVault }>,
+		action: 'deposit' | 'withdraw'
+	) {
+		const { vault } = event.detail;
+
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
+		});
+	}
+
+	const onDeposit = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'deposit');
+	const onWithdraw = (event: CustomEvent<{ vault: SgVault }>) =>
+		handleVaultAction(event, 'withdraw');
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -51,10 +83,11 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		Vault balance updated
+		{toastMessage}
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
+
 <OrderDetail
 	{orderHash}
 	{subgraphUrl}
@@ -65,7 +98,7 @@
 	{orderbookAddress}
 	{chainId}
 	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
-	{handleOrderRemoveModal}
 	{signerAddress}
+	on:deposit={onDeposit}
+	on:withdraw={onWithdraw}
 />

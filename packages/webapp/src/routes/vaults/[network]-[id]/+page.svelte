@@ -2,12 +2,14 @@
 	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+
 	const queryClient = useQueryClient();
 
 	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
@@ -25,6 +27,44 @@
 	function timeout() {
 		if (--counter > 0) return setTimeout(timeout, 1000);
 		toastOpen = false;
+	}
+
+	function handleVaultAction(
+		event: CustomEvent<{ vault: SgVault }>,
+		action: 'deposit' | 'withdraw'
+	) {
+		const { vault } = event.detail;
+
+		const network = $page.params.network;
+		const subgraphUrl = $settings?.subgraphs?.[network] || '';
+		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [$page.params.id],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
+		});
+	}
+
+	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
+		handleVaultAction(event, 'deposit');
+	}
+
+	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
+		handleVaultAction(event, 'withdraw');
 	}
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
@@ -52,9 +92,9 @@
 	network={$page.params.network}
 	{lightweightChartsTheme}
 	{settings}
+	signerAddress={$signerAddress || ''}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
-	{signerAddress}
+	on:deposit={onDeposit}
+	on:withdraw={onWithdraw}
 />

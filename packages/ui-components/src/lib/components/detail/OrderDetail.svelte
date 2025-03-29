@@ -18,11 +18,10 @@
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
+	import VaultActionButton from '../actions/VaultActionButton.svelte';
 	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
-		DepositOrWithdrawModalProps,
 		OrderRemoveModalProps,
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
@@ -31,9 +30,6 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 
-	export let handleDepositOrWithdrawModal:
-		| ((props: DepositOrWithdrawModalProps) => void)
-		| undefined = undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
@@ -154,15 +150,21 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
-												<DepositOrWithdrawButtons
-													{vault}
-													{chainId}
-													{rpcUrl}
-													query={orderDetailQuery}
-													{handleDepositOrWithdrawModal}
-													{subgraphUrl}
-												/>
+											{#if $signerAddress === vault.owner && chainId}
+												<div class="flex gap-1">
+													<VaultActionButton
+														action="deposit"
+														{vault}
+														testId="deposit-button"
+														on:deposit
+													/>
+													<VaultActionButton
+														action="withdraw"
+														{vault}
+														testId="withdraw-button"
+														on:withdraw
+													/>
+												</div>
 											{/if}
 										</svelte:fragment>
 									</ButtonVaultLink>
