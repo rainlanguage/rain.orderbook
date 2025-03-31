@@ -1,5 +1,3 @@
-import type { Config } from '@wagmi/core';
-import { getAccount } from '@wagmi/core';
 import type {
 	DepositAndAddOrderCalldataResult,
 	DotrainOrderGui
@@ -21,6 +19,7 @@ export interface HandleAddOrderResult {
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
+	network: string;
 }
 
 export async function getDeploymentTransactionArgs(

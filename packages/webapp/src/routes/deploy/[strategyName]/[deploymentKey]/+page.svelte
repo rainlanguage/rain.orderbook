@@ -10,6 +10,7 @@
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
+	console.log('settings', $settings);
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	let gui: DotrainOrderGui | null = null;
@@ -32,7 +33,8 @@
 	});
 
 	function handleClickDeploy(e: CustomEvent) {
-		const { result, subgraphUrl, networkKey } = e.detail;
+		const { result } = e.detail;
+		const subgraphUrl = $settings?.subgraphs?.[result.network] ?? '';
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {
@@ -40,8 +42,7 @@
 					open: true,
 					args: {
 						...result,
-						subgraphUrl,
-						network: networkKey
+						subgraphUrl
 					}
 				});
 			}
@@ -57,7 +58,6 @@
 			{strategyDetail}
 			{dotrain}
 			{deployment}
-			{wagmiConfig}
 			wagmiConnected={connected}
 			{appKitModal}
 			{settings}

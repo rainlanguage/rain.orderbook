@@ -2,11 +2,7 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import {
-		type ConfigSource,
-		type GuiSelectTokensCfg,
-		type TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import { type GuiSelectTokensCfg, type TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
@@ -16,7 +12,6 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Toggle } from 'flowbite-svelte';
-	import { type Config } from '@wagmi/core';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
@@ -37,7 +32,6 @@
 		description: string;
 	}
 
-	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
@@ -49,15 +43,13 @@
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
+	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 
 	const gui = useGui();
-	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
-	let networkKey: string = '';
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	const { account } = useAccount();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
-	const { account } = useAccount();
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let signerAddress: Writable<string | null>;
@@ -68,12 +60,6 @@
 			throw new Error(selectTokensResult.error.msg);
 		}
 		selectTokens = selectTokensResult.value;
-
-		const networkKeyResult = gui.getNetworkKey();
-		if (networkKeyResult.error) {
-			throw new Error(networkKeyResult.error.msg);
-		}
-		networkKey = networkKeyResult.value;
 
 		await areAllTokensSelected();
 	});
@@ -283,7 +269,7 @@
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $account}
-							<DeployButton on:clickDeploy {subgraphUrl} />
+							<DeployButton on:clickDeploy />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}

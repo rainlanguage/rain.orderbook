@@ -8,6 +8,7 @@ import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 
 const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -15,6 +16,10 @@ const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = awa
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -626,11 +631,9 @@ const defaultProps: DeploymentStepsProps = {
 		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
 	},
 	deployment: mockDeployment,
-	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
 	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
-	settings: writable({} as ConfigSource)
 };
 
 describe('DeploymentSteps', () => {
@@ -657,6 +660,9 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+		vi.mocked(useAccount).mockReturnValue({
+			account: writable('0x123')
+		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -684,7 +690,11 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	it('shows deploy strategy or wallet connect button when all required fields are filled', async () => {
+	it('shows wallet connect button when all required fields are filled, but no account exists', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: writable(null)
+		});
+
 		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
@@ -726,20 +736,67 @@ describe('DeploymentSteps', () => {
 				}
 			]
 		});
-		mockConnectedStore.mockSetSubscribeValue(true);
 
 		render(DeploymentSteps, { props: defaultProps });
-
-		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-		mockConnectedStore.mockSetSubscribeValue(false);
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
 		});
 	});
 
+it('shows deploy button when all required fields are filled, and account is connected', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: writable('0x123')
+		});
+
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
+
+		// Set up specific mocks for this test
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
+			value: {
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}
+		});
+
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
+				{
+					address: '0x1',
+					decimals: 18,
+					name: 'Token 1',
+					symbol: 'TKN1'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		});
+
+		render(DeploymentSteps, { props: defaultProps });
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+	});
 	it('refreshes field descriptions when tokens change', async () => {
 		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
