@@ -3,9 +3,11 @@
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import { REGISTRY_URL } from '$lib/constants';
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
-	$: customRegistry = $page.url.searchParams.get('registry');
+	const registryUrlParam = $page.url.searchParams.get('registry');
+	$: customRegistry = registryUrlParam && registryUrlParam !== REGISTRY_URL;
 	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
