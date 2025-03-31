@@ -79,9 +79,7 @@ describe('CodeMirrorDotrain', () => {
 			completion: async () => null,
 			diagnostics: async () => []
 		});
-		const onTextChangeMock = vi.fn((value) => {
-			console.log('onTextChangeMock called with:', value);
-		});
+		const onTextChangeMock = vi.fn();
 
 		const { component } = render(CodeMirrorDotrain, {
 			props: {
