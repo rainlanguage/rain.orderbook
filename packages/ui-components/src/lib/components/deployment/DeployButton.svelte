@@ -12,18 +12,14 @@
 	const dispatch = createEventDispatcher<{
 		clickDeploy: {
 			result: HandleAddOrderResult;
-			networkKey: string;
-			subgraphUrl: string;
 		};
 	}>();
 
 	const gui = useGui();
 	const { account } = useAccount();
 
-	export let subgraphUrl: string;
 	export let testId = 'deploy-button';
 
-	let networkKey: string;
 	let checkingDeployment = false;
 
 	async function handleDeployButtonClick() {
@@ -33,19 +29,11 @@
 		checkingDeployment = true;
 
 		try {
-			const { value: networkKeyValue, error: networkKeyError } = gui.getNetworkKey();
-			if (networkKeyError) {
-				return DeploymentStepsError.catch(networkKeyError, DeploymentStepsErrorCode.NO_NETWORK_KEY);
-			} else {
-				networkKey = networkKeyValue;
-			}
 			result = await getDeploymentTransactionArgs(gui, $account);
 			checkingDeployment = false;
 
 			dispatch('clickDeploy', {
-				result,
-				networkKey,
-				subgraphUrl
+				result
 			});
 		} catch (e) {
 			checkingDeployment = false;

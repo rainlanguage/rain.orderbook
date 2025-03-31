@@ -6,25 +6,25 @@ import * as getDeploymentTransactionArgsModule from '../lib/components/deploymen
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { type HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { ComponentProps } from 'svelte';
-import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 import { useGui } from '../lib/hooks/useGui';
+import { useAccount } from '../lib/providers/wallet/useAccount';
+import { writable } from 'svelte/store';
 
 type DeployButtonProps = ComponentProps<DeployButton>;
 
-const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+vi.mock('../lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
 
 const mockHandleAddOrderResult: HandleAddOrderResult = {
 	approvals: [],
 	deploymentCalldata: '0x123',
 	orderbookAddress: '0x456',
-	chainId: 1337
+	chainId: 1337,
+	network: 'testnet'
 };
 
 const mockGui = {
-	getNetworkKey: vi.fn().mockReturnValue({
-		value: 'testnet',
-		error: null
-	}),
 	generateDotrainText: vi.fn().mockReturnValue('mock dotrain text'),
 	getCurrentDeployment: vi.fn().mockReturnValue({
 		deployment: {
@@ -38,8 +38,6 @@ const mockGui = {
 } as unknown as DotrainOrderGui;
 
 const defaultProps: DeployButtonProps = {
-	wagmiConfig: mockWagmiConfigStore,
-	subgraphUrl: 'https://test.subgraph',
 	testId: 'deploy-button'
 };
 
@@ -56,6 +54,9 @@ describe('DeployButton', () => {
 		vi.clearAllMocks();
 		DeploymentStepsError.clear();
 		(useGui as Mock).mockReturnValue(mockGui);
+		(useAccount as Mock).mockReturnValue({
+			account: writable('0x123')
+		});
 	});
 
 	it('renders the deploy button correctly', () => {
@@ -83,85 +84,6 @@ describe('DeployButton', () => {
 		});
 	});
 
-	it('handles error from getNetworkKey correctly', async () => {
-		const mockNetworkKeyError = new Error('Network key error');
-		const mockGuiWithError = {
-			getNetworkKey: vi.fn().mockReturnValue({ error: mockNetworkKeyError }),
-			generateDotrainText: vi.fn(),
-			getCurrentDeployment: vi.fn()
-		};
-
-		vi.mocked(useGui).mockReturnValue(mockGuiWithError as unknown as DotrainOrderGui);
-
-		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
-
-		render(DeployButton, {
-			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				subgraphUrl: 'https://test.subgraph',
-				testId: 'deploy-button'
-			}
-		});
-
-		fireEvent.click(screen.getByText('Deploy Strategy'));
-
-		await waitFor(() => {
-			expect(catchSpy).toHaveBeenCalledWith(
-				mockNetworkKeyError,
-				DeploymentStepsErrorCode.NO_NETWORK_KEY
-			);
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-	});
-
-	it('proceeds with deployment when getNetworkKey returns a value', async () => {
-		const mockGuiWithValue = {
-			getNetworkKey: vi.fn().mockReturnValue({
-				value: 'custom-network-key',
-				error: null
-			}),
-			generateDotrainText: vi.fn(),
-			getCurrentDeployment: vi.fn().mockReturnValue({
-				deployment: {
-					order: {
-						orderbook: {
-							address: '0x456'
-						}
-					}
-				}
-			})
-		};
-
-		vi.mocked(useGui).mockReturnValue(mockGuiWithValue as unknown as DotrainOrderGui);
-
-		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
-			mockHandleAddOrderResult
-		);
-
-		const { component } = render(DeployButton, {
-			props: {
-				wagmiConfig: mockWagmiConfigStore,
-				subgraphUrl: 'https://test.subgraph',
-				testId: 'deploy-button'
-			}
-		});
-
-		const mockDispatch = vi.fn();
-		component.$on('clickDeploy', mockDispatch);
-
-		fireEvent.click(screen.getByText('Deploy Strategy'));
-
-		await waitFor(() => {
-			expect(mockDispatch).toHaveBeenCalledWith(
-				expect.objectContaining({
-					detail: expect.objectContaining({
-						networkKey: 'custom-network-key'
-					})
-				})
-			);
-		});
-	});
-
 	it('calls getDeploymentTransactionArgs with correct arguments', async () => {
 		render(DeployButton, { props: defaultProps });
 
@@ -170,7 +92,7 @@ describe('DeployButton', () => {
 		await waitFor(() => {
 			expect(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).toHaveBeenCalledWith(
 				mockGui,
-				mockWeb3Config
+				'0x123'
 			);
 		});
 	});
@@ -203,4 +125,69 @@ describe('DeployButton', () => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
 	});
+
+it('handles missing account correctly', async () => {
+  (useAccount as Mock).mockReturnValue({
+    account: writable(null)
+  });
+  
+  const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+  render(DeployButton, { props: defaultProps });
+  
+  fireEvent.click(screen.getByText('Deploy Strategy'));
+  
+  await waitFor(() => {
+    // Expect some sort of error handling for missing account
+    expect(catchSpy).toHaveBeenCalledWith(
+      expect.any(Error),
+      DeploymentStepsErrorCode.ADD_ORDER_FAILED
+    );
+  });
+});
+
+it('handles null GUI correctly', async () => {
+  // Mock useGui to return null
+  (useGui as Mock).mockReturnValue(null);
+  
+  const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+  render(DeployButton, { props: defaultProps });
+  
+  fireEvent.click(screen.getByText('Deploy Strategy'));
+  
+  await waitFor(() => {
+    // Expect error handling for missing GUI
+    expect(catchSpy).toHaveBeenCalledWith(
+      expect.any(Error),
+      DeploymentStepsErrorCode.ADD_ORDER_FAILED
+    );
+  });
+});
+
+it('clears deployment error when button is clicked', async () => {
+  const clearSpy = vi.spyOn(DeploymentStepsError, 'clear');
+  render(DeployButton, { props: defaultProps });
+  
+  fireEvent.click(screen.getByText('Deploy Strategy'));
+  
+  expect(clearSpy).toHaveBeenCalled();
+});
+
+it('disables button during checking deployment', async () => {
+  vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
+    () => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
+  );
+  
+  render(DeployButton, { props: defaultProps });
+  
+  const button = screen.getByTestId('deploy-button');
+  fireEvent.click(button);
+  
+  await waitFor(() => {
+    expect(button).toBeDisabled();
+  });
+  
+  await waitFor(() => {
+    expect(button).not.toBeDisabled();
+  }, { timeout: 200 });
+});
 });
