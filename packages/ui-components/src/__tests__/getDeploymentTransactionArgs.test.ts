@@ -3,24 +3,22 @@ import {
 	getDeploymentTransactionArgs,
 	AddOrderErrors
 } from '../lib/components/deployment/getDeploymentTransactionArgs';
-import { getAccount } from '@wagmi/core';
-import type { Config } from '@wagmi/core';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
-// Mock wagmi/core
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
 
 describe('getDeploymentTransactionArgs', () => {
 	let guiInstance: DotrainOrderGui;
-	let mockWagmiConfig: Config;
+	let mockGetDeploymentTransactionArgs: Mock;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
-
-		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValue({
+	
+		mockGetDeploymentTransactionArgs = vi.fn();
+		
+		guiInstance = {
+			getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs
+		} as unknown as DotrainOrderGui;
+		
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: {
 				chainId: 1,
 				orderbookAddress: '0xorderbook',
@@ -28,21 +26,13 @@ describe('getDeploymentTransactionArgs', () => {
 				deploymentCalldata: '0x1'
 			}
 		});
-
-		mockWagmiConfig = {} as Config;
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
 	});
 
 	describe('successful cases', () => {
 		it('should successfully return deployment transaction args', async () => {
-			(DotrainOrderGui.prototype.generateApprovalCalldatas as Mock).mockResolvedValue({
-				value: {
-					Calldatas: [{ token: '0x123', amount: '1000' }]
-				}
-			});
+			const result = await getDeploymentTransactionArgs(guiInstance, '0x123');
 
-			const result = await getDeploymentTransactionArgs(guiInstance, mockWagmiConfig);
-
+			expect(mockGetDeploymentTransactionArgs).toHaveBeenCalledWith('0x123');
 			expect(result).toEqual({
 				approvals: [{ token: '0x123', calldata: '0x1', symbol: 'TEST' }],
 				deploymentCalldata: '0x1',
@@ -53,16 +43,32 @@ describe('getDeploymentTransactionArgs', () => {
 	});
 
 	describe('input validation errors', () => {
-		it('should throw MISSING_CONFIG when wagmiConfig is undefined', async () => {
-			await expect(getDeploymentTransactionArgs(guiInstance, undefined)).rejects.toThrow(
-				AddOrderErrors.MISSING_CONFIG
+		it('should throw NO_ACCOUNT_CONNECTED when wallet address is falsy', async () => {
+			await expect(getDeploymentTransactionArgs(guiInstance, '')).rejects.toThrow(
+				AddOrderErrors.NO_ACCOUNT_CONNECTED
+			);
+			
+			await expect(getDeploymentTransactionArgs(guiInstance, null as unknown as string)).rejects.toThrow(
+				AddOrderErrors.NO_ACCOUNT_CONNECTED
+			);
+			
+			await expect(getDeploymentTransactionArgs(guiInstance, undefined as unknown as string)).rejects.toThrow(
+				AddOrderErrors.NO_ACCOUNT_CONNECTED
 			);
 		});
-
-		it('should throw NO_WALLET when wallet address is not found', async () => {
-			(getAccount as Mock).mockReturnValue({ address: null });
-			await expect(getDeploymentTransactionArgs(guiInstance, mockWagmiConfig)).rejects.toThrow(
-				AddOrderErrors.NO_WALLET
+	});
+	
+	describe('error handling', () => {
+		it('should throw the error message when gui.getDeploymentTransactionArgs returns an error', async () => {
+			const errorMessage = 'Custom error message';
+			mockGetDeploymentTransactionArgs.mockResolvedValue({
+				error: {
+					msg: errorMessage
+				}
+			});
+			
+			await expect(getDeploymentTransactionArgs(guiInstance, '0x123')).rejects.toThrow(
+				errorMessage
 			);
 		});
 	});

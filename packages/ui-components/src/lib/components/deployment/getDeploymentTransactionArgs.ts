@@ -11,7 +11,7 @@ export enum AddOrderErrors {
 	ADD_ORDER_FAILED = 'Failed to add order',
 	MISSING_GUI = 'Order GUI is required',
 	MISSING_CONFIG = 'Wagmi config is required',
-	NO_WALLET = 'No wallet address found',
+	NO_ACCOUNT_CONNECTED = 'No wallet address found',
 	ERROR_GETTING_ARGS = 'Error getting deployment transaction args'
 }
 
@@ -24,18 +24,14 @@ export interface HandleAddOrderResult {
 
 export async function getDeploymentTransactionArgs(
 	gui: DotrainOrderGui,
-	wagmiConfig: Config | undefined
+	account: string | null
 ): Promise<HandleAddOrderResult> {
-	if (!wagmiConfig) {
-		throw new Error(AddOrderErrors.MISSING_CONFIG);
+
+	if (!account) {
+		throw new Error(AddOrderErrors.NO_ACCOUNT_CONNECTED);
 	}
 
-	const { address } = getAccount(wagmiConfig);
-	if (!address) {
-		throw new Error(AddOrderErrors.NO_WALLET);
-	}
-
-	const result = await gui.getDeploymentTransactionArgs(address);
+	const result = await gui.getDeploymentTransactionArgs(account);
 	if (result.error) {
 		throw new Error(result.error.msg);
 	}

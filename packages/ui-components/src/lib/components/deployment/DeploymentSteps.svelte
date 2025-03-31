@@ -29,6 +29,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	interface Deployment {
 		key: string;
@@ -56,7 +57,7 @@
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
-	export let wagmiConfig: Writable<Config | undefined>;
+	const { account } = useAccount();
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let signerAddress: Writable<string | null>;
@@ -281,8 +282,8 @@
 					{/if}
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $wagmiConnected && $wagmiConfig}
-							<DeployButton on:clickDeploy {wagmiConfig} {subgraphUrl} />
+						{#if $account}
+							<DeployButton on:clickDeploy {subgraphUrl} />
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
 						{/if}

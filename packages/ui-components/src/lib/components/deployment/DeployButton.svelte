@@ -6,9 +6,8 @@
 		getDeploymentTransactionArgs,
 		type HandleAddOrderResult
 	} from './getDeploymentTransactionArgs';
-	import type { Writable } from 'svelte/store';
-	import type { Config } from 'wagmi';
 	import { useGui } from '$lib/hooks/useGui';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	const dispatch = createEventDispatcher<{
 		clickDeploy: {
@@ -19,8 +18,8 @@
 	}>();
 
 	const gui = useGui();
+	const { account } = useAccount();
 
-	export let wagmiConfig: Writable<Config | undefined>;
 	export let subgraphUrl: string;
 	export let testId = 'deploy-button';
 
@@ -40,7 +39,7 @@
 			} else {
 				networkKey = networkKeyValue;
 			}
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			result = await getDeploymentTransactionArgs(gui, $account);
 			checkingDeployment = false;
 
 			dispatch('clickDeploy', {
