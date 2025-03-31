@@ -15,8 +15,15 @@
 	</svg>
 	<span>
 		You are using a <span class="font-medium">custom strategies registry. </span>
-		<a href="/deploy" class="font-semibold underline hover:text-blue-800 dark:hover:text-blue-900"
-			>Use default.</a
+		<a
+			on:click={() => {
+				localStorage.removeItem('registry');
+			}}
+			href="/deploy"
+			data-sveltekit-reload
+			class="font-semibold underline hover:text-blue-800 dark:hover:text-blue-900"
 		>
+			Use default.
+		</a>
 	</span>
 </div>

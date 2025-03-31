@@ -5,8 +5,8 @@
 
 	const loadRegistryUrl = () => {
 		window.history.pushState({}, '', window.location.pathname + '?registry=' + newRegistryUrl);
-		window.location.reload();
 		localStorage.setItem('registry', newRegistryUrl);
+		window.location.reload();
 	};
 </script>
 

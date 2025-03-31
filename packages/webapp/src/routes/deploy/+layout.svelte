@@ -5,9 +5,16 @@
 	import { page } from '$app/stores';
 	import { REGISTRY_URL } from '$lib/constants';
 
-	let advancedMode = localStorage.getItem('registry') ? true : false;
-	const registryUrlParam = $page.url.searchParams.get('registry');
-	$: customRegistry = registryUrlParam && registryUrlParam !== REGISTRY_URL;
+	$: advancedMode = localStorage.getItem('registry') ? true : false;
+	$: registrySearchParam = $page.url.searchParams.get('registry');
+	$: if (!registrySearchParam) {
+		localStorage.removeItem('registry');
+	} else {
+		localStorage.setItem('registry', registrySearchParam);
+	}
+	$: registryFromStorage = localStorage.getItem('registry');
+	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
+
 	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
@@ -28,7 +35,7 @@
 	</svelte:fragment>
 </PageHeader>
 <div class="flex flex-col items-end gap-4">
-	{#if advancedMode && isDeployPage}
+	{#if advancedMode && $page.url.pathname === '/deploy'}
 		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
 			<InputRegistryUrl />
 		</div>
