@@ -47,9 +47,6 @@ impl OrderbookYaml {
 
 #[derive(Error, Debug)]
 pub enum OrderbookYamlError {
-    #[error("No deployment selected")]
-    OrderbookNotFound(String),
-
     #[error("Orderbook yaml error: {0}")]
     YamlError(#[from] YamlError),
     #[error("Invalid address: {0}")]
