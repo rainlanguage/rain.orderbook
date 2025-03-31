@@ -8,6 +8,7 @@
 	export let styles = {};
 	export let rainlangExtension: RawRainlangExtension;
 	export let codeMirrorTheme;
+	export let onTextChange: (text: string) => void;
 </script>
 
 <div data-testid="codemirror-dotrain">
@@ -23,6 +24,9 @@
 				width: '100%'
 			},
 			...styles
+		}}
+		on:change={(e) => {
+			onTextChange(e.detail);
 		}}
 		on:ready={(e) => {
 			openLintPanel(e.detail);

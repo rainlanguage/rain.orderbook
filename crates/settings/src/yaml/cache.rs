@@ -6,6 +6,12 @@ pub struct Cache {
     pub remote_networks: HashMap<String, NetworkCfg>,
 }
 impl Cache {
+    pub fn new() -> Self {
+        Self {
+            remote_networks: HashMap::new(),
+        }
+    }
+
     pub fn update_remote_networks(&mut self, remote_networks: HashMap<String, NetworkCfg>) {
         self.remote_networks = remote_networks;
     }

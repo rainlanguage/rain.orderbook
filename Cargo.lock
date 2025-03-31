@@ -6191,7 +6191,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6",
 ]
 
 [[package]]
@@ -6237,7 +6237,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.6",
 ]
 
 [[package]]
@@ -6341,7 +6341,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -6351,7 +6351,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -6418,7 +6418,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -6452,7 +6452,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "tokio",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -6489,7 +6489,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -6513,7 +6513,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.7",
 ]
 
 [[package]]
@@ -8887,6 +8887,33 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1275439b9979266e83596c1d8853fde5efc5f3b7316bf7b4d37fee8b05da26d2"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-utils-macros",
+]
+
+[[package]]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8275f5d18c47b912ec50aba1d89b96695fce856106923474520ac9dfc5ff4370"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]
 
 [[package]]

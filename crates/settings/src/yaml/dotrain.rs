@@ -782,6 +782,10 @@ orders:
                 location: "input index '0' in order 'order1'".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in input index '0' in order 'order1': missing yaml data for token 'token-three'"
+        );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
         let error = dotrain_yaml.get_gui(None).unwrap_err();
@@ -794,6 +798,10 @@ orders:
                 },
                 location: "output index '0' in order 'order1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in output index '0' in order 'order1': missing yaml data for token 'token-three'"
         );
     }
 }
