@@ -309,7 +309,12 @@ const transactionStore = () => {
 			if (subgraphUrl) {
 				return awaitNewOrderIndexing(subgraphUrl, hash, network);
 			}
-			return transactionSuccess(hash, 'Deployment successful. Check the Orders page for your new order.', '', network);
+			return transactionSuccess(
+				hash,
+				'Deployment successful. Check the Orders page for your new order.',
+				'',
+				network
+			);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

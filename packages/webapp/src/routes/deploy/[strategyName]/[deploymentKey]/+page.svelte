@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
-	import { wagmiConfig, connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+	import { connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
@@ -60,7 +60,6 @@
 			{deployment}
 			wagmiConnected={connected}
 			{appKitModal}
-			{settings}
 			{signerAddress}
 			on:clickDeploy={handleClickDeploy}
 		/>

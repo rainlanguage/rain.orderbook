@@ -126,68 +126,71 @@ describe('DeployButton', () => {
 		});
 	});
 
-it('handles missing account correctly', async () => {
-  (useAccount as Mock).mockReturnValue({
-    account: writable(null)
-  });
-  
-  const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
-  render(DeployButton, { props: defaultProps });
-  
-  fireEvent.click(screen.getByText('Deploy Strategy'));
-  
-  await waitFor(() => {
-    // Expect some sort of error handling for missing account
-    expect(catchSpy).toHaveBeenCalledWith(
-      expect.any(Error),
-      DeploymentStepsErrorCode.ADD_ORDER_FAILED
-    );
-  });
-});
+	it('handles missing account correctly', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: writable(null)
+		});
 
-it('handles null GUI correctly', async () => {
-  // Mock useGui to return null
-  (useGui as Mock).mockReturnValue(null);
-  
-  const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
-  render(DeployButton, { props: defaultProps });
-  
-  fireEvent.click(screen.getByText('Deploy Strategy'));
-  
-  await waitFor(() => {
-    // Expect error handling for missing GUI
-    expect(catchSpy).toHaveBeenCalledWith(
-      expect.any(Error),
-      DeploymentStepsErrorCode.ADD_ORDER_FAILED
-    );
-  });
-});
+		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+		render(DeployButton, { props: defaultProps });
 
-it('clears deployment error when button is clicked', async () => {
-  const clearSpy = vi.spyOn(DeploymentStepsError, 'clear');
-  render(DeployButton, { props: defaultProps });
-  
-  fireEvent.click(screen.getByText('Deploy Strategy'));
-  
-  expect(clearSpy).toHaveBeenCalled();
-});
+		fireEvent.click(screen.getByText('Deploy Strategy'));
 
-it('disables button during checking deployment', async () => {
-  vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
-    () => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
-  );
-  
-  render(DeployButton, { props: defaultProps });
-  
-  const button = screen.getByTestId('deploy-button');
-  fireEvent.click(button);
-  
-  await waitFor(() => {
-    expect(button).toBeDisabled();
-  });
-  
-  await waitFor(() => {
-    expect(button).not.toBeDisabled();
-  }, { timeout: 200 });
-});
+		await waitFor(() => {
+			// Expect some sort of error handling for missing account
+			expect(catchSpy).toHaveBeenCalledWith(
+				expect.any(Error),
+				DeploymentStepsErrorCode.ADD_ORDER_FAILED
+			);
+		});
+	});
+
+	it('handles null GUI correctly', async () => {
+		// Mock useGui to return null
+		(useGui as Mock).mockReturnValue(null);
+
+		const catchSpy = vi.spyOn(DeploymentStepsError, 'catch');
+		render(DeployButton, { props: defaultProps });
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		await waitFor(() => {
+			// Expect error handling for missing GUI
+			expect(catchSpy).toHaveBeenCalledWith(
+				expect.any(Error),
+				DeploymentStepsErrorCode.ADD_ORDER_FAILED
+			);
+		});
+	});
+
+	it('clears deployment error when button is clicked', async () => {
+		const clearSpy = vi.spyOn(DeploymentStepsError, 'clear');
+		render(DeployButton, { props: defaultProps });
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		expect(clearSpy).toHaveBeenCalled();
+	});
+
+	it('disables button during checking deployment', async () => {
+		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
+			() => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
+		);
+
+		render(DeployButton, { props: defaultProps });
+
+		const button = screen.getByTestId('deploy-button');
+		fireEvent.click(button);
+
+		await waitFor(() => {
+			expect(button).toBeDisabled();
+		});
+
+		await waitFor(
+			() => {
+				expect(button).not.toBeDisabled();
+			},
+			{ timeout: 200 }
+		);
+	});
 });

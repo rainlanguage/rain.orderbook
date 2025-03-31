@@ -5,12 +5,12 @@ import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_ap
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
+import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
@@ -633,7 +633,7 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConnected: mockConnectedStore,
 	signerAddress: mockSignerAddressStore,
-	appKitModal: writable({} as AppKit),
+	appKitModal: writable({} as AppKit)
 };
 
 describe('DeploymentSteps', () => {
@@ -744,7 +744,7 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-it('shows deploy button when all required fields are filled, and account is connected', async () => {
+	it('shows deploy button when all required fields are filled, and account is connected', async () => {
 		(useAccount as Mock).mockReturnValue({
 			account: writable('0x123')
 		});

@@ -26,14 +26,12 @@ export async function getDeploymentTransactionArgs(
 	gui: DotrainOrderGui,
 	account: string | null
 ): Promise<HandleAddOrderResult> {
-	let network: string;
-
 	const networkKeyResult = gui.getNetworkKey();
 	if (networkKeyResult.error) {
 		throw new Error(AddOrderErrors.ERROR_GETTING_NETWORK_KEY);
 	}
-	network = networkKeyResult.value;
-	
+	const network = networkKeyResult.value;
+
 	if (!account) {
 		throw new Error(AddOrderErrors.NO_ACCOUNT_CONNECTED);
 	}

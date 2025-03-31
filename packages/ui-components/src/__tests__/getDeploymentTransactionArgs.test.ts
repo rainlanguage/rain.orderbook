@@ -12,15 +12,15 @@ describe('getDeploymentTransactionArgs', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-	
+
 		mockGetDeploymentTransactionArgs = vi.fn();
 		mockGetNetworkKey = vi.fn();
-		
+
 		guiInstance = {
 			getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs,
 			getNetworkKey: mockGetNetworkKey
 		} as unknown as DotrainOrderGui;
-		
+
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: {
 				chainId: 1,
@@ -56,27 +56,27 @@ describe('getDeploymentTransactionArgs', () => {
 			await expect(getDeploymentTransactionArgs(guiInstance, '')).rejects.toThrow(
 				AddOrderErrors.NO_ACCOUNT_CONNECTED
 			);
-			
-			await expect(getDeploymentTransactionArgs(guiInstance, null as unknown as string)).rejects.toThrow(
-				AddOrderErrors.NO_ACCOUNT_CONNECTED
-			);
-			
-			await expect(getDeploymentTransactionArgs(guiInstance, undefined as unknown as string)).rejects.toThrow(
-				AddOrderErrors.NO_ACCOUNT_CONNECTED
-			);
+
+			await expect(
+				getDeploymentTransactionArgs(guiInstance, null as unknown as string)
+			).rejects.toThrow(AddOrderErrors.NO_ACCOUNT_CONNECTED);
+
+			await expect(
+				getDeploymentTransactionArgs(guiInstance, undefined as unknown as string)
+			).rejects.toThrow(AddOrderErrors.NO_ACCOUNT_CONNECTED);
 		});
 
 		it('should throw ERROR_GETTING_NETWORK_KEY when getNetworkKey returns an error', async () => {
 			mockGetNetworkKey.mockReturnValue({
 				error: { msg: 'Network key error' }
 			});
-			
+
 			await expect(getDeploymentTransactionArgs(guiInstance, '0x123')).rejects.toThrow(
 				AddOrderErrors.ERROR_GETTING_NETWORK_KEY
 			);
 		});
 	});
-	
+
 	describe('error handling', () => {
 		it('should throw the error message when gui.getDeploymentTransactionArgs returns an error', async () => {
 			const errorMessage = 'Custom error message';
@@ -85,7 +85,7 @@ describe('getDeploymentTransactionArgs', () => {
 					msg: errorMessage
 				}
 			});
-			
+
 			await expect(getDeploymentTransactionArgs(guiInstance, '0x123')).rejects.toThrow(
 				errorMessage
 			);
