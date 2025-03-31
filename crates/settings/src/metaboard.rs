@@ -51,7 +51,10 @@ impl MetaboardCfg {
                 document_hash.get_mut(&StrictYaml::String("metaboards".to_string()))
             {
                 if metaboards.contains_key(&StrictYaml::String(key.to_string())) {
-                    return Err(YamlError::KeyShadowing(key.to_string()));
+                    return Err(YamlError::KeyShadowing(
+                        key.to_string(),
+                        "metaboards".to_string(),
+                    ));
                 }
 
                 metaboards.insert(
@@ -110,7 +113,10 @@ impl YamlParsableHash for MetaboardCfg {
                     };
 
                     if metaboards.contains_key(&metaboard_key) {
-                        return Err(YamlError::KeyShadowing(metaboard_key));
+                        return Err(YamlError::KeyShadowing(
+                            metaboard_key,
+                            "metaboards".to_string(),
+                        ));
                     }
                     metaboards.insert(metaboard_key, metaboard);
                 }
@@ -193,7 +199,7 @@ metaboards:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateMetaboard".to_string())
+            YamlError::KeyShadowing("DuplicateMetaboard".to_string(), "metaboards".to_string())
         );
     }
 }
