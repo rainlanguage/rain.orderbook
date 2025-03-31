@@ -67,7 +67,7 @@ describe('OrderOrVaultHash', () => {
 		expect(mockUpdateFn).toHaveBeenCalledWith(mockSubgraphName);
 	});
 
-		it('constructs correct href for order navigation', () => {
+	it('constructs correct href for order navigation', () => {
 		const { container } = render(OrderOrVaultHash, {
 			props: {
 				type: 'orders',
@@ -81,5 +81,4 @@ describe('OrderOrVaultHash', () => {
 		expect(anchor).toBeTruthy();
 		expect(anchor?.getAttribute('href')).toBe('/orders/test-subgraph-0x123abc');
 	});
-
 });
