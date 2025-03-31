@@ -12,7 +12,8 @@ export enum AddOrderErrors {
 	MISSING_GUI = 'Order GUI is required',
 	MISSING_CONFIG = 'Wagmi config is required',
 	NO_ACCOUNT_CONNECTED = 'No wallet address found',
-	ERROR_GETTING_ARGS = 'Error getting deployment transaction args'
+	ERROR_GETTING_ARGS = 'Error getting deployment transaction args',
+	ERROR_GETTING_NETWORK_KEY = 'Error getting network key'
 }
 
 export interface HandleAddOrderResult {
@@ -26,7 +27,14 @@ export async function getDeploymentTransactionArgs(
 	gui: DotrainOrderGui,
 	account: string | null
 ): Promise<HandleAddOrderResult> {
+	let network: string;
 
+	const networkKeyResult = gui.getNetworkKey();
+	if (networkKeyResult.error) {
+		throw new Error(AddOrderErrors.ERROR_GETTING_NETWORK_KEY);
+	}
+	network = networkKeyResult.value;
+	
 	if (!account) {
 		throw new Error(AddOrderErrors.NO_ACCOUNT_CONNECTED);
 	}
@@ -41,6 +49,7 @@ export async function getDeploymentTransactionArgs(
 		approvals,
 		deploymentCalldata,
 		orderbookAddress: orderbookAddress as Hex,
-		chainId
+		chainId,
+		network
 	};
 }
