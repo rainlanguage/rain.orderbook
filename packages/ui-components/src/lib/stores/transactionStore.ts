@@ -309,7 +309,7 @@ const transactionStore = () => {
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			if (subgraphUrl) {
-			return awaitNewOrderIndexing(subgraphUrl, hash, network);
+				return awaitNewOrderIndexing(subgraphUrl, hash, network);
 			}
 			return transactionSuccess(
 				hash,
