@@ -334,7 +334,7 @@ describe('transactionStore', () => {
 		const mockTxHash = 'mockHash';
 		const mockNetwork = 'flare';
 
-		(getTransactionAddOrders as Mock).mockResolvedValue([]);
+		(getTransactionAddOrders as Mock).mockRejectedValue(new Error('error'));
 
 		const indexingPromise = awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
@@ -344,11 +344,8 @@ describe('transactionStore', () => {
 		await vi.advanceTimersByTime(10000);
 		await indexingPromise;
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
-		expect(get(transactionStore).message).toBe(
-			'The subgraph took too long to respond. Please check again later.'
-		);
-		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
+		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).message).toBe(TransactionErrorMessage.DEPLOY_SUBGRAPH_TIMEOUT);
 
 		vi.useRealTimers();
 	});

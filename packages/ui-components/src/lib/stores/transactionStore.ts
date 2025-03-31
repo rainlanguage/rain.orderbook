@@ -46,7 +46,8 @@ export enum TransactionErrorMessage {
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
 	DEPOSIT_FAILED = 'Failed to deposit tokens.',
 	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
-	REMOVE_ORDER_FAILED = 'Failed to remove order.'
+	REMOVE_ORDER_FAILED = 'Failed to remove order.',
+	DEPLOY_SUBGRAPH_TIMEOUT = 'The subgraph took too long to respond. Please check Orders page for your new order.'
 }
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
@@ -160,19 +161,20 @@ const transactionStore = () => {
 		}));
 
 		let attempts = 0;
+
 		const interval: NodeJS.Timeout = setInterval(async () => {
-			attempts++;
-			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
-			if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (addOrders?.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+			try {
+				const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
+				if (addOrders?.length > 0) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+				}
+			} catch {
+				attempts++;
+				if (attempts >= 10) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, TransactionErrorMessage.DEPLOY_SUBGRAPH_TIMEOUT);
+				}
 			}
 		}, 1000);
 	};
@@ -307,7 +309,7 @@ const transactionStore = () => {
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			if (subgraphUrl) {
-				return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			return awaitNewOrderIndexing(subgraphUrl, hash, network);
 			}
 			return transactionSuccess(
 				hash,

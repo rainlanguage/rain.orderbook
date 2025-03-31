@@ -77,7 +77,7 @@
 			throw new Error(networkKeyResult.error.msg);
 		}
 		networkKey = networkKeyResult.value;
-		subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+		// subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 		await areAllTokensSelected();
 	});
