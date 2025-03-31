@@ -6,7 +6,6 @@ use strict_yaml_rust::StrictYaml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
-
 pub struct AllGuiConfig {
     pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
     pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
@@ -291,7 +290,7 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "getAllGuiConfig")]
+    #[wasm_export(js_name = "getAllGuiConfig", unchecked_return_type = "AllGuiConfig")]
     pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, GuiError> {
         let deployment = self.get_current_deployment()?;
 
