@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { test, vi } from 'vitest';
+import { test, vi, type Mock } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
@@ -7,6 +7,11 @@ import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
+import { useAccount } from '$lib/providers/wallet/useAccount';
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
 
 // Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
@@ -31,6 +36,9 @@ const mockSettings = readable({
 });
 
 test('calls the vault detail query fn with the correct vault id', async () => {
+	(useAccount as Mock).mockReturnValue({
+		account: writable('0x123')
+	});
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	const queryClient = new QueryClient();
 
@@ -50,6 +58,9 @@ test('calls the vault detail query fn with the correct vault id', async () => {
 });
 
 test('shows the correct empty message when the query returns no data', async () => {
+	(useAccount as Mock).mockReturnValue({
+		account: writable('0x123')
+	});
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(null);
 
@@ -73,6 +84,9 @@ test('shows the correct empty message when the query returns no data', async () 
 });
 
 test('shows the correct data when the query returns data', async () => {
+	(useAccount as Mock).mockReturnValue({
+		account: writable('0x123')
+	});
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
@@ -121,7 +135,7 @@ test('shows the correct data when the query returns data', async () => {
 	});
 });
 
-test('shows deposit/withdraw buttons when signerAddress matches owner', async () => {
+test('shows deposit/withdraw buttons when account address matches owner', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
@@ -152,12 +166,15 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 		}
 	};
 
+	(useAccount as Mock).mockReturnValue({
+		account: writable('0x123')
+	});
+
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
 	const queryClient = new QueryClient();
 	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
 
 	render(VaultDetail, {
 		props: {
@@ -168,7 +185,6 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
 			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])
@@ -216,7 +232,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
 	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
 
 	render(VaultDetail, {
 		props: {
@@ -227,7 +242,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 			settings: mockSettings,
 			lightweightChartsTheme: readable(darkChartTheme),
 			wagmiConfig: mockWagmiConfig,
-			signerAddress: mockSignerAddress,
 			handleDepositOrWithdrawModal: vi.fn()
 		},
 		context: new Map([['$$_queryClient', queryClient]])

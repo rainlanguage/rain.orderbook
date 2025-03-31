@@ -25,6 +25,9 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+
+	const { account } = useAccount();
 
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
@@ -44,7 +47,6 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
@@ -88,7 +90,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
+			{#if $wagmiConfig && handleDepositOrWithdrawModal && $account?.toLowerCase() === data.owner.toLowerCase()}
 				<DepositOrWithdrawButtons
 					vault={data}
 					{chainId}

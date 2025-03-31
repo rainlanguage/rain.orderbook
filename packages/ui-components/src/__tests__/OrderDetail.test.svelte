@@ -11,20 +11,29 @@
 	import DepositOrWithdrawButtons from '../lib/components/detail/DepositOrWithdrawButtons.svelte';
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { OrderRemoveModalProps } from '../lib/types/modal';
+	import type { DepositOrWithdrawModalProps, OrderRemoveModalProps } from '../lib/types/modal';
 	import type { Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import type { Writable } from 'svelte/store';
+	import type { Config } from 'wagmi';
 	const queryClient = useQueryClient();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
+	export let handleDepositOrWithdrawModal:
+		| ((props: DepositOrWithdrawModalProps) => void)
+		| undefined = undefined;
 	export let orderHash: string;
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let rpcUrl: string;
+
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -59,6 +68,29 @@
 			</Button>
 		{/if}
 
+		<div class="flex items-center gap-2">
+			{#if data && $account?.toLowerCase() === data.order.owner.toLowerCase() && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				<Button
+					data-testid="remove-button"
+					color="dark"
+					on:click={() =>
+						handleOrderRemoveModal({
+							open: true,
+							args: {
+								order: data.order,
+								onRemove: $orderDetailQuery.refetch,
+								chainId,
+								orderbookAddress,
+								subgraphUrl
+							}
+						})}
+					disabled={!handleOrderRemoveModal}
+				>
+					Remove
+				</Button>
+			{/if}
+		</div>
+
 		<Refresh
 			on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
 			spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
@@ -75,16 +107,18 @@
 					<svelte:fragment slot="value">
 						<div class="mt-2 space-y-2">
 							{#each data.vaults.get(type) || [] as vault}
-								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
+								<ButtonVaultLink tokenVault={vault} subgraphName="flare">
 									<svelte:fragment slot="buttons">
-										<DepositOrWithdrawButtons
-											{vault}
-											chainId={1}
-											rpcUrl="https://example.com"
-											query={orderDetailQuery}
-											handleDepositOrWithdrawModal={() => {}}
-											{subgraphUrl}
-										/>
+										{#if handleDepositOrWithdrawModal && $account?.toLowerCase() === vault.owner.toLowerCase() && chainId}
+											<DepositOrWithdrawButtons
+												{vault}
+												{chainId}
+												{rpcUrl}
+												query={orderDetailQuery}
+												{handleDepositOrWithdrawModal}
+												{subgraphUrl}
+											/>
+										{/if}
 									</svelte:fragment>
 								</ButtonVaultLink>
 							{/each}

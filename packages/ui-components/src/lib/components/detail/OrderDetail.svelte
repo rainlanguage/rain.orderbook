@@ -30,6 +30,9 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+
+	const { account } = useAccount();
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -47,7 +50,7 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -87,7 +90,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $account?.toLowerCase() === data.order.owner.toLowerCase() && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
@@ -154,7 +157,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
+											{#if handleDepositOrWithdrawModal && $account?.toLowerCase() === vault.owner.toLowerCase() && chainId}
 												<DepositOrWithdrawButtons
 													{vault}
 													{chainId}
