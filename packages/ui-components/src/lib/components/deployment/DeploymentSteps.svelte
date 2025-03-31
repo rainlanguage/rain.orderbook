@@ -57,8 +57,7 @@
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
-
+	let subgraphUrl: string = '';
 	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let wagmiConfig: Writable<Config | undefined>;
@@ -78,6 +77,7 @@
 			throw new Error(networkKeyResult.error.msg);
 		}
 		networkKey = networkKeyResult.value;
+		subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 		await areAllTokensSelected();
 	});
