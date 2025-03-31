@@ -7,7 +7,6 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-	import { REGISTRY_URL } from '$lib/constants';
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
@@ -23,20 +22,13 @@
 	}
 
 	onMount(async () => {
-		if (dotrain && deployment) {
-			const customRegistryUrl = $page.url.searchParams?.get('registry');
-			if (!customRegistryUrl) {
-				const registryUrl = REGISTRY_URL;
-				window.history.pushState({}, '', window.location.pathname + '?registry=' + registryUrl);
-			}
-			const { gui: initializedGui, error } = await handleGuiInitialization(
-				dotrain,
-				deployment.key,
-				stateFromUrl
-			);
-			gui = initializedGui;
-			getGuiError = error;
-		}
+		const { gui: initializedGui, error } = await handleGuiInitialization(
+			dotrain,
+			deployment.key,
+			stateFromUrl
+		);
+		gui = initializedGui;
+		getGuiError = error;
 	});
 </script>
 
