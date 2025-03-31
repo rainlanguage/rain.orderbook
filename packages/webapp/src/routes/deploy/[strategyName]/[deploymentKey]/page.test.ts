@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
-import { vi, describe, it, expect, beforeEach, afterEach, type Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import { REGISTRY_URL } from '$lib/constants';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
@@ -74,8 +74,7 @@ describe('DeployPage', () => {
 	});
 
 	it('should add registry URL to search params if none exists', async () => {
-		let pushStateSpy = vi.spyOn(window.history, 'pushState');
-		// Ensure URL has no registry parameter
+		const pushStateSpy = vi.spyOn(window.history, 'pushState');
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
@@ -98,7 +97,7 @@ describe('DeployPage', () => {
 	});
 
 	it('should not modify URL if registry param already exists', async () => {
-		let pushStateSpy = vi.spyOn(window.history, 'pushState');
+		const pushStateSpy = vi.spyOn(window.history, 'pushState');
 		const customRegistryUrl = 'https://custom-registry.example.com';
 		mockPageStore.mockSetSubscribeValue({
 			data: {
@@ -118,10 +117,8 @@ describe('DeployPage', () => {
 	});
 
 	it('should redirect to /deploy if dotrain or deployment is missing', async () => {
-		// Use fake timers before component rendering
 		vi.useFakeTimers();
 
-		// Set missing dotrain and deployment
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
@@ -134,7 +131,6 @@ describe('DeployPage', () => {
 
 		render(DeployPage);
 
-		// Fast-forward time
 		vi.advanceTimersByTime(5000);
 
 		await vi.runAllTimersAsync();

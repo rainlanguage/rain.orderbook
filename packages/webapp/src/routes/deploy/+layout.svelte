@@ -6,22 +6,14 @@
 	import { REGISTRY_URL } from '$lib/constants';
 
 	$: advancedMode = localStorage.getItem('registry') ? true : false;
-	$: registrySearchParam = $page.url.searchParams.get('registry');
-	$: if (!registrySearchParam) {
-		localStorage.removeItem('registry');
-	} else {
-		localStorage.setItem('registry', registrySearchParam);
-	}
 	$: registryFromStorage = localStorage.getItem('registry');
 	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
-
-	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
 <PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
 	<svelte:fragment slot="actions">
 		<div class="flex flex-col gap-2">
-			{#if isDeployPage}
+			{#if $page.url.pathname === '/deploy'}
 				<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 					<span class="whitespace-nowrap">Advanced mode</span>
 				</Toggle>

@@ -1,5 +1,6 @@
 <div
 	class="flex items-center gap-x-2 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-300"
+	data-testid="custom-registry-warning"
 >
 	<svg
 		class="h-5 w-5 flex-shrink-0"
