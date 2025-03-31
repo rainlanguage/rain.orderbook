@@ -10,7 +10,6 @@
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
-	console.log('settings', $settings);
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	let gui: DotrainOrderGui | null = null;
@@ -34,7 +33,8 @@
 
 	function handleClickDeploy(e: CustomEvent) {
 		const { result } = e.detail;
-		const subgraphUrl = $settings?.subgraphs?.[result.network] ?? '';
+		const subgraphUrl = $settings?.subgraphs?.[result.network];
+
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {
