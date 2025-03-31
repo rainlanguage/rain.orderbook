@@ -82,7 +82,7 @@
 
   $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
 
-  const rainlangExtension = new RawRainlangExtension({
+  $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
       let configProblems = [];
       let problems = [];
@@ -223,6 +223,7 @@
       disabled={isSubmitting}
       styles={{ '&': { minHeight: '400px' } }}
       {rainlangExtension}
+      onTextChange={(text) => globalDotrainFile.set({ ...$globalDotrainFile, text })}
     />
   </svelte:fragment>
 
@@ -273,7 +274,11 @@
       >
         {#each Array.from($generatedRainlang.entries()) as [scenario, rainlangText]}
           <TabItem bind:open={openTab[scenario.key]} title={scenario.key}>
-            <CodeMirrorRainlang {rainlangText} codeMirrorDisabled={true} {codeMirrorTheme} />
+            <CodeMirrorRainlang
+              {rainlangText}
+              codeMirrorDisabled={true}
+              codeMirrorTheme={$codeMirrorTheme}
+            />
           </TabItem>
         {/each}
       </Tabs>
