@@ -15,8 +15,9 @@ vi.mock('@rainlanguage/ui-components', async () => {
 	};
 });
 
-vi.mock('svelte/store', () => {
+vi.mock('svelte/store', async (importOriginal) => {
 	return {
+		...((await importOriginal()) as object),
 		writable: () => ({
 			subscribe: () => {
 				return () => {};
