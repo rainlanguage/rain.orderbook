@@ -57,7 +57,7 @@
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
