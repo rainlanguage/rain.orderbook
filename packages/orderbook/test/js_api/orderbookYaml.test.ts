@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, expect, it } from 'vitest';
 import { OrderbookYaml } from '../../dist/cjs/js_api.js';
-import { OrderbookCfg, SubgraphCfg } from '../../dist/types/js_api.js';
+import { OrderbookCfg, WasmEncodedResult } from '../../dist/types/js_api.js';
 
 const YAML_WITHOUT_ORDERBOOK = `
 networks:
@@ -72,6 +72,18 @@ deployments:
         order: some-order
 `;
 
+const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
+	if (result.error) {
+		assert.fail(errorMessage ?? result.error.msg);
+	}
+
+	if (typeof void 0 === typeof result.value) {
+		return result.value as T;
+	}
+
+	return result.value;
+};
+
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
 		const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
@@ -82,20 +94,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 		it('should get the orderbook', async function () {
 			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
 
-			const orderbook: OrderbookCfg = orderbookYaml.getOrderbookByAddress(
-				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
+			const orderbook = extractWasmEncodedData<OrderbookCfg>(
+				orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
 			);
 			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(orderbook.network.chainId, 123);
 			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
 
-			expect(() => {
-				orderbookYaml.getOrderbookByAddress('invalid-address');
-			}).toThrow();
-			expect(() => {
-				orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
-			}).toThrow(
+			let result = orderbookYaml.getOrderbookByAddress('invalid-address');
+			expect(result.error.msg).toBe('Invalid address: Odd number of digits');
+			expect(result.error.readableMsg).toBe(
+				'The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: "Odd number of digits"'
+			);
+
+			result = orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
+			expect(result.error.msg).toBe(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
+			);
+			expect(result.error.readableMsg).toBe(
+				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Key \'0x0000000000000000000000000000000000000000\' not found"'
 			);
 		});
 	});
