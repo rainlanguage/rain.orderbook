@@ -46,13 +46,13 @@
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 
 	const gui = useGui();
-	const { account } = useAccount();
+	const { account } = useAccount;
+	let networkKey: string = '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -222,7 +222,7 @@
 							description="Select the tokens that you want to use in your order."
 						/>
 						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} {gui} />
+							<SelectToken {token} {onSelectTokenSelect} />
 						{/each}
 					</div>
 				{/if}
@@ -271,7 +271,7 @@
 						{#if $account}
 							<DeployButton on:clickDeploy />
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
