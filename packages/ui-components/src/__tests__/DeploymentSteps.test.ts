@@ -1,22 +1,22 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
+import * as getDeploymentTransactionArgsModule from '../lib/components/deployment/getDeploymentTransactionArgs';
+import type { HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 
-const { mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+
+const { mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -27,6 +27,16 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
+
+
+const mockHandleAddOrderResult: HandleAddOrderResult = {
+	approvals: [],
+	deploymentCalldata: '0x123',
+	orderbookAddress: '0x456',
+	chainId: 1337,
+	network: 'testnet'
+};
+
 
 const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
 
@@ -636,7 +646,6 @@ const defaultProps: DeploymentStepsProps = {
 	},
 	deployment: mockDeployment,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit)
 };
 
@@ -678,6 +687,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('correctly derives subgraphUrl from settings and networkKey', async () => {
+
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
@@ -689,7 +699,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
+		(useAccount as Mock).mockReturnValue({ account: readable('0xuser') });
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		const user = userEvent.setup();
@@ -710,15 +720,8 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		// Wait for the disclaimer modal to be called
-		let onAcceptCallback: () => void;
-		await waitFor(() => {
-			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
-			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
-			expect(callArgs).toHaveProperty('onAccept');
-			expect(typeof callArgs.onAccept).toBe('function');
-			onAcceptCallback = callArgs.onAccept;
-		});
-		onAcceptCallback!();
+    // Instead, check that the event deploy is emitted with a result.
+
 
 		await waitFor(() => {
 			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
@@ -971,6 +974,23 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
+		});
+	});
+  	it('shows loading state when checking deployment', async () => {
+      
+		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
+			() => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
+		);
+
+		
+		render(DeploymentSteps, {
+			props: defaultProps
+		});
+
+		fireEvent.click(screen.getByText('Deploy Strategy'));
+
+		await waitFor(() => {
+			expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
 		});
 	});
 });

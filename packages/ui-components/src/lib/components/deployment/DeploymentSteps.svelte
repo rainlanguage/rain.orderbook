@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Alert } from 'flowbite-svelte';
+	import { Alert, Button, Spinner } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import { type GuiSelectTokensCfg, type TokenInfo } from '@rainlanguage/orderbook/js_api';
@@ -17,14 +17,17 @@
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { onMount } from 'svelte';
-	import DeployButton from './DeployButton.svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import {
+		getDeploymentTransactionArgs,
+		type HandleAddOrderResult
+	} from './getDeploymentTransactionArgs';
 
 	interface Deployment {
 		key: string;
@@ -44,10 +47,15 @@
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
+	let checkingDeployment: boolean = false;
 
 	const gui = useGui();
-	const { account } = useAccount;
-	let networkKey: string = '';
+	const { account } = useAccount();
+	const dispatch = createEventDispatcher<{
+		deploy: {
+			result: HandleAddOrderResult;
+		};
+	}>();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -190,6 +198,22 @@
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_SELECT_TOKENS);
 		}
 	};
+
+	async function handleDeployButtonClick() {
+		DeploymentStepsError.clear();
+		let result: HandleAddOrderResult | null = null;
+		checkingDeployment = true;
+		try {
+			result = await getDeploymentTransactionArgs(gui, $account);
+			checkingDeployment = false;
+			dispatch('deploy', {
+				result
+			});
+		} catch (e) {
+			checkingDeployment = false;
+			return DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+		}
+	}
 </script>
 
 <div>
@@ -269,7 +293,20 @@
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
 						{#if $account}
-							<DeployButton on:clickDeploy />
+							<Button
+								data-testid="deploy-button"
+								size="lg"
+								disabled={checkingDeployment}
+								on:click={handleDeployButtonClick}
+								class="bg-gradient-to-br from-blue-600 to-violet-600"
+							>
+								{#if checkingDeployment}
+									<Spinner size="4" color="white" />
+									<span class="ml-2">Checking deployment...</span>
+								{:else}
+									Deploy Strategy
+								{/if}
+							</Button>
 						{:else}
 							<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
 						{/if}

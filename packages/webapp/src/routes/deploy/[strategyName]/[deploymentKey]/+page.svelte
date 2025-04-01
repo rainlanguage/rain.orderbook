@@ -60,8 +60,7 @@
 			{deployment}
 			wagmiConnected={connected}
 			{appKitModal}
-			{signerAddress}
-			on:clickDeploy={handleClickDeploy}
+			on:deploy={handleClickDeploy}
 		/>
 	</GuiProvider>
 {:else if getGuiError}
