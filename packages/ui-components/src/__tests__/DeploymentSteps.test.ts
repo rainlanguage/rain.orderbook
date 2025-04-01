@@ -679,7 +679,7 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	it.only('correctly derives subgraphUrl from settings and networkKey', async () => {
+	it('correctly derives subgraphUrl from settings and networkKey', async () => {
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
