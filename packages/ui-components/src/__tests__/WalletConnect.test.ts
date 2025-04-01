@@ -5,16 +5,14 @@ import { readable, writable, type Writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import truncateEthAddress from 'truncate-eth-address';
 import type { Hex } from 'viem';
-const {mockConnectedStore } = await vi.hoisted(
-	() => import('$lib/__mocks__/stores')
-);
+const { mockConnectedStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
 vi.mock('$lib/stores/wagmi', async (importOriginal) => {
 	const original = (await importOriginal()) as object;
 	return {
 		...original,
 		appKitModal: writable({} as AppKit),
-		connected: mockConnectedStore,
+		connected: mockConnectedStore
 	};
 });
 
