@@ -42,7 +42,8 @@ describe('CodeMirrorDotrain', () => {
 				disabled: false,
 				styles: {},
 				rainlangExtension: rainlangExtensionMock,
-				codeMirrorTheme: writable({})
+				codeMirrorTheme: writable({}),
+				onTextChange: vi.fn()
 			}
 		});
 		await waitFor(() => {
@@ -64,9 +65,35 @@ describe('CodeMirrorDotrain', () => {
 				disabled: false,
 				styles: {},
 				rainlangExtension: rainlangExtensionMock,
-				codeMirrorTheme: writable({})
+				codeMirrorTheme: writable({}),
+				onTextChange: vi.fn()
 			}
 		});
 		expect(screen.component.$$.ctx[0]).toBe(testValue);
+	});
+
+	it('should call onTextChange when the text changes', async () => {
+		const testValue = 'initial dotrain value';
+		const rainlangExtensionMock = new RawRainlangExtension({
+			hover: async () => null,
+			completion: async () => null,
+			diagnostics: async () => []
+		});
+		const onTextChangeMock = vi.fn();
+
+		const { component } = render(CodeMirrorDotrain, {
+			props: {
+				rainlangText: testValue,
+				disabled: false,
+				styles: {},
+				rainlangExtension: rainlangExtensionMock,
+				codeMirrorTheme: writable({}),
+				onTextChange: onTextChangeMock
+			}
+		});
+
+		component.$$.ctx[component.$$.props.onTextChange]('value');
+
+		expect(onTextChangeMock).toHaveBeenCalledWith('value');
 	});
 });

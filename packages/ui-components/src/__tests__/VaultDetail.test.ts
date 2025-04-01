@@ -7,7 +7,7 @@ import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '../lib/providers/wallet/useAccount';
-import type { SgOrderAsIO, SgVault } from '@rainlanguage/orderbook/js_api';
+import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook/js_api';
 
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -44,13 +44,13 @@ describe('VaultDetail', () => {
 		queryClient = new QueryClient();
 
 		(useAccount as Mock).mockReturnValue({
-			account: readable('0x123')
+			account: readable('0x1234567890123456789012345678901234567890')
 		});
 
 		mockData = {
 			id: '1',
 			vaultId: '0xabc',
-			owner: '0x123',
+			owner: '0x1234567890123456789012345678901234567890',
 			token: {
 				id: '0x456',
 				address: '0x456',
@@ -67,8 +67,7 @@ describe('VaultDetail', () => {
 			}
 		} as unknown as SgVault;
 
-		const { getVault } = await import('@rainlanguage/orderbook/js_api');
-		vi.mocked(getVault).mockResolvedValue(mockData);
+		(getVault as Mock).mockResolvedValue(mockData);
 	});
 
 	it('calls the vault detail query fn with the correct vault id', async () => {
@@ -138,11 +137,18 @@ describe('VaultDetail', () => {
 		});
 	});
 
-	it('shows deposit/withdraw buttons when account matches owner', async () => {
-		mockData.ordersAsInput = [{ id: '1', owner: '0x123' }] as unknown as SgOrderAsIO[];
-		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
+	it('shows deposit/withdraw buttons when conditions are met', async () => {
+		mockData.ordersAsInput = [
+			{ id: '1', owner: '0x1234567890123456789012345678901234567890' }
+		] as unknown as SgOrderAsIO[];
+		mockData.ordersAsOutput = [
+			{ id: '2', owner: '0x1234567890123456789012345678901234567890' }
+		] as unknown as SgOrderAsIO[];
 
 		const mockWagmiConfig = writable({} as Config);
+		(useAccount as Mock).mockReturnValue({
+			account: readable('0x1234567890123456789012345678901234567890')
+		});
 
 		render(VaultDetail, {
 			props: {
@@ -167,6 +173,56 @@ describe('VaultDetail', () => {
 		(useAccount as Mock).mockReturnValue({
 			account: readable('0x456')
 		});
+
+		render(VaultDetail, {
+			props: {
+				id: '100',
+				network: 'mainnet',
+				activeNetworkRef: writable('mainnet'),
+				activeOrderbookRef: writable('0x00'),
+				settings: mockSettings,
+				lightweightChartsTheme: readable(darkChartTheme),
+				handleDepositOrWithdrawModal: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.queryByTestId('depositOrWithdrawButton')).not.toBeInTheDocument();
+		});
+	});
+
+	it("doesn't show deposit/withdraw buttons when account isn't an address", async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: readable('0x456')
+		});
+
+		render(VaultDetail, {
+			props: {
+				id: '100',
+				network: 'mainnet',
+				activeNetworkRef: writable('mainnet'),
+				activeOrderbookRef: writable('0x00'),
+				settings: mockSettings,
+				lightweightChartsTheme: readable(darkChartTheme),
+				handleDepositOrWithdrawModal: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.queryByTestId('depositOrWithdrawButton')).not.toBeInTheDocument();
+		});
+	});
+
+	it("doesn't show deposit/withdraw buttons when vault owner isn't an address", async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: readable('0x1234567890123456789012345678901234567890')
+		});
+		vi.mocked(getVault).mockResolvedValue({
+			...mockData,
+			owner: 'not an address'
+		} as unknown as SgVault);
 
 		render(VaultDetail, {
 			props: {

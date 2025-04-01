@@ -9,7 +9,7 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits } from 'viem';
+	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 
 	import { onDestroy } from 'svelte';
@@ -88,7 +88,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $wagmiConfig && handleDepositOrWithdrawModal && $account === data.owner}
+			{#if $wagmiConfig && handleDepositOrWithdrawModal && $account && isAddress($account) && isAddressEqual($account, data.owner)}
 				<DepositOrWithdrawButtons
 					vault={data}
 					{chainId}

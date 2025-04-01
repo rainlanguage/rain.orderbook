@@ -31,6 +31,7 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { isAddressEqual, isAddress } from 'viem';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -89,7 +90,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $account === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $signerAddress && isAddress($signerAddress) && isAddress(data.order.owner) && isAddressEqual($signerAddress, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
@@ -156,7 +157,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $account === vault.owner && chainId}
+											{#if handleDepositOrWithdrawModal && $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
 												<DepositOrWithdrawButtons
 													{vault}
 													{chainId}
