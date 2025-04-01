@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import Page from './+page.svelte';
 import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
@@ -32,19 +32,6 @@ vi.mock('$lib/services/modal', () => ({
 	handleDeployModal: vi.fn(),
 	handleDisclaimerModal: vi.fn()
 }));
-
-const mockGui = {
-	generateDotrainText: vi.fn().mockReturnValue('mock dotrain text'),
-	getCurrentDeployment: vi.fn().mockReturnValue({
-		deployment: {
-			order: {
-				orderbook: {
-					address: '0x456'
-				}
-			}
-		}
-	})
-} as unknown as DotrainOrderGui;
 
 vi.mock('@rainlanguage/ui-components', async () => {
 	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
@@ -188,9 +175,9 @@ describe('+page.svelte', () => {
 		} as unknown as SvelteKitPage);
 
 		render(Page);
-		
-		await new Promise(resolve => setTimeout(resolve, 0));
-		
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		expect(handleGuiInitialization).not.toHaveBeenCalled();
 	});
 
@@ -215,9 +202,9 @@ describe('+page.svelte', () => {
 		} as unknown as SvelteKitPage);
 
 		render(Page);
-		
-		await new Promise(resolve => setTimeout(resolve, 0));
-		
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		expect(handleGuiInitialization).not.toHaveBeenCalled();
 	});
 
@@ -241,7 +228,7 @@ describe('+page.svelte', () => {
 				}
 			}
 		} as unknown as SvelteKitPage);
-		
+
 		const mockGui = { name: 'Test GUI' } as unknown as DotrainOrderGui;
 		vi.mocked(handleGuiInitialization).mockResolvedValue({
 			gui: mockGui,
@@ -249,7 +236,7 @@ describe('+page.svelte', () => {
 		});
 
 		render(Page);
-		
+
 		await waitFor(() => {
 			expect(handleGuiInitialization).toHaveBeenCalledWith(
 				'https://dotrain.example.com',
