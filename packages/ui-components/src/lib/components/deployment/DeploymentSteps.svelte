@@ -31,6 +31,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	interface Deployment {
 		key: string;
@@ -55,6 +56,7 @@
 	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
+	const { account } = useAccount();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
 	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
@@ -64,7 +66,6 @@
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -194,10 +195,14 @@
 			return;
 		}
 
+		if (!$account) {
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_WALLET);
+			return;
+		}
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			result = await getDeploymentTransactionArgs(gui, $account);
 		} catch (e) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
@@ -339,7 +344,7 @@
 					{/if}
 
 					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $wagmiConnected}
+						{#if $account}
 							<Button
 								size="lg"
 								on:click={handleDeployButtonClick}
@@ -353,7 +358,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
 						{/if}
 						<ComposedRainlangModal {gui} />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />

@@ -9,18 +9,18 @@ import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { getAccount } from '@wagmi/core';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
-
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -634,7 +634,6 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
@@ -669,6 +668,7 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+		(useAccount as Mock).mockReturnValue({ account: writable('0xuser') });
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -691,7 +691,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
+		(useAccount as Mock).mockReturnValue({ account: writable('0xuser') });
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		const user = userEvent.setup();
@@ -802,7 +802,53 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
-		mockConnectedStore.mockSetSubscribeValue(false);
+	});
+
+	it('shows wallet connect button when no wallet is connected', async () => {
+		(useAccount as Mock).mockReturnValue({ account: writable(null) });
+		const mockSelectTokens = [
+			{ key: 'token1', name: 'Token 1', description: undefined },
+			{ key: 'token2', name: 'Token 2', description: undefined }
+		];
+
+		// Set up specific mocks for this test
+		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+			value: mockSelectTokens
+		});
+		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
+		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
+			value: {
+				deployment: {
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				},
+				deposits: []
+			}
+		});
+
+		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+			value: [
+				{
+					address: '0x1',
+					decimals: 18,
+					name: 'Token 1',
+					symbol: 'TKN1'
+				},
+				{
+					address: '0x2',
+					decimals: 18,
+					name: 'Token 2',
+					symbol: 'TKN2'
+				}
+			]
+		});
+
+		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();

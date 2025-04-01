@@ -5,10 +5,11 @@
 	import type { AppKit } from '@reown/appkit';
 	import { twMerge } from 'tailwind-merge';
 	import truncateEthAddress from 'truncate-eth-address';
+	import type { Account } from '$lib/types/account';
 
 	export let appKitModal: Writable<AppKit>;
 	export let connected: Writable<boolean>;
-	export let signerAddress: Writable<string | null>;
+	export let signerAddress: Account;
 	export let classes: string = '';
 	function handleClick() {
 		$appKitModal.open();

@@ -13,7 +13,8 @@ export enum DeploymentStepsErrorCode {
 	NO_GUI_DETAILS = 'Error getting GUI details',
 	NO_CHAIN = 'Unsupported chain ID',
 	SERIALIZE_ERROR = 'Error serializing state',
-	ADD_ORDER_FAILED = 'Failed to add order'
+	ADD_ORDER_FAILED = 'Failed to add order',
+	NO_WALLET = 'No connected account found'
 }
 
 export class DeploymentStepsError extends Error {
