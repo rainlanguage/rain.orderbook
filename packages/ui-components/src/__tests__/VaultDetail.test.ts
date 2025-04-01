@@ -125,7 +125,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -137,13 +137,13 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 		ordersAsInput: [
 			{
 				id: '1',
-				owner: '0x123'
+				owner: '0x1234567890123456789012345678901234567890'
 			}
 		],
 		ordersAsOutput: [
 			{
 				id: '2',
-				owner: '0x123'
+				owner: '0x1234567890123456789012345678901234567890'
 			}
 		],
 		balanceChanges: [],
@@ -157,7 +157,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 
 	const queryClient = new QueryClient();
 	const mockWagmiConfig = writable({} as Config);
-	const mockSignerAddress = writable('0x123'); // Same as owner address
+	const mockSignerAddress = writable('0x1234567890123456789012345678901234567890'); // Same as owner address
 
 	render(VaultDetail, {
 		props: {
