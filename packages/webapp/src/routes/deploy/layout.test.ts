@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import Layout from './+layout.svelte';
 
@@ -146,5 +146,21 @@ describe('Layout Component', () => {
 		render(Layout);
 
 		expect(pushStateSpy).not.toHaveBeenCalled();
+	});
+	it('should clear registry from localStorage when "Use Default" is clicked', async () => {
+		localStorageMock.setItem('registry', 'https://custom-registry.com');
+
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy'
+			} as unknown as URL
+		});
+
+		const { getByText } = render(Layout);
+
+		const useDefaultButton = getByText('Use default.');
+		await fireEvent.click(useDefaultButton);
+
+		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
 	});
 });

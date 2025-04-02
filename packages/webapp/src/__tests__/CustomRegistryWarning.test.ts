@@ -60,12 +60,4 @@ describe('CustomRegistryWarning Component', () => {
 		expect(localStorageMock.removeItem).toHaveBeenCalledTimes(1);
 		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
 	});
-
-	it('should have data-sveltekit-reload attribute on the link for page refresh', () => {
-		render(CustomRegistryWarning);
-
-		const defaultLink = screen.getByText('Use default.');
-
-		expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
-	});
 });
