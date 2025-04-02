@@ -40,7 +40,13 @@
 		toastOpen = false;
 	}
 
-	function executeOrderRemoval(orderConfig: ReturnType<typeof prepareOrderRemoval>) {
+	function executeOrderRemoval(event: CustomEvent<{ order: SgOrder }>) {
+		const { order } = event.detail;
+		const orderConfig = prepareOrderRemoval(order, {
+			chainId,
+			orderbookAddress,
+			subgraphUrl
+		});
 		handleOrderRemoveModal({
 			open: orderConfig.modal.open,
 			args: {
@@ -51,20 +57,6 @@
 				}
 			}
 		});
-	}
-
-	function handleRemoveOrder(event: CustomEvent<{ order: SgOrder }>) {
-		const { order } = event.detail;
-
-		// Use the pure function to get the configuration
-		const orderConfig = prepareOrderRemoval(order, {
-			chainId,
-			orderbookAddress,
-			subgraphUrl
-		});
-
-		// Execute the actions based on the configuration
-		executeOrderRemoval(orderConfig);
 	}
 </script>
 
@@ -87,6 +79,5 @@
 	{orderbookAddress}
 	{chainId}
 	{handleDepositOrWithdrawModal}
-	{signerAddress}
-	on:remove={handleRemoveOrder}
+	on:remove={executeOrderRemoval}
 />

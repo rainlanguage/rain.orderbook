@@ -29,7 +29,7 @@ export const prepareOrderRemoval = (
         subgraphUrl: config.subgraphUrl
       }
     },
-    queryInvalidation: {
+    queryInvalidationArgs: {
       queryKey: [order.orderHash],
       refetchType: 'all' as const,
       exact: false
