@@ -69,7 +69,7 @@ describe('DeployPage', () => {
 		const mockDotrain = 'mock-dotrain';
 		const mockDeploymentKey = 'test-key';
 		const mockStateFromUrl = 'some-state';
-		
+
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
@@ -103,9 +103,9 @@ describe('DeployPage', () => {
 		});
 
 		render(DeployPage);
-		
-		await new Promise(resolve => setTimeout(resolve, 50));
-		
+
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
 		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
 	});
 
@@ -121,9 +121,9 @@ describe('DeployPage', () => {
 		});
 
 		render(DeployPage);
-		
-		await new Promise(resolve => setTimeout(resolve, 50));
-	
+
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
 		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
 	});
 

@@ -642,7 +642,8 @@ const defaultProps: DeploymentStepsProps = {
 		subgraphs: {
 			flare: 'https://subgraph.com/flare'
 		}
-	} as ConfigSource)
+	} as ConfigSource),
+	registryUrl: 'https://example.com/registry'
 };
 
 describe('DeploymentSteps', () => {
