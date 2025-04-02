@@ -117,7 +117,10 @@ impl YamlParsableHash for RemoteNetworksCfg {
                     };
 
                     if remote_networks.contains_key(&key) {
-                        return Err(YamlError::KeyShadowing(key));
+                        return Err(YamlError::KeyShadowing(
+                            key.clone(),
+                            "using-networks-from".to_string(),
+                        ));
                     }
                     remote_networks.insert(key, remote_network);
                 }
@@ -305,6 +308,9 @@ using-networks-from:
             None,
         )
         .unwrap_err();
-        assert_eq!(error, YamlError::KeyShadowing("test".to_string()),);
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("test".to_string(), "using-networks-from".to_string())
+        );
     }
 }

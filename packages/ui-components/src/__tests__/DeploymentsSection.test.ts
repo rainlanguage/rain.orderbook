@@ -1,14 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
-// Mock the DotrainOrderGui
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: {
-		getDeploymentDetails: vi.fn()
-	}
-}));
 
 describe('DeploymentsSection', () => {
 	beforeEach(() => {
@@ -17,20 +10,14 @@ describe('DeploymentsSection', () => {
 
 	it('should render deployments when promise resolves', async () => {
 		// Create a promise that we can control
-		const deploymentPromise = Promise.resolve(
-			new Map([
-				[
-					'key1',
-					{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
-				],
-				[
-					'key2',
-					{ name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }
-				]
-			])
-		);
-
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockReturnValue(deploymentPromise);
+		const mockDeployments = new Map([
+			[
+				'key1',
+				{ name: 'Deployment 1', description: 'Description 1', short_description: 'Short 1' }
+			],
+			['key2', { name: 'Deployment 2', description: 'Description 2', short_description: 'Short 2' }]
+		]);
+		(DotrainOrderGui.getDeploymentDetails as Mock).mockResolvedValue({ value: mockDeployments });
 
 		render(DeploymentsSection, {
 			props: {
@@ -38,8 +25,6 @@ describe('DeploymentsSection', () => {
 				strategyName: 'Test Strategy'
 			}
 		});
-
-		await deploymentPromise;
 
 		await waitFor(() => {
 			expect(screen.getByText('Deployment 1')).toBeInTheDocument();
@@ -49,7 +34,9 @@ describe('DeploymentsSection', () => {
 
 	it('should handle error when fetching deployments fails', async () => {
 		const testErrorMessage = 'Test error message';
-		vi.mocked(DotrainOrderGui.getDeploymentDetails).mockRejectedValue(new Error(testErrorMessage));
+		(DotrainOrderGui.getDeploymentDetails as Mock).mockReturnValue({
+			error: { msg: testErrorMessage }
+		});
 
 		render(DeploymentsSection, {
 			props: {

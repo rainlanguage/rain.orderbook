@@ -7,6 +7,13 @@ pub struct Cache {
     pub remote_tokens: HashMap<String, TokenCfg>,
 }
 impl Cache {
+    pub fn new() -> Self {
+        Self {
+            remote_networks: HashMap::new(),
+            remote_tokens: HashMap::new(),
+        }
+    }
+
     pub fn update_remote_networks(&mut self, remote_networks: HashMap<String, NetworkCfg>) {
         self.remote_networks = remote_networks;
     }

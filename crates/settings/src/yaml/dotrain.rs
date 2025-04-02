@@ -71,6 +71,16 @@ impl YamlParsable for DotrainYaml {
     }
 }
 
+impl ContextProvider for DotrainYaml {
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
+        self.cache.get_remote_networks()
+    }
+
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg> {
+        self.cache.get_remote_tokens()
+    }
+}
+
 impl DotrainYaml {
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
         let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -78,7 +88,10 @@ impl DotrainYaml {
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_order(key.to_string());
+        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -96,18 +109,18 @@ impl DotrainYaml {
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_deployment(key.to_string());
+        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
-
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
-        context.add_remote_networks(self.cache.get_remote_networks());
-        context.add_remote_tokens(self.cache.get_remote_tokens());
+        self.expand_context_with_current_deployment(&mut context, current_deployment);
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
@@ -785,6 +798,10 @@ orders:
                 location: "input index '0' in order 'order1'".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in input index '0' in order 'order1': missing yaml data for token 'token-three'"
+        );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
         let error = dotrain_yaml.get_gui(None).unwrap_err();
@@ -797,6 +814,10 @@ orders:
                 },
                 location: "output index '0' in order 'order1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in output index '0' in order 'order1': missing yaml data for token 'token-three'"
         );
     }
 }

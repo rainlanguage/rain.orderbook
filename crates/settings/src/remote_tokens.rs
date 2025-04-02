@@ -76,8 +76,11 @@ impl YamlParseableValue for RemoteTokensCfg {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
             if let Some(value) = optional_string(&document_read, "using-tokens-from") {
-                if url.is_some() {
-                    return Err(YamlError::KeyShadowing("using-tokens-from".to_string()));
+                if let Some(url) = url {
+                    return Err(YamlError::KeyShadowing(
+                        url.to_string(),
+                        "using-tokens-from".to_string(),
+                    ));
                 }
 
                 let validated_url =

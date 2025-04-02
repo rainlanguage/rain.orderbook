@@ -4,9 +4,9 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
@@ -87,6 +87,42 @@ pub trait YamlParseableValue: Sized {
     ) -> Result<Option<Self>, YamlError>;
 }
 
+pub trait ContextProvider {
+    fn create_context(&self) -> Context {
+        Context::new()
+    }
+
+    fn expand_context_with_remote_networks(&self, context: &mut Context) {
+        context.set_remote_networks(self.get_remote_networks_from_cache());
+    }
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg>;
+
+    fn expand_context_with_remote_tokens(&self, context: &mut Context) {
+        context.set_remote_tokens(self.get_remote_tokens_from_cache());
+    }
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
+
+    fn expand_context_with_current_deployment(
+        &self,
+        context: &mut Context,
+        current_deployment: Option<String>,
+    ) {
+        if let Some(deployment) = current_deployment {
+            context.add_current_deployment(deployment);
+        }
+    }
+
+    fn expand_context_with_current_order(
+        &self,
+        context: &mut Context,
+        current_order: Option<String>,
+    ) {
+        if let Some(order) = current_order {
+            context.add_current_order(order);
+        }
+    }
+}
+
 #[derive(Debug, Error, PartialEq)]
 pub enum FieldErrorKind {
     #[error("Missing required field '{0}'")]
@@ -121,8 +157,8 @@ pub enum YamlError {
 
     #[error("Key '{0}' not found")]
     KeyNotFound(String),
-    #[error("Key '{0}' is already defined")]
-    KeyShadowing(String),
+    #[error("Key '{0}' is already defined in {1}")]
+    KeyShadowing(String, String),
 
     #[error("Failed to acquire read lock")]
     ReadLockError,
@@ -170,7 +206,7 @@ impl PartialEq for YamlError {
             ) => k1 == k2 && l1 == l2,
             (Self::ParseError(s1), Self::ParseError(s2)) => s1 == s2,
             (Self::KeyNotFound(k1), Self::KeyNotFound(k2)) => k1 == k2,
-            (Self::KeyShadowing(k1), Self::KeyShadowing(k2)) => k1 == k2,
+            (Self::KeyShadowing(k1, l1), Self::KeyShadowing(k2, l2)) => k1 == k2 && l1 == l2,
             (Self::ReadLockError, Self::ReadLockError) => true,
             (Self::WriteLockError, Self::WriteLockError) => true,
             (Self::EmptyFile, Self::EmptyFile) => true,
@@ -210,6 +246,89 @@ impl PartialEq for YamlError {
             ) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
             _ => false,
+        }
+    }
+}
+
+impl YamlError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            YamlError::ScanError(err) => format!(
+                "There is a syntax error in your YAML configuration: {}",
+                err
+            ),
+            YamlError::EmitError(err) => format!("Failed to generate YAML output: {}", err),
+            YamlError::UrlParseError(err) => {
+                format!("Invalid URL in your YAML configuration: {}", err)
+            }
+            YamlError::RuintParseError(err) => {
+                format!("Invalid number format in your YAML configuration: {}", err)
+            }
+            YamlError::Field { kind, location } => match kind {
+                FieldErrorKind::Missing(field) => {
+                    format!("Missing required field '{}' in {}", field, location)
+                }
+                FieldErrorKind::InvalidType { field, expected } => {
+                    format!("Field '{}' in {} must be {}", field, location, expected)
+                }
+                FieldErrorKind::InvalidValue { field, reason } => format!(
+                    "Invalid value for field '{}' in {}: {}",
+                    field, location, reason
+                ),
+            },
+            YamlError::ParseError(msg) => {
+                format!("Failed to parse your YAML configuration: {}", msg)
+            }
+            YamlError::KeyNotFound(key) => {
+                format!("The key '{}' was not found in your YAML configuration", key)
+            }
+            YamlError::KeyShadowing(key, location) => format!(
+                "The key '{}' is defined multiple times in your YAML configuration at {}",
+                key, location
+            ),
+            YamlError::ReadLockError => {
+                "Failed to read the YAML configuration due to a lock error".to_string()
+            }
+            YamlError::WriteLockError => {
+                "Failed to modify the YAML configuration due to a lock error".to_string()
+            }
+            YamlError::EmptyFile => "Your YAML configuration file is empty".to_string(),
+            YamlError::ConvertError => {
+                "Failed to convert your configuration to YAML format".to_string()
+            }
+            YamlError::InvalidTraitFunction => {
+                "There is an internal error in the YAML processing".to_string()
+            }
+            YamlError::ParseNetworkConfigSourceError(err) => {
+                format!("Network configuration error in your YAML: {}", err)
+            }
+            YamlError::ParseTokenConfigSourceError(err) => format!(
+                "Token configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseOrderbookConfigSourceError(err) => format!(
+                "Orderbook configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseDeployerConfigSourceError(err) => format!(
+                "Deployer configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseOrderConfigSourceError(err) => format!(
+                "Order configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseScenarioConfigSourceError(err) => format!(
+                "Scenario configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ParseDeploymentConfigSourceError(err) => format!(
+                "Deployment configuration error in your YAML: {}",
+                err.to_readable_msg()
+            ),
+            YamlError::ContextError(err) => {
+                format!("Context error in your YAML: {}", err.to_readable_msg())
+            }
         }
     }
 }

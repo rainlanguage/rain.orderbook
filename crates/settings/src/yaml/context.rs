@@ -34,6 +34,21 @@ pub enum ContextError {
     PropertyNotFound(String),
 }
 
+impl ContextError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ContextError::NoOrder =>
+                "No order is available in the current context. Please ensure an order is specified in your YAML configuration.".to_string(),
+            ContextError::InvalidPath(path) =>
+                format!("The path '{}' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct.", path),
+            ContextError::InvalidIndex(index) =>
+                format!("The index '{}' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array.", index),
+            ContextError::PropertyNotFound(property) =>
+                format!("The property '{}' was not found in your YAML configuration. Please check that this property is defined correctly.", property),
+        }
+    }
+}
+
 pub trait OrderContext {
     fn order(&self) -> Option<&Arc<OrderCfg>>;
 
@@ -224,7 +239,7 @@ impl Context {
         self
     }
 
-    pub fn add_remote_networks(
+    pub fn set_remote_networks(
         &mut self,
         remote_networks: HashMap<String, NetworkCfg>,
     ) -> &mut Self {
@@ -239,13 +254,13 @@ impl Context {
         self
     }
 
-    pub fn add_remote_tokens(&mut self, remote_tokens: HashMap<String, TokenCfg>) -> &mut Self {
+    pub fn set_remote_tokens(&mut self, remote_tokens: HashMap<String, TokenCfg>) -> &mut Self {
         if let Some(yaml_cache) = self.yaml_cache.as_mut() {
             yaml_cache.remote_tokens = remote_tokens;
         } else {
             self.yaml_cache = Some(YamlCache {
-                remote_networks: HashMap::new(),
                 remote_tokens,
+                remote_networks: HashMap::new(),
             });
         }
         self
@@ -344,13 +359,27 @@ mod tests {
         );
 
         // Test error cases
-        assert!(context.interpolate("${invalid}").is_err());
-        assert!(context
+        let invalid_path_error = context.interpolate("${invalid}").unwrap_err();
+        assert_eq!(
+            invalid_path_error.to_readable_msg(),
+            "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
+        );
+
+        let invalid_index_error = context
             .interpolate("${order.inputs.999.token.address}")
-            .is_err());
-        assert!(context
+            .unwrap_err();
+        assert_eq!(
+            invalid_index_error.to_readable_msg(),
+            "The index '999' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array."
+        );
+
+        let property_not_found_error = context
             .interpolate("${order.inputs.0.token.invalid}")
-            .is_err());
+            .unwrap_err();
+        assert_eq!(
+            property_not_found_error.to_readable_msg(),
+            "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
+        );
 
         // Test vault-id interpolation
         assert_eq!(
@@ -361,9 +390,25 @@ mod tests {
         );
 
         // Test that missing vault-id returns error
-        assert!(matches!(
-            context.interpolate("${order.outputs.0.vault-id}"),
-            Err(ContextError::PropertyNotFound(_))
-        ));
+        let missing_vault_error = context
+            .interpolate("${order.outputs.0.vault-id}")
+            .unwrap_err();
+        assert_eq!(
+            missing_vault_error.to_readable_msg(),
+            "The property 'vault-id' was not found in your YAML configuration. Please check that this property is defined correctly."
+        );
+    }
+
+    #[test]
+    fn test_context_no_order() {
+        let context = Context::new();
+        let error = context
+            .interpolate("${order.inputs.0.token.address}")
+            .unwrap_err();
+        assert_eq!(error, ContextError::NoOrder);
+        assert_eq!(
+            error.to_readable_msg(),
+            "No order is available in the current context. Please ensure an order is specified in your YAML configuration."
+        );
     }
 }
