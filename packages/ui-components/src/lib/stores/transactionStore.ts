@@ -4,12 +4,12 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	SgTransaction,
 	RemoveOrderCalldata,
 	SgVault,
-	WithdrawCalldataResult
+	WithdrawCalldataResult,
+	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 import {
 	getTransaction,

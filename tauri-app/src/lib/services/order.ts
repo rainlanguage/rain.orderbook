@@ -12,7 +12,7 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
       rpc_url: deployment.order.network.rpc,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: deployment.order.network['chain-id'],
+      chain_id: deployment.order.network.chainId,
     },
   });
 }
@@ -40,7 +40,7 @@ export async function orderAddCalldata(dotrain: string, deployment: DeploymentCf
       rpc_url: deployment.order.network.rpc,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: undefined,
-      chain_id: deployment.order.network['chain-id'],
+      chain_id: deployment.order.network.chainId,
     },
   });
 }

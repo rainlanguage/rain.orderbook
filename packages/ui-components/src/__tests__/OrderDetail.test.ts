@@ -99,7 +99,7 @@ describe('OrderDetail Component', () => {
 				subgraphUrl: 'https://example.com',
 				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
 				chainId,
-				signerAddress: writable('mockOwner')
+				signerAddress: writable('notTheOwner')
 			}
 		});
 

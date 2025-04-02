@@ -30,6 +30,8 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import RemoveOrderButton from '../actions/RemoveOrderButton.svelte';
+	import { isAddressEqual, isAddress } from 'viem';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -46,12 +48,12 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -87,7 +89,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
+				{#if ($account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)) || $walletAddressMatchesOrBlank?.(data.order.owner)}
 					{#if data.order.active}
 						<RemoveOrderButton order={data.order} on:remove />
 					{/if}
@@ -139,7 +141,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
+											{#if handleDepositOrWithdrawModal && $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
 												<DepositOrWithdrawButtons
 													{vault}
 													{chainId}

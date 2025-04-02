@@ -2,8 +2,11 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import FieldDefinitionsSection from './FieldDefinitionsSection.svelte';
-	import { type ConfigSource, type TokenInfo } from '@rainlanguage/orderbook/js_api';
+	import {
+		type ConfigSource,
+		type GuiSelectTokensCfg,
+		type TokenInfo
+	} from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
@@ -23,6 +26,7 @@
 	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
+	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
@@ -51,9 +55,9 @@
 	let allTokenInfos: TokenInfo[] = [];
 
 	const gui = useGui();
-	const selectTokens = gui.getSelectTokens();
-	const networkKey = gui.getNetworkKey();
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
+	let networkKey: string = '';
+	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -63,6 +67,18 @@
 	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
+		const selectTokensResult = gui.getSelectTokens();
+		if (selectTokensResult.error) {
+			throw new Error(selectTokensResult.error.msg);
+		}
+		selectTokens = selectTokensResult.value;
+
+		const networkKeyResult = gui.getNetworkKey();
+		if (networkKeyResult.error) {
+			throw new Error(networkKeyResult.error.msg);
+		}
+		networkKey = networkKeyResult.value;
+
 		await areAllTokensSelected();
 	});
 
@@ -216,19 +232,29 @@
 
 	const areAllTokensSelected = async () => {
 		try {
-			allTokensSelected = gui.areAllTokensSelected();
+			const areAllTokensSelectedResult = gui.areAllTokensSelected();
+			if (areAllTokensSelectedResult.error) {
+				throw new Error(areAllTokensSelectedResult.error.msg);
+			}
+			allTokensSelected = areAllTokensSelectedResult.value;
 			if (!allTokensSelected) return;
 
-			let result = await gui.getAllTokenInfos();
-			if (result.error) {
-				throw new Error(result.error.msg);
+			const getAllTokenInfosResult = await gui.getAllTokenInfos();
+			if (getAllTokenInfosResult.error) {
+				throw new Error(getAllTokenInfosResult.error.msg);
 			}
-			allTokenInfos = result.value;
+			allTokenInfos = getAllTokenInfosResult.value;
 
 			// if we have deposits or vault ids set, show advanced options
-			const hasDeposits = gui.hasAnyDeposit();
-			const hasVaultIds = gui.hasAnyVaultId();
-			if (hasDeposits || hasVaultIds) {
+			const hasDepositsResult = gui.hasAnyDeposit();
+			if (hasDepositsResult.error) {
+				throw new Error(hasDepositsResult.error.msg);
+			}
+			const hasVaultIdsResult = gui.hasAnyVaultId();
+			if (hasVaultIdsResult.error) {
+				throw new Error(hasVaultIdsResult.error.msg);
+			}
+			if (hasDepositsResult.value || hasVaultIdsResult.value) {
 				showAdvancedOptions = true;
 			}
 		} catch (e) {
@@ -267,23 +293,24 @@
 							description="Select the tokens that you want to use in your order."
 						/>
 						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} {gui} />
+							<SelectToken {token} {onSelectTokenSelect} />
 						{/each}
 					</div>
 				{/if}
 
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						<FieldDefinitionsSection
-							allFieldDefinitions={allFieldDefinitionsWithoutDefaults}
-							{gui}
-						/>
+						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						<FieldDefinitionsSection allFieldDefinitions={allFieldDefinitionsWithDefaults} {gui} />
+						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+							<FieldDefinitionInput {fieldDefinition} {gui} />
+						{/each}
 					{/if}
 
 					{#if showAdvancedOptions}
