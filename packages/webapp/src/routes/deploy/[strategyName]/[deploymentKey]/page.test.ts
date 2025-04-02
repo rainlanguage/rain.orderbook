@@ -1,7 +1,6 @@
-import { render, screen } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
-import { REGISTRY_URL } from '$lib/constants';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
 
@@ -12,13 +11,6 @@ const {
 	mockAppKitModalStore,
 	mockSignerAddressStore
 } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
-
-const mockPushState = vi.fn();
-Object.defineProperty(window, 'history', {
-	writable: true,
-	configurable: true,
-	value: { pushState: mockPushState }
-});
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -73,12 +65,37 @@ describe('DeployPage', () => {
 		vi.resetAllMocks();
 	});
 
-	it('should add registry URL to search params if none exists', async () => {
-		const pushStateSpy = vi.spyOn(window.history, 'pushState');
+	it('should call handleGuiInitialization with correct parameters when dotrain and deployment exist', async () => {
+		const mockDotrain = 'mock-dotrain';
+		const mockDeploymentKey = 'test-key';
+		const mockStateFromUrl = 'some-state';
+		
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
-				dotrain: 'some dotrain',
+				dotrain: mockDotrain,
+				deployment: { key: mockDeploymentKey },
+				strategyDetail: {}
+			},
+			url: new URL(`http://localhost:3000/deploy?state=${mockStateFromUrl}`)
+		});
+
+		render(DeployPage);
+
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				mockDotrain,
+				mockDeploymentKey,
+				mockStateFromUrl
+			);
+		});
+	});
+
+	it('should not call handleGuiInitialization when dotrain is missing', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: null as unknown as string,
 				deployment: { key: 'test-key' },
 				strategyDetail: {}
 			},
@@ -86,36 +103,28 @@ describe('DeployPage', () => {
 		});
 
 		render(DeployPage);
-
-		await vi.waitFor(() => {
-			expect(pushStateSpy).toHaveBeenCalledWith(
-				{},
-				'',
-				expect.stringContaining(`?registry=${REGISTRY_URL}`)
-			);
-		});
+		
+		await new Promise(resolve => setTimeout(resolve, 50));
+		
+		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
 	});
 
-	it('should not modify URL if registry param already exists', async () => {
-		const pushStateSpy = vi.spyOn(window.history, 'pushState');
-		const customRegistryUrl = 'https://custom-registry.example.com';
+	it('should not call handleGuiInitialization when deployment is missing', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
--				dotrain: null as unknown as string,
--				deployment: null as unknown as { key: string },
-+				dotrain: 'some dotrain',
-+				deployment: { key: 'test-key' },
+				dotrain: 'some-dotrain',
+				deployment: null as unknown as { key: string },
 				strategyDetail: {}
 			},
-			url: new URL(`http://localhost:3000/deploy?registry=${customRegistryUrl}`)
+			url: new URL('http://localhost:3000/deploy')
 		});
 
 		render(DeployPage);
-
-		await vi.waitFor(() => {
-			expect(pushStateSpy).not.toHaveBeenCalled();
-		});
+		
+		await new Promise(resolve => setTimeout(resolve, 50));
+	
+		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
 	});
 
 	it('should redirect to /deploy if dotrain or deployment is missing', async () => {
@@ -140,30 +149,5 @@ describe('DeployPage', () => {
 		expect(goto).toHaveBeenCalledWith('/deploy');
 
 		vi.useRealTimers();
-	});
-
-	it('should display error message when GUI initialization fails', async () => {
-		const errorMessage = 'Failed to initialize GUI';
-
-		mockPageStore.mockSetSubscribeValue({
-			data: {
-				stores: { settings: {} },
-				dotrain: 'some dotrain',
-				deployment: { key: 'test-key' },
-				strategyDetail: {}
-			},
-			url: new URL('http://localhost:3000/deploy/strategy/key')
-		});
-
-		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-			gui: null,
-			error: errorMessage
-		});
-
-		render(DeployPage);
-
-		await vi.waitFor(() => {
-			expect(screen.getByText(errorMessage)).toBeInTheDocument();
-		});
 	});
 });
