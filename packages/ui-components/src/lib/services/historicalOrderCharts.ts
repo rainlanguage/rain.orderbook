@@ -4,12 +4,7 @@ import { timestampSecondsToUTCTimestamp } from '../utils/time';
 import { sortBy } from 'lodash';
 import { formatUnits } from 'viem';
 
-export type HistoricalOrderChartData = {
-	value: number;
-	time: UTCTimestamp;
-	color?: string;
-	outputAmount: number;
-}[];
+export type HistoricalOrderChartData = { value: number; time: UTCTimestamp; color?: string }[];
 
 export function prepareHistoricalOrderChartData(takeOrderEntities: SgTrade[], colorTheme: string) {
 	const transformedData = takeOrderEntities.map((d) => ({
@@ -49,8 +44,7 @@ export function prepareHistoricalOrderChartData(takeOrderEntities: SgTrade[], co
 			finalData.push({
 				value: ioratioAverage,
 				time: timestamp,
-				color: objectsWithSameTimestamp[0].color,
-				outputAmount: outputAmountSum
+				color: objectsWithSameTimestamp[0].color
 			});
 		} else {
 			finalData.push(objectsWithSameTimestamp[0]);
