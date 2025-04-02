@@ -15,7 +15,7 @@
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
-
+	$: registryUrl = $page.url.searchParams?.get('registry') || REGISTRY_URL;
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
 			goto('/deploy');
@@ -24,12 +24,6 @@
 
 	onMount(async () => {
 		if (dotrain && deployment) {
-			const customRegistryUrl = $page.url.searchParams?.get('registry');
-			// Always add the registry URL to the share link, so that urls track older registry versions
-			if (!customRegistryUrl) {
-				$page.url.searchParams.set('registry', REGISTRY_URL);
-				window.history.pushState({}, '', window.location.pathname + '?registry=' + REGISTRY_URL);
-			}
 			const { gui: initializedGui, error } = await handleGuiInitialization(
 				dotrain,
 				deployment.key,
@@ -56,6 +50,7 @@
 			{settings}
 			{handleDisclaimerModal}
 			{signerAddress}
+			{registryUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}
