@@ -1,4 +1,5 @@
 import { sortBy } from 'lodash';
+import type { UTCTimestamp } from 'lightweight-charts';
 
 /**
  * Filters out data points with duplicate timestamps, keeping only the first occurrence.
@@ -6,9 +7,9 @@ import { sortBy } from 'lodash';
  * @param data Array of data points with time and value properties
  * @returns A new array with only unique timestamps
  */
-export const deduplicateByTime = <T extends { time: number }>(data: T[]): T[] => {
+export const deduplicateByTime = <T extends { time: UTCTimestamp }>(data: T[]): T[] => {
 	const uniqueData: T[] = [];
-	const seenTimes = new Set<number>();
+	const seenTimes = new Set<UTCTimestamp>();
 
 	for (const dataPoint of data) {
 		if (!seenTimes.has(dataPoint.time)) {
@@ -31,7 +32,7 @@ export const transformAndSortData = <T>(
 	data: T[],
 	options: {
 		valueTransform: (item: T) => number;
-		timeTransform: (item: T) => number;
+		timeTransform: (item: T) => UTCTimestamp;
 	}
 ) => {
 	const { valueTransform, timeTransform } = options;
@@ -52,17 +53,17 @@ if (import.meta.vitest) {
 	describe('deduplicateByTime', () => {
 		it('should remove entries with duplicate timestamps', () => {
 			const data = [
-				{ time: 100, value: 10 },
-				{ time: 200, value: 20 },
-				{ time: 200, value: 25 }, // Duplicate timestamp
-				{ time: 300, value: 30 }
+				{ time: 100 as UTCTimestamp, value: 10 },
+				{ time: 200 as UTCTimestamp, value: 20 },
+				{ time: 200 as UTCTimestamp, value: 25 }, // Duplicate timestamp
+				{ time: 300 as UTCTimestamp, value: 30 }
 			];
 
 			const result = deduplicateByTime(data);
 			const expected = [
-				{ time: 100, value: 10 },
-				{ time: 200, value: 20 }, // First occurrence kept
-				{ time: 300, value: 30 }
+				{ time: 100 as UTCTimestamp, value: 10 },
+				{ time: 200 as UTCTimestamp, value: 20 }, // First occurrence kept
+				{ time: 300 as UTCTimestamp, value: 30 }
 			];
 
 			expect(result).toEqual(expected);
@@ -70,16 +71,16 @@ if (import.meta.vitest) {
 
 		it('should handle multiple duplicate timestamps', () => {
 			const data = [
-				{ time: 100, value: 10 },
-				{ time: 100, value: 15 }, // Duplicate
-				{ time: 100, value: 18 }, // Duplicate
-				{ time: 200, value: 20 }
+				{ time: 100 as UTCTimestamp, value: 10 },
+				{ time: 100 as UTCTimestamp, value: 15 }, // Duplicate
+				{ time: 100 as UTCTimestamp, value: 18 }, // Duplicate
+				{ time: 200 as UTCTimestamp, value: 20 }
 			];
 
 			const result = deduplicateByTime(data);
 			const expected = [
-				{ time: 100, value: 10 }, // Only first one kept
-				{ time: 200, value: 20 }
+				{ time: 100 as UTCTimestamp, value: 10 }, // Only first one kept
+				{ time: 200 as UTCTimestamp, value: 20 }
 			];
 
 			expect(result).toEqual(expected);
@@ -87,9 +88,9 @@ if (import.meta.vitest) {
 
 		it('should return original array if no duplicates', () => {
 			const data = [
-				{ time: 100, value: 10 },
-				{ time: 200, value: 20 },
-				{ time: 300, value: 30 }
+				{ time: 100 as UTCTimestamp, value: 10 },
+				{ time: 200 as UTCTimestamp, value: 20 },
+				{ time: 300 as UTCTimestamp, value: 30 }
 			];
 
 			const result = deduplicateByTime(data);
@@ -99,7 +100,7 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle empty array', () => {
-			const data: Array<{ time: number; value: number }> = [];
+			const data: Array<{ time: UTCTimestamp; value: number }> = [];
 			const result = deduplicateByTime(data);
 			expect(result).toEqual([]);
 		});
@@ -116,13 +117,13 @@ if (import.meta.vitest) {
 
 			const result = transformAndSortData(rawData, {
 				valueTransform: (item) => item.price,
-				timeTransform: (item) => item.timestamp
+				timeTransform: (item) => item.timestamp as UTCTimestamp
 			});
 
 			const expected = [
-				{ time: 1000, value: 100 },
-				{ time: 2000, value: 200 }, // First occurrence kept after sorting
-				{ time: 3000, value: 300 }
+				{ time: 1000 as UTCTimestamp, value: 100 },
+				{ time: 2000 as UTCTimestamp, value: 200 }, // First occurrence kept after sorting
+				{ time: 3000 as UTCTimestamp, value: 300 }
 			];
 
 			expect(result).toEqual(expected);
@@ -133,7 +134,7 @@ if (import.meta.vitest) {
 
 			const result = transformAndSortData(rawData, {
 				valueTransform: (item) => item.price,
-				timeTransform: (item) => item.timestamp
+				timeTransform: (item) => item.timestamp as UTCTimestamp
 			});
 
 			expect(result).toEqual([]);
