@@ -15,11 +15,10 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
-
 	import type { Hex } from 'viem';
 	import type {
 		DepositOrWithdrawModalProps,
@@ -48,7 +47,6 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
