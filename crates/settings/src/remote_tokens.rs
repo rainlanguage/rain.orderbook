@@ -168,7 +168,10 @@ using-tokens-from: http://test.com
         .unwrap_err();
         assert_eq!(
             error,
-            YamlError::KeyShadowing("using-tokens-from".to_string())
+            YamlError::KeyShadowing(
+                "http://test.com/".to_string(),
+                "using-tokens-from".to_string()
+            )
         );
     }
 }
