@@ -44,6 +44,7 @@ describe('Layout Component', () => {
 		localStorageMock.clear();
 		vi.clearAllMocks();
 		mockPageStore.reset(); // Reset the mock store to initial state
+		vi.unstubAllGlobals();
 	});
 
 	it('should show advanced mode toggle on deploy page', () => {
@@ -110,5 +111,40 @@ describe('Layout Component', () => {
 		render(Layout);
 
 		expect(screen.queryByTestId('registry-input')).toBeNull();
+	});
+	it('should update URL with registry query parameter when registry is in localStorage', () => {
+		vi.stubGlobal('location', { pathname: '/deploy' });
+
+		localStorageMock.setItem('registry', 'https://custom-registry.com');
+
+		const pushStateSpy = vi.spyOn(window.history, 'pushState');
+
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy'
+			} as unknown as URL
+		});
+
+		render(Layout);
+
+		expect(pushStateSpy).toHaveBeenCalledWith(
+			{},
+			'',
+			'/deploy?registry=https://custom-registry.com'
+		);
+	});
+
+	it('should not update URL when no registry is in localStorage', () => {
+		const pushStateSpy = vi.spyOn(window.history, 'pushState');
+
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy'
+			} as unknown as URL
+		});
+
+		render(Layout);
+
+		expect(pushStateSpy).not.toHaveBeenCalled();
 	});
 });
