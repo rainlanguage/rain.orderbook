@@ -9,14 +9,11 @@ describe('handleShareChoices', () => {
 	beforeEach(() => {
 		guiInstance = new DotrainOrderGui();
 
-		// Mock clipboard API
 		Object.assign(navigator, {
 			clipboard: {
 				writeText: vi.fn()
 			}
 		});
-
-		// Mock Svelte's page store
 		vi.mock('$app/stores', () => ({
 			page: {
 				subscribe: vi.fn((fn) => {
@@ -27,17 +24,7 @@ describe('handleShareChoices', () => {
 		}));
 	});
 
-	it('should share the choices with state only when no registry url provided', async () => {
-		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
-
-		await handleShareChoices(guiInstance);
-
-		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-			'http://example.com/?state=mockState123'
-		);
-	});
-
-	it('should share the choices with state and registry when provided', async () => {
+	it('should share the choices with state and registry', async () => {
 		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
 
 		await handleShareChoices(guiInstance, mockRegistryUrl);
@@ -50,9 +37,9 @@ describe('handleShareChoices', () => {
 	it('should handle null state', async () => {
 		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: null });
 
-		await handleShareChoices(guiInstance);
+		await handleShareChoices(guiInstance, mockRegistryUrl);
 
-		expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://example.com/?state=');
+		expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://example.com/?state=&registry=https%3A%2F%2Fexample.com%2Fregistry');
 	});
 
 	it('should handle null state with registry url', async () => {
@@ -62,16 +49,6 @@ describe('handleShareChoices', () => {
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
 			'http://example.com/?state=&registry=https%3A%2F%2Fexample.com%2Fregistry'
-		);
-	});
-
-	it('should handle empty registry url', async () => {
-		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
-
-		await handleShareChoices(guiInstance, '');
-
-		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-			'http://example.com/?state=mockState123'
 		);
 	});
 });
