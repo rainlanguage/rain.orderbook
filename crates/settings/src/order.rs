@@ -483,10 +483,8 @@ impl YamlParsableHash for OrderCfg {
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
         if let Some(context) = context {
-            if context.select_tokens.is_none() {
-                if let Err(e) = tokens {
-                    return Err(e);
-                }
+            if context.select_tokens.is_none() && tokens.is_err() {
+                return Err(tokens.err().unwrap());
             }
         }
 

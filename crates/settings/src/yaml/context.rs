@@ -168,9 +168,7 @@ impl YamlCacheTrait for Context {
     }
 
     fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>> {
-        self.yaml_cache
-            .as_ref()
-            .and_then(|cache| Some(&cache.remote_networks))
+        self.yaml_cache.as_ref().map(|cache| &cache.remote_networks)
     }
 
     fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg> {
@@ -180,9 +178,7 @@ impl YamlCacheTrait for Context {
     }
 
     fn get_remote_tokens(&self) -> Option<&HashMap<String, TokenCfg>> {
-        self.yaml_cache
-            .as_ref()
-            .and_then(|cache| Some(&cache.remote_tokens))
+        self.yaml_cache.as_ref().map(|cache| &cache.remote_tokens)
     }
 
     fn get_remote_token(&self, key: &str) -> Option<&TokenCfg> {

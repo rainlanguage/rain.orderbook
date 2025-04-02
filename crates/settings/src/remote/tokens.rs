@@ -55,7 +55,7 @@ impl Token {
 
         let token_cfg = TokenCfg {
             document: document.clone(),
-            key: self.name.to_lowercase().replace(" ", "-").clone(),
+            key: self.name.to_lowercase().replace(' ', "-").clone(),
             network: Arc::new(network),
             address: Address::from_str(&self.address)
                 .map_err(|e| RemoteTokensError::ParseTokenAddressError(e.to_string()))?,
