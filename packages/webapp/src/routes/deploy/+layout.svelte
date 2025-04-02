@@ -8,6 +8,10 @@
 	$: advancedMode = localStorage.getItem('registry') ? true : false;
 	$: registryFromStorage = localStorage.getItem('registry');
 	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
+
+	$: if (registryFromStorage) {
+		window.history.pushState({}, '', window.location.pathname + '?registry=' + registryFromStorage);
+	}
 </script>
 
 <PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
