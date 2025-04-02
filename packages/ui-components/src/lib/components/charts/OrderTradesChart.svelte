@@ -4,7 +4,7 @@
 	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
-	import { bigintToFloat } from '$lib/utils/number';
+	import { formatUnits } from 'viem';
 
 	export let id: string;
 	export let subgraphUrl: string;
@@ -37,7 +37,7 @@
 		title="Trades"
 		{query}
 		timeTransform={(d) => d.time}
-		valueTransform={(d) => bigintToFloat(BigInt(d.outputAmount), 18)}
+		valueTransform={(d) => +formatUnits(BigInt(d.outputAmount), Number(d.tokenDecimals))}
 		emptyMessage="No trades found"
 		{lightweightChartsTheme}
 	/>
