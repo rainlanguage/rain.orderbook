@@ -7,7 +7,7 @@
 
 <Button disabled={loading || disabled} {...$$props} on:click>
 	{#if loading}
-		<Spinner class="mr-2 h-4 w-4" color="white" />
+		<Spinner data-testid="spinner-element" class="mr-2 h-4 w-4" color="white" />
 	{/if}
 	<slot />
 </Button>
