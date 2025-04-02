@@ -2,7 +2,7 @@ import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { page } from '$app/stores';
 import { get } from 'svelte/store';
 
-export async function handleShareChoices(gui: DotrainOrderGui, registryUrl: string) {
+export async function handleShareChoices(gui: DotrainOrderGui, registryUrl?: string) {
 	// get the current url
 	const url = get(page).url;
 
@@ -13,6 +13,8 @@ export async function handleShareChoices(gui: DotrainOrderGui, registryUrl: stri
 	}
 	const state = result.value;
 	url.searchParams.set('state', state || '');
-	url.searchParams.set('registry', registryUrl);
+	if (registryUrl) {
+		url.searchParams.set('registry', registryUrl);
+	}
 	navigator.clipboard.writeText(url.toString());
 }
