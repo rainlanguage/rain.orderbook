@@ -48,7 +48,7 @@ describe('ModalExecute', () => {
           overrideNetwork: {
             key: 'test',
             rpc: 'https://test.com',
-            'chain-id': 2,
+            chainId: 2,
           },
         },
       });
@@ -80,7 +80,7 @@ describe('ModalExecute', () => {
           overrideNetwork: {
             key: 'test',
             rpc: 'https://test.com',
-            'chain-id': 2,
+            chainId: 2,
           },
         },
       });
