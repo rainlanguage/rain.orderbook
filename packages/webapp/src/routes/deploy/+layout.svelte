@@ -3,11 +3,9 @@
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-	import { REGISTRY_URL } from '$lib/constants';
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
-	$: urlRegistry = $page.url.searchParams.get('registry');
-	$: showCustomRegistryWarning = urlRegistry !== REGISTRY_URL;
+	$: customRegistry = $page.url.searchParams.get('registry');
 	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
@@ -22,7 +20,7 @@
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="warning">
-		{#if showCustomRegistryWarning}
+		{#if customRegistry}
 			<CustomRegistryWarning />
 		{/if}
 	</svelte:fragment>
