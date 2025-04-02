@@ -22,6 +22,7 @@ pub struct AllFieldValuesResult {
     pub value: GuiPresetCfg,
 }
 impl_wasm_traits!(AllFieldValuesResult);
+
 impl DotrainOrderGui {
     pub fn check_field_values(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
