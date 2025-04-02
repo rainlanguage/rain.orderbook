@@ -22,6 +22,7 @@
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
+	import { prepareOrderRemoval } from '$lib/services/handleRemoveOrder'; // Adjust the import path as needed
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
@@ -39,34 +40,31 @@
 		toastOpen = false;
 	}
 
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
-		queryClient.invalidateQueries({
-			queryKey: [orderHash],
-			refetchType: 'all',
-			exact: false
+	function executeOrderRemoval(orderConfig: ReturnType<typeof prepareOrderRemoval>) {
+		handleOrderRemoveModal({
+			open: orderConfig.modal.open,
+			args: {
+				...orderConfig.modal.args,
+				onRemove: () => {
+					queryClient.invalidateQueries(orderConfig.queryInvalidation);
+					triggerToast(orderConfig.notification);
+				}
+			}
 		});
-		triggerToast($transactionStore.message);
 	}
 
 	function handleRemoveOrder(event: CustomEvent<{ order: SgOrder }>) {
 		const { order } = event.detail;
-		handleOrderRemoveModal({
-			open: true,
-			args: {
-				order,
-				onRemove: () => {
-					queryClient.invalidateQueries({
-						queryKey: [orderHash],
-						refetchType: 'all',
-						exact: false
-					});
-					triggerToast('Order removed successfully');
-				},
-				chainId,
-				orderbookAddress,
-				subgraphUrl
-			}
+
+		// Use the pure function to get the configuration
+		const orderConfig = prepareOrderRemoval(order, {
+			chainId,
+			orderbookAddress,
+			subgraphUrl
 		});
+
+		// Execute the actions based on the configuration
+		executeOrderRemoval(orderConfig);
 	}
 </script>
 
