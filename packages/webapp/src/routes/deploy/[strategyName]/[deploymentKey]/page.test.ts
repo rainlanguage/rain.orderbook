@@ -102,8 +102,10 @@ describe('DeployPage', () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
-				dotrain: null as unknown as string,
-				deployment: null as unknown as { key: string },
+-				dotrain: null as unknown as string,
+-				deployment: null as unknown as { key: string },
++				dotrain: 'some dotrain',
++				deployment: { key: 'test-key' },
 				strategyDetail: {}
 			},
 			url: new URL(`http://localhost:3000/deploy?registry=${customRegistryUrl}`)
