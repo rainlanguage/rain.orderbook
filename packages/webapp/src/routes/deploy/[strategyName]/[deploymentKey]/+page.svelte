@@ -25,9 +25,10 @@
 	onMount(async () => {
 		if (dotrain && deployment) {
 			const customRegistryUrl = $page.url.searchParams?.get('registry');
+			// Always add the registry URL to the share link, so that urls track older registry versions
 			if (!customRegistryUrl) {
-				const registryUrl = REGISTRY_URL;
-				window.history.pushState({}, '', window.location.pathname + '?registry=' + registryUrl);
+				$page.url.searchParams.set('registry', REGISTRY_URL);
+				window.history.pushState({}, '', window.location.pathname + '?registry=' + REGISTRY_URL);
 			}
 			const { gui: initializedGui, error } = await handleGuiInitialization(
 				dotrain,
