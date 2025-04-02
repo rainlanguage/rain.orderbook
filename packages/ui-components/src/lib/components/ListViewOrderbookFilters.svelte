@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
 	import { isEmpty } from 'lodash';
-	import { Alert, Tooltip } from 'flowbite-svelte';
+	import { Alert } from 'flowbite-svelte';
+	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
