@@ -80,7 +80,7 @@
 		"tailwind-merge": "2.5.4",
 		"thememirror": "2.0.1",
 		"uuid": "9.0.1",
-		"viem": "2.22.8",
+		"viem": "2.24.3",
 		"wagmi": "2.14.7"
 	}
 }
