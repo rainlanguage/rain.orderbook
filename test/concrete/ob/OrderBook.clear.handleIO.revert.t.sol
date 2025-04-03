@@ -26,16 +26,16 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         internal
         returns (OrderV4 memory)
     {
-        uint256 vaultId = 0;
+        bytes32 vaultId = 0;
 
         OrderConfigV4 memory config;
         IOV2[] memory validOutputs;
         IOV2[] memory validInputs;
         {
             validInputs = new IOV2[](1);
-            validInputs[0] = IOV2(inputToken, 18, vaultId);
+            validInputs[0] = IOV2(inputToken, vaultId);
             validOutputs = new IOV2[](1);
-            validOutputs[0] = IOV2(outputToken, 18, vaultId);
+            validOutputs[0] = IOV2(outputToken, vaultId);
             // Etch with invalid.
             vm.etch(inputToken, hex"fe");
             vm.etch(outputToken, hex"fe");
@@ -46,7 +46,7 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit3(outputToken, vaultId, type(uint256).max, new TaskV2[](0));
+        iOrderbook.deposit3(outputToken, vaultId, Float(type(int256).max, 0), new TaskV2[](0));
         Float memory balance = iOrderbook.vaultBalance2(owner, outputToken, vaultId);
         assertTrue(LibDecimalFloat.eq(balance.signedCoefficient, balance.exponent, type(int256).max, type(int256).max));
 

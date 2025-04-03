@@ -19,6 +19,7 @@ import {RouteProcessorOrderBookV5ArbOrderTaker} from "src/concrete/arb/RouteProc
 import {
     StateNamespace, FullyQualifiedNamespace
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
@@ -42,7 +43,13 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(
+                Float(0, 0),
+                Float(type(int256).max, 0),
+                Float(type(int256).max, 0),
+                orders,
+                abi.encode(iRefundoor, iRefundoor, "")
+            ),
             TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
@@ -78,7 +85,13 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
 
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(
+                Float(0, 0),
+                Float(type(int256).max, 0),
+                Float(type(int256).max, 0),
+                orders,
+                abi.encode(iRefundoor, iRefundoor, "")
+            ),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)

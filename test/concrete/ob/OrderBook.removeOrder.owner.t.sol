@@ -29,10 +29,10 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
             assert(!stateChange);
             assert(iOrderbook.orderExists(order.hash()));
 
-            stateChange = iOrderbook.removeOrder2(order, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(order, new TaskV2[](0));
             assert(stateChange);
             assert(!iOrderbook.orderExists(order.hash()));
-            stateChange = iOrderbook.removeOrder2(order, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(order, new TaskV2[](0));
             assert(!stateChange);
             assert(!iOrderbook.orderExists(order.hash()));
         }
@@ -60,13 +60,13 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
             assert(!iOrderbook.orderExists(orderBob.hash()));
 
             vm.prank(bob);
-            stateChange = iOrderbook.removeOrder2(orderBob, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderBob, new TaskV2[](0));
             assert(!stateChange);
             assert(iOrderbook.orderExists(orderAlice.hash()));
             assert(!iOrderbook.orderExists(orderBob.hash()));
 
             vm.prank(alice);
-            stateChange = iOrderbook.removeOrder2(orderAlice, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderAlice, new TaskV2[](0));
             assert(stateChange);
             assert(!iOrderbook.orderExists(orderAlice.hash()));
             assert(!iOrderbook.orderExists(orderBob.hash()));
@@ -80,13 +80,13 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
             assert(!iOrderbook.orderExists(orderAlice.hash()));
 
             vm.prank(alice);
-            stateChange = iOrderbook.removeOrder2(orderAlice, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderAlice, new TaskV2[](0));
             assert(!stateChange);
             assert(iOrderbook.orderExists(orderBob.hash()));
             assert(!iOrderbook.orderExists(orderAlice.hash()));
 
             vm.prank(bob);
-            stateChange = iOrderbook.removeOrder2(orderBob, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderBob, new TaskV2[](0));
             assert(stateChange);
             assert(!iOrderbook.orderExists(orderBob.hash()));
             assert(!iOrderbook.orderExists(orderAlice.hash()));
@@ -106,13 +106,13 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
             assert(iOrderbook.orderExists(orderAlice.hash()));
 
             vm.prank(alice);
-            stateChange = iOrderbook.removeOrder2(orderAlice, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderAlice, new TaskV2[](0));
             assert(stateChange);
             assert(!iOrderbook.orderExists(orderAlice.hash()));
             assert(iOrderbook.orderExists(orderBob.hash()));
 
             vm.prank(bob);
-            stateChange = iOrderbook.removeOrder2(orderBob, new TaskV2[](0));
+            stateChange = iOrderbook.removeOrder3(orderBob, new TaskV2[](0));
             assert(stateChange);
             assert(!iOrderbook.orderExists(orderBob.hash()));
             assert(!iOrderbook.orderExists(orderAlice.hash()));
@@ -133,7 +133,7 @@ contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
-        stateChange = iOrderbook.removeOrder2(order, new TaskV2[](0));
+        stateChange = iOrderbook.removeOrder3(order, new TaskV2[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));
     }

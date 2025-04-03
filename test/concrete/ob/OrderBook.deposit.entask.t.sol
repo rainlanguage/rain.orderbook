@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, LibDecimalFloat, Float} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderConfigV4,
     EvaluableV4,
@@ -17,6 +17,7 @@ import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
+    using LibDecimalFloat for Float;
 
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -230,11 +231,11 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
         TaskV2[] memory actions = evalsToActions(evals);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
 
         vm.expectRevert("revert in action");
         iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
     }
 }

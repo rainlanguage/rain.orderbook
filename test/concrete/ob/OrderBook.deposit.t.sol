@@ -8,13 +8,16 @@ import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMoc
 import {TaskV2, EvaluableV4, IOrderBookV5} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookDepositTest
 /// Tests depositing to an order book.
 contract OrderBookDepositTest is OrderBookExternalMockTest {
+    using LibDecimalFloat for Float;
+
     /// Tests that we can deposit some amount and view the new vault balance.
     /// forge-config: default.fuzz.runs = 100
-    function testDepositSimple(address depositor, uint256 vaultId, uint256 amount) external {
+    function testDepositSimple(address depositor, uint256 vaultId, Float memory amount) external {
         vm.assume(amount != 0);
         vm.prank(depositor);
         vm.mockCall(
@@ -24,7 +27,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
 
         iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
-        assertEq(iOrderbook.vaultBalance(depositor, address(iToken0), vaultId), amount);
+        assertTrue(iOrderbook.vaultBalance2(depositor, address(iToken0), vaultId).eq(amount));
     }
 
     /// Depositing zero should revert.
@@ -101,12 +104,12 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
     /// @param depositor The address of the depositor.
     /// @param token The address of the token to deposit.
     /// @param vaultId The vaultId to deposit to.
-    /// @param amount The amount to deposit. `uint248` is used to avoid overflow.
+    /// @param amount The amount to deposit.
     struct Action {
         address depositor;
         address token;
         uint256 vaultId;
-        uint248 amount;
+        Float amount;
     }
 
     /// Any combination of depositors, tokens, vaults, amounts should not cause
@@ -128,8 +131,8 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
 
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(actions[i].token, REVERTING_MOCK_BYTECODE);
-            uint256 vaultBalanceBefore =
-                iOrderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId);
+            Float memory vaultBalanceBefore =
+                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId);
             vm.prank(actions[i].depositor);
             vm.mockCall(
                 actions[i].token,
@@ -151,9 +154,10 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             // - reentrancy guard x2
             // - vault balance x1
             assertEq(writes.length, 3, "writes");
-            assertEq(
-                iOrderbook.vaultBalance(actions[i].depositor, actions[i].token, actions[i].vaultId),
-                actions[i].amount + vaultBalanceBefore,
+            assertTrue(
+                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
+                    actions[i].amount.add(vaultBalanceBefore)
+                ),
                 "vault balance"
             );
         }

@@ -3,7 +3,9 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {IOrderBookV5, QuoteV2,
+import {
+    IOrderBookV5,
+    QuoteV2,
     OrderConfigV4,
     EvaluableV4,
     TaskV2,
@@ -25,7 +27,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     /// Dead orders always eval to false.
     /// forge-config: default.fuzz.runs = 100
     function testQuoteDeadOrder(QuoteV2 memory quoteConfig) external view {
-        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
+        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote2(quoteConfig);
         assert(!success);
         assertEq(maxOutput, 0);
         assertEq(ioRatio, 0);
@@ -42,11 +44,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         config.validOutputs[0].token = address(iToken0);
-        config.validOutputs[0].decimals = 12;
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
 
         config.validInputs[0].token = address(iToken1);
-        config.validInputs[0].decimals = 6;
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
         vm.mockCall(
@@ -73,8 +73,8 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
             });
 
             QuoteV2 memory quoteConfig =
-            QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
-            (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
+                QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
+            (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote2(quoteConfig);
             assert(success);
             assertEq(maxOutput, expectedMaxOutput[i], "max output");
             assertEq(ioRatio, expectedIoRatio[i], "io ratio");

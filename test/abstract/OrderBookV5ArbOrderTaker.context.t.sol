@@ -20,6 +20,7 @@ import {
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
     function testOrderBookV5ArbOrderTakerContext() external {
@@ -30,10 +31,10 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
         OrderConfigV4 memory aliceOrderConfig;
         {
             IOV2[] memory aliceValidInputs = new IOV2[](1);
-            aliceValidInputs[0] = IOV2({token: address(iToken0), decimals: 12, vaultId: 0});
+            aliceValidInputs[0] = IOV2({token: address(iToken0), vaultId: 0});
 
             IOV2[] memory aliceValidOutputs = new IOV2[](1);
-            aliceValidOutputs[0] = IOV2({token: address(iToken1), decimals: 12, vaultId: 0});
+            aliceValidOutputs[0] = IOV2({token: address(iToken1), vaultId: 0});
 
             aliceOrderConfig = OrderConfigV4({
                 evaluable: EvaluableV4(iInterpreter, iStore, ""),
@@ -63,9 +64,9 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = aliceTakeOrderConfig;
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
-            minimumInput: 0,
-            maximumInput: type(uint256).max,
-            maximumIORatio: type(uint256).max,
+            minimumInput: Float(0, 0),
+            maximumInput: Float(type(int256).max, 0),
+            maximumIORatio: Float(type(int256).max, 0),
             orders: orders,
             data: ""
         });

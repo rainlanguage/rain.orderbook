@@ -28,6 +28,7 @@ import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
 import {
     StateNamespace, FullyQualifiedNamespace
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBookV5ArbOrderTakerTest {
     function expression() internal virtual override returns (bytes memory) {
@@ -51,7 +52,13 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
         GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(
+                Float(0, 0),
+                Float(type(int256).max, 0),
+                Float(type(int256).max, 0),
+                orders,
+                abi.encode(iRefundoor, iRefundoor, "")
+            ),
             TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
         );
     }
@@ -89,7 +96,13 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
 
         GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(iRefundoor, iRefundoor, "")),
+            TakeOrdersConfigV4(
+                Float(0, 0),
+                Float(type(int256).max, 0),
+                Float(type(int256).max, 0),
+                orders,
+                abi.encode(iRefundoor, iRefundoor, "")
+            ),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)

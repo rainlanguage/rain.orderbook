@@ -18,22 +18,23 @@ import {
     Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
+import {NotOrderOwner, StackItem} from "src/concrete/ob/OrderBook.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {StateNamespace} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
     using LibFixedPointDecimalArithmeticOpenZeppelin for uint256;
     using Math for uint256;
+    using LibDecimalFloat for Float;
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
-    function _depositInternal(address depositor, address token, uint256 vaultId, uint256 amount) internal {
+    function _depositInternal(address depositor, address token, bytes32 vaultId, Float memory amount) internal {
         vm.prank(depositor);
         vm.mockCall(
             token,
@@ -44,7 +45,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         Float memory balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
 
-        assertTrue(LibDecimalFloat.eq(balance.signedCoefficient, balance.exponent, amount, 0));
+        assertTrue(balance.eq(amount));
     }
 
     function conformBasicConfig(OrderConfigV4 memory aliceConfig, OrderConfigV4 memory bobConfig) internal view {
@@ -75,17 +76,17 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         address bob;
         OrderConfigV4 bobConfig;
         address bountyBot;
-        uint256 aliceBountyVaultId;
-        uint256 bobBountyVaultId;
-        uint256 aliceAmount;
-        uint256 bobAmount;
+        bytes32 aliceBountyVaultId;
+        bytes32 bobBountyVaultId;
+        Float aliceAmount;
+        Float bobAmount;
         bytes expression;
-        uint256[] orderStackAlice;
-        uint256[] orderStackBob;
-        uint256 expectedAliceOutput;
-        uint256 expectedBobOutput;
-        uint256 expectedAliceInput;
-        uint256 expectedBobInput;
+        StackItem[] orderStackAlice;
+        StackItem[] orderStackBob;
+        Float expectedAliceOutput;
+        Float expectedBobOutput;
+        Float expectedAliceInput;
+        Float expectedBobInput;
         bytes expectedError;
     }
 
@@ -118,9 +119,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
             );
-            assertTrue(
-                LibDecimalFloat.eq(aliceOutputBalance.signedCoefficient, aliceOutputBalance.exponent, clear.aliceAmount, 0)
-            );
+            assertTrue(aliceOutputBalance.eq(clear.aliceAmount));
         }
         {
             Float memory bobInputBalance = iOrderbook.vaultBalance2(
@@ -132,9 +131,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             Float memory bobOutputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
             );
-            assertTrue(
-                LibDecimalFloat.eq(bobOutputBalance.signedCoefficient, bobOutputBalance.exponent, clear.bobAmount, 0)
-            );
+            assertTrue(bobOutputBalance.eq(clear.bobAmount), "Bob output balance should be equal to bob amount");
         }
         {
             Float memory aliceBountyBalance = iOrderbook.vaultBalance2(
@@ -143,9 +140,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             assertTrue(LibDecimalFloat.eq(aliceBountyBalance.signedCoefficient, aliceBountyBalance.exponent, 0, 0));
         }
         {
-            Float memory bobBountyBalance = iOrderbook.vaultBalance2(
-                clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId
-            );
+            Float memory bobBountyBalance =
+                iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId);
             assertTrue(LibDecimalFloat.eq(bobBountyBalance.signedCoefficient, bobBountyBalance.exponent, 0, 0));
         }
 
@@ -203,55 +199,52 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             // });
         }
 
-        assertEq(
-            iOrderbook.vaultBalance(
+        assertTrue(
+            iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-            ),
-            clear.aliceAmount - clear.expectedAliceOutput,
+            ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
             "Alice output vault"
         );
-        assertEq(
-            iOrderbook.vaultBalance(
+        assertTrue(
+            iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
-            ),
-            clear.expectedAliceInput,
+            ).eq(clear.expectedAliceInput),
             "Alice input vault"
         );
 
-        assertEq(
-            iOrderbook.vaultBalance(
+        assertTrue(
+            iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
-            ),
-            clear.bobAmount - clear.expectedBobOutput,
+            ).eq(clear.bobAmount.sub(clear.expectedBobOutput)),
             "Bob output vault"
         );
-        assertEq(
-            iOrderbook.vaultBalance(
+        assertTrue(
+            iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
-            ),
-            clear.expectedBobInput,
-            // clear.expectedBobOutput.fixedPointMul(clear.orderStackBob[0], Math.Rounding.Up),
+            ).eq(clear.expectedBobInput),
             "Bob input vault"
         );
 
-        assertEq(
-            iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId),
-            clear.expectedAliceOutput - clear.expectedBobInput,
+        assertTrue(
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId)
+                .eq(clear.expectedAliceOutput.sub(clear.expectedBobInput)),
             "Alice bounty"
         );
-        assertEq(
-            iOrderbook.vaultBalance(clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId),
-            0,
+        assertTrue(
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId)
+                .eq(Float(0, 0)),
             "Alice bounty input"
         );
-        assertEq(
-            iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId),
-            clear.expectedBobOutput - clear.expectedAliceInput,
+        assertTrue(
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId).eq(
+                clear.expectedBobOutput.sub(clear.expectedAliceInput)
+            ),
             "Bob bounty"
         );
-        assertEq(
-            iOrderbook.vaultBalance(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId),
-            0,
+        assertTrue(
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId).eq(
+                Float(0, 0)
+            ),
             "Bob bounty input"
         );
     }
@@ -264,17 +257,17 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
     ) external {
-        uint256 aliceAmount = 2e18;
-        uint256 bobAmount = 2e18;
+        Float memory aliceAmount = Float(2, 0);
+        Float memory bobAmount = Float(2, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = 0.99e18; // orderIORatio
-        orderStackAlice[1] = 0.5e18; // orderOutputMax
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(Float(0.99e18, -18).pack())); // orderIORatio
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(Float(0.5e18, -18).pack())); // orderOutputMax
 
         checkClear(
             CheckClear(
@@ -290,10 +283,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 expression,
                 orderStackAlice,
                 orderStackAlice,
-                0.5e18,
-                0.5e18,
-                0.495e18,
-                0.495e18,
+                Float(0.5e18, -18),
+                Float(0.5e18, -18),
+                Float(0.495e18, -18),
+                Float(0.495e18, -18),
                 ""
             )
         );
@@ -307,8 +300,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId,
         uint256 aliceIORatio,
         uint256 bobIORatio
     ) external {
@@ -318,11 +311,11 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = aliceIORatio; // orderIORatio
-        orderStackAlice[1] = 1e18; // orderOutputMax
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(Float(int256(aliceIORatio), -18).pack())); // orderIORatio
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(Float(1, 0).pack())); // orderOutputMax
 
-        uint256[] memory orderStackBob = new uint256[](2);
+        StackItem[] memory orderStackBob = new StackItem[](2);
         orderStackBob[0] = bobIORatio; // orderIORatio
         orderStackBob[1] = 1e18; // orderOutputMax
 
@@ -335,12 +328,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bountyBot,
                 aliceBountyVaultId,
                 bobBountyVaultId,
-                1e18,
-                1e18,
+                Float(1, 0),
+                Float(1, 0),
                 expression,
                 orderStackAlice,
                 orderStackBob,
-                1e18,
+                Float(1, 0),
                 // Alice is outputting 1 so bob will output enough to match this
                 // according to his own IO ratio.
                 uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18),

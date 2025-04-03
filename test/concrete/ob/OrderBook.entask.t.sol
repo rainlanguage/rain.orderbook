@@ -33,7 +33,7 @@ contract OrderBookEnactTest is OrderBookExternalRealTest {
                 TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        iOrderbook.entask(actions);
+        iOrderbook.entask2(actions);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);

@@ -24,7 +24,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function quote(QuoteV2 calldata) external pure returns (bool, Float calldata, Float calldata) {
+    function quote2(QuoteV2 calldata) external pure returns (bool, Float calldata, Float calldata) {
         revert("quote");
     }
 
@@ -39,7 +39,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function removeOrder2(OrderV4 calldata, TaskV2[] calldata) external pure returns (bool) {
+    function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
@@ -55,7 +55,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function deposit3(address, Float calldata, Float calldata, TaskV2[] calldata) external pure {
+    function deposit3(address, bytes32, Float calldata, TaskV2[] calldata) external pure {
         revert("deposit");
     }
 
@@ -70,7 +70,7 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function withdraw3(address, bytes32, Float calldata, Float calldata, TaskV2[] calldata) external pure {
+    function withdraw3(address, bytes32, Float calldata, TaskV2[] calldata) external pure {
         revert("withdraw");
     }
 

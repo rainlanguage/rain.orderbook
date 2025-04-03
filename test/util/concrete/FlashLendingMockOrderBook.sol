@@ -13,7 +13,8 @@ import {
     ClearConfigV2,
     EvaluableV4,
     TaskV2,
-    QuoteV2
+    QuoteV2,
+    Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
@@ -26,17 +27,19 @@ contract FlashLendingMockOrderBook is IOrderBookV5 {
         return true;
     }
 
-    function entask(TaskV2[] calldata) external pure {}
+    function entask2(TaskV2[] calldata) external pure {}
 
     /// @inheritdoc IOrderBookV5
-    function quote2(QuoteV2 calldata) external pure returns (bool, uint256, uint256) {
+    function quote2(QuoteV2 calldata) external pure returns (bool, Float calldata, Float calldata) {
         revert("quote");
     }
 
     /// @inheritdoc IOrderBookV5
-    function takeOrders3(TakeOrdersConfigV4 calldata) external pure returns (uint256, uint256) {
-        return (0, 0);
-    }
+    function takeOrders3(TakeOrdersConfigV4 calldata)
+        external
+        pure
+        returns (Float calldata totalTakerInput, Float calldata totalTakerOutput)
+    {}
 
     /// @inheritdoc IOrderBookV5
     function addOrder3(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
@@ -55,11 +58,11 @@ contract FlashLendingMockOrderBook is IOrderBookV5 {
         SignedContextV1[] memory,
         SignedContextV1[] memory
     ) external {}
-    function deposit3(address, uint256, uint256, TaskV2[] calldata) external {}
+    function deposit3(address, bytes32, Float calldata, TaskV2[] calldata) external {}
     function flashFee(address, uint256) external view returns (uint256) {}
     function maxFlashLoan(address) external view returns (uint256) {}
     function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external returns (bool) {}
 
-    function vaultBalance(address, address, uint256) external view returns (uint256) {}
-    function withdraw3(address, uint256, uint256, TaskV2[] calldata) external {}
+    function vaultBalance2(address, address, bytes32) external view returns (Float calldata) {}
+    function withdraw3(address, bytes32, Float calldata, TaskV2[] calldata) external {}
 }

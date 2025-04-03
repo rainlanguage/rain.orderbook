@@ -42,7 +42,7 @@ remappings = [
   "rain.intorastring/=lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.intorastring/src/",
   "rain.sol.codegen/=lib/rain.interpreter/lib/rain.sol.codegen/src/",
   "rain.solmem/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
-  "rain.math.float/=lib/rain.interpreter/lib/rain.math.float/src/",
+  "rain.math.float/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float/src/",
 ]
 
 [fuzz]

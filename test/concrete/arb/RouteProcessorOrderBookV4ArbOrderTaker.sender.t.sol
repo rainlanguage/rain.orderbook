@@ -18,6 +18,7 @@ import {
     RouteProcessorOrderBookV5ArbOrderTaker,
     OrderBookV5ArbConfig
 } from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrderBookV5ArbOrderTakerTest {
     /// forge-config: default.fuzz.runs = 100
@@ -28,7 +29,9 @@ contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrder
 
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, abi.encode(bytes("0x00"))),
+            TakeOrdersConfigV4(
+                Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, abi.encode(bytes("0x00"))
+            ),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
                 signedContext: new SignedContextV1[](0)

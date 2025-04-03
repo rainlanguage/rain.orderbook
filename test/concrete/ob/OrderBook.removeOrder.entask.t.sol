@@ -57,7 +57,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         }
         OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         vm.record();
-        bool stateChanged = iOrderbook.removeOrder2(order, actions);
+        bool stateChanged = iOrderbook.removeOrder3(order, actions);
         assertEq(stateChanged, addOrder);
         checkReentrancyRW(addOrder ? 5 : 4, addOrder ? 3 : 2);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
@@ -168,7 +168,7 @@ contract OrderBookRemoveOrderEnactTest is OrderBookExternalRealTest {
         TaskV2[] memory actions1 = evalsToActions(evals1);
 
         vm.expectRevert("always revert");
-        bool stateChanged2 = iOrderbook.removeOrder2(order, actions1);
+        bool stateChanged2 = iOrderbook.removeOrder3(order, actions1);
 
         assert(!stateChanged2);
 

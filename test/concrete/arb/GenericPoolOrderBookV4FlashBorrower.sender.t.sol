@@ -18,6 +18,7 @@ import {
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
     function buildArb(OrderBookV5ArbConfig memory config) internal override returns (address) {
@@ -36,7 +37,7 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
 
         GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
             iOrderBook,
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, ""),
+            TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, ""),
             abi.encode(iRefundoor, iRefundoor, ""),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),

@@ -29,7 +29,7 @@ contract OrderBookQuoteSameTokenTest is OrderBookExternalRealTest {
             new TaskV2[](0)
         );
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
-        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote(quoteConfig);
+        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote2(quoteConfig);
         (success, maxOutput, ioRatio);
     }
 }

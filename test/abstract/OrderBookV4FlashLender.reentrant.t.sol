@@ -19,6 +19,7 @@ import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookV4FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for
@@ -146,7 +147,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory takeOrdersConfig =
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
+            TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
