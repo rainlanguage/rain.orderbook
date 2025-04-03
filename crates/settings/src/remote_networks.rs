@@ -376,7 +376,7 @@ using-networks-from:
             .await
             .unwrap();
 
-        assert_eq!(networks.len(), 2 as usize);
+        assert_eq!(networks.len(), 2_usize);
 
         let network = networks.get("remote-network").unwrap();
         assert_eq!(network.key, "remote-network");
