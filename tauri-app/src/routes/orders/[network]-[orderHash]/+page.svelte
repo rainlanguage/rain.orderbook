@@ -16,6 +16,9 @@
   import { CheckCircleSolid } from 'flowbite-svelte-icons';
   import { fade } from 'svelte/transition';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { walletconnectAccount } from '$lib/stores/walletconnect';
+  import { ledgerWalletAddress } from '$lib/stores/wallets';
+  import { writable } from 'svelte/store';
 
   const queryClient = useQueryClient();
   const { orderHash, network } = $page.params;
@@ -89,5 +92,10 @@
     {chainId}
     {onDeposit}
     {onWithdraw}
+    signerAddress={$walletconnectAccount
+      ? walletconnectAccount
+      : $ledgerWalletAddress
+        ? ledgerWalletAddress
+        : writable(null)}
   />
 {/if}
