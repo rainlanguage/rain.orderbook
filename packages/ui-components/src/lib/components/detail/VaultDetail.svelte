@@ -29,12 +29,15 @@
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
 	export let signerAddress: Writable<string | null> | undefined = undefined;
-	/** Callback function when deposit action is triggered for a vault
+
+	/**
+	 * Required callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
 	export let onDeposit: (vault: SgVault) => void;
 
-	/** Callback function when withdraw action is triggered for a vault
+	/**
+	 * Required callback function when withdraw action is triggered for a vault
 	 * @param vault The vault to withdraw from
 	 */
 	export let onWithdraw: (vault: SgVault) => void;
