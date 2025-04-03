@@ -72,10 +72,6 @@
 			}
 		});
 	}
-
-	const onDeposit = (event: CustomEvent<{ vault: SgVault }>) => handleVaultAction(event, 'deposit');
-	const onWithdraw = (event: CustomEvent<{ vault: SgVault }>) =>
-		handleVaultAction(event, 'withdraw');
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -98,6 +94,6 @@
 	{orderbookAddress}
 	{chainId}
 	{wagmiConfig}
-	on:deposit={onDeposit}
-	on:withdraw={onWithdraw}
+	on:deposit={(event) => handleVaultAction(event, 'deposit')}
+	on:withdraw={(event) => handleVaultAction(event, 'withdraw')}
 />
