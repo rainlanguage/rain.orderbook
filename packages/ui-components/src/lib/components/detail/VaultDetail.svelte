@@ -8,7 +8,7 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits } from 'viem';
+	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -19,6 +19,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import VaultActionButton from '../actions/VaultActionButton.svelte';
+	import { useAccount } from '@rainlanguage/ui-components';
 
 	export let id: string;
 	export let network: string;
@@ -26,10 +27,10 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let signerAddress: string;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -68,7 +69,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if signerAddress === data.owner}
+			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
 				<VaultActionButton action="deposit" vault={data} on:deposit />
 				<VaultActionButton action="withdraw" vault={data} on:withdraw />
 			{/if}
@@ -137,7 +138,7 @@
 		<CardProperty>
 			<svelte:fragment slot="key">Orders as output</svelte:fragment>
 			<svelte:fragment slot="value">
-				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
+				<p data-testid="vaultDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
 							<OrderOrVaultHash

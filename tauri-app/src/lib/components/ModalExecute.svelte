@@ -18,7 +18,7 @@
   export let onBack: (() => void) | undefined = undefined;
 
   export let overrideNetwork: NetworkCfg | undefined = undefined;
-  $: chainId = overrideNetwork?.['chain-id'] || $globalChainId;
+  $: chainId = overrideNetwork?.chainId || $globalChainId;
 
   let selectedLedger = false;
   let selectedWalletconnect = false;

@@ -107,7 +107,7 @@ test('shows the correct data when the query returns data', async () => {
 		expect(screen.getByTestId('vaultDetailTokenAddress')).toHaveTextContent('Token address 0x456');
 		expect(screen.getByTestId('vaultDetailBalance')).toHaveTextContent('Balance 100000 USDC');
 		expect(screen.queryByTestId('vaultDetailOrdersAsInput')).toHaveTextContent('None');
-		expect(screen.queryByTestId('vaulDetailOrdersAsOutput')).toHaveTextContent('None');
+		expect(screen.queryByTestId('vaultDetailOrdersAsOutput')).toHaveTextContent('None');
 	});
 });
 
@@ -115,7 +115,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -127,13 +127,13 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 		ordersAsInput: [
 			{
 				id: '1',
-				owner: '0x123'
+				owner: '0x1234567890123456789012345678901234567890'
 			}
 		],
 		ordersAsOutput: [
 			{
 				id: '2',
-				owner: '0x123'
+				owner: '0x1234567890123456789012345678901234567890'
 			}
 		],
 		balanceChanges: [],

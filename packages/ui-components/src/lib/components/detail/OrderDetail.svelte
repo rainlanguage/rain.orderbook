@@ -29,6 +29,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { isAddressEqual, isAddress } from 'viem';
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
@@ -43,7 +44,7 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+	export let signerAddress: Writable<Hex | null> | undefined = undefined;
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -83,7 +84,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $signerAddress && isAddress($signerAddress) && isAddress(data.order.owner) && isAddressEqual($signerAddress, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
