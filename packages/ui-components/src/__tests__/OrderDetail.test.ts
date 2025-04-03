@@ -6,6 +6,7 @@ import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { writable } from 'svelte/store';
+import type { Hex } from 'viem';
 
 const mockOrder: SgOrder = {
 	id: 'mockId',
@@ -105,7 +106,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x123'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				chainId,
 				orderbookAddress,
 				onDeposit: vi.fn(),
@@ -136,7 +137,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x1234567890123456789012345678901234567890'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				handleOrderRemoveModal,
 				chainId,
 				orderbookAddress,
@@ -156,7 +157,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x9876543210987654321098765432109876543210'),
+				signerAddress: writable('0x9876543210987654321098765432109876543210' as Hex),
 				handleOrderRemoveModal: vi.fn(),
 				chainId,
 				orderbookAddress,
@@ -202,7 +203,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: mockOrderWithVaults.orderHash,
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x123'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				chainId,
 				orderbookAddress,
 				onDeposit: vi.fn(),
@@ -245,7 +246,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x123'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				chainId,
 				orderbookAddress,
 				onDeposit: vi.fn(),
@@ -298,7 +299,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x1234567890123456789012345678901234567890'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				chainId: 1,
 				orderbookAddress,
 				onDeposit: mockOnDeposit,
@@ -352,7 +353,7 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x1234567890123456789012345678901234567890'),
+				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
 				chainId: 1,
 				orderbookAddress,
 				onDeposit: vi.fn(),
