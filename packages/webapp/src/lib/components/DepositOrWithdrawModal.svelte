@@ -14,13 +14,13 @@
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook/js_api';
-	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
-	import { appKitModal, connected } from '$lib/stores/wagmi';
+	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
+	import { validateAmount } from '$lib/services/validateAmount';
 
 	const { ...chains } = allChains;
 	const { account } = useAccount();
@@ -38,9 +38,6 @@
 	export let args: DepositOrWithdrawArgs;
 
 	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
-
-	type Action = 'deposit' | 'withdraw';
-	const actionType = action as Action;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -125,10 +122,10 @@
 		amount = 0n;
 	}
 
-	$: amountGreaterThanBalance = {
-		deposit: amount > userBalance,
-		withdraw: amount > BigInt(vault.balance)
-	};
+	$: validation = validateAmount(
+		amount,
+		action === 'deposit' ? userBalance : BigInt(vault.balance)
+	);
 </script>
 
 {#if currentStep === 1}
@@ -150,10 +147,9 @@
 						<div class="flex flex-col gap-2">
 							<Button
 								color="blue"
+								data-testid="deposit-withdraw-button"
 								on:click={handleContinue}
-								disabled={amount <= 0n ||
-									amountGreaterThanBalance[actionType] ||
-									isCheckingCalldata}
+								disabled={!validation.isValid || isCheckingCalldata}
 							>
 								{#if isCheckingCalldata}
 									Checking...
@@ -169,8 +165,10 @@
 				{#if errorMessage}
 					<p data-testid="error-message">{errorMessage}</p>
 				{/if}
-				{#if amountGreaterThanBalance[actionType]}
-					<p class="text-red-500" data-testid="error">Amount cannot exceed available balance.</p>
+				{#if validation.exceedsBalance}
+					<p class="text-red-500" data-testid="amount-error">
+						{validation.errorMessage}
+					</p>
 				{/if}
 			</div>
 		</div>

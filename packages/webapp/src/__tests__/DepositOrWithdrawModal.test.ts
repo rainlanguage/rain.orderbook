@@ -3,13 +3,15 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
-
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
-import { readable } from 'svelte/store';
+import { get, readable } from 'svelte/store';
 
-export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
+type ModalProps = ComponentProps<DepositOrWithdrawModal>;
+
+const { mockWagmiConfigStore, mockSignerAddressStore, mockAppKitModalStore, mockConnectedStore } =
+	await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
@@ -24,9 +26,16 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	};
 });
 
+vi.mock('../lib/stores/wagmi', () => ({
+	appKitModal: mockAppKitModalStore,
+	wagmiConfig: mockWagmiConfigStore,
+	signerAddress: mockSignerAddressStore,
+	connected: mockConnectedStore
+}));
+
 vi.mock('@wagmi/core', () => ({
 	readContract: vi.fn(),
-	switchChain: vi.fn()
+	switchChain: vi.fn().mockResolvedValue({ id: 1 })
 }));
 
 describe('DepositOrWithdrawModal', () => {
@@ -87,11 +96,13 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
+		const wagmiConfig = get(mockWagmiConfigStore);
+
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: undefined,
+			config: wagmiConfig,
 			subgraphUrl: undefined,
 			approvalCalldata: { to: '0x789', data: '0xabc' },
 			transactionCalldata: { to: '0x123', data: '0x456' }
@@ -113,9 +124,10 @@ describe('DepositOrWithdrawModal', () => {
 
 		const withdrawButton = screen.getByText('Withdraw');
 		await fireEvent.click(withdrawButton);
+		const wagmiConfig = get(mockWagmiConfigStore);
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
-			config: undefined,
+			config: wagmiConfig,
 			transactionCalldata: { to: '0xdef', data: '0xghi' },
 			action: 'withdraw',
 			chainId: 1,
@@ -131,7 +143,7 @@ describe('DepositOrWithdrawModal', () => {
 		const input = screen.getByRole('textbox');
 		await fireEvent.input(input, { target: { value: '2' } });
 
-		expect(screen.getByTestId('error')).toHaveTextContent(
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
 	});
@@ -148,7 +160,7 @@ describe('DepositOrWithdrawModal', () => {
 		const input = screen.getByRole('textbox');
 		await fireEvent.input(input, { target: { value: '2' } });
 
-		expect(screen.getByTestId('error')).toHaveTextContent(
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
 	});
@@ -224,12 +236,12 @@ describe('DepositOrWithdrawModal', () => {
 
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
-
+		const wagmiConfig = get(mockWagmiConfigStore);
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: undefined,
+			config: wagmiConfig,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
 			transactionCalldata: { to: '0x123', data: '0x456' }
