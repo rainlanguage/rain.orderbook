@@ -10,8 +10,7 @@
 
   const queryClient = useQueryClient();
 
-  function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
-    const { vault } = event.detail;
+  function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
       queryClient.invalidateQueries({
         queryKey: [$page.params.id],
@@ -21,8 +20,7 @@
     });
   }
 
-  function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
-    const { vault } = event.detail;
+  function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
       queryClient.invalidateQueries({
         queryKey: [$page.params.id],
@@ -42,6 +40,6 @@
   {settings}
   {activeNetworkRef}
   {activeOrderbookRef}
-  on:deposit={onDeposit}
-  on:withdraw={onWithdraw}
+  {onDeposit}
+  {onWithdraw}
 />

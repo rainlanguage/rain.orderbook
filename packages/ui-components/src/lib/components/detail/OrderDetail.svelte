@@ -31,6 +31,7 @@
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { isAddressEqual, isAddress } from 'viem';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;
@@ -45,6 +46,8 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let onDeposit: (vault: SgVault) => void;
+	export let onWithdraw: (vault: SgVault) => void;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
@@ -159,13 +162,13 @@
 														action="deposit"
 														{vault}
 														testId="deposit-button"
-														on:deposit
+														onDepositOrWithdraw={onDeposit}
 													/>
 													<VaultActionButton
 														action="withdraw"
 														{vault}
 														testId="withdraw-button"
-														on:withdraw
+														onDepositOrWithdraw={onWithdraw}
 													/>
 												</div>
 											{/if}

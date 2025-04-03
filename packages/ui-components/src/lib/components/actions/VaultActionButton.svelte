@@ -1,28 +1,17 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import { createEventDispatcher } from 'svelte';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
-
-	const dispatch = createEventDispatcher<{
-		deposit: {
-			vault: SgVault;
-		};
-		withdraw: {
-			vault: SgVault;
-		};
-	}>();
 
 	export let action: 'deposit' | 'withdraw';
 	export let vault: SgVault;
+	export let onDepositOrWithdraw: (vault: SgVault) => void;
 	export let testId = `${action}-button`;
 	export let disabled = false;
 	export let label = '';
 
 	function handleClick() {
-		dispatch(action, {
-			vault
-		});
+		onDepositOrWithdraw(vault);
 	}
 </script>
 

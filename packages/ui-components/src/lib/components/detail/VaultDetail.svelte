@@ -27,6 +27,8 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+	export let onDeposit: (vault: SgVault) => void;
+	export let onWithdraw: (vault: SgVault) => void;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
@@ -70,8 +72,8 @@
 		</div>
 		<div class="flex items-center gap-2">
 			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
-				<VaultActionButton action="deposit" vault={data} on:deposit />
-				<VaultActionButton action="withdraw" vault={data} on:withdraw />
+				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
+				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
 			{/if}
 
 			<Refresh

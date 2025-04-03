@@ -48,11 +48,11 @@
 		triggerToast();
 	}
 
-	function handleVaultAction(
-		event: CustomEvent<{ vault: SgVault }>,
-		action: 'deposit' | 'withdraw'
-	) {
-		const { vault } = event.detail;
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		const network = $page.params.network;
+		const subgraphUrl = $settings?.subgraphs?.[network] || '';
+		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 
 		handleDepositOrWithdrawModal({
 			open: true,
@@ -60,7 +60,7 @@
 				vault,
 				onDepositOrWithdraw: () => {
 					queryClient.invalidateQueries({
-						queryKey: [orderHash],
+						queryKey: [$page.params.orderHash],
 						refetchType: 'all',
 						exact: false
 					});
@@ -71,6 +71,14 @@
 				subgraphUrl
 			}
 		});
+	}
+
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
+	function onWithdraw(vault: SgVault) {
+		handleVaultAction(vault, 'withdraw');
 	}
 </script>
 
@@ -94,6 +102,6 @@
 	{orderbookAddress}
 	{chainId}
 	{wagmiConfig}
-	on:deposit={(event) => handleVaultAction(event, 'deposit')}
-	on:withdraw={(event) => handleVaultAction(event, 'withdraw')}
+	{onDeposit}
+	{onWithdraw}
 />

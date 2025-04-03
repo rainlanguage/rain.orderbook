@@ -28,12 +28,7 @@
 		toastOpen = false;
 	}
 
-	function handleVaultAction(
-		event: CustomEvent<{ vault: SgVault }>,
-		action: 'deposit' | 'withdraw'
-	) {
-		const { vault } = event.detail;
-
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
 		const network = $page.params.network;
 		const subgraphUrl = $settings?.subgraphs?.[network] || '';
 		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
@@ -58,12 +53,12 @@
 		});
 	}
 
-	function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
-		handleVaultAction(event, 'deposit');
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
 	}
 
-	function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
-		handleVaultAction(event, 'withdraw');
+	function onWithdraw(vault: SgVault) {
+		handleVaultAction(vault, 'withdraw');
 	}
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
@@ -93,6 +88,6 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	on:deposit={onDeposit}
-	on:withdraw={onWithdraw}
+	{onDeposit}
+	{onWithdraw}
 />
