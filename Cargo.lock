@@ -6452,6 +6452,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "tokio",
+ "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.7",
 ]
 
