@@ -25,14 +25,13 @@ describe('Layout load function', () => {
 		vi.resetAllMocks();
 	});
 
-	const createUrlMock = (registryParam: string | null) =>
-		({
-			url: {
-				searchParams: {
-					get: vi.fn().mockReturnValue(registryParam)
-				}
+	const createUrlMock = (registryParam: string | null) => ({
+		url: {
+			searchParams: {
+				get: vi.fn().mockReturnValue(registryParam)
 			}
-		}) as any;
+		}
+	});
 
 	const testLoadFunction = async ({
 		registryParam = null,
