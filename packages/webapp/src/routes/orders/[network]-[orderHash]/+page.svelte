@@ -15,6 +15,7 @@
 	import { fade } from 'svelte/transition';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import { onDestroy } from 'svelte';
+	import { signerAddress } from '$lib/stores/wagmi';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -129,4 +130,5 @@
 	{wagmiConfig}
 	{onDeposit}
 	{onWithdraw}
+	{signerAddress}
 />
