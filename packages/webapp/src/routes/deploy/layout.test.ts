@@ -25,13 +25,14 @@ describe('Layout load function', () => {
 		vi.resetAllMocks();
 	});
 
-	const createUrlMock = (registryParam: string | null) => ({
-		url: {
-			searchParams: {
-				get: vi.fn().mockReturnValue(registryParam)
+	const createUrlMock = (registryParam: string | null) =>
+		({
+			url: {
+				searchParams: {
+					get: vi.fn().mockReturnValue(registryParam)
+				}
 			}
-		}
-	}) as any;
+		}) as any;
 
 	const testLoadFunction = async ({
 		registryParam = null,
@@ -63,7 +64,7 @@ describe('Layout load function', () => {
 		const result = await load(createUrlMock(registryParam));
 
 		expect(fetchRegistryDotrains).toHaveBeenCalledWith(expectedRegistry);
-		
+
 		if (!fetchError) {
 			expect(validateStrategies).toHaveBeenCalledWith(mockDotrains);
 		}
