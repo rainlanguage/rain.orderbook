@@ -43,7 +43,8 @@ beforeEach(() => {
 		settings: mockSettings,
 		lightweightChartsTheme: readable(darkChartTheme),
 		onDeposit: vi.fn(),
-		onWithdraw: vi.fn()
+		onWithdraw: vi.fn(),
+		signerAddress: writable('0x1234567890123456789012345678901234567890')
 	};
 });
 
@@ -76,7 +77,7 @@ test('shows the correct data when the query returns data', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -148,7 +149,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 
 	const propsWithSigner = {
 		...defaultProps,
-		signerAddress: '0x123'
+		signerAddress: writable('0x1234567890123456789012345678901234567890')
 	};
 
 	render(VaultDetail, {
@@ -162,11 +163,52 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	});
 });
 
+test('does not show deposit/withdraw buttons when signerAddress does not match owner', async () => {
+	const mockData = {
+		id: '1',
+		vaultId: '0xabc',
+		owner: '0x1234567890123456789012345678901234567890',
+		token: {
+			id: '0x456',
+			address: '0x456',
+			name: 'USDC coin',
+			symbol: 'USDC',
+			decimals: '6'
+		},
+		balance: '100000000000',
+		ordersAsInput: [],
+		ordersAsOutput: [],
+		balanceChanges: [],
+		orderbook: {
+			id: '0x00'
+		}
+	};
+
+	const { getVault } = await import('@rainlanguage/orderbook/js_api');
+	vi.mocked(getVault).mockResolvedValue(mockData);
+
+
+	const propsWithNonMatchingSigner = {
+		...defaultProps,
+		signerAddress: writable('0x9876543210987654321098765432109876543210')
+	};
+
+	render(VaultDetail, {
+		props: propsWithNonMatchingSigner,
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	await waitFor(() => {
+		expect(screen.queryByTestId('deposit-button')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('withdraw-button')).not.toBeInTheDocument();
+	});
+});
+
 test('calls onDeposit callback when deposit button is clicked', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -190,7 +232,6 @@ test('calls onDeposit callback when deposit button is clicked', async () => {
 
 	const propsWithCallbacks = {
 		...defaultProps,
-		signerAddress: '0x123',
 		onDeposit: mockOnDeposit
 	};
 
@@ -211,7 +252,7 @@ test('calls onWithdraw callback when withdraw button is clicked', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -235,7 +276,6 @@ test('calls onWithdraw callback when withdraw button is clicked', async () => {
 
 	const propsWithCallbacks = {
 		...defaultProps,
-		signerAddress: '0x123',
 		onWithdraw: mockOnWithdraw
 	};
 
@@ -256,7 +296,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
-		owner: '0x123',
+		owner: '0x1234567890123456789012345678901234567890',
 		token: {
 			id: '0x456',
 			address: '0x456',
@@ -279,7 +319,6 @@ test('refresh button triggers query invalidation when clicked', async () => {
 
 	const propsWithSigner = {
 		...defaultProps,
-		signerAddress: '0x123'
 	};
 
 	render(VaultDetail, {

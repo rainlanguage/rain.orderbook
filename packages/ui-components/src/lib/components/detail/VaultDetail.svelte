@@ -28,7 +28,6 @@
 	export let settings;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
 	export let signerAddress: Writable<string | null> | undefined = undefined;
 	export let onDeposit: (vault: SgVault) => void;
 	export let onWithdraw: (vault: SgVault) => void;
@@ -73,7 +72,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($wagmiConfig && $signerAddress && isAddress($signerAddress) && isAddressEqual($signerAddress, data.owner))}
+			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($signerAddress && isAddress($signerAddress) && isAddressEqual($signerAddress, data.owner))}
 				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
 				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
 			{/if}

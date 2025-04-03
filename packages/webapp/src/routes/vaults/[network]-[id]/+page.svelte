@@ -91,6 +91,5 @@
 	{activeOrderbookRef}
 	{onDeposit}
 	{onWithdraw}
-	{wagmiConfig}
 	{signerAddress}
 />
