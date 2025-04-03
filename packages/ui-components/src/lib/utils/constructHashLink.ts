@@ -11,11 +11,15 @@ type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
  * @param network - The network name
  * @returns The constructed link path
  */
-export function constructHashLink(orderOrVault: OrderOrVault, type: 'orders' | 'vaults', network: string): string {
-  const isOrder = 'orderHash' in (orderOrVault || {});
-  const slug = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id;
-  
-  return `/${type}/${network}-${slug}`;
+export function constructHashLink(
+	orderOrVault: OrderOrVault,
+	type: 'orders' | 'vaults',
+	network: string
+): string {
+	const isOrder = 'orderHash' in (orderOrVault || {});
+	const slug = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id;
+
+	return `/${type}/${network}-${slug}`;
 }
 
 /**
@@ -24,8 +28,8 @@ export function constructHashLink(orderOrVault: OrderOrVault, type: 'orders' | '
  * @returns True if the order is active, false otherwise
  */
 export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
-  const isOrder = 'orderHash' in (orderOrVault || {});
-  return isOrder ? (orderOrVault as SgOrderAsIO).active : false;
+	const isOrder = 'orderHash' in (orderOrVault || {});
+	return isOrder ? (orderOrVault as SgOrderAsIO).active : false;
 }
 
 /**
@@ -34,87 +38,87 @@ export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
  * @returns The hash value
  */
 export function extractHash(orderOrVault: OrderOrVault): string {
-  const isOrder = 'orderHash' in (orderOrVault || {});
-  return isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
+	const isOrder = 'orderHash' in (orderOrVault || {});
+	return isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
 }
 
 if (import.meta.vitest) {
-  const { expect, it, describe } = import.meta.vitest;
+	const { expect, it, describe } = import.meta.vitest;
 
-  describe('constructHashLink', () => {
-    test.prop([
-      fc.record({
-        orderHash: fc.string(),
-        active: fc.boolean()
-      }),
-      fc.oneof(fc.constant('orders'), fc.constant('vaults')),
-      fc.string()
-    ])('constructs correct link for orders', (order, type, network) => {
-      const result = constructHashLink(order as SgOrder, type, network);
-      expect(result).toBe(`/${type}/${network}-${order.orderHash}`);
-    });
+	describe('constructHashLink', () => {
+		test.prop([
+			fc.record({
+				orderHash: fc.string(),
+				active: fc.boolean()
+			}),
+			fc.oneof(fc.constant('orders'), fc.constant('vaults')),
+			fc.string()
+		])('constructs correct link for orders', (order, type, network) => {
+			const result = constructHashLink(order as SgOrder, type, network);
+			expect(result).toBe(`/${type}/${network}-${order.orderHash}`);
+		});
 
-    test.prop([
-      fc.record({
-        id: fc.string(),
-        owner: fc.string()
-      }),
-      fc.oneof(fc.constant('orders'), fc.constant('vaults')),
-      fc.string()
-    ])('constructs correct link for vaults', (vault, type, network) => {
-      const result = constructHashLink(vault as SgVault, type, network);
-      expect(result).toBe(`/${type}/${network}-${vault.id}`);
-    });
-  });
+		test.prop([
+			fc.record({
+				id: fc.string(),
+				owner: fc.string()
+			}),
+			fc.oneof(fc.constant('orders'), fc.constant('vaults')),
+			fc.string()
+		])('constructs correct link for vaults', (vault, type, network) => {
+			const result = constructHashLink(vault as SgVault, type, network);
+			expect(result).toBe(`/${type}/${network}-${vault.id}`);
+		});
+	});
 
-  describe('isOrderOrVaultActive', () => {
-    test.prop([
-      fc.record({
-        orderHash: fc.string(),
-        active: fc.boolean()
-      })
-    ])('returns correct active status for orders', (order) => {
-      const result = isOrderOrVaultActive(order as SgOrderAsIO);
-      expect(result).toBe(order.active);
-    });
+	describe('isOrderOrVaultActive', () => {
+		test.prop([
+			fc.record({
+				orderHash: fc.string(),
+				active: fc.boolean()
+			})
+		])('returns correct active status for orders', (order) => {
+			const result = isOrderOrVaultActive(order as SgOrderAsIO);
+			expect(result).toBe(order.active);
+		});
 
-    test.prop([
-      fc.record({
-        id: fc.string(),
-        owner: fc.string()
-      })
-    ])('returns false for vaults', (vault) => {
-      const result = isOrderOrVaultActive(vault as SgVault);
-      expect(result).toBe(false);
-    });
-  });
+		test.prop([
+			fc.record({
+				id: fc.string(),
+				owner: fc.string()
+			})
+		])('returns false for vaults', (vault) => {
+			const result = isOrderOrVaultActive(vault as SgVault);
+			expect(result).toBe(false);
+		});
+	});
 
-  describe('extractHash', () => {
-    test.prop([
-      fc.record({
-        orderHash: fc.string(),
-        active: fc.boolean()
-      })
-    ])('extracts hash from orders', (order) => {
-      const result = extractHash(order as SgOrder);
-      expect(result).toBe(order.orderHash);
-    });
+	describe('extractHash', () => {
+		test.prop([
+			fc.record({
+				orderHash: fc.string(),
+				active: fc.boolean()
+			})
+		])('extracts hash from orders', (order) => {
+			const result = extractHash(order as SgOrder);
+			expect(result).toBe(order.orderHash);
+		});
 
-    test.prop([
-      fc.record({
-        id: fc.string(),
-        owner: fc.string()
-      })
-    ])('extracts hash from vaults', (vault) => {
-      const result = extractHash(vault as SgVault);
-      expect(result).toBe(vault.id);
-    });
+		test.prop([
+			fc.record({
+				id: fc.string(),
+				owner: fc.string()
+			})
+		])('extracts hash from vaults', (vault) => {
+			const result = extractHash(vault as SgVault);
+			expect(result).toBe(vault.id);
+		});
 
-    it('handles undefined vault id', () => {
-      // Create a partial vault object with undefined id
-      const vault = { id: undefined } as unknown as SgVault;
-      const result = extractHash(vault);
-      expect(result).toBe('');
-    });
-  });
+		it('handles undefined vault id', () => {
+			// Create a partial vault object with undefined id
+			const vault = { id: undefined } as unknown as SgVault;
+			const result = extractHash(vault);
+			expect(result).toBe('');
+		});
+	});
 }

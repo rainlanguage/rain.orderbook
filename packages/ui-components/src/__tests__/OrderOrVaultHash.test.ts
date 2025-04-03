@@ -20,7 +20,7 @@ describe('OrderOrVaultHash', () => {
 	};
 
 	const mockVault = {
-		id: '0xvault456',
+		id: '0xvault456'
 	};
 
 	const mockSubgraphName = 'test-subgraph';
@@ -43,14 +43,14 @@ describe('OrderOrVaultHash', () => {
 
 			const button = getByTestId('vault-order-input');
 			const anchor = getByTestId('order-or-vault-hash');
-			
+
 			expect(button).toBeTruthy();
 			expect(button.classList.toString()).toContain('text-white bg-green');
 			expect(button.getAttribute('data-id')).toBe('0x123abc');
-			
+
 			expect(anchor).toBeTruthy();
 			expect(anchor.getAttribute('href')).toBe('/orders/test-subgraph-0x123abc');
-			
+
 			expect(button.textContent).toBeDefined();
 		});
 
@@ -99,10 +99,10 @@ describe('OrderOrVaultHash', () => {
 
 			const button = getByTestId('vault-order-input');
 			const anchor = getByTestId('order-or-vault-hash');
-			
+
 			expect(button).toBeTruthy();
 			expect(button.getAttribute('data-id')).toBe('0xvault456');
-			
+
 			expect(anchor).toBeTruthy();
 			expect(anchor.getAttribute('href')).toBe('/vaults/test-subgraph-0xvault456');
 		});
