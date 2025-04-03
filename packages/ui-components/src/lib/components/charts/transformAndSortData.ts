@@ -34,7 +34,7 @@ export const transformAndSortData = <T>(
 		valueTransform: (item: T) => number;
 		timeTransform: (item: T) => UTCTimestamp;
 	}
-) => {
+): Array<{ value: number; time: UTCTimestamp }> => {
 	const { valueTransform, timeTransform } = options;
 
 	const transformedData = data.map((d) => ({
