@@ -131,6 +131,11 @@ pub enum ParseRemoteTokensError {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use alloy::primitives::Address;
+    use httpmock::MockServer;
+
     use super::*;
     use crate::yaml::{tests::get_document, FieldErrorKind};
 
@@ -173,5 +178,108 @@ using-tokens-from: http://test.com
                 "using-tokens-from".to_string()
             )
         );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_remote_tokens() {
+        let server = MockServer::start_async().await;
+        let yaml = format!(
+            r#"
+using-tokens-from: {}
+"#,
+            server.base_url()
+        );
+        let remote_tokens =
+            RemoteTokensCfg::parse_from_yaml_optional(vec![get_document(&yaml)], None)
+                .unwrap()
+                .unwrap();
+
+        let response = r#"
+{
+    "name": "Remote",
+    "timestamp": "2021-01-01T00:00:00.000Z",
+    "keywords": [],
+    "version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0
+    },
+    "tokens": [
+        {
+            "chainId": 123,
+            "address": "0x0000000000000000000000000000000000000001",
+            "name": "Token1",
+            "symbol": "T1",
+            "decimals": 18
+        },
+        {
+            "chainId": 234,
+            "address": "0x0000000000000000000000000000000000000002",
+            "name": "Token2",
+            "symbol": "T2",
+            "decimals": 18
+        }
+    ],
+    "logoUri": "http://localhost.com"
+}
+        "#;
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(response);
+            })
+            .await;
+
+        let networks = HashMap::from([
+            (
+                "remote-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote-network".to_string(),
+                    rpc: Url::parse("http://localhost:8085/rpc-url").unwrap(),
+                    chain_id: 123,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+            (
+                "remote2-network".to_string(),
+                NetworkCfg {
+                    document: default_document(),
+                    key: "remote2-network".to_string(),
+                    rpc: Url::parse("http://localhost:8085/rpc-url").unwrap(),
+                    chain_id: 234,
+                    label: None,
+                    network_id: None,
+                    currency: None,
+                },
+            ),
+        ]);
+        let tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens)
+            .await
+            .unwrap();
+
+        assert_eq!(tokens.len(), 2_usize);
+
+        let token = tokens.get("token1").unwrap();
+        assert_eq!(token.key, "token1");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        assert_eq!(token.network.key, "remote-network");
+        assert_eq!(token.network.chain_id, 123);
+
+        let token = tokens.get("token2").unwrap();
+        assert_eq!(token.key, "token2");
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+        assert_eq!(token.network.key, "remote2-network");
+        assert_eq!(token.network.chain_id, 234);
     }
 }
