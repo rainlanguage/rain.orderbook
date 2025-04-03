@@ -11,12 +11,11 @@ import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import * as getDeploymentTransactionArgsModule from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
+import { handleDeployment } from '../lib/utils/handleDeployment';
+import type { Hex } from 'viem';
+import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
 
-
-const { mockConnectedStore } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
-);
-
+const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -26,17 +25,37 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
-export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
+vi.mock('../lib/utils/handleDeployment', () => ({
+	handleDeployment: vi.fn()
+}));
 
+export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 const mockHandleAddOrderResult: HandleAddOrderResult = {
 	approvals: [],
 	deploymentCalldata: '0x123',
-	orderbookAddress: '0x456',
+	orderbookAddress: '0x456' as Hex,
 	chainId: 1337,
 	network: 'testnet'
 };
 
+const mockDeploymentHandlers: DeploymentHandlers = {
+	handleDisclaimerModal: vi.fn(),
+	handleDeployModal: vi.fn()
+};
+
+const defaultProps = {
+	dotrain,
+	strategyDetail: {
+		name: 'SFLR<>WFLR on Flare',
+		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
+		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
+	},
+	deployment: mockDeployment,
+	wagmiConnected: mockConnectedStore,
+	appKitModal: writable({} as AppKit),
+	deploymentHandlers: mockDeploymentHandlers
+} as DeploymentStepsProps;
 
 const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa
 
@@ -637,18 +656,6 @@ const mockDeployment = {
 	}
 } as unknown as GuiDeploymentCfg;
 
-const defaultProps: DeploymentStepsProps = {
-	dotrain,
-	strategyDetail: {
-		name: 'SFLR<>WFLR on Flare',
-		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
-		short_description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.'
-	},
-	deployment: mockDeployment,
-	wagmiConnected: mockConnectedStore,
-	appKitModal: writable({} as AppKit)
-};
-
 describe('DeploymentSteps', () => {
 	let guiInstance: DotrainOrderGui;
 	let mockGui: DotrainOrderGui;
@@ -687,7 +694,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('correctly derives subgraphUrl from settings and networkKey', async () => {
-
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
@@ -720,18 +726,17 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		// Wait for the disclaimer modal to be called
-    // Instead, check that the event deploy is emitted with a result.
-
+		// Instead, check that the event deploy is emitted with a result.
 
 		await waitFor(() => {
-			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
+			expect(defaultProps.deploymentHandlers.handleDeployModal).toHaveBeenCalledWith(
 				expect.objectContaining({
 					args: expect.objectContaining({
 						subgraphUrl: expect.any(String)
 					})
 				})
 			);
-			const calls = (defaultProps.handleDeployModal as Mock).mock.calls;
+			const calls = (defaultProps.deploymentHandlers.handleDeployModal as Mock).mock.calls;
 			const passedSubgraphUrl = calls[0][0].args.subgraphUrl;
 			expect(passedSubgraphUrl).toBe('https://subgraph.com/flare');
 		});
@@ -976,13 +981,11 @@ describe('DeploymentSteps', () => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
 		});
 	});
-  	it('shows loading state when checking deployment', async () => {
-      
+	it('shows loading state when checking deployment', async () => {
 		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
 			() => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
 		);
 
-		
 		render(DeploymentSteps, {
 			props: defaultProps
 		});
@@ -991,6 +994,48 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
+		});
+	});
+
+	it('handles deployment flow correctly', async () => {
+		const user = userEvent.setup();
+		const mockHandleAddOrderResult: HandleAddOrderResult = {
+			approvals: [],
+			deploymentCalldata: '0x123',
+			orderbookAddress: '0x456' as Hex,
+			chainId: 1337,
+			network: 'testnet'
+		};
+
+		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
+			mockHandleAddOrderResult
+		);
+
+		render(DeploymentSteps, { props: defaultProps });
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		await waitFor(() => {
+			expect(mockDeploymentHandlers.handleDisclaimerModal).toHaveBeenCalledWith({
+				open: true,
+				onAccept: expect.any(Function)
+			});
+		});
+
+		// Simulate accepting the disclaimer
+		const onAccept = vi.mocked(mockDeploymentHandlers.handleDisclaimerModal).mock.calls[0][0]
+			.onAccept;
+		onAccept();
+
+		await waitFor(() => {
+			expect(mockDeploymentHandlers.handleDeployModal).toHaveBeenCalledWith({
+				open: true,
+				args: expect.objectContaining({
+					...mockHandleAddOrderResult,
+					subgraphUrl: undefined
+				})
+			});
 		});
 	});
 });

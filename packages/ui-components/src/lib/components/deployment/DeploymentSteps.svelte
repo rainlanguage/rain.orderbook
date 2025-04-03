@@ -17,17 +17,14 @@
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import FieldDefinitionInput from './FieldDefinitionInput.svelte';
 	import DepositInput from './DepositInput.svelte';
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import {
-		getDeploymentTransactionArgs,
-		type HandleAddOrderResult
-	} from './getDeploymentTransactionArgs';
+	import { handleDeployment, type DeploymentHandlers } from '../../utils/handleDeployment';
 
 	interface Deployment {
 		key: string;
@@ -35,9 +32,14 @@
 		description: string;
 	}
 
-	export let dotrain: string;
+	/** The subgraph url */
+	export let subgraphUrl: string;
+	/** The deployment configuration containing key, name and description */
 	export let deployment: Deployment;
+	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
+	/** Handlers for deployment modals */
+	export let deploymentHandlers: DeploymentHandlers;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -51,11 +53,6 @@
 
 	const gui = useGui();
 	const { account } = useAccount();
-	const dispatch = createEventDispatcher<{
-		deploy: {
-			result: HandleAddOrderResult;
-		};
-	}>();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -200,18 +197,14 @@
 	};
 
 	async function handleDeployButtonClick() {
-		DeploymentStepsError.clear();
-		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
-			result = await getDeploymentTransactionArgs(gui, $account);
-			checkingDeployment = false;
-			dispatch('deploy', {
-				result
-			});
+			DeploymentStepsError.clear();
+			await handleDeployment(gui, $account, deploymentHandlers, subgraphUrl);
 		} catch (e) {
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+		} finally {
 			checkingDeployment = false;
-			return DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		}
 	}
 </script>
@@ -225,96 +218,94 @@
 			{/if}
 		</Alert>
 	{/if}
-	{#if dotrain}
-		{#if gui}
-			<div class="flex max-w-3xl flex-col gap-12" in:fade>
-				{#if deployment}
-					<div class="flex max-w-2xl flex-col gap-4 text-start">
-						<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-							{strategyDetail.name}
-						</h1>
-						<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
-							{deployment.description}
-						</p>
-					</div>
+	{#if gui}
+		<div class="flex max-w-3xl flex-col gap-12" in:fade>
+			{#if deployment}
+				<div class="flex max-w-2xl flex-col gap-4 text-start">
+					<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
+						{strategyDetail.name}
+					</h1>
+					<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
+						{deployment.description}
+					</p>
+				</div>
+			{/if}
+
+			{#if selectTokens && selectTokens.length > 0}
+				<div class="flex w-full flex-col gap-4">
+					<DeploymentSectionHeader
+						title="Select Tokens"
+						description="Select the tokens that you want to use in your order."
+					/>
+					{#each selectTokens as token}
+						<SelectToken {token} {onSelectTokenSelect} />
+					{/each}
+				</div>
+			{/if}
+
+			{#if allTokensSelected || selectTokens?.length === 0}
+				{#if allFieldDefinitionsWithoutDefaults.length > 0}
+					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} {gui} />
+					{/each}
 				{/if}
 
-				{#if selectTokens && selectTokens.length > 0}
-					<div class="flex w-full flex-col gap-4">
-						<DeploymentSectionHeader
-							title="Select Tokens"
-							description="Select the tokens that you want to use in your order."
-						/>
-						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} />
-						{/each}
-					</div>
+				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+				{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
+					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} {gui} />
+					{/each}
 				{/if}
 
-				{#if allTokensSelected || selectTokens?.length === 0}
-					{#if allFieldDefinitionsWithoutDefaults.length > 0}
-						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
-						{/each}
-					{/if}
+				{#if showAdvancedOptions}
+					{#each allDepositFields as deposit}
+						<DepositInput {deposit} {gui} />
+					{/each}
+				{/if}
 
-					<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+				{#if showAdvancedOptions}
+					{#each allTokenInputs as input, i}
+						<TokenIOInput {i} label="Input" vault={input} {gui} />
+					{/each}
 
-					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
-						{/each}
-					{/if}
+					{#each allTokenOutputs as output, i}
+						<TokenIOInput {i} label="Output" vault={output} {gui} />
+					{/each}
+				{/if}
 
-					{#if showAdvancedOptions}
-						{#each allDepositFields as deposit}
-							<DepositInput {deposit} {gui} />
-						{/each}
-					{/if}
-
-					{#if showAdvancedOptions}
-						{#each allTokenInputs as input, i}
-							<TokenIOInput {i} label="Input" vault={input} {gui} />
-						{/each}
-
-						{#each allTokenOutputs as output, i}
-							<TokenIOInput {i} label="Output" vault={output} {gui} />
-						{/each}
-					{/if}
-
-					{#if $deploymentStepsError}
-						<Alert color="red">
-							<p class="text-red-500">{$deploymentStepsError.code}</p>
-							{#if $deploymentStepsError.details}
-								<p class="text-red-500">{$deploymentStepsError.details}</p>
-							{/if}
-						</Alert>
-					{/if}
-
-					<div class="flex flex-wrap items-start justify-start gap-2">
-						{#if $account}
-							<Button
-								data-testid="deploy-button"
-								size="lg"
-								disabled={checkingDeployment}
-								on:click={handleDeployButtonClick}
-								class="bg-gradient-to-br from-blue-600 to-violet-600"
-							>
-								{#if checkingDeployment}
-									<Spinner size="4" color="white" />
-									<span class="ml-2">Checking deployment...</span>
-								{:else}
-									Deploy Strategy
-								{/if}
-							</Button>
-						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
+				{#if $deploymentStepsError}
+					<Alert color="red">
+						<p class="text-red-500">{$deploymentStepsError.code}</p>
+						{#if $deploymentStepsError.details}
+							<p class="text-red-500">{$deploymentStepsError.details}</p>
 						{/if}
-						<ComposedRainlangModal {gui} />
-						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
-					</div>
+					</Alert>
 				{/if}
-			</div>
-		{/if}
+
+				<div class="flex flex-wrap items-start justify-start gap-2">
+					{#if $account}
+						<Button
+							data-testid="deploy-button"
+							size="lg"
+							disabled={checkingDeployment}
+							on:click={handleDeployButtonClick}
+							class="bg-gradient-to-br from-blue-600 to-violet-600"
+						>
+							{#if checkingDeployment}
+								<Spinner size="4" color="white" />
+								<span class="ml-2">Checking deployment...</span>
+							{:else}
+								Deploy Strategy
+							{/if}
+						</Button>
+					{:else}
+						<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
+					{/if}
+					<ComposedRainlangModal {gui} />
+					<ShareChoicesButton handleShareChoices={_handleShareChoices} />
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>

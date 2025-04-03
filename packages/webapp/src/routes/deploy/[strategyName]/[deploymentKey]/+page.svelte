@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
-	import { connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+	import {
+		DeploymentSteps,
+		GuiProvider,
+		type HandleAddOrderResult
+	} from '@rainlanguage/ui-components';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
@@ -11,6 +15,7 @@
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
+	const subgraphUrl = $settings?.subgraphs?.[network];
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
@@ -34,23 +39,21 @@
 		getGuiError = error;
 	});
 
-	function handleClickDeploy(e: CustomEvent) {
-		const { result } = e.detail;
+	function onDeploy(result: HandleAddOrderResult) {
 		const subgraphUrl = $settings?.subgraphs?.[result.network];
-
-		handleDisclaimerModal({
+		handleDeployModal({
 			open: true,
-			onAccept: () => {
-				handleDeployModal({
-					open: true,
-					args: {
-						...result,
-						subgraphUrl
-					}
-				});
+			args: {
+				...result,
+				subgraphUrl
 			}
 		});
 	}
+
+	const deploymentHandlers = {
+		handleDisclaimerModal,
+		handleDeployModal
+	};
 </script>
 
 {#if !dotrain || !deployment}
@@ -59,11 +62,12 @@
 	<GuiProvider {gui}>
 		<DeploymentSteps
 			{strategyDetail}
-			{dotrain}
 			{deployment}
 			wagmiConnected={connected}
 			{appKitModal}
-			on:deploy={handleClickDeploy}
+			{deploymentHandlers}
+			{dotrain}
+			{subgraphUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}
