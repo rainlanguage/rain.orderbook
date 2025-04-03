@@ -18,7 +18,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,

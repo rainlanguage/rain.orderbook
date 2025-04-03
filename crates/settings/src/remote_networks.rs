@@ -163,6 +163,8 @@ pub enum ParseRemoteNetworksError {
 
 #[cfg(test)]
 mod tests {
+    use httpmock::MockServer;
+
     use super::*;
     use crate::yaml::{tests::get_document, FieldErrorKind};
 
@@ -312,5 +314,84 @@ using-networks-from:
             error,
             YamlError::KeyShadowing("test".to_string(), "using-networks-from".to_string())
         );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_remote_networks() {
+        let server = MockServer::start_async().await;
+        let yaml = format!(
+            r#"
+using-networks-from:
+    test:
+      url: {} # Use the actual mock server URL here
+      format: chainid
+"#,
+            server.base_url()
+        );
+        let remote_networks =
+            RemoteNetworksCfg::parse_all_from_yaml(vec![get_document(&yaml)], None).unwrap();
+
+        let response = r#"
+[
+    {
+        "name": "Remote",
+        "chain": "remote-network",
+        "chainId": 123,
+        "rpc": ["http://localhost:8085/rpc-url"],
+        "networkId": 123,
+        "nativeCurrency": {
+            "name": "Remote",
+            "symbol": "RN",
+            "decimals": 18
+        },
+        "infoURL": "http://localhost:8085/info-url",
+        "shortName": "remote-network"
+    },
+    {
+        "name": "Remote2",
+        "chain": "remote2-network",
+        "chainId": 234,
+        "rpc": ["http://localhost:8085/rpc-url"],
+        "networkId": 123,
+        "nativeCurrency": {
+            "name": "Remote2",
+            "symbol": "RN",
+            "decimals": 18
+        },
+        "infoURL": "http://localhost:8085/info-url",
+        "shortName": "remote2-network"
+    }
+]
+        "#;
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(response);
+            })
+            .await;
+
+        let networks = RemoteNetworksCfg::fetch_networks(remote_networks)
+            .await
+            .unwrap();
+
+        assert_eq!(networks.len(), 2_usize);
+
+        let network = networks.get("remote-network").unwrap();
+        assert_eq!(network.key, "remote-network");
+        assert_eq!(
+            network.rpc,
+            Url::parse("http://localhost:8085/rpc-url").unwrap()
+        );
+        assert_eq!(network.chain_id, 123);
+
+        let network = networks.get("remote2-network").unwrap();
+        assert_eq!(network.key, "remote2-network");
+        assert_eq!(
+            network.rpc,
+            Url::parse("http://localhost:8085/rpc-url").unwrap()
+        );
+        assert_eq!(network.chain_id, 234);
     }
 }
