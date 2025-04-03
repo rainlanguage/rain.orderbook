@@ -57,7 +57,7 @@
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -293,7 +293,7 @@
 							description="Select the tokens that you want to use in your order."
 						/>
 						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} {gui} />
+							<SelectToken {token} {onSelectTokenSelect} />
 						{/each}
 					</div>
 				{/if}
