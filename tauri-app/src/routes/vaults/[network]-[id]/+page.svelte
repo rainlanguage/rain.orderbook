@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { ledgerWalletAddress } from '$lib/stores/wallets';
   import { PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
@@ -8,7 +7,6 @@
   import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
   import type { SgVault } from '@rainlanguage/orderbook/js_api';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { walletconnectAccount } from '$lib/stores/walletconnect';
 
   const queryClient = useQueryClient();
 
@@ -42,7 +40,6 @@
   network={$page.params.network}
   {lightweightChartsTheme}
   {settings}
-  signerAddress={$ledgerWalletAddress || $walletconnectAccount || ''}
   {activeNetworkRef}
   {activeOrderbookRef}
   on:deposit={onDeposit}
