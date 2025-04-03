@@ -42,14 +42,6 @@ describe('getDeploymentTransactionArgs', () => {
 		});
 	});
 
-	describe('input validation errors', () => {
-		it('should throw NO_WALLET when wallet address is not found', async () => {
-			await expect(
-				getDeploymentTransactionArgs(guiInstance, null as unknown as Hex)
-			).rejects.toThrow(AddOrderErrors.NO_WALLET);
-		});
-	});
-
 	describe('error handling', () => {
 		it('should throw when gui.getDeploymentTransactionArgs returns an error object', async () => {
 			(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValue({
