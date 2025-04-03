@@ -46,7 +46,14 @@
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
 	export let signerAddress: Writable<Hex | null> | undefined = undefined;
+	/** Callback function when deposit action is triggered for a vault
+	 * @param vault The vault to deposit into
+	 */
 	export let onDeposit: (vault: SgVault) => void;
+
+	/** Callback function when withdraw action is triggered for a vault
+	 * @param vault The vault to withdraw from
+	 */
 	export let onWithdraw: (vault: SgVault) => void;
 
 	let codeMirrorDisabled = true;
