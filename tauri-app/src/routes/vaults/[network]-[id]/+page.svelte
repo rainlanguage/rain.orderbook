@@ -11,23 +11,23 @@
 
   const queryClient = useQueryClient();
 
+  function invalidateVaultDetailQuery() {
+    queryClient.invalidateQueries({
+      queryKey: [$page.params.id],
+      refetchType: 'all',
+      exact: false,
+    });
+  }
+
   function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
-      queryClient.invalidateQueries({
-        queryKey: [$page.params.id],
-        refetchType: 'all',
-        exact: false,
-      });
+      invalidateVaultDetailQuery();
     });
   }
 
   function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
-      queryClient.invalidateQueries({
-        queryKey: [$page.params.id],
-        refetchType: 'all',
-        exact: false,
-      });
+      invalidateVaultDetailQuery();
     });
   }
 </script>

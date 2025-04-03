@@ -264,7 +264,7 @@ describe('OrderDetail Component', () => {
 			});
 		});
 	});
-	
+
 	it('calls onDeposit callback when deposit button is clicked', async () => {
 		const user = userEvent.setup();
 		const mockOnDeposit = vi.fn();
@@ -318,7 +318,7 @@ describe('OrderDetail Component', () => {
 		// Verify onDeposit was called with correct parameters
 		expect(mockOnDeposit).toHaveBeenCalledWith(vault1);
 	});
-	
+
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
 		const user = userEvent.setup();
 		const mockOnWithdraw = vi.fn();

@@ -42,28 +42,24 @@
     toastOpen = false;
   }
 
-  function onDeposit(event: CustomEvent<{ vault: SgVault }>) {
-    const { vault } = event.detail;
+  function invalidateOrderDetailQuery() {
+    queryClient.invalidateQueries({
+      queryKey: [orderHash],
+      refetchType: 'all',
+      exact: false,
+    });
+  }
 
+  function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
-      queryClient.invalidateQueries({
-        queryKey: [orderHash],
-        refetchType: 'all',
-        exact: false,
-      });
+      invalidateOrderDetailQuery();
       triggerToast('Deposit initiated');
     });
   }
 
-  function onWithdraw(event: CustomEvent<{ vault: SgVault }>) {
-    const { vault } = event.detail;
-
+  function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
-      queryClient.invalidateQueries({
-        queryKey: [orderHash],
-        refetchType: 'all',
-        exact: false,
-      });
+      invalidateOrderDetailQuery();
       triggerToast('Withdrawal initiated');
     });
   }
@@ -91,7 +87,7 @@
     {handleDebugTradeModal}
     {orderbookAddress}
     {chainId}
-    on:deposit={onDeposit}
-    on:withdraw={onWithdraw}
+    {onDeposit}
+    {onWithdraw}
   />
 {/if}

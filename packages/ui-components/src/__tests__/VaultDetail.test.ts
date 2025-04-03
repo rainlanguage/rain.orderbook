@@ -187,7 +187,6 @@ test('does not show deposit/withdraw buttons when signerAddress does not match o
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
-
 	const propsWithNonMatchingSigner = {
 		...defaultProps,
 		signerAddress: writable('0x9876543210987654321098765432109876543210')
@@ -318,7 +317,7 @@ test('refresh button triggers query invalidation when clicked', async () => {
 	const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
 	const propsWithSigner = {
-		...defaultProps,
+		...defaultProps
 	};
 
 	render(VaultDetail, {

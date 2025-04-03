@@ -13,15 +13,9 @@
 	import { isAddress, isAddressEqual, type Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import VaultActionButton from '$lib/components/actions/VaultActionButton.svelte';
-	import { createEventDispatcher } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
 	const queryClient = useQueryClient();
-
-	const dispatch = createEventDispatcher<{
-		deposit: { vault: SgVault };
-		withdraw: { vault: SgVault };
-	}>();
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;

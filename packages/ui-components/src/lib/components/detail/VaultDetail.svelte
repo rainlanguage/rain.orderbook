@@ -29,7 +29,14 @@
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
 	export let signerAddress: Writable<string | null> | undefined = undefined;
+	/** Callback function when deposit action is triggered for a vault
+	 * @param vault The vault to deposit into
+	 */
 	export let onDeposit: (vault: SgVault) => void;
+
+	/** Callback function when withdraw action is triggered for a vault
+	 * @param vault The vault to withdraw from
+	 */
 	export let onWithdraw: (vault: SgVault) => void;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
@@ -72,7 +79,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($signerAddress && isAddress($signerAddress) && isAddressEqual($signerAddress, data.owner))}
+			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($signerAddress && isAddress($signerAddress) && isAddress(data.owner) && isAddressEqual($signerAddress, data.owner))}
 				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
 				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
 			{/if}

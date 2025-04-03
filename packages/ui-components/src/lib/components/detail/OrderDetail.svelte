@@ -88,7 +88,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $signerAddress && isAddress($signerAddress) && isAddress(data.order.owner) && isAddressEqual($signerAddress, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"

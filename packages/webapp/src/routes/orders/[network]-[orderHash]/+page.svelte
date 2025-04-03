@@ -14,6 +14,7 @@
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import { onDestroy } from 'svelte';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -26,18 +27,42 @@
 	let toastOpen: boolean = false;
 	let toastMessage: string = 'Vault balance updated';
 	let counter: number = 5;
+	let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function triggerToast(message: string = 'Vault balance updated') {
+		if (toastTimer) {
+			clearTimeout(toastTimer);
+			toastTimer = null;
+		}
+
 		toastMessage = message;
 		toastOpen = true;
 		counter = 5;
-		timeout();
+		startToastTimer();
 	}
 
-	function timeout() {
-		if (--counter > 0) return setTimeout(timeout, 1000);
-		toastOpen = false;
+	function startToastTimer() {
+		if (toastTimer) {
+			clearTimeout(toastTimer);
+		}
+
+		toastTimer = setTimeout(() => {
+			if (counter > 0) {
+				counter--;
+				startToastTimer();
+			} else {
+				toastOpen = false;
+				toastTimer = null;
+			}
+		}, 1000);
 	}
+
+	onDestroy(() => {
+		if (toastTimer) {
+			clearTimeout(toastTimer);
+			toastTimer = null;
+		}
+	});
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
 		queryClient.invalidateQueries({
