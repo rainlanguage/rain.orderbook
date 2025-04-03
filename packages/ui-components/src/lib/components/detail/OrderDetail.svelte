@@ -30,7 +30,6 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { isAddressEqual, isAddress } from 'viem';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
@@ -46,6 +45,7 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<Hex | null> | undefined = undefined;
 	export let onDeposit: (vault: SgVault) => void;
 	export let onWithdraw: (vault: SgVault) => void;
 
@@ -53,7 +53,6 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -156,7 +155,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner)}
+											{#if $signerAddress && isAddress($signerAddress) && isAddress(vault.owner) && isAddressEqual($signerAddress, vault.owner) && chainId}
 												<div class="flex gap-1">
 													<VaultActionButton
 														action="deposit"

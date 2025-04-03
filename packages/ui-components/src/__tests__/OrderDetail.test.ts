@@ -5,10 +5,11 @@ import { expect } from '../lib/test/matchers';
 import OrderDetail from './OrderDetail.test.svelte';
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
+import { writable } from 'svelte/store';
 
 const mockOrder: SgOrder = {
 	id: 'mockId',
-	owner: '0x123',
+	owner: '0x1234567890123456789012345678901234567890',
 	orderHash: 'mockOrderHash',
 	active: true,
 	meta: '0x',
@@ -21,11 +22,11 @@ const mockOrder: SgOrder = {
 const vault1 = {
 	id: '1',
 	orderHash: 'mockHash',
-	vaultId: '0xabc',
-	owner: '0x123',
+	vaultId: '0xabcdef1234567890abcdef1234567890abcdef12',
+	owner: '0x1234567890123456789012345678901234567890',
 	token: {
-		id: '0x456',
-		address: '0x456',
+		id: '0x4567890123456789012345678901234567890123',
+		address: '0x4567890123456789012345678901234567890123',
 		name: 'USDC coin',
 		symbol: 'USDC',
 		decimals: '6'
@@ -42,11 +43,11 @@ const vault1 = {
 const vault2 = {
 	id: '2',
 	orderHash: 'mockHash',
-	vaultId: '0xbcd',
-	owner: '0x123',
+	vaultId: '0xbcdef1234567890abcdef1234567890abcdef123',
+	owner: '0x1234567890123456789012345678901234567890',
 	token: {
-		id: '0x456',
-		address: '0x456',
+		id: '0x4567890123456789012345678901234567890123',
+		address: '0x4567890123456789012345678901234567890123',
 		name: 'USDC coin',
 		symbol: 'USDC',
 		decimals: '6'
@@ -61,12 +62,12 @@ const vault2 = {
 } as unknown as SgVault;
 const vault3 = {
 	id: '3',
-	vaultId: '0xdef',
-	owner: '0x123',
+	vaultId: '0xcdef1234567890abcdef1234567890abcdef1234',
+	owner: '0x1234567890123456789012345678901234567890',
 	orderHash: 'mockHash',
 	token: {
-		id: '0x456',
-		address: '0x456',
+		id: '0x4567890123456789012345678901234567890123',
+		address: '0x4567890123456789012345678901234567890123',
 		name: 'USDC coin',
 		symbol: 'USDC',
 		decimals: '6'
@@ -104,9 +105,11 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x123'),
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			}
 		});
 
@@ -133,10 +136,12 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x1234567890123456789012345678901234567890'),
 				handleOrderRemoveModal,
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			}
 		});
 
@@ -151,10 +156,12 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: 'notTheOwner',
+				signerAddress: writable('0x9876543210987654321098765432109876543210'),
 				handleOrderRemoveModal: vi.fn(),
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			}
 		});
 
@@ -195,9 +202,11 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: mockOrderWithVaults.orderHash,
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x123'),
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			}
 		});
 
@@ -236,9 +245,11 @@ describe('OrderDetail Component', () => {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x123'),
 				chainId,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			}
 		});
 
@@ -253,9 +264,10 @@ describe('OrderDetail Component', () => {
 			});
 		});
 	});
-	it('dispatches deposit event when deposit button is clicked', async () => {
+	
+	it('calls onDeposit callback when deposit button is clicked', async () => {
 		const user = userEvent.setup();
-		const mockDispatch = vi.fn();
+		const mockOnDeposit = vi.fn();
 
 		const mockOrderWithVaults: SgOrder = {
 			...mockOrder,
@@ -282,19 +294,17 @@ describe('OrderDetail Component', () => {
 			}
 		})) as Mock;
 
-		// Create component with a listener for the deposit event
-		const { component } = render(OrderDetail, {
+		render(OrderDetail, {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x1234567890123456789012345678901234567890'),
 				chainId: 1,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: mockOnDeposit,
+				onWithdraw: vi.fn()
 			}
 		});
-
-		// Mock the component's dispatch method
-		component.$on('deposit', mockDispatch);
 
 		// Wait for the component to finish loading data
 		await waitFor(() => {
@@ -305,13 +315,13 @@ describe('OrderDetail Component', () => {
 		const depositButton = await screen.getByTestId('deposit-button');
 		await user.click(depositButton);
 
-		// Verify dispatch was called with correct parameters
-		expect(mockDispatch).toHaveBeenCalled();
-		expect(mockDispatch.mock.calls[0][0].detail).toEqual({ vault: vault1 });
+		// Verify onDeposit was called with correct parameters
+		expect(mockOnDeposit).toHaveBeenCalledWith(vault1);
 	});
-	it('dispatches withdraw event when withdraw button is clicked', async () => {
+	
+	it('calls onWithdraw callback when withdraw button is clicked', async () => {
 		const user = userEvent.setup();
-		const mockDispatch = vi.fn();
+		const mockOnWithdraw = vi.fn();
 
 		const mockOrderWithVaults: SgOrder = {
 			...mockOrder,
@@ -338,31 +348,28 @@ describe('OrderDetail Component', () => {
 			}
 		})) as Mock;
 
-		// Create component with a listener for the deposit event
-		const { component } = render(OrderDetail, {
+		render(OrderDetail, {
 			props: {
 				orderHash: 'mockHash',
 				subgraphUrl: 'https://example.com',
-				signerAddress: '0x123',
+				signerAddress: writable('0x1234567890123456789012345678901234567890'),
 				chainId: 1,
-				orderbookAddress
+				orderbookAddress,
+				onDeposit: vi.fn(),
+				onWithdraw: mockOnWithdraw
 			}
 		});
-
-		// Mock the component's dispatch method
-		component.$on('withdraw', mockDispatch);
 
 		// Wait for the component to finish loading data
 		await waitFor(() => {
 			expect(screen.queryByText('Order not found')).not.toBeInTheDocument();
 		});
 
-		// Find and click the deposit button
+		// Find and click the withdraw button
 		const withdrawButton = await screen.getByTestId('withdraw-button');
 		await user.click(withdrawButton);
 
-		// Verify dispatch was called with correct parameters
-		expect(mockDispatch).toHaveBeenCalled();
-		expect(mockDispatch.mock.calls[0][0].detail).toEqual({ vault: vault1 });
+		// Verify onWithdraw was called with correct parameters
+		expect(mockOnWithdraw).toHaveBeenCalledWith(vault1);
 	});
 });

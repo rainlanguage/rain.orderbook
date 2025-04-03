@@ -10,10 +10,11 @@
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
-	import type { Hex } from 'viem';
+	import { isAddress, isAddressEqual, type Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import VaultActionButton from '$lib/components/actions/VaultActionButton.svelte';
 	import { createEventDispatcher } from 'svelte';
+	import type { Writable } from 'svelte/store';
 
 	const queryClient = useQueryClient();
 
@@ -28,7 +29,9 @@
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
-	export let signerAddress: string;
+	export let signerAddress: Writable<Hex | null> | undefined = undefined;
+	export let onDeposit: (vault: SgVault) => void;
+	export let onWithdraw: (vault: SgVault) => void;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -42,7 +45,7 @@
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
 	<svelte:fragment slot="top" let:data>
 		<div>Order {data.order.orderHash}</div>
-		{#if data && signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal}
+		{#if data && $signerAddress && isAddress($signerAddress) && isAddress(data.order.owner) && isAddressEqual($signerAddress, data.order.owner) && data.order.active && handleOrderRemoveModal}
 			<Button
 				data-testid="remove-button"
 				color="dark"
@@ -79,27 +82,21 @@
 					<svelte:fragment slot="value">
 						<div class="mt-2 space-y-2">
 							{#each data.vaults.get(type) || [] as vault}
-								{signerAddress}
-								{vault.owner}
-								{chainId}
-								{signerAddress === vault.owner && chainId
-									? 'matching for acton buttons!'
-									: 'not matching for acton buttons!'}
 								<ButtonVaultLink tokenVault={vault} subgraphName="subgraphName">
 									<svelte:fragment slot="buttons">
-										{#if signerAddress === vault.owner && chainId}
+										{#if $signerAddress && isAddress($signerAddress) && isAddress(vault.owner) && isAddressEqual($signerAddress, vault.owner) && chainId}
 											<div class="flex gap-1">
 												<VaultActionButton
 													action="deposit"
 													{vault}
 													testId="deposit-button"
-													on:deposit={(event) => dispatch('deposit', event.detail)}
+													onDepositOrWithdraw={onDeposit}
 												/>
 												<VaultActionButton
 													action="withdraw"
 													{vault}
 													testId="withdraw-button"
-													on:withdraw={(event) => dispatch('withdraw', event.detail)}
+													onDepositOrWithdraw={onWithdraw}
 												/>
 											</div>
 										{/if}
