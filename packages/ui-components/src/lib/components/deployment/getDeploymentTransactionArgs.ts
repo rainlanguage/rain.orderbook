@@ -5,11 +5,6 @@ import type {
 import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
-export enum AddOrderErrors {
-	ADD_ORDER_FAILED = 'Failed to add order',
-	MISSING_GUI = 'Order GUI is required',
-}
-
 export interface HandleAddOrderResult {
 	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
