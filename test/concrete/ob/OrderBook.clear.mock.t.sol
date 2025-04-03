@@ -14,7 +14,8 @@ import {
     EvaluableV4,
     SignedContextV1,
     IInterpreterV4,
-    TaskV2
+    TaskV2,
+    Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
@@ -23,6 +24,7 @@ import {StateNamespace} from "rain.interpreter.interface/interface/unstable/IInt
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
@@ -40,7 +42,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         iOrderbook.deposit3(address(token), vaultId, amount, new TaskV2[](0));
 
-        assertEq(iOrderbook.vaultBalance(depositor, token, vaultId), amount);
+        Float memory balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
+
+        assertTrue(LibDecimalFloat.eq(balance.signedCoefficient, balance.exponent, amount, 0));
     }
 
     function conformBasicConfig(OrderConfigV4 memory aliceConfig, OrderConfigV4 memory bobConfig) internal view {
@@ -60,11 +64,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         bobConfig.validInputs[0].token = address(iToken1);
         bobConfig.validOutputs[0].token = address(iToken0);
-
-        aliceConfig.validInputs[0].decimals = 18;
-        aliceConfig.validOutputs[0].decimals = 18;
-        bobConfig.validInputs[0].decimals = 18;
-        bobConfig.validOutputs[0].decimals = 18;
 
         aliceConfig.meta = "";
         bobConfig.meta = "";
@@ -109,34 +108,46 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId, clear.bobAmount
         );
 
-        assertEq(
-            iOrderbook.vaultBalance(
+        {
+            Float memory aliceInputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
-            ),
-            0
-        );
-        assertEq(
-            iOrderbook.vaultBalance(
+            );
+            assertTrue(LibDecimalFloat.eq(aliceInputBalance.signedCoefficient, aliceInputBalance.exponent, 0, 0));
+        }
+        {
+            Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-            ),
-            clear.aliceAmount
-        );
-
-        assertEq(
-            iOrderbook.vaultBalance(
+            );
+            assertTrue(
+                LibDecimalFloat.eq(aliceOutputBalance.signedCoefficient, aliceOutputBalance.exponent, clear.aliceAmount, 0)
+            );
+        }
+        {
+            Float memory bobInputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
-            ),
-            0
-        );
-        assertEq(
-            iOrderbook.vaultBalance(
+            );
+            assertTrue(LibDecimalFloat.eq(bobInputBalance.signedCoefficient, bobInputBalance.exponent, 0, 0));
+        }
+        {
+            Float memory bobOutputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
-            ),
-            clear.bobAmount
-        );
-
-        assertEq(iOrderbook.vaultBalance(clear.bountyBot, address(iToken0), clear.aliceBountyVaultId), 0);
-        assertEq(iOrderbook.vaultBalance(clear.bountyBot, address(iToken1), clear.bobBountyVaultId), 0);
+            );
+            assertTrue(
+                LibDecimalFloat.eq(bobOutputBalance.signedCoefficient, bobOutputBalance.exponent, clear.bobAmount, 0)
+            );
+        }
+        {
+            Float memory aliceBountyBalance = iOrderbook.vaultBalance2(
+                clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId
+            );
+            assertTrue(LibDecimalFloat.eq(aliceBountyBalance.signedCoefficient, aliceBountyBalance.exponent, 0, 0));
+        }
+        {
+            Float memory bobBountyBalance = iOrderbook.vaultBalance2(
+                clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId
+            );
+            assertTrue(LibDecimalFloat.eq(bobBountyBalance.signedCoefficient, bobBountyBalance.exponent, 0, 0));
+        }
 
         {
             {
@@ -180,6 +191,16 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 vm.expectRevert(clear.expectedError);
             }
             iOrderbook.clear3(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
+        }
+
+        {
+            Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
+                clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+            );
+            // Float memory expectedAliceOutput = Float({
+            //     signedCoefficient: clear.expectedAliceOutput,
+            //     exponent: 0
+            // });
         }
 
         assertEq(
