@@ -12,10 +12,8 @@
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
-	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
-	const subgraphUrl = $settings?.subgraphs?.[network];
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
@@ -39,17 +37,6 @@
 		getGuiError = error;
 	});
 
-	function onDeploy(result: HandleAddOrderResult) {
-		const subgraphUrl = $settings?.subgraphs?.[result.network];
-		handleDeployModal({
-			open: true,
-			args: {
-				...result,
-				subgraphUrl
-			}
-		});
-	}
-
 	const deploymentHandlers = {
 		handleDisclaimerModal,
 		handleDeployModal
@@ -67,7 +54,6 @@
 			{appKitModal}
 			{deploymentHandlers}
 			{dotrain}
-			{subgraphUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

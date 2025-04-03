@@ -2,7 +2,11 @@
 	import { Alert, Button, Spinner } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import { type GuiSelectTokensCfg, type TokenInfo } from '@rainlanguage/orderbook/js_api';
+	import {
+		type ConfigSource,
+		type GuiSelectTokensCfg,
+		type TokenInfo
+	} from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
@@ -32,14 +36,15 @@
 		description: string;
 	}
 
-	/** The subgraph url */
-	export let subgraphUrl: string;
 	/** The deployment configuration containing key, name and description */
 	export let deployment: Deployment;
 	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
 	export let deploymentHandlers: DeploymentHandlers;
+	export let wagmiConnected: Writable<boolean>;
+	export let appKitModal: Writable<AppKit>;
+	export let settings: Writable<ConfigSource>;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -50,14 +55,12 @@
 	let allTokenInfos: TokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
+	let subgraphUrl: string | undefined = undefined;
 
 	const gui = useGui();
 	const { account } = useAccount();
 
 	let deploymentStepsError = DeploymentStepsError.error;
-
-	export let wagmiConnected: Writable<boolean>;
-	export let appKitModal: Writable<AppKit>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -65,6 +68,11 @@
 			throw new Error(selectTokensResult.error.msg);
 		}
 		selectTokens = selectTokensResult.value;
+		const network = gui.getNetworkKey();
+		if (network.error) {
+			throw new Error(network.error.msg);
+		}
+		subgraphUrl = $settings?.subgraphs?.[network.value];
 
 		await areAllTokensSelected();
 	});

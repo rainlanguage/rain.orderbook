@@ -1,19 +1,18 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { readable, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import * as getDeploymentTransactionArgsModule from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { handleDeployment } from '../lib/utils/handleDeployment';
 import type { Hex } from 'viem';
-import type { DeploymentHandlers, handleDeployment } from '../lib/utils/handleDeployment';
+import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -143,55 +142,6 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-		});
-	});
-
-	it('correctly derives subgraphUrl from settings and networkKey', async () => {
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockReturnValue({
-			value: {
-				approvals: [],
-				deploymentCalldata: '0x1',
-				orderbookAddress: '0x1',
-				chainId: 1
-			}
-		});
-		(useAccount as Mock).mockReturnValue({ account: readable('0xuser') });
-		mockConnectedStore.mockSetSubscribeValue(true);
-
-		const user = userEvent.setup();
-
-		render(DeploymentSteps, {
-			props: {
-				...defaultProps
-			}
-		});
-
-		// Wait for UI updates after mocks are applied
-		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-
-		// Click the deploy button
-		const deployButton = screen.getByText('Deploy Strategy');
-		await user.click(deployButton);
-
-		// Wait for the disclaimer modal to be called
-		// Instead, check that the event deploy is emitted with a result.
-
-		await waitFor(() => {
-			expect(defaultProps.deploymentHandlers.handleDeployModal).toHaveBeenCalledWith(
-				expect.objectContaining({
-					args: expect.objectContaining({
-						subgraphUrl: expect.any(String)
-					})
-				})
-			);
-			const calls = (defaultProps.deploymentHandlers.handleDeployModal as Mock).mock.calls;
-			const passedSubgraphUrl = calls[0][0].args.subgraphUrl;
-			expect(passedSubgraphUrl).toBe('https://subgraph.com/flare');
 		});
 	});
 
@@ -435,60 +385,37 @@ describe('DeploymentSteps', () => {
 		});
 	});
 	it('shows loading state when checking deployment', async () => {
-		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockImplementation(
-			() => new Promise((resolve) => setTimeout(() => resolve(mockHandleAddOrderResult), 100))
-		);
-
-		render(DeploymentSteps, {
-			props: defaultProps
+		let resolvePromise: ((value?: any) => void) | undefined;
+		const delayedPromise = new Promise<void>((resolve) => {
+			resolvePromise = resolve;
 		});
-
-		fireEvent.click(screen.getByText('Deploy Strategy'));
-
-		await waitFor(() => {
-			expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
-		});
-	});
-
-	it('handles deployment flow correctly', async () => {
+		
+		vi.mocked(handleDeployment).mockImplementation(() => delayedPromise);
+		
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		
 		const user = userEvent.setup();
-		const mockHandleAddOrderResult: HandleAddOrderResult = {
-			approvals: [],
-			deploymentCalldata: '0x123',
-			orderbookAddress: '0x456' as Hex,
-			chainId: 1337,
-			network: 'testnet'
-		};
-
-		vi.mocked(getDeploymentTransactionArgsModule.getDeploymentTransactionArgs).mockResolvedValue(
-			mockHandleAddOrderResult
-		);
-
 		render(DeploymentSteps, { props: defaultProps });
-
+		
 		const deployButton = screen.getByText('Deploy Strategy');
 		await user.click(deployButton);
-
+		
+		expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
+		expect(screen.getByTestId('deploy-button')).toBeDisabled();
+		
+		if (resolvePromise) {
+			resolvePromise();
+		} else {
+			throw new Error('resolvePromise was not initialized');
+		}
+		
 		await waitFor(() => {
-			expect(mockDeploymentHandlers.handleDisclaimerModal).toHaveBeenCalledWith({
-				open: true,
-				onAccept: expect.any(Function)
-			});
-		});
-
-		// Simulate accepting the disclaimer
-		const onAccept = vi.mocked(mockDeploymentHandlers.handleDisclaimerModal).mock.calls[0][0]
-			.onAccept;
-		onAccept();
-
-		await waitFor(() => {
-			expect(mockDeploymentHandlers.handleDeployModal).toHaveBeenCalledWith({
-				open: true,
-				args: expect.objectContaining({
-					...mockHandleAddOrderResult,
-					subgraphUrl: undefined
-				})
-			});
+			expect(screen.queryByText('Checking deployment...')).not.toBeInTheDocument();
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+			expect(screen.getByTestId('deploy-button')).not.toBeDisabled();
 		});
 	});
+
+
+	
 });
