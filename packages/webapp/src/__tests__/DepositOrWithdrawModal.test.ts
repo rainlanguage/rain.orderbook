@@ -10,8 +10,9 @@ import { get, readable } from 'svelte/store';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
-const { mockWagmiConfigStore, mockSignerAddressStore, mockAppKitModalStore, mockConnectedStore } =
-	await vi.hoisted(() => import('../lib/__mocks__/stores'));
+const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
@@ -28,9 +29,8 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
-	wagmiConfig: mockWagmiConfigStore,
-	signerAddress: mockSignerAddressStore,
-	connected: mockConnectedStore
+	connected: mockConnectedStore,
+	wagmiConfig: mockWagmiConfigStore
 }));
 
 vi.mock('@wagmi/core', () => ({
@@ -56,7 +56,8 @@ describe('DepositOrWithdrawModal', () => {
 			vault: mockVault,
 			chainId: 1,
 			rpcUrl: 'https://example.com',
-			onDepositOrWithdraw: vi.fn()
+			onDepositOrWithdraw: vi.fn(),
+			account: readable('0x123')
 		}
 	} as unknown as ModalProps;
 

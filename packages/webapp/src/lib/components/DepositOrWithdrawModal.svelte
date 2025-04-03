@@ -3,8 +3,7 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs,
-		useAccount
+		type DepositOrWithdrawArgs
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -23,7 +22,6 @@
 	import { validateAmount } from '$lib/services/validateAmount';
 
 	const { ...chains } = allChains;
-	const { account } = useAccount();
 
 	function getTargetChain(chainId: number) {
 		for (const chain of Object.values(chains)) {
@@ -37,7 +35,7 @@
 	export let open: boolean;
 	export let args: DepositOrWithdrawArgs;
 
-	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
+	const { action, vault, chainId, rpcUrl, subgraphUrl, account } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;

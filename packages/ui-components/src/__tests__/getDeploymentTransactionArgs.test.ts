@@ -1,25 +1,13 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import {
-	getDeploymentTransactionArgs,
-	AddOrderErrors
-} from '../lib/components/deployment/getDeploymentTransactionArgs';
-import { getAccount } from '@wagmi/core';
-import type { Config } from '@wagmi/core';
+import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-
-// Mock wagmi/core
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
 
 describe('getDeploymentTransactionArgs', () => {
 	let guiInstance: DotrainOrderGui;
-	let mockWagmiConfig: Config;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		guiInstance = new DotrainOrderGui();
-
 		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValue({
 			value: {
 				chainId: 1,
@@ -28,9 +16,6 @@ describe('getDeploymentTransactionArgs', () => {
 				deploymentCalldata: '0x1'
 			}
 		});
-
-		mockWagmiConfig = {} as Config;
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
 	});
 
 	describe('successful cases', () => {
@@ -41,7 +26,7 @@ describe('getDeploymentTransactionArgs', () => {
 				}
 			});
 
-			const result = await getDeploymentTransactionArgs(guiInstance, mockWagmiConfig);
+			const result = await getDeploymentTransactionArgs(guiInstance, '0x123');
 
 			expect(result).toEqual({
 				approvals: [{ token: '0x123', calldata: '0x1', symbol: 'TEST' }],
@@ -53,16 +38,19 @@ describe('getDeploymentTransactionArgs', () => {
 	});
 
 	describe('input validation errors', () => {
-		it('should throw MISSING_CONFIG when wagmiConfig is undefined', async () => {
-			await expect(getDeploymentTransactionArgs(guiInstance, undefined)).rejects.toThrow(
-				AddOrderErrors.MISSING_CONFIG
-			);
-		});
+		it('should throw an error when gui.getDeploymentTransactionArgs returns an error object', async () => {
+			// Create a new instance for this specific test
+			const errorGuiInstance = new DotrainOrderGui();
 
-		it('should throw NO_WALLET when wallet address is not found', async () => {
-			(getAccount as Mock).mockReturnValue({ address: null });
-			await expect(getDeploymentTransactionArgs(guiInstance, mockWagmiConfig)).rejects.toThrow(
-				AddOrderErrors.NO_WALLET
+			// Override the mock for this specific instance
+			(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValueOnce({
+				error: {
+					msg: 'Something went wrong with deployment'
+				}
+			});
+
+			await expect(getDeploymentTransactionArgs(errorGuiInstance, '0x123')).rejects.toThrow(
+				'Something went wrong with deployment'
 			);
 		});
 	});

@@ -102,7 +102,8 @@
 									onRemove: $orderDetailQuery.refetch,
 									chainId,
 									orderbookAddress,
-									subgraphUrl
+									subgraphUrl,
+									account
 								}
 							})}
 						disabled={!handleOrderRemoveModal}

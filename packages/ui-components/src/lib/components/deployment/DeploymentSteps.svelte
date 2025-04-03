@@ -31,6 +31,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	interface Deployment {
 		key: string;
@@ -54,6 +55,7 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 
+	const { account } = useAccount();
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
@@ -193,10 +195,15 @@
 			return;
 		}
 
+		if (!$account) {
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_WALLET);
+			return;
+		}
+
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			result = await getDeploymentTransactionArgs(gui, $account);
 		} catch (e) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
@@ -218,7 +225,8 @@
 				args: {
 					...result,
 					subgraphUrl: subgraphUrl,
-					network: networkKey
+					network: networkKey,
+					account
 				}
 			});
 		};
