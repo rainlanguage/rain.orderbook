@@ -42,7 +42,8 @@ beforeEach(() => {
 		activeOrderbookRef: writable('0x00'),
 		settings: mockSettings,
 		lightweightChartsTheme: readable(darkChartTheme),
-		signerAddress: '0x123'
+		onDeposit: vi.fn(),
+		onWithdraw: vi.fn()
 	};
 });
 
@@ -161,7 +162,7 @@ test('shows deposit/withdraw buttons when signerAddress matches owner', async ()
 	});
 });
 
-test('emits deposit event when deposit button is clicked', async () => {
+test('calls onDeposit callback when deposit button is clicked', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
@@ -185,30 +186,28 @@ test('emits deposit event when deposit button is clicked', async () => {
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
-	const mockDepositHandler = vi.fn();
+	const mockOnDeposit = vi.fn();
 
-	const propsWithEventsAndSigner = {
+	const propsWithCallbacks = {
 		...defaultProps,
-		signerAddress: '0x123'
+		signerAddress: '0x123',
+		onDeposit: mockOnDeposit
 	};
 
-	const { component } = render(VaultDetail, {
-		props: propsWithEventsAndSigner,
+	render(VaultDetail, {
+		props: propsWithCallbacks,
 		context: new Map([['$$_queryClient', queryClient]])
 	});
-
-	component.$on('deposit', mockDepositHandler);
 
 	await waitFor(async () => {
 		const depositButton = await screen.findByTestId('deposit-button');
 		await userEvent.click(depositButton);
 
-		expect(mockDepositHandler).toHaveBeenCalled();
-		expect(mockDepositHandler.mock.calls[0][0].detail.vault).toEqual(mockData);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockData);
 	});
 });
 
-test('emits withdraw event when withdraw button is clicked', async () => {
+test('calls onWithdraw callback when withdraw button is clicked', async () => {
 	const mockData = {
 		id: '1',
 		vaultId: '0xabc',
@@ -232,26 +231,24 @@ test('emits withdraw event when withdraw button is clicked', async () => {
 	const { getVault } = await import('@rainlanguage/orderbook/js_api');
 	vi.mocked(getVault).mockResolvedValue(mockData);
 
-	const mockWithdrawHandler = vi.fn();
+	const mockOnWithdraw = vi.fn();
 
-	const propsWithEventsAndSigner = {
+	const propsWithCallbacks = {
 		...defaultProps,
-		signerAddress: '0x123'
+		signerAddress: '0x123',
+		onWithdraw: mockOnWithdraw
 	};
 
-	const { component } = render(VaultDetail, {
-		props: propsWithEventsAndSigner,
+	render(VaultDetail, {
+		props: propsWithCallbacks,
 		context: new Map([['$$_queryClient', queryClient]])
 	});
-
-	component.$on('withdraw', mockWithdrawHandler);
 
 	await waitFor(async () => {
 		const withdrawButton = await screen.findByTestId('withdraw-button');
 		await userEvent.click(withdrawButton);
 
-		expect(mockWithdrawHandler).toHaveBeenCalled();
-		expect(mockWithdrawHandler.mock.calls[0][0].detail.vault).toEqual(mockData);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockData);
 	});
 });
 

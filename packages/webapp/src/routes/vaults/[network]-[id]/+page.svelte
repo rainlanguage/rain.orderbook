@@ -2,6 +2,7 @@
 	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
+	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
@@ -90,4 +91,6 @@
 	{activeOrderbookRef}
 	{onDeposit}
 	{onWithdraw}
+	{wagmiConfig}
+	{signerAddress}
 />

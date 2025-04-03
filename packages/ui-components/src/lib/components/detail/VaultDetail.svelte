@@ -11,7 +11,7 @@
 	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
+	import type { Readable, Writable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
@@ -19,7 +19,6 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import VaultActionButton from '../actions/VaultActionButton.svelte';
-	import { useAccount } from '@rainlanguage/ui-components';
 
 	export let id: string;
 	export let network: string;
@@ -27,12 +26,15 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
+	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
+		undefined;
+	export let wagmiConfig: Writable<Config> | undefined = undefined;
+	export let signerAddress: Writable<string | null> | undefined = undefined;
 	export let onDeposit: (vault: SgVault) => void;
 	export let onWithdraw: (vault: SgVault) => void;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -71,7 +73,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
+			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($wagmiConfig && $signerAddress && isAddress($signerAddress) && isAddressEqual($signerAddress, data.owner))}
 				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
 				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
 			{/if}
