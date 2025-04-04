@@ -205,22 +205,22 @@
 	};
 
 	async function handleDeployButtonClick() {
-+		if (checkingDeployment) {
-+			return;
-+		}
-		checkingDeployment = true;
-		if (!$account) {
-			DeploymentStepsError.catch('No wallet connected', DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-		} else {
-			try {
-				DeploymentStepsError.clear();
-				await handleDeployment(gui, $account, deploymentHandlers, subgraphUrl);
-			} catch (e) {
-				DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-			} finally {
-				checkingDeployment = false;
-			}
-		}
+	  if (checkingDeployment) {
+	    return;
+	  }
+	  checkingDeployment = true;
+	  try {
+	    if (!$account) {
+	      DeploymentStepsError.catch('No wallet connected', DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+	      return;
+	    }
+	    DeploymentStepsError.clear();
+	    await handleDeployment(gui, $account, deploymentHandlers, subgraphUrl);
+	  } catch (e) {
+	    DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+	  } finally {
+	    checkingDeployment = false;
+	  }
 	}
 </script>
 
