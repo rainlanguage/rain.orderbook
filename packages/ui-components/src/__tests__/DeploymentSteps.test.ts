@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+import {
+	DotrainOrderGui,
+	type ScenarioCfg,
+	OrderbookYaml,
+	type OrderbookCfg
+} from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
 import { writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
+import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
@@ -637,12 +642,7 @@ const defaultProps: DeploymentStepsProps = {
 	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-	settings: writable({
-		subgraphs: {
-			flare: 'https://subgraph.com/flare'
-		}
-	} as ConfigSource)
+	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void
 };
 
 describe('DeploymentSteps', () => {
@@ -653,9 +653,27 @@ describe('DeploymentSteps', () => {
 		vi.clearAllMocks();
 		guiInstance = new DotrainOrderGui();
 
+		const orderbookCfg: OrderbookCfg = {
+			key: 'orderbook',
+			address: '0x0000000000000000000000000000000000000000',
+			network: {
+				key: 'flare',
+				rpc: 'https://rpc.ankr.com/flare',
+				chainId: 14,
+				label: 'Flare',
+				currency: 'FLR'
+			},
+			subgraph: {
+				key: 'flare',
+				url: 'https://subgraph.com/flare'
+			}
+		};
+		(OrderbookYaml.prototype.getOrderbookByDeploymentKey as Mock).mockReturnValue({
+			value: orderbookCfg
+		});
+
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'flare' });
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue(mockDeployment);
 		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
