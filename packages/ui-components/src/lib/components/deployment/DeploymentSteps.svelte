@@ -2,17 +2,14 @@
 	import { Alert } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
-	import {
-		type ConfigSource,
-		type GuiSelectTokensCfg,
-		type TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import { type GuiSelectTokensCfg, type TokenInfo } from '@rainlanguage/orderbook/js_api';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import {
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type OrderIOCfg
+		type OrderIOCfg,
+		OrderbookYaml
 	} from '@rainlanguage/orderbook/js_api';
 	import { fade } from 'svelte/transition';
 	import { Button, Toggle, Spinner } from 'flowbite-svelte';
@@ -38,7 +35,6 @@
 		description: string;
 	}
 
-	export let settings: Writable<ConfigSource>;
 	export let dotrain: string;
 	export let deployment: Deployment;
 	export let strategyDetail: NameAndDescriptionCfg;
@@ -54,10 +50,11 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 
+	const orderbookYaml = new OrderbookYaml([dotrain]);
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
-	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	let subgraphUrl: string = '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -73,11 +70,13 @@
 		}
 		selectTokens = selectTokensResult.value;
 
-		const networkKeyResult = gui.getNetworkKey();
-		if (networkKeyResult.error) {
-			throw new Error(networkKeyResult.error.msg);
+		const orderbookResult = orderbookYaml.getOrderbookByDeploymentKey(deployment.key);
+		if (orderbookResult.error) {
+			throw new Error(orderbookResult.error.msg);
 		}
-		networkKey = networkKeyResult.value;
+
+		networkKey = orderbookResult.value.network.key;
+		subgraphUrl = orderbookResult.value.subgraph.url;
 
 		await areAllTokensSelected();
 	});

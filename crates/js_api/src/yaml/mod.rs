@@ -7,7 +7,7 @@ use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
     yaml::{
         dotrain::DotrainYaml as DotrainYamlCfg, orderbook::OrderbookYaml as OrderbookYamlCfg,
-        FieldErrorKind, YamlError, YamlParsable,
+        YamlError, YamlParsable,
     },
 };
 use rain_orderbook_common::dotrain::RainDocument;
