@@ -328,11 +328,11 @@
 
 					{#if showAdvancedOptions}
 						{#each allTokenInputs as input, i}
-							<TokenIOInput {i} label="Input" vault={input} {gui} />
+							<TokenIOInput {i} label="Input" vault={input} />
 						{/each}
 
 						{#each allTokenOutputs as output, i}
-							<TokenIOInput {i} label="Output" vault={output} {gui} />
+							<TokenIOInput {i} label="Output" vault={output} />
 						{/each}
 					{/if}
 
