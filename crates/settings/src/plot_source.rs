@@ -132,17 +132,17 @@ impl_wasm_traits!(TransformCfg);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TransformOutputsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
-    x: Option<String>,
+    pub x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    y: Option<String>,
+    pub y: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    r: Option<u32>,
+    pub r: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    z: Option<String>,
+    pub z: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stroke: Option<String>,
+    pub stroke: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    fill: Option<String>,
+    pub fill: Option<String>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TransformOutputsCfg);
@@ -150,8 +150,8 @@ impl_wasm_traits!(TransformOutputsCfg);
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct HexBinTransformCfg {
-    outputs: TransformOutputsCfg,
-    options: HexBinOptionsCfg,
+    pub outputs: TransformOutputsCfg,
+    pub options: HexBinOptionsCfg,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(HexBinTransformCfg);
@@ -161,11 +161,11 @@ impl_wasm_traits!(HexBinTransformCfg);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct HexBinOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
-    x: Option<String>,
+    pub x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    y: Option<String>,
+    pub y: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    bin_width: Option<u32>,
+    pub bin_width: Option<u32>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(HexBinOptionsCfg);
@@ -173,8 +173,8 @@ impl_wasm_traits!(HexBinOptionsCfg);
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BinXTransformCfg {
-    outputs: TransformOutputsCfg,
-    options: BinXOptionsCfg,
+    pub outputs: TransformOutputsCfg,
+    pub options: BinXOptionsCfg,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(BinXTransformCfg);
@@ -183,9 +183,9 @@ impl_wasm_traits!(BinXTransformCfg);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BinXOptionsCfg {
     #[serde(skip_serializing_if = "Option::is_none")]
-    x: Option<String>,
+    pub x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    thresholds: Option<u32>,
+    pub thresholds: Option<u32>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(BinXOptionsCfg);
