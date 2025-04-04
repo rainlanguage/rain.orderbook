@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { OrderbookYaml } from '../../dist/cjs/js_api.js';
 import { OrderbookCfg, WasmEncodedResult } from '../../dist/types/js_api.js';
 
-const YAML_WITHOUT_ORDERBOOK = `
+const YAML = `
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -62,14 +62,33 @@ orders:
           vault-id: 1
       deployer: some-deployer
       orderbook: some-orderbook
+    some-order2:
+      inputs:
+        - token: token1
+      outputs:
+        - token: token2
 
 deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
+    some-deployment2:
+        scenario: some-scenario
+        order: some-order2
     other-deployment:
         scenario: some-scenario.sub-scenario
         order: some-order
+`;
+
+const RAINLANG = `
+---
+#calculate-io
+max-output: max-value(),
+io: 1;
+#handle-io
+:;
+#handle-add-order
+:;
 `;
 
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
@@ -86,13 +105,13 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
-		const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+		const orderbookYaml = new OrderbookYaml([YAML]);
 		assert.ok(orderbookYaml);
 	});
 
 	describe('orderbook tests', async function () {
-		it('should get the orderbook', async function () {
-			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+		it('should get the orderbook by address', async function () {
+			const orderbookYaml = new OrderbookYaml([YAML]);
 
 			const orderbook = extractWasmEncodedData<OrderbookCfg>(
 				orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
@@ -114,6 +133,45 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			expect(result.error.readableMsg).toBe(
 				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Key \'0x0000000000000000000000000000000000000000\' not found"'
 			);
+		});
+
+		it('should get the orderbook by deployment key', async function () {
+			const orderbookYaml = new OrderbookYaml([YAML]);
+
+			const orderbook = extractWasmEncodedData<OrderbookCfg>(
+				orderbookYaml.getOrderbookByDeploymentKey('some-deployment')
+			);
+			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(orderbook.network.chainId, 123);
+			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
+
+			let result = orderbookYaml.getOrderbookByDeploymentKey('some-deployment2');
+			expect(result.error.msg).toBe(
+				'Orderbook yaml error: Orderbook key not found for order: some-order2'
+			);
+			expect(result.error.readableMsg).toBe(
+				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Orderbook key not found for order: some-order2"'
+			);
+
+			result = orderbookYaml.getOrderbookByDeploymentKey('test');
+			expect(result.error.msg).toBe(
+				"Orderbook yaml error: Missing required field 'test' in deployments"
+			);
+			expect(result.error.readableMsg).toBe(
+				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Missing required field \'test\' in deployments"'
+			);
+		});
+
+		it('should work with dotrain', async function () {
+			const dotrain = `
+            ${YAML}
+            ${RAINLANG}
+            `;
+			const orderbookYaml = new OrderbookYaml([dotrain]);
+			const orderbook = extractWasmEncodedData<OrderbookCfg>(
+				orderbookYaml.getOrderbookByDeploymentKey('some-deployment')
+			);
+			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 		});
 	});
 });
