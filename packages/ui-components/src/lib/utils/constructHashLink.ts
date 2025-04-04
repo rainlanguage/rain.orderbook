@@ -4,6 +4,9 @@ import { test } from '@fast-check/vitest';
 
 type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
 
+function isOrder(obj: OrderOrVault): obj is SgOrder | SgOrderAsIO {
+	return obj && 'orderHash' in obj;
+}
 /**
  * Constructs a link path for an order or vault based on its type and network
  * @param orderOrVault - The order or vault object
@@ -16,27 +19,13 @@ export function constructHashLink(
 	type: 'orders' | 'vaults',
 	network: string
 ): string {
-function isOrder(obj: OrderOrVault): obj is SgOrder | SgOrderAsIO {
-  return obj && 'orderHash' in obj;
-}
+	if (!orderOrVault) {
+		return `/${type}/${network}`;
+	}
 
-export function constructHashLink(
-  orderOrVault: OrderOrVault,
-  type: 'orders' | 'vaults',
-  network: string
-): string {
-  if (!orderOrVault) {
-    return `/${type}/${network}`;
-  }
-  
-  const slug = isOrder(orderOrVault) 
-    ? orderOrVault.orderHash 
-    : (orderOrVault as SgVault)?.id;
+	const slug = isOrder(orderOrVault) ? orderOrVault.orderHash : (orderOrVault as SgVault)?.id;
 
-  return `/${type}/${network}-${slug || ''}`;
-}
-
-	return `/${type}/${network}-${slug}`;
+	return `/${type}/${network}-${slug || ''}`;
 }
 
 /**
@@ -45,8 +34,8 @@ export function constructHashLink(
  * @returns True if the order is active, false otherwise
  */
 export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
-	const isOrder = 'orderHash' in (orderOrVault || {});
-	return isOrder ? (orderOrVault as SgOrderAsIO).active : false;
+	const _isOrder = isOrder(orderOrVault);
+	return _isOrder ? (orderOrVault as SgOrderAsIO).active : false;
 }
 
 /**
@@ -55,8 +44,8 @@ export function isOrderOrVaultActive(orderOrVault: OrderOrVault): boolean {
  * @returns The hash value
  */
 export function extractHash(orderOrVault: OrderOrVault): string {
-	const isOrder = 'orderHash' in (orderOrVault || {});
-	return isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
+	const _isOrder = isOrder(orderOrVault);
+	return _isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
 }
 
 if (import.meta.vitest) {

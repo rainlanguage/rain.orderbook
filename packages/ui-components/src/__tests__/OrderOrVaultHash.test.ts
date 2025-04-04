@@ -106,5 +106,24 @@ describe('OrderOrVaultHash', () => {
 			expect(anchor).toBeTruthy();
 			expect(anchor.getAttribute('href')).toBe('/vaults/test-subgraph-0xvault456');
 		});
+
+		it('renders active vault with appropriate styling', () => {
+			const activeVault = {
+				...mockVault,
+				active: true
+			};
+
+			const { getByTestId } = render(OrderOrVaultHash, {
+				props: {
+					type: 'vaults',
+					orderOrVault: activeVault as unknown as SgVault,
+					network: mockSubgraphName,
+					updateActiveNetworkAndOrderbook: mockUpdateFn
+				}
+			});
+
+			const button = getByTestId('vault-order-input');
+			expect(button.classList.toString()).toContain('text-white bg-green');
+		});
 	});
 });
