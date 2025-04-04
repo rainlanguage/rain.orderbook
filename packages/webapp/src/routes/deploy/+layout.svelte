@@ -5,8 +5,8 @@
 	import { page } from '$app/stores';
 	import { REGISTRY_URL } from '$lib/constants';
 
-	$: advancedMode = localStorage.getItem('registry') ? true : false;
-	$: registryFromStorage = localStorage.getItem('registry');
+	let advancedMode = localStorage.getItem('registry') ? true : false;
+	let registryFromStorage = localStorage.getItem('registry');
 	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
 
 	$: if (registryFromStorage) {
