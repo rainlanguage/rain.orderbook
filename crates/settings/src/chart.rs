@@ -352,7 +352,7 @@ impl YamlParsableHash for ChartCfg {
                                                         .unwrap_or_default()
                                                         .map(|s| s.to_string());
                                                 let r =
-                                                    get_hash_value_as_option(mark_options_map, "y")
+                                                    get_hash_value_as_option(mark_options_map, "r")
                                                         .map(|s| s.as_str())
                                                         .unwrap_or_default()
                                                         .map(|s| {
@@ -1173,6 +1173,8 @@ charts:
             plot1:
                 marks:
                     - test: test
+                      options:
+                        x: 1
 "#;
         let error = ChartCfg::parse_all_from_yaml(
             vec![get_document(format!("{}\n{}", PREFIX, yaml).as_str())],
@@ -1194,6 +1196,8 @@ charts:
             plot1:
                 marks:
                     - type: test
+                      options:
+                        x: 1
 "#;
         let error = ChartCfg::parse_all_from_yaml(
             vec![get_document(format!("{}\n{}", PREFIX, yaml).as_str())],
