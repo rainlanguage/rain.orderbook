@@ -30,6 +30,8 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { isAddressEqual, isAddress } from 'viem';
 
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
@@ -47,11 +49,12 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -87,7 +90,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress === data.order.owner && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
@@ -99,7 +102,8 @@
 									onRemove: $orderDetailQuery.refetch,
 									chainId,
 									orderbookAddress,
-									subgraphUrl
+									subgraphUrl,
+									account
 								}
 							})}
 						disabled={!handleOrderRemoveModal}
@@ -154,7 +158,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $signerAddress === vault.owner && chainId}
+											{#if handleDepositOrWithdrawModal && $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
 												<DepositOrWithdrawButtons
 													{vault}
 													{chainId}
