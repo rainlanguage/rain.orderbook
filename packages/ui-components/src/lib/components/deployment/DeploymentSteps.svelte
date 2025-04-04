@@ -205,6 +205,9 @@
 	};
 
 	async function handleDeployButtonClick() {
++		if (checkingDeployment) {
++			return;
++		}
 		checkingDeployment = true;
 		if (!$account) {
 			DeploymentStepsError.catch('No wallet connected', DeploymentStepsErrorCode.ADD_ORDER_FAILED);
