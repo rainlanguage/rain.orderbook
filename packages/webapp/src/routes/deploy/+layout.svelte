@@ -3,16 +3,21 @@
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import { REGISTRY_URL } from '$lib/constants';
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
-	$: customRegistry = $page.url.searchParams.get('registry');
-	$: isDeployPage = $page.url.pathname === '/deploy';
+	let registryFromStorage = localStorage.getItem('registry');
+	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
+
+	$: if (registryFromStorage) {
+		window.history.pushState({}, '', window.location.pathname + '?registry=' + registryFromStorage);
+	}
 </script>
 
 <PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
 	<svelte:fragment slot="actions">
 		<div class="flex flex-col gap-2">
-			{#if isDeployPage}
+			{#if $page.url.pathname === '/deploy'}
 				<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 					<span class="whitespace-nowrap">Advanced mode</span>
 				</Toggle>
@@ -26,7 +31,7 @@
 	</svelte:fragment>
 </PageHeader>
 <div class="flex flex-col items-end gap-4">
-	{#if advancedMode && isDeployPage}
+	{#if advancedMode && $page.url.pathname === '/deploy'}
 		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
 			<InputRegistryUrl />
 		</div>

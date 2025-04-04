@@ -5,12 +5,12 @@
 
 	const loadRegistryUrl = () => {
 		window.history.pushState({}, '', window.location.pathname + '?registry=' + newRegistryUrl);
-		window.location.reload();
 		localStorage.setItem('registry', newRegistryUrl);
+		window.location.reload();
 	};
 </script>
 
-<div class="mb-4 flex w-full items-start gap-4">
+<div class="mb-4 flex w-full items-start gap-4" data-testid="registry-input">
 	<Input
 		id="strategy-url"
 		type="url"
