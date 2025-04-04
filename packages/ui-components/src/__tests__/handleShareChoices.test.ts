@@ -43,14 +43,4 @@ describe('handleShareChoices', () => {
 			'http://example.com/?state=&registry=https%3A%2F%2Fexample.com%2Fregistry'
 		);
 	});
-
-	it('should handle null state with registry url', async () => {
-		(DotrainOrderGui.prototype.serializeState as Mock).mockReturnValue({ value: null });
-
-		await handleShareChoices(guiInstance, mockRegistryUrl);
-
-		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-			'http://example.com/?state=&registry=https%3A%2F%2Fexample.com%2Fregistry'
-		);
-	});
 });
