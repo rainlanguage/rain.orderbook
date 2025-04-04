@@ -129,9 +129,7 @@ impl YamlParsableHash for DeploymentCfg {
             }
         }
 
-        if deployments.is_empty()
-            && context.map_or(true, |ctx| ctx.get_current_deployment().is_none())
-        {
+        if deployments.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("deployments".to_string()),
                 location: "root".to_string(),
