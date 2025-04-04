@@ -3,7 +3,10 @@ use std::str::FromStr;
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
-    yaml::{orderbook::OrderbookYaml as OrderbookYamlCfg, YamlError, YamlParsable},
+    yaml::{
+        dotrain::DotrainYaml as DotrainYamlCfg, orderbook::OrderbookYaml as OrderbookYamlCfg,
+        FieldErrorKind, YamlError, YamlParsable,
+    },
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -23,6 +26,10 @@ impl PartialEq for OrderbookYaml {
 impl OrderbookYaml {
     fn get_orderbook_yaml_cfg(&self) -> Result<OrderbookYamlCfg, OrderbookYamlError> {
         Ok(OrderbookYamlCfg::new(self.yaml.clone(), false)?)
+    }
+
+    fn get_dotrain_yaml_cfg(&self) -> Result<DotrainYamlCfg, OrderbookYamlError> {
+        Ok(DotrainYamlCfg::new(self.yaml.clone(), false)?)
     }
 }
 
@@ -48,6 +55,24 @@ impl OrderbookYaml {
             Address::from_str(orderbook_address).map_err(OrderbookYamlError::FromHexError)?;
         let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
         Ok(orderbook_yaml.get_orderbook_by_address(address)?)
+    }
+
+    #[wasm_export(js_name = "getOrderbookByDeploymentKey")]
+    pub fn get_orderbook_by_deployment_key(
+        &self,
+        deployment_key: &str,
+    ) -> Result<OrderbookCfg, OrderbookYamlError> {
+        let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
+        let dotrain_yaml = self.get_dotrain_yaml_cfg()?;
+
+        let deployment = dotrain_yaml.get_deployment(deployment_key)?;
+        let order = dotrain_yaml.get_order(&deployment.order.key)?;
+        let orderbook = order.orderbook.ok_or(YamlError::Field {
+            kind: FieldErrorKind::Missing("orderbook".to_string()),
+            location: format!("order with key: {}", order.key),
+        })?;
+
+        Ok(orderbook_yaml.get_orderbook(&orderbook.key)?)
     }
 }
 
@@ -116,6 +141,29 @@ mod tests {
             decimals: 18
             label: Wrapped Ether
             symbol: WETH
+    scenarios:
+        scenario1:
+            deployer: deployer1
+            runs: 1
+    orders:
+        order1:
+            orderbook: orderbook1
+            inputs:
+                - token: token1
+            outputs:
+                - token: token1
+        order2:
+            inputs:
+                - token: token1
+            outputs:
+                - token: token1
+    deployments:
+        deployment1:
+            order: order1
+            scenario: scenario1
+        deployment2:
+            order: order2
+            scenario: scenario1
     deployers:
         deployer1:
             address: 0x0000000000000000000000000000000000000002
@@ -128,7 +176,7 @@ mod tests {
     "#;
 
     #[wasm_bindgen_test]
-    fn test_orderbook_yaml() {
+    fn test_get_orderbook_by_address() {
         let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
         let orderbook = orderbook_yaml
             .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
@@ -145,10 +193,10 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_orderbook_yaml_error() {
+    fn test_get_orderbook_by_address_error() {
         let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
-        let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
 
+        let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
@@ -169,6 +217,50 @@ mod tests {
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
             "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key '0x0000000000000000000000000000000000000000' not found\""
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_orderbook_by_deployment_key() {
+        let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
+        let orderbook = orderbook_yaml
+            .get_orderbook_by_deployment_key("deployment1")
+            .unwrap();
+
+        assert_eq!(
+            orderbook.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
+        assert_eq!(orderbook.key, "orderbook1");
+        assert_eq!(orderbook.network.key, "mainnet");
+        assert_eq!(orderbook.subgraph.key, "mainnet");
+        assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_orderbook_by_deployment_key_error() {
+        let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
+
+        let orderbook = orderbook_yaml.get_orderbook_by_deployment_key("deployment2");
+        assert_eq!(orderbook.is_err(), true);
+        assert_eq!(
+            orderbook.as_ref().err().unwrap().to_string(),
+            "Orderbook yaml error: Missing required field 'orderbook' in order with key: order2"
+        );
+        assert_eq!(
+            orderbook.as_ref().err().unwrap().to_readable_msg(),
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'orderbook' in order with key: order2\""
+        );
+
+        let orderbook = orderbook_yaml.get_orderbook_by_deployment_key("deployment3");
+        assert_eq!(orderbook.is_err(), true);
+        assert_eq!(
+            orderbook.as_ref().err().unwrap().to_string(),
+            "Orderbook yaml error: Key 'deployment3' not found"
+        );
+        assert_eq!(
+            orderbook.as_ref().err().unwrap().to_readable_msg(),
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key 'deployment3' not found\""
         );
     }
 }
