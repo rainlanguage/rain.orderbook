@@ -8,6 +8,7 @@ use rain_orderbook_app_settings::{
         FieldErrorKind, YamlError, YamlParsable,
     },
 };
+use rain_orderbook_common::dotrain::RainDocument;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -37,7 +38,20 @@ impl OrderbookYaml {
 impl OrderbookYaml {
     #[wasm_bindgen(constructor)]
     pub fn new(yaml: Vec<String>) -> Result<Self, OrderbookYamlError> {
-        Ok(Self { yaml })
+        let frontmatters = yaml
+            .iter()
+            .map(|yaml| {
+                let frontmatter = RainDocument::get_front_matter(yaml)
+                    .unwrap_or("")
+                    .to_string();
+                if frontmatter.is_empty() {
+                    yaml.clone()
+                } else {
+                    frontmatter
+                }
+            })
+            .collect();
+        Ok(Self { yaml: frontmatters })
     }
 }
 
@@ -175,6 +189,17 @@ mod tests {
     raindex-version: 1.0.0
     "#;
 
+    const RAINLANG: &str = r#"
+    ---
+    #calculate-io
+    max-output: max-value(),
+    io: 1;
+    #handle-io
+    :;
+    #handle-add-order
+    :;
+    "#;
+
     #[wasm_bindgen_test]
     fn test_get_orderbook_by_address() {
         let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
@@ -262,5 +287,15 @@ mod tests {
             orderbook.as_ref().err().unwrap().to_readable_msg(),
             "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key 'deployment3' not found\""
         );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_work_with_dotrain() {
+        let dotrain = format!("{}\n{}", FULL_YAML, RAINLANG);
+        let orderbook_yaml = OrderbookYaml::new(vec![dotrain]).unwrap();
+        let orderbook = orderbook_yaml
+            .get_orderbook_by_deployment_key("deployment1")
+            .unwrap();
+        assert_eq!(orderbook.key, "orderbook1");
     }
 }

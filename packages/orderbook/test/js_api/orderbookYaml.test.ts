@@ -80,6 +80,17 @@ deployments:
         order: some-order
 `;
 
+const RAINLANG = `
+---
+#calculate-io
+max-output: max-value(),
+io: 1;
+#handle-io
+:;
+#handle-add-order
+:;
+`;
+
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
 		assert.fail(errorMessage ?? result.error.msg);
@@ -147,6 +158,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			expect(result.error.readableMsg).toBe(
 				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Key \'test\' not found"'
 			);
+		});
+
+		it('should work with dotrain', async function () {
+			const dotrain = `
+            ${YAML}
+            ${RAINLANG}
+            `;
+			const orderbookYaml = new OrderbookYaml([dotrain]);
+			const orderbook = extractWasmEncodedData<OrderbookCfg>(
+				orderbookYaml.getOrderbookByDeploymentKey('some-deployment')
+			);
+			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 		});
 	});
 });
