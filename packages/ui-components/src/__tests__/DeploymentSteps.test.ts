@@ -9,11 +9,9 @@ import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import type { HandleAddOrderResult } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { handleDeployment } from '../lib/utils/handleDeployment';
-import type { Hex } from 'viem';
 import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
-import {mockConfigSource} from "../lib/__mocks__/settings"
+import { mockConfigSource } from '../lib/__mocks__/settings';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -29,22 +27,14 @@ vi.mock('../lib/utils/handleDeployment', () => ({
 	handleDeployment: vi.fn()
 }));
 
-export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
-
-const mockHandleAddOrderResult: HandleAddOrderResult = {
-	approvals: [],
-	deploymentCalldata: '0x123',
-	orderbookAddress: '0x456' as Hex,
-	chainId: 1337,
-	network: 'testnet'
-};
+type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
 
 const mockDeploymentHandlers: DeploymentHandlers = {
 	handleDisclaimerModal: vi.fn(),
 	handleDeployModal: vi.fn()
 };
 
-const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa`
+const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa`;
 
 const mockDeployment = {
 	key: 'flare-sflr-wflr',
@@ -163,23 +153,21 @@ describe('DeploymentSteps', () => {
 
 		const user = userEvent.setup();
 
-		render(DeploymentSteps, {
-			props: {
-				...defaultProps
-			}
-		});
+		render(DeploymentSteps, defaultProps);
 
-		// Wait for UI updates after mocks are applied
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
 		});
 
-		// Click the deploy button
 		const deployButton = screen.getByText('Deploy Strategy');
 		await user.click(deployButton);
 
-    //    TODO: add a test that the deploymenthandlers are called
+		await waitFor(() => {
+			expect(handleDeployment).toHaveBeenCalled();
+			const callArgs = vi.mocked(handleDeployment).mock.calls[0];
 
+			expect(callArgs[3]).toBe(mockConfigSource.subgraphs?.testnet);
+		});
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
@@ -422,37 +410,72 @@ describe('DeploymentSteps', () => {
 		});
 	});
 	it('shows loading state when checking deployment', async () => {
-		let resolvePromise: ((value?: any) => void) | undefined;
-		const delayedPromise = new Promise<void>((resolve) => {
-			resolvePromise = resolve;
+		// Setup fake timers
+		vi.useFakeTimers();
+
+		// Mock with a delayed response (using setTimeout)
+		vi.mocked(handleDeployment).mockImplementation(() => {
+			return new Promise<void>((resolve) => {
+				setTimeout(() => resolve(), 1000);
+			});
 		});
-		
-		vi.mocked(handleDeployment).mockImplementation(() => delayedPromise);
-		
+
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		
-		const user = userEvent.setup();
+
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 		render(DeploymentSteps, { props: defaultProps });
-		
+
 		const deployButton = screen.getByText('Deploy Strategy');
 		await user.click(deployButton);
-		
+
+		// Check loading state
 		expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
 		expect(screen.getByTestId('deploy-button')).toBeDisabled();
-		
-		if (resolvePromise) {
-			resolvePromise();
-		} else {
-			throw new Error('resolvePromise was not initialized');
-		}
-		
+
+		// Fast-forward time to resolve the promise
+		await vi.runAllTimersAsync();
+
+		// Check final state
+		expect(screen.queryByText('Checking deployment...')).not.toBeInTheDocument();
+		expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		expect(screen.getByTestId('deploy-button')).not.toBeDisabled();
+
+		// Restore real timers
+		vi.useRealTimers();
+	});
+	it('passes correct arguments to handleDeployment', async () => {
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0xTestAccount')
+		});
+
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+
+		const mockHandlers = {
+			handleDisclaimerModal: vi.fn(),
+			handleDeployModal: vi.fn()
+		};
+
+		const propsWithMockHandlers = {
+			...defaultProps,
+			deploymentHandlers: mockHandlers
+		};
+
+		const user = userEvent.setup();
+		render(DeploymentSteps, { props: propsWithMockHandlers });
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
 		await waitFor(() => {
-			expect(screen.queryByText('Checking deployment...')).not.toBeInTheDocument();
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-			expect(screen.getByTestId('deploy-button')).not.toBeDisabled();
+			expect(handleDeployment).toHaveBeenCalledTimes(1);
+
+			const [guiArg, accountArg, handlersArg, subgraphUrlArg] =
+				vi.mocked(handleDeployment).mock.calls[0];
+
+			expect(guiArg).toBe(mockGui);
+			expect(accountArg).toBe('0xTestAccount');
+			expect(handlersArg).toBe(mockHandlers);
+			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
 		});
 	});
-
-
-	
 });
