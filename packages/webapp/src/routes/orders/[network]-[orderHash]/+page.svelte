@@ -8,11 +8,12 @@
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress } from '$lib/stores/wagmi';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
+	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -21,11 +22,14 @@
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
+	import { prepareOrderRemoval } from '$lib/services/handleRemoveOrder'; // Adjust the import path as needed
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
+	let toastMessage: string = '';
 
-	function triggerToast() {
+	function triggerToast(message: string) {
+		toastMessage = message;
 		toastOpen = true;
 		counter = 5;
 		timeout();
@@ -36,13 +40,23 @@
 		toastOpen = false;
 	}
 
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
-		queryClient.invalidateQueries({
-			queryKey: [orderHash],
-			refetchType: 'all',
-			exact: false
+	function executeOrderRemoval(event: CustomEvent<{ order: SgOrder }>) {
+		const { order } = event.detail;
+		const orderConfig = prepareOrderRemoval(order, {
+			chainId,
+			orderbookAddress,
+			subgraphUrl
 		});
-		triggerToast();
+		handleOrderRemoveModal({
+			open: orderConfig.modal.open,
+			args: {
+				...orderConfig.modal.args,
+				onRemove: () => {
+					queryClient.invalidateQueries(orderConfig.queryInvalidation);
+					triggerToast(orderConfig.notification);
+				}
+			}
+		});
 	}
 </script>
 
@@ -51,7 +65,7 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		Vault balance updated
+		{toastMessage}
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
@@ -64,8 +78,6 @@
 	{colorTheme}
 	{orderbookAddress}
 	{chainId}
-	{wagmiConfig}
 	{handleDepositOrWithdrawModal}
-	{handleOrderRemoveModal}
-	{signerAddress}
+	on:remove={executeOrderRemoval}
 />
