@@ -59,7 +59,6 @@
 
 	const { account } = useAccount();
 	const gui = useGui();
-	const { account } = useAccount();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
