@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
-	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
@@ -22,6 +22,9 @@
 	}
 
 	onMount(async () => {
+		if (!dotrain || !deployment) {
+			return;
+		}
 		const { gui: initializedGui, error } = await handleGuiInitialization(
 			dotrain,
 			deployment.key,
@@ -30,6 +33,11 @@
 		gui = initializedGui;
 		getGuiError = error;
 	});
+
+	const deploymentHandlers = {
+		handleDisclaimerModal,
+		handleDeployModal
+	};
 </script>
 
 {#if !dotrain || !deployment}
@@ -38,14 +46,11 @@
 	<GuiProvider {gui}>
 		<DeploymentSteps
 			{strategyDetail}
-			{dotrain}
 			{deployment}
-			{wagmiConfig}
 			wagmiConnected={connected}
 			{appKitModal}
-			{handleDeployModal}
+			{deploymentHandlers}
 			{settings}
-			{handleDisclaimerModal}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

@@ -1,14 +1,27 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
+import {
+	getDeploymentTransactionArgs,
+	AddOrderErrors
+} from '../lib/components/deployment/getDeploymentTransactionArgs';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 describe('getDeploymentTransactionArgs', () => {
 	let guiInstance: DotrainOrderGui;
+	let mockGetDeploymentTransactionArgs: Mock;
+	let mockGetNetworkKey: Mock;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
-		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValue({
+
+		mockGetDeploymentTransactionArgs = vi.fn();
+		mockGetNetworkKey = vi.fn();
+
+		guiInstance = {
+			getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs,
+			getNetworkKey: mockGetNetworkKey
+		} as unknown as DotrainOrderGui;
+
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: {
 				chainId: 1,
 				orderbookAddress: '0xorderbook',
@@ -16,41 +29,65 @@ describe('getDeploymentTransactionArgs', () => {
 				deploymentCalldata: '0x1'
 			}
 		});
+
+		mockGetNetworkKey.mockReturnValue({
+			value: 'ethereum'
+		});
 	});
 
 	describe('successful cases', () => {
 		it('should successfully return deployment transaction args', async () => {
-			(DotrainOrderGui.prototype.generateApprovalCalldatas as Mock).mockResolvedValue({
-				value: {
-					Calldatas: [{ token: '0x123', amount: '1000' }]
-				}
-			});
-
 			const result = await getDeploymentTransactionArgs(guiInstance, '0x123');
 
+			expect(mockGetNetworkKey).toHaveBeenCalled();
+			expect(mockGetDeploymentTransactionArgs).toHaveBeenCalledWith('0x123');
 			expect(result).toEqual({
 				approvals: [{ token: '0x123', calldata: '0x1', symbol: 'TEST' }],
 				deploymentCalldata: '0x1',
 				orderbookAddress: '0xorderbook',
-				chainId: 1
+				chainId: 1,
+				network: 'ethereum'
 			});
 		});
 	});
 
 	describe('input validation errors', () => {
-		it('should throw an error when gui.getDeploymentTransactionArgs returns an error object', async () => {
-			// Create a new instance for this specific test
-			const errorGuiInstance = new DotrainOrderGui();
+		it('should throw NO_ACCOUNT_CONNECTED when wallet address is falsy', async () => {
+			await expect(getDeploymentTransactionArgs(guiInstance, '')).rejects.toThrow(
+				AddOrderErrors.NO_ACCOUNT_CONNECTED
+			);
 
-			// Override the mock for this specific instance
-			(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockResolvedValueOnce({
+			await expect(
+				getDeploymentTransactionArgs(guiInstance, null as unknown as string)
+			).rejects.toThrow(AddOrderErrors.NO_ACCOUNT_CONNECTED);
+
+			await expect(
+				getDeploymentTransactionArgs(guiInstance, undefined as unknown as string)
+			).rejects.toThrow(AddOrderErrors.NO_ACCOUNT_CONNECTED);
+		});
+
+		it('should throw ERROR_GETTING_NETWORK_KEY when getNetworkKey returns an error', async () => {
+			mockGetNetworkKey.mockReturnValue({
+				error: { msg: 'Network key error' }
+			});
+
+			await expect(getDeploymentTransactionArgs(guiInstance, '0x123')).rejects.toThrow(
+				AddOrderErrors.ERROR_GETTING_NETWORK_KEY
+			);
+		});
+	});
+
+	describe('error handling', () => {
+		it('should throw the error message when gui.getDeploymentTransactionArgs returns an error', async () => {
+			const errorMessage = 'Custom error message';
+			mockGetDeploymentTransactionArgs.mockResolvedValue({
 				error: {
-					msg: 'Something went wrong with deployment'
+					msg: errorMessage
 				}
 			});
 
-			await expect(getDeploymentTransactionArgs(errorGuiInstance, '0x123')).rejects.toThrow(
-				'Something went wrong with deployment'
+			await expect(getDeploymentTransactionArgs(guiInstance, '0x123')).rejects.toThrow(
+				errorMessage
 			);
 		});
 	});
