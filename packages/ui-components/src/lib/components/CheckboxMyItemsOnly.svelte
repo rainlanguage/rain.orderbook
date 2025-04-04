@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { Checkbox, Label } from 'flowbite-svelte';
 	import type { Writable } from 'svelte/store';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let showMyItemsOnly: Writable<boolean>;
 	export let context: 'orders' | 'vaults';
-	export let signerAddress: Writable<string | null> | undefined;
+	const { account } = useAccount();
 
 	function handleShowMyItemsChange() {
 		$showMyItemsOnly = !$showMyItemsOnly;
@@ -22,6 +23,6 @@
 		id="show-my-items"
 		checked={$showMyItemsOnly}
 		on:change={handleShowMyItemsChange}
-		disabled={!$signerAddress}
+		disabled={!$account}
 	/>
 </div>

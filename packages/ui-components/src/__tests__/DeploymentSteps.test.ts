@@ -3,24 +3,24 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { getAccount } from '@wagmi/core';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
-
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -634,7 +634,6 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
@@ -670,6 +669,9 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x123')
+		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -692,7 +694,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
+
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		const user = userEvent.setup();

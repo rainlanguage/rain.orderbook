@@ -1,5 +1,3 @@
-import type { Config } from '@wagmi/core';
-import { getAccount } from '@wagmi/core';
 import type {
 	DepositAndAddOrderCalldataResult,
 	DotrainOrderGui
@@ -8,10 +6,7 @@ import type { Hex } from 'viem';
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 
 export enum AddOrderErrors {
-	ADD_ORDER_FAILED = 'Failed to add order',
-	MISSING_GUI = 'Order GUI is required',
-	MISSING_CONFIG = 'Wagmi config is required',
-	NO_WALLET = 'No wallet address found'
+	ADD_ORDER_FAILED = 'Failed to add order'
 }
 
 export interface HandleAddOrderResult {
@@ -23,18 +18,9 @@ export interface HandleAddOrderResult {
 
 export async function getDeploymentTransactionArgs(
 	gui: DotrainOrderGui,
-	wagmiConfig: Config | undefined
+	account: Hex
 ): Promise<HandleAddOrderResult> {
-	if (!wagmiConfig) {
-		throw new Error(AddOrderErrors.MISSING_CONFIG);
-	}
-
-	const { address } = getAccount(wagmiConfig);
-	if (!address) {
-		throw new Error(AddOrderErrors.NO_WALLET);
-	}
-
-	const result = await gui.getDeploymentTransactionArgs(address);
+	const result = await gui.getDeploymentTransactionArgs(account);
 	if (result.error) {
 		throw new Error(result.error.msg);
 	}
