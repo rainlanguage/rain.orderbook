@@ -123,14 +123,26 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Orderbook</svelte:fragment>
 				<svelte:fragment slot="value">
-					<Hash type={HashType.Identifier} shorten={false} value={data.order.orderbook.id} />
+					<Hash
+						type={HashType.Identifier}
+						shorten={false}
+						value={data.order.orderbook.id}
+						linkType="address"
+						network={subgraphName}
+					/>
 				</svelte:fragment>
 			</CardProperty>
 
 			<CardProperty>
 				<svelte:fragment slot="key">Owner</svelte:fragment>
 				<svelte:fragment slot="value">
-					<Hash type={HashType.Wallet} shorten={false} value={data.order.owner} />
+					<Hash
+						type={HashType.Wallet}
+						shorten={false}
+						value={data.order.owner}
+						linkType="address"
+						network={subgraphName}
+					/>
 				</svelte:fragment>
 			</CardProperty>
 
@@ -205,7 +217,7 @@
 				</div>
 			</TabItem>
 			<TabItem open title="Trades">
-				<OrderTradesListTable id={data.order.id} {subgraphUrl} />
+				<OrderTradesListTable id={data.order.id} {subgraphUrl} {chainId} />
 			</TabItem>
 			<TabItem title="Volume">
 				<OrderVaultsVolTable id={data.order.id} {subgraphUrl} />

@@ -151,10 +151,20 @@
 			<Hash type={HashType.Identifier} value={item.order.orderHash} />
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Wallet} value={item.order.owner} />
+			<Hash
+				type={HashType.Wallet}
+				value={item.order.owner}
+				linkType="address"
+				network={item.subgraphName}
+			/>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Identifier} value={item.order.orderbook.id} />
+			<Hash
+				type={HashType.Identifier}
+				value={item.order.orderbook.id}
+				linkType="address"
+				network={item.subgraphName}
+			/>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
 			{formatTimestampSecondsAsLocal(BigInt(item.order.timestampAdded))}
