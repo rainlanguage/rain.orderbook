@@ -9,8 +9,11 @@ use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::yaml::{default_document, YamlError, YamlParsable};
-use rain_orderbook_app_settings::yaml::{dotrain::DotrainYaml, orderbook::OrderbookYaml};
+use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
+use rain_orderbook_app_settings::yaml::cache::Cache;
+use rain_orderbook_app_settings::yaml::{
+    default_document, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+};
 use rain_orderbook_app_settings::ParseConfigSourceError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -79,6 +82,9 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     YamlError(#[from] YamlError),
+
+    #[error(transparent)]
+    ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
 }
 
 #[cfg(target_family = "wasm")]
@@ -129,6 +135,7 @@ impl DotrainOrder {
             dotrain: "".to_string(),
             dotrain_yaml: DotrainYaml {
                 documents: vec![default_document()],
+                cache: Cache::new(),
             },
         }
     }
@@ -150,9 +157,16 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
+        let orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let remote_networks =
+            RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
+
+        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
+        dotrain_yaml.cache.update_remote_networks(remote_networks);
+
         Ok(Self {
             dotrain,
-            dotrain_yaml: DotrainYaml::new(sources.clone(), false)?,
+            dotrain_yaml,
         })
     }
 
@@ -227,7 +241,7 @@ impl DotrainOrder {
     }
 
     pub fn orderbook_yaml(&self) -> OrderbookYaml {
-        OrderbookYaml::from_documents(self.dotrain_yaml.documents.clone())
+        OrderbookYaml::from_dotrain_yaml(self.dotrain_yaml.clone())
     }
 
     pub async fn get_pragmas_for_scenario(

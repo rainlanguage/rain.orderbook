@@ -1,4 +1,4 @@
-use super::*;
+use super::{cache::Cache, orderbook::OrderbookYaml, *};
 use crate::{DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, SeqAccess, Visitor},
@@ -17,6 +17,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub struct DotrainYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
+    pub cache: Cache,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DotrainYaml);
@@ -42,11 +43,30 @@ impl YamlParsable for DotrainYaml {
             DeploymentCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
-        Ok(DotrainYaml { documents })
+        Ok(DotrainYaml {
+            documents,
+            cache: Cache::default(),
+        })
     }
 
-    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
-        DotrainYaml { documents }
+    fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
+        DotrainYaml {
+            documents: dotrain_yaml.documents,
+            cache: dotrain_yaml.cache,
+        }
+    }
+
+    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
+        DotrainYaml {
+            documents: orderbook_yaml.documents,
+            cache: orderbook_yaml.cache,
+        }
+    }
+}
+
+impl ContextProvider for DotrainYaml {
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
+        self.cache.get_remote_networks()
     }
 }
 
@@ -57,7 +77,8 @@ impl DotrainYaml {
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_order(key.to_string());
+        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
+
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -75,15 +96,16 @@ impl DotrainYaml {
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_deployment(key.to_string());
+        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
+
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
+        self.expand_context_with_current_deployment(&mut context, current_deployment);
+        self.expand_context_with_remote_networks(&mut context);
+
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 }
@@ -132,7 +154,10 @@ impl<'de> Deserialize<'de> for DotrainYaml {
                     documents.push(Arc::new(RwLock::new(doc)));
                 }
 
-                Ok(DotrainYaml { documents })
+                Ok(DotrainYaml {
+                    documents,
+                    cache: Cache::default(),
+                })
             }
         }
 
