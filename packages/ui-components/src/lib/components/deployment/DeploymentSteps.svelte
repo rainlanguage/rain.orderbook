@@ -258,25 +258,21 @@
 			{#if allTokensSelected || selectTokens?.length === 0}
 				{#if allFieldDefinitionsWithoutDefaults.length > 0}
 					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-						<FieldDefinitionInput {fieldDefinition} {gui} />
+						<FieldDefinitionInput {fieldDefinition} />
 					{/each}
 				{/if}
 
 				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
 
-				{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
-					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-						<FieldDefinitionInput {fieldDefinition} {gui} />
-					{/each}
-				{/if}
-
 				{#if showAdvancedOptions}
+					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+						<FieldDefinitionInput {fieldDefinition} />
+					{/each}
+
 					{#each allDepositFields as deposit}
 						<DepositInput {deposit} {gui} />
 					{/each}
-				{/if}
 
-				{#if showAdvancedOptions}
 					{#each allTokenInputs as input, i}
 						<TokenIOInput {i} label="Input" vault={input} {gui} />
 					{/each}
