@@ -18,7 +18,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
@@ -204,7 +204,7 @@ impl YamlParsableHash for NetworkCfg {
                     };
 
                     if networks.contains_key(&network_key) {
-                        return Err(YamlError::KeyShadowing(network_key));
+                        return Err(YamlError::KeyShadowing(network_key, "networks".to_string()));
                     }
                     networks.insert(network_key, network);
                 }
@@ -246,6 +246,25 @@ pub enum ParseNetworkConfigSourceError {
     ChainIdParseError(ParseIntError),
     #[error("Failed to parse network_id: {}", 0)]
     NetworkIdParseError(ParseIntError),
+}
+
+impl ParseNetworkConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseNetworkConfigSourceError::RpcParseError(err) => format!(
+                "The RPC URL in your network configuration is invalid: {}",
+                err
+            ),
+            ParseNetworkConfigSourceError::ChainIdParseError(err) => format!(
+                "The chain ID in your network configuration must be a valid number: {}",
+                err
+            ),
+            ParseNetworkConfigSourceError::NetworkIdParseError(err) => format!(
+                "The network ID in your network configuration must be a valid number: {}",
+                err
+            ),
+        }
+    }
 }
 
 impl NetworkConfigSource {
@@ -306,6 +325,10 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'networks' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -318,6 +341,10 @@ networks:
                 kind: FieldErrorKind::Missing("rpc".to_string()),
                 location: "network 'mainnet'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'rpc' in network 'mainnet'"
         );
 
         let yaml = r#"
@@ -332,6 +359,10 @@ networks:
                 kind: FieldErrorKind::Missing("chain-id".to_string()),
                 location: "network 'mainnet'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'chain-id' in network 'mainnet'"
         );
     }
 
@@ -402,7 +433,14 @@ networks:
             None,
         )
         .unwrap_err();
-        assert_eq!(error, YamlError::KeyShadowing("mainnet".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("mainnet".to_string(), "networks".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The key 'mainnet' is defined multiple times in your YAML configuration at networks"
+        );
     }
 
     #[test]
@@ -421,6 +459,10 @@ networks: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'networks' in root must be a map"
+        );
 
         let yaml = r#"
 networks:
@@ -437,6 +479,10 @@ networks:
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'networks' in root must be a map"
+        );
 
         let yaml = r#"
 networks:
@@ -452,6 +498,10 @@ networks:
                 },
                 location: "root".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'networks' in root must be a map"
         );
 
         let yaml = r#"
