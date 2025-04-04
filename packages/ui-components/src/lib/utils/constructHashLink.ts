@@ -16,8 +16,25 @@ export function constructHashLink(
 	type: 'orders' | 'vaults',
 	network: string
 ): string {
-	const isOrder = 'orderHash' in (orderOrVault || {});
-	const slug = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id;
+function isOrder(obj: OrderOrVault): obj is SgOrder | SgOrderAsIO {
+  return obj && 'orderHash' in obj;
+}
+
+export function constructHashLink(
+  orderOrVault: OrderOrVault,
+  type: 'orders' | 'vaults',
+  network: string
+): string {
+  if (!orderOrVault) {
+    return `/${type}/${network}`;
+  }
+  
+  const slug = isOrder(orderOrVault) 
+    ? orderOrVault.orderHash 
+    : (orderOrVault as SgVault)?.id;
+
+  return `/${type}/${network}-${slug || ''}`;
+}
 
 	return `/${type}/${network}-${slug}`;
 }
