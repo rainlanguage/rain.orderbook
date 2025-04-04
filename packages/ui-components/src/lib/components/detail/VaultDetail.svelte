@@ -25,7 +25,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 	export let handleDepositOrWithdrawModal:
 		| ((args: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
@@ -44,12 +44,12 @@
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: vaultDetailQuery = createQuery({
 		queryKey: [id, QKEY_VAULT + id],
@@ -88,7 +88,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress && isAddress($signerAddress) && isAddressEqual($signerAddress, data.owner)}
+			{#if $wagmiConfig && handleDepositOrWithdrawModal && $account && isAddress($account) && isAddressEqual($account, data.owner)}
 				<DepositOrWithdrawButtons
 					vault={data}
 					{chainId}
