@@ -31,19 +31,7 @@ describe('Layout load function', () => {
 				searchParams: {
 					get: vi.fn().mockReturnValue(registryParam)
 				}
-			},
-			params: {},
-			data: null,
-			route: {
-				id: 'deploy'
-			},
-			parent: async () => ({
-				stores: {
-					settings: {} as any,
-					activeSubgraphs: {} as any,
-					activeNetworkOrderbooks: {} as any
-				}
-			})
+			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}) as any;
 
