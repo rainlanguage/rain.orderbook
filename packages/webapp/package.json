@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"flowbite-svelte": "0.44.24",
-		"viem": "2.22.8",
+		"viem": "2.24.3",
 		"lodash": "4.17.21"
 	},
 	"devDependencies": {

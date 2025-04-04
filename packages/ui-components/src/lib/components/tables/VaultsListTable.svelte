@@ -20,6 +20,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
@@ -43,7 +44,8 @@
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let signerAddress: Writable<string | null> | undefined;
+
+	const { account } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -55,8 +57,8 @@
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $signerAddress
-				? [$signerAddress]
+			: $showMyItemsOnly && $account
+				? [$account]
 				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
@@ -109,7 +111,6 @@
 		{hideZeroBalanceVaults}
 		{isVaultsPage}
 		{isOrdersPage}
-		{signerAddress}
 	/>
 	<AppTable
 		{query}
