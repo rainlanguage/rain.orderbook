@@ -138,11 +138,11 @@ impl DeployerConfigSource {
 impl YamlParsableHash for DeployerCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut deployers = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;

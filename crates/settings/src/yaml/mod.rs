@@ -1,14 +1,17 @@
+pub mod cache;
 pub mod context;
 pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
+use dotrain::DotrainYaml;
+use orderbook::OrderbookYaml;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYamlEmitter;
@@ -23,6 +26,8 @@ pub trait YamlParsable: Sized {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
+    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self;
+    fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self;
 
     fn get_yaml_string(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document = document.read().unwrap();
@@ -80,6 +85,42 @@ pub trait YamlParseableValue: Sized {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
+}
+
+pub trait ContextProvider {
+    fn create_context(&self) -> Context {
+        Context::new()
+    }
+
+    fn expand_context_with_remote_networks(&self, context: &mut Context) {
+        context.set_remote_networks(self.get_remote_networks_from_cache());
+    }
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg>;
+
+    fn expand_context_with_remote_tokens(&self, context: &mut Context) {
+        context.set_remote_tokens(self.get_remote_tokens_from_cache());
+    }
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
+
+    fn expand_context_with_current_deployment(
+        &self,
+        context: &mut Context,
+        current_deployment: Option<String>,
+    ) {
+        if let Some(deployment) = current_deployment {
+            context.add_current_deployment(deployment);
+        }
+    }
+
+    fn expand_context_with_current_order(
+        &self,
+        context: &mut Context,
+        current_order: Option<String>,
+    ) {
+        if let Some(order) = current_order {
+            context.add_current_order(order);
+        }
+    }
 }
 
 #[derive(Debug, Error, PartialEq)]
