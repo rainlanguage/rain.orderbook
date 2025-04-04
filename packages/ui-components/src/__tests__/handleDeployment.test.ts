@@ -15,7 +15,7 @@ vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 describe('handleDeployment', () => {
 	// Mock data
 	const mockGui = {} as DotrainOrderGui;
-	const mockAccount = '0x1234567890abcdef';
+	const mockAccount = '0x1234567890123456789012345678901234567890'
 	const mockSubgraphUrl = 'https://example.com/subgraph';
 
 	// Mock handlers
@@ -99,9 +99,28 @@ describe('handleDeployment', () => {
 		).rejects.toThrow(mockError);
 	});
 
-	it('should handle null account', async () => {
-		await handleDeployment(mockGui, null, mockHandlers, mockSubgraphUrl);
+	it('should not proceed with deployment when disclaimer is denied', async () => {
+		let disclaimerShown = false;
+		let deployModalCalled = false;
 
-		expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, null);
+		const handlersWithDenialTracking: DeploymentHandlers = {
+			handleDisclaimerModal: vi.fn().mockImplementation(({ open, onDeny }) => {
+				disclaimerShown = open;
+
+				if (onDeny) {
+					onDeny();
+				}
+			}),
+			handleDeployModal: vi.fn().mockImplementation(() => {
+				deployModalCalled = true;
+			})
+		};
+
+		await handleDeployment(mockGui, mockAccount, handlersWithDenialTracking, mockSubgraphUrl);
+
+		expect(disclaimerShown).toBe(true);
+
+		expect(deployModalCalled).toBe(false);
+		expect(handlersWithDenialTracking.handleDeployModal).not.toHaveBeenCalled();
 	});
 });

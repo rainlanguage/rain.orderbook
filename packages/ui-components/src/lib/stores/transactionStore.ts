@@ -8,8 +8,7 @@ import type {
 	SgTransaction,
 	RemoveOrderCalldata,
 	SgVault,
-	WithdrawCalldataResult,
-	DepositAndAddOrderCalldataResult
+	WithdrawCalldataResult
 } from '@rainlanguage/orderbook/js_api';
 import {
 	getTransaction,
@@ -17,6 +16,7 @@ import {
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook/js_api';
 import { getExplorerLink } from '../services/getExplorerLink';
+import type { DeploymentArgs } from '$lib/types/transaction';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -51,14 +51,9 @@ export enum TransactionErrorMessage {
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
-export type DeploymentTransactionArgs = {
+export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
+export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
 	config: Config;
-	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl: string;
-	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {

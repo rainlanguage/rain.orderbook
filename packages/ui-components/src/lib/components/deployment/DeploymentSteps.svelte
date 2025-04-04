@@ -208,7 +208,7 @@
 		checkingDeployment = true;
 		try {
 			DeploymentStepsError.clear();
-			await handleDeployment(gui, $account, deploymentHandlers, subgraphUrl);
+			await handleDeployment(gui, account, deploymentHandlers, subgraphUrl);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {
