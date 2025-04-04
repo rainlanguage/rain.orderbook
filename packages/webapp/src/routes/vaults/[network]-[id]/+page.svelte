@@ -2,12 +2,14 @@
 	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+
 	const queryClient = useQueryClient();
 	import { lightweightChartsTheme } from '$lib/darkMode';
 
@@ -25,6 +27,39 @@
 	function timeout() {
 		if (--counter > 0) return setTimeout(timeout, 1000);
 		toastOpen = false;
+	}
+
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		const network = $page.params.network;
+		const subgraphUrl = $settings?.subgraphs?.[network] || '';
+		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [$page.params.id],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl
+			}
+		});
+	}
+
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
+	function onWithdraw(vault: SgVault) {
+		handleVaultAction(vault, 'withdraw');
 	}
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
@@ -54,7 +89,7 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
+	{onDeposit}
+	{onWithdraw}
 	{signerAddress}
 />
