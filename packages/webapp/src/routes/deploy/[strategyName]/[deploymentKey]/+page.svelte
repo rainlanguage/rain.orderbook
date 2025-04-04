@@ -22,6 +22,9 @@
 	}
 
 	onMount(async () => {
+		if (!dotrain || !deployment) {
+			return;
+		}
 		const { gui: initializedGui, error } = await handleGuiInitialization(
 			dotrain,
 			deployment.key,
