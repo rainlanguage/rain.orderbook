@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
+    deployment::DeploymentCfg,
+    order::OrderCfg,
     orderbook::OrderbookCfg,
     yaml::{
         dotrain::DotrainYaml as DotrainYamlCfg, orderbook::OrderbookYaml as OrderbookYamlCfg,
@@ -79,14 +81,12 @@ impl OrderbookYaml {
         let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
         let dotrain_yaml = self.get_dotrain_yaml_cfg()?;
 
-        let deployment = dotrain_yaml.get_deployment(deployment_key)?;
-        let order = dotrain_yaml.get_order(&deployment.order.key)?;
-        let orderbook = order.orderbook.ok_or(YamlError::Field {
-            kind: FieldErrorKind::Missing("orderbook".to_string()),
-            location: format!("order with key: {}", order.key),
-        })?;
+        let order_key =
+            DeploymentCfg::parse_order_key(dotrain_yaml.documents.clone(), deployment_key)?;
+        let orderbook_key =
+            OrderCfg::parse_orderbook_key(dotrain_yaml.documents.clone(), &order_key)?;
 
-        Ok(orderbook_yaml.get_orderbook(&orderbook.key)?)
+        Ok(orderbook_yaml.get_orderbook(&orderbook_key)?)
     }
 }
 
@@ -270,22 +270,22 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: Missing required field 'orderbook' in order with key: order2"
+            "Orderbook yaml error: Orderbook key not found for order: order2"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'orderbook' in order with key: order2\""
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Orderbook key not found for order: order2\""
         );
 
         let orderbook = orderbook_yaml.get_orderbook_by_deployment_key("deployment3");
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: Key 'deployment3' not found"
+            "Orderbook yaml error: Missing required field 'deployment3' in deployments"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key 'deployment3' not found\""
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'deployment3' in deployments\""
         );
     }
 
