@@ -3,9 +3,7 @@ import {
 	getDeploymentTransactionArgs,
 	type HandleAddOrderResult
 } from '../components/deployment/getDeploymentTransactionArgs';
-import type { Account } from '$lib/types/account';
 import type { DeploymentArgs } from '../types/transaction';
-import { get } from 'svelte/store';
 
 export interface DeploymentHandlers {
 	handleDisclaimerModal?: (props: { open: boolean; onAccept: () => void }) => void;

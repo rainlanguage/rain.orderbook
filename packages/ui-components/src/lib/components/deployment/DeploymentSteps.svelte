@@ -206,13 +206,17 @@
 
 	async function handleDeployButtonClick() {
 		checkingDeployment = true;
-		try {
-			DeploymentStepsError.clear();
-			await handleDeployment(gui, account, deploymentHandlers, subgraphUrl);
-		} catch (e) {
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-		} finally {
-			checkingDeployment = false;
+		if (!$account) {
+			DeploymentStepsError.catch('No wallet connected', DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+		} else {
+			try {
+				DeploymentStepsError.clear();
+				await handleDeployment(gui, $account, deploymentHandlers, subgraphUrl);
+			} catch (e) {
+				DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+			} finally {
+				checkingDeployment = false;
+			}
 		}
 	}
 </script>

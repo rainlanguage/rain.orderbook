@@ -15,7 +15,7 @@ vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
 describe('handleDeployment', () => {
 	// Mock data
 	const mockGui = {} as DotrainOrderGui;
-	const mockAccount = '0x1234567890123456789012345678901234567890'
+	const mockAccount = '0x1234567890123456789012345678901234567890';
 	const mockSubgraphUrl = 'https://example.com/subgraph';
 
 	// Mock handlers
