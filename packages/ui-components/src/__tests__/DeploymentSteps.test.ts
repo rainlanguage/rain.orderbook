@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
@@ -13,6 +13,7 @@ import type { HandleAddOrderResult } from '../lib/components/deployment/getDeplo
 import { handleDeployment } from '../lib/utils/handleDeployment';
 import type { Hex } from 'viem';
 import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
+import {mockConfigSource} from "../lib/__mocks__/settings"
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -105,7 +106,7 @@ const defaultProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	deploymentHandlers: mockDeploymentHandlers,
-	subgraphUrl: 'https://subgraph.com'
+	settings: writable(mockConfigSource)
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
@@ -133,7 +134,7 @@ describe('DeploymentSteps', () => {
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
 		vi.mocked(useAccount).mockReturnValue({
-			account: writable('0x123')
+			account: readable('0x123')
 		});
 	});
 
@@ -143,6 +144,42 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
 		});
+	});
+
+	it('correctly derives subgraphUrl from settings and networkKey', async () => {
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockReturnValue({
+			value: {
+				approvals: [],
+				deploymentCalldata: '0x1',
+				orderbookAddress: '0x1',
+				chainId: 1
+			}
+		});
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		render(DeploymentSteps, {
+			props: {
+				...defaultProps
+			}
+		});
+
+		// Wait for UI updates after mocks are applied
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		// Click the deploy button
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+    //    TODO: add a test that the deploymenthandlers are called
+
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {

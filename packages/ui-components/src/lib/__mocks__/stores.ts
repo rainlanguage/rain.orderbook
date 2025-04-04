@@ -18,7 +18,6 @@ const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
 const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
-const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
@@ -98,13 +97,6 @@ export const mockSubgraphUrlStore = {
 	subscribe: mockSubgraphUrlWritable.subscribe,
 	set: mockSubgraphUrlWritable.set,
 	mockSetSubscribeValue: (value: string): void => mockSubgraphUrlWritable.set(value)
-};
-
-export const mockSignerAddressStore = {
-	subscribe: mockSignerAddressWritable.subscribe,
-	set: mockSignerAddressWritable.set,
-	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value),
-	update: mockSignerAddressWritable.update
 };
 
 export const mockChainIdStore = {

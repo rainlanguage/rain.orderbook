@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import {
-		DeploymentSteps,
-		GuiProvider,
-		type HandleAddOrderResult
-	} from '@rainlanguage/ui-components';
+	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -54,6 +50,7 @@
 			{appKitModal}
 			{deploymentHandlers}
 			{dotrain}
+			{settings}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

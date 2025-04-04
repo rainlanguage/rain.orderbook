@@ -57,6 +57,7 @@
 	let checkingDeployment: boolean = false;
 	let subgraphUrl: string | undefined = undefined;
 
+	const { account } = useAccount();
 	const gui = useGui();
 	const { account } = useAccount();
 
@@ -308,7 +309,7 @@
 							{/if}
 						</Button>
 					{:else}
-						<WalletConnect {appKitModal} connected={wagmiConnected} signerAddress={account} />
+						<WalletConnect {appKitModal} connected={wagmiConnected} />
 					{/if}
 					<ComposedRainlangModal {gui} />
 					<ShareChoicesButton handleShareChoices={_handleShareChoices} />

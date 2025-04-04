@@ -15,7 +15,7 @@
 	} from '@rainlanguage/orderbook/js_api';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
-	import { appKitModal, connected, signerAddress, wagmiConfig } from '$lib/stores/wagmi';
+	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
@@ -35,7 +35,7 @@
 	export let open: boolean;
 	export let args: DepositOrWithdrawArgs;
 
-	const { action, vault, chainId, rpcUrl, subgraphUrl } = args;
+	const { action, vault, chainId, rpcUrl, subgraphUrl, account } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -52,7 +52,7 @@
 		error: 'Transaction failed.'
 	};
 
-	$: if ($signerAddress && action === 'deposit') {
+	$: if ($account && action === 'deposit') {
 		getUserBalance();
 	}
 
@@ -67,7 +67,7 @@
 			abi: erc20Abi,
 			address: vault.token.address as Hex,
 			functionName: 'balanceOf',
-			args: [$signerAddress as Hex]
+			args: [$account as Hex]
 		});
 	};
 
@@ -141,7 +141,7 @@
 			<div class="flex flex-col justify-end gap-2">
 				<div class="flex gap-2">
 					<Button color="alternative" on:click={handleClose}>Cancel</Button>
-					{#if $signerAddress}
+					{#if $account}
 						<div class="flex flex-col gap-2">
 							<Button
 								color="blue"
@@ -157,7 +157,7 @@
 							</Button>
 						</div>
 					{:else}
-						<WalletConnect {appKitModal} {connected} {signerAddress} />
+						<WalletConnect {appKitModal} {connected} />
 					{/if}
 				</div>
 				{#if errorMessage}

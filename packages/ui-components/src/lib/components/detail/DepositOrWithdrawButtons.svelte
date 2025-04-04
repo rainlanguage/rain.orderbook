@@ -4,6 +4,7 @@
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { DepositOrWithdrawModalProps } from '../../types/modal';
+	import { useAccount } from '../../providers/wallet/useAccount';
 	export let handleDepositOrWithdrawModal: (props: DepositOrWithdrawModalProps) => void;
 
 	export let vault: SgVault;
@@ -11,6 +12,8 @@
 	export let rpcUrl: string;
 	export let query: CreateQueryResult;
 	export let subgraphUrl: string;
+
+	const { account } = useAccount();
 </script>
 
 <Button
@@ -26,7 +29,8 @@
 				action: 'deposit',
 				chainId,
 				rpcUrl,
-				subgraphUrl
+				subgraphUrl,
+				account
 			}
 		})}><ArrowUpOutline size="xs" /></Button
 >
@@ -43,7 +47,8 @@
 				action: 'withdraw',
 				chainId,
 				rpcUrl,
-				subgraphUrl
+				subgraphUrl,
+				account
 			}
 		})}><ArrowDownOutline size="xs" /></Button
 >
