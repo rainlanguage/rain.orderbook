@@ -25,7 +25,7 @@
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
-	import { connected, appKitModal, signerAddress } from '$lib/stores/wagmi';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	export let colorTheme;
 	export let page;
 
@@ -104,7 +104,7 @@
 				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<WalletConnect {appKitModal} {connected} {signerAddress} classes="w-full" />
+				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem
