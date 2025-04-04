@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 
+	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
@@ -49,7 +50,6 @@
 			wagmiConnected={connected}
 			{appKitModal}
 			{deploymentHandlers}
-			{dotrain}
 			{settings}
 		/>
 	</GuiProvider>
