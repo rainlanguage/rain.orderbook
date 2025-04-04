@@ -308,7 +308,7 @@
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
 						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
@@ -316,7 +316,7 @@
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
 						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
