@@ -14,6 +14,7 @@
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
 	import type { Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	const queryClient = useQueryClient();
 
@@ -25,6 +26,8 @@
 	export let subgraphUrl: string;
 	export let chainId: number;
 	export let orderbookAddress: Hex;
+
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -50,7 +53,8 @@
 							onRemove: $orderDetailQuery.refetch,
 							chainId,
 							orderbookAddress,
-							subgraphUrl
+							subgraphUrl,
+							account
 						}
 					})}
 				disabled={!handleOrderRemoveModal}

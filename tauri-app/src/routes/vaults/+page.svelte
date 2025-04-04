@@ -59,5 +59,4 @@
   {handleWithdrawModal}
   {currentRoute}
   showMyItemsOnly={writable(false)}
-  signerAddress={writable('')}
 />

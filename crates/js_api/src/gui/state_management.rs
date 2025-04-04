@@ -1,8 +1,19 @@
 use super::*;
-use rain_orderbook_app_settings::token::TokenCfg;
+use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct AllGuiConfig {
+    pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
+    pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
+    pub deposits: Vec<GuiDepositCfg>,
+    pub order_inputs: Vec<OrderIOCfg>,
+    pub order_outputs: Vec<OrderIOCfg>,
+}
+impl_wasm_traits!(AllGuiConfig);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct SerializedGuiState {
@@ -277,5 +288,24 @@ impl DotrainOrderGui {
             })?;
         }
         Ok(())
+    }
+
+    #[wasm_export(js_name = "getAllGuiConfig", unchecked_return_type = "AllGuiConfig")]
+    pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, GuiError> {
+        let deployment = self.get_current_deployment()?;
+
+        let field_definitions_without_defaults = self.get_all_field_definitions(Some(false))?;
+        let field_definitions_with_defaults = self.get_all_field_definitions(Some(true))?;
+        let deposits = deployment.deposits;
+        let order_inputs = deployment.deployment.order.inputs.clone();
+        let order_outputs = deployment.deployment.order.outputs.clone();
+
+        Ok(AllGuiConfig {
+            field_definitions_without_defaults,
+            field_definitions_with_defaults,
+            deposits,
+            order_inputs,
+            order_outputs,
+        })
     }
 }

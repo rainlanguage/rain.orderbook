@@ -3,19 +3,24 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -629,11 +634,14 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-	settings: writable({} as ConfigSource)
+	settings: writable({
+		subgraphs: {
+			flare: 'https://subgraph.com/flare'
+		}
+	} as ConfigSource)
 };
 
 describe('DeploymentSteps', () => {
@@ -646,7 +654,7 @@ describe('DeploymentSteps', () => {
 
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue('flare');
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'flare' });
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue(mockDeployment);
 		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
@@ -660,6 +668,9 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x123')
+		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -667,6 +678,63 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
+		});
+	});
+
+	it('correctly derives subgraphUrl from settings and networkKey', async () => {
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockReturnValue({
+			value: {
+				approvals: [],
+				deploymentCalldata: '0x1',
+				orderbookAddress: '0x1',
+				chainId: 1
+			}
+		});
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		render(DeploymentSteps, {
+			props: {
+				...defaultProps
+			}
+		});
+
+		// Wait for UI updates after mocks are applied
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		// Click the deploy button
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		// Wait for the disclaimer modal to be called
+		let onAcceptCallback: () => void;
+		await waitFor(() => {
+			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
+			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
+			expect(callArgs).toHaveProperty('onAccept');
+			expect(typeof callArgs.onAccept).toBe('function');
+			onAcceptCallback = callArgs.onAccept;
+		});
+		onAcceptCallback!();
+
+		await waitFor(() => {
+			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
+				expect.objectContaining({
+					args: expect.objectContaining({
+						subgraphUrl: expect.any(String)
+					})
+				})
+			);
+			const calls = (defaultProps.handleDeployModal as Mock).mock.calls;
+			const passedSubgraphUrl = calls[0][0].args.subgraphUrl;
+			expect(passedSubgraphUrl).toBe('https://subgraph.com/flare');
 		});
 	});
 
