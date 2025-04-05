@@ -206,13 +206,9 @@
 			result = await getDeploymentTransactionArgs(gui, $account);
 		} catch (e) {
 			checkingDeployment = false;
-			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+			return DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		}
-		if (!result) {
-			checkingDeployment = false;
-			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
-			return;
-		}
+
 		checkingDeployment = false;
 		const onAccept = () => {
 			if (!networkKey) {
@@ -271,14 +267,6 @@
 </script>
 
 <div>
-	{#if $deploymentStepsError}
-		<Alert color="red">
-			<p class="text-red-500">{$deploymentStepsError.code}</p>
-			{#if $deploymentStepsError.details}
-				<p class="text-red-500">{$deploymentStepsError.details}</p>
-			{/if}
-		</Alert>
-	{/if}
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
