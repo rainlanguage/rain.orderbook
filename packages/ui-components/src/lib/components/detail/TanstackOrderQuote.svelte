@@ -14,11 +14,10 @@
 		TableBodyCell,
 		TableBodyRow,
 		TableHead,
-		TableHeadCell,
-		Tooltip
+		TableHeadCell
 	} from 'flowbite-svelte';
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
-
+	import Tooltip from '../Tooltip.svelte';
 	export let id: string;
 	export let order: SgOrder;
 	export let rpcUrl: string;

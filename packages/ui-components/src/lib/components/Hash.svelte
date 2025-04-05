@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-	import { Tooltip } from 'flowbite-svelte';
+	import Tooltip from './Tooltip.svelte';
 	import {
 		WalletOutline,
 		FingerprintOutline,
@@ -66,7 +66,7 @@
 {#if showCopiedMessage}
 	<div
 		out:fade
-		class="fixed rounded bg-green-500 px-2 py-1 text-xs text-white shadow"
+		class="fixed rounded bg-green-500 px-2 py-1 text-xs text-white"
 		style="top: {cursorY + 10}px; left: {cursorX + 10}px"
 	>
 		Copied to clipboard
@@ -74,7 +74,7 @@
 {/if}
 
 {#if shorten}
-	<Tooltip triggeredBy={`#${id}`} class="z-20 whitespace-normal">
+	<Tooltip triggeredBy={`#${id}`}>
 		<div class="flex items-center justify-start space-x-2">
 			{#if type === HashType.Wallet}
 				<WalletOutline size="sm" />
