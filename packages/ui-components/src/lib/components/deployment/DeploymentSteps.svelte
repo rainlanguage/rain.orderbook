@@ -266,7 +266,7 @@
 	};
 </script>
 
-<div>
+<div class="py-6">
 	{#if dotrain}
 		{#if gui}
 			<div class="flex max-w-3xl flex-col gap-12" in:fade>
