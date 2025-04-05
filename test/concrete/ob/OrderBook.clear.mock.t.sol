@@ -302,22 +302,27 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         address bountyBot,
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId,
-        uint256 aliceIORatio,
-        uint256 bobIORatio
+        uint256 aliceIORatio18,
+        uint256 bobIORatio18
     ) external {
         // 0 tested separately.
-        aliceIORatio = bound(aliceIORatio, 1, 1e18);
-        bobIORatio = bound(bobIORatio, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio, Math.Rounding.Down));
+        aliceIORatio18 = bound(aliceIORatio18, 1, 1e18);
+        bobIORatio18 = bound(bobIORatio18, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio18, Math.Rounding.Down));
+
+        Float memory aliceIORatio = Float(int256(aliceIORatio18), -18);
+        Float memory bobIORatio = Float(int256(bobIORatio18), -18);
+
+        Float memory aliceOutput = Float(1, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
         StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(Float(int256(aliceIORatio), -18).pack())); // orderIORatio
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(Float(1, 0).pack())); // orderOutputMax
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
 
         StackItem[] memory orderStackBob = new StackItem[](2);
-        orderStackBob[0] = bobIORatio; // orderIORatio
-        orderStackBob[1] = 1e18; // orderOutputMax
+        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
+        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(Float(1e18, -18).pack())); // orderOutputMax
 
         checkClear(
             CheckClear(
@@ -336,15 +341,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 Float(1, 0),
                 // Alice is outputting 1 so bob will output enough to match this
                 // according to his own IO ratio.
-                uint256(1e18).fixedPointDiv(bobIORatio, Math.Rounding.Down).min(1e18),
+                bobIORatio.inv().min(Float(1, 0)),
                 // Expected input for Alice is aliceOutput * aliceIORatio
-                uint256(1e18).fixedPointMul(aliceIORatio, Math.Rounding.Up),
+                aliceIORatio.multiply(aliceOutput),
                 // Expected input for Bob is Alice's output in entirety, because
                 // alice IO * bob IO <= 1 and Bob is the larger ratio.
                 // As Bob's ratio is >= 1 he will have his input shrunk to match
                 // Alice's output. This means in this case Bob's input will be
                 // 1 always, as it either = 1 anyway or matches Alice's 1.
-                uint256(1e18),
+                Float(1, 0),
                 ""
             )
         );
@@ -358,23 +363,29 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId,
-        uint256 aliceIORatio,
-        uint256 bobIORatio
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId,
+        uint256 aliceIORatio18,
+        uint256 bobIORatio18
     ) external {
-        aliceIORatio = bound(aliceIORatio, 1e18 + 1, 1.1e18);
-        bobIORatio = bound(bobIORatio, 1e18 + 1, 1.1e18);
+        aliceIORatio18 = bound(aliceIORatio18, 1e18 + 1, 1.1e18);
+        bobIORatio18 = bound(bobIORatio18, 1e18 + 1, 1.1e18);
+
+        Float memory aliceIORatio = Float(int256(aliceIORatio18), -18);
+        Float memory bobIORatio = Float(int256(bobIORatio18), -18);
+
+        Float memory aliceOutput = Float(1, 0);
+        Float memory bobOutput = Float(1, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = aliceIORatio; // orderIORatio
-        orderStackAlice[1] = 1e18; // orderOutputMax
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
 
-        uint256[] memory orderStackBob = new uint256[](2);
-        orderStackBob[0] = bobIORatio; // orderIORatio
-        orderStackBob[1] = 1e18; // orderOutputMax
+        StackItem[] memory orderStackBob = new StackItem[](2);
+        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
+        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutput.pack())); // orderOutputMax
 
         checkClear(
             CheckClear(
@@ -385,15 +396,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 bountyBot,
                 aliceBountyVaultId,
                 bobBountyVaultId,
-                1e18,
-                1e18,
+                Float(1, 0),
+                Float(1, 0),
                 expression,
                 orderStackAlice,
                 orderStackBob,
-                0,
-                0,
-                0,
-                0,
+                Float(0, 0),
+                Float(0, 0),
+                Float(0, 0),
+                Float(0, 0),
                 stdError.arithmeticError
             )
         );
@@ -407,19 +418,25 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
     ) external {
-        uint256 aliceAmount = 2e18;
-        uint256 bobAmount = 3e18;
+        Float memory aliceAmount = Float(2e18, -18);
+        Float memory bobAmount = Float(3e18, -18);
 
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = 0; // Zero orderIORatio
-        orderStackAlice[1] = 0.5e18; // orderOutputMax
+        Float memory aliceIORatio = Float(0, 0);
+        Float memory bobIORatio = Float(1, 0);
 
-        uint256[] memory orderStackBob = new uint256[](2);
-        orderStackBob[0] = 1e18; // Nonzero orderIORatio
-        orderStackBob[1] = 0.5e18; // orderOutputMax
+        Float memory aliceOutputMax = Float(0.5e18, -18);
+        Float memory bobOutputMax = Float(0.5e18, -18);
+
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+
+        StackItem[] memory orderStackBob = new StackItem[](2);
+        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
 
         checkClear(
             CheckClear(
@@ -435,10 +452,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 expression,
                 orderStackAlice,
                 orderStackBob,
-                0.5e18,
-                0.5e18,
-                0,
-                0.5e18,
+                Float(0.5e18, -18),
+                Float(0.5e18, -18),
+                Float(0, 0),
+                Float(0.5e18, -18),
                 ""
             )
         );
@@ -452,19 +469,25 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
     ) external {
-        uint256 aliceAmount = 2e18;
-        uint256 bobAmount = 3e18;
+        Float memory aliceAmount = Float(2, 0);
+        Float memory bobAmount = Float(3, 0);
 
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = 1e18; // Zero orderIORatio
-        orderStackAlice[1] = 0.5e18; // orderOutputMax
+        Float memory aliceIORatio = Float(1, 0);
+        Float memory bobIORatio = Float(0, 0);
 
-        uint256[] memory orderStackBob = new uint256[](2);
-        orderStackBob[0] = 0; // Nonzero orderIORatio
-        orderStackBob[1] = 0.5e18; // orderOutputMax
+        Float memory aliceOutputMax = Float(0.5e18, -18);
+        Float memory bobOutputMax = Float(0.5e18, -18);
+
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+
+        StackItem[] memory orderStackBob = new StackItem[](2);
+        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
 
         checkClear(
             CheckClear(
@@ -480,10 +503,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 expression,
                 orderStackAlice,
                 orderStackBob,
-                0.5e18,
-                0.5e18,
-                0.5e18,
-                0,
+                Float(0.5e18, -18),
+                Float(0.5e18, -18),
+                Float(0.5e18, -18),
+                Float(0, 0),
                 ""
             )
         );
@@ -497,21 +520,27 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         OrderConfigV4 memory bobConfig,
         bytes memory expression,
         address bountyBot,
-        uint256 aliceBountyVaultId,
-        uint256 bobBountyVaultId
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
     ) external {
-        uint256 aliceAmount = 2e18;
-        uint256 bobAmount = 3e18;
+        Float memory aliceAmount = Float(2, 0);
+        Float memory bobAmount = Float(3, 0);
+
+        Float memory aliceIORatio = Float(0, 0);
+        Float memory bobIORatio = Float(0, 0);
+
+        Float memory aliceOutputMax = Float(0.5e18, -18);
+        Float memory bobOutputMax = Float(0.5e18, -18);
 
         // Mock the interpreter.eval for Alice and Bob orders with zero ratio
-        uint256[] memory orderStackAlice = new uint256[](2);
-        orderStackAlice[0] = 0; // Zero orderIORatio
-        orderStackAlice[1] = 5e17; // orderOutputMax
+        StackItem[] memory orderStackAlice = new StackItem[](2);
+        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
 
-        uint256[] memory orderStackBob = new uint256[](2);
+        StackItem[] memory orderStackBob = new StackItem[](2);
 
-        orderStackBob[0] = 0; // Zero orderIORatio
-        orderStackBob[1] = 5e17; // orderOutputMax
+        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
 
         checkClear(
             CheckClear(
@@ -527,10 +556,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 expression,
                 orderStackAlice,
                 orderStackBob,
-                0.5e18,
-                0.5e18,
-                0,
-                0,
+                Float(0.5e18, -18),
+                Float(0.5e18, -18),
+                Float(0, 0),
+                Float(0, 0),
                 ""
             )
         );
