@@ -202,14 +202,17 @@
 
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
+
 		try {
 			result = await getDeploymentTransactionArgs(gui, $account);
 		} catch (e) {
+			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 			checkingDeployment = false;
-			return DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
+			return;
 		}
 
 		checkingDeployment = false;
+
 		const onAccept = () => {
 			if (!networkKey) {
 				DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_CHAIN);

@@ -720,7 +720,7 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		// Wait for the disclaimer modal to be called
-		let onAcceptCallback: () => void;
+		let onAcceptCallback: (() => void) | undefined;
 		await waitFor(() => {
 			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
 			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
@@ -728,7 +728,8 @@ describe('DeploymentSteps', () => {
 			expect(typeof callArgs.onAccept).toBe('function');
 			onAcceptCallback = callArgs.onAccept;
 		});
-		onAcceptCallback!();
+
+		onAcceptCallback?.();
 
 		await waitFor(() => {
 			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
