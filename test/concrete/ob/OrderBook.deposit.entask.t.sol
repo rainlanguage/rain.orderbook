@@ -36,8 +36,8 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
     function checkDeposit(
         address owner,
-        uint256 vaultId,
-        uint256 amount,
+        bytes32 vaultId,
+        Float memory amount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
@@ -64,23 +64,23 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactEmptyNoop(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](0);
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneStateless(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneReadState(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         // each get is 2 reads. 1 during eval and 1 during store set.
@@ -89,8 +89,10 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSingle(address alice, uint256 vaultId, uint256 amount) external {
-        amount = bound(amount, 1, type(uint128).max);
+    function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, int256 amount18) external {
+        amount18 = bound(amount18, 1, type(int128).max);
+        Float memory amount = Float(amount18, -18);
+
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":set(1 2);");
         // 1 for the set.
@@ -101,8 +103,10 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSequential(address alice, uint256 vaultId, uint256 amount) external {
-        amount = bound(amount, 1, type(uint128).max);
+    function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, int256 amount18) external {
+        amount18 = bound(amount18, 1, type(int128).max);
+        Float memory amount = Float(amount18, -18);
+
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
@@ -122,11 +126,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     function testOrderBookDepositEvalWriteStateDifferentOwnersNamespaced(
         address alice,
         address bob,
-        uint256 vaultId,
-        uint256 amount
+        bytes32 vaultId,
+        int256 amount18
     ) external {
         vm.assume(alice != bob);
-        amount = bound(amount, 1, type(uint128).max);
+        amount18 = bound(amount18, 1, type(int128).max);
+
+        Float memory amount = Float(amount18, -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -154,11 +160,14 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount)
+    function testOrderDepositContext(address alice, bytes32 vaultId, int256 preDepositAmount18, int256 depositAmount18)
         external
     {
-        preDepositAmount = bound(preDepositAmount, 1, type(uint128).max);
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        preDepositAmount18 = bound(preDepositAmount18, 1, type(int128).max);
+        depositAmount18 = bound(depositAmount18, 1, type(int128).max);
+
+        Float memory preDepositAmount = Float(preDepositAmount18, -18);
+        Float memory depositAmount = Float(depositAmount18, -18);
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
@@ -190,7 +199,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-id() ",
-                vaultId.toHexString(),
+                uint256(vaultId).toHexString(),
                 ") \"deposit vaultId is vaultId\");"
             )
         );
