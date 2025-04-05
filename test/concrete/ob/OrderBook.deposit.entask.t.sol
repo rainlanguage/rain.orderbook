@@ -2,10 +2,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, LibDecimalFloat, Float} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderConfigV4,
+    EvaluableV4,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -14,6 +17,7 @@ import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
+    using LibDecimalFloat for Float;
 
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -45,13 +49,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -225,13 +229,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
 
-        TaskV1[] memory actions = evalsToActions(evals);
+        TaskV2[] memory actions = evalsToActions(evals);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
 
         vm.expectRevert("revert in action");
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
     }
 }
