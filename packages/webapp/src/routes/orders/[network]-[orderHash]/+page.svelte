@@ -8,7 +8,7 @@
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
+	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
@@ -67,5 +67,4 @@
 	{wagmiConfig}
 	{handleDepositOrWithdrawModal}
 	{handleOrderRemoveModal}
-	{signerAddress}
 />

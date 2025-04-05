@@ -99,7 +99,6 @@ export {
 } from './utils/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
-export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 // Constants
@@ -128,8 +127,10 @@ export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
 
-// Hooks
-export { useGui } from './hooks/useGui';
-
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
+export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+
+// Hooks
+export { useGui } from './hooks/useGui';
+export { useAccount } from './providers/wallet/useAccount';

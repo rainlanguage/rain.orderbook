@@ -31,6 +31,7 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	interface Deployment {
 		key: string;
@@ -54,17 +55,17 @@
 	let checkingDeployment: boolean = false;
 	let allTokenInfos: TokenInfo[] = [];
 
+	const { account } = useAccount();
 	const gui = useGui();
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let networkKey: string = '';
-	const subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
+	$: subgraphUrl = $settings?.subgraphs?.[networkKey] ?? '';
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
 	export let wagmiConfig: Writable<Config | undefined>;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let signerAddress: Writable<string | null>;
 
 	onMount(async () => {
 		const selectTokensResult = gui.getSelectTokens();
@@ -194,10 +195,15 @@
 			return;
 		}
 
+		if (!$account) {
+			DeploymentStepsError.catch(null, DeploymentStepsErrorCode.NO_WALLET);
+			return;
+		}
+
 		let result: HandleAddOrderResult | null = null;
 		checkingDeployment = true;
 		try {
-			result = await getDeploymentTransactionArgs(gui, $wagmiConfig);
+			result = await getDeploymentTransactionArgs(gui, $account);
 		} catch (e) {
 			checkingDeployment = false;
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
@@ -219,7 +225,8 @@
 				args: {
 					...result,
 					subgraphUrl: subgraphUrl,
-					network: networkKey
+					network: networkKey,
+					account
 				}
 			});
 		};
@@ -293,7 +300,7 @@
 							description="Select the tokens that you want to use in your order."
 						/>
 						{#each selectTokens as token}
-							<SelectToken {token} {onSelectTokenSelect} {gui} />
+							<SelectToken {token} {onSelectTokenSelect} />
 						{/each}
 					</div>
 				{/if}
@@ -301,7 +308,7 @@
 				{#if allTokensSelected || selectTokens?.length === 0}
 					{#if allFieldDefinitionsWithoutDefaults.length > 0}
 						{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
@@ -309,23 +316,23 @@
 
 					{#if allFieldDefinitionsWithDefaults.length > 0 && showAdvancedOptions}
 						{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-							<FieldDefinitionInput {fieldDefinition} {gui} />
+							<FieldDefinitionInput {fieldDefinition} />
 						{/each}
 					{/if}
 
 					{#if showAdvancedOptions}
 						{#each allDepositFields as deposit}
-							<DepositInput {deposit} {gui} />
+							<DepositInput {deposit} />
 						{/each}
 					{/if}
 
 					{#if showAdvancedOptions}
 						{#each allTokenInputs as input, i}
-							<TokenIOInput {i} label="Input" vault={input} {gui} />
+							<TokenIOInput {i} label="Input" vault={input} />
 						{/each}
 
 						{#each allTokenOutputs as output, i}
-							<TokenIOInput {i} label="Output" vault={output} {gui} />
+							<TokenIOInput {i} label="Output" vault={output} />
 						{/each}
 					{/if}
 
@@ -353,7 +360,7 @@
 								{/if}
 							</Button>
 						{:else}
-							<WalletConnect {appKitModal} connected={wagmiConnected} {signerAddress} />
+							<WalletConnect {appKitModal} connected={wagmiConnected} />
 						{/if}
 						<ComposedRainlangModal />
 						<ShareChoicesButton handleShareChoices={_handleShareChoices} />
