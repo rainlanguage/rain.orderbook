@@ -3,9 +3,9 @@
 	import { RainlangLR } from 'codemirror-rainlang';
 	import { lightCodeMirrorTheme } from '../../utils/codeMirrorThemes';
 	import { Button, Modal } from 'flowbite-svelte';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { useGui } from '$lib/hooks/useGui';
 
-	export let gui: DotrainOrderGui;
+	const gui = useGui();
 
 	let rainlangText: string | null = null;
 	let open = false;
