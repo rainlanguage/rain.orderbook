@@ -13,7 +13,11 @@
 				<img src={$colorTheme === 'light' ? logoLight : logoDark} alt="Rainlang logo" class="h-8" />
 			</div>
 			<div class="flex h-full flex-row items-center gap-x-2 dark:text-gray-100 md:gap-x-6">
-				<a href="https://docs.rainlang.xyz/raindex/overview">Docs</a>
+				<a
+					rel="noopener noreferrer"
+					target="_blank"
+					href="https://docs.rainlang.xyz/raindex/overview">Docs</a
+				>
 				<a href="/deploy">Dashboard</a>
 			</div>
 		</div>

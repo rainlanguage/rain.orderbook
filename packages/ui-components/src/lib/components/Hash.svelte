@@ -8,7 +8,8 @@
 </script>
 
 <script lang="ts">
-	import { Tooltip } from 'flowbite-svelte';
+	import { getExplorerLink } from '$lib/services/getExplorerLink';
+	import truncateEthAddress from 'truncate-eth-address';
 	import {
 		WalletOutline,
 		FingerprintOutline,
@@ -16,20 +17,31 @@
 		ClipboardOutline
 	} from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
-
+	import { getViemChain } from '../services/getViemChain';
+	export let network: string | undefined = undefined;
 	export let value: string;
 	export let type: HashType | undefined = undefined;
 	export let shorten = true;
-	export let sliceLen = 5;
 	export let copyOnClick = true;
+	export let linkType: 'tx' | 'address' | undefined = undefined;
+	export let chainId: number | undefined = undefined;
 	let showCopiedMessage = false;
+	let explorerLink = '';
+	let externalLink: boolean = false;
+
+	$: if (linkType && (network || chainId)) {
+		if (!chainId) {
+			chainId = getViemChain(network as string)?.id;
+		}
+		externalLink = true;
+		explorerLink = getExplorerLink(value, chainId, linkType);
+	}
 
 	let cursorX = 0;
 	let cursorY = 0;
 
 	$: id = shorten ? `hash-${value}` : undefined;
-	$: displayValue =
-		value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
+	$: displayValue = value && shorten ? truncateEthAddress(value) : value;
 
 	function copy(e: MouseEvent) {
 		if (copyOnClick) {
@@ -45,37 +57,15 @@
 	}
 </script>
 
-<button
-	type="button"
-	{id}
-	class="flex items-center justify-start space-x-2 text-left"
-	on:click={copy}
->
-	{#if type === HashType.Wallet}
-		<WalletOutline size="sm" />
-	{:else if type === HashType.Identifier}
-		<FingerprintOutline size="sm" />
-	{:else if type === HashType.Transaction}
-		<ClipboardListOutline size="sm" />
-	{:else if type === HashType.Address}
-		<ClipboardOutline size="sm" />
-	{/if}
-	<div>{displayValue}</div>
-</button>
-
-{#if showCopiedMessage}
-	<div
-		out:fade
-		class="fixed rounded bg-green-500 px-2 py-1 text-xs text-white shadow"
-		style="top: {cursorY + 10}px; left: {cursorX + 10}px"
-	>
-		Copied to clipboard
-	</div>
-{/if}
-
-{#if shorten}
-	<Tooltip triggeredBy={`#${id}`} class="z-20 whitespace-normal">
-		<div class="flex items-center justify-start space-x-2">
+{#if externalLink}
+	<a data-testid="external-link" href={explorerLink} target="_blank" rel="noopener noreferrer" {id}>
+		<button
+			type="button"
+			class="flex items-center justify-start space-x-2 text-left"
+			on:click={(e) => {
+				e.stopPropagation();
+			}}
+		>
 			{#if type === HashType.Wallet}
 				<WalletOutline size="sm" />
 			{:else if type === HashType.Identifier}
@@ -85,7 +75,35 @@
 			{:else if type === HashType.Address}
 				<ClipboardOutline size="sm" />
 			{/if}
-			<div>{value}</div>
-		</div>
-	</Tooltip>
+			<div class="cursor-pointer hover:underline">{displayValue}</div>
+		</button>
+	</a>
+{:else}
+	<button
+		type="button"
+		{id}
+		class="flex items-center justify-start space-x-2 text-left"
+		on:click={copy}
+	>
+		{#if type === HashType.Wallet}
+			<WalletOutline size="sm" />
+		{:else if type === HashType.Identifier}
+			<FingerprintOutline size="sm" />
+		{:else if type === HashType.Transaction}
+			<ClipboardListOutline size="sm" />
+		{:else if type === HashType.Address}
+			<ClipboardOutline size="sm" />
+		{/if}
+		<div>{displayValue}</div>
+	</button>
+{/if}
+
+{#if showCopiedMessage}
+	<div
+		out:fade
+		class="fixed rounded bg-green-500 px-2 py-1 text-xs text-white shadow"
+		style="top: {cursorY + 10}px; left: {cursorX + 10}px"
+	>
+		Copied to clipboard
+	</div>
 {/if}

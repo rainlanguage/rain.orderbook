@@ -17,6 +17,7 @@
 
 	export let id: string;
 	export let subgraphUrl: string;
+	export let network: string;
 
 	$: balanceChangesQuery = createInfiniteQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id],
@@ -61,10 +62,10 @@
 			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableFrom">
-			<Hash type={HashType.Wallet} value={item.transaction.from} />
+			<Hash type={HashType.Wallet} value={item.transaction.from} linkType="address" {network} />
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableTx">
-			<Hash type={HashType.Transaction} value={item.transaction.id} />
+			<Hash type={HashType.Transaction} value={item.transaction.id} linkType="tx" {network} />
 		</TableBodyCell>
 		<TableBodyCell
 			tdClass="break-word p-0 text-left"
