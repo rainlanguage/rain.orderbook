@@ -45,6 +45,7 @@
 	export let strategyDetail: NameAndDescriptionCfg;
 	export let handleDeployModal: (args: DeployModalProps) => void;
 	export let handleDisclaimerModal: (args: DisclaimerModalProps) => void;
+	export let registryUrl: string;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -158,7 +159,7 @@
 	}
 
 	async function _handleShareChoices() {
-		await handleShareChoices(gui);
+		await handleShareChoices(gui, registryUrl);
 	}
 
 	async function onSelectTokenSelect() {
