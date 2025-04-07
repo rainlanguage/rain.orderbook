@@ -3,14 +3,20 @@
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-	import { REGISTRY_URL } from '$lib/constants';
+	import RegistryManager from '$lib/services/RegistryManager';
 
 	let advancedMode = localStorage.getItem('registry') ? true : false;
-	let registryFromStorage = localStorage.getItem('registry');
-	$: customRegistry = registryFromStorage && registryFromStorage !== REGISTRY_URL;
+	let registryFromStorage = RegistryManager.getFromStorage();
+	$: customRegistry = RegistryManager.isCustomRegistry(registryFromStorage);
 
-	$: if (registryFromStorage) {
-		window.history.pushState({}, '', window.location.pathname + '?registry=' + registryFromStorage);
+	function loadRegistryUrl(url: string) {
+		RegistryManager.setToStorage(url);
+		registryFromStorage = url;
+		RegistryManager.updateUrlParam(url);
+	}
+
+	if (registryFromStorage && !window.location.search.includes('registry=' + registryFromStorage)) {
+		RegistryManager.updateUrlParam(registryFromStorage);
 	}
 </script>
 
@@ -33,7 +39,7 @@
 <div class="flex flex-col items-end gap-4">
 	{#if advancedMode && $page.url.pathname === '/deploy'}
 		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
-			<InputRegistryUrl />
+			<InputRegistryUrl {loadRegistryUrl} />
 		</div>
 	{/if}
 </div>
