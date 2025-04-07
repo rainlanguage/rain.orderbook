@@ -15,7 +15,9 @@
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
+
 	$: registryUrl = $page.url.searchParams?.get('registry') || REGISTRY_URL;
+
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
 			goto('/deploy');
