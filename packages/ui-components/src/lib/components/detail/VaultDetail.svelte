@@ -18,6 +18,7 @@
 	import type { AppStoresInterface } from '../../types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import VaultActionButton from '../actions/VaultActionButton.svelte';
 
 	export let id: string;
@@ -28,7 +29,6 @@
 	export let settings;
 	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
 		undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
@@ -44,6 +44,7 @@
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -82,7 +83,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($signerAddress && isAddress($signerAddress) && isAddress(data.owner) && isAddressEqual($signerAddress, data.owner))}
+			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner))}
 				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
 				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
 			{/if}

@@ -14,6 +14,7 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import VaultActionButton from '$lib/components/actions/VaultActionButton.svelte';
 	import type { Writable } from 'svelte/store';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	const queryClient = useQueryClient();
 
@@ -26,6 +27,8 @@
 	export let signerAddress: Writable<Hex | null> | undefined = undefined;
 	export let onDeposit: (vault: SgVault) => void;
 	export let onWithdraw: (vault: SgVault) => void;
+
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -51,7 +54,8 @@
 							onRemove: $orderDetailQuery.refetch,
 							chainId,
 							orderbookAddress,
-							subgraphUrl
+							subgraphUrl,
+							account
 						}
 					})}
 				disabled={!handleOrderRemoveModal}

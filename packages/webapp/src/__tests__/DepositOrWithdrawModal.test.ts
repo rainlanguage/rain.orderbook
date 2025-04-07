@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
-import { transactionStore } from '@rainlanguage/ui-components';
+import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
-
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
-import { get } from 'svelte/store';
+import { get, readable } from 'svelte/store';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
-const { mockWagmiConfigStore, mockSignerAddressStore, mockAppKitModalStore, mockConnectedStore } =
-	await vi.hoisted(() => import('../lib/__mocks__/stores'));
+const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
@@ -20,11 +20,17 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
 }));
 
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		useAccount: vi.fn()
+	};
+});
+
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
-	wagmiConfig: mockWagmiConfigStore,
-	signerAddress: mockSignerAddressStore,
-	connected: mockConnectedStore
+	connected: mockConnectedStore,
+	wagmiConfig: mockWagmiConfigStore
 }));
 
 vi.mock('@wagmi/core', () => ({
@@ -50,14 +56,17 @@ describe('DepositOrWithdrawModal', () => {
 			vault: mockVault,
 			chainId: 1,
 			rpcUrl: 'https://example.com',
-			onDepositOrWithdraw: vi.fn()
+			onDepositOrWithdraw: vi.fn(),
+			account: readable('0x123')
 		}
 	} as unknown as ModalProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		transactionStore.reset();
-		mockSignerAddressStore.mockSetSubscribeValue('0x123');
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x')
+		});
 	});
 
 	it('renders deposit modal correctly', () => {

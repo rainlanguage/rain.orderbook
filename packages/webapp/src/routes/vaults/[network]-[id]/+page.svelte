@@ -2,7 +2,7 @@
 	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { signerAddress } from '$lib/stores/wagmi';
+	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
@@ -11,9 +11,9 @@
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
 	const queryClient = useQueryClient();
+	import { lightweightChartsTheme } from '$lib/darkMode';
 
-	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
-		$page.data.stores;
+	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
@@ -91,5 +91,4 @@
 	{activeOrderbookRef}
 	{onDeposit}
 	{onWithdraw}
-	{signerAddress}
 />

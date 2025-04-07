@@ -29,6 +29,7 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
@@ -45,7 +46,6 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<Hex | null> | undefined = undefined;
 	/** Callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
@@ -60,6 +60,7 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -95,7 +96,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $signerAddress && isAddress($signerAddress) && isAddress(data.order.owner) && isAddressEqual($signerAddress, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
@@ -107,7 +108,8 @@
 									onRemove: $orderDetailQuery.refetch,
 									chainId,
 									orderbookAddress,
-									subgraphUrl
+									subgraphUrl,
+									account
 								}
 							})}
 						disabled={!handleOrderRemoveModal}
@@ -162,7 +164,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if $signerAddress && isAddress($signerAddress) && isAddress(vault.owner) && isAddressEqual($signerAddress, vault.owner) && chainId}
+											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
 												<div class="flex gap-1">
 													<VaultActionButton
 														action="deposit"
