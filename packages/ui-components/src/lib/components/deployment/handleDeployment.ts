@@ -27,7 +27,7 @@ export async function handleDeployment(
 	}
 
 	const result = await gui.getDeploymentTransactionArgs(account);
-	console.log(result);
+
 	if (result.error) {
 		throw new Error(result.error.msg);
 	}
@@ -37,6 +37,7 @@ export async function handleDeployment(
 	return {
 		approvals,
 		deploymentCalldata,
+		// Cast to Hex, since js_api returns a string
 		orderbookAddress: orderbookAddress as Hex,
 		chainId,
 		network,
