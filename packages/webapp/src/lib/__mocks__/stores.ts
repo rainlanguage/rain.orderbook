@@ -21,7 +21,6 @@ const initialPageState = {
 };
 
 const mockPageWritable = writable<typeof initialPageState>(initialPageState);
-
 const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(false);

@@ -647,7 +647,8 @@ const defaultProps: DeploymentStepsProps = {
 		subgraphs: {
 			flare: 'https://subgraph.com/flare'
 		}
-	} as ConfigSource)
+	} as ConfigSource),
+	registryUrl: 'https://example.com/registry'
 };
 
 describe('DeploymentSteps', () => {
@@ -1002,38 +1003,7 @@ describe('DeploymentSteps', () => {
 
 		const user = userEvent.setup();
 
-		const props = {
-			dotrain: 'sample dotrain content',
-			strategyDetail: {
-				name: 'Test Strategy',
-				description: 'Strategy description',
-				short_description: 'Short description'
-			},
-			deployment: {
-				key: 'test-deployment',
-				name: 'Test Deployment',
-				description: 'Test Description',
-				deployment: {
-					key: 'test-deployment',
-					order: {
-						inputs: [],
-						outputs: []
-					}
-				}
-			} as unknown as GuiDeploymentCfg,
-			wagmiConfig: mockWagmiConfigStore,
-			wagmiConnected: mockConnectedStore,
-			appKitModal: writable({} as AppKit),
-			handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
-			handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
-			settings: writable({
-				subgraphs: {
-					flare: 'https://subgraph.com/flare'
-				}
-			} as ConfigSource)
-		};
-
-		render(DeploymentSteps, { props });
+		render(DeploymentSteps, defaultProps);
 
 		await waitFor(() => {
 			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
@@ -1051,6 +1021,6 @@ describe('DeploymentSteps', () => {
 			expect(screen.getByText(specificErrorMessage)).toBeInTheDocument();
 		});
 
-		expect(props.handleDisclaimerModal).not.toHaveBeenCalled();
+		expect(defaultProps.handleDisclaimerModal).not.toHaveBeenCalled();
 	});
 });
