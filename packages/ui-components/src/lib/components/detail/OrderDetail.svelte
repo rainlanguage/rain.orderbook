@@ -18,7 +18,6 @@
 	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import VaultActionButton from '../actions/VaultActionButton.svelte';
 	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
@@ -170,7 +169,7 @@
 														color="light"
 														size="xs"
 														data-testid="deposit-button"
-														on:click={() => onDeposit(data)}
+														on:click={() => onDeposit(vault)}
 													>
 														<ArrowDownOutline size="xs" />
 													</Button>
@@ -178,7 +177,7 @@
 														color="light"
 														size="xs"
 														data-testid="withdraw-button"
-														on:click={() => onWithdraw(data)}
+														on:click={() => onWithdraw(vault)}
 													>
 														<ArrowUpOutline size="xs" />
 													</Button>

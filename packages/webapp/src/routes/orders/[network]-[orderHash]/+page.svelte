@@ -3,7 +3,8 @@
 		OrderDetail,
 		PageHeader,
 		TransactionStatus,
-		transactionStore
+		transactionStore,
+		useAccount
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
@@ -15,7 +16,6 @@
 	import { fade } from 'svelte/transition';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import { onDestroy } from 'svelte';
-	import { signerAddress } from '$lib/stores/wagmi';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -24,6 +24,7 @@
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
+	const { account } = useAccount();
 
 	let toastOpen: boolean = false;
 	let toastMessage: string = 'Vault balance updated';
@@ -94,7 +95,8 @@
 				action,
 				chainId,
 				rpcUrl,
-				subgraphUrl
+				subgraphUrl,
+				account: $account
 			}
 		});
 	}
@@ -130,6 +132,5 @@
 	{wagmiConfig}
 	{onDeposit}
 	{onWithdraw}
-	{signerAddress}
 	{handleOrderRemoveModal}
 />
