@@ -1,126 +1,111 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { handleDeployment } from '../lib/components/deployment/handleDeployment';
-import {
-	getDeploymentTransactionArgs,
-	type HandleAddOrderResult
-} from '../lib/components/deployment/getDeploymentTransactionArgs';
+import { AddOrderErrors, handleDeployment } from '../lib/components/deployment/handleDeployment';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import type { DeploymentHandlers } from '../lib/components/deployment/handleDeployment';
-
-// Mock the getDeploymentTransactionArgs function
-vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
-	getDeploymentTransactionArgs: vi.fn()
-}));
 
 describe('handleDeployment', () => {
-	// Mock data
-	const mockGui = {} as DotrainOrderGui;
 	const mockAccount = '0x1234567890123456789012345678901234567890';
 	const mockSubgraphUrl = 'https://example.com/subgraph';
 
-	// Mock handlers
-	const mockHandlers: DeploymentHandlers = {
-		handleDisclaimerModal: vi.fn(),
-		handleDeployModal: vi.fn()
-	};
+	const mockGui: DotrainOrderGui = {
+		getNetworkKey: vi.fn(),
+		getDeploymentTransactionArgs: vi.fn()
+	} as unknown as DotrainOrderGui;
 
-	// Mock deployment transaction args
-	const mockDeploymentArgs = {
+	const mockApprovals = [{ tokenAddress: '0xtoken', amount: BigInt(1000) }];
+	const mockDeploymentCalldata = {
 		to: '0xcontract',
 		data: '0xdata',
 		value: BigInt(0)
-	} as unknown as HandleAddOrderResult;
+	};
+	const mockOrderbookAddress = '0xorderbook';
+	const mockChainId = 1;
+	const mockNetwork = 'mainnet';
 
 	beforeEach(() => {
-		// Reset all mocks before each test
+
 		vi.resetAllMocks();
 
-		// Setup default mock implementation for getDeploymentTransactionArgs
-		vi.mocked(getDeploymentTransactionArgs).mockResolvedValue(mockDeploymentArgs);
-	});
 
-	it('should call getDeploymentTransactionArgs with correct parameters', async () => {
-		await handleDeployment(mockGui, mockAccount, mockHandlers, mockSubgraphUrl);
-
-		expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, mockAccount);
-	});
-
-	it('should show disclaimer modal when handleDisclaimerModal is provided', async () => {
-		await handleDeployment(mockGui, mockAccount, mockHandlers, mockSubgraphUrl);
-
-		expect(mockHandlers.handleDisclaimerModal).toHaveBeenCalledWith({
-			open: true,
-			onAccept: expect.any(Function)
+		(mockGui.getNetworkKey as Mock).mockReturnValue({
+			error: null,
+			value: mockNetwork
 		});
-	});
 
-	it('should not show disclaimer modal when handleDisclaimerModal is not provided', async () => {
-		const handlersWithoutDisclaimer: DeploymentHandlers = {
-			handleDeployModal: vi.fn()
-		};
 
-		await handleDeployment(mockGui, mockAccount, handlersWithoutDisclaimer, mockSubgraphUrl);
-
-		expect(handlersWithoutDisclaimer.handleDeployModal).toHaveBeenCalledWith({
-			open: true,
-			args: {
-				...mockDeploymentArgs,
-				subgraphUrl: mockSubgraphUrl
+		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
+			error: null,
+			value: {
+				approvals: mockApprovals,
+				deploymentCalldata: mockDeploymentCalldata,
+				orderbookAddress: mockOrderbookAddress,
+				chainId: mockChainId
 			}
 		});
 	});
 
-	it('should call handleDeployModal with correct args when disclaimer is accepted', async () => {
-		await handleDeployment(mockGui, mockAccount, mockHandlers, mockSubgraphUrl);
-
-		// Get the onAccept callback from the handleDisclaimerModal call
-		const onAcceptCallback = (vi.mocked(mockHandlers.handleDisclaimerModal) as Mock).mock
-			.calls[0][0].onAccept;
-
-		// Call the onAccept callback
-		onAcceptCallback();
-
-		// Verify handleDeployModal was called with the correct args
-		expect(mockHandlers.handleDeployModal).toHaveBeenCalledWith({
-			open: true,
-			args: {
-				...mockDeploymentArgs,
-				subgraphUrl: mockSubgraphUrl
+	it('should return deployment data with correct parameters', async () => {
+		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
+			error: null,
+			value: {
+				approvals: mockApprovals,
+				deploymentCalldata: mockDeploymentCalldata,
+				orderbookAddress: mockOrderbookAddress,
+				chainId: mockChainId
 			}
 		});
+		const result = await handleDeployment(mockGui, mockAccount, mockSubgraphUrl);
+
+		expect(result).toEqual({
+			approvals: mockApprovals,
+			deploymentCalldata: mockDeploymentCalldata,
+			orderbookAddress: mockOrderbookAddress,
+			chainId: mockChainId,
+			network: mockNetwork,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		expect(mockGui.getNetworkKey).toHaveBeenCalled();
+		expect(mockGui.getDeploymentTransactionArgs).toHaveBeenCalledWith(mockAccount);
 	});
 
-	it('should propagate errors from getDeploymentTransactionArgs', async () => {
-		const mockError = new Error('Deployment failed');
-		vi.mocked(getDeploymentTransactionArgs).mockRejectedValue(mockError);
+	it('should throw an error if network key retrieval fails', async () => {
+		(mockGui.getNetworkKey as Mock).mockReturnValue({
+			error: new Error('Network key error'),
+			value: null
+		});
 
-		await expect(
-			handleDeployment(mockGui, mockAccount, mockHandlers, mockSubgraphUrl)
-		).rejects.toThrow(mockError);
+		await expect(handleDeployment(mockGui, mockAccount, mockSubgraphUrl)).rejects.toThrow(
+			AddOrderErrors.ERROR_GETTING_NETWORK_KEY
+		);
 	});
 
-	it('should not proceed with deployment when disclaimer is denied', async () => {
-		let disclaimerShown = false;
-		let deployModalCalled = false;
+	it('should throw an error if account is not provided', async () => {
+		await expect(handleDeployment(mockGui, null, mockSubgraphUrl)).rejects.toThrow(
+			AddOrderErrors.NO_ACCOUNT_CONNECTED
+		);
+	});
 
-		const handlersWithDenialTracking: DeploymentHandlers = {
-			handleDisclaimerModal: vi.fn().mockImplementation(({ open, onDeny }) => {
-				disclaimerShown = open;
+	it('should throw an error if deployment transaction args retrieval fails', async () => {
+		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
+			error: { msg: 'Deployment args error' },
+			value: null
+		});
 
-				if (onDeny) {
-					onDeny();
-				}
-			}),
-			handleDeployModal: vi.fn().mockImplementation(() => {
-				deployModalCalled = true;
-			})
-		};
+		await expect(handleDeployment(mockGui, mockAccount, mockSubgraphUrl)).rejects.toThrow(
+			'Deployment args error'
+		);
+	});
 
-		await handleDeployment(mockGui, mockAccount, handlersWithDenialTracking, mockSubgraphUrl);
+	it('should work without subgraphUrl', async () => {
+		const result = await handleDeployment(mockGui, mockAccount);
 
-		expect(disclaimerShown).toBe(true);
-
-		expect(deployModalCalled).toBe(false);
-		expect(handlersWithDenialTracking.handleDeployModal).not.toHaveBeenCalled();
+		expect(result).toEqual({
+			approvals: mockApprovals,
+			deploymentCalldata: mockDeploymentCalldata,
+			orderbookAddress: mockOrderbookAddress,
+			chainId: mockChainId,
+			network: mockNetwork,
+			subgraphUrl: undefined
+		});
 	});
 });
