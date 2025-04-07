@@ -2,6 +2,8 @@ import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import Layout from './+layout.svelte';
+import RegistryManager from '$lib/services/registryManager';
+import { REGISTRY_URL } from '$lib/constants';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
@@ -113,11 +115,30 @@ describe('Layout Component', () => {
 		expect(screen.queryByTestId('registry-input')).toBeNull();
 	});
 	it('should update URL with registry query parameter when registry is in localStorage', () => {
-		vi.stubGlobal('location', { pathname: '/deploy' });
+		// Mock full window.location object
+		const locationMock = {
+			pathname: '/deploy',
+			search: '',
+			href: 'http://localhost/deploy',
+			host: 'localhost',
+			hostname: 'localhost',
+			origin: 'http://localhost',
+			protocol: 'http:',
+			port: ''
+		};
 
+		// Mock history.pushState method
+		const historyMock = {
+			...window.history,
+			pushState: vi.fn()
+		};
+
+		// Apply mocks
+		vi.stubGlobal('location', locationMock);
+		vi.stubGlobal('history', historyMock);
+
+		// Set up test
 		localStorageMock.setItem('registry', 'https://custom-registry.com');
-
-		const pushStateSpy = vi.spyOn(window.history, 'pushState');
 
 		mockPageStore.mockSetSubscribeValue({
 			url: {
@@ -127,10 +148,11 @@ describe('Layout Component', () => {
 
 		render(Layout);
 
-		expect(pushStateSpy).toHaveBeenCalledWith(
+		// Check if pushState was called correctly
+		expect(historyMock.pushState).toHaveBeenCalledWith(
 			{},
 			'',
-			'/deploy?registry=https://custom-registry.com'
+			'http://localhost/deploy?registry=https%3A%2F%2Fcustom-registry.com'
 		);
 	});
 
@@ -162,5 +184,25 @@ describe('Layout Component', () => {
 		await fireEvent.click(useDefaultButton);
 
 		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
+	});
+	it('should not update URL when registry parameter is already present', () => {
+		vi.stubGlobal('location', {
+			pathname: '/deploy',
+			search: '?registry=https://custom-registry.com'
+		});
+
+		localStorageMock.setItem('registry', 'https://custom-registry.com');
+
+		const pushStateSpy = vi.spyOn(window.history, 'pushState');
+
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy'
+			} as unknown as URL
+		});
+
+		render(Layout);
+
+		expect(pushStateSpy).not.toHaveBeenCalled();
 	});
 });
