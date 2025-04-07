@@ -92,10 +92,5 @@
     {chainId}
     {onDeposit}
     {onWithdraw}
-    signerAddress={$walletconnectAccount
-      ? walletconnectAccount
-      : $ledgerWalletAddress
-        ? ledgerWalletAddress
-        : writable(null)}
   />
 {/if}
