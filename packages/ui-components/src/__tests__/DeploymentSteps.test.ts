@@ -158,7 +158,11 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalledWith(mockGui, '0x123', mockConfigSource.subgraphs?.mainnet);
+			expect(handleDeployment).toHaveBeenCalledWith(
+				mockGui,
+				'0x123',
+				mockConfigSource.subgraphs?.mainnet
+			);
 		});
 	});
 
@@ -442,7 +446,6 @@ describe('DeploymentSteps', () => {
 
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 
-
 		const propsWithMockHandlers = {
 			...defaultProps
 		};
@@ -456,8 +459,7 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(handleDeployment).toHaveBeenCalledTimes(1);
 
-			const [guiArg, accountArg, subgraphUrlArg] =
-				vi.mocked(handleDeployment).mock.calls[0];
+			const [guiArg, accountArg, subgraphUrlArg] = vi.mocked(handleDeployment).mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');

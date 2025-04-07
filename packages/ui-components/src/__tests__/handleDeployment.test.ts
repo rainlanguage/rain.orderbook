@@ -22,15 +22,12 @@ describe('handleDeployment', () => {
 	const mockNetwork = 'mainnet';
 
 	beforeEach(() => {
-
 		vi.resetAllMocks();
-
 
 		(mockGui.getNetworkKey as Mock).mockReturnValue({
 			error: null,
 			value: mockNetwork
 		});
-
 
 		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
 			error: null,
