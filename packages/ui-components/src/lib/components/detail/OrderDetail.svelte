@@ -28,7 +28,7 @@
 	} from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
@@ -166,18 +166,22 @@
 										<svelte:fragment slot="buttons">
 											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
 												<div class="flex gap-1">
-													<VaultActionButton
-														action="deposit"
-														{vault}
-														testId="deposit-button"
-														onDepositOrWithdraw={onDeposit}
-													/>
-													<VaultActionButton
-														action="withdraw"
-														{vault}
-														testId="withdraw-button"
-														onDepositOrWithdraw={onWithdraw}
-													/>
+													<Button
+														color="light"
+														size="xs"
+														data-testid="deposit-button"
+														on:click={() => onDeposit(data)}
+													>
+														<ArrowDownOutline size="xs" />
+													</Button>
+													<Button
+														color="light"
+														size="xs"
+														data-testid="withdraw-button"
+														on:click={() => onWithdraw(data)}
+													>
+														<ArrowUpOutline size="xs" />
+													</Button>
 												</div>
 											{/if}
 										</svelte:fragment>

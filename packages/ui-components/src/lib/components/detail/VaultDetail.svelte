@@ -20,6 +20,8 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import VaultActionButton from '../actions/VaultActionButton.svelte';
+	import { Button } from 'flowbite-svelte';
+	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 
 	export let id: string;
 	export let network: string;
@@ -84,8 +86,22 @@
 		</div>
 		<div class="flex items-center gap-2">
 			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner))}
-				<VaultActionButton action="deposit" vault={data} onDepositOrWithdraw={onDeposit} />
-				<VaultActionButton action="withdraw" vault={data} onDepositOrWithdraw={onWithdraw} />
+				<Button
+					color="light"
+					size="xs"
+					data-testid="deposit-button"
+					on:click={() => onDeposit(data)}
+				>
+					<ArrowDownOutline size="xs" />
+				</Button>
+				<Button
+					color="light"
+					size="xs"
+					data-testid="withdraw-button"
+					on:click={() => onWithdraw(data)}
+				>
+					<ArrowUpOutline size="xs" />
+				</Button>
 			{/if}
 
 			<Refresh
