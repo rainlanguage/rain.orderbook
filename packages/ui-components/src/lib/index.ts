@@ -89,7 +89,6 @@ export type {
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
-export type { HandleAddOrderResult } from './components/deployment/getDeploymentTransactionArgs';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';

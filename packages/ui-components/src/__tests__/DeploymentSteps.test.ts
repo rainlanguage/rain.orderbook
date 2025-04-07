@@ -11,6 +11,7 @@ import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
 import { mockConfigSource } from '../lib/__mocks__/settings';
+import type { DeploymentArgs } from '$lib/types/transaction';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -411,8 +412,8 @@ describe('DeploymentSteps', () => {
 
 		// Mock with a delayed response (using setTimeout)
 		vi.mocked(handleDeployment).mockImplementation(() => {
-			return new Promise<void>((resolve) => {
-				setTimeout(() => resolve(), 1000);
+			return new Promise<DeploymentArgs>((resolve) => {
+				setTimeout(() => resolve({} as DeploymentArgs), 1000);
 			});
 		});
 
