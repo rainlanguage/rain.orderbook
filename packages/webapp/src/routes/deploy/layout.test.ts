@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { load } from './+layout';
 import {
 	validateStrategies,
@@ -35,46 +35,15 @@ describe('Layout load function', () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}) as any;
 
-	const testLoadFunction = async ({
-		registryParam = null,
-		fetchError = null,
-		validateError = null
-	}: {
-		registryParam?: string | null;
-		fetchError?: Error | string | null;
-		validateError?: Error | null;
-	}) => {
-		const expectedRegistry = registryParam || REGISTRY_URL;
-
-		if (fetchError) {
-			if (typeof fetchError === 'string') {
-				vi.mocked(fetchRegistryDotrains).mockRejectedValue(fetchError);
-			} else {
-				vi.mocked(fetchRegistryDotrains).mockRejectedValue(fetchError);
-			}
-		} else {
-			vi.mocked(fetchRegistryDotrains).mockResolvedValue(mockDotrains);
-		}
-
-		if (validateError) {
-			vi.mocked(validateStrategies).mockRejectedValue(validateError);
-		} else {
-			vi.mocked(validateStrategies).mockResolvedValue(mockValidated);
-		}
-
-		const result = await load(createUrlMock(registryParam));
-
-		expect(fetchRegistryDotrains).toHaveBeenCalledWith(expectedRegistry);
-
-		if (!fetchError) {
-			expect(validateStrategies).toHaveBeenCalledWith(mockDotrains);
-		}
-
-		return result;
-	};
-
 	it('should load strategies from default registry URL when no registry param is provided', async () => {
-		const result = await testLoadFunction({});
+		(validateStrategies as Mock).mockResolvedValue(mockValidated);
+		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
+
+		const result = await load(createUrlMock(null));
+
+		expect(fetchRegistryDotrains).toHaveBeenCalledWith(REGISTRY_URL);
+
+		expect(validateStrategies).toHaveBeenCalledWith(mockDotrains);
 
 		expect(result).toEqual({
 			registry: REGISTRY_URL,
@@ -87,7 +56,10 @@ describe('Layout load function', () => {
 
 	it('should load strategies from custom registry URL when registry param is provided', async () => {
 		const customRegistry = 'https://custom.registry.url';
-		const result = await testLoadFunction({ registryParam: customRegistry });
+		vi.mocked(fetchRegistryDotrains).mockResolvedValue(mockDotrains);
+		vi.mocked(validateStrategies).mockResolvedValue(mockValidated);
+
+		const result = await load(createUrlMock(customRegistry));
 
 		expect(result).toEqual({
 			registry: customRegistry,
@@ -100,7 +72,8 @@ describe('Layout load function', () => {
 
 	it('should handle errors when fetchRegistryDotrains fails', async () => {
 		const errorMessage = 'Failed to fetch registry dotrains';
-		const result = await testLoadFunction({ fetchError: new Error(errorMessage) });
+		(fetchRegistryDotrains as Mock).mockRejectedValue(new Error(errorMessage));
+		const result = await load(createUrlMock(null));
 
 		expect(validateStrategies).not.toHaveBeenCalled();
 
@@ -115,7 +88,8 @@ describe('Layout load function', () => {
 
 	it('should handle errors when validateStrategies fails', async () => {
 		const errorMessage = 'Failed to validate strategies';
-		const result = await testLoadFunction({ validateError: new Error(errorMessage) });
+		(validateStrategies as Mock).mockRejectedValue(new Error(errorMessage));
+		const result = await load(createUrlMock(null));
 
 		expect(result).toEqual({
 			registry: REGISTRY_URL,
@@ -127,7 +101,8 @@ describe('Layout load function', () => {
 	});
 
 	it('should handle non-Error exceptions with an "Unknown error" message', async () => {
-		const result = await testLoadFunction({ fetchError: 'Not an error object' });
+		(fetchRegistryDotrains as Mock).mockRejectedValue('Not an error object');
+		const result = await load(createUrlMock(null));
 
 		expect(result).toEqual({
 			registry: REGISTRY_URL,
