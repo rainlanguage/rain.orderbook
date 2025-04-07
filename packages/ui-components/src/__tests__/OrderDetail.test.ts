@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
+import type { Hex } from 'viem';
 
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -29,12 +30,23 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 	const mockLightweightCharts = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: mockLightweightCharts };
 });
-
 const subgraphUrl = 'https://example.com';
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
 const chainId = 1;
 const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
+
+const defaultProps = {
+	orderHash,
+	rpcUrl,
+	subgraphUrl,
+	orderbookAddress: orderbookAddress as Hex,
+	chainId,
+	colorTheme: readable('dark'),
+	codeMirrorTheme: readable('dark'),
+	lightweightChartsTheme: readable(darkChartTheme)
+};
+
 
 const mockOrder: SgOrder = {
 	id: 'mockId',
@@ -133,16 +145,7 @@ describe('OrderDetail', () => {
 
 	it('calls the order detail query with the correct order hash', async () => {
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: readable('dark'),
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -153,16 +156,7 @@ describe('OrderDetail', () => {
 		(getOrderByHash as Mock).mockResolvedValue(null);
 
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -173,16 +167,7 @@ describe('OrderDetail', () => {
 
 	it('shows the correct data when the query returns data', async () => {
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -202,18 +187,7 @@ describe('OrderDetail', () => {
 		const handleOrderRemoveModal = vi.fn();
 
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme),
-				wagmiConfig: writable({} as Config),
-				handleOrderRemoveModal
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -247,18 +221,7 @@ describe('OrderDetail', () => {
 		});
 
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme),
-				wagmiConfig: writable({} as Config),
-				handleOrderRemoveModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -282,18 +245,7 @@ describe('OrderDetail', () => {
 		});
 
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme),
-				wagmiConfig: writable({} as Config),
-				handleOrderRemoveModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -304,16 +256,7 @@ describe('OrderDetail', () => {
 
 	it('refresh button triggers query invalidation when clicked', async () => {
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: 'dark',
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
