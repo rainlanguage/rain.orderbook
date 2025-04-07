@@ -125,4 +125,28 @@ describe('Layout load function', () => {
 			error: 'Unknown error occurred'
 		});
 	});
+
+	it('should handle when fetchRegistryDotrains and validateStrategies return empty arrays', async () => {
+		const emptyDotrains: RegistryDotrain[] = [];
+		const emptyValidated = {
+			validStrategies: [] as ValidStrategyDetail[],
+			invalidStrategies: [] as InvalidStrategyDetail[]
+		};
+
+		(fetchRegistryDotrains as Mock).mockResolvedValue(emptyDotrains);
+		(validateStrategies as Mock).mockResolvedValue(emptyValidated);
+
+		const result = await load(createUrlMock(null));
+
+		expect(fetchRegistryDotrains).toHaveBeenCalledWith(REGISTRY_URL);
+		expect(validateStrategies).toHaveBeenCalledWith(emptyDotrains);
+
+		expect(result).toEqual({
+			registry: REGISTRY_URL,
+			registryDotrains: emptyDotrains,
+			validStrategies: emptyValidated.validStrategies,
+			invalidStrategies: emptyValidated.invalidStrategies,
+			error: null
+		});
+	});
 });
