@@ -221,7 +221,7 @@
 			}
 			DeploymentStepsError.clear();
 			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return onDeploy(deploymentArgs);
+			return await onDeploy(deploymentArgs);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {
@@ -231,14 +231,6 @@
 </script>
 
 <div>
-	{#if $deploymentStepsError}
-		<Alert color="red">
-			<p class="text-red-500">{$deploymentStepsError.code}</p>
-			{#if $deploymentStepsError.details}
-				<p class="text-red-500">{$deploymentStepsError.details}</p>
-			{/if}
-		</Alert>
-	{/if}
 	{#if gui}
 		<div class="flex max-w-3xl flex-col gap-12" in:fade>
 			{#if deployment}
