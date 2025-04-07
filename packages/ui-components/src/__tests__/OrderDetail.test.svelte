@@ -12,9 +12,9 @@
 	import type { OrderRemoveModalProps } from '../lib/types/modal';
 	import { isAddress, isAddressEqual, type Hex } from 'viem';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import VaultActionButton from '$lib/components/actions/VaultActionButton.svelte';
 	import type { Writable } from 'svelte/store';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 
 	const queryClient = useQueryClient();
 
@@ -84,18 +84,22 @@
 									<svelte:fragment slot="buttons">
 										{#if $signerAddress && isAddress($signerAddress) && isAddress(vault.owner) && isAddressEqual($signerAddress, vault.owner) && chainId}
 											<div class="flex gap-1">
-												<VaultActionButton
-													action="deposit"
-													{vault}
-													testId="deposit-button"
-													onDepositOrWithdraw={onDeposit}
-												/>
-												<VaultActionButton
-													action="withdraw"
-													{vault}
-													testId="withdraw-button"
-													onDepositOrWithdraw={onWithdraw}
-												/>
+												<Button
+													color="light"
+													size="xs"
+													data-testid="deposit-button"
+													on:click={() => onDeposit(vault)}
+												>
+													<ArrowDownOutline size="xs" />
+												</Button>
+												<Button
+													color="light"
+													size="xs"
+													data-testid="withdraw-button"
+													on:click={() => onWithdraw(vault)}
+												>
+													<ArrowUpOutline size="xs" />
+												</Button>
 											</div>
 										{/if}
 									</svelte:fragment>

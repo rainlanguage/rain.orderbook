@@ -27,44 +27,18 @@
 	const { account } = useAccount();
 
 	let toastOpen: boolean = false;
-	let toastMessage: string = 'Vault balance updated';
 	let counter: number = 5;
-	let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function triggerToast(message: string = 'Vault balance updated') {
-		if (toastTimer) {
-			clearTimeout(toastTimer);
-			toastTimer = null;
-		}
-
-		toastMessage = message;
+	function triggerToast() {
 		toastOpen = true;
 		counter = 5;
-		startToastTimer();
+		timeout();
 	}
 
-	function startToastTimer() {
-		if (toastTimer) {
-			clearTimeout(toastTimer);
-		}
-
-		toastTimer = setTimeout(() => {
-			if (counter > 0) {
-				counter--;
-				startToastTimer();
-			} else {
-				toastOpen = false;
-				toastTimer = null;
-			}
-		}, 1000);
+	function timeout() {
+		if (--counter > 0) return setTimeout(timeout, 1000);
+		toastOpen = false;
 	}
-
-	onDestroy(() => {
-		if (toastTimer) {
-			clearTimeout(toastTimer);
-			toastTimer = null;
-		}
-	});
 
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
 		queryClient.invalidateQueries({
@@ -115,7 +89,7 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		{toastMessage}
+		Vault balance updated
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
