@@ -28,8 +28,6 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
-		undefined;
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
@@ -84,7 +82,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $walletAddressMatchesOrBlank?.(data.owner) || ($account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner))}
+			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
 				<Button
 					color="light"
 					size="xs"

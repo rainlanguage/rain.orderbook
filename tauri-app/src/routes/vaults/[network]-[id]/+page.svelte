@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
@@ -41,7 +40,6 @@
   {settings}
   {activeNetworkRef}
   {activeOrderbookRef}
-  {walletAddressMatchesOrBlank}
   {onDeposit}
   {onWithdraw}
 />
