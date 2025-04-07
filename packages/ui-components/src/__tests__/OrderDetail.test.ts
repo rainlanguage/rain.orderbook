@@ -37,11 +37,11 @@ const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
 const defaultProps: ComponentProps<OrderDetail> = {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
+	orderHash,
+	rpcUrl,
+	subgraphUrl,
+	orderbookAddress,
+	chainId,
 	colorTheme: 'dark',
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
