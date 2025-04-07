@@ -4,7 +4,7 @@ use super::*;
 
 pub struct FieldValuePair {
     binding: String,
-    value: PairValue,
+    value: String,
 }
 impl_wasm_traits!(FieldValuePair);
 
@@ -35,13 +35,7 @@ impl DotrainOrderGui {
 
             match &field.default {
                 Some(default_value) => {
-                    self.save_field_value(
-                        field.binding.clone(),
-                        PairValue {
-                            is_preset: false,
-                            value: default_value.clone(),
-                        },
-                    )?;
+                    self.save_field_value(field.binding.clone(), default_value.clone())?;
                 }
                 None => return Err(GuiError::FieldValueNotSet(field.name.clone())),
             }
@@ -53,21 +47,26 @@ impl DotrainOrderGui {
 #[wasm_export]
 impl DotrainOrderGui {
     #[wasm_export(js_name = "saveFieldValue", unchecked_return_type = "void")]
-    pub fn save_field_value(&mut self, binding: String, value: PairValue) -> Result<(), GuiError> {
+    pub fn save_field_value(&mut self, binding: String, value: String) -> Result<(), GuiError> {
         let field_definition = self.get_field_definition(&binding)?;
-        if value.is_preset {
-            let presets = field_definition
-                .presets
-                .ok_or(GuiError::BindingHasNoPresets(binding.clone()))?;
 
-            if !presets
-                .iter()
-                .find(|preset| preset.id == value.value)
-                .is_some()
-            {
-                return Err(GuiError::InvalidPreset);
-            }
-        }
+        let value = match field_definition.presets.as_ref() {
+            Some(presets) => match presets.iter().position(|p| p.value == value) {
+                Some(index) => field_values::PairValue {
+                    is_preset: true,
+                    value: index.to_string(),
+                },
+                None => field_values::PairValue {
+                    is_preset: false,
+                    value,
+                },
+            },
+            None => field_values::PairValue {
+                is_preset: false,
+                value,
+            },
+        };
+
         self.field_values.insert(binding, value);
 
         self.execute_state_update_callback()?;
@@ -313,29 +312,17 @@ _ _: 0 0;
     "#;
 
     #[wasm_bindgen_test]
-    async fn test_get_field_value() {
+    async fn test_set_get_field_value() {
         let mut gui = DotrainOrderGui::new();
 
         gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
-        gui.save_field_value(
-            "binding-1".to_string(),
-            PairValue {
-                is_preset: false,
-                value: "some-default-value".to_string(),
-            },
-        )
-        .unwrap();
-        gui.save_field_value(
-            "binding-2".to_string(),
-            PairValue {
-                is_preset: true,
-                value: "0".to_string(),
-            },
-        )
-        .unwrap();
+        gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
+            .unwrap();
+        gui.save_field_value("binding-2".to_string(), "99.2".to_string())
+            .unwrap();
 
         let field_value = gui.get_field_value("binding-1".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-1");
@@ -349,28 +336,23 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_all_field_values() {
+    async fn test_set_get_all_field_values() {
         let mut gui = DotrainOrderGui::new();
 
         gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
-        gui.save_field_value(
-            "binding-1".to_string(),
-            PairValue {
-                is_preset: false,
+        gui.save_field_values(vec![
+            FieldValuePair {
+                binding: "binding-1".to_string(),
                 value: "some-default-value".to_string(),
             },
-        )
-        .unwrap();
-        gui.save_field_value(
-            "binding-2".to_string(),
-            PairValue {
-                is_preset: true,
-                value: "0".to_string(),
+            FieldValuePair {
+                binding: "binding-2".to_string(),
+                value: "99.2".to_string(),
             },
-        )
+        ])
         .unwrap();
 
         let field_values = gui.get_all_field_values().unwrap();
