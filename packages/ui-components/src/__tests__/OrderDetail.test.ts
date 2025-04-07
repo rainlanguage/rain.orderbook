@@ -2,14 +2,16 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
-import { readable, writable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { Hex } from 'viem';
+import type { ComponentProps } from 'svelte';
+
+type OrderDetailProps = ComponentProps<OrderDetail>;
 
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -36,7 +38,7 @@ const chainId = 1;
 const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
-const defaultProps = {
+const defaultProps: OrderDetailProps = {
 	orderHash,
 	rpcUrl,
 	subgraphUrl,
@@ -46,7 +48,6 @@ const defaultProps = {
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme)
 };
-
 
 const mockOrder: SgOrder = {
 	id: 'mockId',
