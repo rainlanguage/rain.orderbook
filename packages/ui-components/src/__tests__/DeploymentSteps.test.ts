@@ -10,6 +10,8 @@ import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal'
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
+import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
+import { DeploymentStepsErrorCode } from '$lib/errors/DeploymentStepsError';
 
 const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
@@ -21,6 +23,10 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
+}));
+
+vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
+	getDeploymentTransactionArgs: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -641,7 +647,8 @@ const defaultProps: DeploymentStepsProps = {
 		subgraphs: {
 			flare: 'https://subgraph.com/flare'
 		}
-	} as ConfigSource)
+	} as ConfigSource),
+	registryUrl: 'https://example.com/registry'
 };
 
 describe('DeploymentSteps', () => {
@@ -714,7 +721,7 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		// Wait for the disclaimer modal to be called
-		let onAcceptCallback: () => void;
+		let onAcceptCallback: (() => void) | undefined;
 		await waitFor(() => {
 			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
 			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
@@ -722,7 +729,8 @@ describe('DeploymentSteps', () => {
 			expect(typeof callArgs.onAccept).toBe('function');
 			onAcceptCallback = callArgs.onAccept;
 		});
-		onAcceptCallback!();
+
+		onAcceptCallback?.();
 
 		await waitFor(() => {
 			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
@@ -925,5 +933,94 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
 		});
+	});
+
+	it('tests successful deployment transaction args retrieval', async () => {
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
+
+		const mockTransactionArgs = {
+			approvals: [{ token: '0x123', spender: '0x456', amount: BigInt(1000) }],
+			deploymentCalldata: { hash: '0xabc', data: '0xdef' },
+			orderbookAddress: '0x789' as const,
+			chainId: 14
+		};
+
+		(getDeploymentTransactionArgs as Mock).mockResolvedValue(mockTransactionArgs);
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		render(DeploymentSteps, {
+			props: {
+				...defaultProps
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		await waitFor(() => {
+			expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, '0x123');
+		});
+
+		let onAcceptCallback: () => void;
+		await waitFor(() => {
+			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
+			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
+			expect(callArgs).toHaveProperty('onAccept');
+			expect(typeof callArgs.onAccept).toBe('function');
+			onAcceptCallback = callArgs.onAccept;
+		});
+
+		onAcceptCallback!();
+
+		await waitFor(() => {
+			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith({
+				open: true,
+				args: {
+					...mockTransactionArgs,
+					subgraphUrl: 'https://subgraph.com/flare',
+					network: 'flare',
+					account: expect.objectContaining({
+						subscribe: expect.any(Function)
+					})
+				}
+			});
+		});
+	});
+	it('displays specific error message when getDeploymentTransactionArgs fails', async () => {
+		const specificErrorMessage = 'Insufficient funds for transaction';
+		vi.mocked(getDeploymentTransactionArgs).mockRejectedValue(new Error(specificErrorMessage));
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		render(DeploymentSteps, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		await waitFor(() => {
+			expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, '0x123');
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText(DeploymentStepsErrorCode.ADD_ORDER_FAILED)).toBeInTheDocument();
+			expect(screen.getByText(specificErrorMessage)).toBeInTheDocument();
+		});
+
+		expect(defaultProps.handleDisclaimerModal).not.toHaveBeenCalled();
 	});
 });
