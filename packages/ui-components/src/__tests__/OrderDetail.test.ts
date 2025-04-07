@@ -2,16 +2,15 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
-import { readable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
+import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
-import type { Hex } from 'viem';
 import type { ComponentProps } from 'svelte';
-
-type OrderDetailProps = ComponentProps<OrderDetail>;
+import type { Hex } from 'viem';
 
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -38,15 +37,19 @@ const chainId = 1;
 const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
-const defaultProps: OrderDetailProps = {
-	orderHash,
-	rpcUrl,
-	subgraphUrl,
-	orderbookAddress: orderbookAddress as Hex,
-	chainId,
-	colorTheme: readable('dark'),
+const defaultProps: ComponentProps<OrderDetail> = {
+				orderHash,
+				rpcUrl,
+				subgraphUrl,
+				orderbookAddress,
+				chainId,
+	colorTheme: 'dark',
 	codeMirrorTheme: readable('dark'),
-	lightweightChartsTheme: readable(darkChartTheme)
+	lightweightChartsTheme: readable(darkChartTheme),
+	wagmiConfig: writable({} as Config),
+	handleOrderRemoveModal: vi.fn(),
+	onDeposit: vi.fn(),
+	onWithdraw: vi.fn()
 };
 
 const mockOrder: SgOrder = {
@@ -146,7 +149,16 @@ describe('OrderDetail', () => {
 
 	it('calls the order detail query with the correct order hash', async () => {
 		render(OrderDetail, {
-			props: defaultProps,
+			props: {
+				orderHash,
+				rpcUrl,
+				subgraphUrl,
+				orderbookAddress,
+				chainId,
+				colorTheme: readable('dark'),
+				codeMirrorTheme: readable('dark'),
+				lightweightChartsTheme: readable(darkChartTheme)
+			},
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -185,8 +197,6 @@ describe('OrderDetail', () => {
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
-		const handleOrderRemoveModal = vi.fn();
-
 		render(OrderDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
@@ -195,14 +205,14 @@ describe('OrderDetail', () => {
 		await waitFor(() => {
 			const removeButton = screen.getByTestId('remove-button');
 			expect(removeButton).toBeInTheDocument();
-			expect(handleOrderRemoveModal).not.toHaveBeenCalled();
+			expect(defaultProps.handleOrderRemoveModal).not.toHaveBeenCalled();
 		});
 
 		// Click the Remove button
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
-			expect(handleOrderRemoveModal).toHaveBeenCalledWith({
+			expect(defaultProps.handleOrderRemoveModal).toHaveBeenCalledWith({
 				open: true,
 				args: {
 					order: mockOrder,
@@ -273,41 +283,12 @@ describe('OrderDetail', () => {
 		const user = userEvent.setup();
 		const mockOnDeposit = vi.fn();
 
-		const mockOrderWithVaults: SgOrder = {
-			...mockOrder,
-			inputs: [vault1]
-		} as unknown as SgOrder;
-		const sortedVaults = new Map([
-			['inputs', [vault1]],
-			['outputs', []]
-		]);
-
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: {
-						order: mockOrderWithVaults,
-						vaults: sortedVaults
-					},
-					status: 'success',
-					isFetching: false
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
 		render(OrderDetail, {
 			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
-				chainId: 1,
-				orderbookAddress,
+				...defaultProps,
 				onDeposit: mockOnDeposit,
-				onWithdraw: vi.fn()
-			}
+			},
+			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		// Wait for the component to finish loading data
@@ -320,48 +301,20 @@ describe('OrderDetail', () => {
 		await user.click(depositButton);
 
 		// Verify onDeposit was called with correct parameters
-		expect(mockOnDeposit).toHaveBeenCalledWith(vault1);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.inputs[0]);
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
 		const user = userEvent.setup();
 		const mockOnWithdraw = vi.fn();
 
-		const mockOrderWithVaults: SgOrder = {
-			...mockOrder,
-			outputs: [vault1]
-		} as unknown as SgOrder;
-		const sortedVaults = new Map([
-			['inputs', []],
-			['outputs', [vault1]]
-		]);
-
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: {
-						order: mockOrderWithVaults,
-						vaults: sortedVaults
-					},
-					status: 'success',
-					isFetching: false
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
 		render(OrderDetail, {
 			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				signerAddress: writable('0x1234567890123456789012345678901234567890' as Hex),
-				chainId: 1,
-				orderbookAddress,
-				onDeposit: vi.fn(),
+				...defaultProps,
 				onWithdraw: mockOnWithdraw
-			}
+			},
+						context: new Map([['$$_queryClient', queryClient]])
+
 		});
 
 		// Wait for the component to finish loading data
@@ -374,6 +327,6 @@ describe('OrderDetail', () => {
 		await user.click(withdrawButton);
 
 		// Verify onWithdraw was called with correct parameters
-		expect(mockOnWithdraw).toHaveBeenCalledWith(vault1);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.inputs[0]);
 	});
 });
