@@ -49,7 +49,6 @@ const defaultProps: OrderDetailProps = {
 	lightweightChartsTheme: readable(darkChartTheme)
 };
 
-
 const mockOrder: SgOrder = {
 	id: 'mockId',
 	orderBytes: '0x0000000000000000000000000000000000000000...',
