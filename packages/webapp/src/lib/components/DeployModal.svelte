@@ -7,9 +7,9 @@
 	export let args: DeploymentArgs;
 
 	const messages = {
-		success: 'Your strategy was successfully deployed.',
+		success: 'Your strategy was successfully deployed',
 		pending: 'Deploying your strategy...',
-		error: 'Could not deploy strategy.'
+		error: 'Deployment failed'
 	};
 
 	transactionStore.handleDeploymentTransaction({
