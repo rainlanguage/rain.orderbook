@@ -41,15 +41,6 @@ describe('handleDeployment', () => {
 	});
 
 	it('should return deployment data with correct parameters', async () => {
-		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
-			error: null,
-			value: {
-				approvals: mockApprovals,
-				deploymentCalldata: mockDeploymentCalldata,
-				orderbookAddress: mockOrderbookAddress,
-				chainId: mockChainId
-			}
-		});
 		const result = await handleDeployment(mockGui, mockAccount, mockSubgraphUrl);
 
 		expect(result).toEqual({
