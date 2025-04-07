@@ -40,7 +40,7 @@
 			onAccept: () => {
 				handleDeployModal({
 					args: deploymentArgs,
-					open: false
+					open: true
 				});
 			}
 		});
