@@ -152,7 +152,7 @@
 	}
 
 	async function _handleShareChoices() {
-		await handleShareChoices(gui);
+		await handleShareChoices(gui, registryUrl);
 	}
 
 	async function onSelectTokenSelect() {
@@ -227,20 +227,12 @@
 	}
 </script>
 
-<div>
-	{#if $deploymentStepsError}
-		<Alert color="red">
-			<p class="text-red-500">{$deploymentStepsError.code}</p>
-			{#if $deploymentStepsError.details}
-				<p class="text-red-500">{$deploymentStepsError.details}</p>
-			{/if}
-		</Alert>
-	{/if}
+<div class="py-6">
 	{#if gui}
 		<div class="flex max-w-3xl flex-col gap-12" in:fade>
 			{#if deployment}
 				<div class="flex max-w-2xl flex-col gap-4 text-start">
-					<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
+					<h1 class=" text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
 						{strategyDetail.name}
 					</h1>
 					<p class="text-xl text-gray-600 lg:text-2xl dark:text-gray-400">
@@ -249,77 +241,57 @@
 				</div>
 			{/if}
 
-			{#if selectTokens && selectTokens.length > 0}
-				<div class="flex w-full flex-col gap-4">
-					<DeploymentSectionHeader
-						title="Select Tokens"
-						description="Select the tokens that you want to use in your order."
-					/>
-					{#each selectTokens as token}
-						<SelectToken {token} {onSelectTokenSelect} />
-					{/each}
-				</div>
+			<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
+
+			{#if showAdvancedOptions}
+				{#each allFieldDefinitionsWithDefaults as fieldDefinition}
+					<FieldDefinitionInput {fieldDefinition} />
+				{/each}
+
+				{#each allDepositFields as deposit}
+					<DepositInput {deposit} {gui} />
+				{/each}
+
+				{#each allTokenInputs as input, i}
+					<TokenIOInput {i} label="Input" vault={input} {gui} />
+				{/each}
+
+				{#each allTokenOutputs as output, i}
+					<TokenIOInput {i} label="Output" vault={output} {gui} />
+				{/each}
 			{/if}
 
-			{#if allTokensSelected || selectTokens?.length === 0}
-				{#if allFieldDefinitionsWithoutDefaults.length > 0}
-					{#each allFieldDefinitionsWithoutDefaults as fieldDefinition}
-						<FieldDefinitionInput {fieldDefinition} />
-					{/each}
-				{/if}
-
-				<Toggle bind:checked={showAdvancedOptions}>Show advanced options</Toggle>
-
-				{#if showAdvancedOptions}
-					{#each allFieldDefinitionsWithDefaults as fieldDefinition}
-						<FieldDefinitionInput {fieldDefinition} />
-					{/each}
-
-					{#each allDepositFields as deposit}
-						<DepositInput {deposit} {gui} />
-					{/each}
-
-					{#each allTokenInputs as input, i}
-						<TokenIOInput {i} label="Input" vault={input} {gui} />
-					{/each}
-
-					{#each allTokenOutputs as output, i}
-						<TokenIOInput {i} label="Output" vault={output} {gui} />
-					{/each}
-				{/if}
-
-				{#if $deploymentStepsError}
-					<Alert color="red">
-						<p class="text-red-500">{$deploymentStepsError.code}</p>
-						{#if $deploymentStepsError.details}
-							<p class="text-red-500">{$deploymentStepsError.details}</p>
-						{/if}
-					</Alert>
-				{/if}
-
-				<div class="flex flex-wrap items-start justify-start gap-2">
-					{#if $account}
-						<Button
-							data-testid="deploy-button"
-							size="lg"
-							disabled={checkingDeployment}
-							on:click={handleDeployButtonClick}
-							class="bg-gradient-to-br from-blue-600 to-violet-600"
-						>
-							{#if checkingDeployment}
-								<Spinner size="4" color="white" />
-								<span class="ml-2">Checking deployment...</span>
-							{:else}
-								Deploy Strategy
-							{/if}
-						</Button>
-					{:else}
-						<WalletConnect {appKitModal} connected={wagmiConnected} />
+			{#if $deploymentStepsError}
+				<Alert color="red">
+					<p class="text-red-500">{$deploymentStepsError.code}</p>
+					{#if $deploymentStepsError.details}
+						<p class="text-red-500">{$deploymentStepsError.details}</p>
 					{/if}
-					<ComposedRainlangModal {gui} />
-					<ShareChoicesButton handleShareChoices={_handleShareChoices} />
-				</div>
+				</Alert>
 			{/if}
+
+			<div class="flex flex-wrap items-start justify-start gap-2">
+				{#if $account}
+					<Button
+						data-testid="deploy-button"
+						size="lg"
+						disabled={checkingDeployment}
+						on:click={handleDeployButtonClick}
+						class="bg-gradient-to-br from-blue-600 to-violet-600"
+					>
+						{#if checkingDeployment}
+							<Spinner size="4" color="white" />
+							<span class="ml-2">Checking deployment...</span>
+						{:else}
+							Deploy Strategy
+						{/if}
+					</Button>
+				{:else}
+					<WalletConnect {appKitModal} connected={wagmiConnected} />
+				{/if}
+				<ComposedRainlangModal {gui} />
+				<ShareChoicesButton handleShareChoices={_handleShareChoices} />
+			</div>
 		</div>
 	{/if}
 </div>
