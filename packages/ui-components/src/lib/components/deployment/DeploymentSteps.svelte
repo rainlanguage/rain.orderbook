@@ -70,13 +70,12 @@
 			throw new Error(selectTokensResult.error.msg);
 		}
 		selectTokens = selectTokensResult.value;
-		const network = gui.getNetworkKey();
-		if (network.error) {
-			throw new Error(network.error.msg);
+		const { value, error } = gui.getNetworkKey();
+		if (error) {
+			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
+		} else if (value) {
+			subgraphUrl = $settings?.subgraphs?.[value];
 		}
-		subgraphUrl = $settings?.subgraphs?.[network.value];
-		console.log('SG-URL', subgraphUrl);
-
 		await areAllTokensSelected();
 	});
 
