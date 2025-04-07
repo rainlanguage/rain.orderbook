@@ -14,6 +14,14 @@ vi.mock('@rainlanguage/ui-components/services', () => ({
 	fetchRegistryDotrains: vi.fn()
 }));
 
+type LoadResult = {
+	registry: string;
+	registryDotrains: RegistryDotrain[];
+	validStrategies: ValidStrategyDetail[];
+	invalidStrategies: InvalidStrategyDetail[];
+	error: string | null;
+};
+
 const mockDotrains = ['dotrain1', 'dotrain2'] as unknown as RegistryDotrain[];
 const mockValidated = {
 	validStrategies: ['strategy1', 'strategy2'] as unknown as ValidStrategyDetail[],
@@ -84,6 +92,11 @@ describe('Layout load function', () => {
 			invalidStrategies: [],
 			error: errorMessage
 		});
+
+		const typedResult = result as LoadResult;
+		if (typedResult.error) {
+			expect(typedResult.error).toBe(errorMessage);
+		}
 	});
 
 	it('should handle errors when validateStrategies fails', async () => {
