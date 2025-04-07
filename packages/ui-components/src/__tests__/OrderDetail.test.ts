@@ -30,37 +30,95 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 	return { default: mockLightweightCharts };
 });
 
-describe('OrderDetail', () => {
-	let queryClient: QueryClient;
-	let mockOrder: SgOrder;
 	const subgraphUrl = 'https://example.com';
 	const orderbookAddress = '0x123456789012345678901234567890123456abcd';
 	const chainId = 1;
 	const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 	const orderHash = 'mockOrderHash';
 
+const mockOrder: SgOrder = {
+			id: 'mockId',
+			orderBytes: '0x0000000000000000000000000000000000000000...',
+			owner: '0x1234567890123456789012345678901234567890',
+			orderHash: orderHash,
+			active: true,
+			meta: null,
+			timestampAdded: '1234567890',
+			orderbook: { id: orderbookAddress },
+
+			inputs: [
+				{
+					id: '0x0000000000000000000000000000000000000002',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'MockToken',
+						symbol: 'MCK',
+						decimals: '18'
+					},
+					balance: '0',
+					vaultId: '0x2',
+					owner: '0x1234567890123456789012345678901234567890',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: orderbookAddress
+					}
+				}
+			],
+
+			outputs: [
+				{
+					id: '0x0000000000000000000000000000000000000001',
+					token: {
+						id: '0x0000000000000000000000000000000000000000',
+						address: '0x0000000000000000000000000000000000000000',
+						name: 'MockToken2',
+						symbol: 'MCK2',
+						decimals: '18'
+					},
+					balance: '0',
+					vaultId: '0x1',
+					owner: '0x1234567890123456789012345678901234567890',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: orderbookAddress
+					}
+				}
+			],
+
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '12345678',
+						timestamp: '1234567890',
+						id: '0x0000000000000000000000000000000000000000',
+						from: '0x1234567890123456789012345678901234567890'
+					}
+				}
+			],
+			trades: [],
+			removeEvents: [],
+
+			expression: '0x123456' // Your existing field
+		} as unknown as SgOrder;
+
+		const mockAccoutStore = readable('0x1234567890123456789012345678901234567890');
+
+describe('OrderDetail', () => {
+	let queryClient: QueryClient;
+
 	beforeEach(async () => {
 		vi.clearAllMocks();
 		queryClient = new QueryClient();
 
 		// Set up account mock
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x1234567890123456789012345678901234567890')
+			(useAccount as Mock).mockReturnValue({
+				account: mockAccoutStore
 		});
-
-		// Create mock order data with vaults Map
-		mockOrder = {
-			id: 'mockId',
-			owner: '0x1234567890123456789012345678901234567890',
-			orderHash: orderHash,
-			active: true,
-			meta: '0x',
-			timestampAdded: '1234567890',
-			orderbook: { id: orderbookAddress },
-			inputs: [],
-			outputs: [],
-			expression: '0x123456'
-		} as unknown as SgOrder;
 
 		// Mock getOrderByHash to return our data structure
 		(getOrderByHash as Mock).mockResolvedValue({
@@ -177,7 +235,7 @@ describe('OrderDetail', () => {
 					chainId,
 					orderbookAddress,
 					subgraphUrl,
-					account: '0x1234567890123456789012345678901234567890'
+					account: mockAccoutStore
 				}
 			});
 		});
@@ -260,7 +318,7 @@ describe('OrderDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.findByRole('button', { name: /refresh/i });
+			const refreshButton = await screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 
 			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
