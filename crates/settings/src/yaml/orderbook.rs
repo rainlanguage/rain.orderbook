@@ -79,17 +79,19 @@ impl ContextProvider for OrderbookYaml {
 }
 
 impl OrderbookYaml {
-    pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
+    pub fn initialize_context_and_expand_networks(&self) -> Result<Context, YamlError> {
         let mut context = self.create_context();
         self.expand_context_with_remote_networks(&mut context);
+        Ok(context)
+    }
 
+    pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
+        let mut context = self.initialize_context_and_expand_networks()?;
         let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(networks.keys().cloned().collect())
     }
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -99,16 +101,12 @@ impl OrderbookYaml {
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(tokens.keys().cloned().collect())
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -121,16 +119,12 @@ impl OrderbookYaml {
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(orderbooks.keys().cloned().collect())
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
         let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
         OrderbookCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
@@ -155,16 +149,12 @@ impl OrderbookYaml {
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(deployers.keys().cloned().collect())
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
-        let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-
+        let mut context = self.initialize_context_and_expand_networks()?;
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
