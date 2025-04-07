@@ -19,7 +19,6 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import VaultActionButton from '../actions/VaultActionButton.svelte';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 

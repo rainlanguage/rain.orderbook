@@ -153,7 +153,8 @@ describe('VaultDetail', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
+			expect(screen.getAllByTestId('deposit-button')).toHaveLength(1);
+			expect(screen.getAllByTestId('withdraw-button')).toHaveLength(1);
 		});
 	});
 
