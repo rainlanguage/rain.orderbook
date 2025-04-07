@@ -3,24 +3,30 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
 import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
 import type { ComponentProps } from 'svelte';
-import { writable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
 import type { ConfigSource, GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import type { DeployModalProps, DisclaimerModalProps } from '../lib/types/modal';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { getAccount } from '@wagmi/core';
+import { useAccount } from '$lib/providers/wallet/useAccount';
+import { getDeploymentTransactionArgs } from '../lib/components/deployment/getDeploymentTransactionArgs';
+import { DeploymentStepsErrorCode } from '$lib/errors/DeploymentStepsError';
 
-const { mockWagmiConfigStore, mockConnectedStore, mockSignerAddressStore } = await vi.hoisted(
+const { mockWagmiConfigStore, mockConnectedStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@wagmi/core', () => ({
-	getAccount: vi.fn()
-}));
-
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
+}));
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
+
+vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
+	getDeploymentTransactionArgs: vi.fn()
 }));
 
 export type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -634,7 +640,6 @@ const defaultProps: DeploymentStepsProps = {
 	deployment: mockDeployment,
 	wagmiConfig: mockWagmiConfigStore,
 	wagmiConnected: mockConnectedStore,
-	signerAddress: mockSignerAddressStore,
 	appKitModal: writable({} as AppKit),
 	handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
 	handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
@@ -669,6 +674,9 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x123')
+		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -691,7 +699,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(getAccount as Mock).mockReturnValue({ address: '0xuser' });
+
 		mockConnectedStore.mockSetSubscribeValue(true);
 
 		const user = userEvent.setup();
@@ -712,7 +720,7 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		// Wait for the disclaimer modal to be called
-		let onAcceptCallback: () => void;
+		let onAcceptCallback: (() => void) | undefined;
 		await waitFor(() => {
 			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
 			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
@@ -720,7 +728,8 @@ describe('DeploymentSteps', () => {
 			expect(typeof callArgs.onAccept).toBe('function');
 			onAcceptCallback = callArgs.onAccept;
 		});
-		onAcceptCallback!();
+
+		onAcceptCallback?.();
 
 		await waitFor(() => {
 			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith(
@@ -923,5 +932,125 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
 		});
+	});
+
+	it('tests successful deployment transaction args retrieval', async () => {
+		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
+		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
+
+		const mockTransactionArgs = {
+			approvals: [{ token: '0x123', spender: '0x456', amount: BigInt(1000) }],
+			deploymentCalldata: { hash: '0xabc', data: '0xdef' },
+			orderbookAddress: '0x789' as const,
+			chainId: 14
+		};
+
+		(getDeploymentTransactionArgs as Mock).mockResolvedValue(mockTransactionArgs);
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		render(DeploymentSteps, {
+			props: {
+				...defaultProps
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		await waitFor(() => {
+			expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, '0x123');
+		});
+
+		let onAcceptCallback: () => void;
+		await waitFor(() => {
+			expect(defaultProps.handleDisclaimerModal).toHaveBeenCalled();
+			const callArgs = (defaultProps.handleDisclaimerModal as Mock).mock.calls[0][0];
+			expect(callArgs).toHaveProperty('onAccept');
+			expect(typeof callArgs.onAccept).toBe('function');
+			onAcceptCallback = callArgs.onAccept;
+		});
+
+		onAcceptCallback!();
+
+		await waitFor(() => {
+			expect(defaultProps.handleDeployModal).toHaveBeenCalledWith({
+				open: true,
+				args: {
+					...mockTransactionArgs,
+					subgraphUrl: 'https://subgraph.com/flare',
+					network: 'flare',
+					account: expect.objectContaining({
+						subscribe: expect.any(Function)
+					})
+				}
+			});
+		});
+	});
+	it('displays specific error message when getDeploymentTransactionArgs fails', async () => {
+		const specificErrorMessage = 'Insufficient funds for transaction';
+		vi.mocked(getDeploymentTransactionArgs).mockRejectedValue(new Error(specificErrorMessage));
+
+		mockConnectedStore.mockSetSubscribeValue(true);
+
+		const user = userEvent.setup();
+
+		const props = {
+			dotrain: 'sample dotrain content',
+			strategyDetail: {
+				name: 'Test Strategy',
+				description: 'Strategy description',
+				short_description: 'Short description'
+			},
+			deployment: {
+				key: 'test-deployment',
+				name: 'Test Deployment',
+				description: 'Test Description',
+				deployment: {
+					key: 'test-deployment',
+					order: {
+						inputs: [],
+						outputs: []
+					}
+				}
+			} as unknown as GuiDeploymentCfg,
+			wagmiConfig: mockWagmiConfigStore,
+			wagmiConnected: mockConnectedStore,
+			appKitModal: writable({} as AppKit),
+			handleDeployModal: vi.fn() as unknown as (args: DeployModalProps) => void,
+			handleDisclaimerModal: vi.fn() as unknown as (args: DisclaimerModalProps) => void,
+			settings: writable({
+				subgraphs: {
+					flare: 'https://subgraph.com/flare'
+				}
+			} as ConfigSource)
+		};
+
+		render(DeploymentSteps, { props });
+
+		await waitFor(() => {
+			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
+		});
+
+		const deployButton = screen.getByText('Deploy Strategy');
+		await user.click(deployButton);
+
+		await waitFor(() => {
+			expect(getDeploymentTransactionArgs).toHaveBeenCalledWith(mockGui, '0x123');
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText(DeploymentStepsErrorCode.ADD_ORDER_FAILED)).toBeInTheDocument();
+			expect(screen.getByText(specificErrorMessage)).toBeInTheDocument();
+		});
+
+		expect(props.handleDisclaimerModal).not.toHaveBeenCalled();
 	});
 });

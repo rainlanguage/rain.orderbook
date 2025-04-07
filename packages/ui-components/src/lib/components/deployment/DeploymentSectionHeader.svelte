@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Markdown from 'svelte-markdown';
+
 	export let title: string;
 	export let description: string = '';
 </script>
@@ -8,8 +10,10 @@
 		{title}
 	</h1>
 	{#if description}
-		<p class="break-words text-sm font-light text-gray-600 lg:text-base dark:text-gray-400">
-			{description}
-		</p>
+		<div
+			class="prose prose-sm lg:prose-base prose-neutral dark:prose-invert text-gray-600 dark:text-gray-400"
+		>
+			<Markdown source={description} />
+		</div>
 	{/if}
 </div>

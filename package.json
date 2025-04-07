@@ -66,7 +66,7 @@
         "ts-node": "10.9.2",
         "typescript": "5.6.3",
         "typescript-eslint": "8.14.0",
-        "viem": "2.22.8",
+        "viem": "2.24.3",
         "vite": "5.4.11",
         "vitest": "2.1.5"
     },
@@ -75,6 +75,7 @@
         "tauri-app"
     ],
     "dependencies": {
+        "@fast-check/vitest": "^0.2.0",
         "@rainlanguage/orderbook": "workspace:*",
         "@rainlanguage/ui-components": "workspace:*",
         "@reown/appkit": "1.6.4",
