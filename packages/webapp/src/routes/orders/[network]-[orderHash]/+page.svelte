@@ -16,6 +16,7 @@
 	import { fade } from 'svelte/transition';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import { onDestroy } from 'svelte';
+	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
@@ -28,7 +29,6 @@
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
-	let toastMessage: string = '';
 
 	function triggerToast() {
 		toastOpen = true;
@@ -47,7 +47,6 @@
 			refetchType: 'all',
 			exact: false
 		});
-		toastMessage = 'Vault balance updated';
 		triggerToast();
 	}
 
@@ -56,31 +55,26 @@
 		const orderHash = $page.params.orderHash;
 		const subgraphUrl = $settings?.subgraphs?.[network] || '';
 		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
-		if (!$account) {
-			toastMessage = 'Please connect your wallet';
-			triggerToast();
-			return;
-		} else {
-			handleDepositOrWithdrawModal({
-				open: true,
-				args: {
-					vault,
-					onDepositOrWithdraw: () => {
-						queryClient.invalidateQueries({
-							queryKey: [orderHash],
-							refetchType: 'all',
-							exact: false
-						});
-					},
-					action,
-					chainId,
-					rpcUrl,
-					subgraphUrl,
-					account: $account
-				}
-			});
-		}
+
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				// Casting to Hex since the buttons cannot appear if account is null
+				account: $account as Hex
+			}
+		});
 	}
 
 	function onDeposit(vault: SgVault) {
@@ -97,7 +91,7 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		{toastMessage}
+		Vault balance updated
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
