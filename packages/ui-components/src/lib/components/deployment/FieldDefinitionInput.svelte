@@ -34,7 +34,7 @@
 
 	async function handlePresetClick(preset: GuiPresetCfg) {
 		inputValue = preset.value;
-		gui?.saveFieldValue(fieldDefinition.binding, inputValue);
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
 
 		const result = gui.getFieldValue(fieldDefinition.binding);
 		if (result.error) {
@@ -45,7 +45,7 @@
 
 	async function handleCustomInputChange(value: string) {
 		inputValue = value;
-		gui?.saveFieldValue(fieldDefinition.binding, inputValue);
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
 
 		const result = gui.getFieldValue(fieldDefinition.binding);
 		if (result.error) {
