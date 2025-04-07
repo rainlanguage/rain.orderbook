@@ -28,6 +28,7 @@
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
+	let toastMessage: string = '';
 
 	function triggerToast() {
 		toastOpen = true;
@@ -46,33 +47,40 @@
 			refetchType: 'all',
 			exact: false
 		});
+		toastMessage = 'Vault balance updated';
 		triggerToast();
 	}
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
 		const network = $page.params.network;
+		const orderHash = $page.params.orderHash;
 		const subgraphUrl = $settings?.subgraphs?.[network] || '';
 		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 		const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
-
-		handleDepositOrWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					queryClient.invalidateQueries({
-						queryKey: [$page.params.orderHash],
-						refetchType: 'all',
-						exact: false
-					});
-				},
-				action,
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				account: $account
-			}
-		});
+		if (!$account) {
+			toastMessage = 'Please connect your wallet';
+			triggerToast();
+			return;
+		} else {
+			handleDepositOrWithdrawModal({
+				open: true,
+				args: {
+					vault,
+					onDepositOrWithdraw: () => {
+						queryClient.invalidateQueries({
+							queryKey: [orderHash],
+							refetchType: 'all',
+							exact: false
+						});
+					},
+					action,
+					chainId,
+					rpcUrl,
+					subgraphUrl,
+					account: $account
+				}
+			});
+		}
 	}
 
 	function onDeposit(vault: SgVault) {
@@ -89,7 +97,7 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		Vault balance updated
+		{toastMessage}
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
@@ -103,7 +111,6 @@
 	{colorTheme}
 	{orderbookAddress}
 	{chainId}
-	{wagmiConfig}
 	{onDeposit}
 	{onWithdraw}
 	{handleOrderRemoveModal}

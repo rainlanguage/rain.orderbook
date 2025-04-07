@@ -24,7 +24,7 @@ export type DepositOrWithdrawArgs = {
 	chainId: number;
 	rpcUrl: string;
 	subgraphUrl: string;
-	account: Account;
+	account: Hex;
 };
 
 export type OrderRemoveArgs = {
