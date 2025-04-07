@@ -10,7 +10,6 @@ import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
-import type { DeploymentHandlers } from '../lib/components/deployment/handleDeployment';
 import { mockConfigSource } from '../lib/__mocks__/settings';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -23,18 +22,11 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
-vi.mock('../lib/utils/handleDeployment', () => ({
+vi.mock('../lib/components/deployment/handleDeployment', () => ({
 	handleDeployment: vi.fn()
 }));
 
 type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
-
-const mockDeploymentHandlers: DeploymentHandlers = {
-	handleDisclaimerModal: vi.fn(),
-	handleDeployModal: vi.fn()
-};
-
-const dotrain = `raindex-version: 8898591f3bcaa21dc91dc3b8584330fc405eadfa`;
 
 const mockDeployment = {
 	key: 'flare-sflr-wflr',
@@ -85,8 +77,9 @@ const mockDeployment = {
 	}
 } as unknown as GuiDeploymentCfg;
 
-const defaultProps = {
-	dotrain,
+const mockOnDeploy = vi.fn();
+
+const defaultProps: DeploymentStepsProps = {
 	strategyDetail: {
 		name: 'SFLR<>WFLR on Flare',
 		description: 'Rotate sFLR (Sceptre staked FLR) and WFLR on Flare.',
@@ -95,8 +88,9 @@ const defaultProps = {
 	deployment: mockDeployment,
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
-	deploymentHandlers: mockDeploymentHandlers,
-	settings: writable(mockConfigSource)
+	onDeploy: mockOnDeploy,
+	settings: writable(mockConfigSource),
+	registryUrl: 'https://registry.reown.xyz'
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
@@ -148,6 +142,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
+		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
 
 		mockConnectedStore.mockSetSubscribeValue(true);
 
@@ -163,10 +158,7 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalled();
-			const callArgs = vi.mocked(handleDeployment).mock.calls[0];
-
-			expect(callArgs[3]).toBe(mockConfigSource.subgraphs?.testnet);
+			expect(handleDeployment).toHaveBeenCalledWith(mockGui, '0x123', mockConfigSource.subgraphs?.mainnet);
 		});
 	});
 
@@ -450,14 +442,9 @@ describe('DeploymentSteps', () => {
 
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 
-		const mockHandlers = {
-			handleDisclaimerModal: vi.fn(),
-			handleDeployModal: vi.fn()
-		};
 
 		const propsWithMockHandlers = {
-			...defaultProps,
-			deploymentHandlers: mockHandlers
+			...defaultProps
 		};
 
 		const user = userEvent.setup();
@@ -469,12 +456,11 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(handleDeployment).toHaveBeenCalledTimes(1);
 
-			const [guiArg, accountArg, handlersArg, subgraphUrlArg] =
+			const [guiArg, accountArg, subgraphUrlArg] =
 				vi.mocked(handleDeployment).mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
-			expect(handlersArg).toBe(mockHandlers);
 			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
 		});
 	});

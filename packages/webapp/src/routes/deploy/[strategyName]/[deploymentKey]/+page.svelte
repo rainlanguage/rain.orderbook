@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
+	import {
+		DeploymentSteps,
+		GuiProvider,
+		type HandleAddOrderResult
+	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
@@ -34,9 +38,16 @@
 		}
 	});
 
-	const deploymentHandlers = {
-		handleDisclaimerModal,
-		handleDeployModal
+	const onDeploy = (handleAddOrderResult: HandleAddOrderResult) => {
+		handleDisclaimerModal({
+			open: true,
+			onAccept: () => {
+				handleDeployModal({
+					args: handleAddOrderResult,
+					open: false
+				});
+			}
+		});
 	};
 </script>
 
@@ -49,7 +60,7 @@
 			{deployment}
 			wagmiConnected={connected}
 			{appKitModal}
-			{deploymentHandlers}
+			{onDeploy}
 			{settings}
 			{registryUrl}
 		/>

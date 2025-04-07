@@ -28,8 +28,8 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { handleDeployment } from '../../utils/handleDeployment';
-	import type { HandleAddOrderResult } from './getDeploymentTransactionArgs';
+	import { handleDeployment } from './handleDeployment';
+	import { type DeploymentArgs } from '$lib/types/transaction';
 
 	interface Deployment {
 		key: string;
@@ -42,7 +42,7 @@
 	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let handleClickDeploy: (handleAddOrderResult: HandleAddOrderResult) => void;
+	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let settings: Writable<ConfigSource>;
@@ -75,6 +75,7 @@
 			throw new Error(network.error.msg);
 		}
 		subgraphUrl = $settings?.subgraphs?.[network.value];
+		console.log('SG-URL', subgraphUrl);
 
 		await areAllTokensSelected();
 	});
@@ -220,7 +221,8 @@
 				return;
 			}
 			DeploymentStepsError.clear();
-			await handleDeployment(gui, $account, subgraphUrl);
+			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
+			return onDeploy(deploymentArgs);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {
