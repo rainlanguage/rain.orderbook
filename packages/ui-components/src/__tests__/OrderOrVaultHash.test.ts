@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
-import type { SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
@@ -107,16 +107,11 @@ describe('OrderOrVaultHash', () => {
 			expect(anchor.getAttribute('href')).toBe('/vaults/test-subgraph-0xvault456');
 		});
 
-		it('renders active vault with appropriate styling', () => {
-			const activeVault = {
-				...mockVault,
-				active: true
-			};
-
+		it('renders active order with appropriate styling', () => {
 			const { getByTestId } = render(OrderOrVaultHash, {
 				props: {
-					type: 'vaults',
-					orderOrVault: activeVault as unknown as SgVault,
+					type: 'orders',
+					orderOrVault: mockOrder as unknown as SgOrder,
 					network: mockSubgraphName,
 					updateActiveNetworkAndOrderbook: mockUpdateFn
 				}
@@ -124,6 +119,19 @@ describe('OrderOrVaultHash', () => {
 
 			const button = getByTestId('vault-order-input');
 			expect(button.classList.toString()).toContain('text-white bg-green');
+		});
+		it('renders inactive order with appropriate styling', () => {
+			const { getByTestId } = render(OrderOrVaultHash, {
+				props: {
+					type: 'orders',
+					orderOrVault: mockInactiveOrder as unknown as SgOrder,
+					network: mockSubgraphName,
+					updateActiveNetworkAndOrderbook: mockUpdateFn
+				}
+			});
+
+			const button = getByTestId('vault-order-input');
+			expect(button.classList.toString()).toContain('bg-yellow-400');
 		});
 	});
 });
