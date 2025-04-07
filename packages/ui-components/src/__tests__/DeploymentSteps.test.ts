@@ -9,8 +9,8 @@ import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { handleDeployment } from '../lib/utils/handleDeployment';
-import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
+import { handleDeployment } from '../lib/components/deployment/handleDeployment';
+import type { DeploymentHandlers } from '../lib/components/deployment/handleDeployment';
 import { mockConfigSource } from '../lib/__mocks__/settings';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));

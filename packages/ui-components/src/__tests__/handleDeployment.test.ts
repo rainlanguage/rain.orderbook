@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { handleDeployment } from '../lib/utils/handleDeployment';
+import { handleDeployment } from '../lib/components/deployment/handleDeployment';
 import {
 	getDeploymentTransactionArgs,
 	type HandleAddOrderResult
 } from '../lib/components/deployment/getDeploymentTransactionArgs';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import type { DeploymentHandlers } from '../lib/utils/handleDeployment';
+import type { DeploymentHandlers } from '../lib/components/deployment/handleDeployment';
 
 // Mock the getDeploymentTransactionArgs function
 vi.mock('../lib/components/deployment/getDeploymentTransactionArgs', () => ({
