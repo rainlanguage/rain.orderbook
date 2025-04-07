@@ -15,10 +15,8 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Writable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import type { Config } from 'wagmi';
 	import type { Hex } from 'viem';
 	import type {
 		OrderRemoveModalProps,
@@ -44,7 +42,6 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
 	/** Callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
@@ -90,12 +87,11 @@
 					<span class="font-light">Order</span>
 					<Hash shorten value={data.order.orderHash} />
 				</div>
-
 				<BadgeActive active={data.order.active} large />
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && $wagmiConfig && chainId && orderbookAddress}
+				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && chainId && orderbookAddress}
 					<Button
 						data-testid="remove-button"
 						color="dark"
