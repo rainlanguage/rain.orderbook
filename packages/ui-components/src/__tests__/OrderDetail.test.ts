@@ -296,7 +296,7 @@ describe('OrderDetail', () => {
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
 		(useAccount as Mock).mockReturnValue({
-			account: mockAccoutStore
+			account: mockAccountStore
 		});
 		const user = userEvent.setup();
 		const mockOnWithdraw = vi.fn();
