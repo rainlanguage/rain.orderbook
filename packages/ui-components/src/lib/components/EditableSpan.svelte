@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { PenSolid } from 'flowbite-svelte-icons';
 
 	export let displayValue: string;
 
@@ -11,6 +12,7 @@
 
 	const inputFocussed = () => {
 		focussed = true;
+		editableSpan.focus();
 		dispatch('focus');
 	};
 
@@ -32,8 +34,9 @@
 <div
 	data-testid="editableSpanWrapper"
 	on:click={inputFocussed}
-	class="flex gap-x-1 border-b-2 border-dotted text-sm text-gray-400 dark:text-gray-400"
+	class="flex items-center gap-x-1 border-b-2 border-dotted text-sm text-gray-400 dark:text-gray-400"
 >
+	<PenSolid class="h-3 w-3 cursor-pointer" />
 	<span>Block:</span>
 	<div class="relative">
 		<span
@@ -46,8 +49,11 @@
 			on:keydown={handleKeyDown}
 			on:blur={inputBlurred}>{displayValue}</span
 		>
-		<span data-testid="displayElement" class="pointer-events-none" class:opacity-0={focussed}
-			>{displayValue}</span
+		<span
+			data-testid="displayElement"
+			class="pointer-events-none"
+			class:opacity-0={focussed}
+			on:click={inputFocussed}>{displayValue}</span
 		>
 	</div>
 </div>

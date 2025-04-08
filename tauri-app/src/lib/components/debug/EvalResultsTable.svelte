@@ -13,7 +13,9 @@
   export let table: RainEvalResultsTable;
 </script>
 
-<Table divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border">
+<Table
+  divClass="cursor-pointer rounded-lg overflow-hidden dark:border-none border overflow-x-scroll"
+>
   <TableHead>
     <TableHeadCell>Stack item</TableHeadCell>
     <TableHeadCell>Value</TableHeadCell>

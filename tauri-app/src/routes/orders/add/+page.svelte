@@ -136,7 +136,7 @@
   async function chart() {
     isCharting = true;
     try {
-      chartData = await makeChartData($globalDotrainFile.text, $settingsText);
+      chartData = await makeChartData($globalDotrainFile.text);
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
