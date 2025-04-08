@@ -2015,7 +2015,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.ok(gui.getCurrentDeployment());
 		});
 
-		it('should fail for same remote token key in response', async () => {
+		it('should fail for same remote network key in response', async () => {
 			mockServer
 				.forGet('/remote-networks')
 				.once()
