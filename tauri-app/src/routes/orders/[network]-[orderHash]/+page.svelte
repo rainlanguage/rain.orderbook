@@ -12,9 +12,6 @@
   } from '$lib/services/modal';
   import type { Hex } from 'viem';
   import type { SgVault } from '@rainlanguage/orderbook/js_api';
-  import { Toast } from 'flowbite-svelte';
-  import { CheckCircleSolid } from 'flowbite-svelte-icons';
-  import { fade } from 'svelte/transition';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const queryClient = useQueryClient();
@@ -24,23 +21,6 @@
   const subgraphUrl = $settings?.subgraphs?.[network];
   const rpcUrl = $settings?.networks?.[network]?.rpc;
   const chainId = $settings?.networks?.[network]?.['chain-id'];
-
-  // Toast notification management
-  let toastOpen: boolean = false;
-  let toastMessage: string = 'Operation successful';
-  let counter: number = 5;
-
-  function triggerToast(message: string = 'Operation successful') {
-    toastMessage = message;
-    toastOpen = true;
-    counter = 5;
-    timeout();
-  }
-
-  function timeout() {
-    if (--counter > 0) return setTimeout(timeout, 1000);
-    toastOpen = false;
-  }
 
   function invalidateOrderDetailQuery() {
     queryClient.invalidateQueries({
@@ -53,27 +33,17 @@
   function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
       invalidateOrderDetailQuery();
-      triggerToast('Deposit initiated');
     });
   }
 
   function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
       invalidateOrderDetailQuery();
-      triggerToast('Withdrawal initiated');
     });
   }
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
-
-{#if toastOpen}
-  <Toast dismissable={true} position="top-right" transition={fade}>
-    <CheckCircleSolid slot="icon" class="h-5 w-5" />
-    {toastMessage}
-    <span class="text-sm text-gray-500">Autohide in {counter}s.</span>
-  </Toast>
-{/if}
 
 {#if rpcUrl && subgraphUrl && orderbookAddress}
   <OrderDetail
