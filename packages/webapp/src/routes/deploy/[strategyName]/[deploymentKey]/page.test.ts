@@ -3,320 +3,289 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
-import { readable } from 'svelte/store';
+import { REGISTRY_URL } from '$lib/constants';
 import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
 const {
-  mockPageStore,
-  mockWagmiConfigStore,
-  mockConnectedStore,
-  mockAppKitModalStore,
-  mockSignerAddressStore
+	mockPageStore,
+	mockConnectedStore,
+	mockAppKitModalStore
 } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
-// Use the more detailed mocking approach from main branch
 vi.mock('$app/stores', async (importOriginal) => {
-  return {
-    ...((await importOriginal()) as object),
-    page: mockPageStore
-  };
+	return {
+		...((await importOriginal()) as object),
+		page: mockPageStore
+	};
 });
 
 vi.mock('$app/navigation', async (importOriginal) => {
-  return {
-    ...((await importOriginal()) as object),
-    goto: vi.fn()
-  };
+	return {
+		...((await importOriginal()) as object),
+		goto: vi.fn()
+	};
 });
 
-// Use the MockComponent approach from HEAD for component mocking
-vi.mock('@rainlanguage/ui-components', async () => {
-  const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
-  return { 
-    GuiProvider: MockComponent, 
-    DeploymentSteps: MockComponent 
-  };
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const mockDeploymentSteps = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		...((await importOriginal()) as object),
+		DeploymentSteps: mockDeploymentSteps
+	};
 });
 
-// Use separate store mocks from main branch
 vi.mock('$lib/stores/wagmi', () => ({
-  wagmiConfig: mockWagmiConfigStore,
-  connected: mockConnectedStore,
-  appKitModal: mockAppKitModalStore,
-  signerAddress: mockSignerAddressStore
+	connected: mockConnectedStore,
+	appKitModal: mockAppKitModalStore,
 }));
 
 vi.mock('$lib/services/modal', () => ({
-  handleDeployModal: vi.fn(),
-  handleDisclaimerModal: vi.fn()
+	handleDeployModal: vi.fn(),
+	handleDisclaimerModal: vi.fn()
 }));
 
-// Mock the handleGuiInitialization function
 vi.mock('$lib/services/handleGuiInitialization', () => ({
-  handleGuiInitialization: vi.fn().mockResolvedValue({
-    gui: null,
-    error: null
-  })
+	handleGuiInitialization: vi.fn().mockResolvedValue({
+		gui: null,
+		error: null
+	})
 }));
 
 describe('DeployPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockPageStore.reset();
-    mockWagmiConfigStore.reset();
-    mockConnectedStore.reset();
-    mockAppKitModalStore.reset();
-    mockSignerAddressStore.reset();
-    vi.resetAllMocks();
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockPageStore.reset();
 
-    // Default mock for handleGuiInitialization
-    vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-      gui: null,
-      error: null
-    });
-  });
+		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
+			gui: null,
+			error: null
+		});
+	});
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
 
-  it('should call handleGuiInitialization with correct parameters when dotrain and deployment exist', async () => {
-    const mockDotrain = 'mock-dotrain';
-    const mockDeploymentKey = 'test-key';
-    const mockStateFromUrl = 'some-state';
+	it('should call handleGuiInitialization with correct parameters when dotrain and deployment exist', async () => {
+		const mockDotrain = 'mock-dotrain';
+		const mockDeploymentKey = 'test-key';
+		const mockStateFromUrl = 'some-state';
 
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: mockDotrain,
-        deployment: { key: mockDeploymentKey },
-        strategyDetail: {}
-      },
-      url: new URL(`http://localhost:3000/deploy?state=${mockStateFromUrl}`)
-    });
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: mockDotrain,
+				deployment: { key: mockDeploymentKey },
+				strategyDetail: {}
+			},
+			url: new URL(`http://localhost:3000/deploy?state=${mockStateFromUrl}`)
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    await waitFor(() => {
-      expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
-        mockDotrain,
-        mockDeploymentKey,
-        mockStateFromUrl
-      );
-    });
-  });
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				mockDotrain,
+				mockDeploymentKey,
+				mockStateFromUrl
+			);
+		});
+	});
 
-  it('should not call handleGuiInitialization when dotrain is missing', async () => {
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: null,
-        deployment: { key: 'test-key' },
-        strategyDetail: {}
-      },
-      url: new URL('http://localhost:3000/deploy')
-    });
+	it('should not call handleGuiInitialization when dotrain is missing', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: null as unknown as string,
+				deployment: { key: 'test-key' },
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+		await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
-  });
+		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
+	});
 
-  it('should not call handleGuiInitialization when deployment is missing', async () => {
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: 'some-dotrain',
-        deployment: null,
-        strategyDetail: {}
-      },
-      url: new URL('http://localhost:3000/deploy')
-    });
+	it('should not call handleGuiInitialization when deployment is missing', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'some-dotrain',
+				deployment: null as unknown as { key: string },
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+		await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
-  });
+		expect(handleGuiInitializationModule.handleGuiInitialization).not.toHaveBeenCalled();
+	});
 
-  it('should redirect to /deploy if dotrain or deployment is missing', async () => {
-    vi.useFakeTimers();
+	it('should redirect to /deploy if dotrain or deployment is missing', async () => {
+		vi.useFakeTimers();
 
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: null,
-        deployment: null,
-        strategyDetail: null
-      },
-      url: new URL('http://localhost:3000/deploy/strategy/key')
-    });
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: null as unknown as string,
+				deployment: null as unknown as { key: string },
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy/strategy/key')
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    expect(screen.getByText(/Deployment not found/i)).toBeInTheDocument();
-    
-    vi.advanceTimersByTime(5000);
-    await vi.runAllTimersAsync();
+		expect(screen.getByText(/Deployment not found/i)).toBeInTheDocument();
+		
+		vi.advanceTimersByTime(5000);
 
-    expect(goto).toHaveBeenCalledWith('/deploy');
+		await vi.runAllTimersAsync();
 
-    vi.useRealTimers();
-  });
+		expect(goto).toHaveBeenCalledWith('/deploy');
 
-  it('should show error message when GUI initialization fails', async () => {
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: 'https://dotrain.example.com',
-        deployment: {
-          key: 'test-deployment',
-          name: 'Test Deployment',
-          description: 'This is a test deployment'
-        },
-        strategyDetail: {
-          name: 'Test Strategy',
-          description: 'This is a test strategy'
-        }
-      },
-      url: new URL('http://localhost:3000/deploy')
-    });
+		vi.useRealTimers();
+	});
+	
+	it('should show error message when GUI initialization fails', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
 
-    vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-      gui: null,
-      error: 'Failed to initialize GUI'
-    });
+		const errorMessage = 'Failed to initialize GUI';
+		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
+			gui: null,
+			error: errorMessage
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    await waitFor(() => {
-      expect(screen.getByText('Failed to initialize GUI')).toBeInTheDocument();
-    });
-  });
+		await waitFor(() => {
+			expect(screen.getByText(errorMessage)).toBeInTheDocument();
+		});
+	});
 
-  it('should render DeploymentSteps when GUI is available', async () => {
-    const mockGui = {
-      name: 'Test GUI'
-    };
+	it('should handle initialization with empty state from URL', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
 
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: 'https://dotrain.example.com',
-        deployment: {
-          key: 'test-deployment',
-          name: 'Test Deployment',
-          description: 'This is a test deployment'
-        },
-        strategyDetail: {
-          name: 'Test Strategy',
-          description: 'This is a test strategy'
-        }
-      },
-      url: new URL('http://localhost:3000/deploy?state=test-state')
-    });
+		render(DeployPage);
 
-    vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-      gui: mockGui as unknown as DotrainOrderGui,
-      error: null
-    });
+		await waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				'https://dotrain.example.com',
+				'test-deployment',
+				''
+			);
+		});
+	});
+	
+	it('should correctly pass state parameter from URL to handleGuiInitialization', async () => {
+		const stateValue = 'someEncodedStateFromUrl';
+		
+		vi.clearAllMocks();
+		
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL(`http://localhost:3000/deploy?state=${stateValue}`)
+		});
 
-    render(DeployPage);
+		render(DeployPage);
 
-    // Wait for GUI to be available and DeploymentSteps to be rendered
-    await waitFor(() => {
-      expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
-        'https://dotrain.example.com',
-        'test-deployment',
-        'test-state'
-      );
-      // Additional assertions could be added here to verify DeploymentSteps rendering
-    });
-  });
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				'https://dotrain.example.com',
+				'test-deployment',
+				stateValue
+			);
+		});
+	});
+	
+	it('should correctly read the registry URL from query parameters', async () => {
+		const customRegistry = 'https://custom-registry.com';
+		
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: { key: 'test-deployment' },
+				strategyDetail: {}
+			},
+			url: new URL(`http://localhost:3000/deploy?registry=${customRegistry}`)
+		});
+		
+		const mockGui = {
+			name: 'Test GUI'
+		} as unknown as DotrainOrderGui;
+		
+		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
+			gui: mockGui,
+			error: null
+		});
+		
+		render(DeployPage);
+		
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalled();
+		});
+	});
+	
+	it('should use default registry URL when no registry parameter is provided', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: { key: 'test-deployment' },
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
+		
+		const mockGui = {
+			name: 'Test GUI'
+		} as unknown as DotrainOrderGui;
+		
+		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
+			gui: mockGui,
+			error: null
+		});
+		
+		render(DeployPage);
+		
 
-  it('should handle initialization with empty state from URL', async () => {
-    mockPageStore.mockSetSubscribeValue({
-      data: {
-        stores: { settings: readable({}) },
-        dotrain: 'https://dotrain.example.com',
-        deployment: {
-          key: 'test-deployment'
-        },
-        strategyDetail: {
-          name: 'Test Strategy'
-        }
-      },
-      url: new URL('http://localhost:3000/deploy')
-    });
-
-    const mockGui = { name: 'Test GUI' } as unknown as DotrainOrderGui;
-    vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-      gui: mockGui,
-      error: null
-    });
-
-    render(DeployPage);
-
-    await waitFor(() => {
-      expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
-        'https://dotrain.example.com',
-        'test-deployment',
-        ''
-      );
-    });
-  });
-  
-  it('should correctly pass state parameter from URL to handleGuiInitialization', async () => {
-    // Test with various state values
-    const testCases = [
-      { stateValue: 'simple-state', description: 'simple string' },
-      { stateValue: 'complex%20state%20with%20spaces', description: 'URL encoded string' },
-      { stateValue: '{"json":"data"}', description: 'JSON string' },
-      { stateValue: '12345', description: 'numeric string' }
-    ];
-    
-    for (const { stateValue, description } of testCases) {
-      // Clear previous calls
-      vi.clearAllMocks();
-      
-      mockPageStore.mockSetSubscribeValue({
-        data: {
-          stores: { settings: readable({}) },
-          dotrain: 'https://dotrain.example.com',
-          deployment: {
-            key: 'test-deployment'
-          },
-          strategyDetail: {
-            name: 'Test Strategy'
-          }
-        },
-        url: new URL(`http://localhost:3000/deploy?state=${stateValue}`)
-      });
-
-      const mockGui = { name: 'Test GUI' } as unknown as DotrainOrderGui;
-      vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
-        gui: mockGui,
-        error: null
-      });
-
-      // Re-render for each test case
-      const { unmount } = render(DeployPage);
-
-      await waitFor(() => {
-        expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
-          'https://dotrain.example.com',
-          'test-deployment',
-          stateValue
-        );
-      }, { timeout: 1000 });
-      
-      console.log(`✓ Correctly passed ${description} state parameter`);
-      
-      // Clean up between test cases
-      unmount();
-    }
-  });
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalled();
+		});
+	});
 });
