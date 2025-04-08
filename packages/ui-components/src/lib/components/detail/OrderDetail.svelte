@@ -101,7 +101,9 @@
 						>
 					{/if}
 				{/if}
+
 				<Refresh
+					testId="top-refresh"
 					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
