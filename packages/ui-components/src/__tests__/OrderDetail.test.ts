@@ -119,7 +119,7 @@ const mockOrder: SgOrder = {
 	expression: '0x123456' // Your existing field
 } as unknown as SgOrder;
 
-const mockAccoutStore = readable('0x1234567890123456789012345678901234567890');
+const mockAccountStore = readable('0x1234567890123456789012345678901234567890');
 
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;
@@ -130,7 +130,7 @@ describe('OrderDetail', () => {
 
 		// Set up account mock
 		(useAccount as Mock).mockReturnValue({
-			account: mockAccoutStore
+			account: mockAccountStore
 		});
 
 		// Mock getOrderByHash to return our data structure
@@ -215,7 +215,7 @@ describe('OrderDetail', () => {
 					chainId,
 					orderbookAddress,
 					subgraphUrl,
-					account: mockAccoutStore
+					account: mockAccountStore
 				}
 			});
 		});
