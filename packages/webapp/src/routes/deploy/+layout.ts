@@ -13,8 +13,6 @@ export const load: LayoutLoad = async ({ url }) => {
 		RegistryManager.clearFromStorage();
 	}
 
-	console.log('registry', registry);
-
 	try {
 		const registryDotrains = await fetchRegistryDotrains(registry);
 
