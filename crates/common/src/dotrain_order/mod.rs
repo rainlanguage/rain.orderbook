@@ -10,6 +10,7 @@ use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
+use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::yaml::cache::Cache;
 use rain_orderbook_app_settings::yaml::{
     default_document, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
@@ -85,6 +86,8 @@ pub enum DotrainOrderError {
 
     #[error(transparent)]
     ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
+    #[error(transparent)]
+    ParseRemoteTokensError(#[from] ParseRemoteTokensError),
 }
 
 #[cfg(target_family = "wasm")]
@@ -157,12 +160,25 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
+
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
+        if !remote_networks.is_empty() {
+            orderbook_yaml
+                .cache
+                .update_remote_networks(remote_networks.clone());
+            dotrain_yaml
+                .cache
+                .update_remote_networks(remote_networks.clone());
+        }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
-        dotrain_yaml.cache.update_remote_networks(remote_networks);
+        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
+            let networks = orderbook_yaml.get_networks()?;
+            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
+            dotrain_yaml.cache.update_remote_tokens(remote_tokens);
+        }
 
         Ok(Self {
             dotrain,
