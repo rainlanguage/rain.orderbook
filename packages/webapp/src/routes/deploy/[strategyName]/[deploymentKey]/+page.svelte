@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps, GuiProvider } from '@rainlanguage/ui-components';
-	import { wagmiConfig, connected, appKitModal } from '$lib/stores/wagmi';
+	import { DeploymentSteps, GuiProvider, type DeploymentArgs } from '@rainlanguage/ui-components';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
@@ -15,7 +15,9 @@
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
+
 	$: registryUrl = $page.url.searchParams?.get('registry') || REGISTRY_URL;
+
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
 			goto('/deploy');
@@ -33,6 +35,18 @@
 			getGuiError = error;
 		}
 	});
+
+	const onDeploy = (deploymentArgs: DeploymentArgs) => {
+		handleDisclaimerModal({
+			open: true,
+			onAccept: () => {
+				handleDeployModal({
+					args: deploymentArgs,
+					open: true
+				});
+			}
+		});
+	};
 </script>
 
 {#if !dotrain || !deployment}
@@ -41,14 +55,11 @@
 	<GuiProvider {gui}>
 		<DeploymentSteps
 			{strategyDetail}
-			{dotrain}
 			{deployment}
-			{wagmiConfig}
 			wagmiConnected={connected}
 			{appKitModal}
-			{handleDeployModal}
+			{onDeploy}
 			{settings}
-			{handleDisclaimerModal}
 			{registryUrl}
 		/>
 	</GuiProvider>
