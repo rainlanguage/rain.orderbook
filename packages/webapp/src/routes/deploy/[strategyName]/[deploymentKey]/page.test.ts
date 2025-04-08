@@ -3,14 +3,10 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
-import { REGISTRY_URL } from '$lib/constants';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 
-const {
-	mockPageStore,
-	mockConnectedStore,
-	mockAppKitModalStore
-} = await vi.hoisted(() => import('$lib/__mocks__/stores'));
+const { mockPageStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -36,7 +32,7 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 
 vi.mock('$lib/stores/wagmi', () => ({
 	connected: mockConnectedStore,
-	appKitModal: mockAppKitModalStore,
+	appKitModal: mockAppKitModalStore
 }));
 
 vi.mock('$lib/services/modal', () => ({
@@ -144,7 +140,7 @@ describe('DeployPage', () => {
 		render(DeployPage);
 
 		expect(screen.getByText(/Deployment not found/i)).toBeInTheDocument();
-		
+
 		vi.advanceTimersByTime(5000);
 
 		await vi.runAllTimersAsync();
@@ -153,7 +149,7 @@ describe('DeployPage', () => {
 
 		vi.useRealTimers();
 	});
-	
+
 	it('should show error message when GUI initialization fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
@@ -203,12 +199,12 @@ describe('DeployPage', () => {
 			);
 		});
 	});
-	
+
 	it('should correctly pass state parameter from URL to handleGuiInitialization', async () => {
 		const stateValue = 'someEncodedStateFromUrl';
-		
+
 		vi.clearAllMocks();
-		
+
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: {} },
