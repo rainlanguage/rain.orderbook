@@ -26,10 +26,14 @@
 			<div class="text-center text-lg">No strategies found</div>
 		{:else}
 			{#if validStrategies.length > 0}
-				<ValidStrategiesSection strategies={validStrategies} />
+				<div data-testid="valid-strategies-section">
+					<ValidStrategiesSection strategies={validStrategies} />
+				</div>
 			{/if}
 			{#if invalidStrategies.length > 0}
-				<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
+				<div data-testid="invalid-strategies-section">
+					<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
+				</div>
 			{/if}
 		{/if}
 	{/if}
