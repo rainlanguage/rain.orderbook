@@ -11,9 +11,13 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import {
+		getOrderByHash,
+		type OrderWithSortedVaults,
+		type SgOrder
+	} from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import { TabItem, Tabs, Tooltip } from 'flowbite-svelte';
+	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
@@ -28,10 +32,8 @@
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
-	import RemoveOrderButton from '../actions/RemoveOrderButton.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -48,6 +50,8 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
+	export let onRemove: (order: SgOrder) => void;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -90,7 +94,11 @@
 			<div class="flex items-center gap-2">
 				{#if ($account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)) || $walletAddressMatchesOrBlank?.(data.order.owner)}
 					{#if data.order.active}
-						<RemoveOrderButton order={data.order} on:remove />
+						<Button
+							on:click={() => onRemove(data.order)}
+							data-testid="remove-order-button"
+							aria-label="Remove order">Remove</Button
+						>
 					{/if}
 				{/if}
 				<Refresh

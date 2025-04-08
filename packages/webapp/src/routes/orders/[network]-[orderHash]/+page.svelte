@@ -16,10 +16,6 @@
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
-	const { account } = useAccount();
-
-	import { prepareOrderRemoval } from '$lib/services/handleRemoveOrder'; // Adjust the import path as needed
-	import type { Hex } from 'viem';
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
