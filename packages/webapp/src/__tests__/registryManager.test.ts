@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import { vi } from 'vitest';
-import RegistryManager from '$lib/services/registryManager';
+import RegistryManager from '$lib/services/RegistryManager';
 import { REGISTRY_URL } from '$lib/constants';
 
 const localStorageMock: Storage = (() => {

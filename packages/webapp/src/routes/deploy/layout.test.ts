@@ -2,8 +2,6 @@ import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import Layout from './+layout.svelte';
-import RegistryManager from '$lib/services/registryManager';
-import { REGISTRY_URL } from '$lib/constants';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
@@ -204,5 +202,30 @@ describe('Layout Component', () => {
 		render(Layout);
 
 		expect(pushStateSpy).not.toHaveBeenCalled();
+	});
+	it('should store custom registry from URL in localStorage', () => {
+		const customRegistry = 'https://custom-registry.com';
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy',
+				search: `?registry=${customRegistry}`
+			} as unknown as URL
+		});
+
+		render(Layout);
+
+		expect(localStorageMock.setItem).toHaveBeenCalledWith('registry', customRegistry);
+	});
+	it('should clear registry from localStorage when using default registry', () => {
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/deploy',
+				search: '' // No registry param means default registry
+			} as unknown as URL
+		});
+
+		render(Layout);
+
+		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
 	});
 });

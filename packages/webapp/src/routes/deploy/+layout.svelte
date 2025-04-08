@@ -11,12 +11,8 @@
 
 	function loadRegistryUrl(url: string) {
 		RegistryManager.setToStorage(url);
-		registryFromStorage = url;
 		RegistryManager.updateUrlParam(url);
-	}
-
-	if (registryFromStorage && !window.location.search.includes('registry=' + registryFromStorage)) {
-		RegistryManager.updateUrlParam(registryFromStorage);
+		window.location.reload();
 	}
 </script>
 
