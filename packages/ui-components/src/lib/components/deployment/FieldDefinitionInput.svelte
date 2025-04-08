@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import { type GuiFieldDefinitionCfg, type GuiPresetCfg } from '@rainlanguage/orderbook/js_api';
+	import {
+		type FieldValue,
+		type GuiFieldDefinitionCfg,
+		type GuiPresetCfg
+	} from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
@@ -10,7 +14,7 @@
 
 	const gui = useGui();
 
-	let currentValue: GuiPresetCfg | undefined;
+	let currentValue: FieldValue | undefined;
 	let inputValue: string | null = currentValue?.value
 		? currentValue?.value
 		: fieldDefinition.default || null;
@@ -30,10 +34,7 @@
 
 	async function handlePresetClick(preset: GuiPresetCfg) {
 		inputValue = preset.value;
-		gui?.saveFieldValue(fieldDefinition.binding, {
-			isPreset: true,
-			value: preset.id
-		});
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
 
 		const result = gui.getFieldValue(fieldDefinition.binding);
 		if (result.error) {
@@ -44,10 +45,7 @@
 
 	async function handleCustomInputChange(value: string) {
 		inputValue = value;
-		gui?.saveFieldValue(fieldDefinition.binding, {
-			isPreset: false,
-			value: value
-		});
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
 
 		const result = gui.getFieldValue(fieldDefinition.binding);
 		if (result.error) {

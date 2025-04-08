@@ -67,10 +67,7 @@ describe('FieldDefinitionInput', () => {
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: true,
-			value: 'preset1'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -84,10 +81,7 @@ describe('FieldDefinitionInput', () => {
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'custom value'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -122,16 +116,14 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'default value@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
 		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({
 			value: {
-				isPreset: false,
-				value: 'preset1'
+				binding: 'test-binding',
+				value: 'preset1',
+				is_preset: false
 			}
 		});
 
@@ -150,9 +142,6 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'preset1@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
 	});
 });
