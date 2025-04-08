@@ -85,6 +85,7 @@
 					<span class="font-light">Order</span>
 					<Hash shorten value={data.order.orderHash} />
 				</div>
+
 				<BadgeActive active={data.order.active} large />
 			</div>
 
