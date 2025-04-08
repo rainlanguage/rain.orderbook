@@ -87,6 +87,7 @@
 					color="light"
 					size="xs"
 					data-testid="deposit-button"
+					aria-label="Deposit to vault"
 					on:click={() => onDeposit(data)}
 				>
 					<ArrowDownOutline size="xs" />
@@ -95,6 +96,7 @@
 					color="light"
 					size="xs"
 					data-testid="withdraw-button"
+					aria-label="Withdraw from vault"
 					on:click={() => onWithdraw(data)}
 				>
 					<ArrowUpOutline size="xs" />
