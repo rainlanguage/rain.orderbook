@@ -425,35 +425,34 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         Float memory aliceOutputMax = Float(0.5e18, -18);
         Float memory bobOutputMax = Float(0.5e18, -18);
 
-        StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        CheckClear memory checkClearStruct;
+        checkClearStruct.alice = alice;
+        checkClearStruct.aliceConfig = aliceConfig;
+        checkClearStruct.bob = bob;
+        checkClearStruct.bobConfig = bobConfig;
+        checkClearStruct.bountyBot = bountyBot;
+        checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
+        checkClearStruct.bobBountyVaultId = bobBountyVaultId;
+        checkClearStruct.aliceAmount = aliceAmount;
+        checkClearStruct.bobAmount = bobAmount;
+        checkClearStruct.expression = expression;
 
-        StackItem[] memory orderStackBob = new StackItem[](2);
-        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackAlice = new StackItem[](2);
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
 
-        checkClear(
-            CheckClear(
-                alice,
-                aliceConfig,
-                bob,
-                bobConfig,
-                bountyBot,
-                aliceBountyVaultId,
-                bobBountyVaultId,
-                aliceAmount,
-                bobAmount,
-                expression,
-                orderStackAlice,
-                orderStackBob,
-                Float(0.5e18, -18),
-                Float(0.5e18, -18),
-                Float(0, 0),
-                Float(0.5e18, -18),
-                ""
-            )
-        );
+        checkClearStruct.orderStackBob = new StackItem[](2);
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+
+        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = Float(0, 0);
+        checkClearStruct.expectedBobInput = Float(0.5e18, -18);
+
+        checkClearStruct.expectedError = "";
+
+        checkClear(checkClearStruct);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -476,35 +475,33 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         Float memory aliceOutputMax = Float(0.5e18, -18);
         Float memory bobOutputMax = Float(0.5e18, -18);
 
-        StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        CheckClear memory checkClearStruct;
+        checkClearStruct.alice = alice;
+        checkClearStruct.aliceConfig = aliceConfig;
+        checkClearStruct.bob = bob;
+        checkClearStruct.bobConfig = bobConfig;
+        checkClearStruct.bountyBot = bountyBot;
+        checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
+        checkClearStruct.bobBountyVaultId = bobBountyVaultId;
+        checkClearStruct.aliceAmount = aliceAmount;
+        checkClearStruct.bobAmount = bobAmount;
+        checkClearStruct.expression = expression;
 
-        StackItem[] memory orderStackBob = new StackItem[](2);
-        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackAlice = new StackItem[](2);
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
 
-        checkClear(
-            CheckClear(
-                alice,
-                aliceConfig,
-                bob,
-                bobConfig,
-                bountyBot,
-                aliceBountyVaultId,
-                bobBountyVaultId,
-                aliceAmount,
-                bobAmount,
-                expression,
-                orderStackAlice,
-                orderStackBob,
-                Float(0.5e18, -18),
-                Float(0.5e18, -18),
-                Float(0.5e18, -18),
-                Float(0, 0),
-                ""
-            )
-        );
+        checkClearStruct.orderStackBob = new StackItem[](2);
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+
+        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = Float(0.5e18, -18);
+        checkClearStruct.expectedBobInput = Float(0, 0);
+        checkClearStruct.expectedError = "";
+
+        checkClear(checkClearStruct);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -527,36 +524,34 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         Float memory aliceOutputMax = Float(0.5e18, -18);
         Float memory bobOutputMax = Float(0.5e18, -18);
 
+        CheckClear memory checkClearStruct;
+        checkClearStruct.alice = alice;
+        checkClearStruct.aliceConfig = aliceConfig;
+        checkClearStruct.bob = bob;
+        checkClearStruct.bobConfig = bobConfig;
+        checkClearStruct.bountyBot = bountyBot;
+        checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
+        checkClearStruct.bobBountyVaultId = bobBountyVaultId;
+        checkClearStruct.aliceAmount = aliceAmount;
+        checkClearStruct.bobAmount = bobAmount;
+        checkClearStruct.expression = expression;
+
         // Mock the interpreter.eval for Alice and Bob orders with zero ratio
-        StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        checkClearStruct.orderStackAlice = new StackItem[](2);
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
 
-        StackItem[] memory orderStackBob = new StackItem[](2);
+        checkClearStruct.orderStackBob = new StackItem[](2);
 
-        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
 
-        checkClear(
-            CheckClear(
-                alice,
-                aliceConfig,
-                bob,
-                bobConfig,
-                bountyBot,
-                aliceBountyVaultId,
-                bobBountyVaultId,
-                aliceAmount,
-                bobAmount,
-                expression,
-                orderStackAlice,
-                orderStackBob,
-                Float(0.5e18, -18),
-                Float(0.5e18, -18),
-                Float(0, 0),
-                Float(0, 0),
-                ""
-            )
-        );
+        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = Float(0, 0);
+        checkClearStruct.expectedBobInput = Float(0, 0);
+        checkClearStruct.expectedError = "";
+
+        checkClear(checkClearStruct);
     }
 }
