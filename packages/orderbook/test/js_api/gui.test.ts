@@ -2,7 +2,6 @@ import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { DotrainOrderGui } from '../../dist/cjs/js_api.js';
 import {
-	AllFieldValuesResult,
 	ApprovalCalldataResult,
 	DeploymentTransactionArgs,
 	DepositCalldataResult,
@@ -16,7 +15,8 @@ import {
 	TokenDeposit,
 	TokenInfo,
 	AllGuiConfig,
-	WasmEncodedResult
+	WasmEncodedResult,
+	FieldValue
 } from '../../dist/types/js_api.js';
 import { getLocal } from 'mockttp';
 
@@ -334,6 +334,112 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
+const dotrainForRemotes = `
+gui:
+  name: Test
+  description: Fixed limit order strategy
+  deployments:
+    test-deployment:
+      name: Test deployment
+      description: Test description
+      deposits:
+        - token: token1
+        - token: token2
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          default: some-default-value
+    other-deployment:
+      name: Test deployment
+      description: Test description
+      deposits:
+        - token: token3
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          default: some-default-value
+networks:
+    some-network:
+        rpc: http://localhost:8085/rpc-url
+        chain-id: 999
+        network-id: 999
+        currency: ZZ
+using-networks-from:
+  chainid:
+    url: http://localhost:8085/remote-networks
+    format: chainid
+subgraphs:
+    some-sg: https://www.some-sg.com
+    other-sg: https://www.other-sg.com
+metaboards:
+    test: https://metaboard.com
+deployers:
+    some-deployer:
+        network: remote-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+    other-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: remote-network
+        subgraph: some-sg
+    other-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: other-sg
+using-tokens-from: http://localhost:8085/remote-tokens
+tokens:
+    token1:
+        network: remote-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+    token2:
+        network: remote-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: Token 2
+        symbol: T2
+    token3:
+        network: some-network
+        address: 0xadf0000000000000000000000000000000000000
+        decimals: 6
+        label: Token 3
+        symbol: T3
+scenarios:
+    some-scenario:
+        deployer: some-deployer
+    other-scenario:
+        deployer: other-deployer
+orders:
+    some-order:
+      inputs:
+        - token: token1
+      outputs:
+        - token: token2
+      deployer: some-deployer
+      orderbook: some-orderbook
+    other-order:
+      inputs:
+        - token: token3
+      outputs:
+        - token: token3
+      deployer: other-deployer
+      orderbook: other-orderbook
+deployments:
+    test-deployment:
+        scenario: some-scenario
+        order: some-order
+    other-deployment:
+        scenario: other-scenario
+        order: other-order
+---
+_: 10,
+_: 20;
+`;
 const dotrainWithGui = `
 ${guiConfig}
 
@@ -650,30 +756,24 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
 				gui.getAllFieldDefinitions()
 			);
-			gui.saveFieldValue('binding-1', {
-				isPreset: true,
-				value: allFieldDefinitions[0].presets?.[0]?.id
+			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[0]?.value || '');
+			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
+				binding: 'binding-1',
+				value: allFieldDefinitions[0].presets?.[0]?.value || '',
+				is_preset: true
 			});
-			assert.deepEqual(
-				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
-				allFieldDefinitions[0].presets?.[0]
-			);
-			gui.saveFieldValue('binding-1', {
-				isPreset: true,
-				value: allFieldDefinitions[0].presets?.[1]?.id
+			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[1]?.value || '');
+			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
+				binding: 'binding-1',
+				value: allFieldDefinitions[0].presets?.[1]?.value || '',
+				is_preset: true
 			});
-			assert.deepEqual(
-				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
-				allFieldDefinitions[0].presets?.[1]
-			);
-			gui.saveFieldValue('binding-1', {
-				isPreset: true,
-				value: allFieldDefinitions[0].presets?.[2]?.id
+			gui.saveFieldValue('binding-1', allFieldDefinitions[0].presets?.[2]?.value || '');
+			assert.deepEqual(extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1')), {
+				binding: 'binding-1',
+				value: allFieldDefinitions[0].presets?.[2]?.value || '',
+				is_preset: true
 			});
-			assert.deepEqual(
-				extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1')),
-				allFieldDefinitions[0].presets?.[2]
-			);
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 3);
 			expect(stateUpdateCallback).toHaveBeenCalledWith(
@@ -685,52 +785,34 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			gui.saveFieldValues([
 				{
 					binding: 'binding-1',
-					value: {
-						isPreset: false,
-						value: '0x1234567890abcdef1234567890abcdef12345678'
-					}
+					value: '0x1234567890abcdef1234567890abcdef12345678'
 				},
 				{
 					binding: 'binding-2',
-					value: {
-						isPreset: false,
-						value: '100'
-					}
+					value: '100'
 				}
 			]);
 			gui.saveFieldValues([
 				{
 					binding: 'binding-1',
-					value: {
-						isPreset: false,
-						value: 'some-string'
-					}
+					value: 'some-string'
 				},
 				{
 					binding: 'binding-2',
-					value: {
-						isPreset: false,
-						value: 'true'
-					}
+					value: 'true'
 				}
 			]);
-			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
+			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 2);
 			assert.deepEqual(fieldValues[0], {
 				binding: 'binding-1',
-				value: {
-					id: '',
-					name: undefined,
-					value: 'some-string'
-				}
+				value: 'some-string',
+				is_preset: true
 			});
 			assert.deepEqual(fieldValues[1], {
 				binding: 'binding-2',
-				value: {
-					id: '',
-					name: undefined,
-					value: 'true'
-				}
+				value: 'true',
+				is_preset: false
 			});
 
 			assert.equal(stateUpdateCallback.mock.calls.length, 4);
@@ -739,19 +821,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			);
 		});
 
-		it('should throw error during save if preset is not found in field definition', () => {
-			const result = gui.saveFieldValue('binding-1', {
-				isPreset: true,
-				value: '89a3df5a-eee9-4af3-a10b-569f618f0f0c'
-			});
-			expect(result.error.msg).toBe('Invalid preset');
-			expect(result.error.readableMsg).toBe(
-				'The selected preset is invalid. Please choose a different preset from your YAML configuration.'
-			);
-		});
-
 		it('should throw error during save if field binding is not found in field definitions', () => {
-			const result = gui.saveFieldValue('binding-3', { isPreset: false, value: '1' });
+			const result = gui.saveFieldValue('binding-3', '1');
 			expect(result.error.msg).toBe('Field binding not found: binding-3');
 			expect(result.error.readableMsg).toBe(
 				"The field binding 'binding-3' could not be found in the YAML configuration."
@@ -759,42 +830,36 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		});
 
 		it('should get field value', async () => {
-			gui.saveFieldValue('binding-1', {
-				isPreset: false,
-				value: '0x1234567890abcdef1234567890abcdef12345678'
-			});
-			let fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1'));
+			gui.saveFieldValue('binding-1', '0x1234567890abcdef1234567890abcdef12345678');
+			let fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				id: '',
-				name: undefined,
-				value: '0x1234567890abcdef1234567890abcdef12345678'
+				binding: 'binding-1',
+				value: '0x1234567890abcdef1234567890abcdef12345678',
+				is_preset: true
 			});
 
-			gui.saveFieldValue('binding-2', { isPreset: false, value: 'true' });
-			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-2'));
+			gui.saveFieldValue('binding-2', 'true');
+			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				id: '',
-				name: undefined,
-				value: 'true'
+				binding: 'binding-2',
+				value: 'true',
+				is_preset: false
 			});
 
-			gui.saveFieldValue('binding-1', {
-				isPreset: false,
-				value: 'some-string'
-			});
-			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-1'));
+			gui.saveFieldValue('binding-1', 'some-string');
+			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-1'));
 			assert.deepEqual(fieldValue, {
-				id: '',
-				name: undefined,
-				value: 'some-string'
+				binding: 'binding-1',
+				value: 'some-string',
+				is_preset: true
 			});
 
-			gui.saveFieldValue('binding-2', { isPreset: false, value: '100.5' });
-			fieldValue = extractWasmEncodedData<GuiPresetCfg>(gui.getFieldValue('binding-2'));
+			gui.saveFieldValue('binding-2', '100.5');
+			fieldValue = extractWasmEncodedData<FieldValue>(gui.getFieldValue('binding-2'));
 			assert.deepEqual(fieldValue, {
-				id: '',
-				name: undefined,
-				value: '100.5'
+				binding: 'binding-2',
+				value: '100.5',
+				is_preset: false
 			});
 		});
 
@@ -915,11 +980,11 @@ ${dotrain}`;
 			const result = await gui.chooseDeployment(dotrain3, 'other-deployment');
 			extractWasmEncodedData(result);
 
-			gui.saveFieldValue('test-binding', {
-				isPreset: true,
-				value: extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
-					.presets?.[0].id
-			});
+			gui.saveFieldValue(
+				'test-binding',
+				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
+					.presets?.[0].value || ''
+			);
 			gui.saveDeposit('token1', '50.6');
 			gui.saveDeposit('token2', '100');
 			gui.removeSelectToken('token1');
@@ -937,15 +1002,12 @@ ${dotrain}`;
 			const gui = new DotrainOrderGui();
 			await gui.deserializeState(dotrain3, serializedState);
 
-			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
+			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 1);
 			assert.deepEqual(fieldValues[0], {
 				binding: 'test-binding',
-				value: {
-					id: '0',
-					name: undefined,
-					value: 'test-value'
-				}
+				value: 'test-value',
+				is_preset: true
 			});
 
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
@@ -979,23 +1041,20 @@ ${dotrainWithoutTokens}`;
 
 		it('should clear state', async () => {
 			gui.clearState();
-			const fieldValues = extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues());
+			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 0);
 			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
 			assert.equal(deposits.length, 0);
 		});
 
 		it('should check if field is preset', async () => {
-			gui.saveFieldValue('test-binding', {
-				isPreset: true,
-				value: extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
-					.presets?.[0].id
-			});
+			gui.saveFieldValue(
+				'test-binding',
+				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
+					.presets?.[0].value || ''
+			);
 			assert.equal(extractWasmEncodedData<boolean>(gui.isFieldPreset('test-binding')), true);
-			gui.saveFieldValue('test-binding', {
-				isPreset: false,
-				value: '100'
-			});
+			gui.saveFieldValue('test-binding', '100');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isFieldPreset('test-binding')), false);
 		});
 
@@ -1245,10 +1304,7 @@ ${dotrain}`;
 					'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
 				);
 
-			gui.saveFieldValue('test-binding', {
-				isPreset: false,
-				value: '10'
-			});
+			gui.saveFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
 			assert.equal(addOrderCalldata.length, 2314);
@@ -1323,10 +1379,7 @@ ${dotrain}`;
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
 
-			gui.saveFieldValue('test-binding', {
-				isPreset: true,
-				value: '0'
-			});
+			gui.saveFieldValue('test-binding', '0xbeef');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1366,7 +1419,7 @@ ${dotrain}`;
 				);
 
 			gui.removeFieldValue('test-binding');
-			assert.deepEqual(extractWasmEncodedData<AllFieldValuesResult[]>(gui.getAllFieldValues()), []);
+			assert.deepEqual(extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues()), []);
 
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
@@ -1430,10 +1483,7 @@ ${dotrainWithoutVaultIds}`;
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
 
-			gui.saveFieldValue('test-binding', {
-				isPreset: true,
-				value: '0'
-			});
+			gui.saveFieldValue('test-binding', '0');
 
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
@@ -1681,10 +1731,7 @@ ${dotrainWithoutVaultIds}`;
 				);
 
 			gui.saveDeposit('token2', '5000');
-			gui.saveFieldValue('test-binding', {
-				isPreset: false,
-				value: '10'
-			});
+			gui.saveFieldValue('test-binding', '10');
 
 			let result = extractWasmEncodedData<DeploymentTransactionArgs>(
 				await gui.getDeploymentTransactionArgs('0x1234567890abcdef1234567890abcdef12345678')
@@ -1918,6 +1965,324 @@ ${dotrainWithoutVaultIds}`;
 		it('should get network key', async () => {
 			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
 			assert.equal(networkKey, 'some-network');
+		});
+	});
+
+	describe('remote network tests', () => {
+		let gui: DotrainOrderGui;
+
+		beforeEach(() => {
+			gui = new DotrainOrderGui();
+		});
+
+		it('should fetch remote networks', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [],
+					logoUri: 'http://localhost.com'
+				});
+
+			await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			assert.ok(gui.getCurrentDeployment());
+		});
+
+		it('should fail for same remote token key in response', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					},
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+
+			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			expect(result.error.msg).toBe(
+				"Conflicting remote network in response, a network with key 'remote-network' already exists"
+			);
+			expect(result.error.readableMsg).toBe(
+				"Order configuration error in YAML: Conflicting remote network in response, a network with key 'remote-network' already exists"
+			);
+		});
+
+		it('should fail for duplicate network', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					},
+					{
+						name: 'Some Network',
+						chain: 'some-network',
+						chainId: 999,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 999,
+						nativeCurrency: {
+							name: 'Some Network',
+							symbol: 'ZZ',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'some-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [],
+					logoUri: 'http://localhost.com'
+				});
+
+			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			expect(result.error.msg).toBe('Remote network key shadowing: some-network');
+			expect(result.error.readableMsg).toBe(
+				'Order configuration error in YAML: Remote network key shadowing: some-network'
+			);
+		});
+	});
+
+	describe('remote tokens tests', () => {
+		let gui: DotrainOrderGui;
+
+		beforeEach(() => {
+			gui = new DotrainOrderGui();
+		});
+
+		it('should fetch remote tokens', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			assert.ok(gui.getCurrentDeployment());
+		});
+
+		it('should fail for same remote token key in response', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			const result = await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			expect(result.error.msg).toBe(
+				"Conflicting remote token in response, a token with key 'remote' already exists"
+			);
+			expect(result.error.readableMsg).toBe(
+				"Order configuration error in YAML: Conflicting remote token in response, a token with key 'remote' already exists"
+			);
+		});
+
+		it('should fail for duplicate token', async () => {
+			mockServer
+				.forGet('/remote-networks')
+				.once()
+				.thenJson(200, [
+					{
+						name: 'Remote',
+						chain: 'remote-network',
+						chainId: 123,
+						rpc: ['http://localhost:8085/rpc-url'],
+						networkId: 123,
+						nativeCurrency: {
+							name: 'Remote',
+							symbol: 'RN',
+							decimals: 18
+						},
+						infoURL: 'http://localhost:8085/info-url',
+						shortName: 'remote-network'
+					}
+				]);
+			mockServer
+				.forGet('/remote-tokens')
+				.once()
+				.thenJson(200, {
+					name: 'Remote',
+					timestamp: '2021-01-01T00:00:00.000Z',
+					keywords: [],
+					version: {
+						major: 1,
+						minor: 0,
+						patch: 0
+					},
+					tokens: [
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000000',
+							name: 'Token1',
+							symbol: 'RN',
+							decimals: 18
+						}
+					],
+					logoUri: 'http://localhost.com'
+				});
+
+			await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+
+			const result = await gui.getCurrentDeployment();
+			expect(result.error.msg).toBe('Remote token key shadowing: token1');
+			expect(result.error.readableMsg).toBe(
+				'YAML configuration error: Remote token key shadowing: token1'
+			);
 		});
 	});
 });
