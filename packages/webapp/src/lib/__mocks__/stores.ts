@@ -2,7 +2,6 @@ import { writable } from 'svelte/store';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { AppKit } from '@reown/appkit';
-import type { Page } from '@sveltejs/kit';
 
 const initialPageState = {
 	data: {
