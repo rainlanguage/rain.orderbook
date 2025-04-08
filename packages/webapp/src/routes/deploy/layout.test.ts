@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { render, screen } from '@testing-library/svelte';
 import Layout from './+layout.svelte';
 import RegistryManager from '$lib/services/RegistryManager';
 import type { Mock } from 'vitest';
@@ -124,11 +124,12 @@ describe('Layout Load Function', () => {
 		const mockEvent = {
 			url: new URL(`https://example.com/deploy?registry=${customRegistry}`)
 		};
-		
+
 		(RegistryManager.isCustomRegistry as Mock).mockReturnValue(true);
-		
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await load(mockEvent as any);
-		
+
 		expect(RegistryManager.setToStorage).toHaveBeenCalledWith(customRegistry);
 	});
 
@@ -136,31 +137,33 @@ describe('Layout Load Function', () => {
 		const mockEvent = {
 			url: new URL('https://example.com/deploy')
 		};
-		
+
 		(RegistryManager.isCustomRegistry as Mock).mockReturnValue(false);
-		
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await load(mockEvent as any);
-		
+
 		expect(RegistryManager.clearFromStorage).toHaveBeenCalled();
 	});
-	
+
 	it('should return registry and strategies data on successful fetch', async () => {
 		const mockEvent = {
 			url: new URL('https://example.com/deploy')
 		};
-		
+
 		const mockRegistryDotrains = [{ id: 'test-dotrain' }];
 		const mockValidStrategies = [{ id: 'valid-strategy' }];
 		const mockInvalidStrategies = [{ id: 'invalid-strategy' }];
-		
+
 		(fetchRegistryDotrains as Mock).mockResolvedValue(mockRegistryDotrains);
-		(validateStrategies as Mock).mockResolvedValue({ 
-			validStrategies: mockValidStrategies, 
-			invalidStrategies: mockInvalidStrategies 
+		(validateStrategies as Mock).mockResolvedValue({
+			validStrategies: mockValidStrategies,
+			invalidStrategies: mockInvalidStrategies
 		});
-		
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const result = await load(mockEvent as any);
-		
+
 		expect(result).toEqual({
 			registry: REGISTRY_URL,
 			registryDotrains: mockRegistryDotrains,
@@ -169,18 +172,19 @@ describe('Layout Load Function', () => {
 			error: null
 		});
 	});
-	
+
 	it('should return error information when fetch fails', async () => {
 		const mockEvent = {
 			url: new URL('https://example.com/deploy')
 		};
-		
+
 		const mockError = new Error('Failed to fetch');
 
 		(fetchRegistryDotrains as Mock).mockRejectedValue(mockError);
-		
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const result = await load(mockEvent as any);
-		
+
 		expect(result).toEqual({
 			registry: REGISTRY_URL,
 			registryDotrains: [],
@@ -189,5 +193,4 @@ describe('Layout Load Function', () => {
 			error: 'Failed to fetch'
 		});
 	});
-	
 });
