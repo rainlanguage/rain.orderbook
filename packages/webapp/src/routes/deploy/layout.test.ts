@@ -64,8 +64,8 @@ describe('Layout load function', () => {
 
 	it('should load strategies from custom registry URL when registry param is provided', async () => {
 		const customRegistry = 'https://custom.registry.url';
-		vi.mocked(fetchRegistryDotrains).mockResolvedValue(mockDotrains);
-		vi.mocked(validateStrategies).mockResolvedValue(mockValidated);
+		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
+		(validateStrategies as Mock).mockResolvedValue(mockValidated);
 
 		const result = await load(createUrlMock(customRegistry));
 
