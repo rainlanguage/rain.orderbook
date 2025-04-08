@@ -5,7 +5,7 @@ use crate::{
         optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    DeploymentCfg, NetworkCfg, TokenCfg, TokenCfgRef,
+    DeploymentCfg, TokenCfg, TokenCfgRef,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -563,8 +563,6 @@ impl YamlParseableValue for GuiCfg {
     ) -> Result<Option<Self>, YamlError> {
         let mut gui_res: Option<GuiCfg> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeploymentCfg> = HashMap::new();
-
-        NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 

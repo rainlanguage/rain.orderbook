@@ -155,7 +155,7 @@ pub enum ParseRemoteNetworksError {
     UnknownFormat(String),
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
-    #[error("Conflicting networks, a network with key '{}' already exists", 0)]
+    #[error("Conflicting remote network in response, a network with key '{0}' already exists")]
     ConflictingNetworks(String),
     #[error(transparent)]
     ChainIdError(#[from] ChainIdError),

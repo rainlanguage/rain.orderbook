@@ -49,6 +49,13 @@ impl YamlParsable for DotrainYaml {
         })
     }
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
+        DotrainYaml {
+            documents,
+            cache: Cache::default(),
+        }
+    }
+
     fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
         DotrainYaml {
             documents: dotrain_yaml.documents,
@@ -68,6 +75,10 @@ impl ContextProvider for DotrainYaml {
     fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
         self.cache.get_remote_networks()
     }
+
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg> {
+        self.cache.get_remote_tokens()
+    }
 }
 
 impl DotrainYaml {
@@ -78,6 +89,8 @@ impl DotrainYaml {
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         self.expand_context_with_current_order(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
 
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
@@ -97,6 +110,8 @@ impl DotrainYaml {
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
         self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
 
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
@@ -105,6 +120,7 @@ impl DotrainYaml {
         let mut context = Context::new();
         self.expand_context_with_current_deployment(&mut context, current_deployment);
         self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
 
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
