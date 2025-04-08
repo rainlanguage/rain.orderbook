@@ -1,14 +1,8 @@
 <script lang="ts">
-	import {
-		OrderDetail,
-		PageHeader,
-		TransactionStatus,
-		transactionStore
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { signerAddress } from '$lib/stores/wagmi';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
@@ -22,7 +16,10 @@
 	const subgraphUrl = $settings.subgraphs[network];
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
+	const { account } = useAccount();
+
 	import { prepareOrderRemoval } from '$lib/services/handleRemoveOrder'; // Adjust the import path as needed
+	import type { Hex } from 'viem';
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
@@ -40,20 +37,23 @@
 		toastOpen = false;
 	}
 
-	function executeOrderRemoval(event: CustomEvent<{ order: SgOrder }>) {
+	function onRemove(event: CustomEvent<{ order: SgOrder }>) {
 		const { order } = event.detail;
-		const orderConfig = prepareOrderRemoval(order, {
-			chainId,
-			orderbookAddress,
-			subgraphUrl
-		});
+
 		handleOrderRemoveModal({
-			open: orderConfig.modal.open,
+			open: true,
 			args: {
-				...orderConfig.modal.args,
+				order,
+				chainId,
+				orderbookAddress,
+				subgraphUrl,
 				onRemove: () => {
-					queryClient.invalidateQueries(orderConfig.queryInvalidation);
-					triggerToast(orderConfig.notification);
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+					triggerToast('Order removed successfully');
 				}
 			}
 		});
@@ -79,5 +79,5 @@
 	{orderbookAddress}
 	{chainId}
 	{handleDepositOrWithdrawModal}
-	on:remove={executeOrderRemoval}
+	{onRemove}
 />

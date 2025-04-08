@@ -5,13 +5,14 @@ import type {
 	SgOrder,
 	SgVault
 } from '@rainlanguage/orderbook/js_api';
+import type { Account } from '$lib/types/account';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
 	orderbookAddress: Hex;
 	chainId: number;
-	subgraphUrl: string;
+	subgraphUrl?: string;
 	network: string;
 };
 
@@ -22,6 +23,7 @@ export type DepositOrWithdrawArgs = {
 	chainId: number;
 	rpcUrl: string;
 	subgraphUrl: string;
+	account: Account;
 };
 
 export type OrderRemoveArgs = {
@@ -30,4 +32,5 @@ export type OrderRemoveArgs = {
 	chainId: number;
 	orderbookAddress: Hex;
 	subgraphUrl: string;
+	account: Account;
 };

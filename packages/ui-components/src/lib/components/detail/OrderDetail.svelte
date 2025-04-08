@@ -29,6 +29,7 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { InfoCircleOutline } from 'flowbite-svelte-icons';
 	import RemoveOrderButton from '../actions/RemoveOrderButton.svelte';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 

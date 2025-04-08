@@ -1,6 +1,9 @@
-use crate::config_source::*;
+use std::sync::{Arc, RwLock};
+
+use crate::{config_source::*, NetworkCfg};
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
+use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
 use url::Url;
 
@@ -76,6 +79,31 @@ impl TryFrom<ChainId> for NetworkConfigSource {
                     network_id: Some(value.network_id),
                     currency: Some(value.native_currency.symbol),
                     label: Some(value.name),
+                });
+            }
+        }
+        Err(ChainIdError::UnsupportedRpcUrls)
+    }
+}
+
+impl ChainId {
+    pub fn try_into_network_cfg(
+        self,
+        document: Arc<RwLock<StrictYaml>>,
+    ) -> Result<NetworkCfg, ChainIdError> {
+        if self.rpc.is_empty() {
+            return Err(ChainIdError::NoRpc);
+        }
+        for rpc in &self.rpc {
+            if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
+                return Ok(NetworkCfg {
+                    document: document.clone(),
+                    key: self.short_name,
+                    rpc: rpc.clone(),
+                    chain_id: self.chain_id,
+                    label: Some(self.name),
+                    network_id: Some(self.network_id),
+                    currency: Some(self.native_currency.symbol),
                 });
             }
         }

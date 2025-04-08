@@ -11,13 +11,9 @@
 	import Refresh from '$lib/components/icon/Refresh.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { createEventDispatcher } from 'svelte';
-	import RemoveOrderButton from '../lib/components/actions/RemoveOrderButton.svelte';
+	import { Button } from 'flowbite-svelte';
 
 	const queryClient = useQueryClient();
-	const dispatch = createEventDispatcher<{
-		remove: { order: SgOrder };
-	}>();
 
 	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
 		undefined;
@@ -25,6 +21,7 @@
 	export let subgraphUrl: string;
 	export let signerAddress: Writable<string>;
 	export let chainId: number;
+	export let onRemove: (order: SgOrder) => void;
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -40,10 +37,11 @@
 		<div>Order {data.order.orderHash}</div>
 		{#if $signerAddress === data.order.owner || $walletAddressMatchesOrBlank?.(data.order.owner)}
 			{#if data.order.active}
-				<RemoveOrderButton
-					order={data.order}
-					on:remove={(e) => dispatch('remove', { order: e.detail.order })}
-				/>
+				<Button
+					on:click={() => onRemove(data.order)}
+					data-testid="remove-order-button"
+					aria-label="Remove order">Remove</Button
+				>
 			{/if}
 		{/if}
 

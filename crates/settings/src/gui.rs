@@ -564,7 +564,7 @@ impl YamlParseableValue for GuiCfg {
         let mut gui_res: Option<GuiCfg> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeploymentCfg> = HashMap::new();
 
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
