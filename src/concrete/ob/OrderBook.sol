@@ -289,41 +289,26 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         external
         nonReentrant
     {
-        if (!LibDecimalFloat.gt(targetAmount.signedCoefficient, targetAmount.exponent, 0, 0)) {
+        if (!targetAmount.gt(Float(0, 0))) {
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
 
         PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
-        (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
-            currentVaultBalancePacked.unpack();
+        Float memory currentVaultBalance = currentVaultBalancePacked.unpackMem();
 
-        Float memory withdrawAmount;
-        (withdrawAmount.signedCoefficient, withdrawAmount.exponent) = LibDecimalFloat.lt(
-            targetAmount.signedCoefficient,
-            targetAmount.exponent,
-            currentVaultBalanceSignedCoefficient,
-            currentVaultBalanceExponent
-        )
-            ? (targetAmount.signedCoefficient, targetAmount.exponent)
-            : (currentVaultBalanceSignedCoefficient, currentVaultBalanceExponent);
+        Float memory withdrawAmount = targetAmount.min(currentVaultBalance);
 
         // The overflow check here is redundant with .min above, so
         // technically this is overly conservative but we REALLY don't want
         // withdrawals to exceed vault balances.
-        (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.sub(
-            currentVaultBalanceSignedCoefficient,
-            currentVaultBalanceExponent,
-            withdrawAmount.signedCoefficient,
-            withdrawAmount.exponent
-        );
-        if (LibDecimalFloat.lt(newBalanceSignedCoefficient, newBalanceExponent, 0, 0)) {
+        Float memory newBalance = currentVaultBalance.sub(withdrawAmount);
+
+        if (newBalance.lt(Float(0, 0))) {
             revert NegativeVaultBalance();
         }
-        sVaultBalances[msg.sender][token][vaultId] =
-            LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
+        sVaultBalances[msg.sender][token][vaultId] = LibDecimalFloat.pack(newBalance);
 
-        PackedFloat withdrawAmountPacked =
-            LibDecimalFloat.pack(withdrawAmount.signedCoefficient, withdrawAmount.exponent);
+        PackedFloat withdrawAmountPacked = LibDecimalFloat.pack(withdrawAmount);
 
         (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(token, withdrawAmount);
 
@@ -477,7 +462,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 signedCoefficient: config.maximumInput.signedCoefficient,
                 exponent: config.maximumInput.exponent
             });
-            if (!LibDecimalFloat.gt(remainingTakerInput.signedCoefficient, remainingTakerInput.exponent, 0, 0)) {
+            if (!remainingTakerInput.gt(Float(0, 0))) {
                 revert ZeroMaximumInput();
             }
             Float memory maximumInput = Float({
@@ -486,10 +471,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             });
 
             uint256 i = 0;
-            while (
-                i < config.orders.length
-                    && LibDecimalFloat.gt(remainingTakerInput.signedCoefficient, remainingTakerInput.exponent, 0, 0)
-            ) {
+            while (i < config.orders.length && remainingTakerInput.gt(Float(0, 0))) {
                 takeOrderConfig = config.orders[i];
                 order = takeOrderConfig.order;
                 // Every order needs the same input token.
@@ -530,48 +512,20 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     // no way of knowing if a specific order becomes too expensive
                     // between submitting to mempool and execution, but other orders may
                     // be valid so we want to take advantage of those if possible.
-                    if (
-                        LibDecimalFloat.gt(
-                            orderIOCalculation.IORatio.signedCoefficient,
-                            orderIOCalculation.IORatio.exponent,
-                            config.maximumIORatio.signedCoefficient,
-                            config.maximumIORatio.exponent
-                        )
-                    ) {
+                    if (orderIOCalculation.IORatio.gt(config.maximumIORatio)) {
                         emit OrderExceedsMaxRatio(msg.sender, order.owner, orderHash);
                     } else if (orderIOCalculation.outputMax.signedCoefficient == 0) {
                         emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                     } else {
                         // Taker is just "market buying" the order output max.
                         // Can't exceed the remaining taker input.
-                        Float memory takerInput = LibDecimalFloat.lt(
-                            orderIOCalculation.outputMax.signedCoefficient,
-                            orderIOCalculation.outputMax.exponent,
-                            remainingTakerInput.signedCoefficient,
-                            remainingTakerInput.exponent
-                        ) ? orderIOCalculation.outputMax : remainingTakerInput;
+                        Float memory takerInput = orderIOCalculation.outputMax.min(remainingTakerInput);
 
-                        Float memory takerOutput;
-                        (takerOutput.signedCoefficient, takerOutput.exponent) = LibDecimalFloat.multiply(
-                            orderIOCalculation.IORatio.signedCoefficient,
-                            orderIOCalculation.IORatio.exponent,
-                            takerInput.signedCoefficient,
-                            takerInput.exponent
-                        );
+                        Float memory takerOutput = orderIOCalculation.IORatio.multiply(takerInput);
 
-                        (remainingTakerInput.signedCoefficient, remainingTakerInput.exponent) = LibDecimalFloat.sub(
-                            remainingTakerInput.signedCoefficient,
-                            remainingTakerInput.exponent,
-                            takerInput.signedCoefficient,
-                            takerInput.exponent
-                        );
+                        remainingTakerInput = remainingTakerInput.sub(takerInput);
 
-                        (totalTakerOutput.signedCoefficient, totalTakerOutput.exponent) = LibDecimalFloat.add(
-                            totalTakerOutput.signedCoefficient,
-                            totalTakerOutput.exponent,
-                            takerOutput.signedCoefficient,
-                            takerOutput.exponent
-                        );
+                        totalTakerOutput = totalTakerOutput.add(takerOutput);
 
                         recordVaultIO(takerOutput, takerInput, orderIOCalculation);
                         emit TakeOrderV3(msg.sender, takeOrderConfig, takerInput, takerOutput);
@@ -594,23 +548,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     i++;
                 }
             }
-            (totalTakerInput.signedCoefficient, totalTakerInput.exponent) = LibDecimalFloat.sub(
-                maximumInput.signedCoefficient,
-                maximumInput.exponent,
-                remainingTakerInput.signedCoefficient,
-                remainingTakerInput.exponent
-            );
+            totalTakerInput = maximumInput.sub(remainingTakerInput);
         }
 
         {
-            if (
-                LibDecimalFloat.lt(
-                    totalTakerInput.signedCoefficient,
-                    totalTakerInput.exponent,
-                    config.minimumInput.signedCoefficient,
-                    config.minimumInput.exponent
-                )
-            ) {
+            if (totalTakerInput.lt(config.minimumInput)) {
                 revert MinimumInput(config.minimumInput, totalTakerInput);
             }
         }
@@ -707,56 +649,31 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
         {
-            (int256 aliceBountySignedCoefficient, int256 aliceBountyExponent) = LibDecimalFloat.sub(
-                clearStateChange.aliceOutput.signedCoefficient,
-                clearStateChange.aliceOutput.exponent,
-                clearStateChange.bobInput.signedCoefficient,
-                clearStateChange.bobInput.exponent
-            );
-            (int256 bobBountySignedCoefficient, int256 bobBountyExponent) = LibDecimalFloat.sub(
-                clearStateChange.bobOutput.signedCoefficient,
-                clearStateChange.bobOutput.exponent,
-                clearStateChange.aliceInput.signedCoefficient,
-                clearStateChange.aliceInput.exponent
-            );
+            Float memory aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
+            Float memory bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
 
             // A negative bounty means there is a spread between the orders.
             // This is a critical error because it means the DEX could be
             // exploited if allowed.
-            if (
-                LibDecimalFloat.lt(aliceBountySignedCoefficient, aliceBountyExponent, 0, 0)
-                    || LibDecimalFloat.lt(bobBountySignedCoefficient, bobBountyExponent, 0, 0)
-            ) {
+            if (aliceBounty.lt(Float(0, 0)) || bobBounty.lt(Float(0, 0))) {
                 revert NegativeBounty();
             }
 
-            if (LibDecimalFloat.gt(aliceBountySignedCoefficient, aliceBountyExponent, 0, 0)) {
-                PackedFloat currentBalance = sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig
+            if (aliceBounty.gt(Float(0, 0))) {
+                PackedFloat currentBalancePacked = sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig
                     .aliceOutputIOIndex].token][clearConfig.aliceBountyVaultId];
-                (int256 currentBalanceSignedCoefficient, int256 currentBalanceExponent) =
-                    LibDecimalFloat.unpack(currentBalance);
-                (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.add(
-                    currentBalanceSignedCoefficient,
-                    currentBalanceExponent,
-                    aliceBountySignedCoefficient,
-                    aliceBountyExponent
-                );
+                Float memory currentBalance = currentBalancePacked.unpackMem();
+                Float memory newBalance = currentBalance.add(aliceBounty);
                 sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
-                    .aliceBountyVaultId] = LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
+                    .aliceBountyVaultId] = LibDecimalFloat.pack(newBalance);
             }
-            if (LibDecimalFloat.gt(bobBountySignedCoefficient, bobBountyExponent, 0, 0)) {
-                PackedFloat currentBalance = sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig
+            if (bobBounty.gt(Float(0, 0))) {
+                PackedFloat currentBalancePacked = sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig
                     .bobOutputIOIndex].token][clearConfig.bobBountyVaultId];
-                (int256 currentBalanceSignedCoefficient, int256 currentBalanceExponent) =
-                    LibDecimalFloat.unpack(currentBalance);
-                (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.add(
-                    currentBalanceSignedCoefficient,
-                    currentBalanceExponent,
-                    bobBountySignedCoefficient,
-                    bobBountyExponent
-                );
+                Float memory currentBalance = currentBalancePacked.unpackMem();
+                Float memory newBalance = currentBalance.add(bobBounty);
                 sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
-                    .bobBountyVaultId] = LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
+                    .bobBountyVaultId] = newBalance.pack();
             }
         }
 
@@ -929,9 +846,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         internal
     {
         orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
-            PackedFloat.unwrap(LibDecimalFloat.pack(input.signedCoefficient, input.exponent));
+            PackedFloat.unwrap(input.pack());
         orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] =
-            PackedFloat.unwrap(LibDecimalFloat.pack(output.signedCoefficient, output.exponent));
+            PackedFloat.unwrap(output.pack());
 
         if (LibDecimalFloat.lt(input.signedCoefficient, input.exponent, 0, 0)) {
             revert NegativeInput();
@@ -1127,12 +1044,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
 
-        if (LibDecimalFloat.lt(amountFloat.signedCoefficient, amountFloat.exponent, 0, 0)) {
+        if (amountFloat.lt(Float(0, 0))) {
             revert NegativePush();
         }
 
-        (uint256 amount, bool lossless) =
-            LibDecimalFloat.toFixedDecimalLossy(amountFloat.signedCoefficient, amountFloat.exponent, decimals);
+        (uint256 amount, bool lossless) = LibDecimalFloat.toFixedDecimalLossy(amountFloat, decimals);
         // Truncate when pushing.
         (lossless);
         if (amount > 0) {
