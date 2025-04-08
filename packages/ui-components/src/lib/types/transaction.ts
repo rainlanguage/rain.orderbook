@@ -32,5 +32,4 @@ export type OrderRemoveArgs = {
 	chainId: number;
 	orderbookAddress: Hex;
 	subgraphUrl: string;
-	account: Account;
 };
