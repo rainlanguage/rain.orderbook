@@ -6,7 +6,7 @@ pub mod orderbook;
 use crate::{
     NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
@@ -25,6 +25,7 @@ use url::ParseError as UrlParseError;
 pub trait YamlParsable: Sized {
     fn new(sources: Vec<String>, validate: bool) -> Result<Self, YamlError>;
 
+    fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self;
     fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self;
     fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self;
 
@@ -95,6 +96,11 @@ pub trait ContextProvider {
         context.set_remote_networks(self.get_remote_networks_from_cache());
     }
     fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg>;
+
+    fn expand_context_with_remote_tokens(&self, context: &mut Context) {
+        context.set_remote_tokens(self.get_remote_tokens_from_cache());
+    }
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
 
     fn expand_context_with_current_deployment(
         &self,
