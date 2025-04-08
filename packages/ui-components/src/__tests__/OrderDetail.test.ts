@@ -189,7 +189,6 @@ describe('OrderDetail', () => {
 			expect(screen.getByText(orderbookAddress)).toBeInTheDocument();
 			expect(screen.getByText('0x1234567890123456789012345678901234567890')).toBeInTheDocument();
 		});
-
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
