@@ -54,7 +54,7 @@ abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub
 
     /// Boilerplate to add an order with a mocked deployer and checks events and
     /// storage accesses.
-    function addOrderWithChecks(address owner, OrderConfigV4 memory config, bytes memory expression)
+    function addOrderWithChecks(address owner, OrderConfigV4 memory config, bytes memory)
         internal
         returns (OrderV4 memory, bytes32)
     {

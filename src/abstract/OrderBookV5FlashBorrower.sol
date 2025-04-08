@@ -162,6 +162,7 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
         (TOFUOutcome inputOutcome, uint8 inputDecimals) =
             LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, ordersInputToken);
+        (inputOutcome);
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.

@@ -189,15 +189,15 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             iOrderbook.clear3(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
-        {
-            Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
-                clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-            );
-            // Float memory expectedAliceOutput = Float({
-            //     signedCoefficient: clear.expectedAliceOutput,
-            //     exponent: 0
-            // });
-        }
+        // {
+        //     Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
+        //         clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+        //     );
+        //     // Float memory expectedAliceOutput = Float({
+        //     //     signedCoefficient: clear.expectedAliceOutput,
+        //     //     exponent: 0
+        //     // });
+        // }
 
         assertTrue(
             iOrderbook.vaultBalance2(

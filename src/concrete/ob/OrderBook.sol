@@ -201,6 +201,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     using LibOrder for OrderV4;
     using LibUint256Array for uint256;
     using LibDecimalFloat for PackedFloat;
+    using LibDecimalFloat for Float;
     using LibBytes32Array for bytes32;
 
     /// All hashes of all active orders. There's nothing interesting in the value
@@ -231,7 +232,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         override
         returns (Float memory vaultBalance)
     {
-        (vaultBalance.signedCoefficient, vaultBalance.exponent) = sVaultBalances[owner][token][vaultId].unpack();
+        vaultBalance = sVaultBalances[owner][token][vaultId].unpackMem();
     }
 
     /// @inheritdoc IOrderBookV5
@@ -249,12 +250,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         external
         nonReentrant
     {
-        if (!LibDecimalFloat.gt(depositAmount.signedCoefficient, depositAmount.exponent, 0, 0)) {
+        if (!depositAmount.gt(Float(0, 0))) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
 
-        (uint256 depositAmountUint256, uint8 decimals) =
-            pullTokens(token, depositAmount.signedCoefficient, depositAmount.exponent);
+        (uint256 depositAmountUint256, uint8 decimals) = pullTokens(token, depositAmount);
         (decimals);
 
         // It is safest with vault deposits to move tokens in to the Orderbook
@@ -262,18 +262,12 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // guard in place anyway.
         emit DepositV2(msg.sender, token, vaultId, depositAmountUint256);
 
-        Float memory currentVaultBalance;
         PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
-        (int256 currentVaultBalanceSignedCoefficient, int256 currentVaultBalanceExponent) =
-            currentVaultBalancePacked.unpack();
-        (int256 newBalanceSignedCoefficient, int256 newBalanceExponent) = LibDecimalFloat.add(
-            currentVaultBalanceSignedCoefficient,
-            currentVaultBalanceExponent,
-            depositAmount.signedCoefficient,
-            depositAmount.exponent
-        );
-        sVaultBalances[msg.sender][token][vaultId] =
-            LibDecimalFloat.pack(newBalanceSignedCoefficient, newBalanceExponent);
+        Float memory currentVaultBalance = currentVaultBalancePacked.unpackMem();
+
+        Float memory newBalance = currentVaultBalance.add(depositAmount);
+
+        sVaultBalances[msg.sender][token][vaultId] = newBalance.pack();
 
         if (post.length != 0) {
             LibOrderBook.doPost(
@@ -282,9 +276,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         bytes32(uint256(uint160(token))),
                         bytes32(vaultId),
                         PackedFloat.unwrap(currentVaultBalancePacked),
-                        PackedFloat.unwrap(
-                            LibDecimalFloat.pack(depositAmount.signedCoefficient, depositAmount.exponent)
-                        )
+                        PackedFloat.unwrap(depositAmount.pack())
                     )
                 ),
                 post
@@ -646,11 +638,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             );
         }
 
-        pullTokens(
-            config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
-            totalTakerOutput.signedCoefficient,
-            totalTakerOutput.exponent
-        );
+        pullTokens(config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token, totalTakerOutput);
 
         unchecked {
             for (uint256 i = 0; i < orderIOCalculationsToHandle.length; i++) {
@@ -807,8 +795,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 );
 
                 {
-                    (TOFUOutcome inputOutcome, uint8 inputDecimals) =
-                        LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, order.validInputs[inputIOIndex].token);
+                    (TOFUOutcome inputOutcome, uint8 inputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
+                        sTOFUTokenDecimals, order.validInputs[inputIOIndex].token
+                    );
                     if (inputOutcome != TOFUOutcome.Consistent) {
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
@@ -826,7 +815,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 {
-                    (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForToken(
+                    (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
                         sTOFUTokenDecimals, order.validOutputs[outputIOIndex].token
                     );
                     if (outputOutcome != TOFUOutcome.Consistent) {
@@ -1109,28 +1098,24 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    function pullTokens(address token, int256 amountSignedCoefficient, int256 amountExponent)
-        internal
-        returns (uint256, uint8)
-    {
+    function pullTokens(address token, Float memory amount) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
         if (tofuOutcome != TOFUOutcome.Consistent) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
-        if (LibDecimalFloat.lt(amountSignedCoefficient, amountExponent, 0, 0)) {
+        if (amount.lt(Float(0, 0))) {
             revert NegativePull();
         }
 
-        (uint256 amount, bool lossless) =
-            LibDecimalFloat.toFixedDecimalLossy(amountSignedCoefficient, amountExponent, decimals);
+        (uint256 amount18, bool lossless) = LibDecimalFloat.toFixedDecimalLossy(amount, decimals);
         // Round truncation up when pulling.
         if (!lossless) {
-            ++amount;
+            ++amount18;
         }
-        if (amount > 0) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        if (amount18 > 0) {
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount18);
         }
-        return (amount, decimals);
+        return (amount18, decimals);
     }
 
     function pushTokens(address token, Float memory amountFloat) internal returns (uint256, uint8) {

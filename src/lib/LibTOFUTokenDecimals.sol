@@ -24,27 +24,7 @@ enum TOFUOutcome {
 }
 
 library LibTOFUTokenDecimals {
-    /// Trust on first use (TOFU) token decimals.
-    /// The first time we read the decimals from a token we store them in a
-    /// mapping. If the token's decimals change we will always use the stored
-    /// value. This is because the token's decimals could technically change and
-    /// are NOT intended for onchain use as they are optional, but we're doing
-    /// it anyway to convert to floating point numbers.
-    ///
-    /// If we have nothing stored we read from the token, store and return it
-    /// with TOFUOUTCOME.Consistent.
-    ///
-    /// If the call to `decimals` is not a success that deserializes cleanly to
-    /// a `uint8` we return the stored value and TOFUOUTCOME.ReadFailure.
-    ///
-    /// If the stored value is inconsistent with the token's decimals we return
-    /// the stored value and TOFUOUTCOME.Inconsistent.
-    ///
-    /// @return True if the token's decimals are consistent with the stored
-    /// value.
-    /// @return The token's decimals, prioritising the stored value if
-    /// inconsistent.
-    function decimalsForToken(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
+    function decimalsForTokenReadOnly(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
         internal
         view
         returns (TOFUOutcome, uint8)
@@ -70,7 +50,6 @@ library LibTOFUTokenDecimals {
         uint8 readDecimals = uint8(decodedDecimals);
 
         if (!tofuTokenDecimals.initialized) {
-            sTOFUTokenDecimals[token] = TOFUTokenDecimals({initialized: true, tokenDecimals: readDecimals});
             return (TOFUOutcome.Initial, readDecimals);
         } else {
             return (
@@ -78,5 +57,37 @@ library LibTOFUTokenDecimals {
                 tofuTokenDecimals.tokenDecimals
             );
         }
+    }
+
+    /// Trust on first use (TOFU) token decimals.
+    /// The first time we read the decimals from a token we store them in a
+    /// mapping. If the token's decimals change we will always use the stored
+    /// value. This is because the token's decimals could technically change and
+    /// are NOT intended for onchain use as they are optional, but we're doing
+    /// it anyway to convert to floating point numbers.
+    ///
+    /// If we have nothing stored we read from the token, store and return it
+    /// with TOFUOUTCOME.Consistent.
+    ///
+    /// If the call to `decimals` is not a success that deserializes cleanly to
+    /// a `uint8` we return the stored value and TOFUOUTCOME.ReadFailure.
+    ///
+    /// If the stored value is inconsistent with the token's decimals we return
+    /// the stored value and TOFUOUTCOME.Inconsistent.
+    ///
+    /// @return True if the token's decimals are consistent with the stored
+    /// value.
+    /// @return The token's decimals, prioritising the stored value if
+    /// inconsistent.
+    function decimalsForToken(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
+        internal
+        returns (TOFUOutcome, uint8)
+    {
+        (TOFUOutcome tofuOutcome, uint8 readDecimals) = decimalsForTokenReadOnly(sTOFUTokenDecimals, token);
+
+        if (tofuOutcome == TOFUOutcome.Initial) {
+            sTOFUTokenDecimals[token] = TOFUTokenDecimals({initialized: true, tokenDecimals: readDecimals});
+        }
+        return (tofuOutcome, readDecimals);
     }
 }
