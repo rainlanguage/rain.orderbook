@@ -42,7 +42,7 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	subgraphUrl,
 	orderbookAddress,
 	chainId,
-	colorTheme: 'dark',
+	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
 	wagmiConfig: writable({} as Config),
