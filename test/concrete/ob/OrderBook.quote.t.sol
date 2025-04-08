@@ -16,6 +16,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -24,24 +25,28 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
 
+    using LibDecimalFloat for Float;
+
     /// Dead orders always eval to false.
     /// forge-config: default.fuzz.runs = 100
     function testQuoteDeadOrder(QuoteV2 memory quoteConfig) external view {
-        (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote2(quoteConfig);
+        (bool success, Float memory maxOutput, Float memory ioRatio) = iOrderbook.quote2(quoteConfig);
         assert(!success);
-        assertEq(maxOutput, 0);
-        assertEq(ioRatio, 0);
+        assertTrue(maxOutput.eq(Float(0, 0)), "max output");
+        assertTrue(ioRatio.eq(Float(0, 0)), "io ratio");
     }
 
     function checkQuote(
         address owner,
         OrderConfigV4 memory config,
         bytes[] memory rainlang,
-        uint256 depositAmount,
-        uint256[] memory expectedMaxOutput,
-        uint256[] memory expectedIoRatio
+        Float memory depositAmount,
+        Float[] memory expectedMaxOutput,
+        Float[] memory expectedIoRatio
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+
+        uint256 depositAmount18 = depositAmount.toFixedDecimalLossless(18);
 
         config.validOutputs[0].token = address(iToken0);
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
@@ -51,7 +56,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
         vm.prank(owner);
@@ -74,10 +79,10 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
             QuoteV2 memory quoteConfig =
                 QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
-            (bool success, uint256 maxOutput, uint256 ioRatio) = iOrderbook.quote2(quoteConfig);
+            (bool success, Float memory maxOutput, Float memory ioRatio) = iOrderbook.quote2(quoteConfig);
             assert(success);
-            assertEq(maxOutput, expectedMaxOutput[i], "max output");
-            assertEq(ioRatio, expectedIoRatio[i], "io ratio");
+            assertTrue(maxOutput.eq(expectedMaxOutput[i]), "max output");
+            assertTrue(ioRatio.eq(expectedIoRatio[i]), "io ratio");
         }
     }
 
@@ -85,41 +90,45 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         address owner,
         OrderConfigV4 memory config,
         bytes memory rainlang,
-        uint256 depositAmount,
-        uint256 expectedMaxOutput,
-        uint256 expectedIoRatio
+        Float memory depositAmount,
+        Float memory expectedMaxOutput,
+        Float memory expectedIoRatio
     ) internal {
         bytes[] memory rainlangArray = new bytes[](1);
         rainlangArray[0] = rainlang;
 
-        uint256[] memory expectedMaxOutputArray = new uint256[](1);
+        Float[] memory expectedMaxOutputArray = new Float[](1);
         expectedMaxOutputArray[0] = expectedMaxOutput;
 
-        uint256[] memory expectedIoRatioArray = new uint256[](1);
+        Float[] memory expectedIoRatioArray = new Float[](1);
         expectedIoRatioArray[0] = expectedIoRatio;
 
         checkQuote(owner, config, rainlangArray, depositAmount, expectedMaxOutputArray, expectedIoRatioArray);
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
-        depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
-        checkQuote(owner, config, "_ _:1 2;", depositAmount, 1e18, 2e18);
+    function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
+        depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
+        checkQuote(owner, config, "_ _:1 2;", depositAmount, Float(1, 0), Float(2, 0));
     }
 
     /// The output will be maxed at the deposit in the vault.
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
-        depositAmount = bound(depositAmount, 1, 1e12);
-        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount * 1e6, 2e18);
+    function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
+        depositAmount18 = bound(depositAmount18, 1, 1e12);
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 12);
+        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount.multiply(Float(1, 6)), Float(2, 0));
     }
 
     /// Can access context.
     /// forge-config: default.fuzz.runs = 100
-    function testQuoteContextSender(address owner, OrderConfigV4 memory config, uint256 depositAmount) external {
+    function testQuoteContextSender(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         // Max amount needs to be small enough to be scaled up to 18 decimals
         // from 12 decimals.
-        depositAmount = bound(depositAmount, 1e18, type(uint256).max / 1e6);
+        depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
+
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -180,37 +189,37 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(output-vault-before() context<4 3>()) \"output vault before\"),",
                 ":ensure(equal-to(output-vault-before() ",
-                depositAmount.toString(),
+                depositAmount18.toString(),
                 "e-12) \"output vault before literal\"),",
                 "_ _:1 context<4 3>();:;"
             )
         );
 
-        uint256[] memory expectedMaxOutput = new uint256[](10);
-        expectedMaxOutput[0] = 1e18;
-        expectedMaxOutput[1] = 1e18;
-        expectedMaxOutput[2] = 1e18;
-        expectedMaxOutput[3] = 1e18;
-        expectedMaxOutput[4] = 1e18;
-        expectedMaxOutput[5] = 1e18;
-        expectedMaxOutput[6] = 1e18;
-        expectedMaxOutput[7] = 1e18;
-        expectedMaxOutput[8] = 1e18;
-        expectedMaxOutput[9] = 1e18;
+        Float[] memory expectedMaxOutput = new Float[](10);
+        expectedMaxOutput[0] = Float(1, 0);
+        expectedMaxOutput[1] = Float(1, 0);
+        expectedMaxOutput[2] = Float(1, 0);
+        expectedMaxOutput[3] = Float(1, 0);
+        expectedMaxOutput[4] = Float(1, 0);
+        expectedMaxOutput[5] = Float(1, 0);
+        expectedMaxOutput[6] = Float(1, 0);
+        expectedMaxOutput[7] = Float(1, 0);
+        expectedMaxOutput[8] = Float(1, 0);
+        expectedMaxOutput[9] = Float(1, 0);
 
-        uint256[] memory expectedIoRatio = new uint256[](10);
-        expectedIoRatio[0] = uint256(uint160(address(this)));
-        expectedIoRatio[1] = uint256(uint160(address(iOrderbook)));
-        expectedIoRatio[2] = uint256(uint160(owner));
-        expectedIoRatio[3] = uint256(uint160(address(this)));
-        expectedIoRatio[4] = uint256(uint160(address(iToken1)));
+        Float[] memory expectedIoRatio = new Float[](10);
+        expectedIoRatio[0] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(this))), 18);
+        expectedIoRatio[1] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iOrderbook))), 18);
+        expectedIoRatio[2] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(owner)), 18);
+        expectedIoRatio[3] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(this))), 18);
+        expectedIoRatio[4] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iToken1))), 18);
         // Input decimals scaled to 18 fixed point value.
-        expectedIoRatio[5] = 6e18;
-        expectedIoRatio[6] = 0;
-        expectedIoRatio[7] = uint256(uint160(address(iToken0)));
-        expectedIoRatio[8] = 12e18;
+        expectedIoRatio[5] = LibDecimalFloat.fromFixedDecimalLosslessMem(6e18, 18);
+        expectedIoRatio[6] = LibDecimalFloat.fromFixedDecimalLosslessMem(0, 18);
+        expectedIoRatio[7] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iToken0))), 18);
+        expectedIoRatio[8] = LibDecimalFloat.fromFixedDecimalLosslessMem(12e18, 18);
         // Output decimals scaled to 18 fixed point value from 12.
-        expectedIoRatio[9] = depositAmount * 1e6;
+        expectedIoRatio[9] = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18 * 1e6, 18);
 
         checkQuote(owner, config, rainlang, depositAmount, expectedMaxOutput, expectedIoRatio);
     }

@@ -14,20 +14,23 @@ import {
     SignedContextV1,
     EvaluableV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
 /// on the no-op case.
 contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     using LibOrder for OrderV4;
+    using LibDecimalFloat for Float;
 
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
-        TakeOrdersConfigV4 memory config =
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, new TakeOrderConfigV4[](0), "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), new TakeOrderConfigV4[](0), ""
+        );
         vm.expectRevert(NoOrders.selector);
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
+        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -57,13 +60,14 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrderConfigV4 memory orderConfig = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, signedContexts);
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
+        TakeOrdersConfigV4 memory config =
+            TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
-        assertEq(totalTakerInput, 0);
-        assertEq(totalTakerOutput, 0);
+        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
+        assertTrue(totalTakerInput.eq(Float(0, 0)));
+        assertTrue(totalTakerOutput.eq(Float(0, 0)));
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 1);
     }
@@ -116,14 +120,14 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
+            config = TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
         }
 
         vm.recordLogs();
         {
-            (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
-            assertEq(totalTakerInput, 0);
-            assertEq(totalTakerOutput, 0);
+            (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
+            assertTrue(totalTakerInput.eq(Float(0, 0)));
+            assertTrue(totalTakerOutput.eq(Float(0, 0)));
         }
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 2);

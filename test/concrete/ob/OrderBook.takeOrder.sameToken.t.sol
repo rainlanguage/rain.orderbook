@@ -13,6 +13,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
@@ -36,14 +37,14 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
         });
 
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
-            minimumInput: 0,
-            maximumInput: type(uint256).max,
-            maximumIORatio: type(uint256).max,
+            minimumInput: Float(0, 0),
+            maximumInput: Float(type(int256).max, 0),
+            maximumIORatio: Float(type(int256).max, 0),
             orders: takeOrders,
             data: ""
         });
 
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
-        iOrderbook.takeOrders2(takeOrdersConfig);
+        iOrderbook.takeOrders3(takeOrdersConfig);
     }
 }

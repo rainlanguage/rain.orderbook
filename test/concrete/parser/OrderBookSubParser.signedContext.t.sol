@@ -48,8 +48,8 @@ contract OrderBookSubParserSignedContextTest is OpTest {
     function testSubParserContextSignedContextHappy2() external {
         OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        uint256[] memory expectedStack = new uint256[](1);
-        expectedStack[0] = uint256(keccak256(bytes("signed-context-1-0")));
+        StackItem[] memory expectedStack = new StackItem[](1);
+        expectedStack[0] = StackItem.wrap(keccak256(bytes("signed-context-1-0")));
 
         bytes memory rainlang = bytes(
             string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signed-context<1 0>();")
@@ -64,8 +64,8 @@ contract OrderBookSubParserSignedContextTest is OpTest {
     function testSubParserContextSignedContextHappy3() external {
         OrderBookSubParser orderBookSubParser = new OrderBookSubParser();
 
-        uint256[] memory expectedStack = new uint256[](1);
-        expectedStack[0] = uint256(keccak256(bytes("signed-context-1-1")));
+        StackItem[] memory expectedStack = new StackItem[](1);
+        expectedStack[0] = StackItem.wrap(keccak256(bytes("signed-context-1-1")));
 
         bytes memory rainlang = bytes(
             string.concat("using-words-from ", address(orderBookSubParser).toHexString(), " _: signed-context<1 1>();")

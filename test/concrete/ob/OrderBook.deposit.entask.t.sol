@@ -11,6 +11,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
@@ -18,6 +19,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
     using LibDecimalFloat for Float;
+    using LibFormatDecimalFloat for Float;
 
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -207,7 +209,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-balance() ",
-                preDepositAmount.toString(),
+                preDepositAmount.toDecimalString(),
                 "e-6) \"vault balance is pre deposit\");"
             )
         );
@@ -215,7 +217,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-amount() ",
-                depositAmount.toString(),
+                depositAmount.toDecimalString(),
                 "e-6) \"amount is depositAmount\");"
             )
         );
@@ -226,14 +228,16 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
     /// A revert in the action prevents the deposit from being enacted.
     /// forge-config: default.fuzz.runs = 10
-    function testDepositRevertInAction(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount != 0);
+    function testDepositRevertInAction(address alice, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(amount18 > 0);
         vm.startPrank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount18),
             abi.encode(true)
         );
+
+        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");

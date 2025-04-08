@@ -10,26 +10,31 @@ import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abst
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
 contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     using Math for uint256;
 
+    using LibDecimalFloat for Float;
+
     /// Withdrawing a zero target amount should revert.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawZero(address alice, address token, uint256 vaultId) external {
+    function testWithdrawZero(address alice, address token, bytes32 vaultId) external {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(ZeroWithdrawTargetAmount.selector, alice, token, vaultId));
-        iOrderbook.withdraw3(token, vaultId, 0, new TaskV2[](0));
+        iOrderbook.withdraw3(token, vaultId, Float(0, 0), new TaskV2[](0));
     }
 
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawEmptyVault(address alice, address token, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testWithdrawEmptyVault(address alice, address token, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(amount18 > 0);
         vm.prank(alice);
         vm.record();
         vm.recordLogs();
+        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
         iOrderbook.withdraw3(token, vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // Zero logs because nothing happened.
@@ -43,46 +48,54 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
 
     /// Withdrawing the full amount from a vault should delete the vault.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawFullVault(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount)
+    function testWithdrawFullVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount > 0);
-        vm.assume(withdrawAmount >= depositAmount);
+        vm.assume(depositAmount18 > 0);
+        vm.assume(withdrawAmount18 >= depositAmount18);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
+
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
+        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
+        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
 
         vm.prank(alice);
         vm.mockCall(
             address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
-        emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, depositAmount);
+        emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, depositAmount, depositAmount18);
         iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, new TaskV2[](0));
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), 0);
+        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(Float(0, 0)));
     }
 
     /// Withdrawing a partial amount from a vault should reduce the vault balance.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawPartialVault(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount)
+    function testWithdrawPartialVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount > 0);
-        vm.assume(withdrawAmount > 0);
-        vm.assume(withdrawAmount < depositAmount);
+        vm.assume(depositAmount18 > 0);
+        vm.assume(withdrawAmount18 > 0);
+        vm.assume(withdrawAmount18 < depositAmount18);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
+
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
+        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
+        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
 
         vm.prank(alice);
         vm.mockCall(
@@ -90,27 +103,31 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         );
         vm.expectEmit(false, false, false, true);
         // The full withdraw amount is possible as it's only a partial withdraw.
-        emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, withdrawAmount);
+        emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, withdrawAmount, withdrawAmount18);
         iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, new TaskV2[](0));
         // The vault balance is reduced by the withdraw amount.
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount - withdrawAmount);
+        assertTrue(
+            iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount.sub(withdrawAmount))
+        );
     }
 
     /// Any failure in the withdrawal should revert the entire transaction.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawFailure(address alice, uint256 vaultId, uint256 depositAmount, uint256 withdrawAmount)
+    function testWithdrawFailure(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount > 0);
-        vm.assume(withdrawAmount > 0);
+        vm.assume(depositAmount18 > 0);
+        vm.assume(withdrawAmount18 > 0);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
+        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
+        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
-        assertEq(iOrderbook.vaultBalance(address(alice), address(iToken0), vaultId), depositAmount);
+        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
 
         // The token contract always reverts when not mocked.
         vm.prank(alice);
@@ -139,8 +156,9 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         bool actionKind;
         address alice;
         address token;
-        uint256 vaultId;
+        bytes32 vaultId;
         uint248 amount;
+        Float amountFloat;
     }
 
     /// Arbitrary interleavings of deposits and withdrawals should work across
@@ -154,12 +172,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             // Ensure the token doesn't hit some known address and cause bad
             // etching.
             actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
+            actions[i].amountFloat = LibDecimalFloat.fromFixedDecimalLosslessMem(actions[i].amount, 18);
         }
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(action.token, REVERTING_MOCK_BYTECODE);
             action = actions[i];
-            uint256 balance = iOrderbook.vaultBalance(action.alice, action.token, action.vaultId);
+            Float memory balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
 
             vm.prank(action.alice);
             if (action.actionKind) {
@@ -172,27 +191,37 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                 );
                 vm.expectEmit(false, false, false, true);
                 emit DepositV2(action.alice, action.token, action.vaultId, action.amount);
-                iOrderbook.deposit3(action.token, action.vaultId, action.amount, new TaskV2[](0));
-                assertEq(
-                    iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
-                    balance + action.amount,
+                iOrderbook.deposit3(action.token, action.vaultId, action.amountFloat, new TaskV2[](0));
+                assertTrue(
+                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId).eq(
+                        balance.add(action.amountFloat)
+                    ),
                     "vault balance on deposit"
                 );
             } else {
-                uint256 expectedActualAmount = balance.min(uint256(action.amount));
+                Float memory expectedActualAmount = balance.min(action.amountFloat);
+                uint256 expectedActualAmount18 = expectedActualAmount.toFixedDecimalLossless(18);
                 vm.mockCall(
                     action.token,
                     abi.encodeWithSelector(IERC20.transfer.selector, action.alice, expectedActualAmount),
                     abi.encode(true)
                 );
-                if (expectedActualAmount > 0) {
+                if (expectedActualAmount.gt(Float(0, 0))) {
                     vm.expectEmit(false, false, false, true);
-                    emit WithdrawV2(action.alice, action.token, action.vaultId, action.amount, expectedActualAmount);
+                    emit WithdrawV2(
+                        action.alice,
+                        action.token,
+                        action.vaultId,
+                        action.amountFloat,
+                        expectedActualAmount,
+                        expectedActualAmount18
+                    );
                 }
-                iOrderbook.withdraw3(action.token, action.vaultId, action.amount, new TaskV2[](0));
-                assertEq(
-                    iOrderbook.vaultBalance(action.alice, action.token, action.vaultId),
-                    balance - expectedActualAmount,
+                iOrderbook.withdraw3(action.token, action.vaultId, action.amountFloat, new TaskV2[](0));
+                assertTrue(
+                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId).eq(
+                        balance.sub(expectedActualAmount)
+                    ),
                     "vault balance on withdraw"
                 );
             }

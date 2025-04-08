@@ -14,26 +14,29 @@ import {
     SignedContextV1,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
 contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
+    using LibDecimalFloat for Float;
+
     function checkPrecision(
         bytes memory rainString,
         uint8 outputTokenDecimals,
         uint8 inputTokenDecimals,
-        uint256 expectedTakerTotalInput,
-        uint256 expectedTakerTotalOutput
+        uint256 expectedTakerTotalInput18,
+        uint256 expectedTakerTotalOutput18
     ) internal {
-        uint256 vaultId = 0;
+        bytes32 vaultId = 0;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
         OrderConfigV4 memory config;
         {
             IOV2[] memory validInputs = new IOV2[](1);
-            validInputs[0] = IOV2(inputToken, inputTokenDecimals, vaultId);
+            validInputs[0] = IOV2(inputToken, vaultId);
             IOV2[] memory validOutputs = new IOV2[](1);
-            validOutputs[0] = IOV2(outputToken, outputTokenDecimals, vaultId);
+            validOutputs[0] = IOV2(outputToken, vaultId);
             // These numbers are known to cause large rounding errors if the
             // precision is not handled correctly.
             bytes memory bytecode = iParserV2.parse2(rainString);
@@ -47,10 +50,16 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             vm.mockCall(outputToken, "", abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        if (expectedTakerTotalInput > 0) {
+
+        Float memory expectedTakerTotalOutput =
+            LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalOutput18, outputTokenDecimals);
+        Float memory expectedTakerTotalInput =
+            LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalInput18, inputTokenDecimals);
+
+        if (expectedTakerTotalInput18 > 0) {
             iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
         }
-        assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), expectedTakerTotalInput);
+        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
         vm.recordLogs();
         iOrderbook.addOrder3(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -60,11 +69,11 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory takeOrdersConfig =
-            TakeOrdersConfigV4(0, type(uint256).max, type(uint256).max, orders, "");
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(takeOrdersConfig);
-        assertEq(totalTakerInput, expectedTakerTotalInput);
-        assertEq(totalTakerOutput, expectedTakerTotalOutput);
-        assertEq(iOrderbook.vaultBalance(address(this), outputToken, vaultId), 0);
+            TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
+        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+        assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
+        assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
+        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(0, 0)), "vault balance");
     }
 
     function testTakeOrderPrecisionKnownBad01() public {

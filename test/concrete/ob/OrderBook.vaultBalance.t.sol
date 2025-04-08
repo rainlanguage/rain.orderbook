@@ -3,12 +3,15 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookVaultBalanceTest
 /// Tests the basic functionality of reading from the vault balance.
 contract OrderBookDepositTest is OrderBookExternalMockTest {
+    using LibDecimalFloat for Float;
     /// Test that reading the vault balance without deposits is always zero.
-    function testVaultBalanceNoDeposits(address token, uint256 vaultId) external view {
-        assertEq(iOrderbook.vaultBalance(address(this), token, vaultId), 0);
+
+    function testVaultBalanceNoDeposits(address token, bytes32 vaultId) external view {
+        assertTrue(iOrderbook.vaultBalance2(address(this), token, vaultId).eq(Float(0, 0)));
     }
 }

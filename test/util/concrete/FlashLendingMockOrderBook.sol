@@ -35,11 +35,7 @@ contract FlashLendingMockOrderBook is IOrderBookV5 {
     }
 
     /// @inheritdoc IOrderBookV5
-    function takeOrders3(TakeOrdersConfigV4 calldata)
-        external
-        pure
-        returns (Float calldata totalTakerInput, Float calldata totalTakerOutput)
-    {}
+    function takeOrders3(TakeOrdersConfigV4 calldata) external pure returns (Float memory, Float memory) {}
 
     /// @inheritdoc IOrderBookV5
     function addOrder3(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
@@ -63,6 +59,6 @@ contract FlashLendingMockOrderBook is IOrderBookV5 {
     function maxFlashLoan(address) external view returns (uint256) {}
     function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external returns (bool) {}
 
-    function vaultBalance2(address, address, bytes32) external view returns (Float calldata) {}
+    function vaultBalance2(address, address, bytes32) external view returns (Float memory) {}
     function withdraw3(address, bytes32, Float calldata, TaskV2[] calldata) external {}
 }
