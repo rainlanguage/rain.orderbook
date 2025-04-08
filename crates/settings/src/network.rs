@@ -142,7 +142,7 @@ impl NetworkCfg {
 impl YamlParsableHash for NetworkCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut networks = HashMap::new();
 
@@ -211,6 +211,17 @@ impl YamlParsableHash for NetworkCfg {
             }
         }
 
+        if let Some(context) = context {
+            for (key, network) in &context.remote_networks {
+                if networks.contains_key(key) {
+                    return Err(YamlError::ParseNetworkConfigSourceError(
+                        ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key.clone()),
+                    ));
+                }
+                networks.insert(key.clone(), network.clone());
+            }
+        }
+
         if networks.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("networks".to_string()),
@@ -246,6 +257,8 @@ pub enum ParseNetworkConfigSourceError {
     ChainIdParseError(ParseIntError),
     #[error("Failed to parse network_id: {}", 0)]
     NetworkIdParseError(ParseIntError),
+    #[error("Remote network key shadowing: {0}")]
+    RemoteNetworkKeyShadowing(String),
 }
 
 impl ParseNetworkConfigSourceError {
@@ -262,6 +275,10 @@ impl ParseNetworkConfigSourceError {
             ParseNetworkConfigSourceError::NetworkIdParseError(err) => format!(
                 "The network ID in your network configuration must be a valid number: {}",
                 err
+            ),
+            ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key) => format!(
+                "The remote network key '{}' is already defined in network configuration",
+                key
             ),
         }
     }

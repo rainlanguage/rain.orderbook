@@ -37,11 +37,11 @@ const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
 const defaultProps: ComponentProps<OrderDetail> = {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
+	orderHash,
+	rpcUrl,
+	subgraphUrl,
+	orderbookAddress,
+	chainId,
 	colorTheme: 'dark',
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
@@ -175,15 +175,14 @@ describe('OrderDetail', () => {
 		});
 
 		await waitFor(() => {
-			// Check for order hash
 			expect(screen.getByText('Order')).toBeInTheDocument();
-			// Check for Orderbook field
 			expect(screen.getByText('Orderbook')).toBeInTheDocument();
-			// Check for Owner field
 			expect(screen.getByText('Owner')).toBeInTheDocument();
-			// Check for Created field
 			expect(screen.getByText('Created')).toBeInTheDocument();
+			expect(screen.getByText(orderbookAddress)).toBeInTheDocument();
+			expect(screen.getByText('0x1234567890123456789012345678901234567890')).toBeInTheDocument();
 		});
+
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
