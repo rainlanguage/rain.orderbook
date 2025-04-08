@@ -35,10 +35,10 @@ const mockSettings = readable({
 });
 
 const defaultProps: VaultDetailProps = {
-			id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
+	id: '100',
+	network: 'mainnet',
+	activeNetworkRef: writable('mainnet'),
+	activeOrderbookRef: writable('0x00'),
 	settings: mockSettings,
 	lightweightChartsTheme: readable(darkChartTheme),
 	onDeposit: vi.fn(),

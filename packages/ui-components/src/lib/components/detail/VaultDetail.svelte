@@ -11,7 +11,7 @@
 	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';

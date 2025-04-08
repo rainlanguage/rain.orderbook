@@ -10,7 +10,6 @@ import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { ComponentProps } from 'svelte';
 
-
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -182,7 +181,6 @@ describe('OrderDetail', () => {
 			expect(screen.getByText(orderbookAddress)).toBeInTheDocument();
 			expect(screen.getByText('0x1234567890123456789012345678901234567890')).toBeInTheDocument();
 		});
-
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
@@ -275,13 +273,12 @@ describe('OrderDetail', () => {
 		render(OrderDetail, {
 			props: {
 				...defaultProps,
-				onDeposit: mockOnDeposit,
+				onDeposit: mockOnDeposit
 			},
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
-			await waitFor(() => {
-
+		await waitFor(() => {
 			expect(screen.getByText('Order')).toBeInTheDocument();
 
 			expect(screen.getByText('Orderbook')).toBeInTheDocument();
@@ -290,7 +287,6 @@ describe('OrderDetail', () => {
 
 			expect(screen.getByText('Created')).toBeInTheDocument();
 		});
-
 
 		const depositButton = await screen.getAllByTestId('deposit-button');
 		await user.click(depositButton[0]);
@@ -310,8 +306,7 @@ describe('OrderDetail', () => {
 				...defaultProps,
 				onWithdraw: mockOnWithdraw
 			},
-						context: new Map([['$$_queryClient', queryClient]])
-
+			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		await waitFor(() => {

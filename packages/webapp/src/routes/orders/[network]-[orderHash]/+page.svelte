@@ -9,13 +9,11 @@
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
-	import { onDestroy } from 'svelte';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();

@@ -1,19 +1,24 @@
 <script lang="ts">
-	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
+	import {
+		PageHeader,
+		TransactionStatus,
+		transactionStore,
+		useAccount
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
-
+	import type { Hex } from 'viem';
 	const queryClient = useQueryClient();
 	import { lightweightChartsTheme } from '$lib/darkMode';
 
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
+	const { account } = useAccount();
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
@@ -49,7 +54,8 @@
 				action,
 				chainId,
 				rpcUrl,
-				subgraphUrl
+				subgraphUrl,
+				account: $account as Hex
 			}
 		});
 	}
