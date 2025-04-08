@@ -289,6 +289,18 @@ pub struct NameAndDescriptionCfg {
 impl_wasm_traits!(NameAndDescriptionCfg);
 
 impl GuiCfg {
+    pub fn check_gui_key_exists(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<bool, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            if let Some(gui) = optional_hash(&document_read, "gui") {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     pub fn parse_deployment_keys(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<Vec<String>, YamlError> {
@@ -1943,5 +1955,22 @@ gui:
 
         let keys = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
         assert_eq!(keys, vec!["test".to_string(), "test2".to_string()]);
+    }
+
+    #[test]
+    fn test_check_gui_key_exists() {
+        let yaml = r#"
+        gui:
+            name: test
+            description: test
+        "#;
+        let res = GuiCfg::check_gui_key_exists(vec![get_document(yaml)]).unwrap();
+        assert!(res);
+
+        let yaml = r#"
+        test: test
+        "#;
+        let res = GuiCfg::check_gui_key_exists(vec![get_document(yaml)]).unwrap();
+        assert!(!res);
     }
 }
