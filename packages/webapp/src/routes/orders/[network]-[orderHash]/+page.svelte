@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { OrderDetail, PageHeader, useAccount } from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
@@ -33,9 +33,7 @@
 		toastOpen = false;
 	}
 
-	function onRemove(event: CustomEvent<{ order: SgOrder }>) {
-		const { order } = event.detail;
-
+	function onRemove(order: SgOrder) {
 		handleOrderRemoveModal({
 			open: true,
 			args: {

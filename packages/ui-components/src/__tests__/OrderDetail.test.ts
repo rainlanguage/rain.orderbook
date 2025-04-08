@@ -2,9 +2,8 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
-import { readable, writable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
@@ -45,8 +44,7 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	colorTheme: 'dark',
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
-	wagmiConfig: writable({} as Config),
-	handleOrderRemoveModal: vi.fn()
+	onRemove: vi.fn()
 };
 
 const mockOrder: SgOrder = {
@@ -154,7 +152,8 @@ describe('OrderDetail', () => {
 				chainId,
 				colorTheme: readable('dark'),
 				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme)
+				lightweightChartsTheme: readable(darkChartTheme),
+				onRemove: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
 		});
@@ -200,24 +199,14 @@ describe('OrderDetail', () => {
 		await waitFor(() => {
 			const removeButton = screen.getByTestId('remove-button');
 			expect(removeButton).toBeInTheDocument();
-			expect(defaultProps.handleOrderRemoveModal).not.toHaveBeenCalled();
+			expect(defaultProps.onRemove).not.toHaveBeenCalled();
 		});
 
 		// Click the Remove button
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
-			expect(defaultProps.handleOrderRemoveModal).toHaveBeenCalledWith({
-				open: true,
-				args: {
-					order: mockOrder,
-					onRemove: expect.any(Function),
-					chainId,
-					orderbookAddress,
-					subgraphUrl,
-					account: mockAccoutStore
-				}
-			});
+			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockOrder);
 		});
 	});
 
@@ -271,84 +260,6 @@ describe('OrderDetail', () => {
 			await userEvent.click(refreshButton);
 
 			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
-		});
-	});
-
-	it('does not render remove button if signer address does not match and tauri check fails', async () => {
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
-		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				signerAddress: writable('notTheOwner')
-			}
-		});
-
-		expect(screen.queryByTestId('remove-order-button')).toBeNull();
-	});
-
-	it('renders remove button if signer address matches or tauri check passes', async () => {
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
-		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				signerAddress: writable('notTheOwner')
-			}
-		});
-
-		await waitFor(() => {
-			expect(screen.getByTestId('remove-order-button')).toBeInTheDocument();
-		});
-	});
-
-	it('calls handleRemoveOrder when remove button is clicked', async () => {
-		const mockRemoveHandler = vi.fn();
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		const mockInvalidateQueries = vi.fn();
-
-		// Mock the createQuery as in other tests
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { order: mockOrder, vaults: new Map() },
-					status: 'success',
-					isFetching: false,
-					refetch: () => {}
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
-		// Mock the useQueryClient hook
-		mockQuery.useQueryClient = vi.fn(() => ({
-			invalidateQueries: mockInvalidateQueries
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		})) as any;
-
-		const { component } = render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				signerAddress: writable('mockOwner'),
-				chainId
-			}
-		});
-
-		component.$on('remove', mockRemoveHandler);
-
-		const removeButton = screen.getByTestId('remove-order-button');
-		await userEvent.click(removeButton);
-
-		await waitFor(() => {
-			expect(mockRemoveHandler).toHaveBeenCalled();
-			expect(mockRemoveHandler.mock.calls[0][0].detail.order).toEqual(mockOrder);
 		});
 	});
 });

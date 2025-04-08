@@ -19,7 +19,6 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
-	import type { Readable } from 'svelte/store';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
@@ -35,8 +34,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
 
-	export let walletAddressMatchesOrBlank: Readable<(address: string) => boolean> | undefined =
-		undefined;
 	export let handleDepositOrWithdrawModal:
 		| ((props: DepositOrWithdrawModalProps) => void)
 		| undefined = undefined;
@@ -92,11 +89,11 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if ($account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)) || $walletAddressMatchesOrBlank?.(data.order.owner)}
+				{#if $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)}
 					{#if data.order.active}
 						<Button
 							on:click={() => onRemove(data.order)}
-							data-testid="remove-order-button"
+							data-testid="remove-button"
 							aria-label="Remove order">Remove</Button
 						>
 					{/if}

@@ -12,7 +12,6 @@
   import type { Hex } from 'viem';
   import type { SgOrder } from '@rainlanguage/orderbook/js_api';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
   const { orderHash, network } = $page.params;
   const queryClient = useQueryClient();
@@ -21,8 +20,7 @@
   const rpcUrl = $settings?.networks?.[network]?.rpc;
   const chainId = $settings?.networks?.[network]?.['chain-id'];
 
-  function handleRemoveOrder(event: CustomEvent<{ order: SgOrder }>) {
-    const { order } = event.detail;
+  function onRemove(order: SgOrder) {
     handleOrderRemoveModal(order, () => {
       queryClient.invalidateQueries({
         queryKey: [$page.params.orderHash],
@@ -46,7 +44,6 @@
     {handleDebugTradeModal}
     {orderbookAddress}
     {chainId}
-    on:remove={handleRemoveOrder}
-    {walletAddressMatchesOrBlank}
+    {onRemove}
   />
 {/if}
