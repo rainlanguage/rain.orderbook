@@ -309,50 +309,47 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceIORatio18 = bound(aliceIORatio18, 1, 1e18);
         bobIORatio18 = bound(bobIORatio18, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio18, Math.Rounding.Down));
 
-        Float memory aliceIORatio = Float(int256(aliceIORatio18), -18);
-        Float memory bobIORatio = Float(int256(bobIORatio18), -18);
+        Float memory aliceIORatio = LibDecimalFloat.fromFixedDecimalLosslessMem(aliceIORatio18, 18);
+        Float memory bobIORatio = LibDecimalFloat.fromFixedDecimalLosslessMem(bobIORatio18, 18);
+
+        CheckClear memory checkClearStruct;
+        checkClearStruct.alice = alice;
+        checkClearStruct.aliceConfig = aliceConfig;
+        checkClearStruct.bob = bob;
+        checkClearStruct.bobConfig = bobConfig;
+        checkClearStruct.bountyBot = bountyBot;
+        checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
+        checkClearStruct.bobBountyVaultId = bobBountyVaultId;
+        checkClearStruct.expression = expression;
+        checkClearStruct.aliceAmount = Float(1, 0);
+        checkClearStruct.bobAmount = Float(1, 0);
+        checkClearStruct.expectedAliceOutput = Float(1, 0);
+        // Alice is outputting 1 so bob will output enough to match this
+        // according to his own IO ratio.
+        checkClearStruct.expectedBobOutput = bobIORatio.inv().min(Float(1, 0));
+        // Expected input for Alice is aliceOutput * aliceIORatio
 
         Float memory aliceOutput = Float(1, 0);
+        checkClearStruct.expectedAliceInput = aliceIORatio.multiply(aliceOutput);
+        // Expected input for Bob is Alice's output in entirety, because
+        // alice IO * bob IO <= 1 and Bob is the larger ratio.
+        // As Bob's ratio is >= 1 he will have his input shrunk to match
+        // Alice's output. This means in this case Bob's input will be
+        // 1 always, as it either = 1 anyway or matches Alice's 1.
+        checkClearStruct.expectedBobInput = Float(1, 0);
+        checkClearStruct.expectedError = "";
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
-        StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
+        checkClearStruct.orderStackAlice = new StackItem[](2);
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
 
-        StackItem[] memory orderStackBob = new StackItem[](2);
-        orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
-        orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(Float(1e18, -18).pack())); // orderOutputMax
+        checkClearStruct.orderStackBob = new StackItem[](2);
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(Float(1e18, -18).pack())); // orderOutputMax
 
-        checkClear(
-            CheckClear(
-                alice,
-                aliceConfig,
-                bob,
-                bobConfig,
-                bountyBot,
-                aliceBountyVaultId,
-                bobBountyVaultId,
-                Float(1, 0),
-                Float(1, 0),
-                expression,
-                orderStackAlice,
-                orderStackBob,
-                Float(1, 0),
-                // Alice is outputting 1 so bob will output enough to match this
-                // according to his own IO ratio.
-                bobIORatio.inv().min(Float(1, 0)),
-                // Expected input for Alice is aliceOutput * aliceIORatio
-                aliceIORatio.multiply(aliceOutput),
-                // Expected input for Bob is Alice's output in entirety, because
-                // alice IO * bob IO <= 1 and Bob is the larger ratio.
-                // As Bob's ratio is >= 1 he will have his input shrunk to match
-                // Alice's output. This means in this case Bob's input will be
-                // 1 always, as it either = 1 anyway or matches Alice's 1.
-                Float(1, 0),
-                ""
-            )
-        );
+        checkClear(checkClearStruct);
     }
 
     /// forge-config: default.fuzz.runs = 100
