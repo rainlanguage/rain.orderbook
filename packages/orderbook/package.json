@@ -35,7 +35,7 @@
         "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
-        "test": "vitest run --dir test",
+        "test": "npm run check && vitest run --dir test",
         "format": "prettier --write test",
         "check": "tsc ./dist/**/* --noEmit --allowJs"
     },
