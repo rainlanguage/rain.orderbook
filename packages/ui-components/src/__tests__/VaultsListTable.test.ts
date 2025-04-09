@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
-import { readable, writable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 import { accountIsOwner } from '../lib/services/accountIsOwner';
 import type { ComponentProps } from 'svelte';
