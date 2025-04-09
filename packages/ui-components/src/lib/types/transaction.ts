@@ -1,7 +1,6 @@
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 import type { Hex } from 'viem';
 import type { DepositAndAddOrderCalldataResult, SgOrder, SgVault } from '@rainlanguage/orderbook';
-import type { Account } from '$lib/types/account';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
@@ -28,5 +27,4 @@ export type OrderRemoveArgs = {
 	chainId: number;
 	orderbookAddress: Hex;
 	subgraphUrl: string;
-	account: Account;
 };
