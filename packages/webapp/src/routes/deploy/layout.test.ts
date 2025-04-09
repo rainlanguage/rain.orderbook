@@ -44,9 +44,7 @@ describe('Layout Component', () => {
 	});
 
 	it('should display advanced mode components when advanced mode is on', () => {
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue('true')
-		});
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
 
 		render(Layout);
 
@@ -54,7 +52,7 @@ describe('Layout Component', () => {
 	});
 
 	it('should not display advanced mode components when advanced mode is off', () => {
-		(RegistryManager.getFromStorage as Mock).mockReturnValue('null');
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('');
 
 		render(Layout);
 
@@ -64,10 +62,7 @@ describe('Layout Component', () => {
 	it('should handle registry URL loading with error handling', async () => {
 		const errorMessage = 'Failed to update registry URL';
 		(loadRegistryUrl as Mock).mockRejectedValue(new Error(errorMessage));
-
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue('true')
-		});
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
 
 		render(Layout);
 
@@ -85,9 +80,7 @@ describe('Layout Component', () => {
 	});
 
 	it('should clear error before loading new registry URL', async () => {
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue('true')
-		});
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
 
 		render(Layout);
 
