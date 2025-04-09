@@ -1,6 +1,5 @@
-
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import Layout from './+layout.svelte';
 import RegistryManager from '$lib/services/RegistryManager';
 import type { Mock } from 'vitest';
@@ -34,19 +33,6 @@ describe('Layout Component', () => {
 		});
 	});
 
-	const setupPageStore = (pathname: string) => {
-		const mockPageStore = {
-			subscribe: vi.fn(),
-			mockSetSubscribeValue: vi.fn()
-		};
-		mockPageStore.mockSetSubscribeValue({
-			url: {
-				pathname: pathname
-			} as unknown as URL
-		});
-		return mockPageStore;
-	};
-
 	it('should show custom registry warning when using non-default registry', () => {
 		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
 		(RegistryManager.isCustomRegistry as Mock).mockReturnValue(true);
@@ -68,9 +54,7 @@ describe('Layout Component', () => {
 	});
 
 	it('should not display advanced mode components when advanced mode is off', () => {
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue(null)
-		});
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('null');
 
 		render(Layout);
 
@@ -85,10 +69,8 @@ describe('Layout Component', () => {
 			getItem: vi.fn().mockReturnValue('true')
 		});
 
-		const mockPageStore = setupPageStore('/deploy');
 		render(Layout);
 
-		// Simulate registry URL loading
 		const registryInput = screen.getByTestId('registry-input');
 		const input = registryInput.querySelector('input');
 		const submitButton = registryInput.querySelector('button');
@@ -97,7 +79,6 @@ describe('Layout Component', () => {
 			await fireEvent.input(input, { target: { value: 'https://test.registry.url' } });
 			await fireEvent.click(submitButton);
 
-			// Wait for error to be displayed
 			const errorElement = await screen.findByText(errorMessage);
 			expect(errorElement).toBeInTheDocument();
 		}
@@ -110,7 +91,6 @@ describe('Layout Component', () => {
 
 		render(Layout);
 
-
 		const registryInput = screen.getByTestId('registry-input');
 		const input = registryInput.querySelector('input');
 		const submitButton = registryInput.querySelector('button');
@@ -122,16 +102,16 @@ describe('Layout Component', () => {
 			expect(loadRegistryUrl).toHaveBeenCalledWith('https://test.registry.url');
 		}
 	});
-
-	it('should handle localStorage errors during initialization', () => {
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockImplementation(() => {
-				throw new Error('localStorage access error');
-			})
+	it('should handle localStorage errors during initialization', async () => {
+		(RegistryManager.getFromStorage as Mock).mockImplementation(() => {
+			throw new Error('localStorage access error');
 		});
 
 		render(Layout);
 
-		expect(screen.getByText('Failed to access registry settings')).toBeInTheDocument();
+		await waitFor(() => {
+			const errorElement = screen.getByTestId('registry-error');
+			expect(errorElement).toHaveTextContent('localStorage access error');
+		});
 	});
 });

@@ -349,6 +349,7 @@ describe('RegistryManager Error Handling', () => {
 	it('should throw error when updateUrlParam fails to update URL', () => {
 		global.URL = vi.fn(() => {
 			throw new Error('Invalid URL');
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}) as any;
 
 		expect(() => RegistryManager.updateUrlParam('https://custom-registry.com')).toThrow(
@@ -359,6 +360,7 @@ describe('RegistryManager Error Handling', () => {
 	it('should throw error when hasRegistryParam fails to check URL parameters', () => {
 		global.URL = vi.fn(() => {
 			throw new Error('URL parsing failed');
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}) as any;
 
 		expect(() => RegistryManager.hasRegistryParam()).toThrow(
@@ -369,6 +371,7 @@ describe('RegistryManager Error Handling', () => {
 	it('should throw error when getRegistryParam fails to get URL parameters', () => {
 		global.URL = vi.fn(() => {
 			throw new Error('URL malformed');
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}) as any;
 
 		expect(() => RegistryManager.getRegistryParam()).toThrow(
@@ -418,6 +421,7 @@ describe('RegistryManager Error Handling', () => {
 			constructor() {
 				return this;
 			}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any;
 
 		Object.defineProperty(window, 'history', {

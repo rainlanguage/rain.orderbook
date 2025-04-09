@@ -37,7 +37,9 @@ if (import.meta.vitest) {
 		beforeEach(() => {
 			vi.resetAllMocks();
 			// Reset window.location
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			delete (global.window as any).location;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(global.window as any).location = { reload: vi.fn() };
 		});
 

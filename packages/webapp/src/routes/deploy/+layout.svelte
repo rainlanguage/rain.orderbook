@@ -17,6 +17,7 @@
 			advancedMode = localStorage.getItem('registry') ? true : false;
 			registryFromStorage = RegistryManager.getFromStorage();
 		} catch (e) {
+			console.log('error', e);
 			registryError = e instanceof Error ? e.message : 'Failed to access registry settings';
 		}
 	});
@@ -58,12 +59,11 @@
 <div class="flex flex-col items-end">
 	{#if advancedMode && $page.url.pathname === '/deploy'}
 		<InputRegistryUrl loadRegistryUrl={handleLoadRegistryUrl} />
-
-		<div class="h-4">
-			{#if registryError}
-				<p class="text-red-500">{registryError}</p>
-			{/if}
-		</div>
 	{/if}
+	<div class="h-4">
+		{#if registryError}
+			<p data-testid="registry-error" class="text-red-500">{registryError}</p>
+		{/if}
+	</div>
 </div>
 <slot></slot>
