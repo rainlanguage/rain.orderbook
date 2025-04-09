@@ -115,6 +115,7 @@ describe('transactionStore', () => {
 		(getTransaction as Mock).mockReturnValue({ id: 'mockHash' });
 		(waitForTransactionReceipt as Mock).mockResolvedValue({});
 		(switchChain as Mock).mockResolvedValue({});
+		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
 
 		await handleDeploymentTransaction({
 			config: mockConfig,
@@ -129,6 +130,7 @@ describe('transactionStore', () => {
 		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(get(transactionStore).hash).toBe('deployHash');
 		expect(getExplorerLink).toHaveBeenCalledWith('deployHash', 1, 'tx');
+		expect(get(transactionStore).explorerLink).toBe('https://explorer.example.com/tx/deployHash');
 	});
 
 	it('should handle chain switch failure', async () => {
@@ -301,10 +303,12 @@ describe('transactionStore', () => {
 	});
 
 	it('should handle successful new order indexing', async () => {
+		const mockTxHash = 'deployHash';
 		const mockSubgraphUrl = 'test.com';
-		const mockTxHash = 'mockHash';
 		const mockNetwork = 'flare';
 		const mockOrderHash = 'order123';
+
+		(getExplorerLink as Mock).mockResolvedValue(`https://explorer.example.com/tx/${mockTxHash}`);
 
 		(getTransactionAddOrders as Mock).mockResolvedValue([
 			{
@@ -426,8 +430,190 @@ describe('transactionStore', () => {
 			'Deployment successful. Check the Orders page for your new order.'
 		);
 		expect(get(transactionStore).network).toBe('flare');
+		expect(getExplorerLink).toHaveBeenCalledWith('deployHash', 1, 'tx');
+		expect(get(transactionStore).explorerLink).toBe('https://explorer.example.com/tx/deployHash');
 
 		// Verify that awaitNewOrderIndexing was NOT called
 		expect(getTransactionAddOrders).not.toHaveBeenCalled();
+	});
+});
+
+describe('handleRemoveOrderTransaction', () => {
+	const mockConfig = {} as Config;
+	const mockOrderbookAddress = '0xabcdef1234567890' as `0x${string}`;
+	const mockRemoveOrderCalldata = '0xremovecalldata';
+	const mockChainId = 1;
+	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/test/orderbook';
+
+	const { reset, handleRemoveOrderTransaction } = transactionStore;
+
+	beforeEach(() => {
+		vi.resetAllMocks();
+		reset();
+	});
+
+	afterAll(() => {
+		vi.clearAllMocks();
+	});
+
+	it('should successfully handle a remove order transaction', async () => {
+		// Mock successful chain switch
+		(switchChain as Mock).mockResolvedValue({});
+
+		// Mock successful transaction send
+		const mockTxHash = '0xremoveordertxhash';
+		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
+
+		// Mock successful transaction receipt
+		(waitForTransactionReceipt as Mock).mockResolvedValue({});
+
+		// Execute the function
+		await handleRemoveOrderTransaction({
+			config: mockConfig,
+			orderbookAddress: mockOrderbookAddress,
+			removeOrderCalldata: mockRemoveOrderCalldata,
+			chainId: mockChainId,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		// Verify the transaction has started indexing
+		const state = get(transactionStore);
+		expect(state.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(state.hash).toBe(mockTxHash);
+		expect(state.message).toBe('Waiting for order removal to be indexed...');
+
+		// Verify the correct functions were called
+		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
+		expect(sendTransaction).toHaveBeenCalledWith(mockConfig, {
+			to: mockOrderbookAddress,
+			data: mockRemoveOrderCalldata
+		});
+		expect(waitForTransactionReceipt).toHaveBeenCalledWith(mockConfig, { hash: mockTxHash });
+	});
+
+	it('should handle chain switch failure', async () => {
+		// Mock failed chain switch
+		(switchChain as Mock).mockRejectedValue(new Error('Failed to switch chain'));
+
+		// Execute the function
+		await handleRemoveOrderTransaction({
+			config: mockConfig,
+			orderbookAddress: mockOrderbookAddress,
+			removeOrderCalldata: mockRemoveOrderCalldata,
+			chainId: mockChainId,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		// Verify the error state
+		const state = get(transactionStore);
+		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.error).toBe(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
+
+		// Verify only the chain switch was attempted
+		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
+		expect(sendTransaction).not.toHaveBeenCalled();
+	});
+
+	it('should handle user rejection of transaction', async () => {
+		// Mock successful chain switch
+		(switchChain as Mock).mockResolvedValue({});
+
+		// Mock user rejection of transaction
+		(sendTransaction as Mock).mockRejectedValue(new Error('User denied transaction'));
+
+		// Execute the function
+		await handleRemoveOrderTransaction({
+			config: mockConfig,
+			orderbookAddress: mockOrderbookAddress,
+			removeOrderCalldata: mockRemoveOrderCalldata,
+			chainId: mockChainId,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		// Verify the error state
+		const state = get(transactionStore);
+		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.error).toBe(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
+
+		// Verify the chain switch was successful but the transaction was rejected
+		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
+		expect(sendTransaction).toHaveBeenCalledWith(mockConfig, {
+			to: mockOrderbookAddress,
+			data: mockRemoveOrderCalldata
+		});
+		expect(waitForTransactionReceipt).not.toHaveBeenCalled();
+	});
+
+	it('should handle transaction receipt failure', async () => {
+		// Mock successful chain switch
+		(switchChain as Mock).mockResolvedValue({});
+
+		// Mock successful transaction send
+		const mockTxHash = '0xremoveordertxhash';
+		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
+
+		// Mock failed transaction receipt
+		(waitForTransactionReceipt as Mock).mockRejectedValue(new Error('Transaction failed'));
+
+		// Execute the function
+		await handleRemoveOrderTransaction({
+			config: mockConfig,
+			orderbookAddress: mockOrderbookAddress,
+			removeOrderCalldata: mockRemoveOrderCalldata,
+			chainId: mockChainId,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		// Verify the error state
+		const state = get(transactionStore);
+		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.error).toBe(TransactionErrorMessage.REMOVE_ORDER_FAILED);
+
+		// Verify the proper steps were executed
+		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
+		expect(sendTransaction).toHaveBeenCalledWith(mockConfig, {
+			to: mockOrderbookAddress,
+			data: mockRemoveOrderCalldata
+		});
+		expect(waitForTransactionReceipt).toHaveBeenCalledWith(mockConfig, { hash: mockTxHash });
+	});
+
+	it('should handle subgraph indexing timeout', async () => {
+		vi.useFakeTimers();
+		// Mock successful chain switch
+		(switchChain as Mock).mockResolvedValue({});
+
+		// Mock successful transaction send
+		const mockTxHash = '0xremoveordertxhash';
+		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
+
+		// Mock successful transaction receipt
+		(waitForTransactionReceipt as Mock).mockResolvedValue({});
+
+		(getTransactionRemoveOrders as Mock).mockImplementation(() => {
+			return Promise.resolve([]);
+		});
+
+		// Execute the function
+		const promise = handleRemoveOrderTransaction({
+			config: mockConfig,
+			orderbookAddress: mockOrderbookAddress,
+			removeOrderCalldata: mockRemoveOrderCalldata,
+			chainId: mockChainId,
+			subgraphUrl: mockSubgraphUrl
+		});
+
+		// Wait for promise to resolve
+		await promise;
+
+		await vi.advanceTimersByTime(10000);
+
+		// Verify the error state
+		const state = get(transactionStore);
+		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.error).toBe(TransactionErrorMessage.TIMEOUT);
+		expect(state.message).toBe('The subgraph took too long to respond. Please check again later.');
+
+		vi.useRealTimers();
 	});
 });
