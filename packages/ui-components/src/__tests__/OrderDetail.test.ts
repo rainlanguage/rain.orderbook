@@ -16,7 +16,7 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 }));
 
 // Mock the js_api functions
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderByHash: vi.fn()
 }));
 

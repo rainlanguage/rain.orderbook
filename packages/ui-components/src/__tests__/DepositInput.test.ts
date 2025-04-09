@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import type { GuiDepositCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 type DepositInputProps = ComponentProps<DepositInput>;
 

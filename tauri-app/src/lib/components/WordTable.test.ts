@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import WordTable from './WordTable.svelte';
-import type { AuthoringMetaV2 } from '@rainlanguage/orderbook/common';
+import type { AuthoringMetaV2 } from '@rainlanguage/orderbook';
 import { expect } from '$lib/test/matchers';
 import userEvent from '@testing-library/user-event';
 

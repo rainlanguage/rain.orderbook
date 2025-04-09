@@ -12,7 +12,7 @@
 		type WithdrawCalldataResult,
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';

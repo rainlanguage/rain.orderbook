@@ -28,7 +28,7 @@
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 
 	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
 		undefined;

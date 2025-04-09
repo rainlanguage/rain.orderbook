@@ -14,7 +14,6 @@ import {
 	TokenAllowance,
 	TokenDeposit,
 	TokenInfo,
-	ApprovalCalldata,
 	AllGuiConfig,
 	WasmEncodedResult,
 	FieldValue
@@ -492,8 +491,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		let result = await gui.chooseDeployment(dotrainWithGui, 'some-deployment');
 		extractWasmEncodedData(result);
 
-		result = gui.getGuiConfig();
-		const guiConfig = extractWasmEncodedData<GuiCfg>(result);
+		const guiConfig = extractWasmEncodedData<GuiCfg>(gui.getGuiConfig());
 		assert.equal(guiConfig.name, 'Fixed limit');
 		assert.equal(guiConfig.description, 'Fixed limit order strategy');
 	});
@@ -586,11 +584,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		let result = await gui.chooseDeployment(dotrainWithGui, 'other-deployment');
 		extractWasmEncodedData(result);
 
-		result = await gui.getTokenInfo('token1');
-		const token1TokenInfo = extractWasmEncodedData<TokenInfo>(result);
-
-		result = await gui.getTokenInfo('token2');
-		const token2TokenInfo = extractWasmEncodedData<TokenInfo>(result);
+		const token1TokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token1'));
+		const token2TokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token2'));
 
 		assert.equal(token1TokenInfo.address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
 		assert.equal(token1TokenInfo.decimals, 6);
@@ -626,8 +621,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		let result = await gui.chooseDeployment(dotrainWithGui, 'other-deployment');
 		extractWasmEncodedData(result);
 
-		result = await gui.getAllTokenInfos();
-		const allTokenInfos = extractWasmEncodedData<TokenInfo[]>(result);
+		const allTokenInfos = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokenInfos());
 
 		assert.equal(allTokenInfos.length, 2);
 		assert.equal(allTokenInfos[0].address, '0xc2132d05d31c914a87c6611c10748aeb04b58e8f');
@@ -689,6 +683,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should throw error if deposit token is not found in gui config', () => {
 			const result = gui.getDepositPresets('token3');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deposit token not found in gui config: token3');
 			expect(result.error.readableMsg).toBe(
 				"The deposit token 'token3' was not found in the YAML configuration."
@@ -727,6 +722,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should throw error if deposit token is not found in gui config', () => {
 			const result = gui.getDepositPresets('token2');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deposit token not found in gui config: token2');
 			expect(result.error.readableMsg).toBe(
 				"The deposit token 'token2' was not found in the YAML configuration."
@@ -824,6 +820,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should throw error during save if field binding is not found in field definitions', () => {
 			const result = gui.saveFieldValue('binding-3', '1');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Field binding not found: binding-3');
 			expect(result.error.readableMsg).toBe(
 				"The field binding 'binding-3' could not be found in the YAML configuration."
@@ -866,6 +863,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should throw error during get if field binding is not found', () => {
 			const result = gui.getFieldValue('binding-3');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Field binding not found: binding-3');
 			expect(result.error.readableMsg).toBe(
 				"The field binding 'binding-3' could not be found in the YAML configuration."
@@ -941,6 +939,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		it('should throw error during get if field binding is not found', () => {
 			const result = gui.getFieldDefinition('binding-3');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Field binding not found: binding-3');
 			expect(result.error.readableMsg).toBe(
 				"The field binding 'binding-3' could not be found in the YAML configuration."
@@ -1034,6 +1033,7 @@ ${dotrain}`;
 
 ${dotrainWithoutTokens}`;
 			const result = await gui.deserializeState(testDotrain, serializedState);
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 			expect(result.error.readableMsg).toBe(
 				'There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency.'
@@ -1054,16 +1054,28 @@ ${dotrainWithoutTokens}`;
 				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
 					.presets?.[0].value || ''
 			);
-			assert.equal(extractWasmEncodedData<boolean>(gui.isFieldPreset('test-binding')), true);
+			assert.equal(
+				extractWasmEncodedData<boolean | undefined>(gui.isFieldPreset('test-binding')),
+				true
+			);
 			gui.saveFieldValue('test-binding', '100');
-			assert.equal(extractWasmEncodedData<boolean>(gui.isFieldPreset('test-binding')), false);
+			assert.equal(
+				extractWasmEncodedData<boolean | undefined>(gui.isFieldPreset('test-binding')),
+				false
+			);
 		});
 
 		it('should check if deposit is preset', async () => {
 			gui.saveDeposit('token1', '55');
-			assert.equal(extractWasmEncodedData<boolean>(gui.isDepositPreset('token1')), false);
+			assert.equal(
+				extractWasmEncodedData<boolean | undefined>(gui.isDepositPreset('token1')),
+				false
+			);
 			gui.saveDeposit('token1', '0');
-			assert.equal(extractWasmEncodedData<boolean>(gui.isDepositPreset('token1')), true);
+			assert.equal(
+				extractWasmEncodedData<boolean | undefined>(gui.isDepositPreset('token1')),
+				true
+			);
 		});
 
 		it('should keep the same vault ids after deserializing if not set during serializing', async () => {
@@ -1082,19 +1094,17 @@ ${dotrainWithoutVaultIds}
 			let result = await gui.chooseDeployment(testDotrain, 'other-deployment');
 			extractWasmEncodedData(result);
 
-			result = gui.getCurrentDeployment();
-			let deployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
-			assert.equal(deployment.deployment.order.inputs[0].vaultId, undefined);
-			assert.equal(deployment.deployment.order.outputs[0].vaultId, undefined);
+			let deployment1 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
+			assert.equal(deployment1.deployment.order.inputs[0].vaultId, undefined);
+			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
 			let serializedState = extractWasmEncodedData<string>(gui.serializeState());
 			gui = new DotrainOrderGui();
 			await gui.deserializeState(testDotrain, serializedState);
 
-			result = gui.getCurrentDeployment();
-			deployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
-			assert.equal(deployment.deployment.order.inputs[0].vaultId, undefined);
-			assert.equal(deployment.deployment.order.outputs[0].vaultId, undefined);
+			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
+			assert.equal(deployment2.deployment.order.inputs[0].vaultId, undefined);
+			assert.equal(deployment2.deployment.order.outputs[0].vaultId, undefined);
 		});
 
 		it('should get all the yaml fields', async () => {
@@ -1491,8 +1501,9 @@ ${dotrainWithoutVaultIds}`;
 			);
 			assert.equal(calldata.length, 3146);
 
-			result = gui.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+				gui.getCurrentDeployment()
+			);
 			assert.equal(
 				currentDeployment.deployment.order.inputs[0].vaultId,
 				currentDeployment.deployment.order.outputs[0].vaultId
@@ -1509,21 +1520,29 @@ ${dotrainWithoutVaultIds}`;
 			let result = await testGui.chooseDeployment(testDotrain, 'other-deployment');
 			extractWasmEncodedData(result);
 
-			result = await testGui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678');
-			expect(result.error.msg).toBe('Token must be selected: token1');
-			expect(result.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			let result1 = await testGui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678');
+			if (result1.error) {
+				expect(result1.error.msg).toBe('Token must be selected: token1');
+				expect(result1.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			} else expect.fail('Expected error');
 
-			result = await testGui.generateDepositCalldatas();
-			expect(result.error.msg).toBe('Token must be selected: token1');
-			expect(result.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			let result2 = await testGui.generateDepositCalldatas();
+			if (result2.error) {
+				expect(result2.error.msg).toBe('Token must be selected: token1');
+				expect(result2.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			} else expect.fail('Expected error');
 
-			result = await testGui.generateAddOrderCalldata();
-			expect(result.error.msg).toBe('Token must be selected: token1');
-			expect(result.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			let result3 = await testGui.generateAddOrderCalldata();
+			if (result3.error) {
+				expect(result3.error.msg).toBe('Token must be selected: token1');
+				expect(result3.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			} else expect.fail('Expected error');
 
-			result = await testGui.generateDepositAndAddOrderCalldatas();
-			expect(result.error.msg).toBe('Token must be selected: token1');
-			expect(result.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			let result4 = await testGui.generateDepositAndAddOrderCalldatas();
+			if (result4.error) {
+				expect(result4.error.msg).toBe('Token must be selected: token1');
+				expect(result4.error.readableMsg).toBe("The token 'token1' must be selected to proceed.");
+			} else expect.fail('Expected error');
 		});
 
 		it('should throw error if field value not set', async () => {
@@ -1576,17 +1595,21 @@ ${dotrainWithoutVaultIds}`;
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
 
-			result = await gui.generateAddOrderCalldata();
-			expect(result.error.msg).toBe('Missing field value: Test binding');
-			expect(result.error.readableMsg).toBe(
-				"The value for field 'Test binding' is required but has not been set."
-			);
+			let result1 = await gui.generateAddOrderCalldata();
+			if (result1.error) {
+				expect(result1.error.msg).toBe('Missing field value: Test binding');
+				expect(result1.error.readableMsg).toBe(
+					"The value for field 'Test binding' is required but has not been set."
+				);
+			} else expect.fail('Expected error');
 
-			result = await gui.generateDepositAndAddOrderCalldatas();
-			expect(result.error.msg).toBe('Missing field value: Test binding');
-			expect(result.error.readableMsg).toBe(
-				"The value for field 'Test binding' is required but has not been set."
-			);
+			let result2 = await gui.generateDepositAndAddOrderCalldatas();
+			if (result2.error) {
+				expect(result2.error.msg).toBe('Missing field value: Test binding');
+				expect(result2.error.readableMsg).toBe(
+					"The value for field 'Test binding' is required but has not been set."
+				);
+			} else expect.fail('Expected error');
 
 			let missingFieldValues = extractWasmEncodedData<string[]>(gui.getMissingFieldValues());
 			assert.equal(missingFieldValues.length, 1);
@@ -1610,8 +1633,9 @@ ${dotrainWithoutVaultIds}`;
 			let result = await gui.chooseDeployment(testDotrain, 'other-deployment', stateUpdateCallback);
 			extractWasmEncodedData(result);
 
-			result = gui.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+				gui.getCurrentDeployment()
+			);
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(currentDeployment.deployment.order.outputs[0].vaultId, undefined);
 
@@ -1636,8 +1660,9 @@ ${dotrainWithoutVaultIds}`;
 
 			gui.setVaultId(false, 0, '0x234');
 
-			result = gui.getCurrentDeployment();
-			const newCurrentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const newCurrentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+				gui.getCurrentDeployment()
+			);
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
 			assert.notEqual(newCurrentDeployment.deployment.order.outputs[0].vaultId, undefined);
 			assert.equal(newCurrentDeployment.deployment.order.inputs[0].vaultId, '0x123');
@@ -1665,7 +1690,8 @@ ${dotrainWithoutVaultIds}`;
 				undefined
 			);
 
-			result = await gui.setVaultId(true, 0, 'test');
+			result = gui.setVaultId(true, 0, 'test');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
 			);
@@ -1799,6 +1825,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			result = await testGui.saveSelectToken('token1', '0x1');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Select tokens not set');
 			expect(result.error.readableMsg).toBe(
 				'No tokens have been configured for selection. Please check your YAML configuration.'
@@ -1807,6 +1834,7 @@ ${dotrainWithoutVaultIds}`;
 
 		it('should throw error if token not found', async () => {
 			const result = await gui.saveSelectToken('token3', '0x1');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Token not found token3');
 			expect(result.error.readableMsg).toBe(
 				"The token 'token3' could not be found in the YAML configuration."
@@ -1835,14 +1863,14 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(extractWasmEncodedData<boolean>(gui.areAllTokensSelected()), false);
 
 			let result = await gui.getTokenInfo('token1');
-			expect(result.error).toBeDefined();
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe("Missing required field 'tokens' in root");
 			expect(result.error.readableMsg).toBe(
 				"YAML configuration error: Missing required field 'tokens' in root"
 			);
 
 			result = await gui.getTokenInfo('token2');
-			expect(result.error).toBeDefined();
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe("Missing required field 'tokens' in root");
 			expect(result.error.readableMsg).toBe(
 				"YAML configuration error: Missing required field 'tokens' in root"
@@ -1941,8 +1969,7 @@ ${dotrainWithoutVaultIds}`;
 			await gui.saveSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), true);
 
-			result = await gui.getTokenInfo('token1');
-			const tokenInfo = extractWasmEncodedData<TokenInfo>(result);
+			const tokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token1'));
 			assert.equal(tokenInfo.name, 'Token 1');
 			assert.equal(tokenInfo.symbol, 'T1');
 			assert.equal(tokenInfo.decimals, 6);
@@ -1950,10 +1977,10 @@ ${dotrainWithoutVaultIds}`;
 			gui.removeSelectToken('token1');
 			assert.equal(extractWasmEncodedData<boolean>(gui.isSelectTokenSet('token1')), false);
 
-			result = await gui.getTokenInfo('token1');
-			expect(result.error).toBeDefined();
-			expect(result.error.msg).toBe("Missing required field 'tokens' in root");
-			expect(result.error.readableMsg).toBe(
+			let result1 = await gui.getTokenInfo('token1');
+			if (!result1.error) expect.fail('Expected error');
+			expect(result1.error.msg).toBe("Missing required field 'tokens' in root");
+			expect(result1.error.readableMsg).toBe(
 				"YAML configuration error: Missing required field 'tokens' in root"
 			);
 
@@ -2052,6 +2079,7 @@ ${dotrainWithoutVaultIds}`;
 				]);
 
 			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Conflicting remote network in response, a network with key 'remote-network' already exists"
 			);
@@ -2111,6 +2139,7 @@ ${dotrainWithoutVaultIds}`;
 				});
 
 			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Remote network key shadowing: some-network');
 			expect(result.error.readableMsg).toBe(
 				'Order configuration error in YAML: Remote network key shadowing: some-network'
@@ -2225,6 +2254,7 @@ ${dotrainWithoutVaultIds}`;
 				});
 
 			const result = await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Conflicting remote token in response, a token with key 'remote' already exists"
 			);
@@ -2280,6 +2310,7 @@ ${dotrainWithoutVaultIds}`;
 			await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
 
 			const result = await gui.getCurrentDeployment();
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Remote token key shadowing: token1');
 			expect(result.error.readableMsg).toBe(
 				'YAML configuration error: Remote token key shadowing: token1'

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { load } from './+layout';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	DotrainOrderGui: {
 		getDeploymentDetail: vi.fn()
 	}

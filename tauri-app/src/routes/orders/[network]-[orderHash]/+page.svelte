@@ -11,7 +11,7 @@
     handleWithdrawModal,
   } from '$lib/services/modal';
   import type { Hex } from 'viem';
-  import type { SgVault } from '@rainlanguage/orderbook/js_api';
+  import type { SgVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const queryClient = useQueryClient();

@@ -1,4 +1,4 @@
-import type { FuzzResultFlat } from '@rainlanguage/orderbook/js_api';
+import type { FuzzResultFlat } from '@rainlanguage/orderbook';
 import { hexToBigInt, type Hex, formatUnits } from 'viem';
 
 export type TransformedHexAndFormattedData = { [key: string]: [number, Hex] };

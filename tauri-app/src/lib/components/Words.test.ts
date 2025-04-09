@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import Words from './Words.svelte';
-import type { ScenarioWords } from '@rainlanguage/orderbook/js_api';
+import type { ScenarioWords } from '@rainlanguage/orderbook';
 import { expect } from '$lib/test/matchers';
 import userEvent from '@testing-library/user-event';
 

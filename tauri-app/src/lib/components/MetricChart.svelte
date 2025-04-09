@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { MetricCfg } from '@rainlanguage/orderbook/js_api';
+  import type { MetricCfg } from '@rainlanguage/orderbook';
   import type { TransformedPlotData } from '$lib/utils/chartData';
   export let metric: MetricCfg;
   export let data: TransformedPlotData[];

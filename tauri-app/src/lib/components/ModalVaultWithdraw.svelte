@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, Helper } from 'flowbite-svelte';
-  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook/js_api';
+  import type { SgVault as TokenVaultDetail } from '@rainlanguage/orderbook';
   import { vaultWithdraw, vaultWithdrawCalldata } from '$lib/services/vault';
   import { bigintStringToHex, InputTokenAmount } from '@rainlanguage/ui-components';
   import { orderbookAddress } from '$lib/stores/settings';
