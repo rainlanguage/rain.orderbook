@@ -8,5 +8,15 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 	const { deploymentKey } = params;
 	const { dotrain } = (await parent()) as unknown as LayoutParentData;
 
-	return { deployment: { key: deploymentKey }, dotrain };
+	const result = await DotrainOrderGui.getDeploymentDetail(dotrain, deploymentKey || '');
+	if (result.error) {
+		throw new Error(result.error.msg);
+	}
+	const { name, description } = result.value;
+
+	return {
+		deployment: { key: deploymentKey, name, description },
+		dotrain,
+		pageName: deploymentKey
+	};
 };

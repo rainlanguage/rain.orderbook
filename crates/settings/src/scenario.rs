@@ -145,7 +145,10 @@ impl ScenarioCfg {
         }
 
         if scenarios.contains_key(&scenario_key) {
-            return Err(YamlError::KeyShadowing(scenario_key));
+            return Err(YamlError::KeyShadowing(
+                scenario_key.clone(),
+                "scenarios".to_string(),
+            ));
         }
         let key = if parent_scenario.key.is_empty() {
             scenario_key.clone()
@@ -331,7 +334,7 @@ impl YamlParsableHash for ScenarioCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -415,6 +418,25 @@ pub enum ParseScenarioConfigSourceError {
     ParentOrderbookShadowedError(String),
     #[error("Failed to parse blocks: {0}")]
     BlocksParseError(String),
+}
+
+impl ParseScenarioConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseScenarioConfigSourceError::RunsParseError(err) =>
+                format!("The 'runs' value in your scenario YAML configuration must be a valid number: {}", err),
+            ParseScenarioConfigSourceError::ParentBindingShadowedError(binding) =>
+                format!("Binding conflict in your YAML configuration: The child scenario is trying to override the binding '{}' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.", binding),
+            ParseScenarioConfigSourceError::ParentDeployerShadowedError(deployer) =>
+                format!("Deployer conflict in your YAML configuration: The child scenario is trying to use deployer '{}' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.", deployer),
+            ParseScenarioConfigSourceError::DeployerNotFound(scenario) =>
+                format!("No deployer was found for scenario '{}' in your YAML configuration. Please specify a deployer for this scenario or ensure it inherits one from a parent scenario.", scenario),
+            ParseScenarioConfigSourceError::ParentOrderbookShadowedError(orderbook) =>
+                format!("Orderbook conflict in your YAML configuration: The child scenario is trying to use orderbook '{}' which differs from the orderbook specified in the parent scenario. Child scenarios must use the same orderbook as their parent.", orderbook),
+            ParseScenarioConfigSourceError::BlocksParseError(blocks) =>
+                format!("Failed to parse the 'blocks' configuration in your YAML: {}. Please ensure it follows the correct format.", blocks),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -510,7 +532,6 @@ impl ScenarioConfigSource {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
     use crate::test::mock_deployer;
@@ -697,6 +718,10 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'scenarios' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -724,6 +749,10 @@ scenarios:
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string"
+        );
 
         let yaml = r#"
 networks:
@@ -750,6 +779,10 @@ scenarios:
                 },
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string"
         );
 
         let yaml = r#"
@@ -779,6 +812,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Binding conflict in your YAML configuration: The child scenario is trying to override the binding 'key1' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.");
 
         let yaml = r#"
 networks:
@@ -814,6 +848,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
     }
 
     #[test]
@@ -931,7 +966,8 @@ scenarios:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateScenario".to_string())
+            YamlError::KeyShadowing("DuplicateScenario".to_string(), "scenarios".to_string())
         );
+        assert_eq!(error.to_readable_msg(), "The key 'DuplicateScenario' is defined multiple times in your YAML configuration at scenarios");
     }
 }

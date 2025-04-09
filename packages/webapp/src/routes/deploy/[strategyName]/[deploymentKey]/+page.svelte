@@ -1,17 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { DeploymentSteps, GuiProvider, PageHeader } from '@rainlanguage/ui-components';
+	import { DeploymentSteps, GuiProvider, type DeploymentArgs } from '@rainlanguage/ui-components';
+	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
 	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-	const { dotrain, deployment } = $page.data;
+	import { REGISTRY_URL } from '$lib/constants';
+
+	const { settings } = $page.data.stores;
+	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 	import { connected, signerAddress, wagmiConfig, appKitModal } from '$lib/stores/wagmi';
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
+
+	$: registryUrl = $page.url.searchParams?.get('registry') || REGISTRY_URL;
 
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
@@ -20,30 +26,42 @@
 	}
 
 	onMount(async () => {
-		const { gui: initializedGui, error } = await handleGuiInitialization(
-			dotrain,
-			deployment.key,
-			stateFromUrl
-		);
-		gui = initializedGui;
-		getGuiError = error;
+		if (dotrain && deployment) {
+			const { gui: initializedGui, error } = await handleGuiInitialization(
+				dotrain,
+				deployment.key,
+				stateFromUrl
+			);
+			gui = initializedGui;
+			getGuiError = error;
+		}
 	});
-</script>
 
-<PageHeader title={$page.data.deployment.name || 'Deploy'} pathname={$page.url.pathname}
-></PageHeader>
+	const onDeploy = (deploymentArgs: DeploymentArgs) => {
+		handleDisclaimerModal({
+			open: true,
+			onAccept: () => {
+				handleDeployModal({
+					args: deploymentArgs,
+					open: true
+				});
+			}
+		});
+	};
+</script>
 
 {#if !dotrain || !deployment}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
 	<GuiProvider {gui}>
 		<DeploymentSteps
-			{handleDeployModal}
-			{handleDisclaimerModal}
-			{wagmiConfig}
-			{connected}
+			{strategyDetail}
+			{deployment}
+			wagmiConnected={connected}
 			{appKitModal}
-			{signerAddress}
+			{onDeploy}
+			{settings}
+			{registryUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

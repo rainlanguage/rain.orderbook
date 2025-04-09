@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
+import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
-import { transactionStore } from '@rainlanguage/ui-components';
+import { getVaultApprovalCalldata } from '@rainlanguage/orderbook/js_api';
+import { getVaultDepositCalldata } from '@rainlanguage/orderbook/js_api';
+import { get, readable } from 'svelte/store';
 
-const { mockSignerAddressStore, mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore } =
-	await vi.hoisted(() => import('@rainlanguage/ui-components'));
+type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
-export type ModalProps = ComponentProps<DepositOrWithdrawModal>;
+const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('../lib/__mocks__/stores')
+);
 
 vi.mock('../lib/stores/wagmi', async (importOriginal) => {
 	const original = (await importOriginal()) as object;
@@ -28,9 +31,22 @@ vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
 }));
 
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	return {
+		...(await importOriginal()),
+		useAccount: vi.fn()
+	};
+});
+
+vi.mock('../lib/stores/wagmi', () => ({
+	appKitModal: mockAppKitModalStore,
+	connected: mockConnectedStore,
+	wagmiConfig: mockWagmiConfigStore
+}));
+
 vi.mock('@wagmi/core', () => ({
 	readContract: vi.fn(),
-	switchChain: vi.fn()
+	switchChain: vi.fn().mockResolvedValue({ id: 1 })
 }));
 
 describe('DepositOrWithdrawModal', () => {
@@ -51,15 +67,17 @@ describe('DepositOrWithdrawModal', () => {
 			vault: mockVault,
 			chainId: 1,
 			rpcUrl: 'https://example.com',
-			onDepositOrWithdraw: vi.fn()
+			onDepositOrWithdraw: vi.fn(),
+			account: readable('0x123')
 		}
 	} as unknown as ModalProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		transactionStore.reset();
-		mockSignerAddressStore.mockSetSubscribeValue('0x123');
-		mockConnectedStore.mockSetSubscribeValue(true);
+		vi.mocked(useAccount).mockReturnValue({
+			account: readable('0x')
+		});
 	});
 
 	it('renders deposit modal correctly', () => {
@@ -90,16 +108,17 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				action: 'deposit',
-				chainId: 1,
-				vault: mockVault,
-				subgraphUrl: undefined,
-				approvalCalldata: { to: '0x789', data: '0xabc' },
-				transactionCalldata: { to: '0x123', data: '0x456' }
-			})
-		);
+		const wagmiConfig = get(mockWagmiConfigStore);
+
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			action: 'deposit',
+			chainId: 1,
+			vault: mockVault,
+			config: wagmiConfig,
+			subgraphUrl: undefined,
+			approvalCalldata: { to: '0x789', data: '0xabc' },
+			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
 	});
 
 	it('handles withdraw transaction correctly', async () => {
@@ -117,16 +136,16 @@ describe('DepositOrWithdrawModal', () => {
 
 		const withdrawButton = screen.getByText('Withdraw');
 		await fireEvent.click(withdrawButton);
+		const wagmiConfig = get(mockWagmiConfigStore);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				transactionCalldata: { to: '0xdef', data: '0xghi' },
-				action: 'withdraw',
-				chainId: 1,
-				vault: mockVault,
-				subgraphUrl: undefined
-			})
-		);
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			config: wagmiConfig,
+			transactionCalldata: { to: '0xdef', data: '0xghi' },
+			action: 'withdraw',
+			chainId: 1,
+			vault: mockVault,
+			subgraphUrl: undefined
+		});
 	});
 
 	it('shows error when amount exceeds balance for deposit', async () => {
@@ -136,7 +155,7 @@ describe('DepositOrWithdrawModal', () => {
 		const input = screen.getByRole('textbox');
 		await fireEvent.input(input, { target: { value: '2' } });
 
-		expect(screen.getByTestId('error')).toHaveTextContent(
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
 	});
@@ -153,7 +172,7 @@ describe('DepositOrWithdrawModal', () => {
 		const input = screen.getByRole('textbox');
 		await fireEvent.input(input, { target: { value: '2' } });
 
-		expect(screen.getByTestId('error')).toHaveTextContent(
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
 		);
 	});
@@ -229,16 +248,15 @@ describe('DepositOrWithdrawModal', () => {
 
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
-
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				action: 'deposit',
-				chainId: 1,
-				vault: mockVault,
-				subgraphUrl: undefined,
-				approvalCalldata: undefined,
-				transactionCalldata: { to: '0x123', data: '0x456' }
-			})
-		);
+		const wagmiConfig = get(mockWagmiConfigStore);
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			action: 'deposit',
+			chainId: 1,
+			vault: mockVault,
+			config: wagmiConfig,
+			subgraphUrl: undefined,
+			approvalCalldata: undefined,
+			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
 	});
 });

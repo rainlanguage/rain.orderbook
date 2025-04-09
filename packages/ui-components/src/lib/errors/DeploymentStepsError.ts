@@ -1,11 +1,21 @@
 import { writable } from 'svelte/store';
 
 export enum DeploymentStepsErrorCode {
-	NO_GUI = 'Error loading GUI',
-	DEPLOYMENT_UPDATE_ERROR = 'Error updating deployment',
-	NO_SELECT_TOKENS = 'No select tokens',
+	NO_GUI_PROVIDER = 'No GUI provider found.',
+	NO_GUI = 'Error loading GUI.',
+	NO_STRATEGY = 'No valid strategy exists at this URL',
+	NO_SELECT_TOKENS = 'Error loading tokens',
+	NO_TOKEN_INFO = 'Error loading token information',
+	NO_FIELD_DEFINITIONS = 'Error loading field definitions',
+	NO_DEPOSITS = 'Error loading deposits',
+	NO_TOKEN_INPUTS = 'Error loading token inputs',
+	NO_TOKEN_OUTPUTS = 'Error loading token outputs',
+	NO_GUI_DETAILS = 'Error getting GUI details',
+	NO_CHAIN = 'Unsupported chain ID',
+	NO_NETWORK_KEY = 'No network key found',
 	SERIALIZE_ERROR = 'Error serializing state',
-	ADD_ORDER_FAILED = 'Failed to add order'
+	ADD_ORDER_FAILED = 'Failed to add order',
+	NO_WALLET = 'No account address found'
 }
 
 export class DeploymentStepsError extends Error {

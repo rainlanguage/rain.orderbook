@@ -18,7 +18,11 @@
 
 	onMount(async () => {
 		try {
-			tokenInfo = await gui.getTokenInfo(token.key);
+			let result = await gui.getTokenInfo(token.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 			if (tokenInfo?.address) {
 				inputValue = tokenInfo.address;
 			}
@@ -30,7 +34,12 @@
 	async function getInfoForSelectedToken() {
 		error = '';
 		try {
-			tokenInfo = await gui.getTokenInfo(token.key);
+			let result = await gui.getTokenInfo(token.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
+			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');
 		}

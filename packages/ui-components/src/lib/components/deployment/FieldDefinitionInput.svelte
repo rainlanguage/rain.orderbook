@@ -1,23 +1,31 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import { type GuiFieldDefinitionCfg, type GuiPresetCfg } from '@rainlanguage/orderbook/js_api';
+	import {
+		type FieldValue,
+		type GuiFieldDefinitionCfg,
+		type GuiPresetCfg
+	} from '@rainlanguage/orderbook/js_api';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
 
-	const gui = useGui();
-
 	export let fieldDefinition: GuiFieldDefinitionCfg;
 
-	let currentValue: GuiPresetCfg | undefined;
+	const gui = useGui();
+
+	let currentValue: FieldValue | undefined;
 	let inputValue: string | null = currentValue?.value
 		? currentValue?.value
 		: fieldDefinition.default || null;
 
 	onMount(() => {
 		try {
-			currentValue = gui.getFieldValue(fieldDefinition.binding);
+			const result = gui.getFieldValue(fieldDefinition.binding);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			currentValue = result.value;
 			inputValue = currentValue?.value ? currentValue?.value : fieldDefinition.default || null;
 		} catch {
 			currentValue = undefined;
@@ -26,20 +34,24 @@
 
 	async function handlePresetClick(preset: GuiPresetCfg) {
 		inputValue = preset.value;
-		gui.saveFieldValue(fieldDefinition.binding, {
-			isPreset: true,
-			value: preset.id
-		});
-		currentValue = gui.getFieldValue(fieldDefinition.binding);
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
+
+		const result = gui.getFieldValue(fieldDefinition.binding);
+		if (result.error) {
+			throw new Error(result.error.msg);
+		}
+		currentValue = result.value;
 	}
 
 	async function handleCustomInputChange(value: string) {
 		inputValue = value;
-		gui.saveFieldValue(fieldDefinition.binding, {
-			isPreset: false,
-			value: value
-		});
-		currentValue = gui.getFieldValue(fieldDefinition.binding);
+		gui.saveFieldValue(fieldDefinition.binding, inputValue);
+
+		const result = gui.getFieldValue(fieldDefinition.binding);
+		if (result.error) {
+			throw new Error(result.error.msg);
+		}
+		currentValue = result.value;
 	}
 </script>
 

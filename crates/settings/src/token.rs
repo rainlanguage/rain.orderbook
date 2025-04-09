@@ -98,7 +98,10 @@ impl TokenCfg {
         symbol: Option<&str>,
     ) -> Result<(), YamlError> {
         if TokenCfg::parse_from_yaml(documents.clone(), key, None).is_ok() {
-            return Err(YamlError::KeyShadowing(key.to_string()));
+            return Err(YamlError::KeyShadowing(
+                key.to_string(),
+                "tokens".to_string(),
+            ));
         }
 
         let address = TokenCfg::validate_address(address)?;
@@ -125,7 +128,10 @@ impl TokenCfg {
                 document_hash.get_mut(&StrictYaml::String("tokens".to_string()))
             {
                 if tokens.contains_key(&StrictYaml::String(key.to_string())) {
-                    return Err(YamlError::KeyShadowing(key.to_string()));
+                    return Err(YamlError::KeyShadowing(
+                        key.to_string(),
+                        "tokens".to_string(),
+                    ));
                 }
 
                 let mut token_hash = Hash::new();
@@ -227,11 +233,11 @@ impl TokenCfg {
 impl YamlParsableHash for TokenCfg {
     fn parse_all_from_yaml(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
-        _: Option<&Context>,
+        context: Option<&Context>,
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut tokens = HashMap::new();
 
-        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let networks = NetworkCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -287,9 +293,22 @@ impl YamlParsableHash for TokenCfg {
                     };
 
                     if tokens.contains_key(&token_key) {
-                        return Err(YamlError::KeyShadowing(token_key));
+                        return Err(YamlError::KeyShadowing(token_key, "tokens".to_string()));
                     }
                     tokens.insert(token_key, token);
+                }
+            }
+        }
+
+        if let Some(context) = context {
+            if let Some(yaml_cache) = &context.yaml_cache {
+                for (key, token) in &yaml_cache.remote_tokens {
+                    if tokens.contains_key(key) {
+                        return Err(YamlError::ParseTokenConfigSourceError(
+                            ParseTokenConfigSourceError::RemoteTokenKeyShadowing(key.clone()),
+                        ));
+                    }
+                    tokens.insert(key.clone(), token.clone());
                 }
             }
         }
@@ -337,6 +356,23 @@ pub enum ParseTokenConfigSourceError {
     DecimalsParseError(std::num::ParseIntError),
     #[error("Network not found for token: {0}")]
     NetworkNotFoundError(String),
+    #[error("Remote token key shadowing: {0}")]
+    RemoteTokenKeyShadowing(String),
+}
+
+impl ParseTokenConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseTokenConfigSourceError::AddressParseError(err) =>
+                format!("The token address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
+            ParseTokenConfigSourceError::DecimalsParseError(err) =>
+                format!("The token decimals in your YAML configuration must be a valid number between 0 and 255: {}", err),
+            ParseTokenConfigSourceError::NetworkNotFoundError(network) =>
+                format!("The network '{}' specified for this token was not found in your YAML configuration. Please define this network or use an existing one.", network),
+            ParseTokenConfigSourceError::RemoteTokenKeyShadowing(key) =>
+                format!("The remote token key '{}' is already defined in token configuration", key),
+        }
+    }
 }
 
 impl TokenConfigSource {
@@ -446,9 +482,14 @@ mod tests {
         let token = token_string.try_into_token("TestNetwork", &networks);
 
         assert!(token.is_err());
+        let error = token.unwrap_err();
         assert_eq!(
-            token.unwrap_err(),
+            error,
             ParseTokenConfigSourceError::NetworkNotFoundError("InvalidNetwork".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The network 'InvalidNetwork' specified for this token was not found in your YAML configuration. Please define this network or use an existing one."
         );
     }
 
@@ -470,6 +511,10 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'networks' in root"
+        );
 
         let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
@@ -490,6 +535,10 @@ test: test
                 kind: FieldErrorKind::Missing("tokens".to_string()),
                 location: "root".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'tokens' in root"
         );
 
         let error = TokenCfg::parse_all_from_yaml(
@@ -513,6 +562,10 @@ tokens:
                 kind: FieldErrorKind::Missing("network".to_string()),
                 location: "token 'token1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'network' in token 'token1'"
         );
 
         let error = TokenCfg::parse_all_from_yaml(
@@ -541,6 +594,10 @@ tokens:
                 location: "token 'token1'".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'network' in token 'token1': Network 'nonexistent' not found"
+        );
 
         let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
@@ -563,6 +620,10 @@ tokens:
                 kind: FieldErrorKind::Missing("address".to_string()),
                 location: "token 'token1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'address' in token 'token1'"
         );
 
         let error = TokenCfg::parse_all_from_yaml(
@@ -588,6 +649,9 @@ tokens:
                 location: _
             }
         ));
+        assert!(error
+            .to_readable_msg()
+            .contains("Invalid value for field 'address' in token 'token1'"));
 
         let error = TokenCfg::parse_all_from_yaml(
             vec![get_document(
@@ -613,6 +677,9 @@ tokens:
                 location: _
             }
         ));
+        assert!(error
+            .to_readable_msg()
+            .contains("Invalid value for field 'decimals' in token 'token1'"));
     }
 
     #[test]
@@ -698,6 +765,13 @@ tokens:
             None,
         )
         .unwrap_err();
-        assert_eq!(error, YamlError::KeyShadowing("dai".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("dai".to_string(), "tokens".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The key 'dai' is defined multiple times in your YAML configuration at tokens"
+        );
     }
 }

@@ -2,32 +2,36 @@ import { render, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import type { GuiSelectTokensCfg } from '@rainlanguage/orderbook/js_api';
+import type { ComponentProps } from 'svelte';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '$lib/hooks/useGui';
 
-vi.mock('$lib/hooks/useGui', () => ({
+type SelectTokenComponentProps = ComponentProps<SelectToken>;
+
+const mockGui: DotrainOrderGui = {
+	saveSelectToken: vi.fn(),
+	isSelectTokenSet: vi.fn(),
+	getTokenInfo: vi.fn().mockResolvedValue({
+		symbol: 'ETH',
+		decimals: 18,
+		address: '0x456'
+	})
+} as unknown as DotrainOrderGui;
+
+vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
 
 describe('SelectToken', () => {
-	const mockStateUpdateCallback: Mock = vi.fn();
-	const mockGui: DotrainOrderGui = {
-		saveSelectToken: vi.fn().mockImplementation(() => {
-			return Promise.resolve();
-		}),
-		isSelectTokenSet: vi.fn(),
-		getTokenInfo: vi.fn().mockResolvedValue({
-			symbol: 'ETH',
-			decimals: 18,
-			address: '0x456'
-		})
-	} as unknown as DotrainOrderGui;
+	let mockStateUpdateCallback: Mock;
 
-	const mockToken: GuiSelectTokensCfg = {
-		key: 'input',
-		name: 'test input',
-		description: 'test description'
+	const mockProps: SelectTokenComponentProps = {
+		token: {
+			key: 'input',
+			name: 'test input',
+			description: 'test description'
+		},
+		onSelectTokenSelect: vi.fn()
 	};
 
 	beforeEach(() => {
@@ -56,7 +60,18 @@ describe('SelectToken', () => {
 	});
 
 	it('calls saveSelectToken and updates token info when input changes', async () => {
-		mockGui.getTokenInfo = vi.fn().mockResolvedValue(null);
+		const user = userEvent.setup();
+		const mockGuiWithNoToken = {
+			...mockGui,
+			getTokenInfo: vi.fn().mockResolvedValue(null)
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiWithNoToken);
+
+		const { getByRole } = render(SelectToken, {
+			...mockProps
+		});
+		const input = getByRole('textbox');
 
 		const user = userEvent.setup();
 		const onSelectTokenSelect = vi.fn();
@@ -82,11 +97,10 @@ describe('SelectToken', () => {
 
 		const user = userEvent.setup();
 
+		(useGui as Mock).mockReturnValue(mockGuiWithError);
+
 		const screen = render(SelectToken, {
-			props: {
-				token: mockToken,
-				onSelectTokenSelect: vi.fn()
-			}
+			...mockProps
 		});
 
 		const input = screen.getByRole('textbox');
@@ -116,7 +130,30 @@ describe('SelectToken', () => {
 		await user.paste('0x456');
 
 		await waitFor(() => {
-			expect(mockGui.saveSelectToken).toHaveBeenCalledWith('input', '0x456');
+			expect(mockGui.saveSelectToken).not.toHaveBeenCalled();
+		});
+	});
+
+	it('replaces the token and triggers state update twice if the token is already set', async () => {
+		const mockGuiWithTokenSet = {
+			...mockGui,
+			isSelectTokenSet: vi.fn().mockResolvedValue(true)
+		} as unknown as DotrainOrderGui;
+
+		(useGui as Mock).mockReturnValue(mockGuiWithTokenSet);
+
+		const user = userEvent.setup();
+
+		const { getByRole } = render(SelectToken, {
+			...mockProps
+		});
+
+		const input = getByRole('textbox');
+		await userEvent.clear(input);
+		await user.paste('invalid');
+		await waitFor(() => {
+			expect(mockGui.saveSelectToken).toHaveBeenCalled();
+			expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 		});
 	});
 

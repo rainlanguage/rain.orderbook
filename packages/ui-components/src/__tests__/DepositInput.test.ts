@@ -3,8 +3,10 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import type { GuiDepositCfg } from '@rainlanguage/orderbook/js_api';
-
+import type { ComponentProps } from 'svelte';
+import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
 import { useGui } from '$lib/hooks/useGui';
+type DepositInputProps = ComponentProps<DepositInput>;
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -13,6 +15,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 describe('DepositInput', () => {
 	let mockGui: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
+	let guiInstance: DotrainOrderGui;
 
 	const mockDeposit: GuiDepositCfg = {
 		token: { address: '0x123', key: 'TEST', symbol: 'TEST' },
@@ -20,27 +23,31 @@ describe('DepositInput', () => {
 	} as unknown as GuiDepositCfg;
 
 	beforeEach(() => {
-		mockStateUpdateCallback = vi.fn();
-
-		mockGui = {
-			getTokenInfo: vi.fn().mockReturnValue({ name: 'Test Token', symbol: 'TEST' }),
-			isDepositPreset: vi.fn(),
-			saveDeposit: vi.fn().mockImplementation(() => {
-				mockStateUpdateCallback();
-			}),
-			getDeposits: vi.fn().mockReturnValue([{ token: 'output', amount: '10', address: '0x1234' }])
-		} as unknown as DotrainOrderGui;
-
-		vi.mocked(useGui).mockReturnValue(mockGui);
-
 		vi.clearAllMocks();
+		guiInstance = new DotrainOrderGui();
+
+		mockStateUpdateCallback = vi.fn();
+		(DotrainOrderGui.prototype.getDeposits as Mock).mockReturnValue({
+			value: [{ token: 'output', amount: '10', address: '0x1234' }]
+		});
+		(DotrainOrderGui.prototype.saveDeposit as Mock).mockImplementation(() => {
+			mockStateUpdateCallback();
+		});
+		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
 	it('renders token name and presets', async () => {
+		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValueOnce({
+			value: {
+				name: 'Test Token',
+				symbol: 'TEST'
+			}
+		});
+
 		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit
-			}
+			} as unknown as DepositInputProps
 		});
 
 		await waitFor(() => {
@@ -55,26 +62,27 @@ describe('DepositInput', () => {
 		const { getByText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit
-			}
+			} as unknown as DepositInputProps
 		});
 
 		await fireEvent.click(getByText('100'));
-		expect(mockGui.saveDeposit).toHaveBeenCalledWith('TEST', '100');
+		expect(guiInstance.saveDeposit).toHaveBeenCalledWith('TEST', '100');
 	});
 
 	it('handles custom input changes and triggers state update', async () => {
-		(mockGui.isDepositPreset as Mock).mockReturnValue(false);
+		(DotrainOrderGui.prototype.isDepositPreset as Mock).mockReturnValue(false);
 
 		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
-				deposit: mockDeposit
-			}
+				deposit: mockDeposit,
+				onStateUpdate: mockStateUpdateCallback
+			} as unknown as DepositInputProps
 		});
 
 		const input = getByPlaceholderText('Enter deposit amount');
 		await fireEvent.input(input, { target: { value: '150' } });
 
-		expect(mockGui.saveDeposit).toHaveBeenCalledWith('TEST', '150');
+		expect(guiInstance.saveDeposit).toHaveBeenCalledWith('TEST', '150');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 });
