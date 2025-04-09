@@ -153,6 +153,40 @@ describe('RegistryManager', () => {
 		expect(RegistryManager.getRegistryParam()).toBe(null);
 	});
 
+	it('should handle extremely long URLs (approaching browser limits)', () => {
+		const baseUrl = 'https://example.com/registry?';
+		const padding = 'x'.repeat(2020 - baseUrl.length);
+		const longUrl = baseUrl + padding;
+
+		expect(longUrl.length).toBe(2020);
+
+		RegistryManager.setToStorage(longUrl);
+		expect(RegistryManager.getFromStorage()).toBe(longUrl);
+
+		const locationMock = {
+			pathname: '/deploy',
+			search: '',
+			href: 'http://localhost/deploy',
+			host: 'localhost',
+			hostname: 'localhost',
+			origin: 'http://localhost',
+			protocol: 'http:',
+			port: ''
+		};
+
+		const historyMock = {
+			...window.history,
+			pushState: vi.fn()
+		};
+
+		vi.stubGlobal('location', locationMock);
+		vi.stubGlobal('history', historyMock);
+
+		RegistryManager.updateUrlParam(longUrl);
+
+		expect(historyMock.pushState).toHaveBeenCalled();
+	});
+
 	test.prop([fc.webUrl(), fc.string()])(
 		'should correctly update URL with any valid registry URL',
 		(registryUrl, pathname) => {
