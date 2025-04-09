@@ -20,10 +20,8 @@
 		TableHeadCell
 	} from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
-	// Optional props only used in tauri-app
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export const walletAddressMatchesOrBlank: any = undefined;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export const handleOrderRemoveModal: any = undefined;
 	// End of optional props
@@ -168,10 +166,10 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 		>
-		{#if walletAddressMatchesOrBlank && handleOrderRemoveModal}
+		{#if $account && accountIsOwner($account, item.order.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
-					{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+					{#if item.order.active}
 						<Button
 							color="alternative"
 							outline={false}
@@ -186,7 +184,7 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
-				{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+				{#if $account && accountIsOwner($account, item.order.owner) && item.order.active}
 					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
 						<DropdownItem
 							on:click={(e) => {

@@ -31,7 +31,6 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 });
 const subgraphUrl = 'https://example.com';
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
-const chainId = 1;
 const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
@@ -40,7 +39,6 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	rpcUrl,
 	subgraphUrl,
 	orderbookAddress,
-	chainId,
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),

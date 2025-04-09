@@ -27,8 +27,8 @@
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { isAddressEqual, isAddress } from 'viem';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -39,7 +39,6 @@
 	export let orderHash: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
-	export let chainId: number | undefined;
 
 	/** Callback function when remove action is triggered for an order
 	 * @param order The order to remove
@@ -95,7 +94,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)}
+				{#if $account && accountIsOwner($account, data.order.owner)}
 					{#if data.order.active}
 						<Button
 							on:click={() => onRemove(data.order)}
@@ -153,7 +152,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
+											{#if $account && accountIsOwner($account, vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"

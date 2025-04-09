@@ -8,7 +8,7 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault } from '@rainlanguage/orderbook/js_api';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits, isAddress, isAddressEqual } from 'viem';
+	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -21,6 +21,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
+	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
 	export let id: string;
 	export let network: string;
@@ -82,7 +83,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
+			{#if $account && accountIsOwner($account, data.owner)}
 				<Button
 					color="light"
 					size="xs"

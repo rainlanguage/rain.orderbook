@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { accountIsOwner } from '$lib/services/accountIsOwner';
+
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -36,7 +38,6 @@
 	export let activeAccounts: Readable<{
 		[k: string]: string;
 	}>;
-	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
@@ -202,47 +203,44 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank(item.vault.owner)}
+			{#if handleDepositModal && handleWithdrawModal && $account && accountIsOwner($account, item.vault.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
-					{#if $walletAddressMatchesOrBlank(item.vault.owner)}
-						<Button
-							color="alternative"
-							outline={false}
-							data-testid="vault-menu"
-							id={`vault-menu-${item.vault.id}`}
-							class="mr-2 border-none px-2"
-							on:click={(e) => {
-								e.stopPropagation();
-							}}
-						>
-							<DotsVerticalOutline class="dark:text-white" />
-						</Button>
-					{/if}
-				</TableBodyCell>
-				{#if $walletAddressMatchesOrBlank(item.vault.owner)}
-					<Dropdown
-						data-testid="dropdown"
-						placement="bottom-end"
-						triggeredBy={`#vault-menu-${item.vault.id}`}
+					<Button
+						color="alternative"
+						outline={false}
+						data-testid="vault-menu"
+						id={`vault-menu-${item.vault.id}`}
+						class="mr-2 border-none px-2"
+						on:click={(e) => {
+							e.stopPropagation();
+						}}
 					>
-						<DropdownItem
-							data-testid="deposit-button"
-							on:click={(e) => {
-								e.stopPropagation();
-								handleDepositModal(item.vault, $query.refetch);
-							}}
-							>Deposit
-						</DropdownItem>
-						<DropdownItem
-							data-testid="withdraw-button"
-							on:click={(e) => {
-								e.stopPropagation();
-								handleWithdrawModal(item.vault, $query.refetch);
-							}}
-							>Withdraw
-						</DropdownItem>
-					</Dropdown>
-				{/if}
+						<DotsVerticalOutline class="dark:text-white" />
+					</Button>
+				</TableBodyCell>
+
+				<Dropdown
+					data-testid="dropdown"
+					placement="bottom-end"
+					triggeredBy={`#vault-menu-${item.vault.id}`}
+				>
+					<DropdownItem
+						data-testid="deposit-button"
+						on:click={(e) => {
+							e.stopPropagation();
+							handleDepositModal(item.vault, $query.refetch);
+						}}
+						>Deposit
+					</DropdownItem>
+					<DropdownItem
+						data-testid="withdraw-button"
+						on:click={(e) => {
+							e.stopPropagation();
+							handleWithdrawModal(item.vault, $query.refetch);
+						}}
+						>Withdraw
+					</DropdownItem>
+				</Dropdown>
 			{/if}
 		</svelte:fragment>
 	</AppTable>
