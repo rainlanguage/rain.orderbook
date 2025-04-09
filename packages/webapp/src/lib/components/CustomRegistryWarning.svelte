@@ -1,3 +1,7 @@
+<script lang="ts">
+	import RegistryManager from '$lib/services/RegistryManager';
+</script>
+
 <div
 	class="flex items-center gap-x-2 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-300"
 	data-testid="custom-registry-warning"
@@ -18,7 +22,7 @@
 		You are using a <span class="font-medium">custom strategies registry. </span>
 		<a
 			on:click={() => {
-				localStorage.removeItem('registry');
+				RegistryManager.clearFromStorage();
 			}}
 			href="/deploy"
 			data-sveltekit-reload

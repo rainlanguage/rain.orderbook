@@ -1,63 +1,54 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CustomRegistryWarning from '$lib/components/CustomRegistryWarning.svelte';
+import RegistryManager from '$lib/services/RegistryManager';
+import type { Mock } from 'vitest';
 
-// Create a mock for localStorage
-const localStorageMock: Storage = (() => {
-	let store: Record<string, string> = {};
-
-	return {
-		getItem: vi.fn((key: string): string | null => store[key] || null),
-		setItem: vi.fn((key: string, value: string): void => {
-			store[key] = value.toString();
-		}),
-		removeItem: vi.fn((key: string): void => {
-			delete store[key];
-		}),
-		clear: vi.fn((): void => {
-			store = {};
-		}),
-		key: (index: number): string => Object.keys(store)[index] || '',
-		length: 0
-	};
-})();
+vi.mock('$lib/services/RegistryManager', () => ({
+    default: {
+        clearFromStorage: vi.fn(),
+        getFromStorage: vi.fn(),
+        setToStorage: vi.fn()
+    }
+}));
 
 describe('CustomRegistryWarning Component', () => {
-	beforeEach(() => {
-		vi.stubGlobal('localStorage', localStorageMock);
+    beforeEach(() => {
+        vi.clearAllMocks();
+        (RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
+        (RegistryManager.setToStorage as Mock).mockReturnValue(undefined);
+    });
 
-		localStorageMock.setItem('registry', 'https://custom-registry.com');
+    it('should render the warning message correctly', () => {
+        render(CustomRegistryWarning);
 
-		vi.clearAllMocks();
-	});
+        const warningElement = screen.getByTestId('custom-registry-warning');
+        expect(warningElement).toBeInTheDocument();
 
-	afterEach(() => {
-		vi.unstubAllGlobals();
-	});
+        expect(screen.getByText(/You are using a/i)).toBeInTheDocument();
+        expect(screen.getByText(/custom strategies registry./i)).toBeInTheDocument();
 
-	it('should render the warning message correctly', () => {
-		render(CustomRegistryWarning);
+        const defaultLink = screen.getByText('Use default.');
+        expect(defaultLink).toBeInTheDocument();
+        expect(defaultLink.tagName.toLowerCase()).toBe('a');
+        expect(defaultLink).toHaveAttribute('href', '/deploy');
+        expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
+    });
 
-		const warningElement = screen.getByTestId('custom-registry-warning');
-		expect(warningElement).toBeInTheDocument();
+    it('should call clearFromStorage when "Use default" is clicked', async () => {
+        render(CustomRegistryWarning);
 
-		expect(screen.getByText(/You are using a/i)).toBeInTheDocument();
-		expect(screen.getByText(/custom strategies registry./i)).toBeInTheDocument();
+        const defaultLink = screen.getByText('Use default.');
+        await fireEvent.click(defaultLink);
 
-		const defaultLink = screen.getByText('Use default.');
-		expect(defaultLink).toBeInTheDocument();
-		expect(defaultLink.tagName.toLowerCase()).toBe('a');
-		expect(defaultLink).toHaveAttribute('href', '/deploy');
-		expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
-	});
+        expect(RegistryManager.clearFromStorage).toHaveBeenCalledTimes(1);
+    });
 
-	it('should remove registry from localStorage when "Use default" is clicked', async () => {
-		render(CustomRegistryWarning);
+    it('should have correct link attributes for default registry', () => {
+        render(CustomRegistryWarning);
 
-		const defaultLink = screen.getByText('Use default.');
-		await fireEvent.click(defaultLink);
-
-		expect(localStorageMock.removeItem).toHaveBeenCalledTimes(1);
-		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
-	});
+        const defaultLink = screen.getByText('Use default.');
+        expect(defaultLink).toHaveAttribute('href', '/deploy');
+        expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
+    });
 });
