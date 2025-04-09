@@ -1,5 +1,7 @@
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import { vi } from 'vitest';
+import fc from 'fast-check';
+import { test } from '@fast-check/vitest';
 import RegistryManager from '$lib/services/RegistryManager';
 import { REGISTRY_URL } from '$lib/constants';
 
@@ -61,8 +63,7 @@ describe('RegistryManager', () => {
 		vi.stubGlobal('location', locationMock);
 		vi.stubGlobal('history', historyMock);
 
-		localStorageMock.setItem('registry', 'https://custom-registry.com');
-
+		RegistryManager.setToStorage('https://custom-registry.com');
 		RegistryManager.clearFromStorage();
 
 		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
@@ -112,6 +113,13 @@ describe('RegistryManager', () => {
 		expect(RegistryManager.getFromStorage()).toBe('https://custom-registry.com');
 	});
 
+	it('should remove registry value from storage', () => {
+		localStorageMock.setItem('registry', 'https://custom-registry.com');
+		expect(RegistryManager.getFromStorage()).toBe('https://custom-registry.com');
+		localStorageMock.removeItem('registry');
+		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
+	});
+
 	it('should set registry value to storage', () => {
 		RegistryManager.setToStorage('https://custom-registry.com');
 		expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -142,5 +150,101 @@ describe('RegistryManager', () => {
 			href: 'http://localhost/deploy'
 		});
 		expect(RegistryManager.getRegistryParam()).toBe(null);
+	});
+
+	test.prop([fc.webUrl(), fc.string()])(
+		'should correctly update URL with any valid registry URL',
+		(registryUrl, pathname) => {
+			const sanitizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`;
+
+			const locationMock = {
+				pathname: sanitizedPathname,
+				search: '',
+				href: `http://localhost${sanitizedPathname}`,
+				host: 'localhost',
+				hostname: 'localhost',
+				origin: 'http://localhost',
+				protocol: 'http:',
+				port: ''
+			};
+
+			const historyMock = {
+				...window.history,
+				pushState: vi.fn()
+			};
+
+			vi.stubGlobal('location', locationMock);
+			vi.stubGlobal('history', historyMock);
+
+			RegistryManager.updateUrlParam(registryUrl);
+
+			expect(historyMock.pushState).toHaveBeenCalled();
+
+			const generatedUrl = historyMock.pushState.mock.calls[0][2];
+
+			const url = new URL(generatedUrl);
+			const extractedRegistry = url.searchParams.get('registry');
+
+			expect(extractedRegistry).toBe(registryUrl);
+		}
+	);
+
+	test.prop([fc.webUrl()])(
+		'should store and retrieve any valid registry URL correctly',
+		(registryUrl) => {
+			RegistryManager.setToStorage(registryUrl);
+
+			expect(localStorageMock.setItem).toHaveBeenCalledWith('registry', registryUrl);
+
+			vi.mocked(localStorageMock.getItem).mockReturnValueOnce(registryUrl);
+
+			const retrievedValue = RegistryManager.getFromStorage();
+
+			expect(retrievedValue).toBe(registryUrl);
+		}
+	);
+
+	test.prop([fc.webUrl()])('should correctly identify custom registries', (registryUrl) => {
+		const isCustom = RegistryManager.isCustomRegistry(registryUrl);
+
+		expect(isCustom).toBe(registryUrl !== REGISTRY_URL);
+	});
+
+	test.prop([fc.webUrl(), fc.boolean()])(
+		'should correctly detect registry parameters in URLs',
+		(registryUrl, includeParam) => {
+			const url = includeParam
+				? `http://localhost/deploy?registry=${encodeURIComponent(registryUrl)}`
+				: 'http://localhost/deploy';
+
+			vi.stubGlobal('location', { href: url });
+
+			const hasParam = RegistryManager.hasRegistryParam();
+
+			expect(hasParam).toBe(includeParam);
+
+			if (includeParam) {
+				const retrievedParam = RegistryManager.getRegistryParam();
+				expect(retrievedParam).toBe(registryUrl);
+			}
+		}
+	);
+
+	test.prop([
+		fc.webUrl(),
+		fc.record({
+			otherParam1: fc.string(),
+			otherParam2: fc.string()
+		})
+	])('should handle URLs with multiple parameters correctly', (registryUrl, otherParams) => {
+		const url = `http://localhost/deploy?otherParam1=${encodeURIComponent(otherParams.otherParam1)}&registry=${encodeURIComponent(registryUrl)}&otherParam2=${encodeURIComponent(otherParams.otherParam2)}`;
+
+		vi.stubGlobal('location', { href: url });
+
+		const hasParam = RegistryManager.hasRegistryParam();
+		expect(hasParam).toBe(true);
+
+		const retrievedParam = RegistryManager.getRegistryParam();
+		expect(retrievedParam).toBe(registryUrl);
 	});
 });
