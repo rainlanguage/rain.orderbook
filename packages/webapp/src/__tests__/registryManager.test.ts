@@ -197,8 +197,6 @@ describe('RegistryManager', () => {
 
 			expect(localStorageMock.setItem).toHaveBeenCalledWith('registry', registryUrl);
 
-			vi.mocked(localStorageMock.getItem).mockReturnValueOnce(registryUrl);
-
 			const retrievedValue = RegistryManager.getFromStorage();
 
 			expect(retrievedValue).toBe(registryUrl);
