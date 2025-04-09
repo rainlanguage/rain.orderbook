@@ -360,11 +360,13 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
+			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
 			awaitTx(
 				hash,
 				action === 'deposit'
 					? TransactionStatus.PENDING_DEPOSIT
-					: TransactionStatus.PENDING_WITHDRAWAL
+					: TransactionStatus.PENDING_WITHDRAWAL,
+				transactionExplorerLink
 			);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitTransactionIndexing(
@@ -406,7 +408,8 @@ const transactionStore = () => {
 		}
 
 		try {
-			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER);
+			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
+			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitRemoveOrderIndexing(subgraphUrl, hash);
 		} catch {
