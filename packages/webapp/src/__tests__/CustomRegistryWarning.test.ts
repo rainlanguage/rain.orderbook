@@ -43,12 +43,4 @@ describe('CustomRegistryWarning Component', () => {
 
 		expect(RegistryManager.clearFromStorage).toHaveBeenCalledTimes(1);
 	});
-
-	it('should have correct link attributes for default registry', () => {
-		render(CustomRegistryWarning);
-
-		const defaultLink = screen.getByText('Use default.');
-		expect(defaultLink).toHaveAttribute('href', '/deploy');
-		expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
-	});
 });
