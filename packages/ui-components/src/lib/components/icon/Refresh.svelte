@@ -16,10 +16,11 @@
 	export let role = ctx.role || 'img';
 	export let ariaLabel = 'refresh';
 	export let spin = false;
+	export let testId = 'refresh-button';
 </script>
 
 <svg
-	data-testid="refresh-button"
+	data-testid={testId}
 	xmlns="http://www.w3.org/2000/svg"
 	fill="none"
 	{...$$restProps}
