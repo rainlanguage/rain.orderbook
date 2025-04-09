@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CustomRegistryWarning from '$lib/components/CustomRegistryWarning.svelte';
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
-	import { Button, Input, Toggle } from 'flowbite-svelte';
+	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import RegistryManager from '$lib/services/RegistryManager';
 	import { onMount } from 'svelte';

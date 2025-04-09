@@ -1,4 +1,3 @@
-
 import RegistryManager from '$lib/services/RegistryManager';
 import { fetchRegistryDotrains } from '@rainlanguage/ui-components/services';
 import type { Mock } from 'vitest';
@@ -18,8 +17,6 @@ export async function loadRegistryUrl(url: string): Promise<void> {
 		throw new Error(errorMessage);
 	}
 }
-
-
 
 if (import.meta.vitest) {
 	const { describe, it, expect, vi, beforeEach } = import.meta.vitest;
@@ -50,7 +47,7 @@ if (import.meta.vitest) {
 
 		it('should successfully load registry URL and reload the page', async () => {
 			const testUrl = 'https://example.com/registry';
-			
+
 			(fetchRegistryDotrains as Mock).mockResolvedValueOnce(undefined);
 
 			await loadRegistryUrl(testUrl);
@@ -94,4 +91,3 @@ if (import.meta.vitest) {
 		});
 	});
 }
-

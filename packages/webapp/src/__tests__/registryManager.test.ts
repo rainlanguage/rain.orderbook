@@ -282,7 +282,6 @@ describe('RegistryManager', () => {
 	});
 });
 
-
 describe('RegistryManager Error Handling', () => {
 	let originalLocalStorage: Storage;
 	let originalLocation: Location;
@@ -314,7 +313,9 @@ describe('RegistryManager Error Handling', () => {
 			}
 		});
 
-		expect(() => RegistryManager.getFromStorage()).toThrow('Failed to access localStorage: Storage access denied');
+		expect(() => RegistryManager.getFromStorage()).toThrow(
+			'Failed to access localStorage: Storage access denied'
+		);
 	});
 
 	it('should throw error when setToStorage fails to save to localStorage', () => {
@@ -384,7 +385,9 @@ describe('RegistryManager Error Handling', () => {
 			}
 		});
 
-		expect(() => RegistryManager.getFromStorage()).toThrow('Failed to access localStorage: Access denied');
+		expect(() => RegistryManager.getFromStorage()).toThrow(
+			'Failed to access localStorage: Access denied'
+		);
 	});
 
 	it('should handle non-Error objects in error handling for setToStorage', () => {
@@ -447,6 +450,8 @@ describe('RegistryManager Error Handling', () => {
 	it('should throw error when localStorage is not available for clearFromStorage', () => {
 		Object.defineProperty(window, 'localStorage', { value: undefined });
 
-		expect(() => RegistryManager.clearFromStorage()).toThrow(/Failed to clear registry from localStorage/);
+		expect(() => RegistryManager.clearFromStorage()).toThrow(
+			/Failed to clear registry from localStorage/
+		);
 	});
 });
