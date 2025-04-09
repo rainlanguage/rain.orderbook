@@ -40,14 +40,12 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
- export let chainId: number | undefined;
-+/** Callback function when remove action is triggered for an order
-+ * @param order The order to remove
-+ */
- export let onRemove: (order: SgOrder) => void;
- /** Callback function when deposit action is triggered for a vault
-  * @param vault The vault to deposit into
-  */
+
+	/** Callback function when remove action is triggered for an order
+	 * @param order The order to remove
+	 */
+	export let onRemove: (order: SgOrder) => void;
+
 	/** Callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
