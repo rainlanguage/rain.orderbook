@@ -114,10 +114,11 @@ describe('RegistryManager', () => {
 	});
 
 	it('should remove registry value from storage', () => {
-		localStorageMock.setItem('registry', 'https://custom-registry.com');
+		RegistryManager.setToStorage('https://custom-registry.com');
 		expect(RegistryManager.getFromStorage()).toBe('https://custom-registry.com');
-		localStorageMock.removeItem('registry');
+		RegistryManager.clearFromStorage();
 		expect(localStorageMock.removeItem).toHaveBeenCalledWith('registry');
+		expect(RegistryManager.getFromStorage()).toBe(null);
 	});
 
 	it('should set registry value to storage', () => {
