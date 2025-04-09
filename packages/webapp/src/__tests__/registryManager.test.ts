@@ -281,3 +281,172 @@ describe('RegistryManager', () => {
 		expect(retrievedParam).toBe(registryUrl);
 	});
 });
+
+
+describe('RegistryManager Error Handling', () => {
+	let originalLocalStorage: Storage;
+	let originalLocation: Location;
+	let originalHistory: History;
+
+	beforeAll((): void => {
+		originalLocalStorage = window.localStorage;
+		originalLocation = window.location;
+		originalHistory = window.history;
+	});
+
+	afterAll((): void => {
+		Object.defineProperty(window, 'localStorage', { value: originalLocalStorage });
+		vi.stubGlobal('location', originalLocation);
+		vi.stubGlobal('history', originalHistory);
+	});
+
+	beforeEach((): void => {
+		vi.clearAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it('should throw error when getFromStorage fails to access localStorage', () => {
+		Object.defineProperty(window, 'localStorage', {
+			value: {
+				getItem: vi.fn(() => {
+					throw new Error('Storage access denied');
+				})
+			}
+		});
+
+		expect(() => RegistryManager.getFromStorage()).toThrow('Failed to access localStorage: Storage access denied');
+	});
+
+	it('should throw error when setToStorage fails to save to localStorage', () => {
+		Object.defineProperty(window, 'localStorage', {
+			value: {
+				setItem: vi.fn(() => {
+					throw new Error('Storage quota exceeded');
+				})
+			}
+		});
+
+		expect(() => RegistryManager.setToStorage('https://custom-registry.com')).toThrow(
+			'Failed to save to localStorage: Storage quota exceeded'
+		);
+	});
+
+	it('should throw error when clearFromStorage fails to remove from localStorage', () => {
+		Object.defineProperty(window, 'localStorage', {
+			value: {
+				removeItem: vi.fn(() => {
+					throw new Error('Cannot access storage');
+				})
+			}
+		});
+
+		expect(() => RegistryManager.clearFromStorage()).toThrow(
+			'Failed to clear registry from localStorage: Cannot access storage'
+		);
+	});
+
+	it('should throw error when updateUrlParam fails to update URL', () => {
+		global.URL = vi.fn(() => {
+			throw new Error('Invalid URL');
+		}) as any;
+
+		expect(() => RegistryManager.updateUrlParam('https://custom-registry.com')).toThrow(
+			'Failed to update URL parameter: Invalid URL'
+		);
+	});
+
+	it('should throw error when hasRegistryParam fails to check URL parameters', () => {
+		global.URL = vi.fn(() => {
+			throw new Error('URL parsing failed');
+		}) as any;
+
+		expect(() => RegistryManager.hasRegistryParam()).toThrow(
+			'Failed to check if registry parameter exists: URL parsing failed'
+		);
+	});
+
+	it('should throw error when getRegistryParam fails to get URL parameters', () => {
+		global.URL = vi.fn(() => {
+			throw new Error('URL malformed');
+		}) as any;
+
+		expect(() => RegistryManager.getRegistryParam()).toThrow(
+			'Failed to get registry parameter: URL malformed'
+		);
+	});
+
+	it('should handle non-Error objects in error handling for getFromStorage', () => {
+		Object.defineProperty(window, 'localStorage', {
+			value: {
+				getItem: vi.fn(() => {
+					throw 'Access denied';
+				})
+			}
+		});
+
+		expect(() => RegistryManager.getFromStorage()).toThrow('Failed to access localStorage: Access denied');
+	});
+
+	it('should handle non-Error objects in error handling for setToStorage', () => {
+		Object.defineProperty(window, 'localStorage', {
+			value: {
+				setItem: vi.fn(() => {
+					throw 404;
+				})
+			}
+		});
+
+		expect(() => RegistryManager.setToStorage('https://custom-registry.com')).toThrow(
+			'Failed to save to localStorage: 404'
+		);
+	});
+
+	it('should handle history API errors in updateUrlParam', () => {
+		global.URL = class {
+			searchParams = {
+				set: vi.fn(),
+				delete: vi.fn(),
+				has: vi.fn(),
+				get: vi.fn()
+			};
+			toString() {
+				return 'http://test.com';
+			}
+			constructor() {
+				return this;
+			}
+		} as any;
+
+		Object.defineProperty(window, 'history', {
+			value: {
+				pushState: vi.fn(() => {
+					throw new Error('History API not available');
+				})
+			}
+		});
+
+		expect(() => RegistryManager.updateUrlParam('https://custom-registry.com')).toThrow(
+			'Failed to update URL parameter: History API not available'
+		);
+	});
+
+	it('should throw error when localStorage is not available for getFromStorage', () => {
+		Object.defineProperty(window, 'localStorage', { value: undefined });
+
+		expect(() => RegistryManager.getFromStorage()).toThrow(/Failed to access localStorage/);
+	});
+
+	it('should throw error when localStorage is not available for setToStorage', () => {
+		Object.defineProperty(window, 'localStorage', { value: undefined });
+
+		expect(() => RegistryManager.setToStorage('https://custom-registry.com')).toThrow(
+			/Failed to save to localStorage/
+		);
+	});
+
+	it('should throw error when localStorage is not available for clearFromStorage', () => {
+		Object.defineProperty(window, 'localStorage', { value: undefined });
+
+		expect(() => RegistryManager.clearFromStorage()).toThrow(/Failed to clear registry from localStorage/);
+	});
+});
