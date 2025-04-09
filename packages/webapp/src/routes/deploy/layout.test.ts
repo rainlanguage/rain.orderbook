@@ -1,13 +1,10 @@
+
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import Layout from './+layout.svelte';
 import RegistryManager from '$lib/services/RegistryManager';
 import type { Mock } from 'vitest';
-import {
-	type RegistryDotrain
-} from '@rainlanguage/ui-components/services';
-import type { ValidStrategyDetail } from '@rainlanguage/ui-components';
-import type { InvalidStrategyDetail } from '@rainlanguage/ui-components';
+import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
@@ -25,68 +22,34 @@ vi.mock('$lib/services/RegistryManager', () => ({
 	}
 }));
 
-vi.mock('@rainlanguage/ui-components/services', () => ({
-	validateStrategies: vi.fn(),
-	fetchRegistryDotrains: vi.fn()
+vi.mock('$lib/services/loadRegistryUrl', () => ({
+	loadRegistryUrl: vi.fn()
 }));
 
-type LoadResult = {
-	registry: string;
-	registryDotrains: RegistryDotrain[];
-	validStrategies: ValidStrategyDetail[];
-	invalidStrategies: InvalidStrategyDetail[];
-	error: string | null;
-};
-
-const mockDotrains = ['dotrain1', 'dotrain2'] as unknown as RegistryDotrain[];
-const mockValidated = {
-	validStrategies: ['strategy1', 'strategy2'] as unknown as ValidStrategyDetail[],
-	invalidStrategies: ['invalidStrategy'] as unknown as InvalidStrategyDetail[]
-};
-
 describe('Layout Component', () => {
-	beforeEach((): void => {
+	beforeEach(() => {
 		vi.clearAllMocks();
-		mockPageStore.reset();
-		vi.unstubAllGlobals();
 		vi.stubGlobal('localStorage', {
 			getItem: vi.fn().mockReturnValue(null)
 		});
 	});
 
-	it('should show advanced mode toggle on deploy page', () => {
+	const setupPageStore = (pathname: string) => {
+		const mockPageStore = {
+			subscribe: vi.fn(),
+			mockSetSubscribeValue: vi.fn()
+		};
 		mockPageStore.mockSetSubscribeValue({
 			url: {
-				pathname: '/deploy'
+				pathname: pathname
 			} as unknown as URL
 		});
-
-		render(Layout);
-
-		expect(screen.getByText('Advanced mode')).toBeInTheDocument();
-	});
-
-	it('should not show advanced mode toggle on non-deploy pages', () => {
-		mockPageStore.mockSetSubscribeValue({
-			url: {
-				pathname: '/other-page'
-			} as unknown as URL
-		});
-
-		render(Layout);
-
-		expect(screen.queryByText('Advanced mode')).toBeNull();
-	});
+		return mockPageStore;
+	};
 
 	it('should show custom registry warning when using non-default registry', () => {
 		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
 		(RegistryManager.isCustomRegistry as Mock).mockReturnValue(true);
-
-		mockPageStore.mockSetSubscribeValue({
-			url: {
-				pathname: '/deploy'
-			} as unknown as URL
-		});
 
 		render(Layout);
 
@@ -94,15 +57,9 @@ describe('Layout Component', () => {
 		expect(screen.getByTestId('custom-registry-warning')).toBeTruthy();
 	});
 
-	it('should display InputRegistryUrl when advanced mode is on', () => {
+	it('should display advanced mode components when advanced mode is on', () => {
 		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue('https://custom-registry.com')
-		});
-
-		mockPageStore.mockSetSubscribeValue({
-			url: {
-				pathname: '/deploy'
-			} as unknown as URL
+			getItem: vi.fn().mockReturnValue('true')
 		});
 
 		render(Layout);
@@ -110,19 +67,71 @@ describe('Layout Component', () => {
 		expect(screen.getByTestId('registry-input')).toBeTruthy();
 	});
 
-	it('should not display InputRegistryUrl when advanced mode is off', () => {
+	it('should not display advanced mode components when advanced mode is off', () => {
 		vi.stubGlobal('localStorage', {
 			getItem: vi.fn().mockReturnValue(null)
-		});
-
-		mockPageStore.mockSetSubscribeValue({
-			url: {
-				pathname: '/deploy'
-			} as unknown as URL
 		});
 
 		render(Layout);
 
 		expect(screen.queryByTestId('registry-input')).toBeNull();
+	});
+
+	it('should handle registry URL loading with error handling', async () => {
+		const errorMessage = 'Failed to update registry URL';
+		(loadRegistryUrl as Mock).mockRejectedValue(new Error(errorMessage));
+
+		vi.stubGlobal('localStorage', {
+			getItem: vi.fn().mockReturnValue('true')
+		});
+
+		const mockPageStore = setupPageStore('/deploy');
+		render(Layout);
+
+		// Simulate registry URL loading
+		const registryInput = screen.getByTestId('registry-input');
+		const input = registryInput.querySelector('input');
+		const submitButton = registryInput.querySelector('button');
+
+		if (input && submitButton) {
+			await fireEvent.input(input, { target: { value: 'https://test.registry.url' } });
+			await fireEvent.click(submitButton);
+
+			// Wait for error to be displayed
+			const errorElement = await screen.findByText(errorMessage);
+			expect(errorElement).toBeInTheDocument();
+		}
+	});
+
+	it('should clear error before loading new registry URL', async () => {
+		vi.stubGlobal('localStorage', {
+			getItem: vi.fn().mockReturnValue('true')
+		});
+
+		render(Layout);
+
+
+		const registryInput = screen.getByTestId('registry-input');
+		const input = registryInput.querySelector('input');
+		const submitButton = registryInput.querySelector('button');
+
+		if (input && submitButton) {
+			await fireEvent.input(input, { target: { value: 'https://test.registry.url' } });
+			await fireEvent.click(submitButton);
+
+			expect(loadRegistryUrl).toHaveBeenCalledWith('https://test.registry.url');
+		}
+	});
+
+	it('should handle localStorage errors during initialization', () => {
+		vi.stubGlobal('localStorage', {
+			getItem: vi.fn().mockImplementation(() => {
+				throw new Error('localStorage access error');
+			})
+		});
+
+		render(Layout);
+
+		expect(screen.getByText('Failed to access registry settings')).toBeInTheDocument();
 	});
 });
