@@ -1,8 +1,7 @@
 import { invoke } from '@tauri-apps/api';
-import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, RainEvalResultsTable } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import { mockIPC } from '@tauri-apps/api/mocks';
-import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
 
 export async function debugOrderQuote(
   order: SgOrder,

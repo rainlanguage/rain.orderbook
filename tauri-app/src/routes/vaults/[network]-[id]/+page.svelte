@@ -5,7 +5,7 @@
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
   import { settings, activeNetworkRef, activeOrderbookRef } from '$lib/stores/settings';
-  import type { SgVault } from '@rainlanguage/orderbook/js_api';
+  import type { SgVault } from '@rainlanguage/orderbook';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const queryClient = useQueryClient();

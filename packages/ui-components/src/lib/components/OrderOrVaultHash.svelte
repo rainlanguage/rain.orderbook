@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
 	import Hash, { HashType } from './Hash.svelte';
-	import type { SgOrderAsIO, SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrderAsIO, SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import {
 		constructHashLink,
 		isOrderOrVaultActive,

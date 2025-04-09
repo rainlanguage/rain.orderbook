@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
+import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
@@ -6,7 +7,6 @@ import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { ComponentProps } from 'svelte';
 
@@ -16,7 +16,7 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 }));
 
 // Mock the js_api functions
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderByHash: vi.fn()
 }));
 

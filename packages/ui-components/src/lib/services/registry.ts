@@ -1,5 +1,5 @@
 import type { InvalidStrategyDetail, ValidStrategyDetail } from '$lib/types/strategy';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
 
 export type RegistryFile = {
@@ -224,14 +224,14 @@ file2.rain https://example.com/file2.rain`;
 
 	describe('validateStrategies', async () => {
 		// Mock the DotrainOrderGui dependency
-		vi.mock('@rainlanguage/orderbook/js_api', () => ({
+		vi.mock('@rainlanguage/orderbook', () => ({
 			DotrainOrderGui: {
 				getStrategyDetails: vi.fn()
 			}
 		}));
 
 		// Import DotrainOrderGui after mocking
-		const { DotrainOrderGui } = await import('@rainlanguage/orderbook/js_api');
+		const { DotrainOrderGui } = await import('@rainlanguage/orderbook');
 
 		beforeEach(() => {
 			vi.resetAllMocks();
