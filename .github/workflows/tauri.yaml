@@ -81,6 +81,8 @@ jobs:
           WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
+
+      - run: nix develop .#tauri-shell --command tauri-rs-test
+
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
-      - run: nix develop .#tauri-shell --command tauri-rs-test
