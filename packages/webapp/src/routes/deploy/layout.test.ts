@@ -28,9 +28,6 @@ vi.mock('$lib/services/loadRegistryUrl', () => ({
 describe('Layout Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.stubGlobal('localStorage', {
-			getItem: vi.fn().mockReturnValue(null)
-		});
 	});
 
 	it('should show custom registry warning when using non-default registry', () => {
