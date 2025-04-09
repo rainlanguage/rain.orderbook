@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		OrderDetail,
-		PageHeader,
-		TransactionStatus,
-		transactionStore,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
@@ -13,7 +7,7 @@
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();
