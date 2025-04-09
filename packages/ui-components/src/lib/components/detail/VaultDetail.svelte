@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
 	import { bigintStringToHex } from '../../utils/hex';
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultBalanceChangesTable from '../tables/VaultBalanceChangesTable.svelte';
@@ -7,51 +6,45 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import { getVault } from '@rainlanguage/orderbook';
+	import { getVault, type SgVault } from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits } from 'viem';
+	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
-
 	import { onDestroy } from 'svelte';
-	import type { Readable, Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
-
-	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import type { SgVault } from '@rainlanguage/orderbook';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import type { Config } from 'wagmi';
-	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import Refresh from '../icon/Refresh.svelte';
-	import type { DepositOrWithdrawModalProps } from '../../types/modal';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import { Button } from 'flowbite-svelte';
+	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 
-	export let handleDepositOrWithdrawModal:
-		| ((args: DepositOrWithdrawModalProps) => void)
-		| undefined = undefined;
 	export let id: string;
 	export let network: string;
-	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean> | undefined =
-		undefined;
-	// Tauri App modals
-	export let handleDepositModal: ((vault: SgVault, onDeposit: () => void) => void) | undefined =
-		undefined;
-	export let handleWithdrawModal: ((vault: SgVault, onWithdraw: () => void) => void) | undefined =
-		undefined;
-
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 	export let settings;
-	export let wagmiConfig: Writable<Config> | undefined = undefined;
-	export let signerAddress: Writable<string | null> | undefined = undefined;
+
+	/**
+	 * Required callback function when deposit action is triggered for a vault
+	 * @param vault The vault to deposit into
+	 */
+	export let onDeposit: (vault: SgVault) => void;
+
+	/**
+	 * Required callback function when withdraw action is triggered for a vault
+	 * @param vault The vault to withdraw from
+	 */
+	export let onWithdraw: (vault: SgVault) => void;
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
-	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const queryClient = useQueryClient();
+	const { account } = useAccount();
 
-	$: vaultDetailQuery = createQuery({
+	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
 		queryFn: () => {
 			return getVault(subgraphUrl || '', id);
@@ -88,28 +81,25 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $wagmiConfig && handleDepositOrWithdrawModal && $signerAddress === data.owner}
-				<DepositOrWithdrawButtons
-					vault={data}
-					{chainId}
-					{rpcUrl}
-					query={vaultDetailQuery}
-					{handleDepositOrWithdrawModal}
-					{subgraphUrl}
-				/>
-			{:else if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank?.(data.owner)}
+			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
 				<Button
-					data-testid="vaultDetailDepositButton"
-					color="dark"
-					on:click={() => handleDepositModal(data, $vaultDetailQuery.refetch)}
-					><ArrowDownOutline size="xs" class="mr-2" />Deposit</Button
+					color="light"
+					size="xs"
+					data-testid="deposit-button"
+					aria-label="Deposit to vault"
+					on:click={() => onDeposit(data)}
 				>
+					<ArrowDownOutline size="xs" />
+				</Button>
 				<Button
-					data-testid="vaultDetailWithdrawButton"
-					color="dark"
-					on:click={() => handleWithdrawModal(data, $vaultDetailQuery.refetch)}
-					><ArrowUpOutline size="xs" class="mr-2" />Withdraw</Button
+					color="light"
+					size="xs"
+					data-testid="withdraw-button"
+					aria-label="Withdraw from vault"
+					on:click={() => onWithdraw(data)}
 				>
+					<ArrowUpOutline size="xs" />
+				</Button>
 			{/if}
 
 			<Refresh
@@ -176,7 +166,7 @@
 		<CardProperty>
 			<svelte:fragment slot="key">Orders as output</svelte:fragment>
 			<svelte:fragment slot="value">
-				<p data-testid="vaulDetailOrdersAsOutput" class="flex flex-wrap justify-start">
+				<p data-testid="vaultDetailOrdersAsOutput" class="flex flex-wrap justify-start">
 					{#if data.ordersAsOutput && data.ordersAsOutput.length > 0}
 						{#each data.ordersAsOutput as order}
 							<OrderOrVaultHash

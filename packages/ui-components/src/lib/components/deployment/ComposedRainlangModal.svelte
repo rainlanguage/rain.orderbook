@@ -3,19 +3,20 @@
 	import { RainlangLR } from 'codemirror-rainlang';
 	import { lightCodeMirrorTheme } from '../../utils/codeMirrorThemes';
 	import { Button, Modal } from 'flowbite-svelte';
-	import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+	import { useGui } from '$lib/hooks/useGui';
 
-	export let gui: DotrainOrderGui;
+	const gui = useGui();
 
 	let rainlangText: string | null = null;
 	let open = false;
 
 	async function generateRainlang() {
-		const rainlang = await gui.getComposedRainlang();
-		if (rainlang) {
-			rainlangText = rainlang;
-			open = true;
+		let result = await gui.getComposedRainlang();
+		if (result.error) {
+			throw new Error(result.error.msg);
 		}
+		rainlangText = result.value;
+		open = true;
 	}
 </script>
 

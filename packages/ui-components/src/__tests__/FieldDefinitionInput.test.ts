@@ -3,19 +3,16 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
+import { useGui } from '$lib/hooks/useGui';
+import type { ComponentProps } from 'svelte';
 
-vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn().mockImplementation(() => ({
-		saveFieldValue: vi.fn(),
-		getFieldValue: vi.fn(),
-		isFieldPreset: vi.fn(),
-		getAllFieldValues: vi.fn(),
-		getCurrentDeployment: vi.fn()
-	}))
+type FieldDefinitionInputProps = ComponentProps<FieldDefinitionInput>;
+vi.mock('$lib/hooks/useGui', () => ({
+	useGui: vi.fn()
 }));
 
 describe('FieldDefinitionInput', () => {
-	let mockGui: DotrainOrderGui;
+	let guiInstance: DotrainOrderGui;
 	let mockStateUpdateCallback: Mock;
 
 	const mockFieldDefinition = {
@@ -30,19 +27,20 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		mockGui = new (DotrainOrderGui as any)();
-		mockGui.saveFieldValue = vi.fn().mockImplementation(() => {
+		guiInstance = new DotrainOrderGui();
+
+		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({});
+		(DotrainOrderGui.prototype.saveFieldValue as Mock).mockImplementation(() => {
 			mockStateUpdateCallback();
 		});
+		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
 	it('renders field name and description', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(getByText('Test Field')).toBeTruthy();
@@ -52,9 +50,8 @@ describe('FieldDefinitionInput', () => {
 	it('renders preset buttons', () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(getByText('Preset 1')).toBeTruthy();
@@ -64,35 +61,27 @@ describe('FieldDefinitionInput', () => {
 	it('handles preset button clicks and triggers state update', async () => {
 		const { getByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: mockFieldDefinition,
-				gui: mockGui
-			}
+				fieldDefinition: mockFieldDefinition
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: true,
-			value: 'preset1'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
 	it('handles custom input changes and triggers state update', async () => {
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: { ...mockFieldDefinition, showCustomField: true },
-				gui: mockGui
-			}
+				fieldDefinition: { ...mockFieldDefinition, showCustomField: true }
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'custom value'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -104,9 +93,8 @@ describe('FieldDefinitionInput', () => {
 
 		const { queryByText } = render(FieldDefinitionInput, {
 			props: {
-				fieldDefinition: fastExitFieldDef,
-				gui: mockGui
-			}
+				fieldDefinition: fastExitFieldDef
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		expect(queryByText('Custom')).toBeNull();
@@ -119,9 +107,8 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
-			}
+				}
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
@@ -129,15 +116,15 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'default value@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
-		(mockGui.getFieldValue as Mock).mockReturnValue({
-			isPreset: false,
-			value: 'preset1'
+		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({
+			value: {
+				binding: 'test-binding',
+				value: 'preset1',
+				is_preset: false
+			}
 		});
 
 		const { getByPlaceholderText } = render(FieldDefinitionInput, {
@@ -146,9 +133,8 @@ describe('FieldDefinitionInput', () => {
 					...mockFieldDefinition,
 					default: 'default value',
 					showCustomField: true
-				},
-				gui: mockGui
-			}
+				}
+			} as unknown as FieldDefinitionInputProps
 		});
 
 		const input = getByPlaceholderText('Enter custom value') as HTMLInputElement;
@@ -156,9 +142,6 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(mockGui.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'preset1@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
 	});
 });

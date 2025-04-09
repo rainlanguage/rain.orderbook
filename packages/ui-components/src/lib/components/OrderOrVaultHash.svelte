@@ -2,6 +2,11 @@
 	import { Button } from 'flowbite-svelte';
 	import Hash, { HashType } from './Hash.svelte';
 	import type { SgOrderAsIO, SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import {
+		constructHashLink,
+		isOrderOrVaultActive,
+		extractHash
+	} from '$lib/utils/constructHashLink';
 
 	type OrderOrVault = SgOrder | SgOrderAsIO | SgVault;
 
@@ -10,20 +15,17 @@
 	export let network: string;
 	export let updateActiveNetworkAndOrderbook: (subgraphName: string) => void;
 
-	let hash;
-
-	$: isOrder = 'orderHash' in (orderOrVault || {});
-	$: slug = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id;
-	$: hash = isOrder ? (orderOrVault as SgOrder).orderHash : (orderOrVault as SgVault)?.id || '';
-	$: isActive = isOrder ? (orderOrVault as SgOrderAsIO).active : false;
+	$: hash = extractHash(orderOrVault);
+	$: isActive = isOrderOrVaultActive(orderOrVault);
+	$: linkPath = constructHashLink(orderOrVault, type, network);
 </script>
 
-<a href={`/${type}/${network}-${slug}`}>
+<a data-testid="order-or-vault-hash" href={linkPath}>
 	<Button
 		class="mr-1 mt-1 px-2 py-1 text-sm"
 		color={isActive ? 'green' : 'yellow'}
 		data-testid="vault-order-input"
-		data-id={slug}
+		data-id={hash}
 		on:click={() => {
 			updateActiveNetworkAndOrderbook(network);
 		}}><Hash type={HashType.Identifier} value={hash} copyOnClick={false} /></Button

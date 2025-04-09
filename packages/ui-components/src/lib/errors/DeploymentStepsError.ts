@@ -12,8 +12,10 @@ export enum DeploymentStepsErrorCode {
 	NO_TOKEN_OUTPUTS = 'Error loading token outputs',
 	NO_GUI_DETAILS = 'Error getting GUI details',
 	NO_CHAIN = 'Unsupported chain ID',
+	NO_NETWORK_KEY = 'No network key found',
 	SERIALIZE_ERROR = 'Error serializing state',
-	ADD_ORDER_FAILED = 'Failed to add order'
+	ADD_ORDER_FAILED = 'Failed to add order',
+	NO_WALLET = 'No account address found'
 }
 
 export class DeploymentStepsError extends Error {

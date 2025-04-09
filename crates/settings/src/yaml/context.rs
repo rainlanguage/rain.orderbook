@@ -1,5 +1,5 @@
-use crate::{OrderCfg, OrderIOCfg, TokenCfg};
-use std::sync::Arc;
+use crate::{NetworkCfg, OrderCfg, OrderIOCfg, TokenCfg};
+use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -9,10 +9,17 @@ pub struct GuiContext {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct YamlCache {
+    pub remote_networks: HashMap<String, NetworkCfg>,
+    pub remote_tokens: HashMap<String, TokenCfg>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Context {
     pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
     pub gui_context: Option<GuiContext>,
+    pub yaml_cache: Option<YamlCache>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -25,6 +32,21 @@ pub enum ContextError {
     InvalidIndex(String),
     #[error("Property not found: {0}")]
     PropertyNotFound(String),
+}
+
+impl ContextError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ContextError::NoOrder =>
+                "No order is available in the current context. Please ensure an order is specified in your YAML configuration.".to_string(),
+            ContextError::InvalidPath(path) =>
+                format!("The path '{}' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct.", path),
+            ContextError::InvalidIndex(index) =>
+                format!("The index '{}' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array.", index),
+            ContextError::PropertyNotFound(property) =>
+                format!("The property '{}' was not found in your YAML configuration. Please check that this property is defined correctly.", property),
+        }
+    }
 }
 
 pub trait OrderContext {
@@ -128,12 +150,51 @@ impl GuiContextTrait for Context {
     }
 }
 
+pub trait YamlCacheTrait {
+    fn get_yaml_cache(&self) -> Option<&YamlCache>;
+
+    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>>;
+
+    fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg>;
+
+    fn get_remote_tokens(&self) -> Option<&HashMap<String, TokenCfg>>;
+
+    fn get_remote_token(&self, key: &str) -> Option<&TokenCfg>;
+}
+
+impl YamlCacheTrait for Context {
+    fn get_yaml_cache(&self) -> Option<&YamlCache> {
+        self.yaml_cache.as_ref()
+    }
+
+    fn get_remote_networks(&self) -> Option<&HashMap<String, NetworkCfg>> {
+        self.yaml_cache.as_ref().map(|cache| &cache.remote_networks)
+    }
+
+    fn get_remote_network(&self, key: &str) -> Option<&NetworkCfg> {
+        self.yaml_cache
+            .as_ref()
+            .and_then(|cache| cache.remote_networks.get(key))
+    }
+
+    fn get_remote_tokens(&self) -> Option<&HashMap<String, TokenCfg>> {
+        self.yaml_cache.as_ref().map(|cache| &cache.remote_tokens)
+    }
+
+    fn get_remote_token(&self, key: &str) -> Option<&TokenCfg> {
+        self.yaml_cache
+            .as_ref()
+            .and_then(|cache| cache.remote_tokens.get(key))
+    }
+}
+
 impl Context {
     pub fn new() -> Self {
         Self {
             order: None,
             select_tokens: None,
             gui_context: None,
+            yaml_cache: None,
         }
     }
 
@@ -143,6 +204,7 @@ impl Context {
             new_context.order.clone_from(&context.order);
             new_context.select_tokens.clone_from(&context.select_tokens);
             new_context.gui_context.clone_from(&context.gui_context);
+            new_context.yaml_cache.clone_from(&context.yaml_cache);
         }
         new_context
     }
@@ -170,6 +232,33 @@ impl Context {
             current_deployment: None,
             current_order: Some(order),
         });
+        self
+    }
+
+    pub fn set_remote_networks(
+        &mut self,
+        remote_networks: HashMap<String, NetworkCfg>,
+    ) -> &mut Self {
+        if let Some(yaml_cache) = self.yaml_cache.as_mut() {
+            yaml_cache.remote_networks = remote_networks;
+        } else {
+            self.yaml_cache = Some(YamlCache {
+                remote_networks,
+                remote_tokens: HashMap::new(),
+            });
+        }
+        self
+    }
+
+    pub fn set_remote_tokens(&mut self, remote_tokens: HashMap<String, TokenCfg>) -> &mut Self {
+        if let Some(yaml_cache) = self.yaml_cache.as_mut() {
+            yaml_cache.remote_tokens = remote_tokens;
+        } else {
+            self.yaml_cache = Some(YamlCache {
+                remote_tokens,
+                remote_networks: HashMap::new(),
+            });
+        }
         self
     }
 
@@ -266,13 +355,27 @@ mod tests {
         );
 
         // Test error cases
-        assert!(context.interpolate("${invalid}").is_err());
-        assert!(context
+        let invalid_path_error = context.interpolate("${invalid}").unwrap_err();
+        assert_eq!(
+            invalid_path_error.to_readable_msg(),
+            "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
+        );
+
+        let invalid_index_error = context
             .interpolate("${order.inputs.999.token.address}")
-            .is_err());
-        assert!(context
+            .unwrap_err();
+        assert_eq!(
+            invalid_index_error.to_readable_msg(),
+            "The index '999' in your YAML configuration is invalid. Please ensure the index is a valid number and within the bounds of the array."
+        );
+
+        let property_not_found_error = context
             .interpolate("${order.inputs.0.token.invalid}")
-            .is_err());
+            .unwrap_err();
+        assert_eq!(
+            property_not_found_error.to_readable_msg(),
+            "The path 'invalid' in your YAML configuration is invalid. Please check the syntax and ensure all path segments are correct."
+        );
 
         // Test vault-id interpolation
         assert_eq!(
@@ -283,9 +386,25 @@ mod tests {
         );
 
         // Test that missing vault-id returns error
-        assert!(matches!(
-            context.interpolate("${order.outputs.0.vault-id}"),
-            Err(ContextError::PropertyNotFound(_))
-        ));
+        let missing_vault_error = context
+            .interpolate("${order.outputs.0.vault-id}")
+            .unwrap_err();
+        assert_eq!(
+            missing_vault_error.to_readable_msg(),
+            "The property 'vault-id' was not found in your YAML configuration. Please check that this property is defined correctly."
+        );
+    }
+
+    #[test]
+    fn test_context_no_order() {
+        let context = Context::new();
+        let error = context
+            .interpolate("${order.inputs.0.token.address}")
+            .unwrap_err();
+        assert_eq!(error, ContextError::NoOrder);
+        assert_eq!(
+            error.to_readable_msg(),
+            "No order is available in the current context. Please ensure an order is specified in your YAML configuration."
+        );
     }
 }

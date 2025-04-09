@@ -4,7 +4,6 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	SgTransaction,
 	RemoveOrderCalldata,
@@ -17,6 +16,7 @@ import {
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
+import type { DeploymentArgs } from '$lib/types/transaction';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -51,14 +51,9 @@ export enum TransactionErrorMessage {
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
-export type DeploymentTransactionArgs = {
+export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
+export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
 	config: Config;
-	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl: string;
-	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -306,7 +301,15 @@ const transactionStore = () => {
 			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			if (subgraphUrl) {
+				return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			}
+			return transactionSuccess(
+				hash,
+				'Deployment successful. Check the Orders page for your new order.',
+				'',
+				network
+			);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

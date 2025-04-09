@@ -400,4 +400,34 @@ describe('transactionStore', () => {
 
 		vi.useRealTimers();
 	});
+
+	it('should skip subgraph indexing when subgraphUrl is not provided', async () => {
+		// Mock dependencies
+		(switchChain as Mock).mockResolvedValue({});
+		(sendTransaction as Mock).mockResolvedValue('deployHash');
+		(waitForTransactionReceipt as Mock).mockResolvedValue({});
+		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
+
+		// Call with empty subgraphUrl
+		await handleDeploymentTransaction({
+			config: mockConfig,
+			approvals: [],
+			deploymentCalldata: '0xdeployment',
+			orderbookAddress: mockOrderbookAddress as `0x${string}`,
+			chainId: 1,
+			subgraphUrl: '', // Empty subgraphUrl
+			network: 'flare'
+		});
+
+		// Verify the store was updated correctly
+		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).hash).toBe('deployHash');
+		expect(get(transactionStore).message).toBe(
+			'Deployment successful. Check the Orders page for your new order.'
+		);
+		expect(get(transactionStore).network).toBe('flare');
+
+		// Verify that awaitNewOrderIndexing was NOT called
+		expect(getTransactionAddOrders).not.toHaveBeenCalled();
+	});
 });

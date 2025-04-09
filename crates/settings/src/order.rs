@@ -478,9 +478,15 @@ impl YamlParsableHash for OrderCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None);
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), None);
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context);
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
+
+        if let Some(context) = context {
+            if context.select_tokens.is_none() && tokens.is_err() {
+                return Err(tokens.err().unwrap());
+            }
+        }
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -749,7 +755,7 @@ impl YamlParsableHash for OrderCfg {
                     };
 
                     if orders.contains_key(&order_key) {
-                        return Err(YamlError::KeyShadowing(order_key));
+                        return Err(YamlError::KeyShadowing(order_key, "orders".to_string()));
                     }
                     orders.insert(order_key, order);
                 }
@@ -826,6 +832,33 @@ pub enum ParseOrderConfigSourceError {
     },
     #[error("Failed to parse vault id")]
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
+}
+
+impl ParseOrderConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseOrderConfigSourceError::DeployerParseError(err) =>
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::OrderbookParseError(err) =>
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::TokenParseError(err) =>
+                err.to_readable_msg(),
+            ParseOrderConfigSourceError::NetworkNotFoundError(_) =>
+                "No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks.".to_string(),
+            ParseOrderConfigSourceError::NetworkNotMatch =>
+                "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
+            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } =>
+                format!("Network mismatch in your YAML configuration: The deployer is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } =>
+                format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
+                format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
+            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } =>
+                format!("Network mismatch in your YAML configuration: The output token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
+            ParseOrderConfigSourceError::VaultParseError(err) =>
+                format!("The vault ID in your YAML configuration is invalid. Please provide a valid number: {}", err),
+        }
+    }
 }
 
 impl OrderConfigSource {
@@ -1038,6 +1071,10 @@ mod tests {
             result,
             Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
         ));
+        let error = result.unwrap_err();
+        assert!(error
+            .to_readable_msg()
+            .contains("No network could be determined for this order"));
     }
 
     #[test]
@@ -1110,6 +1147,10 @@ test: test
                 location: "root".to_string()
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'orders' in root"
+        );
 
         let yaml = r#"
 orders:
@@ -1122,6 +1163,10 @@ orders:
                 kind: FieldErrorKind::Missing("inputs".to_string()),
                 location: "order 'order1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'inputs' in order 'order1'"
         );
 
         let yaml = r#"
@@ -1137,6 +1182,10 @@ orders:
                 kind: FieldErrorKind::Missing("token".to_string()),
                 location: "input index '0' in order 'order1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'token' in input index '0' in order 'order1'"
         );
 
         let yaml = r#"
@@ -1160,6 +1209,10 @@ orders:
                 kind: FieldErrorKind::Missing("outputs".to_string()),
                 location: "order 'order1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'outputs' in order 'order1'"
         );
 
         let yaml = r#"
@@ -1185,6 +1238,10 @@ orders:
                 kind: FieldErrorKind::Missing("token".to_string()),
                 location: "output index '0' in order 'order1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'token' in output index '0' in order 'order1'"
         );
     }
 
@@ -1274,7 +1331,11 @@ orders:
         let documents = vec![get_document(yaml_one), get_document(yaml_two)];
         let error = OrderCfg::parse_all_from_yaml(documents, None).unwrap_err();
 
-        assert_eq!(error, YamlError::KeyShadowing("DuplicateOrder".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("DuplicateOrder".to_string(), "orders".to_string())
+        );
+        assert_eq!(error.to_readable_msg(), "The key 'DuplicateOrder' is defined multiple times in your YAML configuration at orders");
     }
 
     #[test]
@@ -1293,6 +1354,10 @@ orders: test
                 location: "root".to_string()
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
 
         let yaml = r#"
 orders:
@@ -1309,6 +1374,10 @@ orders:
                 location: "root".to_string()
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
 
         let yaml = r#"
 orders:
@@ -1324,6 +1393,10 @@ orders:
                 },
                 location: "root".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
         );
     }
 }

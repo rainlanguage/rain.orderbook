@@ -1,8 +1,10 @@
-use super::*;
+use super::{cache::Cache, *};
 use crate::{
-    metaboard::MetaboardCfg, raindex_version::RaindexVersion, sentry::Sentry,
-    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
+    metaboard::MetaboardCfg, raindex_version::RaindexVersion, remote_networks::RemoteNetworksCfg,
+    remote_tokens::RemoteTokensCfg, sentry::Sentry, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg,
+    OrderbookCfg, TokenCfg,
 };
+use alloy::primitives::Address;
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     ser::{Serialize, SerializeSeq, Serializer},
@@ -20,6 +22,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub struct OrderbookYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
+    pub cache: Cache,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderbookYaml);
@@ -41,6 +44,7 @@ impl YamlParsable for OrderbookYaml {
 
         if validate {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
+            RemoteNetworksCfg::parse_all_from_yaml(documents.clone(), None)?;
             TokenCfg::parse_all_from_yaml(documents.clone(), None)?;
             SubgraphCfg::parse_all_from_yaml(documents.clone(), None)?;
             OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -48,29 +52,88 @@ impl YamlParsable for OrderbookYaml {
             MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
-        Ok(OrderbookYaml { documents })
+        Ok(OrderbookYaml {
+            documents,
+            cache: Cache::default(),
+        })
     }
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
-        OrderbookYaml { documents }
+        OrderbookYaml {
+            documents,
+            cache: Cache::default(),
+        }
+    }
+
+    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
+        OrderbookYaml {
+            documents: orderbook_yaml.documents,
+            cache: orderbook_yaml.cache,
+        }
+    }
+
+    fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
+        OrderbookYaml {
+            documents: dotrain_yaml.documents,
+            cache: dotrain_yaml.cache,
+        }
+    }
+}
+
+impl ContextProvider for OrderbookYaml {
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
+        self.cache.get_remote_networks()
+    }
+
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg> {
+        self.cache.get_remote_tokens()
     }
 }
 
 impl OrderbookYaml {
+    pub fn initialize_context_and_expand_remote_data(&self) -> Result<Context, YamlError> {
+        let mut context = self.create_context();
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+        Ok(context)
+    }
+
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.initialize_context_and_expand_remote_data()?;
+        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(networks.keys().cloned().collect())
     }
+    pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+    }
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
-        NetworkCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.initialize_context_and_expand_remote_data()?;
+        NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+    }
+
+    pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
+        let remote_networks = RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(remote_networks)
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.initialize_context_and_expand_remote_data()?;
+        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(tokens.keys().cloned().collect())
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
-        TokenCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.initialize_context_and_expand_remote_data()?;
+        TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+    }
+
+    pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
+        let mut context = Context::new();
+        self.expand_context_with_remote_networks(&mut context);
+
+        let remote_tokens =
+            RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), None)?;
+        Ok(remote_tokens)
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -82,11 +145,22 @@ impl OrderbookYaml {
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.initialize_context_and_expand_remote_data()?;
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(orderbooks.keys().cloned().collect())
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
-        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.initialize_context_and_expand_remote_data()?;
+        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+    }
+    pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        for (_, orderbook) in orderbooks {
+            if orderbook.address == address {
+                return Ok(orderbook);
+            }
+        }
+        Err(YamlError::KeyNotFound(address.to_string()))
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -101,11 +175,13 @@ impl OrderbookYaml {
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.initialize_context_and_expand_remote_data()?;
+        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(deployers.keys().cloned().collect())
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
-        DeployerCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.initialize_context_and_expand_remote_data()?;
+        DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_sentry(&self) -> Result<bool, YamlError> {
@@ -163,7 +239,10 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
                     documents.push(Arc::new(RwLock::new(doc)));
                 }
 
-                Ok(OrderbookYaml { documents })
+                Ok(OrderbookYaml {
+                    documents,
+                    cache: Cache::default(),
+                })
             }
         }
 
@@ -186,6 +265,10 @@ mod tests {
             label: Ethereum Mainnet
             network-id: 1
             currency: ETH
+    using-networks-from:
+        chainid:
+            url: https://chainid.network/v2/chains.json
+            format: chainid
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
         secondary: https://api.thegraph.com/subgraphs/name/abc
@@ -256,6 +339,13 @@ mod tests {
             Url::parse("https://mainnet.infura.io").unwrap()
         );
 
+        let remote_networks = ob_yaml.get_remote_networks().unwrap();
+        assert_eq!(remote_networks.len(), 1);
+        assert_eq!(
+            remote_networks.get("chainid").unwrap().url,
+            Url::parse("https://chainid.network/v2/chains.json").unwrap()
+        );
+
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
@@ -290,6 +380,12 @@ mod tests {
             OrderbookCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
             "mainnet"
         );
+        let orderbook_by_address = ob_yaml
+            .get_orderbook_by_address(
+                Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            )
+            .unwrap();
+        assert_eq!(orderbook_by_address, orderbook);
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
         assert_eq!(

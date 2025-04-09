@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
 	import { isEmpty } from 'lodash';
-	import { Alert, Tooltip } from 'flowbite-svelte';
+	import { Alert } from 'flowbite-svelte';
+	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
 	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
@@ -9,6 +10,8 @@
 	import type { Readable, Writable } from 'svelte/store';
 	import type { ConfigSource } from '@rainlanguage/orderbook';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
+
 	export let settings: Writable<ConfigSource | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
@@ -19,7 +22,8 @@
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;
 	export let isOrdersPage: boolean;
-	export let signerAddress: Writable<string | null> | undefined;
+
+	const { account } = useAccount();
 </script>
 
 <div
@@ -33,12 +37,8 @@
 	{:else}
 		{#if $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
-				<CheckboxMyItemsOnly
-					context={isVaultsPage ? 'vaults' : 'orders'}
-					{showMyItemsOnly}
-					{signerAddress}
-				/>
-				{#if !$signerAddress}
+				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
+				{#if !$account}
 					<Tooltip>Connect a wallet to filter by {isVaultsPage ? 'vault' : 'order'} owner</Tooltip>
 				{/if}
 			</div>
