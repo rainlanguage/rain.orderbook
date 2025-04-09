@@ -63,9 +63,6 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
         OrderV4[] memory orders = new OrderV4[](testOrders.length);
 
-        uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);
-        uint256 expectedTakerOutput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerOutput, 18);
-
         for (uint256 i = 0; i < testOrders.length; i++) {
             {
                 OrderConfigV4 memory orderConfig;
@@ -125,27 +122,33 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         TakeOrdersConfigV4 memory config =
             TakeOrdersConfigV4(Float(0, 0), maximumTakerInput, Float(type(int256).max, 0), takeOrders, "");
 
-        // Mock and expect the token transfers.
-        vm.mockCall(
-            address(iToken1),
-            abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput18),
-            abi.encode(true)
-        );
-        vm.expectCall(
-            address(iToken1),
-            abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput18),
-            expectedTakerInput18 > 0 ? 1 : 0
-        );
-        vm.mockCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
-            abi.encode(true)
-        );
-        vm.expectCall(
-            address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
-            expectedTakerOutput18 > 0 ? 1 : 0
-        );
+            {
+                uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);
+                uint256 expectedTakerOutput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerOutput, 18);
+
+                // Mock and expect the token transfers.
+                vm.mockCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput18),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(IERC20.transfer.selector, bob, expectedTakerInput18),
+                    expectedTakerInput18 > 0 ? 1 : 0
+                );
+                vm.mockCall(
+                    address(iToken0),
+                    abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    address(iToken0),
+                    abi.encodeWithSelector(IERC20.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
+                    expectedTakerOutput18 > 0 ? 1 : 0
+                );
+            }
+
 
         vm.prank(bob);
         (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
@@ -153,8 +156,9 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         assertTrue(totalTakerOutput.eq(expectedTakerOutput), "totalTakerOutput");
 
         for (uint256 i = 0; i < testVaults.length; i++) {
+            Float memory vaultBalance = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
             assertTrue(
-                iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId).eq(testVaults[i].expect),
+                vaultBalance.eq(testVaults[i].expect),
                 "vaultBalance"
             );
         }

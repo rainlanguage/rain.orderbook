@@ -51,7 +51,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             vm.mockCall(inputToken, "", abi.encode(true));
         }
 
-        Float memory expectedTakerTotalOutput =
+        {
+            Float memory expectedTakerTotalOutput =
             LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalOutput18, outputTokenDecimals);
         Float memory expectedTakerTotalInput =
             LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalInput18, inputTokenDecimals);
@@ -73,6 +74,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
         assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
         assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
+        }
+
         assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(0, 0)), "vault balance");
     }
 
