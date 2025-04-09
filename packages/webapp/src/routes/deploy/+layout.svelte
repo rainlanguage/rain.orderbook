@@ -17,7 +17,6 @@
 			registryFromStorage = RegistryManager.getFromStorage();
 			advancedMode = registryFromStorage ? true : false;
 		} catch (e) {
-			console.log('error', e);
 			registryError = e instanceof Error ? e.message : 'Failed to access registry settings';
 		}
 	});
