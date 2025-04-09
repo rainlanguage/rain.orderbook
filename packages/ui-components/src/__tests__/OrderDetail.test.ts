@@ -1,262 +1,314 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { describe, it, vi, type Mock } from 'vitest';
-import { expect } from '../lib/test/matchers';
-import OrderDetail from './OrderDetail.test.svelte';
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { QueryClient } from '@tanstack/svelte-query';
+import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
+import { readable } from 'svelte/store';
+import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
+import { useAccount } from '$lib/providers/wallet/useAccount';
+import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
+import { invalidateIdQuery } from '$lib/queries/queryClient';
+import type { ComponentProps } from 'svelte';
 
-const { mockWalletAddressMatchesOrBlankStore } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
-);
+// Mock the account hook
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
+
+// Mock the js_api functions
+vi.mock('@rainlanguage/orderbook/js_api', () => ({
+	getOrderByHash: vi.fn()
+}));
+
+// Mock the query client functions
+vi.mock('$lib/queries/queryClient', () => ({
+	invalidateIdQuery: vi.fn()
+}));
+
+vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
+	const mockLightweightCharts = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: mockLightweightCharts };
+});
+const subgraphUrl = 'https://example.com';
+const orderbookAddress = '0x123456789012345678901234567890123456abcd';
+const chainId = 1;
+const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
+const orderHash = 'mockOrderHash';
+
+const defaultProps: ComponentProps<OrderDetail> = {
+	orderHash,
+	rpcUrl,
+	subgraphUrl,
+	orderbookAddress,
+	chainId,
+	colorTheme: readable('dark'),
+	codeMirrorTheme: readable('dark'),
+	lightweightChartsTheme: readable(darkChartTheme),
+	onRemove: vi.fn(),
+	onDeposit: vi.fn(),
+	onWithdraw: vi.fn()
+};
 
 const mockOrder: SgOrder = {
 	id: 'mockId',
-	owner: 'mockOwner',
-	orderHash: 'mockOrderHash',
+	orderBytes: '0x0000000000000000000000000000000000000000...',
+	owner: '0x1234567890123456789012345678901234567890',
+	orderHash: orderHash,
 	active: true,
-	meta: '0x',
+	meta: null,
 	timestampAdded: '1234567890',
-	orderbook: { id: '1' },
-	inputs: [],
-	outputs: []
+	orderbook: { id: orderbookAddress },
+
+	inputs: [
+		{
+			id: '0x0000000000000000000000000000000000000002',
+			token: {
+				id: '0x0000000000000000000000000000000000000000',
+				address: '0x0000000000000000000000000000000000000000',
+				name: 'MockToken',
+				symbol: 'MCK',
+				decimals: '18'
+			},
+			balance: '0',
+			vaultId: '0x2',
+			owner: '0x1234567890123456789012345678901234567890',
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: [],
+			orderbook: {
+				id: orderbookAddress
+			}
+		}
+	],
+
+	outputs: [
+		{
+			id: '0x0000000000000000000000000000000000000001',
+			token: {
+				id: '0x0000000000000000000000000000000000000000',
+				address: '0x0000000000000000000000000000000000000000',
+				name: 'MockToken2',
+				symbol: 'MCK2',
+				decimals: '18'
+			},
+			balance: '0',
+			vaultId: '0x1',
+			owner: '0x1234567890123456789012345678901234567890',
+			ordersAsOutput: [],
+			ordersAsInput: [],
+			balanceChanges: [],
+			orderbook: {
+				id: orderbookAddress
+			}
+		}
+	],
+
+	addEvents: [
+		{
+			transaction: {
+				blockNumber: '12345678',
+				timestamp: '1234567890',
+				id: '0x0000000000000000000000000000000000000000',
+				from: '0x1234567890123456789012345678901234567890'
+			}
+		}
+	],
+	trades: [],
+	removeEvents: [],
+
+	expression: '0x123456' // Your existing field
 } as unknown as SgOrder;
 
-vi.mock('@tanstack/svelte-query');
+const mockAccountStore = readable('0x1234567890123456789012345678901234567890');
 
-const chainId = 1;
-const orderbookAddress = '0x123';
+describe('OrderDetail', () => {
+	let queryClient: QueryClient;
 
-describe('OrderDetail Component', () => {
-	it('shows the correct empty message when the query returns no data', async () => {
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: null,
-					status: 'success',
-					isFetching: false
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		vi.resetAllMocks();
+		queryClient = new QueryClient();
 
-		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+		// Set up account mock
+		(useAccount as Mock).mockReturnValue({
+			account: mockAccountStore
 		});
 
-		await waitFor(() => expect(screen.getByText('Order not found')).toBeInTheDocument());
+		// Mock getOrderByHash to return our data structure
+		(getOrderByHash as Mock).mockResolvedValue({
+			order: mockOrder,
+			vaults: new Map([
+				['inputs', [mockOrder.inputs[0]]],
+				['outputs', [mockOrder.outputs[0]]],
+				['inputs_outputs', []]
+			])
+		});
+	});
+
+	it('calls the order detail query with the correct order hash', async () => {
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		expect(getOrderByHash).toHaveBeenCalledWith(subgraphUrl, orderHash);
+	});
+
+	it('shows the correct empty message when the query returns no data', async () => {
+		(getOrderByHash as Mock).mockResolvedValue(null);
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order not found')).toBeInTheDocument();
+		});
+	});
+
+	it('shows the correct data when the query returns data', async () => {
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+			expect(screen.getByText('Created')).toBeInTheDocument();
+			expect(screen.getByText(orderbookAddress)).toBeInTheDocument();
+			expect(screen.getByText('0x1234567890123456789012345678901234567890')).toBeInTheDocument();
+		});
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
-		const handleOrderRemoveModal = vi.fn();
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { order: mockOrder, vaults: new Map() },
-					status: 'success',
-					isFetching: false,
-					refetch: () => {}
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
-
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		await waitFor(() => {
-			expect(screen.queryByText('Remove')).toBeInTheDocument();
-			expect(handleOrderRemoveModal).not.toHaveBeenCalled();
+			const removeButton = screen.getByTestId('remove-button');
+			expect(removeButton).toBeInTheDocument();
+			expect(defaultProps.onRemove).not.toHaveBeenCalled();
+		});
+
+		// Click the Remove button
+		await userEvent.click(screen.getByTestId('remove-button'));
+
+		await waitFor(() => {
+			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockOrder);
 		});
 	});
 
-	it('does not render the remove button if conditions are not met', async () => {
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => false);
+	it('does not show remove button if account does not match owner', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: readable('0x0987654321098765432109876543210987654321')
+		});
 
 		render(OrderDetail, {
-			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				handleOrderRemoveModal: vi.fn(),
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		await waitFor(() => {
-			expect(screen.queryByText('Remove')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('remove-button')).not.toBeInTheDocument();
 		});
 	});
 
-	it('correctly categorizes and displays vaults in input, output, and shared categories', async () => {
-		const vault1 = {
-			id: '1',
-			orderHash: 'mockHash',
-			vaultId: '0xabc',
-			owner: '0x123',
-			token: {
-				id: '0x456',
-				address: '0x456',
-				name: 'USDC coin',
-				symbol: 'USDC',
-				decimals: '6'
+	it('does not show remove button if order is not active', async () => {
+		// Modify the mock to return an inactive order
+		(getOrderByHash as Mock).mockResolvedValue({
+			order: {
+				...mockOrder,
+				active: false
 			},
-			balance: '100000000000',
-			ordersAsInput: [],
-			ordersAsOutput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x00'
-			}
-		} as unknown as SgVault;
-		const vault2 = {
-			id: '2',
-			orderHash: 'mockHash',
-			vaultId: '0xbcd',
-			owner: '0x123',
-			token: {
-				id: '0x456',
-				address: '0x456',
-				name: 'USDC coin',
-				symbol: 'USDC',
-				decimals: '6'
-			},
-			balance: '100000000000',
-			ordersAsInput: [],
-			ordersAsOutput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x00'
-			}
-		} as unknown as SgVault;
-		const vault3 = {
-			id: '3',
-			vaultId: '0xdef',
-			owner: '0x123',
-			orderHash: 'mockHash',
-			token: {
-				id: '0x456',
-				address: '0x456',
-				name: 'USDC coin',
-				symbol: 'USDC',
-				decimals: '6'
-			},
-			balance: '100000000000',
-			ordersAsInput: [],
-			ordersAsOutput: [],
-			balanceChanges: [],
-			orderbook: {
-				id: '0x00'
-			}
-		} as unknown as SgVault;
-		const mockOrderWithVaults: SgOrder = {
-			...mockOrder,
-			inputs: [vault1, vault2],
-			outputs: [vault2, vault3]
-		} as unknown as SgOrder;
-		const sortedVaults = new Map([
-			['inputs', [vault1]],
-			['outputs', [vault3]],
-			['inputs_outputs', [vault2]]
-		]);
+			vaults: new Map([
+				['inputs', []],
+				['outputs', []],
+				['inputs_outputs', []]
+			])
+		});
 
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: {
-						order: mockOrderWithVaults,
-						vaults: sortedVaults
-					},
-					status: 'success',
-					isFetching: false
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-		mockWalletAddressMatchesOrBlankStore.mockSetSubscribeValue(() => true);
 		render(OrderDetail, {
-			props: {
-				orderHash: mockOrderWithVaults.orderHash,
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Input vaults')).toBeInTheDocument();
-			expect(screen.getByText('Output vaults')).toBeInTheDocument();
-			expect(screen.getByText('Input & output vaults')).toBeInTheDocument();
+			expect(screen.queryByTestId('remove-button')).not.toBeInTheDocument();
 		});
 	});
 
 	it('refresh button triggers query invalidation when clicked', async () => {
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		const mockInvalidateQueries = vi.fn();
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
 
-		// Mock the createQuery as in other tests
-		mockQuery.createQuery = vi.fn((__options, _queryClient) => ({
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { order: mockOrder, vaults: new Map() },
-					status: 'success',
-					isFetching: false,
-					refetch: () => {}
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
+		await waitFor(async () => {
+			const refreshButton = await screen.getByTestId('top-refresh');
+			await userEvent.click(refreshButton);
 
-		// Mock the useQueryClient hook
-		mockQuery.useQueryClient = vi.fn(() => ({
-			invalidateQueries: mockInvalidateQueries
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		})) as any;
+			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
+		});
+	});
+
+	it('calls onDeposit callback when deposit button is clicked', async () => {
+		const user = userEvent.setup();
+		const mockOnDeposit = vi.fn();
 
 		render(OrderDetail, {
 			props: {
-				orderHash: 'mockHash',
-				subgraphUrl: 'https://example.com',
-				walletAddressMatchesOrBlank: mockWalletAddressMatchesOrBlankStore,
-				chainId,
-				orderbookAddress
-			}
+				...defaultProps,
+				onDeposit: mockOnDeposit
+			},
+			context: new Map([['$$_queryClient', queryClient]])
 		});
-
-		const refreshButton = screen.getByTestId('refresh-button');
-		await userEvent.click(refreshButton);
 
 		await waitFor(() => {
-			expect(mockInvalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['mockHash'],
-				refetchType: 'all',
-				exact: false
-			});
+			expect(screen.getByText('Order')).toBeInTheDocument();
+
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+
+			expect(screen.getByText('Created')).toBeInTheDocument();
 		});
+
+		const depositButton = await screen.getAllByTestId('deposit-button');
+		await user.click(depositButton[0]);
+
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.inputs[0]);
+	});
+
+	it('calls onWithdraw callback when withdraw button is clicked', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: mockAccountStore
+		});
+		const user = userEvent.setup();
+		const mockOnWithdraw = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onWithdraw: mockOnWithdraw
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+			expect(screen.getByText('Created')).toBeInTheDocument();
+		});
+
+		const withdrawButton = await screen.getAllByTestId('withdraw-button');
+		await user.click(withdrawButton[0]);
+
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.inputs[0]);
 	});
 });

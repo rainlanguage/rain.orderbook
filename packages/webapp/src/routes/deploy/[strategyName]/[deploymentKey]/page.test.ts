@@ -1,16 +1,12 @@
-import { render } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
 
-const {
-	mockPageStore,
-	mockWagmiConfigStore,
-	mockConnectedStore,
-	mockAppKitModalStore,
-	mockSignerAddressStore
-} = await vi.hoisted(() => import('$lib/__mocks__/stores'));
+const { mockPageStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -26,16 +22,17 @@ vi.mock('$app/navigation', async (importOriginal) => {
 	};
 });
 
-vi.mock('@rainlanguage/ui-components', () => ({
-	DeploymentSteps: vi.fn(),
-	GuiProvider: vi.fn()
-}));
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const mockDeploymentSteps = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		...((await importOriginal()) as object),
+		DeploymentSteps: mockDeploymentSteps
+	};
+});
 
 vi.mock('$lib/stores/wagmi', () => ({
-	wagmiConfig: mockWagmiConfigStore,
 	connected: mockConnectedStore,
-	appKitModal: mockAppKitModalStore,
-	signerAddress: mockSignerAddressStore
+	appKitModal: mockAppKitModalStore
 }));
 
 vi.mock('$lib/services/modal', () => ({
@@ -142,6 +139,8 @@ describe('DeployPage', () => {
 
 		render(DeployPage);
 
+		expect(screen.getByText(/Deployment not found/i)).toBeInTheDocument();
+
 		vi.advanceTimersByTime(5000);
 
 		await vi.runAllTimersAsync();
@@ -149,5 +148,83 @@ describe('DeployPage', () => {
 		expect(goto).toHaveBeenCalledWith('/deploy');
 
 		vi.useRealTimers();
+	});
+
+	it('should show error message when GUI initialization fails', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
+
+		const errorMessage = 'Failed to initialize GUI';
+		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
+			gui: null,
+			error: errorMessage
+		});
+
+		render(DeployPage);
+
+		await waitFor(() => {
+			expect(screen.getByText(errorMessage)).toBeInTheDocument();
+		});
+	});
+
+	it('should handle initialization with empty state from URL', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL('http://localhost:3000/deploy')
+		});
+
+		render(DeployPage);
+
+		await waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				'https://dotrain.example.com',
+				'test-deployment',
+				''
+			);
+		});
+	});
+
+	it('should correctly pass state parameter from URL to handleGuiInitialization', async () => {
+		const stateValue = 'someEncodedStateFromUrl';
+
+		vi.clearAllMocks();
+
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				stores: { settings: {} },
+				dotrain: 'https://dotrain.example.com',
+				deployment: {
+					key: 'test-deployment'
+				},
+				strategyDetail: {}
+			},
+			url: new URL(`http://localhost:3000/deploy?state=${stateValue}`)
+		});
+
+		render(DeployPage);
+
+		await vi.waitFor(() => {
+			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
+				'https://dotrain.example.com',
+				'test-deployment',
+				stateValue
+			);
+		});
 	});
 });

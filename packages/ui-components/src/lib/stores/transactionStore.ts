@@ -192,7 +192,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (removeOrders?.length > 0) {
 				clearInterval(interval);
-				return transactionSuccess(txHash);
+				return transactionSuccess(txHash, 'Order removed successfully');
 			}
 		}, 1000);
 	};
