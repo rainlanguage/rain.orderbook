@@ -9,9 +9,10 @@
     handleQuoteDebugModal,
     handleDepositModal,
     handleWithdrawModal,
+    handleOrderRemoveModal,
   } from '$lib/services/modal';
   import type { Hex } from 'viem';
-  import type { SgVault } from '@rainlanguage/orderbook/js_api';
+  import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
   import { useQueryClient } from '@tanstack/svelte-query';
 
   const queryClient = useQueryClient();
@@ -27,6 +28,12 @@
       queryKey: [orderHash],
       refetchType: 'all',
       exact: false,
+    });
+  }
+
+  function onRemove(order: SgOrder) {
+    handleOrderRemoveModal(order, () => {
+      invalidateOrderDetailQuery();
     });
   }
 
@@ -57,6 +64,7 @@
     {handleDebugTradeModal}
     {orderbookAddress}
     {chainId}
+    {onRemove}
     {onDeposit}
     {onWithdraw}
   />

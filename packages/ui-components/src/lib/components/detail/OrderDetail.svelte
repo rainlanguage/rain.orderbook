@@ -11,18 +11,18 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import { getOrderByHash, type OrderWithSortedVaults } from '@rainlanguage/orderbook/js_api';
+	import {
+		getOrderByHash,
+		type OrderWithSortedVaults,
+		type SgOrder
+	} from '@rainlanguage/orderbook/js_api';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import type { Hex } from 'viem';
-	import type {
-		OrderRemoveModalProps,
-		QuoteDebugModalHandler,
-		DebugTradeModalHandler
-	} from '../../types/modal';
+	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
@@ -30,8 +30,6 @@
 	import { isAddressEqual, isAddress } from 'viem';
 	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
-	export let handleOrderRemoveModal: ((props: OrderRemoveModalProps) => void) | undefined =
-		undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
@@ -42,6 +40,12 @@
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
+
+	/** Callback function when remove action is triggered for an order
+	 * @param order The order to remove
+	 */
+	export let onRemove: (order: SgOrder) => void;
+
 	/** Callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
 	 */
@@ -91,26 +95,14 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if data && $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner) && data.order.active && handleOrderRemoveModal && chainId && orderbookAddress}
-					<Button
-						data-testid="remove-button"
-						color="dark"
-						on:click={() =>
-							handleOrderRemoveModal({
-								open: true,
-								args: {
-									order: data.order,
-									onRemove: $orderDetailQuery.refetch,
-									chainId,
-									orderbookAddress,
-									subgraphUrl,
-									account
-								}
-							})}
-						disabled={!handleOrderRemoveModal}
-					>
-						Remove
-					</Button>
+				{#if $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)}
+					{#if data.order.active}
+						<Button
+							on:click={() => onRemove(data.order)}
+							data-testid="remove-button"
+							aria-label="Remove order">Remove</Button
+						>
+					{/if}
 				{/if}
 
 				<Refresh

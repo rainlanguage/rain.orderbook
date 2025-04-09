@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		OrderDetail,
-		PageHeader,
-		TransactionStatus,
-		transactionStore,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
@@ -13,7 +7,7 @@
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();
@@ -27,8 +21,10 @@
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
+	let toastMessage: string = '';
 
-	function triggerToast() {
+	function triggerToast(message: string) {
+		toastMessage = message;
 		toastOpen = true;
 		counter = 5;
 		timeout();
@@ -39,13 +35,24 @@
 		toastOpen = false;
 	}
 
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
-		queryClient.invalidateQueries({
-			queryKey: [orderHash],
-			refetchType: 'all',
-			exact: false
+	function onRemove(order: SgOrder) {
+		handleOrderRemoveModal({
+			open: true,
+			args: {
+				order,
+				chainId,
+				orderbookAddress,
+				subgraphUrl,
+				onRemove: () => {
+					queryClient.invalidateQueries({
+						queryKey: [orderHash],
+						refetchType: 'all',
+						exact: false
+					});
+					triggerToast('Order removed successfully');
+				}
+			}
 		});
-		triggerToast();
 	}
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
@@ -89,7 +96,7 @@
 {#if toastOpen}
 	<Toast dismissable={true} position="top-right" transition={fade}>
 		<CheckCircleSolid slot="icon" class="h-5 w-5" />
-		Vault balance updated
+		{toastMessage}
 		<span class="text-sm text-gray-500">Autohide in {counter}s.</span>
 	</Toast>
 {/if}
@@ -103,7 +110,7 @@
 	{colorTheme}
 	{orderbookAddress}
 	{chainId}
+	{onRemove}
 	{onDeposit}
 	{onWithdraw}
-	{handleOrderRemoveModal}
 />
