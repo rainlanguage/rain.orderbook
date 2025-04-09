@@ -4,26 +4,25 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultDetail from '../lib/components/detail/VaultDetail.svelte';
 import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
-import type { Config } from 'wagmi';
 import userEvent from '@testing-library/user-event';
-import { useAccount } from '../lib/providers/wallet/useAccount';
+import type { ComponentProps } from 'svelte';
+
 import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook/js_api';
+type VaultDetailProps = ComponentProps<VaultDetail>;
+import { useAccount } from '../lib/providers/wallet/useAccount';
 
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
-// Mock the js_api getVault function
 vi.mock('@rainlanguage/orderbook/js_api', () => ({
 	getVault: vi.fn()
 }));
 
-// Mock navigation
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-// Mock modal handlers
 vi.mock('$lib/services/modal', () => ({
 	handleDepositModal: vi.fn(),
 	handleWithdrawModal: vi.fn()
@@ -34,6 +33,17 @@ const mockSettings = readable({
 		mainnet: 'https://example.com'
 	}
 });
+
+const defaultProps: VaultDetailProps = {
+	id: '100',
+	network: 'mainnet',
+	activeNetworkRef: writable('mainnet'),
+	activeOrderbookRef: writable('0x00'),
+	settings: mockSettings,
+	lightweightChartsTheme: readable(darkChartTheme),
+	onDeposit: vi.fn(),
+	onWithdraw: vi.fn()
+};
 
 describe('VaultDetail', () => {
 	let queryClient: QueryClient;
@@ -74,14 +84,7 @@ describe('VaultDetail', () => {
 		const { getVault } = await import('@rainlanguage/orderbook/js_api');
 
 		render(VaultDetail, {
-			props: {
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				id: '100',
-				network: 'mainnet',
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -99,7 +102,9 @@ describe('VaultDetail', () => {
 				activeNetworkRef: writable('mainnet'),
 				activeOrderbookRef: writable('0x00'),
 				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme)
+				lightweightChartsTheme: readable(darkChartTheme),
+				onDeposit: vi.fn(),
+				onWithdraw: vi.fn()
 			},
 			context: new Map([['$$_queryClient', queryClient]])
 		});
@@ -111,14 +116,7 @@ describe('VaultDetail', () => {
 
 	it('shows the correct data when the query returns data', async () => {
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme)
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -145,27 +143,18 @@ describe('VaultDetail', () => {
 			{ id: '2', owner: '0x1234567890123456789012345678901234567890' }
 		] as unknown as SgOrderAsIO[];
 
-		const mockWagmiConfig = writable({} as Config);
 		(useAccount as Mock).mockReturnValue({
 			account: readable('0x1234567890123456789012345678901234567890')
 		});
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				wagmiConfig: mockWagmiConfig,
-				handleDepositOrWithdrawModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
 		await waitFor(() => {
-			expect(screen.getAllByTestId('depositOrWithdrawButton')).toHaveLength(2);
+			expect(screen.getAllByTestId('deposit-button')).toHaveLength(1);
+			expect(screen.getAllByTestId('withdraw-button')).toHaveLength(1);
 		});
 	});
 
@@ -175,15 +164,7 @@ describe('VaultDetail', () => {
 		});
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				handleDepositOrWithdrawModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -198,15 +179,7 @@ describe('VaultDetail', () => {
 		});
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				handleDepositOrWithdrawModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -225,15 +198,7 @@ describe('VaultDetail', () => {
 		} as unknown as SgVault);
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				handleDepositOrWithdrawModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -247,19 +212,9 @@ describe('VaultDetail', () => {
 		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
 
 		const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
-		const mockWagmiConfig = writable({} as Config);
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				wagmiConfig: mockWagmiConfig,
-				handleDepositOrWithdrawModal: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 

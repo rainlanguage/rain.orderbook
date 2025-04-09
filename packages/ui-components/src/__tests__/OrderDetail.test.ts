@@ -45,6 +45,10 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn()
+	handleOrderRemoveModal: vi.fn(),
+	onDeposit: vi.fn(),
+	onWithdraw: vi.fn()
+>>>>>>> main
 };
 
 const mockOrder: SgOrder = {
@@ -124,6 +128,7 @@ describe('OrderDetail', () => {
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
+		vi.resetAllMocks();
 		queryClient = new QueryClient();
 
 		// Set up account mock
@@ -135,8 +140,8 @@ describe('OrderDetail', () => {
 		(getOrderByHash as Mock).mockResolvedValue({
 			order: mockOrder,
 			vaults: new Map([
-				['inputs', []],
-				['outputs', []],
+				['inputs', [mockOrder.inputs[0]]],
+				['outputs', [mockOrder.outputs[0]]],
 				['inputs_outputs', []]
 			])
 		});
@@ -144,17 +149,7 @@ describe('OrderDetail', () => {
 
 	it('calls the order detail query with the correct order hash', async () => {
 		render(OrderDetail, {
-			props: {
-				orderHash,
-				rpcUrl,
-				subgraphUrl,
-				orderbookAddress,
-				chainId,
-				colorTheme: readable('dark'),
-				codeMirrorTheme: readable('dark'),
-				lightweightChartsTheme: readable(darkChartTheme),
-				onRemove: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
@@ -261,5 +256,61 @@ describe('OrderDetail', () => {
 
 			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
 		});
+	});
+
+	it('calls onDeposit callback when deposit button is clicked', async () => {
+		const user = userEvent.setup();
+		const mockOnDeposit = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onDeposit: mockOnDeposit
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+
+			expect(screen.getByText('Created')).toBeInTheDocument();
+		});
+
+		const depositButton = await screen.getAllByTestId('deposit-button');
+		await user.click(depositButton[0]);
+
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.inputs[0]);
+	});
+
+	it('calls onWithdraw callback when withdraw button is clicked', async () => {
+		(useAccount as Mock).mockReturnValue({
+			account: mockAccountStore
+		});
+		const user = userEvent.setup();
+		const mockOnWithdraw = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onWithdraw: mockOnWithdraw
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+			expect(screen.getByText('Orderbook')).toBeInTheDocument();
+			expect(screen.getByText('Owner')).toBeInTheDocument();
+			expect(screen.getByText('Created')).toBeInTheDocument();
+		});
+
+		const withdrawButton = await screen.getAllByTestId('withdraw-button');
+		await user.click(withdrawButton[0]);
+
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.inputs[0]);
 	});
 });

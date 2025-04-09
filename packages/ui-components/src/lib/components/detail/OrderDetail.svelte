@@ -21,22 +21,19 @@
 	import { onDestroy } from 'svelte';
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
-	import DepositOrWithdrawButtons from './DepositOrWithdrawButtons.svelte';
 	import type { Hex } from 'viem';
 	import type {
-		DepositOrWithdrawModalProps,
+		OrderRemoveModalProps,
 		QuoteDebugModalHandler,
 		DebugTradeModalHandler
 	} from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
+	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 
-	export let handleDepositOrWithdrawModal:
-		| ((props: DepositOrWithdrawModalProps) => void)
-		| undefined = undefined;
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let colorTheme;
@@ -48,6 +45,15 @@
 	export let subgraphUrl: string;
 	export let chainId: number | undefined;
 	export let onRemove: (order: SgOrder) => void;
+	/** Callback function when deposit action is triggered for a vault
+	 * @param vault The vault to deposit into
+	 */
+	export let onDeposit: (vault: SgVault) => void;
+
+	/** Callback function when withdraw action is triggered for a vault
+	 * @param vault The vault to withdraw from
+	 */
+	export let onWithdraw: (vault: SgVault) => void;
 
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
@@ -84,7 +90,6 @@
 					<span class="font-light">Order</span>
 					<Hash shorten value={data.order.orderHash} />
 				</div>
-
 				<BadgeActive active={data.order.active} large />
 			</div>
 
@@ -147,15 +152,25 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if handleDepositOrWithdrawModal && $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
-												<DepositOrWithdrawButtons
-													{vault}
-													{chainId}
-													{rpcUrl}
-													query={orderDetailQuery}
-													{handleDepositOrWithdrawModal}
-													{subgraphUrl}
-												/>
+											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
+												<div class="flex gap-1">
+													<Button
+														color="light"
+														size="xs"
+														data-testid="deposit-button"
+														on:click={() => onDeposit(vault)}
+													>
+														<ArrowDownOutline size="xs" />
+													</Button>
+													<Button
+														color="light"
+														size="xs"
+														data-testid="withdraw-button"
+														on:click={() => onWithdraw(vault)}
+													>
+														<ArrowUpOutline size="xs" />
+													</Button>
+												</div>
 											{/if}
 										</svelte:fragment>
 									</ButtonVaultLink>
