@@ -1,18 +1,41 @@
 <script lang="ts">
 	import CustomRegistryWarning from '$lib/components/CustomRegistryWarning.svelte';
 	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
-	import { Toggle } from 'flowbite-svelte';
+	import { Button, Input, Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import RegistryManager from '$lib/services/RegistryManager';
+	import { onMount } from 'svelte';
+	import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
 
-	let advancedMode = localStorage.getItem('registry') ? true : false;
-	let registryFromStorage = RegistryManager.getFromStorage();
-	$: customRegistry = RegistryManager.isCustomRegistry(registryFromStorage);
+	let advancedMode = false;
+	let registryFromStorage: string | null = null;
+	let registryError = '';
+	let customRegistry = false;
 
-	function loadRegistryUrl(url: string) {
-		RegistryManager.setToStorage(url);
-		RegistryManager.updateUrlParam(url);
-		window.location.reload();
+	onMount(() => {
+		try {
+			advancedMode = localStorage.getItem('registry') ? true : false;
+			registryFromStorage = RegistryManager.getFromStorage();
+		} catch (e) {
+			registryError = e instanceof Error ? e.message : 'Failed to access registry settings';
+		}
+	});
+
+	$: {
+		try {
+			customRegistry = RegistryManager.isCustomRegistry(registryFromStorage);
+		} catch (e) {
+			registryError = e instanceof Error ? e.message : 'Failed to check registry status';
+		}
+	}
+
+	async function handleLoadRegistryUrl(url: string) {
+		try {
+			registryError = '';
+			await loadRegistryUrl(url);
+		} catch (e) {
+			registryError = e instanceof Error ? e.message : 'Failed to update registry URL';
+		}
 	}
 </script>
 
@@ -32,10 +55,14 @@
 		{/if}
 	</svelte:fragment>
 </PageHeader>
-<div class="flex flex-col items-end gap-4">
+<div class="flex flex-col items-end">
 	{#if advancedMode && $page.url.pathname === '/deploy'}
-		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
-			<InputRegistryUrl {loadRegistryUrl} />
+		<InputRegistryUrl loadRegistryUrl={handleLoadRegistryUrl} />
+
+		<div class="h-4">
+			{#if registryError}
+				<p class="text-red-500">{registryError}</p>
+			{/if}
 		</div>
 	{/if}
 </div>
