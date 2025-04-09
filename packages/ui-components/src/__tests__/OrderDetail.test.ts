@@ -44,7 +44,7 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
-	handleOrderRemoveModal: vi.fn(),
+	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
 };
@@ -192,24 +192,14 @@ describe('OrderDetail', () => {
 		await waitFor(() => {
 			const removeButton = screen.getByTestId('remove-button');
 			expect(removeButton).toBeInTheDocument();
-			expect(defaultProps.handleOrderRemoveModal).not.toHaveBeenCalled();
+			expect(defaultProps.onRemove).not.toHaveBeenCalled();
 		});
 
 		// Click the Remove button
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
-			expect(defaultProps.handleOrderRemoveModal).toHaveBeenCalledWith({
-				open: true,
-				args: {
-					order: mockOrder,
-					onRemove: expect.any(Function),
-					chainId,
-					orderbookAddress,
-					subgraphUrl,
-					account: mockAccountStore
-				}
-			});
+			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockOrder);
 		});
 	});
 
