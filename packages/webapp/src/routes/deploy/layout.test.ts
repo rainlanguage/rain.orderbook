@@ -37,7 +37,7 @@ describe('Layout Component', () => {
 		render(Layout);
 
 		expect(RegistryManager.getFromStorage).toHaveBeenCalled();
-		expect(screen.getByTestId('custom-registry-warning')).toBeTruthy();
+		expect(screen.getByTestId('custom-registry-warning')).toBeInTheDocument();
 	});
 
 	it('should display advanced mode components when advanced mode is on', () => {
@@ -45,7 +45,7 @@ describe('Layout Component', () => {
 
 		render(Layout);
 
-		expect(screen.getByTestId('registry-input')).toBeTruthy();
+		expect(screen.getByTestId('registry-input')).toBeInTheDocument();
 	});
 
 	it('should not display advanced mode components when advanced mode is off', () => {

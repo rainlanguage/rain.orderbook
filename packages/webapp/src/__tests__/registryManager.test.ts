@@ -418,9 +418,6 @@ describe('RegistryManager Error Handling', () => {
 			toString() {
 				return 'http://test.com';
 			}
-			constructor() {
-				return this;
-			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any;
 

@@ -5,50 +5,50 @@ import RegistryManager from '$lib/services/RegistryManager';
 import type { Mock } from 'vitest';
 
 vi.mock('$lib/services/RegistryManager', () => ({
-    default: {
-        clearFromStorage: vi.fn(),
-        getFromStorage: vi.fn(),
-        setToStorage: vi.fn()
-    }
+	default: {
+		clearFromStorage: vi.fn(),
+		getFromStorage: vi.fn(),
+		setToStorage: vi.fn()
+	}
 }));
 
 describe('CustomRegistryWarning Component', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        (RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
-        (RegistryManager.setToStorage as Mock).mockReturnValue(undefined);
-    });
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(RegistryManager.getFromStorage as Mock).mockReturnValue('https://custom-registry.com');
+		(RegistryManager.setToStorage as Mock).mockReturnValue(undefined);
+	});
 
-    it('should render the warning message correctly', () => {
-        render(CustomRegistryWarning);
+	it('should render the warning message correctly', () => {
+		render(CustomRegistryWarning);
 
-        const warningElement = screen.getByTestId('custom-registry-warning');
-        expect(warningElement).toBeInTheDocument();
+		const warningElement = screen.getByTestId('custom-registry-warning');
+		expect(warningElement).toBeInTheDocument();
 
-        expect(screen.getByText(/You are using a/i)).toBeInTheDocument();
-        expect(screen.getByText(/custom strategies registry./i)).toBeInTheDocument();
+		expect(screen.getByText(/You are using a/i)).toBeInTheDocument();
+		expect(screen.getByText(/custom strategies registry./i)).toBeInTheDocument();
 
-        const defaultLink = screen.getByText('Use default.');
-        expect(defaultLink).toBeInTheDocument();
-        expect(defaultLink.tagName.toLowerCase()).toBe('a');
-        expect(defaultLink).toHaveAttribute('href', '/deploy');
-        expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
-    });
+		const defaultLink = screen.getByText('Use default.');
+		expect(defaultLink).toBeInTheDocument();
+		expect(defaultLink.tagName.toLowerCase()).toBe('a');
+		expect(defaultLink).toHaveAttribute('href', '/deploy');
+		expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
+	});
 
-    it('should call clearFromStorage when "Use default" is clicked', async () => {
-        render(CustomRegistryWarning);
+	it('should call clearFromStorage when "Use default" is clicked', async () => {
+		render(CustomRegistryWarning);
 
-        const defaultLink = screen.getByText('Use default.');
-        await fireEvent.click(defaultLink);
+		const defaultLink = screen.getByText('Use default.');
+		await fireEvent.click(defaultLink);
 
-        expect(RegistryManager.clearFromStorage).toHaveBeenCalledTimes(1);
-    });
+		expect(RegistryManager.clearFromStorage).toHaveBeenCalledTimes(1);
+	});
 
-    it('should have correct link attributes for default registry', () => {
-        render(CustomRegistryWarning);
+	it('should have correct link attributes for default registry', () => {
+		render(CustomRegistryWarning);
 
-        const defaultLink = screen.getByText('Use default.');
-        expect(defaultLink).toHaveAttribute('href', '/deploy');
-        expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
-    });
+		const defaultLink = screen.getByText('Use default.');
+		expect(defaultLink).toHaveAttribute('href', '/deploy');
+		expect(defaultLink).toHaveAttribute('data-sveltekit-reload');
+	});
 });
