@@ -5,7 +5,6 @@ import type {
 	SgOrder,
 	SgVault
 } from '@rainlanguage/orderbook/js_api';
-import type { Account } from '$lib/types/account';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];

@@ -44,11 +44,9 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
-	onRemove: vi.fn()
-	handleOrderRemoveModal: vi.fn(),
+	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
->>>>>>> main
 };
 
 const mockOrder: SgOrder = {

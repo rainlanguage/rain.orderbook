@@ -22,11 +22,7 @@
 	import OrderApy from '../tables/OrderAPY.svelte';
 	import { page } from '$app/stores';
 	import type { Hex } from 'viem';
-	import type {
-		OrderRemoveModalProps,
-		QuoteDebugModalHandler,
-		DebugTradeModalHandler
-	} from '../../types/modal';
+	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateIdQuery } from '$lib/queries/queryClient';
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
