@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{yaml::get_hash_value, *};
 use blocks::BlocksCfg;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -111,9 +111,32 @@ impl ScenarioCfg {
         let runs = optional_string(scenario_yaml, "runs")
             .map(|runs| ScenarioCfg::validate_runs(&runs))
             .transpose()?;
-        let blocks = optional_string(scenario_yaml, "blocks")
-            .map(|blocks| ScenarioCfg::validate_blocks(&blocks))
-            .transpose()?;
+        let blocks = if let Some(blocks) = optional_string(scenario_yaml, "blocks") {
+            Some(ScenarioCfg::validate_blocks(&blocks)?)
+        } else if let Some(blocks) = optional_hash(scenario_yaml, "blocks") {
+            let location = format!("blocks in scenario '{scenario_key}'");
+
+            let range = get_hash_value(blocks, "range", Some(location.clone()))?
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::Missing("range".to_string()),
+                    location: location.clone(),
+                })?;
+            let interval = get_hash_value(blocks, "interval", Some(location.clone()))?
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::Missing("interval".to_string()),
+                    location,
+                })?;
+
+            Some(ScenarioCfg::validate_blocks(&format!(
+                "range: {range}\ninterval: {interval}"
+            ))?)
+        } else {
+            None
+        };
+
+        println!("blocks: {:?}", blocks);
 
         let mut current_deployer: Option<DeployerCfg> = None;
 
@@ -534,7 +557,10 @@ impl ScenarioConfigSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::mock_deployer;
+    use crate::{
+        blocks::{BlockCfg, BlockRangeCfg},
+        test::mock_deployer,
+    };
     use alloy::primitives::Address;
     use std::collections::HashMap;
     use url::Url;
@@ -969,5 +995,166 @@ scenarios:
             YamlError::KeyShadowing("DuplicateScenario".to_string(), "scenarios".to_string())
         );
         assert_eq!(error.to_readable_msg(), "The key 'DuplicateScenario' is defined multiple times in your YAML configuration at scenarios");
+    }
+
+    #[test]
+    fn test_parse_scenario_blocks() {
+        let prefix = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let simple_range = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [1..2]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Number(1),
+                end: BlockCfg::Number(2),
+            }))
+        );
+
+        let simple_range_genesis = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [..2]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range_genesis)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Genesis,
+                end: BlockCfg::Number(2),
+            }))
+        );
+
+        let simple_range_latest = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [1..]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range_latest)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Number(1),
+                end: BlockCfg::Latest,
+            }))
+        );
+
+        let range = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [1..2]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Number(1),
+                    end: BlockCfg::Number(2),
+                },
+                interval: 10,
+            })
+        );
+
+        let range_genesis = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [..2]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range_genesis)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Genesis,
+                    end: BlockCfg::Number(2),
+                },
+                interval: 10,
+            })
+        );
+
+        let range_latest = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [1..]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range_latest)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Number(1),
+                    end: BlockCfg::Latest,
+                },
+                interval: 10,
+            })
+        );
     }
 }
