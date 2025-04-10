@@ -19,10 +19,23 @@
   const queryClient = useQueryClient();
   const { orderHash, network } = $page.params;
 
-  const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
-  const subgraphUrl = $settings?.subgraphs?.[network];
-  const rpcUrl = $settings?.networks?.[network]?.rpc;
-  const chainId = $settings?.networks?.[network]?.['chain-id'];
+  let orderbookAddress: Hex | undefined;
+  let subgraphUrl: string | undefined;
+  let rpcUrl: string | undefined;
+  let chainId: number | undefined;
+
+  if ($settings && $settings.orderbooks && $settings.orderbooks[network]) {
+    orderbookAddress = $settings.orderbooks[network].address as Hex;
+  }
+
+  if ($settings && $settings.subgraphs) {
+    subgraphUrl = $settings.subgraphs[network];
+  }
+
+  if ($settings && $settings.networks && $settings.networks[network]) {
+    rpcUrl = $settings.networks[network].rpc;
+    chainId = $settings.networks[network]['chain-id'];
+  }
 
   function invalidateOrderDetailQuery() {
     queryClient.invalidateQueries({
