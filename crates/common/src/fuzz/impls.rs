@@ -590,7 +590,8 @@ a: bound,
 b: fuzzed;
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
@@ -628,7 +629,6 @@ networks:
         chain-id: 123
 scenarios:
     some-key:
-        runs: 6
         blocks:
             range: [{start_block}..{end_block}]
             interval: 2
@@ -637,7 +637,8 @@ scenarios:
 _: block-number();
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
             start_block = start_block_number,
@@ -695,7 +696,8 @@ c: 6,
 d: 4;
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
@@ -747,7 +749,8 @@ _: context<0 0>(),
 _: context<4 4>();
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
@@ -789,7 +792,8 @@ scenarios:
 _: context<50 50>();
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
@@ -825,7 +829,8 @@ scenarios:
 _: context<1 0>();
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
@@ -934,7 +939,8 @@ _: sub(16 52),
 io-ratio: mul(0.99 20);
 #handle-io
 :;
-    "#,
+#handle-add-order
+:;"#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
             orderbook_subparser = local_evm.orderbook_subparser.address(),
