@@ -93,14 +93,14 @@ impl FuzzRunner {
         settings: Option<String>,
         seed: Option<[u8; 32]>,
     ) -> Result<Self, FuzzRunnerError> {
-        let frontmatter = RainDocument::get_front_matter(&dotrain)
+        let frontmatter = RainDocument::get_front_matter(dotrain)
             .unwrap_or("")
             .to_string();
 
         let source = if let Some(settings) = settings {
-            vec![frontmatter.into(), settings.into()]
+            vec![frontmatter.to_string(), settings.to_string()]
         } else {
-            vec![frontmatter.into()]
+            vec![frontmatter.to_string()]
         };
 
         let dotrain_yaml = DotrainYaml::new(source, false)?;
