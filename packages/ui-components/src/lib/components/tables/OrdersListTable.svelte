@@ -1,9 +1,12 @@
 <script lang="ts" generics="T">
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook';
+	import {
+		getOrders,
+		type MultiSubgraphArgs,
+		type SgOrderWithSubgraphName
+	} from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -184,7 +187,7 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
-				{#if $account && accountIsOwner($account, item.order.owner) && item.order.active}
+				{#if item.order.active}
 					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
 						<DropdownItem
 							on:click={(e) => {
