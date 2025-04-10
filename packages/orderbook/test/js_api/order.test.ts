@@ -2,20 +2,18 @@ import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import {
-	SgTrade,
-	SgOrder,
-	OrderPerformance,
-	SgOrderWithSubgraphName,
-	OrderWithSortedVaults
-} from '../../dist/types/js_api.js';
-import {
 	getOrders,
 	getOrderByHash,
 	getOrderTradesList,
 	getOrderTradeDetail,
 	getOrderTradesCount,
-	getOrderPerformance
-} from '../../dist/cjs/js_api.js';
+	getOrderPerformance,
+	SgTrade,
+	SgOrder,
+	OrderPerformance,
+	SgOrderWithSubgraphName,
+	OrderWithSortedVaults
+} from '../../dist/cjs';
 
 const order1: SgOrder = {
 	id: 'order1',

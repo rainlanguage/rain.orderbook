@@ -9,12 +9,12 @@ import type {
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
 import type { DeploymentArgs } from '$lib/types/transaction';
 
@@ -192,7 +192,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (removeOrders?.length > 0) {
 				clearInterval(interval);
-				return transactionSuccess(txHash);
+				return transactionSuccess(txHash, 'Order removed successfully');
 			}
 		}, 1000);
 	};

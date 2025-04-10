@@ -6,7 +6,7 @@ import type {
   ConfigSource,
   DeploymentConfigSource,
   ScenarioCfg,
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 
 export const config: Config = {
   networks: {

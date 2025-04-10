@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import DeploymentsSection from '../lib/components/deployment/DeploymentsSection.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 describe('DeploymentsSection', () => {
 	beforeEach(() => {

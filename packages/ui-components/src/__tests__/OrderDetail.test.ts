@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
+import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
@@ -6,7 +7,6 @@ import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook/js_api';
 import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { ComponentProps } from 'svelte';
 
@@ -16,7 +16,7 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 }));
 
 // Mock the js_api functions
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderByHash: vi.fn()
 }));
 
@@ -44,7 +44,7 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
-	handleOrderRemoveModal: vi.fn(),
+	onRemove: vi.fn(),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
 };
@@ -192,24 +192,14 @@ describe('OrderDetail', () => {
 		await waitFor(() => {
 			const removeButton = screen.getByTestId('remove-button');
 			expect(removeButton).toBeInTheDocument();
-			expect(defaultProps.handleOrderRemoveModal).not.toHaveBeenCalled();
+			expect(defaultProps.onRemove).not.toHaveBeenCalled();
 		});
 
 		// Click the Remove button
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
-			expect(defaultProps.handleOrderRemoveModal).toHaveBeenCalledWith({
-				open: true,
-				args: {
-					order: mockOrder,
-					onRemove: expect.any(Function),
-					chainId,
-					orderbookAddress,
-					subgraphUrl,
-					account: mockAccountStore
-				}
-			});
+			expect(defaultProps.onRemove).toHaveBeenCalledWith(mockOrder);
 		});
 	});
 

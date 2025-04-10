@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { render } from '@testing-library/svelte';
 import ObservableChart from './ObservableChart.svelte';
-import type { PlotCfg } from '@rainlanguage/orderbook/js_api';
+import type { PlotCfg } from '@rainlanguage/orderbook';
 
 const plot: PlotCfg = {
   title: 'some title',
