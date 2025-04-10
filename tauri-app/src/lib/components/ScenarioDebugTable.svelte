@@ -27,8 +27,13 @@
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
 
   const fetchData = async () => {
-    const res = await makeDeploymentDebugData($queryKey[0], enabled ? undefined : blockNumber);
+    const res = await makeDeploymentDebugData(
+      $queryKey[0],
+      $settingsText,
+      enabled ? undefined : blockNumber,
+    );
     blockNumber = parseInt(res.blockNumber);
+    console.log(res);
     return res;
   };
 

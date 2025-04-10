@@ -88,11 +88,22 @@ pub enum FuzzRunnerError {
 }
 
 impl FuzzRunner {
-    pub async fn new(dotrain: &str, seed: Option<[u8; 32]>) -> Result<Self, FuzzRunnerError> {
+    pub async fn new(
+        dotrain: &str,
+        settings: Option<String>,
+        seed: Option<[u8; 32]>,
+    ) -> Result<Self, FuzzRunnerError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
-        let dotrain_yaml = DotrainYaml::new(vec![frontmatter.into()], false)?;
+
+        let source = if let Some(settings) = settings {
+            vec![frontmatter.into(), settings.into()]
+        } else {
+            vec![frontmatter.into()]
+        };
+
+        let dotrain_yaml = DotrainYaml::new(source, false)?;
 
         Ok(Self {
             forker: Forker::new(),
@@ -371,28 +382,6 @@ impl FuzzRunner {
             // output vault balance before
             context[4][3] = U256::from(0);
 
-            // NOTE:
-            // This was the initial approach to using fork_eval
-            // but i've changed the logic to use individual calls
-            // to alloy_call and final call to get the stack, writes, and traces
-
-            // let args = ForkEvalArgs {
-            //     rainlang_string: rainlang_string.clone(),
-            //     source_index: 0,
-            //     deployer: deployer.address,
-            //     namespace: FullyQualifiedNamespace::default(),
-            //     context: context.clone(),
-            //     decode_errors: true,
-            // };
-            // let res = fork_clone.fork_eval(args).await?;
-            // let rain_eval_result: RainEvalResult = res.into();
-            // println!("RainEvalResult: {:?}", rain_eval_result);
-
-            // NOTE:
-            // This is the same logic that is in fork_eval
-            // but for the last call we are using the raw call
-            // to get the stack, writes, and traces from the interpreter
-
             let parse_result = fork_clone
                 .fork_parse(ForkParseArgs {
                     rainlang_string: rainlang_string.clone(),
@@ -595,7 +584,7 @@ b: fuzzed;
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -644,7 +633,7 @@ _: block-number();
             start_block = start_block_number,
             end_block = last_block_number
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -701,7 +690,7 @@ d: 4;
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -754,7 +743,7 @@ _: context<4 4>();
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -797,7 +786,7 @@ _: context<50 50>();
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -834,7 +823,7 @@ _: context<1 0>();
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address()
         );
-        let mut runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let mut runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .run_scenario_by_key("some-key")
@@ -946,7 +935,7 @@ io-ratio: mul(0.99 20);
             wflr_address = wflr_address,
             usdce_address = usdce_address,
         );
-        let runner = FuzzRunner::new(&dotrain, None).await.unwrap();
+        let runner = FuzzRunner::new(&dotrain, None, None).await.unwrap();
 
         let res = runner
             .make_debug_data(None)
