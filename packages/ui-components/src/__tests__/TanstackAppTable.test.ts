@@ -150,7 +150,7 @@ test('shows refresh icon', async () => {
 	await waitFor(() => expect(screen.getByTestId('refreshButton')).toBeInTheDocument());
 });
 
-test('refetches data when refresh button is clicked', async () => {
+test('invalidates queries when refresh button is clicked', async () => {
 	const mockRefetch = vi.fn();
 	const mockQuery = createMockQuery(createPages(), {
 		status: 'success',
@@ -164,6 +164,5 @@ test('refetches data when refresh button is clicked', async () => {
 	const refreshButton = screen.getByTestId('refreshButton');
 	await userEvent.click(refreshButton);
 
-	expect(mockRefetch).toHaveBeenCalled();
-	expect(mockInvalidateTanstackQueries).toHaveBeenCalledWith(expect.anything(), 'test');
+	expect(mockInvalidateTanstackQueries).toHaveBeenCalledWith(expect.anything(), ['test']);
 });

@@ -97,6 +97,7 @@
 			{/if}
 
 			<Refresh
+				testId="top-refresh"
 				on:click={() => invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id])}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
 			/>
