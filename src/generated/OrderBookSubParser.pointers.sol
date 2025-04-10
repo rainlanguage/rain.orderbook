@@ -5,12 +5,11 @@
 // needs the pointers file to exist so that it can compile, and the pointers
 // file needs the contract to exist so that it can be compiled.
 
-// SPDX-License-Identifier: LicenseRef-DCL-1.0
-// SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
+// SPDX-License-Identifier: CAL
 pragma solidity =0.8.25;
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0x890dde7c5bd8253e7e359fa9f7d6e91d299ce7042b67a8e8d9ac08d1d3d3b430);
+bytes32 constant BYTECODE_HASH = bytes32(0x58ae5835a46a4460f5e4deeedcad516dc96a2dd46151e3b9b6fd4c78ddad2511);
 
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xdfd338fdf179bf832d2bc3222c6b2ac399d0e341fe38960e1bbd59aa6ccfbf9b);
@@ -44,13 +43,13 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
 bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"176a1789179a17ab17bb17cc17dd17ee17ff18101821183118421853186418751886189618a6176a179a17ab17bb18dc176a179a17ab17bb18dc18ed";
+    hex"174b176a177b178c179c17ad17be17cf17e017f1180218121823183418451856186718771887174b177b178c179c18bd174b177b178c179c18bd18ce";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
 /// meta.
 bytes constant OPERAND_HANDLER_FUNCTION_POINTERS =
-    hex"1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a521ae11a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d1a0d";
+    hex"1d191d191d191d191d191d191d191d191d191d191d191d191d191d191d191d191d191d5e1e511d191d191d191d191d191d191d191d191d191d191d19";
 
 /// @dev Every two bytes is a function pointer for a literal parser.
 /// Literal dispatches are determined by the first byte(s) of the literal
