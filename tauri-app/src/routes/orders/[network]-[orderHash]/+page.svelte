@@ -24,17 +24,19 @@
   let rpcUrl: string | undefined;
   let chainId: number | undefined;
 
-  if ($settings && $settings.orderbooks && $settings.orderbooks[network]) {
-    orderbookAddress = $settings.orderbooks[network].address as Hex;
-  }
+  if ($settings) {
+    if ($settings.orderbooks?.[network]) {
+      orderbookAddress = $settings.orderbooks[network].address as Hex;
+    }
 
-  if ($settings && $settings.subgraphs) {
-    subgraphUrl = $settings.subgraphs[network];
-  }
+    if ($settings.subgraphs) {
+      subgraphUrl = $settings.subgraphs[network];
+    }
 
-  if ($settings && $settings.networks && $settings.networks[network]) {
-    rpcUrl = $settings.networks[network].rpc;
-    chainId = $settings.networks[network]['chain-id'];
+    if ($settings.networks?.[network]) {
+      rpcUrl = $settings.networks[network].rpc;
+      chainId = $settings.networks[network]['chain-id'];
+    }
   }
 
   function invalidateOrderDetailQuery() {
