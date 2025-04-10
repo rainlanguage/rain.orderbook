@@ -8,7 +8,7 @@
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import type { Readable, Writable } from 'svelte/store';
-	import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+	import type { ConfigSource } from '@rainlanguage/orderbook';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 

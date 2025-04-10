@@ -1,5 +1,5 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { ConfigSource, OrderbookConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { ConfigSource, OrderbookConfigSource } from '@rainlanguage/orderbook';
 export interface AppStoresInterface {
 	settings: Writable<ConfigSource | undefined>;
 	activeSubgraphs: Writable<Record<string, string>>;

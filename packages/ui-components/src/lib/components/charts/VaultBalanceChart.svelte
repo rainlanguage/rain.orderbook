@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
 	import { bigintToFloat } from '../../utils/number';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 	import { createQuery } from '@tanstack/svelte-query';
 	import {
 		getVaultBalanceChanges,
@@ -9,7 +9,7 @@
 		type SgDeposit,
 		type SgTradeVaultBalanceChange,
 		type SgWithdrawal
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 

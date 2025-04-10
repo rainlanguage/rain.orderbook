@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 
 // Mock fetch

@@ -12,7 +12,7 @@
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	const queryClient = useQueryClient();
 	import { lightweightChartsTheme } from '$lib/darkMode';

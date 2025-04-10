@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { AddOrderErrors, handleDeployment } from '../lib/components/deployment/handleDeployment';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 describe('handleDeployment', () => {
 	const mockAccount = '0x1234567890123456789012345678901234567890';

@@ -2,14 +2,14 @@ import { render } from '@testing-library/svelte';
 import { expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChart from '../lib/components/charts/VaultBalanceChart.svelte';
-import type { SgVault } from '@rainlanguage/orderbook/js_api';
-import { getVaultBalanceChanges } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook';
+import { getVaultBalanceChanges } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import type { ComponentProps } from 'svelte';
 
 type VaultBalanceChartProps = ComponentProps<VaultBalanceChart>;
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getVaultBalanceChanges: vi.fn()
 }));
 

@@ -1,7 +1,6 @@
 import assert from 'assert';
 import { describe, expect, it } from 'vitest';
-import { OrderbookYaml } from '../../dist/cjs/js_api.js';
-import { OrderbookCfg, WasmEncodedResult } from '../../dist/types/js_api.js';
+import { OrderbookYaml, OrderbookCfg, WasmEncodedResult } from '../../dist/cjs';
 
 const YAML_WITHOUT_ORDERBOOK = `
 networks:
@@ -102,12 +101,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
 
 			let result = orderbookYaml.getOrderbookByAddress('invalid-address');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Invalid address: Odd number of digits');
 			expect(result.error.readableMsg).toBe(
 				'The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: "Odd number of digits"'
 			);
 
 			result = orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
+			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Orderbook yaml error: Key '0x0000000000000000000000000000000000000000' not found"
 			);
