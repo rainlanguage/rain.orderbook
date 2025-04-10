@@ -4,8 +4,7 @@ import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelt
 import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata } from '@rainlanguage/orderbook';
-import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
 import { get, readable } from 'svelte/store';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;

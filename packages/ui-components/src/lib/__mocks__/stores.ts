@@ -152,4 +152,3 @@ export const mockPageStore = {
 	},
 	reset: () => mockPageWritable.set(initialPageState)
 };
-

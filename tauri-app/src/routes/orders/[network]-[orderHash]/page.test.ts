@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Page from './+page.svelte';
 
-const { mockPageStore, mockSettingsStore, MockComponent } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const { mockPageStore, mockSettingsStore, MockComponent } = await vi.hoisted(
+  () => import('@rainlanguage/ui-components'),
+);
 
 vi.mock('$app/stores', async (importOriginal) => {
   const original = (await importOriginal()) as object;
   return {
     ...original,
-    page: mockPageStore
+    page: mockPageStore,
   };
 });
 
@@ -16,17 +18,15 @@ vi.mock('$lib/stores/settings', async (importOriginal) => {
   const original = (await importOriginal()) as object;
   return {
     ...original,
-    settings: mockSettingsStore
+    settings: mockSettingsStore,
   };
 });
-
 
 vi.mock('@tanstack/svelte-query', () => ({
   useQueryClient: vi.fn().mockReturnValue({
     invalidateQueries: vi.fn(),
   }),
 }));
-
 
 vi.mock('$lib/services/modal', () => ({
   handleDebugTradeModal: vi.fn(),
@@ -40,39 +40,37 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
   const original = (await importOriginal()) as object;
   return {
     ...original,
-    OrderDetail: MockComponent
+    OrderDetail: MockComponent,
   };
 });
 
 describe('Order Page', () => {
-
-    beforeAll(() => {
-        mockPageStore.mockSetSubscribeValue({
-            params: {
-                network: 'ethereum',
-                orderHash: '0x123'
-            }
-        });
+  beforeAll(() => {
+    mockPageStore.mockSetSubscribeValue({
+      params: {
+        network: 'ethereum',
+        orderHash: '0x123',
+      },
     });
-
+  });
 
   it('renders OrderDetail when all settings are available', () => {
     mockSettingsStore.mockSetSubscribeValue({
-    orderbooks: {
-      ethereum: {
-        address: '0xabc',
+      orderbooks: {
+        ethereum: {
+          address: '0xabc',
+        },
       },
-    },
-    subgraphs: {
-      ethereum: 'https://api.thegraph.com/subgraphs/name/example',
-    },
-    networks: {
-      ethereum: {
-        rpc: 'https://ethereum.example.com',
-        'chain-id': 1,
+      subgraphs: {
+        ethereum: 'https://api.thegraph.com/subgraphs/name/example',
       },
-    },
-  });
+      networks: {
+        ethereum: {
+          rpc: 'https://ethereum.example.com',
+          'chain-id': 1,
+        },
+      },
+    });
     render(Page);
 
     expect(screen.getByTestId('page-header')).toBeTruthy();
@@ -118,7 +116,6 @@ describe('Order Page', () => {
 
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
       expect(screen.getByText('Chain ID')).toBeTruthy();
-
 
       expect(screen.queryByText('RPC URL')).toBeFalsy();
       expect(screen.queryByText('Orderbook Address')).toBeFalsy();

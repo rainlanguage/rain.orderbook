@@ -38,4 +38,3 @@ export const mockAppKitModalStore = {
 	set: mockAppKitModalWritable.set,
 	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
 };
-
