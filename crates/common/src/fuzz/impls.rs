@@ -935,7 +935,6 @@ _: output-token(),
 _: output-token-decimals(),
 _: output-vault-id(),
 max-output: 30,
-_: sub(16 52),
 io-ratio: mul(0.99 20);
 #handle-io
 :;
