@@ -84,7 +84,12 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.serializeState = vi.fn();
 	DotrainOrderGui.prototype.getAllGuiConfig = vi.fn();
 	DotrainOrderGui.prototype.getCurrentDeploymentDetails = vi.fn();
+	DotrainOrderGui.prototype.generateDotrainText = vi.fn();
+
+	const OrderbookYaml = vi.fn();
+	OrderbookYaml.prototype.getOrderbookByDeploymentKey = vi.fn();
 	return {
-		DotrainOrderGui
+		DotrainOrderGui,
+		OrderbookYaml
 	};
 });

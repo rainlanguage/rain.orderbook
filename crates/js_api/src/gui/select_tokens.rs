@@ -47,17 +47,6 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
-    pub fn get_network_key(&self) -> Result<String, GuiError> {
-        let order_key = DeploymentCfg::parse_order_key(
-            self.dotrain_order.dotrain_yaml().documents,
-            &self.selected_deployment,
-        )?;
-        let network_key =
-            OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
-        Ok(network_key)
-    }
-
     #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
     pub async fn save_select_token(
         &mut self,

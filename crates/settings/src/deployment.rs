@@ -39,6 +39,11 @@ impl DeploymentCfg {
                     deployments_hash.get(&StrictYaml::String(deployment_key.to_string()))
                 {
                     return require_string(deployment_yaml, Some("order"), None);
+                } else {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(deployment_key.to_string()),
+                        location: "deployments".to_string(),
+                    });
                 }
             } else {
                 return Err(YamlError::Field {

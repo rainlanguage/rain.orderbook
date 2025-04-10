@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook';
+import {
+	DotrainOrderGui,
+	type ScenarioCfg,
+	type GuiDeploymentCfg,
+	OrderbookYaml
+} from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
-import { mockConfigSource } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
+import { mockConfigSource } from '$lib/__mocks__/settings';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -28,6 +32,60 @@ vi.mock('../lib/components/deployment/handleDeployment', () => ({
 }));
 
 type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
+
+const mockDotrainText = `
+networks:
+    some-network:
+        rpc: ${mockConfigSource.networks?.mainnet?.rpc}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+subgraphs:
+    some-sg: ${mockConfigSource.subgraphs?.mainnet}
+metaboards:
+    test: https://metaboard.com
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+scenarios:
+    some-scenario:
+        deployer: some-deployer
+        bindings:
+            binding: 5
+orders:
+    some-order:
+      inputs:
+        - token: token1
+      outputs:
+        - token: token1
+      deployer: some-deployer
+      orderbook: some-orderbook
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#calculate-io
+max-output: max-value(),
+io: 1;
+#handle-io
+:;
+#handle-add-order
+:;
+`;
 
 const mockDeployment = {
 	key: 'flare-sflr-wflr',
@@ -90,7 +148,6 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfigSource),
 	registryUrl: 'https://registry.reown.xyz'
 } as DeploymentStepsProps;
 
@@ -104,7 +161,6 @@ describe('DeploymentSteps', () => {
 
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'flare' });
 		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue(mockDeployment);
 		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
@@ -116,6 +172,28 @@ describe('DeploymentSteps', () => {
 				description: 'This is a test deployment description'
 			}
 		});
+		(DotrainOrderGui.prototype.generateDotrainText as Mock).mockReturnValue({
+			value: mockDotrainText
+		});
+
+		(OrderbookYaml.prototype.getOrderbookByDeploymentKey as Mock).mockReturnValue({
+			value: {
+				key: 'orderbook',
+				address: '0x0000000000000000000000000000000000000000',
+				network: {
+					key: 'mainnet',
+					rpc: mockConfigSource.networks?.mainnet?.rpc,
+					chainId: 1,
+					label: 'Mainnet',
+					currency: 'ETH'
+				},
+				subgraph: {
+					key: 'mainnet',
+					url: mockConfigSource.subgraphs?.mainnet
+				}
+			}
+		});
+
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
 		vi.mocked(useAccount).mockReturnValue({
@@ -131,7 +209,7 @@ describe('DeploymentSteps', () => {
 		});
 	});
 
-	it('correctly derives subgraphUrl from settings and networkKey', async () => {
+	it('correctly derives subgraphUrl from OrderbookYaml', async () => {
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
 		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
@@ -143,7 +221,6 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
 
 		mockConnectedStore.mockSetSubscribeValue(true);
 
@@ -464,7 +541,7 @@ describe('DeploymentSteps', () => {
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
+			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.mainnet);
 		});
 	});
 });

@@ -1989,11 +1989,6 @@ ${dotrainWithoutVaultIds}`;
 				extractWasmEncodedData(gui.serializeState())
 			);
 		});
-
-		it('should get network key', async () => {
-			const networkKey = extractWasmEncodedData<string>(gui.getNetworkKey());
-			assert.equal(networkKey, 'some-network');
-		});
 	});
 
 	describe('remote network tests', () => {

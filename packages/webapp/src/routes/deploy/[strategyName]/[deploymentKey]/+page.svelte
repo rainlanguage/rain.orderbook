@@ -9,7 +9,6 @@
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { REGISTRY_URL } from '$lib/constants';
 
-	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
@@ -59,7 +58,6 @@
 			wagmiConnected={connected}
 			{appKitModal}
 			{onDeploy}
-			{settings}
 			{registryUrl}
 		/>
 	</GuiProvider>
