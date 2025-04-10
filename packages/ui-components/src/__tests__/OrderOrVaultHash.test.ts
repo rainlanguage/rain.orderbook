@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import OrderOrVaultHash from '../lib/components/OrderOrVaultHash.svelte';
-import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()

@@ -1,13 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi } from 'vitest';
 import { expect } from '$lib/test/matchers';
-import type { VaultVolume } from '@rainlanguage/orderbook/js_api';
+import type { VaultVolume } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import OrderVaultsVolTable from '../lib/components/tables/OrderVaultsVolTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 
 // Mock the getOrderVaultsVolume function
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getOrderVaultsVolume: vi.fn(() => Promise.resolve(mockVaultsVol))
 }));
 

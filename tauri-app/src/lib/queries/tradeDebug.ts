@@ -1,4 +1,4 @@
-import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
+import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 

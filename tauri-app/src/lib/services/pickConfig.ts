@@ -1,5 +1,5 @@
 import { pickBy, isNil } from 'lodash';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { Config, ConfigSource } from '@rainlanguage/orderbook';
 
 export function pickDeployments(
   mergedConfigSource: ConfigSource | undefined,

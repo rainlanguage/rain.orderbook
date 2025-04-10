@@ -1,8 +1,7 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
-import { SgTransaction } from '../../dist/types/js_api.js';
-import { getTransaction } from '../../dist/cjs/js_api.js';
+import { getTransaction, SgTransaction } from '../../dist/cjs';
 
 const transaction1 = {
 	id: 'tx1',
