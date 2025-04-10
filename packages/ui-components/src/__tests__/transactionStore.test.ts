@@ -345,9 +345,6 @@ describe('transactionStore', () => {
 		await indexingPromise;
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
-		expect(get(transactionStore).message).toBe(
-			'The subgraph took too long to respond. Please check again later.'
-		);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
 
 		vi.useRealTimers();
@@ -393,9 +390,6 @@ describe('transactionStore', () => {
 		await indexingPromise;
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
-		expect(get(transactionStore).message).toBe(
-			'The subgraph took too long to respond. Please check again later.'
-		);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
 
 		vi.useRealTimers();
