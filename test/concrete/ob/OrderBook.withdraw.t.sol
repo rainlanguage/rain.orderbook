@@ -81,9 +81,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawPartialVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount18 > 0);
-        vm.assume(withdrawAmount18 > 0);
-        vm.assume(withdrawAmount18 < depositAmount18);
+        depositAmount18 = bound(depositAmount18, 2, type(uint256).max / 10);
+        withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18 - 1);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
@@ -99,7 +98,9 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
 
         vm.prank(alice);
         vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount), abi.encode(true)
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18),
+            abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
         // The full withdraw amount is possible as it's only a partial withdraw.

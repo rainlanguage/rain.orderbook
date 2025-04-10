@@ -222,7 +222,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address owner => mapping(address token => mapping(bytes32 vaultId => PackedFloat balance))) internal
+    mapping(address owner => mapping(address token => mapping(bytes32 vaultId => Float balance))) internal
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV5
@@ -230,9 +230,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         external
         view
         override
-        returns (Float memory vaultBalance)
+        returns (Float memory)
     {
-        vaultBalance = sVaultBalances[owner][token][vaultId].unpackMem();
+        return sVaultBalances[owner][token][vaultId];
     }
 
     /// @inheritdoc IOrderBookV5
@@ -262,12 +262,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // guard in place anyway.
         emit DepositV2(msg.sender, token, vaultId, depositAmountUint256);
 
-        PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
-        Float memory currentVaultBalance = currentVaultBalancePacked.unpackMem();
+        Float memory currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
 
         Float memory newBalance = currentVaultBalance.add(depositAmount);
 
-        sVaultBalances[msg.sender][token][vaultId] = newBalance.pack();
+        sVaultBalances[msg.sender][token][vaultId] = newBalance;
 
         if (post.length != 0) {
             LibOrderBook.doPost(
@@ -275,7 +274,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(token))),
                         bytes32(vaultId),
-                        PackedFloat.unwrap(currentVaultBalancePacked),
+                        PackedFloat.unwrap(currentVaultBalance.pack()),
                         PackedFloat.unwrap(depositAmount.pack())
                     )
                 ),
@@ -293,8 +292,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
         }
 
-        PackedFloat currentVaultBalancePacked = sVaultBalances[msg.sender][token][vaultId];
-        Float memory currentVaultBalance = currentVaultBalancePacked.unpackMem();
+        Float memory currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
 
         Float memory withdrawAmount = targetAmount.min(currentVaultBalance);
 
@@ -306,9 +304,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         if (newBalance.lt(Float(0, 0))) {
             revert NegativeVaultBalance();
         }
-        sVaultBalances[msg.sender][token][vaultId] = LibDecimalFloat.pack(newBalance);
-
-        PackedFloat withdrawAmountPacked = LibDecimalFloat.pack(withdrawAmount);
+        sVaultBalances[msg.sender][token][vaultId] = newBalance;
 
         (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(token, withdrawAmount);
 
@@ -320,8 +316,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(token))),
                         vaultId,
-                        PackedFloat.unwrap(currentVaultBalancePacked),
-                        PackedFloat.unwrap(withdrawAmountPacked),
+                        PackedFloat.unwrap(currentVaultBalance.pack()),
+                        PackedFloat.unwrap(withdrawAmount.pack()),
                         bytes32(uint256(decimals))
                     )
                 ),
@@ -660,20 +656,18 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
 
             if (aliceBounty.gt(Float(0, 0))) {
-                PackedFloat currentBalancePacked = sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig
+                Float memory currentBalance = sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig
                     .aliceOutputIOIndex].token][clearConfig.aliceBountyVaultId];
-                Float memory currentBalance = currentBalancePacked.unpackMem();
                 Float memory newBalance = currentBalance.add(aliceBounty);
                 sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
-                    .aliceBountyVaultId] = LibDecimalFloat.pack(newBalance);
+                    .aliceBountyVaultId] = newBalance;
             }
             if (bobBounty.gt(Float(0, 0))) {
-                PackedFloat currentBalancePacked = sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig
+                Float memory currentBalance = sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig
                     .bobOutputIOIndex].token][clearConfig.bobBountyVaultId];
-                Float memory currentBalance = currentBalancePacked.unpackMem();
                 Float memory newBalance = currentBalance.add(bobBounty);
                 sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
-                    .bobBountyVaultId] = newBalance.pack();
+                    .bobBountyVaultId] = newBalance;
             }
         }
 
@@ -719,13 +713,13 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
 
-                    PackedFloat inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex]
+                    Float memory inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex]
                         .token][order.validInputs[inputIOIndex].vaultId];
                     callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validInputs[inputIOIndex].token))),
                         bytes32(uint256(inputDecimals)),
                         order.validInputs[inputIOIndex].vaultId,
-                        PackedFloat.unwrap(inputTokenVaultBalance),
+                        PackedFloat.unwrap(inputTokenVaultBalance.pack()),
                         // Don't know the balance diff yet!
                         0
                     );
@@ -739,13 +733,13 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
 
-                    PackedFloat outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
+                    Float memory outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
                         .token][order.validOutputs[outputIOIndex].vaultId];
                     callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validOutputs[outputIOIndex].token))),
                         bytes32(uint256(outputDecimals)),
                         order.validOutputs[outputIOIndex].vaultId,
-                        PackedFloat.unwrap(outputTokenVaultBalance),
+                        PackedFloat.unwrap(outputTokenVaultBalance.pack()),
                         // Don't know the balance diff yet!
                         0
                     );
@@ -800,20 +794,10 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             {
                 // The order owner can't send more than the smaller of their vault
                 // balance or their per-order limit.
-                PackedFloat ownerVaultBalancePacked = sVaultBalances[order.owner][order.validOutputs[outputIOIndex]
-                    .token][order.validOutputs[outputIOIndex].vaultId];
-                Float memory ownerVaultBalance;
-                (ownerVaultBalance.signedCoefficient, ownerVaultBalance.exponent) =
-                    LibDecimalFloat.unpack(ownerVaultBalancePacked);
+                Float memory ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
+                    .validOutputs[outputIOIndex].vaultId];
 
-                if (
-                    LibDecimalFloat.gt(
-                        orderOutputMax.signedCoefficient,
-                        orderOutputMax.exponent,
-                        ownerVaultBalance.signedCoefficient,
-                        ownerVaultBalance.exponent
-                    )
-                ) {
+                if (orderOutputMax.gt(ownerVaultBalance)) {
                     orderOutputMax = ownerVaultBalance;
                 }
             }
@@ -859,47 +843,27 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
 
         if (LibDecimalFloat.gt(input.signedCoefficient, input.exponent, 0, 0)) {
-            Float memory inputVaultBalance;
-            {
-                (int256 inputVaultBalanceSignedCoefficient, int256 inputVaultBalanceExponent) = LibDecimalFloat.unpack(
-                    sVaultBalances[orderIOCalculation.order.owner][address(
-                        uint160(
-                            uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN])
-                        )
-                    )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]]
-                );
-                inputVaultBalance =
-                    Float({signedCoefficient: inputVaultBalanceSignedCoefficient, exponent: inputVaultBalanceExponent});
-            }
+            Float memory inputVaultBalance = sVaultBalances[orderIOCalculation.order.owner][address(
+                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
+            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]];
 
-            (int256 newInputBalanceSignedCoefficient, int256 newInputBalanceExponent) = LibDecimalFloat.add(
-                inputVaultBalance.signedCoefficient, inputVaultBalance.exponent, input.signedCoefficient, input.exponent
-            );
+            Float memory newInputBalance = inputVaultBalance.add(input);
 
             sVaultBalances[orderIOCalculation.order.owner][address(
                 uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] =
-                LibDecimalFloat.pack(newInputBalanceSignedCoefficient, newInputBalanceExponent);
+            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = newInputBalance;
         }
 
-        if (LibDecimalFloat.gt(output.signedCoefficient, output.exponent, 0, 0)) {
-            (int256 outputVaultBalanceSignedCoefficient, int256 outputVaultBalanceExponent) = LibDecimalFloat.unpack(
-                sVaultBalances[orderIOCalculation.order.owner][address(
-                    uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-                )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]]
-            );
+        if (output.gt(Float(0, 0))) {
+            Float memory outputVaultBalance = sVaultBalances[orderIOCalculation.order.owner][address(
+                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
+            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]];
 
-            (int256 newOutputBalanceSignedCoefficient, int256 newOutputBalanceExponent) = LibDecimalFloat.sub(
-                outputVaultBalanceSignedCoefficient,
-                outputVaultBalanceExponent,
-                output.signedCoefficient,
-                output.exponent
-            );
+            Float memory newOutputBalance = outputVaultBalance.sub(output);
 
             sVaultBalances[orderIOCalculation.order.owner][address(
                 uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] =
-                LibDecimalFloat.pack(newOutputBalanceSignedCoefficient, newOutputBalanceExponent);
+            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = newOutputBalance;
         }
 
         // Emit the context only once in its fully populated form rather than two
@@ -1017,7 +981,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
     function pullTokens(address token, Float memory amount) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
-        if (tofuOutcome != TOFUOutcome.Consistent) {
+        if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
         if (amount.lt(Float(0, 0))) {
