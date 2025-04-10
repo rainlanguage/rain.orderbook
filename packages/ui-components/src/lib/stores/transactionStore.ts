@@ -9,12 +9,12 @@ import type {
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
 import type { DeploymentArgs } from '$lib/types/transaction';
 

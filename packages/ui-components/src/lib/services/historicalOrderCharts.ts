@@ -1,4 +1,4 @@
-import type { SgTrade } from '@rainlanguage/orderbook/js_api';
+import type { SgTrade } from '@rainlanguage/orderbook';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../utils/time';
 import { sortBy } from 'lodash';

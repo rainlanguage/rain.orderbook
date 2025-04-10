@@ -15,7 +15,7 @@
 		getOrderByHash,
 		type OrderWithSortedVaults,
 		type SgOrder
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -28,7 +28,7 @@
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;

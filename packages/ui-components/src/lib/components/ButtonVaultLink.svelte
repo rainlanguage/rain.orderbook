@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 	import { bigintStringToHex } from '../utils/hex';
 	import Tooltip from './Tooltip.svelte';
 	import { formatUnits } from 'viem';

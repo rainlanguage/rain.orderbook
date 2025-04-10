@@ -7,7 +7,7 @@
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
-	import type { SgOrder, SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();

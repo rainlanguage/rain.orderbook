@@ -2,18 +2,16 @@ import assert from 'assert';
 import { getLocal } from 'mockttp';
 import { describe, it, beforeEach, afterEach } from 'vitest';
 import {
+	getId,
+	doQuoteTargets,
+	getQuoteTargetFromSubgraph,
+	getOrderQuote,
 	QuoteSpec,
 	QuoteTarget,
 	SgOrder,
 	OrderQuoteValue,
 	BatchOrderQuotesResponse
-} from '../../dist/types/quote';
-import {
-	getId,
-	doQuoteTargets,
-	getQuoteTargetFromSubgraph,
-	getOrderQuote
-} from '../../dist/cjs/quote';
+} from '../../dist/cjs';
 
 describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 	const mockServer = getLocal();

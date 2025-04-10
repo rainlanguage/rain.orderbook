@@ -1,6 +1,6 @@
 <script lang="ts">
   import ObservableChart from '$lib/components/ObservableChart.svelte';
-  import type { ChartData } from '@rainlanguage/orderbook/js_api';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { transformDataForPlot } from '$lib/utils/chartData';
   import { sortBy } from 'lodash';
   import MetricChart from './MetricChart.svelte';

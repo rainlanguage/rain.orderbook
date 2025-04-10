@@ -1,7 +1,7 @@
 {
     "name": "@rainlanguage/orderbook",
     "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
-    "version": "0.0.1-alpha.55",
+    "version": "0.0.1-alpha.57",
     "license": "LicenseRef-DCL-1.0",
     "author": "Rain Open Source Software Ltd",
     "repository": {
@@ -15,46 +15,9 @@
     "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
-    "types": "./dist/types/index.d.ts",
-    "typings": "./dist/types/index.d.ts",
     "browser": {
         "./dist/cjs/index.js": "./dist/cjs/index.js",
         "./dist/esm/index.js": "./dist/esm/index.js"
-    },
-    "exports": {
-        ".": {
-            "require": "./dist/cjs/index.js",
-            "import": "./dist/esm/index.js",
-            "types": "./dist/types/index.d.ts"
-        },
-        "./common": {
-            "require": "./dist/cjs/common.js",
-            "import": "./dist/esm/common.js",
-            "types": "./dist/types/common.d.ts"
-        },
-        "./quote": {
-            "require": "./dist/cjs/quote.js",
-            "import": "./dist/esm/quote.js",
-            "types": "./dist/types/quote.d.ts"
-        },
-        "./js_api": {
-            "require": "./dist/cjs/js_api.js",
-            "import": "./dist/esm/js_api.js",
-            "types": "./dist/types/js_api.d.ts"
-        }
-    },
-    "typesVersions": {
-        "*": {
-            "common": [
-                "./dist/types/common.d.ts"
-            ],
-            "quote": [
-                "./dist/types/quote.d.ts"
-            ],
-            "js_api": [
-                "./dist/types/js_api.d.ts"
-            ]
-        }
     },
     "engines": {
         "node": ">=22"
@@ -72,8 +35,9 @@
         "build-wasm": "cargo build --target wasm32-unknown-unknown --lib -r --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
-        "test": "vitest run --dir test",
-        "format": "prettier --write test"
+        "test": "npm run check && vitest run --dir test",
+        "format": "prettier --write test",
+        "check": "tsc ./dist/**/* --noEmit --allowJs"
     },
     "devDependencies": {
         "rimraf": "6.0.1"

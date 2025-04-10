@@ -6,14 +6,13 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import { getVault } from '@rainlanguage/orderbook/js_api';
+	import { getVault, type SgVault } from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { formatUnits, isAddress, isAddressEqual } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
