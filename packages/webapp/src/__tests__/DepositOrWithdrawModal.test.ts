@@ -32,10 +32,14 @@ vi.mock('../lib/stores/wagmi', () => ({
 	wagmiConfig: mockWagmiConfigStore
 }));
 
-vi.mock('@wagmi/core', () => ({
-	readContract: vi.fn(),
-	switchChain: vi.fn().mockResolvedValue({ id: 1 })
-}));
+vi.mock('@wagmi/core', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		readContract: vi.fn(),
+		switchChain: vi.fn().mockResolvedValue({ id: 1 })
+	};
+});
 
 describe('DepositOrWithdrawModal', () => {
 	const mockVault = {
