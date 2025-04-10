@@ -1,4 +1,4 @@
-import type { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { DeploymentArgs } from '$lib/types/transaction';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { transactionStore, type OrderRemoveArgs } from '@rainlanguage/ui-components';
 	import TransactionModal from './TransactionModal.svelte';
-	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook/js_api';
+	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 
 	export let open: boolean;

@@ -1,4 +1,4 @@
-import type { SgOrder, SgOrderAsIO, SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder, SgOrderAsIO, SgVault } from '@rainlanguage/orderbook';
 import fc from 'fast-check';
 import { test } from '@fast-check/vitest';
 

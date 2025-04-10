@@ -7,7 +7,7 @@
   import { walletConnectNetwork, walletconnectAccount } from '$lib/stores/walletconnect';
   import { IconLedger, IconWalletConnect, ButtonLoading } from '@rainlanguage/ui-components';
   import { activeNetworkRef, chainId as globalChainId } from '$lib/stores/settings';
-  import type { NetworkCfg } from '@rainlanguage/orderbook/js_api';
+  import type { NetworkCfg } from '@rainlanguage/orderbook';
 
   export let open = false;
   export let title: string;
