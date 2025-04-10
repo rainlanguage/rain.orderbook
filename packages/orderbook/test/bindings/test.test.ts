@@ -1,7 +1,6 @@
 import assert from 'assert';
 import { describe, it } from 'vitest';
-import { OrderV3 } from '../../dist/types/quote';
-import { getOrderHash } from '../../dist/cjs/quote.js';
+import { getOrderHash, OrderV3 } from '../../dist/cjs';
 
 describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 	it('should get correct order hash', async () => {

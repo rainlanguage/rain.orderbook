@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getOrderTradesList } from '@rainlanguage/orderbook/js_api';
+	import { getOrderTradesList } from '@rainlanguage/orderbook';
 	import { prepareHistoricalOrderChartData } from '../../services/historicalOrderCharts';
 	import TanstackLightweightChartLine from './TanstackLightweightChartLine.svelte';
 	import { createQuery } from '@tanstack/svelte-query';

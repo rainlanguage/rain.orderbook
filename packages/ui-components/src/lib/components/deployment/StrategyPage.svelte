@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
 

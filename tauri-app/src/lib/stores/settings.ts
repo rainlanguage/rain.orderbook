@@ -10,7 +10,7 @@ import {
   type ConfigSource,
   type OrderbookCfgRef,
   type OrderbookConfigSource,
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
