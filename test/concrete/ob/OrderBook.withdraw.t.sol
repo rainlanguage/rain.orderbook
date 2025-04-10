@@ -9,8 +9,10 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloatImplementation} from "rain.math.float/lib/implementation/LibDecimalFloatImplementation.sol";
 
 /// @title OrderBookWithdrawTest
 /// Tests withdrawing from the order book.
@@ -18,6 +20,9 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     using Math for uint256;
 
     using LibDecimalFloat for Float;
+    using LibDecimalFloatImplementation for Float;
+
+    mapping(address => bool) internal sHasDeposit;
 
     /// Withdrawing a zero target amount should revert.
     /// forge-config: default.fuzz.runs = 100
@@ -160,6 +165,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         bytes32 vaultId;
         uint248 amount;
         Float amountFloat;
+        uint256 pairedWith;
+        bool fresh;
     }
 
     /// Arbitrary interleavings of deposits and withdrawals should work across
@@ -174,6 +181,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             // etching.
             actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
             actions[i].amountFloat = LibDecimalFloat.fromFixedDecimalLosslessMem(actions[i].amount, 18);
+
+            if (!actions[i].fresh && i > 0) {
+                actions[i].pairedWith = bound(actions[i].pairedWith, 0, i - 1);
+                actions[i].alice = actions[actions[i].pairedWith].alice;
+                actions[i].vaultId = actions[actions[i].pairedWith].vaultId;
+                actions[i].token = actions[actions[i].pairedWith].token;
+            }
         }
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
@@ -182,7 +196,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             Float memory balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
 
             vm.prank(action.alice);
-            if (action.actionKind) {
+            if (action.actionKind || !sHasDeposit[action.token]) {
+                sHasDeposit[action.token] = true;
                 vm.mockCall(
                     action.token,
                     abi.encodeWithSelector(
@@ -190,6 +205,10 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     ),
                     abi.encode(true)
                 );
+                vm.mockCall(
+                    action.token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
+                );
+
                 vm.expectEmit(false, false, false, true);
                 emit DepositV2(action.alice, action.token, action.vaultId, action.amount);
                 iOrderbook.deposit3(action.token, action.vaultId, action.amountFloat, new TaskV2[](0));
@@ -204,9 +223,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                 uint256 expectedActualAmount18 = expectedActualAmount.toFixedDecimalLossless(18);
                 vm.mockCall(
                     action.token,
-                    abi.encodeWithSelector(IERC20.transfer.selector, action.alice, expectedActualAmount),
+                    abi.encodeWithSelector(IERC20.transfer.selector, action.alice, expectedActualAmount18),
                     abi.encode(true)
                 );
+                vm.mockCall(
+                    action.token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
+                );
+
                 if (expectedActualAmount.gt(Float(0, 0))) {
                     vm.expectEmit(false, false, false, true);
                     emit WithdrawV2(
