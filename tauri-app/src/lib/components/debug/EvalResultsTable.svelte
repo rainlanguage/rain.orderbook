@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
+  import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
   import {
     Table,
     TableBody,

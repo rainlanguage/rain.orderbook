@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { ChartData, DeploymentDebugData } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
   import { formatUnits, hexToNumber, isHex } from 'viem';
   import {
@@ -19,7 +20,6 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { writable } from 'svelte/store';
-  import type { DeploymentDebugData } from '@rainlanguage/orderbook/js_api';
 
   let enabled = false;
   let blockNumber: number | undefined;

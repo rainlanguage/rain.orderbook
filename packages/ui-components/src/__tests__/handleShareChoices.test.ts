@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { handleShareChoices } from '../lib/services/handleShareChoices';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 describe('handleShareChoices', () => {
 	let guiInstance: DotrainOrderGui;

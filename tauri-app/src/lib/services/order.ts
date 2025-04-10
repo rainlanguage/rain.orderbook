@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
 export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   await invoke('order_add', {

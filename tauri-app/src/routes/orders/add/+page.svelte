@@ -5,15 +5,15 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
   import { isEmpty, isNil } from 'lodash';
-  import type { Config } from '@rainlanguage/orderbook/js_api';
+  import type { Config } from '@rainlanguage/orderbook';
   import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+  import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import {
     orderAdd,

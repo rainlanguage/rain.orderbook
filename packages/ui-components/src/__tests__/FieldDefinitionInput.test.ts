@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import type { ComponentProps } from 'svelte';
@@ -67,10 +67,7 @@ describe('FieldDefinitionInput', () => {
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: true,
-			value: 'preset1'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -84,10 +81,7 @@ describe('FieldDefinitionInput', () => {
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'custom value'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -122,16 +116,14 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'default value@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
 		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({
 			value: {
-				isPreset: false,
-				value: 'preset1'
+				binding: 'test-binding',
+				value: 'preset1',
+				is_preset: false
 			}
 		});
 
@@ -150,9 +142,6 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', {
-			isPreset: false,
-			value: 'preset1@'
-		});
+		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
 	});
 });

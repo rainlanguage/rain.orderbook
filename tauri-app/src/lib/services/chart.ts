@@ -1,4 +1,4 @@
-import type { ChartData, DeploymentDebugData } from '@rainlanguage/orderbook/js_api';
+import type { ChartData, DeploymentDebugData } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 
 export const makeChartData = async (dotrain: string): Promise<ChartData> =>

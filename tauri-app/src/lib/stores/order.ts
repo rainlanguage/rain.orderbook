@@ -1,4 +1,4 @@
-import type { OrderDetailExtended, SgTrade } from '@rainlanguage/orderbook/js_api';
+import type { OrderDetailExtended, SgTrade } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { subgraphUrl } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';

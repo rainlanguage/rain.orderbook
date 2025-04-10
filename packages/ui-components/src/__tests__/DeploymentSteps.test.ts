@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { GuiDeploymentCfg } from '@rainlanguage/orderbook/js_api';
+import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';

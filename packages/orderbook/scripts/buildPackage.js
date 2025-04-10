@@ -20,7 +20,7 @@ execSync(
 // in js modules in order to avoid using fetch or fs operations
 const wasmBytes = fs.readFileSync(`./temp/node/${package}/${package}_bg.wasm`);
 fs.writeFileSync(
-  `./dist/${package}.json`,
+  `./dist/orderbook_wbg.json`,
   JSON.stringify({
     wasm: Buffer.from(wasmBytes, "binary").toString("base64"),
   })
@@ -36,7 +36,8 @@ dts = dts.replace(
   ""
 );
 dts = "/* this file is auto-generated, do not modify */\n" + dts;
-fs.writeFileSync(`./dist/types/${package}.d.ts`, dts);
+fs.writeFileSync(`./dist/cjs/index.d.ts`, dts);
+fs.writeFileSync(`./dist/esm/index.d.ts`, dts);
 
 // prepare cjs
 let cjs = fs.readFileSync(`./temp/node/${package}/${package}.js`, {
@@ -47,12 +48,12 @@ cjs = cjs.replace(
 const bytes = require('fs').readFileSync(path);`,
   `
 const { Buffer } = require('buffer');
-const wasmB64 = require('../${package}.json');
+const wasmB64 = require('../orderbook_wbg.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
 );
 cjs = cjs.replace("const { TextEncoder, TextDecoder } = require(`util`);", "");
 cjs = "/* this file is auto-generated, do not modify */\n" + cjs;
-fs.writeFileSync(`./dist/cjs/${package}.js`, cjs);
+fs.writeFileSync(`./dist/cjs/index.js`, cjs);
 
 // prepare esm
 let esm = fs.readFileSync(`./temp/web/${package}/${package}.js`, {
@@ -67,7 +68,7 @@ esm =
 imports = __wbg_get_imports();
 
 import { Buffer } from 'buffer';
-import wasmB64 from '../${package}.json';
+import wasmB64 from '../orderbook_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');
 
 const wasmModule = new WebAssembly.Module(bytes);
@@ -75,4 +76,4 @@ const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
 wasm = wasmInstance.exports;`;
 esm = esm.replaceAll("imports.wbg", "imports.__wbindgen_placeholder__");
 esm = "/* this file is auto-generated, do not modify */\n" + esm;
-fs.writeFileSync(`./dist/esm/${package}.js`, esm);
+fs.writeFileSync(`./dist/esm/index.js`, esm);
