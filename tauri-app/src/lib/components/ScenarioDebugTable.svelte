@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChartData, DeploymentDebugData } from '@rainlanguage/orderbook';
+  import type { DeploymentDebugData } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
   import { formatUnits, hexToNumber, isHex } from 'viem';
   import {
