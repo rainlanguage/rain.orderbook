@@ -80,7 +80,7 @@
 				</div>
 			{:else}
 				<div
-					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900"
+					class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"
 				>
 					<Spinner color="blue" size={10} />
 				</div>
@@ -94,16 +94,16 @@
 				>
 					{$transactionStore.message}
 				</p>
-				{#if $transactionStore.explorerLink}
-					<p>
-						<a
-							class="cursor-pointer text-blue-500 hover:underline"
-							rel="noopener noreferrer"
-							href={$transactionStore.explorerLink}
-							target="_blank">View transaction on block explorer</a
-						>
-					</p>
-				{/if}
+			{/if}
+			{#if $transactionStore.explorerLink}
+				<p>
+					<a
+						class="cursor-pointer text-blue-500 hover:underline"
+						rel="noopener noreferrer"
+						href={$transactionStore.explorerLink}
+						target="_blank">View transaction on block explorer</a
+					>
+				</p>
 			{/if}
 		</div>
 	{/if}
