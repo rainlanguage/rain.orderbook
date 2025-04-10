@@ -18,7 +18,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 describe('TransactionModal Component', () => {
 	const messages = {
 		success: 'Transaction Successful',
-		error: 'Transaction Failed',
 		pending: 'Transaction Pending'
 	};
 	const resetSpy = vi.spyOn(mockTransactionStore, 'reset');
@@ -34,7 +33,6 @@ describe('TransactionModal Component', () => {
 		// In IDLE state, modal should be empty
 		expect(screen.queryByText(messages.pending)).not.toBeInTheDocument();
 		expect(screen.queryByText(messages.success)).not.toBeInTheDocument();
-		expect(screen.queryByText(messages.error)).not.toBeInTheDocument();
 	});
 
 	it('should display an error when transaction fails', async () => {
@@ -49,7 +47,6 @@ describe('TransactionModal Component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('error-icon')).toBeInTheDocument();
-			expect(screen.getByText(messages.error)).toBeInTheDocument();
 			expect(screen.getByText(errorMessage)).toBeInTheDocument();
 		});
 

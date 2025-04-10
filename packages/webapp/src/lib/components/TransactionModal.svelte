@@ -95,7 +95,6 @@
 					{$transactionStore.message}
 				</p>
 			{/if}
-			<!-- TODO: Add a test for this -->
 			{#if $transactionStore.explorerLink}
 				<p>
 					<a
