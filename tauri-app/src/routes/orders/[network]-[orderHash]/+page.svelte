@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageHeader } from '@rainlanguage/ui-components';
+  import { invalidateTanstackQueries, PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { OrderDetail } from '@rainlanguage/ui-components';
   import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
@@ -23,29 +23,21 @@
   const rpcUrl = $settings?.networks?.[network]?.rpc;
   const chainId = $settings?.networks?.[network]?.['chain-id'];
 
-  function invalidateOrderDetailQuery() {
-    queryClient.invalidateQueries({
-      queryKey: [orderHash],
-      refetchType: 'all',
-      exact: false,
-    });
-  }
-
   function onRemove(order: SgOrder) {
     handleOrderRemoveModal(order, () => {
-      invalidateOrderDetailQuery();
+      invalidateTanstackQueries(queryClient, [orderHash]);
     });
   }
 
   function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
-      invalidateOrderDetailQuery();
+      invalidateTanstackQueries(queryClient, [orderHash]);
     });
   }
 
   function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
-      invalidateOrderDetailQuery();
+      invalidateTanstackQueries(queryClient, [orderHash]);
     });
   }
 </script>
