@@ -53,27 +53,27 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
 
         {
             Float memory expectedTakerTotalOutput =
-            LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalOutput18, outputTokenDecimals);
-        Float memory expectedTakerTotalInput =
-            LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalInput18, inputTokenDecimals);
+                LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalOutput18, outputTokenDecimals);
+            Float memory expectedTakerTotalInput =
+                LibDecimalFloat.fromFixedDecimalLosslessMem(expectedTakerTotalInput18, inputTokenDecimals);
 
-        if (expectedTakerTotalInput18 > 0) {
-            iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
-        }
-        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
-        vm.recordLogs();
-        iOrderbook.addOrder3(config, new TaskV2[](0));
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 1);
-        (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
+            if (expectedTakerTotalInput18 > 0) {
+                iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
+            }
+            assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
+            vm.recordLogs();
+            iOrderbook.addOrder3(config, new TaskV2[](0));
+            Vm.Log[] memory entries = vm.getRecordedLogs();
+            assertEq(entries.length, 1);
+            (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
-        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-        orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory takeOrdersConfig =
-            TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
-        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
-        assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
-        assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
+            TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
+            orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+            TakeOrdersConfigV4 memory takeOrdersConfig =
+                TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
+            (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+            assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
+            assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
         }
 
         assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(0, 0)), "vault balance");
