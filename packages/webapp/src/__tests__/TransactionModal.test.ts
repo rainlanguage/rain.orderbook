@@ -26,7 +26,7 @@ vi.mock('svelte', async (importOriginal) => {
 });
 
 describe('TransactionModal Component', () => {
-	const mockError = 'Transaction failed';
+	const mockError = 'There was a problem with the transaction!';
 	const messages = {
 		success: 'Transaction Successful',
 		pending: 'Transaction Pending'
