@@ -106,7 +106,7 @@
       </p>
     </div>
 
-    <div class="mb-6">
+    <div class="mb-6 w-full">
       <Label
         for="amount"
         class="mb-2 w-full text-xl font-bold tracking-tight text-gray-900 dark:text-white"
