@@ -7,7 +7,6 @@ describe('handleDeployment', () => {
 	const mockSubgraphUrl = 'https://example.com/subgraph';
 
 	const mockGui: DotrainOrderGui = {
-		getNetworkKey: vi.fn(),
 		getDeploymentTransactionArgs: vi.fn()
 	} as unknown as DotrainOrderGui;
 
@@ -24,11 +23,6 @@ describe('handleDeployment', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 
-		(mockGui.getNetworkKey as Mock).mockReturnValue({
-			error: null,
-			value: mockNetwork
-		});
-
 		(mockGui.getDeploymentTransactionArgs as Mock).mockResolvedValue({
 			error: null,
 			value: {
@@ -41,7 +35,7 @@ describe('handleDeployment', () => {
 	});
 
 	it('should return deployment data with correct parameters', async () => {
-		const result = await handleDeployment(mockGui, mockAccount, mockSubgraphUrl);
+		const result = await handleDeployment(mockGui, mockAccount, mockNetwork, mockSubgraphUrl);
 
 		expect(result).toEqual({
 			approvals: mockApprovals,
@@ -52,19 +46,7 @@ describe('handleDeployment', () => {
 			subgraphUrl: mockSubgraphUrl
 		});
 
-		expect(mockGui.getNetworkKey).toHaveBeenCalled();
 		expect(mockGui.getDeploymentTransactionArgs).toHaveBeenCalledWith(mockAccount);
-	});
-
-	it('should throw an error if network key retrieval fails', async () => {
-		(mockGui.getNetworkKey as Mock).mockReturnValue({
-			error: new Error('Network key error'),
-			value: null
-		});
-
-		await expect(handleDeployment(mockGui, mockAccount, mockSubgraphUrl)).rejects.toThrow(
-			AddOrderErrors.ERROR_GETTING_NETWORK_KEY
-		);
 	});
 
 	it('should throw an error if account is not provided', async () => {
@@ -85,7 +67,7 @@ describe('handleDeployment', () => {
 	});
 
 	it('should work without subgraphUrl', async () => {
-		const result = await handleDeployment(mockGui, mockAccount);
+		const result = await handleDeployment(mockGui, mockAccount, mockNetwork);
 
 		expect(result).toEqual({
 			approvals: mockApprovals,

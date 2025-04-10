@@ -239,6 +239,7 @@ describe('DeploymentSteps', () => {
 			expect(handleDeployment).toHaveBeenCalledWith(
 				mockGui,
 				'0x123',
+				'mainnet',
 				mockConfigSource.subgraphs?.mainnet
 			);
 		});
@@ -537,10 +538,12 @@ describe('DeploymentSteps', () => {
 		await waitFor(() => {
 			expect(handleDeployment).toHaveBeenCalledTimes(1);
 
-			const [guiArg, accountArg, subgraphUrlArg] = vi.mocked(handleDeployment).mock.calls[0];
+			const [guiArg, accountArg, networkKey, subgraphUrlArg] =
+				vi.mocked(handleDeployment).mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
+			expect(networkKey).toBe('mainnet');
 			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.mainnet);
 		});
 	});

@@ -71,7 +71,6 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.saveFieldValue = vi.fn();
 	DotrainOrderGui.prototype.getFieldValue = vi.fn();
 	DotrainOrderGui.prototype.getSelectTokens = vi.fn();
-	DotrainOrderGui.prototype.getNetworkKey = vi.fn();
 	DotrainOrderGui.prototype.getAllTokenInfos = vi.fn();
 	DotrainOrderGui.prototype.getAllFieldDefinitions = vi.fn();
 	DotrainOrderGui.prototype.isSelectTokenSet = vi.fn();

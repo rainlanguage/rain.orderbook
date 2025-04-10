@@ -14,14 +14,9 @@ export enum AddOrderErrors {
 export async function handleDeployment(
 	gui: DotrainOrderGui,
 	account: string | null,
+	networkKey: string,
 	subgraphUrl?: string
 ): Promise<DeploymentArgs> {
-	const networkKeyResult = gui.getNetworkKey();
-	if (networkKeyResult.error) {
-		throw new Error(AddOrderErrors.ERROR_GETTING_NETWORK_KEY);
-	}
-	const network = networkKeyResult.value;
-
 	if (!account) {
 		throw new Error(AddOrderErrors.NO_ACCOUNT_CONNECTED);
 	}
@@ -40,7 +35,7 @@ export async function handleDeployment(
 		// Cast to Hex, since js_api returns a string
 		orderbookAddress: orderbookAddress as Hex,
 		chainId,
-		network,
+		network: networkKey,
 		subgraphUrl
 	};
 }

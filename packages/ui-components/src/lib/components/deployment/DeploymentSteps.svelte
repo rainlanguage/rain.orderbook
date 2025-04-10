@@ -53,6 +53,8 @@
 	let allTokenInfos: TokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
+
+	let networkKey: string = '';
 	let subgraphUrl: string = '';
 
 	const { account } = useAccount();
@@ -77,6 +79,7 @@
 		if (orderbook.error) {
 			throw new Error(orderbook.error.msg);
 		}
+		networkKey = orderbook.value.network.key;
 		subgraphUrl = orderbook.value.subgraph.url;
 
 		await areAllTokensSelected();
@@ -223,8 +226,13 @@
 				return;
 			}
 			DeploymentStepsError.clear();
-			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return await onDeploy(deploymentArgs);
+			const deploymentArgs: DeploymentArgs = await handleDeployment(
+				gui,
+				$account,
+				networkKey,
+				subgraphUrl
+			);
+			return onDeploy(deploymentArgs);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {
