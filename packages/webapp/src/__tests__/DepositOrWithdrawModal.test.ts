@@ -333,13 +333,10 @@ describe('DepositOrWithdrawModal', () => {
 	});
 
 	it('shows error message when getUserBalance fails', async () => {
-		// Mock readContract to throw an error
-		vi.mocked(readContract).mockReset();
 		vi.mocked(readContract).mockRejectedValue(new Error('Failed to get balance'));
 
 		render(DepositOrWithdrawModal, defaultProps);
 
-		// Wait for the error message to appear
 		await waitFor(() => {
 			expect(screen.getByTestId('error-message')).toBeInTheDocument();
 			expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to get user balance.');
