@@ -31,8 +31,8 @@ impl BlockCfg {
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BlockRangeCfg {
-    start: BlockCfg,
-    end: BlockCfg,
+    pub start: BlockCfg,
+    pub end: BlockCfg,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(BlockRangeCfg);
