@@ -7,7 +7,7 @@
 	export let open: boolean;
 	export let messages: {
 		success: string;
-		error: string;
+		error?: string;
 		pending: string;
 	};
 
@@ -38,7 +38,7 @@
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center text-lg font-semibold text-gray-900 dark:text-white"
 				>
-					{messages.error}
+					{$transactionStore.status}
 				</p>
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
@@ -94,16 +94,16 @@
 				>
 					{$transactionStore.message}
 				</p>
-				{#if $transactionStore.explorerLink}
-					<p>
-						<a
-							class="cursor-pointer text-blue-500 hover:underline"
-							rel="noopener noreferrer"
-							href={$transactionStore.explorerLink}
-							target="_blank">View transaction on block explorer</a
-						>
-					</p>
-				{/if}
+			{/if}
+			{#if $transactionStore.explorerLink}
+				<p>
+					<a
+						class="cursor-pointer text-blue-500 hover:underline"
+						rel="noopener noreferrer"
+						href={$transactionStore.explorerLink}
+						target="_blank">View transaction on block explorer</a
+					>
+				</p>
 			{/if}
 		</div>
 	{/if}
