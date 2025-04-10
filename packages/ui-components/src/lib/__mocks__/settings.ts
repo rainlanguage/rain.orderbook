@@ -37,4 +37,10 @@ export const mockConfigSource: ConfigSource = {
 	}
 };
 
-export const mockSettingsStore = writable<ConfigSource>(mockConfigSource);
+const mockSettingsStoreWritable = writable<ConfigSource>(mockConfigSource);
+
+export const mockSettingsStore = {
+	subscribe: mockSettingsStoreWritable.subscribe,
+	set: mockSettingsStoreWritable.set,
+	mockSetSubscribeValue: (value: ConfigSource) => mockSettingsStoreWritable.set(value)
+};

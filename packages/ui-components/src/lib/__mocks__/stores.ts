@@ -4,8 +4,25 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
-import type { Page } from '@sveltejs/kit';
 
+const initialPageState = {
+	data: {
+		stores: { settings: {} },
+		dotrain: 'some dotrain content',
+		deployment: { key: 'deploy-key' },
+		strategyDetail: {}
+	},
+	url: new URL('http://localhost:3000/deploy'),
+	params: {},
+	form: {},
+	status: 200,
+	error: null,
+	route: {
+		id: null
+	}
+};
+
+const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
@@ -22,7 +39,6 @@ const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
-const mockPageWritable = writable<Page>();
 
 export const mockWalletAddressMatchesOrBlankStore = {
 	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
@@ -128,5 +144,12 @@ export const mockShowMyItemsOnlyStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (value: Page): void => mockPageWritable.set(value)
+	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+		mockPageWritable.update((currentValue) => ({
+			...currentValue,
+			...newValue
+		}));
+	},
+	reset: () => mockPageWritable.set(initialPageState)
 };
+
