@@ -149,39 +149,39 @@ describe('TransactionModal Component', () => {
 			const link = screen.getByText('View transaction on block explorer');
 			expect(link).toHaveAttribute('href', 'https://www.google.com');
 		});
+	});
+	it('should dispatch success event when transaction succeeds', async () => {
+		const successMessage = 'Transaction succeeded';
 
-		it('should dispatch success event when transaction succeeds', async () => {
-			const successMessage = 'Transaction succeeded';
-
-			mockTransactionStore.mockSetSubscribeValue({
-				status: TransactionStatus.SUCCESS,
-				message: successMessage,
-				hash: '0xMockTransactionHash'
-			});
-
-			render(TransactionModal, { props: { open: true, messages } });
-
-			await waitFor(() => {
-				expect(mockDispatch).toHaveBeenCalledWith('success');
-			});
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.SUCCESS,
+			message: successMessage,
+			hash: '0xMockTransactionHash'
 		});
-		it('should display View Order button when newOrderHash and network are provided', async () => {
-			mockTransactionStore.mockSetSubscribeValue({
-				status: TransactionStatus.SUCCESS,
-				newOrderHash: '0xMockOrderHash',
-				network: 'testnet'
-			});
 
-			render(TransactionModal, { props: { open: true, messages } });
+		render(TransactionModal, { props: { open: true, messages } });
 
-			await waitFor(() => {
-				const viewOrderButton = screen.getByText('View Order');
-				expect(viewOrderButton).toBeInTheDocument();
-				expect(viewOrderButton.closest('a')).toHaveAttribute(
-					'href',
-					'/orders/testnet-0xMockOrderHash'
-				);
-			});
+		await waitFor(() => {
+			expect(mockDispatch).toHaveBeenCalledWith('success');
+		});
+	});
+
+	it('should display View Order button when newOrderHash and network are provided', async () => {
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatus.SUCCESS,
+			newOrderHash: '0xMockOrderHash',
+			network: 'testnet'
+		});
+
+		render(TransactionModal, { props: { open: true, messages } });
+
+		await waitFor(() => {
+			const viewOrderButton = screen.getByText('View Order');
+			expect(viewOrderButton).toBeInTheDocument();
+			expect(viewOrderButton.closest('a')).toHaveAttribute(
+				'href',
+				'/orders/testnet-0xMockOrderHash'
+			);
 		});
 	});
 });
