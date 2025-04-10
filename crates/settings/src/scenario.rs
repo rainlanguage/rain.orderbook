@@ -136,8 +136,6 @@ impl ScenarioCfg {
             None
         };
 
-        println!("blocks: {:?}", blocks);
-
         let mut current_deployer: Option<DeployerCfg> = None;
 
         if let Ok(dep) = deployers
@@ -653,7 +651,6 @@ mod tests {
 
         // Perform the conversion
         let config_result = Config::try_from(config_string);
-        println!("{:?}", config_result);
         assert!(config_result.is_ok());
 
         let config = config_result.unwrap();
@@ -711,8 +708,6 @@ mod tests {
             &parent_scenario,
             &HashMap::new(), // Empty deployers for simplification
         );
-
-        println!("{:?}", result);
 
         assert!(result.is_err());
         match result.err().unwrap() {
