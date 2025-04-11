@@ -117,7 +117,6 @@ const mockOrder: SgOrder = {
 	expression: '0x123456' // Your existing field
 } as unknown as SgOrder;
 
-
 const mockMatchesAccount = vi.fn();
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;

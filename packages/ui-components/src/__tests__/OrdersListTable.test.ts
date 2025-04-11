@@ -8,11 +8,11 @@ import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-vi.mock("../lib/components/ListViewOrderbookFilters.svelte", async () => {
-    const MockComponent = (await import("../lib/__mocks__/MockComponent.svelte")).default
-    return {
-        default: MockComponent
-    }
+vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
+	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		default: MockComponent
+	};
 });
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -93,14 +93,13 @@ const defaultProps: OrdersListTableProps = {
 const mockMatchesAccount = vi.fn();
 
 describe('OrdersListTable', () => {
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        (useAccount as Mock).mockReturnValue({
-            account: mockAccountStore,
-            matchesAccount: mockMatchesAccount
-        })
-    })
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(useAccount as Mock).mockReturnValue({
+			account: mockAccountStore,
+			matchesAccount: mockMatchesAccount
+		});
+	});
 
 	it('displays order information correctly', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -117,7 +116,7 @@ describe('OrdersListTable', () => {
 			}
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
-		
+
 		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('mock-subgraph-mainnet');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
 		expect(screen.getByTestId('orderListRowInputs')).toHaveTextContent('ETH');
@@ -141,7 +140,7 @@ describe('OrdersListTable', () => {
 				return { unsubscribe: () => {} };
 			}
 		})) as Mock;
-		
+
 		render(OrdersListTable, {
 			...defaultProps,
 			handleOrderRemoveModal: vi.fn()
@@ -173,7 +172,7 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 
 		const handleOrderRemoveModal = vi.fn();
-		
+
 		render(OrdersListTable, {
 			...defaultProps,
 			handleOrderRemoveModal
@@ -211,7 +210,7 @@ describe('OrdersListTable', () => {
 			}
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
-		
+
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Inactive');
 	});
 
@@ -237,15 +236,17 @@ describe('OrdersListTable', () => {
 				return { unsubscribe: () => {} };
 			}
 		})) as Mock;
-		
+
 		const handleOrderRemoveModal = vi.fn();
-		
+
 		render(OrdersListTable, {
 			...defaultProps,
 			handleOrderRemoveModal
 		} as OrdersListTableProps);
 
-		expect(screen.queryByTestId(`order-menu-${mockOrderWithSubgraph.order.id}`)).not.toBeInTheDocument();
+		expect(
+			screen.queryByTestId(`order-menu-${mockOrderWithSubgraph.order.id}`)
+		).not.toBeInTheDocument();
 	});
 
 	it('displays empty state when no orders are found', async () => {
@@ -271,7 +272,7 @@ describe('OrdersListTable', () => {
 		vi.mock('$app/navigation', () => ({
 			goto: vi.fn()
 		}));
-		
+
 		const gotoMock = await import('$app/navigation');
 		mockMatchesAccount.mockReturnValue(true);
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -287,16 +288,16 @@ describe('OrdersListTable', () => {
 				return { unsubscribe: () => {} };
 			}
 		})) as Mock;
-		
+
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
-		
+
 		// Simulate row click
 		const event = new CustomEvent('clickRow', {
 			detail: {
 				item: mockOrderWithSubgraph
 			}
 		});
-		
+
 		// Find the AppTable component and dispatch the event
 		const appTable = document.querySelector('div[role="table"]');
 		if (appTable) {
@@ -309,7 +310,7 @@ describe('OrdersListTable', () => {
 
 	it('handles large number of trades display', async () => {
 		mockMatchesAccount.mockReturnValue(true);
-		
+
 		const orderWithManyTrades = {
 			...mockOrderWithSubgraph,
 			order: {
@@ -319,7 +320,7 @@ describe('OrdersListTable', () => {
 				})
 			}
 		};
-		
+
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
@@ -333,7 +334,7 @@ describe('OrdersListTable', () => {
 				return { unsubscribe: () => {} };
 			}
 		})) as Mock;
-		
+
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('>99');
 	});

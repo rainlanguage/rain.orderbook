@@ -8,10 +8,9 @@ import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-
-vi.mock("$lib/providers/wallet/useAccount", () => ({
-    useAccount: vi.fn()
-}))
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
 
 const mockMatchesAccount = vi.fn();
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
@@ -90,8 +89,8 @@ describe('VaultsListTable', () => {
 		(useAccount as Mock).mockReturnValue({
 			matchesAccount: mockMatchesAccount,
 			account: mockAccountStore
-		})
-	})
+		});
+	});
 	it('displays vault information correctly', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
