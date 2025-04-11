@@ -126,6 +126,7 @@ export { default as logoDark } from './assets/logo-dark.svg';
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
