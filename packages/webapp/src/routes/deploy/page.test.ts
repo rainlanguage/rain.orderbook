@@ -4,11 +4,20 @@ import Page from './+page.svelte';
 import { readable } from 'svelte/store';
 import {
 	useRegistry,
-	fetchRegistryDotrains,
-	validateStrategies,
 	type ValidStrategyDetail,
 	type InvalidStrategyDetail
 } from '@rainlanguage/ui-components';
+
+const { mockPageStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
+
+vi.mock('$app/stores', async (importOriginal) => {
+	return {
+		...((await importOriginal()) as object),
+		page: mockPageStore
+	};
+});
 
 const mockValidStrategy1: ValidStrategyDetail = {
 	details: {
@@ -41,9 +50,7 @@ const mockInvalidStrategy1: InvalidStrategyDetail = {
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
 		...((await importOriginal()) as object),
-		useRegistry: vi.fn(),
-		validateStrategies: vi.fn(),
-		fetchRegistryDotrains: vi.fn()
+		useRegistry: vi.fn()
 	};
 });
 
@@ -71,11 +78,15 @@ describe('Page Component', () => {
 			})
 		);
 		mockIsCustomRegistry.mockReturnValue(true);
+		mockPageStore.reset();
 	});
 
 	it('should display error message when fetching strategies fails', async () => {
-		const errorMessage = 'Failed to fetch registry dotrains';
-		(fetchRegistryDotrains as Mock).mockRejectedValue(new Error(errorMessage));
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				error: 'Failed to fetch registry dotrains'
+			}
+		});
 
 		render(Page, {
 			context: new Map([['$$_registry', mockRegistry]])
@@ -83,14 +94,16 @@ describe('Page Component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
-			expect(screen.getByText('Error: ' + errorMessage)).toBeInTheDocument();
+			expect(screen.getByText('Error: Failed to fetch registry dotrains')).toBeInTheDocument();
 		});
 	});
 
 	it('should display error message when validating strategies fails', async () => {
-		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
-		const errorMessage = 'Failed to validate strategies';
-		(validateStrategies as Mock).mockRejectedValue(new Error(errorMessage));
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				error: 'Failed to validate strategies'
+			}
+		});
 
 		render(Page, {
 			context: new Map([['$$_registry', mockRegistry]])
@@ -98,15 +111,17 @@ describe('Page Component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
-			expect(screen.getByText('Error: ' + errorMessage)).toBeInTheDocument();
+			expect(screen.getByText('Error: Failed to validate strategies')).toBeInTheDocument();
 		});
 	});
 
 	it('should display no strategies found when no strategies are available', async () => {
-		(fetchRegistryDotrains as Mock).mockResolvedValue([]);
-		(validateStrategies as Mock).mockResolvedValue({
-			validStrategies: [],
-			invalidStrategies: []
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+        error: null,
+				validStrategies: [],
+				invalidStrategies: []
+			}
 		});
 
 		render(Page, {
@@ -119,10 +134,11 @@ describe('Page Component', () => {
 	});
 
 	it('should display valid strategies when they are available', async () => {
-		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
-		(validateStrategies as Mock).mockResolvedValue({
-			validStrategies: mockValidated.validStrategies,
-			invalidStrategies: []
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				validStrategies: mockValidated.validStrategies,
+				invalidStrategies: []
+			}
 		});
 
 		render(Page, {
@@ -135,10 +151,15 @@ describe('Page Component', () => {
 	});
 
 	it('should display invalid strategies when they are available', async () => {
-		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
-		vi.mocked(validateStrategies).mockResolvedValue({
-			validStrategies: [],
-			invalidStrategies: mockValidated.invalidStrategies
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				validStrategies: [],
+				invalidStrategies: mockValidated.invalidStrategies
+			}
+		});
+
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
 		});
 
 		render(Page, {
@@ -151,8 +172,12 @@ describe('Page Component', () => {
 	});
 
 	it('should display valid and invalid strategies when both are available', async () => {
-		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
-		(validateStrategies as Mock).mockResolvedValue(mockValidated);
+		mockPageStore.mockSetSubscribeValue({
+			data: {
+				validStrategies: mockValidated.validStrategies,
+				invalidStrategies: mockValidated.invalidStrategies
+			}
+		});
 
 		render(Page, {
 			context: new Map([['$$_registry', mockRegistry]])
