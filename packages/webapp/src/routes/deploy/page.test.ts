@@ -7,10 +7,8 @@ import {
 	fetchRegistryDotrains,
 	validateStrategies,
 	type ValidStrategyDetail,
-	type InvalidStrategyDetail,
+	type InvalidStrategyDetail
 } from '@rainlanguage/ui-components';
-
-
 
 const mockValidStrategy1: ValidStrategyDetail = {
 	details: {
@@ -22,7 +20,8 @@ const mockValidStrategy1: ValidStrategyDetail = {
 	dotrain: ';;'
 };
 
-const mockRegistry = vi.fn()
+const mockRegistry = vi.fn();
+const mockIsCustomRegistry = vi.fn();
 
 const mockValidStrategy2: ValidStrategyDetail = {
 	details: {
@@ -40,8 +39,6 @@ const mockInvalidStrategy1: InvalidStrategyDetail = {
 };
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-  	const MockComponent = (await import('../../lib/__mocks__/MockComponent.svelte')).default;
-
 	return {
 		...((await importOriginal()) as object),
 		useRegistry: vi.fn(),
@@ -69,9 +66,11 @@ describe('Page Component', () => {
 		(useRegistry as Mock).mockReturnValue(
 			readable({
 				getCurrentRegistry: mockGetCurrentRegistry,
+				isCustomRegistry: mockIsCustomRegistry,
 				subscribe: vi.fn()
 			})
 		);
+		mockIsCustomRegistry.mockReturnValue(true);
 	});
 
 	it('should display error message when fetching strategies fails', async () => {
@@ -83,7 +82,7 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText(/Error loading registry:/i)).toBeInTheDocument();
+			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
 			expect(screen.getByText('Error: ' + errorMessage)).toBeInTheDocument();
 		});
 	});
@@ -98,7 +97,7 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText(/Error loading registry:/i)).toBeInTheDocument();
+			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
 			expect(screen.getByText('Error: ' + errorMessage)).toBeInTheDocument();
 		});
 	});
