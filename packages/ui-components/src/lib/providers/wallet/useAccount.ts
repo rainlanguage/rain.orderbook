@@ -21,6 +21,7 @@ export function useAccount() {
 	 * Returns false if no account is connected or if the provided address is invalid.
 	 */
 	const matchesAccount = (otherAddress: string): boolean => {
+		if (!otherAddress) return false;
 		const currentAccount = get(account);
 		if (!currentAccount) {
 			return false;
@@ -162,6 +163,17 @@ if (import.meta.vitest) {
 				expect(mockIsAddress).toHaveBeenCalledWith(currentAccount);
 				expect(mockIsAddress).toHaveBeenCalledWith(invalidAddress);
 				expect(mockIsAddressEqual).not.toHaveBeenCalled(); // This should now pass
+				expect(result).toBe(false);
+			});
+			it('should return false if provided address is null', () => {
+				// Setup mocks
+				mockGet.mockReturnValue(currentAccount);
+
+				const { matchesAccount } = useAccount();
+				const result = matchesAccount(null as unknown as string);
+
+				expect(mockIsAddress).not.toHaveBeenCalled();
+				expect(mockIsAddressEqual).not.toHaveBeenCalled();
 				expect(result).toBe(false);
 			});
 		});
