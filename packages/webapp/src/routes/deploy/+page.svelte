@@ -1,19 +1,26 @@
 <script lang="ts">
-	import { ValidStrategiesSection, InvalidStrategiesSection } from '@rainlanguage/ui-components';
-	import type { PageData } from './$types';
+	import {
+		ValidStrategiesSection,
+		InvalidStrategiesSection,
+		useRegistry
+	} from '@rainlanguage/ui-components';
 
-	export let data: PageData;
-	const { error, validStrategies, invalidStrategies } = data;
+	import { fetchRegistryDotrains, validateStrategies } from '@rainlanguage/ui-components/services';
+
+	const registry = useRegistry();
+
+	const getStrategies = async () => {
+		const registryDotrains = await fetchRegistryDotrains($registry.getCurrentRegistry());
+		const strategies = await validateStrategies(registryDotrains);
+		return strategies;
+	};
 </script>
 
 <div class="flex w-full max-w-6xl flex-col gap-y-6">
 	<div class="text-4xl font-semibold text-gray-900 dark:text-white">Strategies</div>
-	{#if error}
-		<div class="flex gap-2 text-lg">
-			Error loading registry:<span class="text-red-500">{error}</span>
-		</div>
-	{:else}
-		<div class="flex flex-col rounded-3xl bg-primary-100 p-12 dark:bg-primary-900">
+
+	{#await getStrategies() then { validStrategies, invalidStrategies }}
+		<div class="bg-primary-100 dark:bg-primary-900 flex flex-col rounded-3xl p-12">
 			<h1 class="text-xl font-semibold text-gray-900 dark:text-white">
 				Raindex empowers you to take full control of your trading strategies. All the strategies
 				here are non-custodial, perpetual, and automated strategies built with our open-source,
@@ -32,5 +39,9 @@
 				<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
 			{/if}
 		{/if}
-	{/if}
+	{:catch error}
+		<div class="flex gap-2 text-lg">
+			Error loading registry:<span class="text-red-500">{error}</span>
+		</div>
+	{/await}
 </div>
