@@ -32,7 +32,7 @@
       $settingsText,
       enabled ? undefined : blockNumber,
     );
-    blockNumber = parseInt(res.blockNumber);
+    blockNumber = parseInt(res.blockNumber) || 0;
     return res;
   };
 
@@ -52,6 +52,14 @@
   const handleRefresh = () => {
     $scenarioDebugQuery.refetch();
   };
+
+  const togglePlayback = () => {
+    enabled = !enabled;
+    if (enabled) {
+      blockNumber = undefined;
+    }
+    handleRefresh();
+  };
 </script>
 
 <div class="flex items-center justify-end">
@@ -67,7 +75,7 @@
           enabled = false;
         }}
         on:blur={({ detail: { value } }) => {
-          blockNumber = parseInt(value);
+          blockNumber = parseInt(value) || 0;
           handleRefresh();
         }}
       />
@@ -79,20 +87,16 @@
       on:click={handleRefresh}
       spin={$scenarioDebugQuery.isFetching}
     />
-    <PauseSolid
-      class={`ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400 ${!enabled ? 'hidden' : ''}`}
-      on:click={() => {
-        enabled = false;
-      }}
-    />
-    <PlaySolid
-      on:click={() => {
-        enabled = true;
-        blockNumber = undefined;
-        handleRefresh();
-      }}
-      class={`ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400 ${enabled ? 'hidden' : ''}`}
-    />
+    <button
+      class="ml-2 h-8 w-3 cursor-pointer text-gray-400 dark:text-gray-400"
+      on:click={togglePlayback}
+    >
+      {#if enabled}
+        <PauseSolid />
+      {:else}
+        <PlaySolid />
+      {/if}
+    </button>
   </div>
 </div>
 
@@ -119,7 +123,7 @@
               {@const fuzzResult = item.result}
               {@const data = transformData(fuzzResult)[0]}
               {@const dataEntries = Object.entries(data)}
-              {#if dataEntries.length === 1}
+              {#if dataEntries.length < 2}
                 <TableBodyCell colspan="2" class="text-red-500"
                   >Missing stack data for max output and ratio</TableBodyCell
                 >
