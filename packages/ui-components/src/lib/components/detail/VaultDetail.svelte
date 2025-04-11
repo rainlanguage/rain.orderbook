@@ -20,7 +20,6 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
-	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
 	export let id: string;
 	export let network: string;
@@ -43,7 +42,7 @@
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
+	const { matchesAccount } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -82,7 +81,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $account && accountIsOwner($account, data.owner)}
+			{#if matchesAccount(data.owner)}
 				<Button
 					color="light"
 					size="xs"
