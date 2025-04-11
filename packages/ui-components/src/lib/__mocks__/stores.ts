@@ -23,7 +23,7 @@ export const initialRegistry: Partial<RegistryManager> = {
 		mockCurrentRegistry = mockDefaultRegistry;
 	}),
 	updateUrlWithRegistry: vi.fn(),
-	isCustomRegistry: vi.fn(() => mockCurrentRegistry !== mockDefaultRegistry),
+	isCustomRegistry: vi.fn(() => mockCurrentRegistry !== mockDefaultRegistry)
 };
 
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
