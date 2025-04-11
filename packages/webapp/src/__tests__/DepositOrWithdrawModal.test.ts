@@ -6,7 +6,8 @@ import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
-import { get, readable } from 'svelte/store';
+import { readable } from 'svelte/store';
+import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -65,7 +66,8 @@ describe('DepositOrWithdrawModal', () => {
 		vi.clearAllMocks();
 		transactionStore.reset();
 		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0x')
+			account: readable('0x'),
+			matchesAccount: vi.fn()
 		});
 		(readContract as Mock).mockReset();
 		(switchChain as Mock).mockReset();
@@ -99,13 +101,11 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
-		const wagmiConfig = get(mockWagmiConfigStore);
-
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: { to: '0x789', data: '0xabc' },
 			transactionCalldata: { to: '0x123', data: '0x456' }
@@ -127,10 +127,9 @@ describe('DepositOrWithdrawModal', () => {
 
 		const withdrawButton = screen.getByText('Withdraw');
 		await fireEvent.click(withdrawButton);
-		const wagmiConfig = get(mockWagmiConfigStore);
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			transactionCalldata: { to: '0xdef', data: '0xghi' },
 			action: 'withdraw',
 			chainId: 1,
@@ -239,12 +238,12 @@ describe('DepositOrWithdrawModal', () => {
 
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
-		const wagmiConfig = get(mockWagmiConfigStore);
+
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
 			transactionCalldata: { to: '0x123', data: '0x456' }

@@ -8,7 +8,7 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault, type SgVault } from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits, isAddress, isAddressEqual } from 'viem';
+	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -42,7 +42,7 @@
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
+	const { matchesAccount } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -81,7 +81,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
+			{#if matchesAccount(data.owner)}
 				<Button
 					color="light"
 					size="xs"

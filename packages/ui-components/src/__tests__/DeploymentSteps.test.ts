@@ -119,7 +119,8 @@ describe('DeploymentSteps', () => {
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
 		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0x123')
+			account: readable('0x123'),
+			matchesAccount: vi.fn()
 		});
 	});
 
@@ -442,7 +443,8 @@ describe('DeploymentSteps', () => {
 	});
 	it('passes correct arguments to handleDeployment', async () => {
 		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0xTestAccount')
+			account: readable('0xTestAccount'),
+			matchesAccount: vi.fn()
 		});
 
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });

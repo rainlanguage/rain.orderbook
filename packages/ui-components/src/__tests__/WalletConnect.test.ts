@@ -29,7 +29,8 @@ describe('WalletConnect component', () => {
 
 	it('displays "Connect" with red icon when wallet is not connected or wrong network', () => {
 		vi.mocked(useAccount).mockReturnValue({
-			account: writable(null)
+			account: writable(null),
+			matchesAccount: vi.fn()
 		});
 		mockConnectedStore.mockSetSubscribeValue(false);
 
@@ -41,7 +42,8 @@ describe('WalletConnect component', () => {
 
 	it('displays truncated address when wallet is connected', () => {
 		vi.mocked(useAccount).mockReturnValue({
-			account: writable('0x123')
+			account: writable('0x123'),
+			matchesAccount: vi.fn()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
 
