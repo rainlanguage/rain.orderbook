@@ -13,7 +13,7 @@ const mockInvalidateTanstackQueries = vi.fn();
 
 vi.mock('$lib/queries/queryClient', () => ({
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	invalidateTanstackQueries: (queryClient: any, queryKey: string) =>
+	invalidateTanstackQueries: (queryClient: any, queryKey: string[]) =>
 		mockInvalidateTanstackQueries(queryClient, queryKey)
 }));
 
