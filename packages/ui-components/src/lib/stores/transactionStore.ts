@@ -38,7 +38,7 @@ export enum TransactionStatus {
 export enum TransactionErrorMessage {
 	BAD_CALLLDATA = 'Bad calldata.',
 	DEPLOY_FAILED = 'Lock transaction failed.',
-	TIMEOUT = 'Transaction timed out.',
+	TIMEOUT = 'The subgraph took too long to respond. Please check the transaction link.',
 	APPROVAL_FAILED = 'Approval transaction failed.',
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
@@ -154,20 +154,24 @@ const transactionStore = () => {
 			message: 'Waiting for new order to be indexed...'
 		}));
 
+		const returnError = () => {
+			clearInterval(interval);
+			return transactionError(TransactionErrorMessage.TIMEOUT);
+		};
+
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
-			if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (addOrders?.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+			try {
+				const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
+				if (attempts >= 10) {
+					return returnError();
+				} else if (addOrders?.length > 0) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+				}
+			} catch {
+				return returnError();
 			}
 		}, 1000);
 	};
