@@ -1,5 +1,28 @@
 # rain.orderbook
 
+Rain Orderbook (also known as Raindex) is an open source, permissionless orderbook system with no fees or admin keys.
+
+## Repository Structure
+
+This repository contains several components:
+
+- **Solidity Contracts**: The core smart contracts for the Rain Orderbook (`src`)
+- **Rust Crates**: Various tooling and libraries for interacting with the Rain Orderbook (`crates/*`)
+- **JavaScript Packages (`packages/*`)**:
+  - `webapp`: A SvelteKit site for Raindex
+  - `ui-components`: A shared component library used in both the webapp and Tauri app
+  - `orderbook`: A TypeScript package (published to npm) that provides bindings to the Rust crates
+- **Tauri App**: A cross-platform desktop application built with Tauri framework (`tauri-app`)
+
+### Architecture
+
+We use wasm-bindgen to create the `orderbook` package from our Rust crates, which is then used by:
+- The UI components library
+- The webapp
+- The Tauri app
+
+This same package is [published to npm](https://www.npmjs.com/package/@rainlanguage/orderbook), allowing developers to more easily create their own frontends for Raindex.
+
 ## Setup for local development
 
 ### Environment Setup
@@ -11,7 +34,6 @@ Then run the following to install dependencies and build the project:
 ```bash
 ./prep-all.sh
 ```
-
 You may need to make the shell script executable:
 ```bash
 chmod +x prep-all.sh
