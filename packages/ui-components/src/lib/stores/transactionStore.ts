@@ -115,6 +115,11 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
+	const returnError = (interval: NodeJS.Timeout) => {
+		clearInterval(interval);
+		return transactionError(TransactionErrorMessage.TIMEOUT);
+	};
+
 	const awaitTransactionIndexing = async (
 		subgraphUrl: string,
 		txHash: string,
@@ -132,17 +137,20 @@ const transactionStore = () => {
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
 
-			newTx = await getTransaction(subgraphUrl, txHash);
-			if (newTx) {
-				clearInterval(interval);
-				transactionSuccess(txHash, successMessage);
-			} else if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
+			try {
+				newTx = await getTransaction(subgraphUrl, txHash);
+				if (newTx) {
+					clearInterval(interval);
+					transactionSuccess(txHash, successMessage);
+				} else if (attempts >= 10) {
+					update((state) => ({
+						...state,
+						message: 'The subgraph took too long to respond. Please check again later.'
+					}));
+					return returnError(interval);
+				}
+			} catch {
+				return returnError(interval);
 			}
 		}, 1000);
 	};
@@ -154,24 +162,19 @@ const transactionStore = () => {
 			message: 'Waiting for new order to be indexed...'
 		}));
 
-		const returnError = () => {
-			clearInterval(interval);
-			return transactionError(TransactionErrorMessage.TIMEOUT);
-		};
-
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
 			try {
 				const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
 				if (attempts >= 10) {
-					return returnError();
+					return returnError(interval);
 				} else if (addOrders?.length > 0) {
 					clearInterval(interval);
 					return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
 				}
 			} catch {
-				return returnError();
+				return returnError(interval);
 			}
 		}, 1000);
 	};
@@ -186,17 +189,20 @@ const transactionStore = () => {
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
-			if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (removeOrders?.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash, 'Order removed successfully');
+			try {
+				const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
+				if (attempts >= 10) {
+					update((state) => ({
+						...state,
+						message: 'The subgraph took too long to respond. Please check again later.'
+					}));
+					return returnError(interval);
+				} else if (removeOrders?.length > 0) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, 'Order removed successfully');
+				}
+			} catch {
+				return returnError(interval);
 			}
 		}, 1000);
 	};
