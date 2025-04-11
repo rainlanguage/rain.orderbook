@@ -1,12 +1,20 @@
 import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
-import { beforeEach, expect, test, describe } from 'vitest';
+import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
 import type { ConfigSource } from '@rainlanguage/orderbook';
-import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
 import type { ComponentProps } from 'svelte';
 
-// Get the props type from the component
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+  useAccount: () => ({
+    account: writable(null)
+  })
+}));
+
+vi.mock('@tanstack/svelte-query', () => ({
+  createInfiniteQuery: vi.fn()
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
@@ -25,9 +33,14 @@ describe('ListViewOrderbookFilters', () => {
 		}
 	});
 
-	const { query } = createResolvableInfiniteQuery((pageParam) => {
-		return ['page' + pageParam];
-	});
+	const mockQuery = {
+		data: { pages: [['page1']] },
+		fetchNextPage: vi.fn(),
+		hasNextPage: false,
+		isFetchingNextPage: false,
+		status: 'success',
+		refetch: vi.fn()
+	};
 
 	const defaultProps = {
 		settings: mockSettings,
@@ -39,12 +52,10 @@ describe('ListViewOrderbookFilters', () => {
 		orderHash: writable(''),
 		isVaultsPage: false,
 		isOrdersPage: false,
-		query,
 		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
-		// Reset settings to default state before each test
 		mockSettings.set({
 			networks: {
 				ethereum: {
