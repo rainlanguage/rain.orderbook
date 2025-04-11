@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Modal } from 'flowbite-svelte';
   import EvalResultsTable from '../debug/EvalResultsTable.svelte';
-  import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
+  import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
   export let open: boolean;
   export let pair: string;
   export let data: RainEvalResultsTable;

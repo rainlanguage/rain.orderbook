@@ -33,7 +33,6 @@
       enabled ? undefined : blockNumber,
     );
     blockNumber = parseInt(res.blockNumber);
-    console.log(res);
     return res;
   };
 
