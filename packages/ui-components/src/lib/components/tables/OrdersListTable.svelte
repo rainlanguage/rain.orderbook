@@ -23,10 +23,9 @@
 		TableHeadCell
 	} from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export const handleOrderRemoveModal: any = undefined;
+	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
@@ -41,7 +40,9 @@
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
-	const { account } = useAccount();
+	const { matchesAccount, account } = useAccount();
+
+	$: console.log('MODAL', handleOrderRemoveModal);
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -169,7 +170,7 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 		>
-		{#if $account && accountIsOwner($account, item.order.owner) && handleOrderRemoveModal}
+		{#if matchesAccount(item.order.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
 					{#if item.order.active}
