@@ -7,7 +7,8 @@ import type { ComponentProps } from 'svelte';
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: () => ({
-		account: writable(null)
+		account: writable(null),
+		matchesAccount: vi.fn()
 	})
 }));
 
