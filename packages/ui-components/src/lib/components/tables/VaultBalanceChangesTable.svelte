@@ -40,7 +40,7 @@
 
 <AppTable
 	query={balanceChangesQuery}
-	queryKey={undefined}
+	queryKey={id}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
 >

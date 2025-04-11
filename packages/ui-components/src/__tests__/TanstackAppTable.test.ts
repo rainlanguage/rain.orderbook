@@ -9,11 +9,12 @@ vi.mock('@tanstack/svelte-query', () => ({
 	useQueryClient: () => ({})
 }));
 
-const mockInvalidateIdQuery = vi.fn();
+const mockInvalidateTanstackQueries = vi.fn();
+
 vi.mock('$lib/queries/queryClient', () => ({
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	invalidateIdQuery: (queryClient: any, queryKey: string) =>
-		mockInvalidateIdQuery(queryClient, queryKey)
+	invalidateTanstackQueries: (queryClient: any, queryKey: string[]) =>
+		mockInvalidateTanstackQueries(queryClient, queryKey)
 }));
 
 // Helper function to create base pages
@@ -149,7 +150,7 @@ test('shows refresh icon', async () => {
 	await waitFor(() => expect(screen.getByTestId('refreshButton')).toBeInTheDocument());
 });
 
-test('refetches data when refresh button is clicked', async () => {
+test('invalidates queries when refresh button is clicked', async () => {
 	const mockRefetch = vi.fn();
 	const mockQuery = createMockQuery(createPages(), {
 		status: 'success',
@@ -163,6 +164,5 @@ test('refetches data when refresh button is clicked', async () => {
 	const refreshButton = screen.getByTestId('refreshButton');
 	await userEvent.click(refreshButton);
 
-	expect(mockRefetch).toHaveBeenCalled();
-	expect(mockInvalidateIdQuery).toHaveBeenCalledWith(expect.anything(), 'test');
+	expect(mockInvalidateTanstackQueries).toHaveBeenCalledWith(expect.anything(), ['test']);
 });

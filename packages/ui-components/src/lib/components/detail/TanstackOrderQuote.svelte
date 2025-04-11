@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
@@ -39,7 +39,7 @@
 	const queryClient = useQueryClient();
 
 	const refreshQuotes = async () => {
-		await invalidateIdQuery(queryClient, id);
+		invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({

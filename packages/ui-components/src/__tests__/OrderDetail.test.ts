@@ -7,9 +7,8 @@ import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { ComponentProps } from 'svelte';
-
+import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -22,7 +21,7 @@ vi.mock('@rainlanguage/orderbook', () => ({
 
 // Mock the query client functions
 vi.mock('$lib/queries/queryClient', () => ({
-	invalidateIdQuery: vi.fn()
+	invalidateTanstackQueries: vi.fn()
 }));
 
 vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
@@ -252,7 +251,7 @@ describe('OrderDetail', () => {
 			const refreshButton = await screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 
-			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
+			expect(invalidateTanstackQueries).toHaveBeenCalledWith(queryClient, [orderHash]);
 		});
 	});
 

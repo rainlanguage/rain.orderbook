@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		PageHeader,
-		TransactionStatus,
-		transactionStore,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { invalidateTanstackQueries, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
@@ -44,11 +39,8 @@
 			args: {
 				vault,
 				onDepositOrWithdraw: () => {
-					queryClient.invalidateQueries({
-						queryKey: [$page.params.id],
-						refetchType: 'all',
-						exact: false
-					});
+					invalidateTanstackQueries(queryClient, [$page.params.id]);
+					triggerToast();
 				},
 				action,
 				chainId,
@@ -65,15 +57,6 @@
 
 	function onWithdraw(vault: SgVault) {
 		handleVaultAction(vault, 'withdraw');
-	}
-
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
-		queryClient.invalidateQueries({
-			queryKey: [$page.params.id],
-			refetchType: 'all',
-			exact: false
-		});
-		triggerToast();
 	}
 </script>
 
