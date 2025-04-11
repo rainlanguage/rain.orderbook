@@ -7,8 +7,9 @@ import {
 	fetchRegistryDotrains,
 	validateStrategies,
 	type ValidStrategyDetail,
-	type InvalidStrategyDetail
+	type InvalidStrategyDetail,
 } from '@rainlanguage/ui-components';
+
 
 
 const mockValidStrategy1: ValidStrategyDetail = {
@@ -20,6 +21,8 @@ const mockValidStrategy1: ValidStrategyDetail = {
 	name: 'strategy1.dotrain',
 	dotrain: ';;'
 };
+
+const mockRegistry = vi.fn()
 
 const mockValidStrategy2: ValidStrategyDetail = {
 	details: {
@@ -37,6 +40,8 @@ const mockInvalidStrategy1: InvalidStrategyDetail = {
 };
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+  	const MockComponent = (await import('../../lib/__mocks__/MockComponent.svelte')).default;
+
 	return {
 		...((await importOriginal()) as object),
 		useRegistry: vi.fn(),
@@ -73,7 +78,9 @@ describe('Page Component', () => {
 		const errorMessage = 'Failed to fetch registry dotrains';
 		(fetchRegistryDotrains as Mock).mockRejectedValue(new Error(errorMessage));
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText(/Error loading registry:/i)).toBeInTheDocument();
@@ -86,7 +93,9 @@ describe('Page Component', () => {
 		const errorMessage = 'Failed to validate strategies';
 		(validateStrategies as Mock).mockRejectedValue(new Error(errorMessage));
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText(/Error loading registry:/i)).toBeInTheDocument();
@@ -101,7 +110,9 @@ describe('Page Component', () => {
 			invalidStrategies: []
 		});
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByText('No strategies found')).toBeInTheDocument();
@@ -115,7 +126,9 @@ describe('Page Component', () => {
 			invalidStrategies: []
 		});
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByTestId('valid-strategies')).toBeInTheDocument();
@@ -129,7 +142,9 @@ describe('Page Component', () => {
 			invalidStrategies: mockValidated.invalidStrategies
 		});
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByTestId('invalid-strategies')).toBeInTheDocument();
@@ -140,7 +155,9 @@ describe('Page Component', () => {
 		(fetchRegistryDotrains as Mock).mockResolvedValue(mockDotrains);
 		(validateStrategies as Mock).mockResolvedValue(mockValidated);
 
-		render(Page);
+		render(Page, {
+			context: new Map([['$$_registry', mockRegistry]])
+		});
 
 		await waitFor(() => {
 			expect(screen.getByTestId('valid-strategies')).toBeInTheDocument();
