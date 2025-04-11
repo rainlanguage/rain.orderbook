@@ -6,13 +6,13 @@ import type { ConfigSource } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
-  useAccount: () => ({
-    account: writable(null)
-  })
+	useAccount: () => ({
+		account: writable(null)
+	})
 }));
 
 vi.mock('@tanstack/svelte-query', () => ({
-  createInfiniteQuery: vi.fn()
+	createInfiniteQuery: vi.fn()
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,15 +32,6 @@ describe('ListViewOrderbookFilters', () => {
 			mainnet: 'mainnet-url'
 		}
 	});
-
-	const mockQuery = {
-		data: { pages: [['page1']] },
-		fetchNextPage: vi.fn(),
-		hasNextPage: false,
-		isFetchingNextPage: false,
-		status: 'success',
-		refetch: vi.fn()
-	};
 
 	const defaultProps = {
 		settings: mockSettings,
