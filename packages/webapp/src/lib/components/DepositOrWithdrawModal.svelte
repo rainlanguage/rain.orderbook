@@ -48,8 +48,7 @@
 
 	const messages = {
 		success: 'Transaction successful.',
-		pending: 'Processing your transaction...',
-		error: 'Transaction failed.'
+		pending: 'Processing your transaction...'
 	};
 
 	$: if (action === 'deposit') {
