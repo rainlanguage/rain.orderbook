@@ -1,4 +1,4 @@
-import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { ConfigSource } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 
 export const mockConfigSource: ConfigSource = {

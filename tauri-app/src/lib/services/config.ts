@@ -1,5 +1,5 @@
 import { settingsText } from '$lib/stores/settings';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { Config, ConfigSource } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { get } from 'svelte/store';
 

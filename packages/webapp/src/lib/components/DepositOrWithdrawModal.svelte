@@ -12,7 +12,7 @@
 		type WithdrawCalldataResult,
 		type ApprovalCalldata,
 		getVaultWithdrawCalldata
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
@@ -48,11 +48,10 @@
 
 	const messages = {
 		success: 'Transaction successful.',
-		pending: 'Processing your transaction...',
-		error: 'Transaction failed.'
+		pending: 'Processing your transaction...'
 	};
 
-	$: if ($account && action === 'deposit') {
+	$: if (action === 'deposit') {
 		getUserBalance();
 	}
 
@@ -67,7 +66,7 @@
 			abi: erc20Abi,
 			address: vault.token.address as Hex,
 			functionName: 'balanceOf',
-			args: [$account as Hex]
+			args: [account as Hex]
 		});
 	};
 
@@ -141,7 +140,7 @@
 			<div class="flex flex-col justify-end gap-2">
 				<div class="flex gap-2">
 					<Button color="alternative" on:click={handleClose}>Cancel</Button>
-					{#if $account}
+					{#if account}
 						<div class="flex flex-col gap-2">
 							<Button
 								color="blue"

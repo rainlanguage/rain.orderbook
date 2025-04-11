@@ -9,12 +9,12 @@ import type {
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
 import type { DeploymentArgs } from '$lib/types/transaction';
 
@@ -99,7 +99,7 @@ export type TransactionStore = {
 	transactionError: (message: TransactionErrorMessage, hash?: string) => void;
 };
 
-const initialState: TransactionState = {
+export const initialState: TransactionState = {
 	status: TransactionStatus.IDLE,
 	error: '',
 	hash: '',
@@ -192,7 +192,7 @@ const transactionStore = () => {
 				return transactionError(TransactionErrorMessage.TIMEOUT);
 			} else if (removeOrders?.length > 0) {
 				clearInterval(interval);
-				return transactionSuccess(txHash);
+				return transactionSuccess(txHash, 'Order removed successfully');
 			}
 		}, 1000);
 	};
@@ -244,11 +244,11 @@ const transactionStore = () => {
 			network: network || ''
 		}));
 	};
-	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
+	const transactionError = (error: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
 			status: TransactionStatus.ERROR,
-			error: message,
+			error: error,
 			hash: hash || ''
 		}));
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChartData } from '@rainlanguage/orderbook/js_api';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
   import {
     Table,
