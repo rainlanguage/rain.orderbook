@@ -1,6 +1,7 @@
 import { RegistryManager } from '../providers/registry/RegistryManager';
 import { fetchRegistryDotrains } from './registry';
 import type { Mock } from 'vitest';
+import { initialRegistry } from '../__mocks__/stores';
 
 export async function loadRegistryUrl(url: string, registryManager: RegistryManager): Promise<void> {
   if (!url) {
@@ -25,7 +26,7 @@ if (import.meta.vitest) {
   const { describe, it, expect, vi, beforeEach } = import.meta.vitest;
 
   // Mock dependencies
-  vi.mock('@rainlanguage/ui-components/services', () => ({
+  vi.mock('./registry', () => ({
     fetchRegistryDotrains: vi.fn()
   }));
 
@@ -40,34 +41,22 @@ if (import.meta.vitest) {
     });
 
     it('should throw an error if no URL is provided', async () => {
-      const mockRegistryManager = {
-        setRegistry: vi.fn()
-      } as unknown as RegistryManager;
-      
+      const mockRegistryManager = initialRegistry as RegistryManager;
       await expect(loadRegistryUrl('', mockRegistryManager)).rejects.toThrow('No URL provided');
     });
 
     it('should throw an error if no registry manager is provided', async () => {
-      await expect(loadRegistryUrl('https://example.com/registry', {} as RegistryManager)).rejects.toThrow('Registry manager is required');
+      await expect(loadRegistryUrl('https://example.com/registry', null as unknown as RegistryManager)).rejects.toThrow('Registry manager is required');
     });
 
     it('should successfully load registry URL and reload the page', async () => {
       const testUrl = 'https://example.com/registry';
-      const mockRegistryManager = {
-        setRegistry: vi.fn()
-      } as unknown as RegistryManager;
+      const mockRegistryManager = initialRegistry as RegistryManager;
 
       (fetchRegistryDotrains as Mock).mockResolvedValueOnce(undefined);
-
       await loadRegistryUrl(testUrl, mockRegistryManager);
-
-      // Verify fetchRegistryDotrains was called with the correct URL
       expect(fetchRegistryDotrains).toHaveBeenCalledWith(testUrl);
-
-      // Verify RegistryManager methods were called
       expect(mockRegistryManager.setRegistry).toHaveBeenCalledWith(testUrl);
-
-      // Verify page reload
       expect(window.location.reload).toHaveBeenCalled();
     });
 
@@ -82,7 +71,6 @@ if (import.meta.vitest) {
 
       await expect(loadRegistryUrl(testUrl, mockRegistryManager)).rejects.toThrow(errorMessage);
 
-      // Verify RegistryManager and reload were not called
       expect(mockRegistryManager.setRegistry).not.toHaveBeenCalled();
       expect(window.location.reload).not.toHaveBeenCalled();
     });
@@ -97,7 +85,6 @@ if (import.meta.vitest) {
 
       await expect(loadRegistryUrl(testUrl, mockRegistryManager)).rejects.toThrow('Failed to update registry URL');
 
-      // Verify RegistryManager and reload were not called
       expect(mockRegistryManager.setRegistry).not.toHaveBeenCalled();
       expect(window.location.reload).not.toHaveBeenCalled();
     });
