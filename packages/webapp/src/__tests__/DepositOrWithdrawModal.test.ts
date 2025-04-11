@@ -4,8 +4,7 @@ import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelt
 import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
-import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
 import { get, readable } from 'svelte/store';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
@@ -33,10 +32,14 @@ vi.mock('../lib/stores/wagmi', () => ({
 	wagmiConfig: mockWagmiConfigStore
 }));
 
-vi.mock('@wagmi/core', () => ({
-	readContract: vi.fn(),
-	switchChain: vi.fn().mockResolvedValue({ id: 1 })
-}));
+vi.mock('@wagmi/core', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		readContract: vi.fn(),
+		switchChain: vi.fn().mockResolvedValue({ id: 1 })
+	};
+});
 
 describe('DepositOrWithdrawModal', () => {
 	const mockVault = {

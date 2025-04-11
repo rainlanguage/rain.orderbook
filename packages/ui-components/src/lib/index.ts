@@ -114,10 +114,7 @@ export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
-export { mockConfigSource } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
-export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
@@ -130,3 +127,9 @@ export { default as WalletProvider } from './providers/wallet/WalletProvider.sve
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+
+// Mocks
+export { mockPageStore } from './__mocks__/stores';
+export { mockConfigSource } from './__mocks__/settings';
+export { mockSettingsStore } from './__mocks__/settings';
+export { mockTransactionStore } from './__mocks__/mockTransactionStore';
