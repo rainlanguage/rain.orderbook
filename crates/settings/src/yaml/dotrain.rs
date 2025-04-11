@@ -129,7 +129,10 @@ impl DotrainYaml {
         let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(charts.keys().cloned().collect())
     }
-
+    pub fn get_charts(&self) -> Result<HashMap<String, ChartCfg>, YamlError> {
+        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(charts)
+    }
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
         ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
