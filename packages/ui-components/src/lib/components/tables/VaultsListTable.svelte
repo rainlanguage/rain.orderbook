@@ -1,6 +1,4 @@
 <script lang="ts" generics="T">
-	import { accountIsOwner } from '$lib/services/accountIsOwner';
-
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -46,7 +44,7 @@
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 
-	const { account } = useAccount();
+	const { account, matchesAccount } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -203,7 +201,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && $account && accountIsOwner($account, item.vault.owner)}
+			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.vault.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
