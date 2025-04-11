@@ -2,18 +2,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, LibDecimalFloat, Float} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderConfigV3, EvaluableV3, TaskV1, SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+    OrderConfigV4,
+    EvaluableV4,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
+    using LibDecimalFloat for Float;
+    using LibFormatDecimalFloat for Float;
 
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -32,8 +38,8 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
     function checkDeposit(
         address owner,
-        uint256 vaultId,
-        uint256 amount,
+        bytes32 vaultId,
+        Float memory amount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
@@ -45,13 +51,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        TaskV1[] memory actions = new TaskV1[](evalStrings.length);
+        TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
             actions[i] =
-                TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
+                TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -60,23 +66,23 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactEmptyNoop(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](0);
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneStateless(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneReadState(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount > 0);
+    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, Float memory amount) external {
+        vm.assume(amount.gt(Float(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         // each get is 2 reads. 1 during eval and 1 during store set.
@@ -85,8 +91,10 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSingle(address alice, uint256 vaultId, uint256 amount) external {
-        amount = bound(amount, 1, type(uint128).max);
+    function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, int256 amount18) external {
+        amount18 = bound(amount18, 1, type(int128).max);
+        Float memory amount = Float(amount18, -18);
+
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":set(1 2);");
         // 1 for the set.
@@ -97,8 +105,10 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSequential(address alice, uint256 vaultId, uint256 amount) external {
-        amount = bound(amount, 1, type(uint128).max);
+    function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, int256 amount18) external {
+        amount18 = bound(amount18, 1, type(int128).max);
+        Float memory amount = Float(amount18, -18);
+
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
@@ -118,11 +128,13 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     function testOrderBookDepositEvalWriteStateDifferentOwnersNamespaced(
         address alice,
         address bob,
-        uint256 vaultId,
-        uint256 amount
+        bytes32 vaultId,
+        int256 amount18
     ) external {
         vm.assume(alice != bob);
-        amount = bound(amount, 1, type(uint128).max);
+        amount18 = bound(amount18, 1, type(int128).max);
+
+        Float memory amount = Float(amount18, -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -150,11 +162,14 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderDepositContext(address alice, uint256 vaultId, uint256 preDepositAmount, uint256 depositAmount)
+    function testOrderDepositContext(address alice, bytes32 vaultId, int256 preDepositAmount18, int256 depositAmount18)
         external
     {
-        preDepositAmount = bound(preDepositAmount, 1, type(uint128).max);
-        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        preDepositAmount18 = bound(preDepositAmount18, 1, type(int128).max);
+        depositAmount18 = bound(depositAmount18, 1, type(int128).max);
+
+        Float memory preDepositAmount = Float(preDepositAmount18, -18);
+        Float memory depositAmount = Float(depositAmount18, -18);
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
@@ -186,7 +201,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-id() ",
-                vaultId.toHexString(),
+                uint256(vaultId).toHexString(),
                 ") \"deposit vaultId is vaultId\");"
             )
         );
@@ -194,7 +209,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-balance() ",
-                preDepositAmount.toString(),
+                preDepositAmount.toDecimalString(),
                 "e-6) \"vault balance is pre deposit\");"
             )
         );
@@ -202,7 +217,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-amount() ",
-                depositAmount.toString(),
+                depositAmount.toDecimalString(),
                 "e-6) \"amount is depositAmount\");"
             )
         );
@@ -213,25 +228,27 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
 
     /// A revert in the action prevents the deposit from being enacted.
     /// forge-config: default.fuzz.runs = 10
-    function testDepositRevertInAction(address alice, uint256 vaultId, uint256 amount) external {
-        vm.assume(amount != 0);
+    function testDepositRevertInAction(address alice, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(amount18 > 0);
         vm.startPrank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), amount18),
             abi.encode(true)
         );
+
+        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
 
-        TaskV1[] memory actions = evalsToActions(evals);
+        TaskV2[] memory actions = evalsToActions(evals);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
 
         vm.expectRevert("revert in action");
-        iOrderbook.deposit2(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
 
-        assertEq(0, iOrderbook.vaultBalance(alice, address(iToken0), vaultId));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
     }
 }
