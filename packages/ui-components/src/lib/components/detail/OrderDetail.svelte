@@ -28,7 +28,6 @@
 		type SgOrder,
 		type SgVault
 	} from '@rainlanguage/orderbook';
-	import { accountIsOwner } from '$lib/services/accountIsOwner';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -59,7 +58,7 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
+	const { matchesAccount } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -94,7 +93,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if $account && accountIsOwner($account, data.order.owner)}
+				{#if matchesAccount(data.order.owner)}
 					{#if data.order.active}
 						<Button
 							on:click={() => onRemove(data.order)}
@@ -152,7 +151,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if $account && accountIsOwner($account, vault.owner)}
+											{#if matchesAccount(vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"
