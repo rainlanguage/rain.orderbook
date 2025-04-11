@@ -8,8 +8,7 @@
 
 	const messages = {
 		success: 'Your strategy was successfully deployed',
-		pending: 'Deploying your strategy...',
-		error: 'Deployment failed'
+		pending: 'Deploying your strategy...'
 	};
 
 	transactionStore.handleDeploymentTransaction({

@@ -3,13 +3,13 @@
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
-		type ConfigSource,
 		type GuiSelectTokensCfg,
 		type TokenInfo,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type OrderIOCfg
+		type OrderIOCfg,
+		OrderbookYaml
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -42,7 +42,6 @@
 	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<ConfigSource>;
 	export let registryUrl: string;
 
 	let allDepositFields: GuiDepositCfg[] = [];
@@ -54,7 +53,9 @@
 	let allTokenInfos: TokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
-	let subgraphUrl: string | undefined = undefined;
+
+	let networkKey: string = '';
+	let subgraphUrl: string = '';
 
 	const { account } = useAccount();
 	const gui = useGui();
@@ -67,12 +68,20 @@
 			throw new Error(selectTokensResult.error.msg);
 		}
 		selectTokens = selectTokensResult.value;
-		const { value, error } = gui.getNetworkKey();
-		if (error) {
-			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
-		} else if (value) {
-			subgraphUrl = $settings?.subgraphs?.[value];
+
+		const dotrainResult = gui.generateDotrainText();
+		if (dotrainResult.error) {
+			throw new Error(dotrainResult.error.msg);
 		}
+
+		const orderbookYaml = new OrderbookYaml([dotrainResult.value]);
+		const orderbook = orderbookYaml.getOrderbookByDeploymentKey(deployment.key);
+		if (orderbook.error) {
+			throw new Error(orderbook.error.msg);
+		}
+		networkKey = orderbook.value.network.key;
+		subgraphUrl = orderbook.value.subgraph.url;
+
 		await areAllTokensSelected();
 	});
 
@@ -217,8 +226,13 @@
 				return;
 			}
 			DeploymentStepsError.clear();
-			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return await onDeploy(deploymentArgs);
+			const deploymentArgs: DeploymentArgs = await handleDeployment(
+				gui,
+				$account,
+				networkKey,
+				subgraphUrl
+			);
+			return onDeploy(deploymentArgs);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

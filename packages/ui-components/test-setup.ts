@@ -71,7 +71,6 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.saveFieldValue = vi.fn();
 	DotrainOrderGui.prototype.getFieldValue = vi.fn();
 	DotrainOrderGui.prototype.getSelectTokens = vi.fn();
-	DotrainOrderGui.prototype.getNetworkKey = vi.fn();
 	DotrainOrderGui.prototype.getAllTokenInfos = vi.fn();
 	DotrainOrderGui.prototype.getAllFieldDefinitions = vi.fn();
 	DotrainOrderGui.prototype.isSelectTokenSet = vi.fn();
@@ -84,7 +83,12 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.serializeState = vi.fn();
 	DotrainOrderGui.prototype.getAllGuiConfig = vi.fn();
 	DotrainOrderGui.prototype.getCurrentDeploymentDetails = vi.fn();
+	DotrainOrderGui.prototype.generateDotrainText = vi.fn();
+
+	const OrderbookYaml = vi.fn();
+	OrderbookYaml.prototype.getOrderbookByDeploymentKey = vi.fn();
 	return {
-		DotrainOrderGui
+		DotrainOrderGui,
+		OrderbookYaml
 	};
 });

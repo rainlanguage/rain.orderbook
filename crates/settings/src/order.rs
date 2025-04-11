@@ -394,6 +394,50 @@ impl OrderCfg {
         )
     }
 
+    pub fn parse_orderbook_key(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+    ) -> Result<String, YamlError> {
+        let mut orderbook_key: Option<String> = None;
+
+        for document in &documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
+                if let Some(order_yaml) =
+                    orders_hash.get(&StrictYaml::String(order_key.to_string()))
+                {
+                    if let Some(key) = optional_string(order_yaml, "orderbook") {
+                        if let Some(ref existing_key) = orderbook_key {
+                            if *existing_key != key {
+                                return Err(YamlError::KeyShadowing(
+                                    key.to_string(),
+                                    "orders".to_string(),
+                                ));
+                            }
+                        } else {
+                            orderbook_key = Some(key);
+                        }
+                    }
+                }
+            } else {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "orders".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
+            }
+        }
+
+        Ok(
+            orderbook_key.ok_or(ParseOrderConfigSourceError::OrderbookKeyNotFoundError(
+                order_key.to_string(),
+            ))?,
+        )
+    }
+
     pub fn parse_vault_ids(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         order_key: &str,
@@ -808,6 +852,8 @@ pub enum ParseOrderConfigSourceError {
     TokenParseError(ParseTokenConfigSourceError),
     #[error("Network not found for Order: {0}")]
     NetworkNotFoundError(String),
+    #[error("Orderbook key not found for order: {0}")]
+    OrderbookKeyNotFoundError(String),
     #[error("Network does not match")]
     NetworkNotMatch,
     #[error("Deployer network does not match: expected {expected}, found {found}")]
@@ -857,6 +903,8 @@ impl ParseOrderConfigSourceError {
                 format!("Network mismatch in your YAML configuration: The output token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
             ParseOrderConfigSourceError::VaultParseError(err) =>
                 format!("The vault ID in your YAML configuration is invalid. Please provide a valid number: {}", err),
+            ParseOrderConfigSourceError::OrderbookKeyNotFoundError(order_key) =>
+                format!("No orderbook key found for order: {order_key}. Please update your order YAML configuration to include an orderbook key."),
         }
     }
 }
@@ -1398,5 +1446,76 @@ orders:
             error.to_readable_msg(),
             "Field 'orders' in root must be a map"
         );
+    }
+
+    #[test]
+    fn test_parse_orderbook_key() {
+        let yaml = r#"
+orders: test
+"#;
+        let error = OrderCfg::parse_orderbook_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
+
+        let yaml = r#"
+orders:
+  - test
+"#;
+        let error = OrderCfg::parse_orderbook_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
+
+        let yaml = r#"
+orders:
+  - test: test
+"#;
+        let error = OrderCfg::parse_orderbook_key(vec![get_document(yaml)], "order1").unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string()
+                },
+                location: "root".to_string()
+            }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'orders' in root must be a map"
+        );
+
+        let yaml = r#"
+orders:
+  order1:
+    orderbook: orderbook1
+"#;
+        let orderbook_key =
+            OrderCfg::parse_orderbook_key(vec![get_document(yaml)], "order1").unwrap();
+        assert_eq!(orderbook_key, "orderbook1");
     }
 }
