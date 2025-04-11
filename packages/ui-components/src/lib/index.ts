@@ -62,8 +62,6 @@ export { default as InputHex } from './components/input/InputHex.svelte';
 export { default as InputTokenAmount } from './components/input/InputTokenAmount.svelte';
 export { default as WalletConnect } from './components/wallet/WalletConnect.svelte';
 export { default as DisclaimerModal } from './components/deployment/DisclaimerModal.svelte';
-export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
-export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 
 //Types
@@ -85,6 +83,8 @@ export type {
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { RegistryStore } from './types/registry';
+export type { RegistryDotrain, RegistryFile } from './services/registry';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -97,6 +97,8 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+export { loadRegistryUrl } from './services/loadRegistryUrl';
+
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
@@ -126,7 +128,17 @@ export { default as logoDark } from './assets/logo-dark.svg';
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+export { useRegistry } from './providers/registry/useRegistry';
+
+// Classes
+export { RegistryManager } from './providers/registry/RegistryManager';
+
+// Services
+export { validateStrategies } from './services/registry';
+export { fetchRegistryDotrains } from './services/registry';
+export { fetchParseRegistry } from './services/registry';

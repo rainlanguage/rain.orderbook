@@ -60,7 +60,6 @@
 			{appKitModal}
 			{onDeploy}
 			{settings}
-			{registryUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}
