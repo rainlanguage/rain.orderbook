@@ -9,7 +9,7 @@ import {
     RainterpreterExpressionDeployer,
     RainterpreterExpressionDeployerConstructionConfigV2
 } from "rain.interpreter/concrete/RainterpreterExpressionDeployer.sol";
-import {LibAllStandardOpsNP} from "rain.interpreter/lib/op/LibAllStandardOpsNP.sol";
+import {LibAllStandardOps} from "rain.interpreter/lib/op/LibAllStandardOps.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV5Stub} from "test/util/abstract/IOrderBookV5Stub.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
