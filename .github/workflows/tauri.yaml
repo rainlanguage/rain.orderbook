@@ -82,10 +82,10 @@ jobs:
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
-      - run: nix develop .#tauri-shell --command tauri-rs-test
-
-      # remove test artifacts to free up space
-      - run: rm -rf tauri-app/src-tauri/target
-
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
+
+      # remove artifacts to free up space
+      - run: rm -rf tauri-app/src-tauri/target
+
+      - run: nix develop .#tauri-shell --command tauri-rs-test

@@ -294,7 +294,7 @@ impl GuiCfg {
     ) -> Result<bool, YamlError> {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-            if let Some(gui) = optional_hash(&document_read, "gui") {
+            if let Some(_) = optional_hash(&document_read, "gui") {
                 return Ok(true);
             }
         }
