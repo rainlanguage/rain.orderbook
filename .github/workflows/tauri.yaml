@@ -85,7 +85,7 @@ jobs:
       - run: nix develop .#tauri-shell --command tauri-rs-test
 
       # remove test artifacts to free up space
-      - run: rm -rf tauri-app/src-tauri/target
+      - run: rm -rf tauri-app/src-tauri/target/debug
 
       - run: nix develop .#tauri-shell --command cargo tauri build --verbose
         working-directory: ./tauri-app
