@@ -99,7 +99,7 @@ export type TransactionStore = {
 	transactionError: (message: TransactionErrorMessage, hash?: string) => void;
 };
 
-const initialState: TransactionState = {
+export const initialState: TransactionState = {
 	status: TransactionStatus.IDLE,
 	error: '',
 	hash: '',
@@ -248,11 +248,11 @@ const transactionStore = () => {
 			network: network || ''
 		}));
 	};
-	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
+	const transactionError = (error: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
 			status: TransactionStatus.ERROR,
-			error: message,
+			error: error,
 			hash: hash || ''
 		}));
 

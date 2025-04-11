@@ -1,29 +1,18 @@
 import { writable } from 'svelte/store';
-import { TransactionStatus, TransactionErrorMessage } from '../stores/transactionStore';
+import {
+	TransactionStatus,
+	initialState,
+	TransactionErrorMessage,
+	type TransactionState,
+	type TransactionStore
+} from '../stores/transactionStore';
 
-type MockTransactionStoreState = {
-	status: TransactionStatus;
-	error: string;
-	hash: string;
-	data: null;
-	functionName: string;
-	message: string;
-};
+const mockTransactionWritable = writable<TransactionState>(initialState);
 
-const initialState: MockTransactionStoreState = {
-	status: TransactionStatus.IDLE,
-	error: '',
-	hash: '',
-	data: null,
-	functionName: '',
-	message: ''
-};
-
-const mockTransactionWritable = writable<MockTransactionStoreState>(initialState);
-
-export const mockTransactionStore = {
+export const mockTransactionStore: Partial<TransactionStore> & {
+	mockSetSubscribeValue: (value: Partial<TransactionState>) => void;
+} = {
 	subscribe: mockTransactionWritable.subscribe,
-	set: mockTransactionWritable.set,
 	reset: () => mockTransactionWritable.set(initialState),
 
 	handleDeploymentTransaction: async () => {
@@ -33,6 +22,27 @@ export const mockTransactionStore = {
 			message: 'Strategy deployed successfully!',
 			hash: '0x123'
 		}));
+		return Promise.resolve();
+	},
+
+	handleDepositOrWithdrawTransaction: async () => {
+		mockTransactionWritable.update((state) => ({
+			...state,
+			status: TransactionStatus.SUCCESS,
+			message: 'Transaction successful!',
+			hash: '0x456'
+		}));
+		return Promise.resolve();
+	},
+
+	handleRemoveOrderTransaction: async () => {
+		mockTransactionWritable.update((state) => ({
+			...state,
+			status: TransactionStatus.SUCCESS,
+			message: 'Order removed successfully',
+			hash: '0x789'
+		}));
+		return Promise.resolve();
 	},
 
 	checkingWalletAllowance: (message: string = '') =>
@@ -54,15 +64,22 @@ export const mockTransactionStore = {
 			...state,
 			hash,
 			status: TransactionStatus.PENDING_APPROVAL,
-			message: ''
+			message: 'Approving token spend...'
 		})),
 
-	transactionSuccess: (hash: string, message: string = '') =>
+	transactionSuccess: (
+		hash: string,
+		message: string = '',
+		newOrderHash: string = '',
+		network: string = ''
+	) =>
 		mockTransactionWritable.update((state) => ({
 			...state,
 			status: TransactionStatus.SUCCESS,
 			hash,
-			message
+			message,
+			newOrderHash,
+			network
 		})),
 
 	transactionError: (error: TransactionErrorMessage, hash: string = '') =>
@@ -73,7 +90,8 @@ export const mockTransactionStore = {
 			hash
 		})),
 
-	mockSetSubscribeValue: (value: Partial<MockTransactionStoreState>) =>
+	// Extra function for testing purposes
+	mockSetSubscribeValue: (value: Partial<TransactionState>) =>
 		mockTransactionWritable.update((state) => ({
 			...state,
 			...value
