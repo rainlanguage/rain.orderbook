@@ -42,8 +42,6 @@
 
 	const { matchesAccount, account } = useAccount();
 
-	$: console.log('MODAL', handleOrderRemoveModal);
-
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
 	).map(([name, url]) => ({
