@@ -93,8 +93,12 @@ jobs:
       - name: Set Version
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
-          npm version prerelease --preid alpha --no-git-tag-version -w @rainlanguage/ui-components -w @rainlanguage/orderbook
-          echo "NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)" >> $GITHUB_ENV
+          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/orderbook
+          NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          jq --arg v "$NEW_VERSION" '.dependencies."@rainlanguage/orderbook" = $v' ./packages/ui-components/package.json > tmp.json && mv tmp.json ./packages/ui-components/package.json
+          npx prettier --write ./packages/ui-components/package.json
+          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
 
       # sometimes the first or second try to update the version fails (npm bug?) so we retry max 5 times to
       # make sure it updates the version successfully before proceeding and bail out if it failed to update
