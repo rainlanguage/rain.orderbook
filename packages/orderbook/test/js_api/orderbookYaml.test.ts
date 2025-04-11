@@ -158,10 +158,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			result = orderbookYaml.getOrderbookByDeploymentKey('test');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
-				"Orderbook yaml error: Missing required field 'test' in deployments"
+				"Orderbook yaml error: Missing required field 'order' in deployment 'test'"
 			);
 			expect(result.error.readableMsg).toBe(
-				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Missing required field \'test\' in deployments"'
+				"There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'order' in deployment 'test'\""
 			);
 		});
 

@@ -281,11 +281,11 @@ mod tests {
         assert_eq!(orderbook.is_err(), true);
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: Missing required field 'deployment3' in deployments"
+            "Orderbook yaml error: Missing required field 'order' in deployment 'deployment3'"
         );
         assert_eq!(
             orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'deployment3' in deployments\""
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Missing required field 'order' in deployment 'deployment3'\""
         );
     }
 
