@@ -2,10 +2,10 @@
 	import {
 		ValidStrategiesSection,
 		InvalidStrategiesSection,
-		useRegistry
+		useRegistry,
+		fetchRegistryDotrains,
+		validateStrategies
 	} from '@rainlanguage/ui-components';
-
-	import { fetchRegistryDotrains, validateStrategies } from '@rainlanguage/ui-components/services';
 
 	const registry = useRegistry();
 
@@ -20,7 +20,7 @@
 	<div class="text-4xl font-semibold text-gray-900 dark:text-white">Strategies</div>
 
 	{#await getStrategies() then { validStrategies, invalidStrategies }}
-		<div class="bg-primary-100 dark:bg-primary-900 flex flex-col rounded-3xl p-12">
+		<div class="flex flex-col rounded-3xl bg-primary-100 p-12 dark:bg-primary-900">
 			<h1 class="text-xl font-semibold text-gray-900 dark:text-white">
 				Raindex empowers you to take full control of your trading strategies. All the strategies
 				here are non-custodial, perpetual, and automated strategies built with our open-source,
@@ -41,7 +41,7 @@
 		{/if}
 	{:catch error}
 		<div class="flex gap-2 text-lg">
-			Error loading registry:<span class="text-red-500">{error}</span>
+			Failed to load strategies:<span class="text-red-500">{error}</span>
 		</div>
 	{/await}
 </div>

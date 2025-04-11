@@ -10,36 +10,14 @@ import type { InvalidStrategyDetail, ValidStrategyDetail } from '@rainlanguage/u
 
 type LoadResult = {
 	registryFromUrl: string;
-	registryDotrains: RegistryDotrain[];
-	validStrategies: ValidStrategyDetail[];
-	invalidStrategies: InvalidStrategyDetail[];
-	error: string | null;
 };
 
 export const load: LayoutLoad = async ({ url }) => {
 	const registryFromUrl = url.searchParams.get('registry') || REGISTRY_URL;
 
-	try {
-		const registryDotrains = await fetchRegistryDotrains(registryFromUrl);
-
-		const { validStrategies, invalidStrategies } = await validateStrategies(registryDotrains);
-
-		return {
-			registryFromUrl,
-			registryDotrains,
-			validStrategies,
-			invalidStrategies,
-			error: null
-		};
-	} catch (error: unknown) {
-		return {
-			registryFromUrl,
-			registryDotrains: [],
-			validStrategies: [],
-			invalidStrategies: [],
-			error: error instanceof Error ? error.message : 'Unknown error occurred'
-		};
-	}
+	return {
+		registryFromUrl
+	};
 };
 
 if (import.meta.vitest) {

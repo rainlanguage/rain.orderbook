@@ -5,16 +5,39 @@
 
 	const registry = useRegistry();
 	let newRegistryUrl = $registry.getCurrentRegistry();
+	let error: string | null = null;
+	let loading: boolean = false;
+
+	async function handleClick() {
+		loading = true;
+		error = null;
+		try {
+			if (!$registry) {
+				throw new Error('Registry manager not yet available.');
+			}
+			await loadRegistryUrl(newRegistryUrl, $registry);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Unknown error';
+		}
+		loading = false;
+	}
 </script>
 
-<div class="mb-4 flex w-full items-start gap-4" data-testid="registry-input">
-	<Input
-		id="strategy-url"
-		type="url"
-		placeholder="Enter URL to raw strategy registry file"
-		bind:value={newRegistryUrl}
-	/>
-	<Button class="text-nowrap" on:click={() => loadRegistryUrl(newRegistryUrl, $registry)}
-		>Load Registry URL</Button
-	>
+<div class="flex w-full flex-col items-end gap-2">
+	<div class="flex w-full items-start gap-4" data-testid="registry-input">
+		<Input
+			id="strategy-url"
+			type="url"
+			placeholder="Enter URL to raw strategy registry file"
+			bind:value={newRegistryUrl}
+		/>
+		<Button class="w-36 text-nowrap" on:click={handleClick} disabled={loading}>
+			{loading ? 'Loading registry...' : 'Load Registry URL'}
+		</Button>
+	</div>
+	<div class="h-4">
+		{#if error}
+			<p data-testid="registry-error" class="text-red-500">{error}</p>
+		{/if}
+	</div>
 </div>

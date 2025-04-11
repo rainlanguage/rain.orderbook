@@ -86,6 +86,7 @@ export type {
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { RegistryStore } from './types/registry';
+export type { RegistryDotrain, RegistryFile } from './services/registry';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -138,3 +139,8 @@ export { useRegistry } from './providers/registry/useRegistry';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
+
+// Services
+export { validateStrategies } from './services/registry';
+export { fetchRegistryDotrains } from './services/registry';
+export { fetchParseRegistry } from './services/registry';

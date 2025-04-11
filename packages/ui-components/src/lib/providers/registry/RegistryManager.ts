@@ -30,6 +30,7 @@ export class RegistryManager {
       this.setRegistryToLocalStorage(urlParam);
       return urlParam;
     }
+    console.log('getting from local storage');
     return this.getRegistryFromLocalStorage() ?? this.defaultRegistry;
   }
 
@@ -88,6 +89,7 @@ export class RegistryManager {
    */
   private getRegistryFromLocalStorage(): string | null {
     try {
+      console.log('getting from local storage');
       return localStorage.getItem(RegistryManager.STORAGE_KEY);
     } catch (error) {
       throw new Error(
