@@ -85,6 +85,7 @@ export type {
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { RegistryStore } from './types/registry';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -97,6 +98,8 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+export { loadRegistryUrl } from './services/loadRegistryUrl';
+
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
@@ -131,3 +134,7 @@ export { default as RegistryProvider } from './providers/registry/RegistryProvid
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+export { useRegistry } from './providers/registry/useRegistry';
+
+// Classes
+export { RegistryManager } from './providers/registry/RegistryManager';

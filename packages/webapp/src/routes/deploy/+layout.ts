@@ -4,13 +4,12 @@ import {
 	fetchRegistryDotrains,
 	type RegistryDotrain
 } from '@rainlanguage/ui-components/services';
-import RegistryManager from '$lib/services/RegistryManager';
 import type { LayoutLoad } from './$types';
 import type { Mock } from 'vitest';
 import type { InvalidStrategyDetail, ValidStrategyDetail } from '@rainlanguage/ui-components';
 
 type LoadResult = {
-	registry: string;
+	registryFromUrl: string;
 	registryDotrains: RegistryDotrain[];
 	validStrategies: ValidStrategyDetail[];
 	invalidStrategies: InvalidStrategyDetail[];
@@ -18,21 +17,15 @@ type LoadResult = {
 };
 
 export const load: LayoutLoad = async ({ url }) => {
-	const registry = url.searchParams.get('registry') || REGISTRY_URL;
-
-	if (RegistryManager.isCustomRegistry(registry)) {
-		RegistryManager.setToStorage(registry);
-	} else {
-		RegistryManager.clearFromStorage();
-	}
+	const registryFromUrl = url.searchParams.get('registry') || REGISTRY_URL;
 
 	try {
-		const registryDotrains = await fetchRegistryDotrains(registry);
+		const registryDotrains = await fetchRegistryDotrains(registryFromUrl);
 
 		const { validStrategies, invalidStrategies } = await validateStrategies(registryDotrains);
 
 		return {
-			registry,
+			registryFromUrl,
 			registryDotrains,
 			validStrategies,
 			invalidStrategies,
@@ -40,7 +33,7 @@ export const load: LayoutLoad = async ({ url }) => {
 		};
 	} catch (error: unknown) {
 		return {
-			registry,
+			registryFromUrl,
 			registryDotrains: [],
 			validStrategies: [],
 			invalidStrategies: [],

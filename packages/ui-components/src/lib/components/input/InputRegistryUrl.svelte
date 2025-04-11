@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { Button, Input } from 'flowbite-svelte';
-	export let loadRegistryUrl: (url: string) => void;
-	let newRegistryUrl = localStorage.getItem('registry') || '';
+	import { useRegistry } from '../../providers/registry/useRegistry';
+	import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
+
+	const registry = useRegistry();
+	let newRegistryUrl = $registry.getCurrentRegistry();
 </script>
 
 <div class="mb-4 flex w-full items-start gap-4" data-testid="registry-input">
@@ -11,7 +14,7 @@
 		placeholder="Enter URL to raw strategy registry file"
 		bind:value={newRegistryUrl}
 	/>
-	<Button class="text-nowrap" on:click={() => loadRegistryUrl(newRegistryUrl)}
+	<Button class="text-nowrap" on:click={() => loadRegistryUrl(newRegistryUrl, $registry)}
 		>Load Registry URL</Button
 	>
 </div>

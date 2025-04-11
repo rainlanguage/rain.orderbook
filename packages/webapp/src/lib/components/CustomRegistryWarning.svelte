@@ -1,5 +1,6 @@
 <script lang="ts">
-	import RegistryManager from '$lib/services/RegistryManager';
+	import { useRegistry } from '@rainlanguage/ui-components';
+	const registry = useRegistry();
 </script>
 
 <div
@@ -22,7 +23,7 @@
 		You are using a <span class="font-medium">custom strategies registry. </span>
 		<a
 			on:click={() => {
-				RegistryManager.clearFromStorage();
+				$registry.resetToDefault();
 			}}
 			href="/deploy"
 			data-sveltekit-reload
