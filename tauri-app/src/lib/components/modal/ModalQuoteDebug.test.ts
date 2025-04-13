@@ -6,7 +6,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { formatEther } from 'viem';
 import { mockQuoteDebug } from '$lib/queries/orderQuote';
 import ModalQuoteDebug from './ModalQuoteDebug.svelte';
-import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+import type { SgOrder } from '@rainlanguage/orderbook';
 
 test('renders table with the correct data', async () => {
   const queryClient = new QueryClient();

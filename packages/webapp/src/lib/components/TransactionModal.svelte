@@ -7,7 +7,7 @@
 	export let open: boolean;
 	export let messages: {
 		success: string;
-		error: string;
+		error?: string;
 		pending: string;
 	};
 
@@ -25,7 +25,7 @@
 	}
 </script>
 
-<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
+n<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
 	{#if $transactionStore.status !== TransactionStatus.IDLE}
 		<div class="flex flex-col items-center justify-center gap-2 p-4">
 			{#if $transactionStore.status === TransactionStatus.ERROR}
@@ -38,14 +38,14 @@
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center text-lg font-semibold text-gray-900 dark:text-white"
 				>
-					{messages.error}
+					{$transactionStore.status}
 				</p>
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
 				>
 					{$transactionStore.error}
 				</p>
-				<Button on:click={handleClose} class="mt-4">Dismiss</Button>
+				<Button on:click={handleClose}>Dismiss</Button>
 			{:else if $transactionStore.status === TransactionStatus.SUCCESS}
 				<div
 					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"

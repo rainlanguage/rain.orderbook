@@ -15,7 +15,7 @@
 		getOrderByHash,
 		type OrderWithSortedVaults,
 		type SgOrder
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -28,7 +28,7 @@
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { isAddressEqual, isAddress } from 'viem';
-	import type { SgVault } from '@rainlanguage/orderbook/js_api';
+	import type { SgVault } from '@rainlanguage/orderbook';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -136,7 +136,7 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Input vaults', type: 'inputs' }, { key: 'Output vaults', type: 'outputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
+			{#each [{ key: 'Output vaults', type: 'outputs' }, { key: 'Input vaults', type: 'inputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
 				{#if data.vaults.get(type)?.length !== 0}
 					<CardProperty>
 						<svelte:fragment slot="key"

@@ -1,10 +1,6 @@
 import type { ExtendedApprovalCalldata } from '$lib/stores/transactionStore';
 import type { Hex } from 'viem';
-import type {
-	DepositAndAddOrderCalldataResult,
-	SgOrder,
-	SgVault
-} from '@rainlanguage/orderbook/js_api';
+import type { DepositAndAddOrderCalldataResult, SgOrder, SgVault } from '@rainlanguage/orderbook';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { handleGuiInitialization } from '../lib/services/handleGuiInitialization';
 import { pushGuiStateToUrlHistory } from '../lib/services/handleUpdateGuiState';
-import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook/js_api';
+import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook';
 
 describe('handleGuiInitialization', () => {
 	let guiInstance: DotrainOrderGui;

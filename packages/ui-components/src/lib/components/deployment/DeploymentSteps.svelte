@@ -1,24 +1,19 @@
 <script lang="ts">
-	import { Alert, Button, Spinner } from 'flowbite-svelte';
+	import { Alert, Button, Spinner, Toggle } from 'flowbite-svelte';
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
 		type ConfigSource,
 		type GuiSelectTokensCfg,
-		type TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
-	import WalletConnect from '../wallet/WalletConnect.svelte';
-	import {
+		type TokenInfo,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg
-	} from '@rainlanguage/orderbook/js_api';
-	import { fade } from 'svelte/transition';
-	import { Toggle } from 'flowbite-svelte';
+	} from '@rainlanguage/orderbook';
+	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
 	import type { AppKit } from '@reown/appkit';
-	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { handleShareChoices } from '../../services/handleShareChoices';
 	import { DeploymentStepsError, DeploymentStepsErrorCode } from '$lib/errors';
 	import { onMount } from 'svelte';
@@ -30,6 +25,8 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { handleDeployment } from './handleDeployment';
 	import { type DeploymentArgs } from '$lib/types/transaction';
+	import { fade } from 'svelte/transition';
+	import ShareChoicesButton from './ShareChoicesButton.svelte';
 
 	interface Deployment {
 		key: string;
@@ -274,12 +271,12 @@
 						<DepositInput {deposit} />
 					{/each}
 
-					{#each allTokenInputs as input, i}
-						<TokenIOInput {i} label="Input" vault={input} />
-					{/each}
-
 					{#each allTokenOutputs as output, i}
 						<TokenIOInput {i} label="Output" vault={output} />
+					{/each}
+
+					{#each allTokenInputs as input, i}
+						<TokenIOInput {i} label="Input" vault={input} />
 					{/each}
 				{/if}
 

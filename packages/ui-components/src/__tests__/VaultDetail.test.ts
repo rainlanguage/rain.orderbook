@@ -7,7 +7,7 @@ import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'svelte';
 
-import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook/js_api';
+import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook';
 type VaultDetailProps = ComponentProps<VaultDetail>;
 import { useAccount } from '../lib/providers/wallet/useAccount';
 
@@ -15,7 +15,7 @@ vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
+vi.mock('@rainlanguage/orderbook', () => ({
 	getVault: vi.fn()
 }));
 
@@ -81,7 +81,7 @@ describe('VaultDetail', () => {
 	});
 
 	it('calls the vault detail query fn with the correct vault id', async () => {
-		const { getVault } = await import('@rainlanguage/orderbook/js_api');
+		const { getVault } = await import('@rainlanguage/orderbook');
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -92,7 +92,7 @@ describe('VaultDetail', () => {
 	});
 
 	it('shows the correct empty message when the query returns no data', async () => {
-		const { getVault } = await import('@rainlanguage/orderbook/js_api');
+		const { getVault } = await import('@rainlanguage/orderbook');
 		vi.mocked(getVault).mockResolvedValue(null);
 
 		render(VaultDetail, {

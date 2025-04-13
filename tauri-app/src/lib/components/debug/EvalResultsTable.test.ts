@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
 import { expect } from '$lib/test/matchers';
 import EvalResultsTable from './EvalResultsTable.svelte';
-import type { RainEvalResultsTable } from '@rainlanguage/orderbook/js_api';
+import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
 import { formatEther, hexToBigInt, isHex } from 'viem';
 
 test('renders table with the correct data', async () => {

@@ -4,7 +4,7 @@
 	import { DeploymentSteps, GuiProvider, type DeploymentArgs } from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDeployModal, handleDisclaimerModal } from '$lib/services/modal';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { REGISTRY_URL } from '$lib/constants';

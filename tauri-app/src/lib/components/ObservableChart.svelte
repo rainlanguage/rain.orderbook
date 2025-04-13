@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { MarkCfg, PlotCfg as PlotT, TransformCfg } from '@rainlanguage/orderbook/js_api';
+  import type { MarkCfg, PlotCfg as PlotT, TransformCfg } from '@rainlanguage/orderbook';
   import * as Plot from '@observablehq/plot';
   import camelcaseKeys from 'camelcase-keys';
   import type { TransformedPlotData } from '$lib/utils/chartData';

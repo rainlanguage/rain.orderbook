@@ -1,7 +1,7 @@
 <script lang="ts">
   import { P, TabItem, Tabs } from 'flowbite-svelte';
   import WordTable from '$lib/components/WordTable.svelte';
-  import type { ScenarioWords } from '@rainlanguage/orderbook/js_api';
+  import type { ScenarioWords } from '@rainlanguage/orderbook';
 
   export let authoringMetas: ScenarioWords[] | undefined;
   export let error: unknown | undefined;
