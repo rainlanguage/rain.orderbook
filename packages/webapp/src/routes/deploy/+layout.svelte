@@ -8,24 +8,14 @@
 	} from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-
-	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { REGISTRY_URL } from '$lib/constants';
 	import { slide } from 'svelte/transition';
 	let advancedMode = false;
 
-	let registryError = '';
-
 	const registryManager = new RegistryManager(REGISTRY_URL);
 	const registryManagerStore = writable(registryManager);
-	onMount(() => {
-		try {
-			advancedMode = registryManager.isCustomRegistry();
-		} catch (e) {
-			registryError = e instanceof Error ? e.message : 'Failed to initialize registry manager';
-		}
-	});
+	$: advancedMode = registryManager?.isCustomRegistry?.() ?? false;
 </script>
 
 <RegistryProvider {registryManagerStore}>
@@ -50,11 +40,6 @@
 						<InputRegistryUrl />
 					</div>
 				{/if}
-				<div class="h-4">
-					{#if registryError}
-						<p data-testid="registry-error" class="text-red-500">{registryError}</p>
-					{/if}
-				</div>
 			</div>
 		</div>
 		<slot></slot>

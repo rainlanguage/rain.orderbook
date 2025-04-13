@@ -162,10 +162,6 @@ describe('Page Component', () => {
 			context: new Map([['$$_registry', mockRegistry]])
 		});
 
-		render(Page, {
-			context: new Map([['$$_registry', mockRegistry]])
-		});
-
 		await waitFor(() => {
 			expect(screen.getByTestId('invalid-strategies')).toBeInTheDocument();
 		});
