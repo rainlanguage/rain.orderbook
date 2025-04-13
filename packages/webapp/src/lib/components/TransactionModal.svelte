@@ -80,7 +80,7 @@ n<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="
 				</div>
 			{:else}
 				<div
-					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900"
+					class="bg-primary-100 dark:bg-primary-900 mb-4 flex h-16 w-16 items-center justify-center rounded-full"
 				>
 					<Spinner color="blue" size={10} />
 				</div>
@@ -102,7 +102,7 @@ n<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="
 							href={$transactionStore.explorerLink}
 							target="_blank"
 						>
-							View transaction on block explorer
+							View transaction on block explorer.
 						</a>
 					</p>
 				{/if}
