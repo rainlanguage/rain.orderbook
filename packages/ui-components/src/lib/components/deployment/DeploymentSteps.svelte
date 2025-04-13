@@ -272,12 +272,12 @@
 						<DepositInput {deposit} />
 					{/each}
 
-					{#each allTokenInputs as input, i}
-						<TokenIOInput {i} label="Input" vault={input} />
-					{/each}
-
 					{#each allTokenOutputs as output, i}
 						<TokenIOInput {i} label="Output" vault={output} />
+					{/each}
+
+					{#each allTokenInputs as input, i}
+						<TokenIOInput {i} label="Input" vault={input} />
 					{/each}
 				{/if}
 
