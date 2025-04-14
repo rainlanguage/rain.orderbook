@@ -511,6 +511,31 @@ gui:
           min: 100
           presets:
             - value: "0"
+    select-token-deployment:
+      name: Select token deployment
+      description: Select token deployment description
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
+      select-tokens:
+        - key: token3
+          name: Token 3
+          description: Token 3 description
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -569,6 +594,9 @@ deployments:
     other-deployment:
         scenario: some-scenario.sub-scenario
         order: some-order
+    select-token-deployment:
+        scenario: some-scenario
+        order: some-order
 ---
 #test-binding !
 #another-binding !
@@ -580,12 +608,39 @@ _ _: 0 0;
 :;
     "#;
 
+    pub async fn initialize_gui() -> DotrainOrderGui {
+        let mut gui = DotrainOrderGui::new();
+        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+            .await
+            .unwrap();
+        gui
+    }
+
+    pub async fn initialize_gui_with_select_tokens() -> DotrainOrderGui {
+        let mut gui = DotrainOrderGui::new();
+        gui.choose_deployment(
+            YAML.to_string(),
+            "select-token-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+        gui
+    }
+
     #[wasm_bindgen_test]
     async fn test_get_deployment_keys() {
         let deployment_keys = DotrainOrderGui::get_deployment_keys(YAML.to_string())
             .await
             .unwrap();
-        assert_eq!(deployment_keys, vec!["some-deployment", "other-deployment"]);
+        assert_eq!(
+            deployment_keys,
+            vec![
+                "some-deployment",
+                "other-deployment",
+                "select-token-deployment"
+            ]
+        );
     }
 
     #[wasm_bindgen_test]
@@ -950,7 +1005,7 @@ _ _: 0 0;
         let deployment_details = DotrainOrderGui::get_deployment_details(YAML.to_string())
             .await
             .unwrap();
-        assert_eq!(deployment_details.len(), 2);
+        assert_eq!(deployment_details.len(), 3);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
@@ -964,6 +1019,13 @@ _ _: 0 0;
         let deployment_detail = deployment_details.get("other-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Test test");
         assert_eq!(deployment_detail.description, "Test test test");
+        assert_eq!(deployment_detail.short_description, None);
+        let deployment_detail = deployment_details.get("select-token-deployment").unwrap();
+        assert_eq!(deployment_detail.name, "Select token deployment");
+        assert_eq!(
+            deployment_detail.description,
+            "Select token deployment description"
+        );
         assert_eq!(deployment_detail.short_description, None);
 
         let yaml = r#"
