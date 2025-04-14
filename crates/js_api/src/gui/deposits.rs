@@ -15,7 +15,7 @@ impl DotrainOrderGui {
 
         for deposit in deployment.deposits.iter() {
             if deposit.token.is_none() {
-                return Err(GuiError::TokenMustBeSelected("deposit".to_string()));
+                return Err(GuiError::MissingDepositToken(deployment.key.clone()));
             }
 
             let token = deposit.token.as_ref().unwrap();
@@ -292,5 +292,36 @@ mod tests {
             .unwrap();
         let has_any_deposit = gui.has_any_deposit().unwrap();
         assert_eq!(has_any_deposit, true);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_check_deposits() {
+        let mut gui = initialize_gui().await;
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+        gui.check_deposits().unwrap();
+        gui.remove_deposit("token1".to_string()).unwrap();
+
+        let err = gui.check_deposits().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositNotSet("T1".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "A deposit for token 'T1' is required but has not been set."
+        );
+
+        let gui = initialize_gui_with_select_tokens().await;
+        let err = gui.check_deposits().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::MissingDepositToken("select-token-deployment".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "A deposit for token is required but has not been set for deployment 'select-token-deployment'."
+        );
     }
 }

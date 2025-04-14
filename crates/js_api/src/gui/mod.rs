@@ -286,6 +286,8 @@ pub enum GuiError {
     DepositTokenNotFound(String),
     #[error("Missing deposit with token: {0}")]
     DepositNotSet(String),
+    #[error("Missing deposit token for current deployment: {0}")]
+    MissingDepositToken(String),
     #[error("Orderbook not found")]
     OrderbookNotFound,
     #[error("Order not found: {0}")]
@@ -367,6 +369,8 @@ impl GuiError {
                 format!("The deposit token '{}' was not found in the YAML configuration.", token),
             GuiError::DepositNotSet(token) =>
                 format!("A deposit for token '{}' is required but has not been set.", token),
+            GuiError::MissingDepositToken(deployment) =>
+                format!("A deposit for token is required but has not been set for deployment '{}'.", deployment),
             GuiError::OrderbookNotFound =>
                 "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::OrderNotFound(order) =>
@@ -515,7 +519,7 @@ gui:
       name: Select token deployment
       description: Select token deployment description
       deposits:
-        - token: token1
+        - token: token3
           min: 0
           presets:
             - "0"
