@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { useRegistry } from '@rainlanguage/ui-components';
+	import {
+		useRegistry,
+		ValidStrategiesSection,
+		InvalidStrategiesSection
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	const registry = useRegistry();
 
@@ -29,43 +33,10 @@
 		<div class="text-center text-lg">No strategies found</div>
 	{:else}
 		{#if validStrategies.length > 0}
-			<div
-				class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-				data-testid="valid-strategies"
-			>
-				{#each validStrategies as strategy}
-					<a
-						href={`/deploy/${strategy.name}${customRegistryParam}`}
-						data-testid="strategy-short-tile"
-						class="flex flex-col gap-y-2 rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
-					>
-						<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
-							{strategy.details.name}
-						</h3>
-						<p class="text-lg text-gray-600 dark:text-gray-400">
-							{strategy.details.short_description}
-						</p>
-					</a>
-				{/each}
-			</div>
+			<ValidStrategiesSection strategies={validStrategies} />
 		{/if}
 		{#if invalidStrategies.length > 0}
-			<div
-				class="flex flex-col gap-4 rounded-xl bg-red-100 p-6 dark:bg-red-900"
-				data-testid="invalid-strategies"
-			>
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-					Invalid Strategies in registry
-				</h2>
-				<div class="flex flex-col gap-2">
-					{#each invalidStrategies as strategy}
-						<div class="flex flex-col gap-1">
-							<span class="font-medium">{strategy.name}</span>
-							<span class="text-red-600 dark:text-red-400">{strategy.error}</span>
-						</div>
-					{/each}
-				</div>
-			</div>
+			<InvalidStrategiesSection strategiesWithErrors={invalidStrategies} />
 		{/if}
 	{/if}
 </div>
