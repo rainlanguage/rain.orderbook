@@ -4,12 +4,8 @@ import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelt
 import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import {
-	getVaultApprovalCalldata,
-	type SgVault,
-	getVaultDepositCalldata,
-	getVaultWithdrawCalldata
-} from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
+import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
 import { get, readable } from 'svelte/store';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
@@ -18,15 +14,11 @@ const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('@rainlanguage/orderbook')>();
-	return {
-		...actual,
-		getVaultDepositCalldata: vi.fn(),
-		getVaultApprovalCalldata: vi.fn(),
-		getVaultWithdrawCalldata: vi.fn()
-	};
-});
+vi.mock('@rainlanguage/orderbook', () => ({
+	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
+	getVaultApprovalCalldata: vi.fn().mockResolvedValue({ to: '0x789', data: '0xabc' }),
+	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
+}));
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
@@ -77,9 +69,6 @@ describe('DepositOrWithdrawModal', () => {
 		});
 		(readContract as Mock).mockReset();
 		(switchChain as Mock).mockReset();
-		(getVaultApprovalCalldata as Mock).mockResolvedValue({ to: '0x789', data: '0xabc' });
-		(getVaultDepositCalldata as Mock).mockResolvedValue({ to: '0x123', data: '0x456' });
-		(getVaultWithdrawCalldata as Mock).mockResolvedValue({ to: '0xdef', data: '0xghi' });
 	});
 
 	it('renders deposit modal correctly', () => {
@@ -224,7 +213,7 @@ describe('DepositOrWithdrawModal', () => {
 	});
 
 	it('handles failed calldata fetch', async () => {
-		(getVaultDepositCalldata as Mock).mockRejectedValueOnce(new Error('Failed to fetch'));
+		vi.mocked(getVaultDepositCalldata).mockRejectedValueOnce(new Error('Failed to fetch'));
 
 		render(DepositOrWithdrawModal, defaultProps);
 
@@ -241,7 +230,7 @@ describe('DepositOrWithdrawModal', () => {
 
 	it('handles deposit without approval when approval fails', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
-		(getVaultApprovalCalldata as Mock).mockRejectedValueOnce(new Error('Approval not needed'));
+		vi.mocked(getVaultApprovalCalldata).mockRejectedValueOnce(new Error('Approval not needed'));
 
 		render(DepositOrWithdrawModal, defaultProps);
 

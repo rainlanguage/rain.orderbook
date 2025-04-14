@@ -5,7 +5,7 @@ vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
 }));
 
-vi.mock('./src/lib/providers/registry/useRegistry', () => ({
+vi.mock('$lib/providers/registry/useRegistry', () => ({
 	useRegistry: vi.fn().mockReturnValue(mockRegistryStore)
 }));
 

@@ -50,22 +50,6 @@ export class RegistryManager {
 	}
 
 	/**
-	 * Check if the URL has a registry parameter
-	 * @returns True if the registry parameter exists in the URL
-	 * @throws Error if URL parsing fails
-	 */
-	private hasRegistryParam(): boolean {
-		try {
-			return new URL(window.location.href).searchParams.has(RegistryManager.STORAGE_KEY);
-		} catch (error) {
-			throw new Error(
-				'Failed to check if registry parameter exists: ' +
-					(error instanceof Error ? error.message : String(error))
-			);
-		}
-	}
-
-	/**
 	 * Save the registry to local storage
 	 * @param registry The registry URL to save
 	 * @throws Error if localStorage is not available

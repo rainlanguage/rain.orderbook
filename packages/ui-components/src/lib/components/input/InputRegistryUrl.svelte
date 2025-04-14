@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, Input } from 'flowbite-svelte';
-	import { useRegistry } from '../../providers/registry/useRegistry';
+	import { useRegistry } from '$lib/providers/registry/useRegistry';
 	import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
 
 	const registry = useRegistry();
