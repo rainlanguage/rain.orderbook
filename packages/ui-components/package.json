@@ -12,6 +12,12 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.js",
 			"svelte": "./dist/index.js"
+		},
+		"./services": {
+			"types": "./dist/services/index.d.ts",
+			"import": "./dist/services/index.js",
+			"require": "./dist/services/index.js",
+			"svelte": "./dist/services/index.js"
 		}
 	},
 	"scripts": {
