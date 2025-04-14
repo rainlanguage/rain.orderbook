@@ -25,7 +25,7 @@
 	}
 </script>
 
-n<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
+<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
 	{#if $transactionStore.status !== TransactionStatus.IDLE}
 		<div class="flex flex-col items-center justify-center gap-2 p-4">
 			{#if $transactionStore.status === TransactionStatus.ERROR}
