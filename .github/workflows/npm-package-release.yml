@@ -93,31 +93,12 @@ jobs:
       - name: Set Version
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
-          npm version prerelease --preid alpha --no-git-tag-version -w @rainlanguage/ui-components -w @rainlanguage/orderbook
-          echo "NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)" >> $GITHUB_ENV
-
-      # sometimes the first or second try to update the version fails (npm bug?) so we retry max 5 times to
-      # make sure it updates the version successfully before proceeding and bail out if it failed to update
-      - name: Update orderbook Dependency Version for ui-components
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: |
-          set -e
-          current_version() {
-            jq -r '.dependencies."@rainlanguage/orderbook"' ./packages/ui-components/package.json
-          };
-          count=1;
-          while [[ $(current_version) != "${{ env.NEW_VERSION }}" && $count -le 5 ]]; do
-            echo "Trying to update orderbook dependency of ui-components pkg, attempt $count...";
-            ((count++));
-            npm install -w @rainlanguage/ui-components @rainlanguage/orderbook@=${{ env.NEW_VERSION }} --save-exact;
-            sleep 3;
-          done;
-          if [[ $(current_version) != "${{ env.NEW_VERSION }}" ]]; then
-            echo "Failed to update orderbook dependency version for ui-components after 5 attempts, aborting...";
-            exit 1;
-          else
-            echo "Successfully updated to $(current_version)";
-          fi;
+          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/orderbook
+          NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          jq --arg v "$NEW_VERSION" '.dependencies."@rainlanguage/orderbook" = $v' ./packages/ui-components/package.json > tmp.json && mv tmp.json ./packages/ui-components/package.json
+          npx prettier --write ./packages/ui-components/package.json
+          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
 
       # Commit changes and tag
       - name: Commit And Tag
