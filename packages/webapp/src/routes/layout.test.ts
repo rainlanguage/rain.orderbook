@@ -1,4 +1,4 @@
-import { render } from '@testing-library/svelte';
+import { render, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
@@ -102,10 +102,11 @@ it('renders Sidebar and main content when not on root path', async () => {
   });
 
   const { container } = render(Layout);
-  
-  const main = container.querySelector('main');
-  console.log("main",main)
-  expect(container.querySelector('main')).toBeInTheDocument();
+  await waitFor(() => {
+    const main = container.querySelector('main');
+    console.log("main",main)
+    expect(container.querySelector('main')).toBeInTheDocument();
+  });
 });
 
 });
