@@ -256,7 +256,7 @@ describe('DepositOrWithdrawModal', () => {
 		render(DepositOrWithdrawModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByText('Your Balance:')).toBeInTheDocument();
+			expect(screen.getByText('Account balance:')).toBeInTheDocument();
 			expect(screen.getByText('0')).toBeInTheDocument();
 		});
 
@@ -306,7 +306,7 @@ describe('DepositOrWithdrawModal', () => {
 		render(DepositOrWithdrawModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByText('Your Balance:')).toBeInTheDocument();
+			expect(screen.getByText('Account balance:')).toBeInTheDocument();
 			expect(screen.getByText('2.5')).toBeInTheDocument();
 		});
 	});

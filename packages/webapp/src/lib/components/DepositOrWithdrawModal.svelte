@@ -143,7 +143,7 @@
 						{#if userBalance || userBalance === 0n}
 							<div in:fade>
 								<span class="font-semibold"
-									>{action === 'deposit' ? 'Your Balance:' : 'Vault Balance:'}</span
+									>{action === 'deposit' ? 'Account balance:' : 'Vault balance:'}</span
 								>
 								<span in:fade>{formatUnits(userBalance, Number(vault.token.decimals))}</span>
 							</div>
