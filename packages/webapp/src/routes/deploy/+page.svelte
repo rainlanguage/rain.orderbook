@@ -22,7 +22,8 @@
 	</div>
 	{#if error}
 		<div class="flex gap-2 text-lg">
-			Failed to load strategies:<span class="text-red-500">{error}</span>
+			Failed to load strategies:<span class="text-red-500" data-testid="error-message">{error}</span
+			>
 		</div>
 	{:else if validStrategies.length === 0 && invalidStrategies.length === 0}
 		<div class="text-center text-lg">No strategies found</div>

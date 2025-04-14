@@ -8,9 +8,7 @@ import {
 	type InvalidStrategyDetail
 } from '@rainlanguage/ui-components';
 
-const { mockPageStore } = await vi.hoisted(
-	() => import('$lib/__mocks__/stores')
-);
+const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -57,12 +55,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 const mockGetCurrentRegistry = vi.fn().mockReturnValue(readable({}));
 
 describe('Page Component', () => {
-	const mockDotrains = [
-		mockValidStrategy1.dotrain,
-		mockValidStrategy2.dotrain,
-		mockInvalidStrategy1.name
-	];
-
 	const mockValidated = {
 		validStrategies: [mockValidStrategy1, mockValidStrategy2],
 		invalidStrategies: [mockInvalidStrategy1]
@@ -85,7 +77,8 @@ describe('Page Component', () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				error: 'Failed to fetch registry dotrains'
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
 		});
 
 		render(Page, {
@@ -93,8 +86,9 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
-			expect(screen.getByText('Error: Failed to fetch registry dotrains')).toBeInTheDocument();
+			const errorMessage = screen.getByTestId('error-message');
+			expect(errorMessage).toBeInTheDocument();
+			expect(errorMessage).toHaveTextContent('Failed to fetch registry dotrains');
 		});
 	});
 
@@ -102,7 +96,8 @@ describe('Page Component', () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				error: 'Failed to validate strategies'
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
 		});
 
 		render(Page, {
@@ -110,18 +105,20 @@ describe('Page Component', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText(/Failed to load strategies:/i)).toBeInTheDocument();
-			expect(screen.getByText('Error: Failed to validate strategies')).toBeInTheDocument();
+			const errorMessage = screen.getByTestId('error-message');
+			expect(errorMessage).toBeInTheDocument();
+			expect(errorMessage).toHaveTextContent('Failed to validate strategies');
 		});
 	});
 
 	it('should display no strategies found when no strategies are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-        error: null,
+				error: null,
 				validStrategies: [],
 				invalidStrategies: []
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				} as any
 		});
 
 		render(Page, {
@@ -138,7 +135,8 @@ describe('Page Component', () => {
 			data: {
 				validStrategies: mockValidated.validStrategies,
 				invalidStrategies: []
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
 		});
 
 		render(Page, {
@@ -155,7 +153,8 @@ describe('Page Component', () => {
 			data: {
 				validStrategies: [],
 				invalidStrategies: mockValidated.invalidStrategies
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
 		});
 
 		render(Page, {
@@ -172,7 +171,8 @@ describe('Page Component', () => {
 			data: {
 				validStrategies: mockValidated.validStrategies,
 				invalidStrategies: mockValidated.invalidStrategies
-			}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
 		});
 
 		render(Page, {
