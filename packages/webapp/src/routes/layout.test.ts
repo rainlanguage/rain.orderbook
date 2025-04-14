@@ -82,4 +82,30 @@ describe('Layout component', () => {
 
     expect(mockErcKit.init).toHaveBeenCalled();
   });
+  it('renders Homepage when on root path', async () => {
+  mockPageStore.mockSetSubscribeValue({
+    ...initialPageState,
+    url: new URL('http://localhost/')
+  });
+
+  const { container } = render(Layout);
+  
+  expect(container.querySelector('main')).not.toBeInTheDocument();
+});
+
+
+it('renders Sidebar and main content when not on root path', async () => {
+
+  mockPageStore.mockSetSubscribeValue({
+    ...initialPageState,
+    url: new URL('http://localhost/some-page')
+  });
+
+  const { container } = render(Layout);
+  
+  const main = container.querySelector('main');
+  console.log("main",main)
+  expect(container.querySelector('main')).toBeInTheDocument();
+});
+
 });
