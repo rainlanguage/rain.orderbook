@@ -1,12 +1,9 @@
 import { REGISTRY_URL } from '$lib/constants';
-import {
-	validateStrategies,
-	fetchRegistryDotrains,
-	type RegistryDotrain
-} from '@rainlanguage/ui-components';
 import type { LayoutLoad } from './$types';
 import type { Mock } from 'vitest';
 import type { InvalidStrategyDetail, ValidStrategyDetail } from '@rainlanguage/ui-components';
+import { fetchRegistryDotrains, validateStrategies } from '@rainlanguage/ui-components/services';
+import type { RegistryDotrain } from '@rainlanguage/ui-components/services';
 
 type LoadResult = {
 	registryFromUrl: string;
@@ -50,7 +47,7 @@ if (import.meta.vitest) {
 		invalidStrategies: ['invalidStrategy'] as unknown as InvalidStrategyDetail[]
 	};
 
-	vi.mock('@rainlanguage/ui-components', () => ({
+	vi.mock('@rainlanguage/ui-components/services', () => ({
 		validateStrategies: vi.fn(),
 		fetchRegistryDotrains: vi.fn()
 	}));
