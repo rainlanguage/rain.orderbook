@@ -124,6 +124,16 @@ impl YamlParsableHash for DeploymentCfg {
             }
         }
 
+        if let Some(context) = context {
+            if let Some(current_deployment) = context.get_current_deployment() {
+                if !deployments.contains_key(current_deployment) {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(current_deployment.to_string()),
+                        location: "deployments".to_string(),
+                    });
+                }
+            }
+        }
         if deployments.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("deployments".to_string()),
