@@ -135,7 +135,7 @@
 {#if currentStep === 1}
 	<Modal bind:open autoclose={false} size="md">
 		<div class="space-y-4">
-			<h3 class="text-xl font-medium">Enter Amount</h3>
+			<h3 class="text-xl font-medium">Enter amount</h3>
 
 			<div class="h-4">
 				{#if action === 'deposit'}
@@ -150,7 +150,7 @@
 						{/if}
 					{/await}
 				{:else}
-					<span class="font-semibold">Vault Balance:</span>
+					<span class="font-semibold">Vault balance:</span>
 					<span in:fade>{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}</span>
 				{/if}
 			</div>
