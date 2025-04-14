@@ -3,7 +3,7 @@ import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { AppKit } from '@reown/appkit';
 
-const initialPageState = {
+export const initialPageState = {
 	data: {
 		stores: { settings: {} },
 		dotrain: 'some dotrain content',
