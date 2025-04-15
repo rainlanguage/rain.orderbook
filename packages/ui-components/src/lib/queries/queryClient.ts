@@ -9,9 +9,9 @@ export const queryClient = new QueryClient({
 	}
 });
 
-export const invalidateIdQuery = async (queryClient: QueryClient, id: string) => {
-	await queryClient.invalidateQueries({
-		queryKey: [id],
+export const invalidateTanstackQueries = (queryClient: QueryClient, queryKey: string[]) => {
+	queryClient.invalidateQueries({
+		queryKey,
 		refetchType: 'all',
 		exact: false
 	});

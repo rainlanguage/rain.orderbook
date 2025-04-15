@@ -19,7 +19,7 @@
 	import type { Hex } from 'viem';
 	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import {
@@ -69,7 +69,7 @@
 	});
 
 	const interval = setInterval(async () => {
-		await invalidateIdQuery(queryClient, orderHash);
+		await invalidateTanstackQueries(queryClient, [orderHash]);
 	}, 10000);
 
 	onDestroy(() => {
@@ -105,7 +105,7 @@
 
 				<Refresh
 					testId="top-refresh"
-					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
+					on:click={() => invalidateTanstackQueries(queryClient, [orderHash])}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
 			</div>

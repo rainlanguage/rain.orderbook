@@ -105,7 +105,7 @@
 
 <AppTable
 	{query}
-	queryKey={undefined}
+	queryKey={QKEY_ORDERS}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
 		activeNetworkRef.set(e.detail.item.subgraphName);
