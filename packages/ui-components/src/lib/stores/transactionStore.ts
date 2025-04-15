@@ -12,7 +12,12 @@ import type {
 
 import { getExplorerLink } from '../services/getExplorerLink';
 import type { DeploymentArgs } from '$lib/types/transaction';
-import { awaitSubgraphIndexing, getNewOrderConfig, getRemoveOrderConfig, getTransactionConfig } from '$lib/services/awaitTransactionIndexing';
+import {
+	awaitSubgraphIndexing,
+	getNewOrderConfig,
+	getRemoveOrderConfig,
+	getTransactionConfig
+} from '$lib/services/awaitTransactionIndexing';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -111,82 +116,72 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
-  const awaitTransactionIndexing = async (
-    subgraphUrl: string,
-    txHash: string,
-    successMessage: string
-  ) => {
-    update((state) => ({
-      ...state,
-      status: TransactionStatus.PENDING_SUBGRAPH,
-      message: 'Checking for transaction indexing...'
-    }));
+	const awaitTransactionIndexing = async (
+		subgraphUrl: string,
+		txHash: string,
+		successMessage: string
+	) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Checking for transaction indexing...'
+		}));
 
-    const result = await awaitSubgraphIndexing(
-      getTransactionConfig(subgraphUrl, txHash, successMessage)
-    );
-    
-    if (result.error) {
-      return transactionError(TransactionErrorMessage.TIMEOUT);
-    } 
-    
-    if (result.value) {
-      return transactionSuccess(result.value.txHash, result.value.successMessage);
-    }
-  };
+		const result = await awaitSubgraphIndexing(
+			getTransactionConfig(subgraphUrl, txHash, successMessage)
+		);
 
-  const awaitNewOrderIndexing = async (
-    subgraphUrl: string, 
-    txHash: string, 
-    network?: string
-  ) => {
-    update((state) => ({
-      ...state,
-      status: TransactionStatus.PENDING_SUBGRAPH,
-      message: 'Waiting for new order to be indexed...'
-    }));
+		if (result.error) {
+			return transactionError(TransactionErrorMessage.TIMEOUT);
+		}
 
-    const result = await awaitSubgraphIndexing(
-      getNewOrderConfig(subgraphUrl, txHash, '', network)
-    );
-    
-    if (result.error) {
-      return transactionError(TransactionErrorMessage.TIMEOUT);
-    }
-    
-    if (result.value) {
-      return transactionSuccess(
-        result.value.txHash, 
-        result.value.successMessage, 
-        result.value.orderHash, 
-        result.value.network
-      );
-    }
-  };
+		if (result.value) {
+			return transactionSuccess(result.value.txHash, result.value.successMessage);
+		}
+	};
 
-  const awaitRemoveOrderIndexing = async (
-    subgraphUrl: string, 
-    txHash: string
-  ) => {
-    update((state) => ({
-      ...state,
-      status: TransactionStatus.PENDING_SUBGRAPH,
-      message: 'Waiting for order removal to be indexed...'
-    }));
+	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Waiting for new order to be indexed...'
+		}));
 
-    const result = await awaitSubgraphIndexing(
-      getRemoveOrderConfig(subgraphUrl, txHash, 'Order removed successfully')
-    );
-    
-    if (result.error) {
-      return transactionError(TransactionErrorMessage.TIMEOUT);
-    }
-    
-    if (result.value) {
-      return transactionSuccess(result.value.txHash, result.value.successMessage);
-    }
-  };
+		const result = await awaitSubgraphIndexing(getNewOrderConfig(subgraphUrl, txHash, '', network));
 
+		if (result.error) {
+			return transactionError(TransactionErrorMessage.TIMEOUT);
+		}
+
+		if (result.value) {
+			return transactionSuccess(
+				result.value.txHash,
+				result.value.successMessage,
+				result.value.orderHash,
+				result.value.network
+			);
+		}
+	};
+
+	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string) => {
+		update((state) => ({
+			...state,
+			status: TransactionStatus.PENDING_SUBGRAPH,
+			message: 'Waiting for order removal to be indexed...'
+		}));
+
+		const result = await awaitSubgraphIndexing(
+			getRemoveOrderConfig(subgraphUrl, txHash, 'Order removed successfully')
+		);
+
+		if (result.error) {
+			return transactionError(TransactionErrorMessage.TIMEOUT);
+		}
+
+		if (result.value) {
+			return transactionSuccess(result.value.txHash, result.value.successMessage);
+		}
+	};
 
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({

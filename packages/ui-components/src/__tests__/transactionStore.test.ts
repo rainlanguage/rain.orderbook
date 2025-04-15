@@ -7,14 +7,19 @@ import transactionStore, {
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
 import {
 	getTransaction,
-	type ApprovalCalldata,
 	type DepositCalldataResult,
 	type SgVault,
 	type WithdrawCalldataResult
 } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
-import { awaitSubgraphIndexing, getTransactionConfig, getNewOrderConfig, getRemoveOrderConfig, TIMEOUT_ERROR } from '../lib/services/awaitTransactionIndexing';
+import {
+	awaitSubgraphIndexing,
+	getTransactionConfig,
+	getNewOrderConfig,
+	getRemoveOrderConfig,
+	TIMEOUT_ERROR
+} from '../lib/services/awaitTransactionIndexing';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn(),
@@ -127,12 +132,13 @@ describe('transactionStore', () => {
 		(waitForTransactionReceipt as Mock).mockResolvedValue({});
 		(switchChain as Mock).mockResolvedValue({});
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
-		
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let resolveIndexing: (value: any) => void;
 		const indexingPromise = new Promise((resolve) => {
 			resolveIndexing = resolve;
 		});
-		
+
 		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise);
 
 		const deploymentPromise = handleDeploymentTransaction({
@@ -145,13 +151,13 @@ describe('transactionStore', () => {
 			network: 'flare'
 		});
 
-		await new Promise(resolve => setTimeout(resolve, 0));
-		
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		const pendingState = get(transactionStore);
 		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe('deployHash');
 		expect(pendingState.explorerLink).toBe('https://explorer.example.com/tx/deployHash');
-		
+
 		expect(getExplorerLink).toHaveBeenCalledWith('deployHash', 1, 'tx');
 
 		resolveIndexing!({
@@ -160,9 +166,9 @@ describe('transactionStore', () => {
 				successMessage: 'Transaction confirmed'
 			}
 		});
-		
+
 		await deploymentPromise;
-		
+
 		const finalState = get(transactionStore);
 		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
 		expect(finalState.message).toBe('Transaction confirmed');
@@ -217,7 +223,7 @@ describe('transactionStore', () => {
 				successMessage: mockSuccessMessage
 			}
 		});
-		
+
 		(getTransactionConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -228,11 +234,11 @@ describe('transactionStore', () => {
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
 		expect(getTransactionConfig).toHaveBeenCalledWith(
-			mockSubgraphUrl, 
-			mockTxHash, 
+			mockSubgraphUrl,
+			mockTxHash,
 			mockSuccessMessage
 		);
-		
+
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).message).toBe(mockSuccessMessage);
@@ -246,7 +252,7 @@ describe('transactionStore', () => {
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
 		});
-		
+
 		(getTransactionConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -273,7 +279,7 @@ describe('transactionStore', () => {
 				network: mockNetwork
 			}
 		});
-		
+
 		(getNewOrderConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -284,13 +290,8 @@ describe('transactionStore', () => {
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
-		expect(getNewOrderConfig).toHaveBeenCalledWith(
-			mockSubgraphUrl, 
-			mockTxHash, 
-			'', 
-			mockNetwork
-		);
-		
+		expect(getNewOrderConfig).toHaveBeenCalledWith(mockSubgraphUrl, mockTxHash, '', mockNetwork);
+
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
@@ -305,7 +306,7 @@ describe('transactionStore', () => {
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
 		});
-		
+
 		(getNewOrderConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -330,7 +331,7 @@ describe('transactionStore', () => {
 				successMessage: mockSuccessMessage
 			}
 		});
-		
+
 		(getRemoveOrderConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -341,11 +342,11 @@ describe('transactionStore', () => {
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
 		expect(getRemoveOrderConfig).toHaveBeenCalledWith(
-			mockSubgraphUrl, 
-			mockTxHash, 
+			mockSubgraphUrl,
+			mockTxHash,
 			'Order removed successfully'
 		);
-		
+
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).message).toBe(mockSuccessMessage);
@@ -358,7 +359,7 @@ describe('transactionStore', () => {
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
 		});
-		
+
 		(getRemoveOrderConfig as Mock).mockReturnValue({
 			subgraphUrl: mockSubgraphUrl,
 			txHash: mockTxHash,
@@ -424,13 +425,16 @@ describe('handleRemoveOrderTransaction', () => {
 		const mockTxHash = '0xremoveordertxhash';
 		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
 		(waitForTransactionReceipt as Mock).mockResolvedValue({});
-		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/removeordertxhash');
+		(getExplorerLink as Mock).mockResolvedValue(
+			'https://explorer.example.com/tx/removeordertxhash'
+		);
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let resolveIndexing: (value: any) => void;
 		const indexingPromise = new Promise((resolve) => {
 			resolveIndexing = resolve;
 		});
-		
+
 		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise);
 
 		const transactionPromise = handleRemoveOrderTransaction({
@@ -441,8 +445,8 @@ describe('handleRemoveOrderTransaction', () => {
 			subgraphUrl: mockSubgraphUrl
 		});
 
-		await new Promise(resolve => setTimeout(resolve, 0));
-		
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		const pendingState = get(transactionStore);
 		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe(mockTxHash);
@@ -464,9 +468,9 @@ describe('handleRemoveOrderTransaction', () => {
 				successMessage: 'Order removed successfully'
 			}
 		});
-		
+
 		await transactionPromise;
-		
+
 		const finalState = get(transactionStore);
 		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
 		expect(finalState.message).toBe('Order removed successfully');
@@ -584,7 +588,6 @@ describe('handleDepositOrWithdrawTransaction', () => {
 	const mockTransactionCalldata = '0xtransactioncalldata' as unknown as
 		| DepositCalldataResult
 		| WithdrawCalldataResult;
-	const mockApprovalCalldata = '0xapprovalcalldata' as unknown as ApprovalCalldata;
 
 	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
 
@@ -604,11 +607,12 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		(waitForTransactionReceipt as Mock).mockResolvedValue({});
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deposittxhash');
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let resolveIndexing: (value: any) => void;
 		const indexingPromise = new Promise((resolve) => {
 			resolveIndexing = resolve;
 		});
-		
+
 		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise);
 
 		const transactionPromise = handleDepositOrWithdrawTransaction({
@@ -620,8 +624,8 @@ describe('handleDepositOrWithdrawTransaction', () => {
 			subgraphUrl: mockSubgraphUrl
 		});
 
-		await new Promise(resolve => setTimeout(resolve, 0));
-		
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
 		const pendingState = get(transactionStore);
 		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe(mockTxHash);
@@ -633,9 +637,9 @@ describe('handleDepositOrWithdrawTransaction', () => {
 				successMessage: 'The deposit was successful.'
 			}
 		});
-		
+
 		await transactionPromise;
-		
+
 		const finalState = get(transactionStore);
 		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
 		expect(finalState.message).toBe('The deposit was successful.');
