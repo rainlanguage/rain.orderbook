@@ -122,7 +122,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -159,7 +158,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -175,7 +173,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -194,7 +191,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -210,7 +206,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -222,7 +217,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -236,7 +230,6 @@ if (import.meta.vitest) {
 		it('should handle fetch failure', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			await expect(load({ fetch: mockFetch } as any)).rejects.toThrow('Network error');
 		});
 
@@ -245,7 +238,6 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve({})
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -255,6 +247,107 @@ if (import.meta.vitest) {
 			stores.activeOrderbookRef.set('orderbook1');
 
 			expect(get(stores.activeOrderbook)).toBeUndefined();
+			expect(get(stores.subgraphUrl)).toBeUndefined();
+		});
+
+		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
+			mockFetch.mockResolvedValueOnce({
+				json: () => Promise.resolve(mockSettingsJson)
+			});
+
+			const result = await load({ fetch: mockFetch } as any);
+			const { stores } = result;
+
+			expect(get(stores.activeOrderbook)).toBeUndefined();
+			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
+
+			stores.activeNetworkRef.set('network1');
+
+			const networkOrderbooks = get(stores.activeNetworkOrderbooks);
+			expect(Object.keys(networkOrderbooks).length).toBe(2);
+			expect(networkOrderbooks).toHaveProperty('orderbook1');
+			expect(networkOrderbooks).toHaveProperty('orderbook3');
+
+			expect(get(stores.activeOrderbook)).toBeUndefined();
+			expect(get(stores.subgraphUrl)).toBeUndefined();
+
+			stores.activeOrderbookRef.set('orderbook1');
+
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
+			expect(get(stores.subgraphUrl)).toEqual('https://subgraph1.url');
+
+			stores.activeNetworkRef.set('network2');
+
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
+
+			const newNetworkOrderbooks = get(stores.activeNetworkOrderbooks);
+			expect(Object.keys(newNetworkOrderbooks).length).toBe(1);
+			expect(newNetworkOrderbooks).toHaveProperty('orderbook2');
+			expect(newNetworkOrderbooks).not.toHaveProperty('orderbook1');
+		});
+
+		it('should handle multiple interrelated store updates correctly', async () => {
+			mockFetch.mockResolvedValueOnce({
+				json: () => Promise.resolve(mockSettingsJson)
+			});
+
+			const result = await load({ fetch: mockFetch } as any);
+			const { stores } = result;
+
+			stores.activeNetworkRef.set('network1');
+			stores.activeOrderbookRef.set('orderbook1');
+			stores.activeAccountsItems.set({ account1: 'Account 1' });
+
+			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
+			expect(get(stores.subgraphUrl)).toEqual('https://subgraph1.url');
+			expect(get(stores.activeAccounts)).toHaveProperty('account1');
+
+			stores.activeNetworkRef.set('network2');
+
+			stores.activeAccountsItems.set({ account1: 'Account 1', account2: 'Account 2' });
+
+			stores.activeOrderbookRef.set('orderbook2');
+
+			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');
+			expect(get(stores.activeNetworkOrderbooks)).not.toHaveProperty('orderbook1');
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook2);
+			expect(get(stores.subgraphUrl)).toEqual('https://subgraph2.url');
+
+			const finalAccounts = get(stores.activeAccounts);
+			expect(Object.keys(finalAccounts).length).toBe(2);
+			expect(finalAccounts).toHaveProperty('account1');
+			expect(finalAccounts).toHaveProperty('account2');
+		});
+
+		it('should handle partial or invalid data in settings correctly', async () => {
+			const partialSettings = {
+				accounts: mockSettingsJson.accounts,
+				orderbooks: {
+					orderbook1: {
+						network: 'network1'
+					},
+					orderbook2: {
+						network: 'network2',
+						subgraph: 'nonexistent_subgraph'
+					}
+				}
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				json: () => Promise.resolve(partialSettings)
+			});
+
+			const result = await load({ fetch: mockFetch } as any);
+			const { stores } = result;
+
+			stores.activeOrderbookRef.set('orderbook1');
+			expect(get(stores.activeOrderbook)).toEqual(partialSettings.orderbooks.orderbook1);
+			expect(get(stores.subgraphUrl)).toBeUndefined();
+
+			stores.activeOrderbookRef.set('orderbook2');
+			expect(get(stores.activeOrderbook)).toEqual(partialSettings.orderbooks.orderbook2);
 			expect(get(stores.subgraphUrl)).toBeUndefined();
 		});
 	});
