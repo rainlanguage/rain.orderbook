@@ -122,6 +122,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -158,6 +159,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -173,6 +175,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -191,6 +194,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -206,6 +210,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -217,6 +222,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -230,6 +236,7 @@ if (import.meta.vitest) {
 		it('should handle fetch failure', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			await expect(load({ fetch: mockFetch } as any)).rejects.toThrow('Network error');
 		});
 
@@ -238,6 +245,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve({})
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -255,6 +263,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -292,6 +301,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(mockSettingsJson)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
@@ -339,6 +349,7 @@ if (import.meta.vitest) {
 				json: () => Promise.resolve(partialSettings)
 			});
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
