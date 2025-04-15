@@ -7,7 +7,6 @@
 	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
-	import { REGISTRY_URL } from '$lib/constants';
 
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
@@ -15,8 +14,6 @@
 
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
-
-	$: registryUrl = $page.url.searchParams?.get('registry') || REGISTRY_URL;
 
 	if (!dotrain || !deployment) {
 		setTimeout(() => {
@@ -60,7 +57,6 @@
 			{appKitModal}
 			{onDeploy}
 			{settings}
-			{registryUrl}
 		/>
 	</GuiProvider>
 {:else if getGuiError}

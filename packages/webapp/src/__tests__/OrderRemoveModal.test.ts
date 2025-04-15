@@ -1,12 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
-
-vi.mock('@rainlanguage/orderbook', () => ({
-	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
-}));
+import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 
 vi.useFakeTimers();
 
@@ -28,12 +25,13 @@ describe('OrderRemoveModal', () => {
 		}
 	} as unknown as OrderRemoveModalProps;
 
-	beforeEach(() => {
-		vi.clearAllMocks();
+	beforeEach(async () => {
 		transactionStore.reset();
+		console.log('getRemoveOrderCalldata !!!', getRemoveOrderCalldata);
+	(getRemoveOrderCalldata as Mock).mockResolvedValue('0x123');
 	});
 
-	it('handles transaction correctly', async () => {
+	it.only('handles transaction correctly', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleRemoveOrderTransaction');
 		render(OrderRemoveModal, defaultProps);
 

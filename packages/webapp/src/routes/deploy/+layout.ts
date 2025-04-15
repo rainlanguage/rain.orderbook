@@ -1,23 +1,28 @@
 import { REGISTRY_URL } from '$lib/constants';
-import {
-	validateStrategies,
-	fetchRegistryDotrains,
-	type RegistryDotrain
-} from '@rainlanguage/ui-components/services';
 import type { LayoutLoad } from './$types';
-import type { ValidStrategyDetail, InvalidStrategyDetail } from '@rainlanguage/ui-components';
 import type { Mock } from 'vitest';
+import type { InvalidStrategyDetail, ValidStrategyDetail } from '@rainlanguage/ui-components';
+import { fetchRegistryDotrains, validateStrategies } from '@rainlanguage/ui-components/services';
+import type { RegistryDotrain } from '@rainlanguage/ui-components/services';
+
+type LoadResult = {
+	registryFromUrl: string;
+	registryDotrains: RegistryDotrain[];
+	validStrategies: ValidStrategyDetail[];
+	invalidStrategies: InvalidStrategyDetail[];
+	error: string | null;
+};
 
 export const load: LayoutLoad = async ({ url }) => {
-	const registry = url.searchParams.get('registry') || REGISTRY_URL;
+	const registryFromUrl = url.searchParams.get('registry') || REGISTRY_URL;
 
 	try {
-		const registryDotrains = await fetchRegistryDotrains(registry);
+		const registryDotrains = await fetchRegistryDotrains(registryFromUrl);
 
 		const { validStrategies, invalidStrategies } = await validateStrategies(registryDotrains);
 
 		return {
-			registry,
+			registryFromUrl,
 			registryDotrains,
 			validStrategies,
 			invalidStrategies,
@@ -25,7 +30,7 @@ export const load: LayoutLoad = async ({ url }) => {
 		};
 	} catch (error: unknown) {
 		return {
-			registry,
+			registryFromUrl,
 			registryDotrains: [],
 			validStrategies: [],
 			invalidStrategies: [],
@@ -42,17 +47,17 @@ if (import.meta.vitest) {
 		invalidStrategies: ['invalidStrategy'] as unknown as InvalidStrategyDetail[]
 	};
 
-	type LoadResult = {
-		registry: string;
-		registryDotrains: RegistryDotrain[];
-		validStrategies: ValidStrategyDetail[];
-		invalidStrategies: InvalidStrategyDetail[];
-		error: string | null;
-	};
-
 	vi.mock('@rainlanguage/ui-components/services', () => ({
 		validateStrategies: vi.fn(),
 		fetchRegistryDotrains: vi.fn()
+	}));
+
+	vi.mock('$lib/services/RegistryManager', () => ({
+		default: {
+			isCustomRegistry: vi.fn(),
+			setToStorage: vi.fn(),
+			clearFromStorage: vi.fn()
+		}
 	}));
 
 	describe('Layout load function', () => {
@@ -81,7 +86,7 @@ if (import.meta.vitest) {
 			expect(validateStrategies).toHaveBeenCalledWith(mockDotrains);
 
 			expect(result).toEqual({
-				registry: REGISTRY_URL,
+				registryFromUrl: REGISTRY_URL,
 				registryDotrains: mockDotrains,
 				validStrategies: mockValidated.validStrategies,
 				invalidStrategies: mockValidated.invalidStrategies,
@@ -97,7 +102,7 @@ if (import.meta.vitest) {
 			const result = await load(createUrlMock(customRegistry));
 
 			expect(result).toEqual({
-				registry: customRegistry,
+				registryFromUrl: customRegistry,
 				registryDotrains: mockDotrains,
 				validStrategies: mockValidated.validStrategies,
 				invalidStrategies: mockValidated.invalidStrategies,
@@ -113,7 +118,7 @@ if (import.meta.vitest) {
 			expect(validateStrategies).not.toHaveBeenCalled();
 
 			expect(result).toEqual({
-				registry: REGISTRY_URL,
+				registryFromUrl: REGISTRY_URL,
 				registryDotrains: [],
 				validStrategies: [],
 				invalidStrategies: [],
@@ -132,7 +137,7 @@ if (import.meta.vitest) {
 			const result = await load(createUrlMock(null));
 
 			expect(result).toEqual({
-				registry: REGISTRY_URL,
+				registryFromUrl: REGISTRY_URL,
 				registryDotrains: [],
 				validStrategies: [],
 				invalidStrategies: [],
@@ -145,7 +150,7 @@ if (import.meta.vitest) {
 			const result = await load(createUrlMock(null));
 
 			expect(result).toEqual({
-				registry: REGISTRY_URL,
+				registryFromUrl: REGISTRY_URL,
 				registryDotrains: [],
 				validStrategies: [],
 				invalidStrategies: [],
@@ -169,7 +174,7 @@ if (import.meta.vitest) {
 			expect(validateStrategies).toHaveBeenCalledWith(emptyDotrains);
 
 			expect(result).toEqual({
-				registry: REGISTRY_URL,
+				registryFromUrl: REGISTRY_URL,
 				registryDotrains: emptyDotrains,
 				validStrategies: emptyValidated.validStrategies,
 				invalidStrategies: emptyValidated.invalidStrategies,

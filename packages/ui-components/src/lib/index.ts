@@ -97,6 +97,7 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
@@ -126,7 +127,12 @@ export { default as logoDark } from './assets/logo-dark.svg';
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+export { useRegistry } from './providers/registry/useRegistry';
+
+// Classes
+export { RegistryManager } from './providers/registry/RegistryManager';

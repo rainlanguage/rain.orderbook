@@ -82,7 +82,7 @@
 				></SidebarBrand>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<SidebarItem label="Deploy" href="/deploy" on:click={toggleSide}>
+				<SidebarItem label="Deploy" href="/deploy" data-sveltekit-reload on:click={toggleSide}>
 					<svelte:fragment slot="icon">
 						<PlusOutline class="h-5 w-5" />
 						<span data-testid="sidebar-deploy"></span>
