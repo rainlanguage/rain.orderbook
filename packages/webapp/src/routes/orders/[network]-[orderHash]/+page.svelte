@@ -106,7 +106,6 @@
 	{lightweightChartsTheme}
 	{colorTheme}
 	{orderbookAddress}
-	{chainId}
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}

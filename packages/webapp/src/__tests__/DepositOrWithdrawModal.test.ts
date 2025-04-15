@@ -4,9 +4,10 @@ import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelt
 import { transactionStore, useAccount } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata } from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
-import { get, readable } from 'svelte/store';
+import { readable } from 'svelte/store';
+import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -65,8 +66,11 @@ describe('DepositOrWithdrawModal', () => {
 		vi.clearAllMocks();
 		transactionStore.reset();
 		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0x')
+			account: readable('0x'),
+			matchesAccount: vi.fn()
 		});
+		(readContract as Mock).mockReset();
+		(switchChain as Mock).mockReset();
 	});
 
 	it('renders deposit modal correctly', () => {
@@ -97,13 +101,11 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
 
-		const wagmiConfig = get(mockWagmiConfigStore);
-
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: { to: '0x789', data: '0xabc' },
 			transactionCalldata: { to: '0x123', data: '0x456' }
@@ -125,10 +127,9 @@ describe('DepositOrWithdrawModal', () => {
 
 		const withdrawButton = screen.getByText('Withdraw');
 		await fireEvent.click(withdrawButton);
-		const wagmiConfig = get(mockWagmiConfigStore);
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			transactionCalldata: { to: '0xdef', data: '0xghi' },
 			action: 'withdraw',
 			chainId: 1,
@@ -237,15 +238,107 @@ describe('DepositOrWithdrawModal', () => {
 
 		const depositButton = screen.getByText('Deposit');
 		await fireEvent.click(depositButton);
-		const wagmiConfig = get(mockWagmiConfigStore);
+
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
 			transactionCalldata: { to: '0x123', data: '0x456' }
+		});
+	});
+	it('handles zero user balance correctly for deposit action', async () => {
+		(readContract as Mock).mockResolvedValue(BigInt(0));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByText('Your Balance:')).toBeInTheDocument();
+			expect(screen.getByText('0')).toBeInTheDocument();
+		});
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '0.1' } });
+
+		const depositButton = screen.getByText('Deposit');
+		expect(depositButton).toBeDisabled();
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
+			'Amount cannot exceed available balance.'
+		);
+	});
+
+	it('handles zero vault balance correctly for withdraw action', async () => {
+		const mockVaultWithZeroBalance = {
+			...mockVault,
+			balance: BigInt(0)
+		};
+
+		render(DepositOrWithdrawModal, {
+			...defaultProps,
+			args: {
+				...defaultProps.args,
+				action: 'withdraw',
+				vault: mockVaultWithZeroBalance as unknown as SgVault
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Vault Balance:')).toBeInTheDocument();
+			expect(screen.getByText('0')).toBeInTheDocument();
+		});
+
+		const withdrawInput = screen.getByRole('textbox');
+		await fireEvent.input(withdrawInput, { target: { value: '0.1' } });
+
+		const withdrawButton = screen.getByText('Withdraw');
+		expect(withdrawButton).toBeDisabled();
+		expect(screen.getByTestId('amount-error')).toHaveTextContent(
+			'Amount cannot exceed available balance.'
+		);
+	});
+	it('displays user balance correctly on deposit screen', async () => {
+		const userBalanceAmount = BigInt(2500000000000000000); // 2.5 tokens
+		(readContract as Mock).mockResolvedValue(userBalanceAmount);
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByText('Your Balance:')).toBeInTheDocument();
+			expect(screen.getByText('2.5')).toBeInTheDocument();
+		});
+	});
+
+	it('displays vault balance correctly on withdraw screen', async () => {
+		const mockVaultWithBalance = {
+			...mockVault,
+			balance: BigInt(3700000000000000000)
+		};
+
+		render(DepositOrWithdrawModal, {
+			...defaultProps,
+			args: {
+				...defaultProps.args,
+				action: 'withdraw',
+				vault: mockVaultWithBalance as unknown as SgVault
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Vault Balance:')).toBeInTheDocument();
+			expect(screen.getByText('3.7')).toBeInTheDocument();
+		});
+	});
+
+	it('shows error message when getUserBalance fails', async () => {
+		vi.mocked(readContract).mockRejectedValue(new Error('Failed to get balance'));
+
+		render(DepositOrWithdrawModal, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('error-message')).toBeInTheDocument();
+			expect(screen.getByTestId('error-message')).toHaveTextContent('Failed to get user balance.');
 		});
 	});
 });

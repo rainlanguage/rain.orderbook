@@ -21,7 +21,6 @@
   const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
   const subgraphUrl = $settings?.subgraphs?.[network];
   const rpcUrl = $settings?.networks?.[network]?.rpc;
-  const chainId = $settings?.networks?.[network]?.['chain-id'];
 
   function onRemove(order: SgOrder) {
     handleOrderRemoveModal(order, () => {
@@ -55,7 +54,6 @@
     {handleQuoteDebugModal}
     {handleDebugTradeModal}
     {orderbookAddress}
-    {chainId}
     {onRemove}
     {onDeposit}
     {onWithdraw}
