@@ -22,7 +22,6 @@
   let orderbookAddress: Hex | undefined;
   let subgraphUrl: string | undefined;
   let rpcUrl: string | undefined;
-  let chainId: number | undefined;
 
   if ($settings) {
     if ($settings.orderbooks?.[network]) {
@@ -35,7 +34,6 @@
 
     if ($settings.networks?.[network]) {
       rpcUrl = $settings.networks[network].rpc;
-      chainId = $settings.networks[network]['chain-id'];
     }
   }
 
@@ -68,7 +66,7 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
-{#if rpcUrl && subgraphUrl && orderbookAddress && chainId}
+{#if rpcUrl && subgraphUrl && orderbookAddress}
   <div data-testid="order-detail">
     <OrderDetail
       {orderHash}
@@ -80,7 +78,6 @@
       {handleQuoteDebugModal}
       {handleDebugTradeModal}
       {orderbookAddress}
-      {chainId}
       {onRemove}
       {onDeposit}
       {onWithdraw}
@@ -102,9 +99,6 @@
         {/if}
         {#if !orderbookAddress}
           <li><span class="font-semibold">Orderbook Address</span></li>
-        {/if}
-        {#if !chainId}
-          <li><span class="font-semibold">Chain ID</span></li>
         {/if}
       </ul>
     </div>
