@@ -104,7 +104,6 @@ it('renders Sidebar and main content when not on root path', async () => {
   const { container } = render(Layout);
   await waitFor(() => {
     const main = container.querySelector('main');
-    console.log("main",main)
     expect(container.querySelector('main')).toBeInTheDocument();
   });
 });
