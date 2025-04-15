@@ -275,7 +275,7 @@ describe('OrderDetail', () => {
 		const depositButton = await screen.getAllByTestId('deposit-button');
 		await user.click(depositButton[0]);
 
-		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.inputs[0]);
+		expect(mockOnDeposit).toHaveBeenCalledWith(mockOrder.outputs[0]);
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
@@ -301,6 +301,6 @@ describe('OrderDetail', () => {
 		const withdrawButton = await screen.getAllByTestId('withdraw-button');
 		await user.click(withdrawButton[0]);
 
-		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.inputs[0]);
+		expect(mockOnWithdraw).toHaveBeenCalledWith(mockOrder.outputs[0]);
 	});
 });

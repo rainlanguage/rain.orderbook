@@ -134,7 +134,7 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Input vaults', type: 'inputs' }, { key: 'Output vaults', type: 'outputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
+			{#each [{ key: 'Output vaults', type: 'outputs' }, { key: 'Input vaults', type: 'inputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
 				{#if data.vaults.get(type)?.length !== 0}
 					<CardProperty>
 						<svelte:fragment slot="key"
