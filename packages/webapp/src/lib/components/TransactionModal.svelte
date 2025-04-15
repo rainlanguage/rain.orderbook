@@ -45,7 +45,7 @@
 				>
 					{$transactionStore.error}
 				</p>
-				<Button on:click={handleClose} class="mt-4">Dismiss</Button>
+				<Button on:click={handleClose}>Dismiss</Button>
 			{:else if $transactionStore.status === TransactionStatus.SUCCESS}
 				<div
 					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"
