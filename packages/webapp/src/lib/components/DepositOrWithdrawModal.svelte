@@ -21,6 +21,7 @@
 	import * as allChains from 'viem/chains';
 	import { validateAmount } from '$lib/services/validateAmount';
 	import { fade } from 'svelte/transition';
+	import truncateEthAddress from 'truncate-eth-address';
 
 	const { ...chains } = allChains;
 
@@ -53,7 +54,6 @@
 	};
 
 	const getUserBalance = async () => {
-		if (action !== 'deposit') return;
 		const targetChain = getTargetChain(chainId);
 		try {
 			await switchChain($wagmiConfig, { chainId });
@@ -135,24 +135,35 @@
 {#if currentStep === 1}
 	<Modal bind:open autoclose={false} size="md">
 		<div class="space-y-4">
-			<h3 class="text-xl font-medium">Enter Amount</h3>
+			<h3 class="text-xl font-medium" data-testid="modal-title">
+				{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+			</h3>
 
-			<div class="h-4">
-				{#if action === 'deposit'}
-					{#await getUserBalance() then userBalance}
-						{#if userBalance || userBalance === 0n}
-							<div in:fade>
-								<span class="font-semibold"
-									>{action === 'deposit' ? 'Account balance:' : 'Vault balance:'}</span
-								>
-								<span in:fade>{formatUnits(userBalance, Number(vault.token.decimals))}</span>
+			<div class="h-10">
+				{#await getUserBalance() then userBalance}
+					{#if userBalance || userBalance === 0n}
+						<div in:fade class="w-full flex-col justify-between">
+							<div class="flex justify-between">
+								<p>
+									Balance of connected wallet <span class="text-green-500"
+										>{truncateEthAddress(account)}</span
+									>
+								</p>
+								<p in:fade>
+									{formatUnits(userBalance, Number(vault.token.decimals))}
+									{vault.token.symbol}
+								</p>
 							</div>
-						{/if}
-					{/await}
-				{:else}
-					<span class="font-semibold">Vault Balance:</span>
-					<span in:fade>{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}</span>
-				{/if}
+							<div class="flex justify-between">
+								<p>Balance of vault</p>
+								<p in:fade>
+									{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
+									{vault.token.symbol}
+								</p>
+							</div>
+						</div>
+					{/if}
+				{/await}
 			</div>
 			<InputTokenAmount
 				bind:value={amount}
