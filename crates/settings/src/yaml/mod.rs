@@ -6,7 +6,7 @@ pub mod orderbook;
 use crate::{
     NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkCfgError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioCfgError, ParseTokenConfigSourceError, TokenCfg,
+    ParseScenarioCfgError, ParseTokenCfgError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
@@ -176,7 +176,7 @@ pub enum YamlError {
     #[error(transparent)]
     ParseNetworkCfgError(#[from] ParseNetworkCfgError),
     #[error(transparent)]
-    ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
+    ParseTokenCfgError(#[from] ParseTokenCfgError),
     #[error(transparent)]
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
     #[error(transparent)]
@@ -220,9 +220,7 @@ impl PartialEq for YamlError {
                 e1.to_string() == e2.to_string()
             }
             (Self::ParseNetworkCfgError(e1), Self::ParseNetworkCfgError(e2)) => e1 == e2,
-            (Self::ParseTokenConfigSourceError(e1), Self::ParseTokenConfigSourceError(e2)) => {
-                e1 == e2
-            }
+            (Self::ParseTokenCfgError(e1), Self::ParseTokenCfgError(e2)) => e1 == e2,
             (
                 Self::ParseOrderbookConfigSourceError(e1),
                 Self::ParseOrderbookConfigSourceError(e2),
@@ -297,7 +295,7 @@ impl YamlError {
             YamlError::ParseNetworkCfgError(err) => {
                 format!("Network configuration error in your YAML: {}", err)
             }
-            YamlError::ParseTokenConfigSourceError(err) => format!(
+            YamlError::ParseTokenCfgError(err) => format!(
                 "Token configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),

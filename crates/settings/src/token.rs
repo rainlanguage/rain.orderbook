@@ -36,13 +36,13 @@ pub struct TokenCfg {
 impl_wasm_traits!(TokenCfg);
 
 impl TokenCfg {
-    pub fn validate_address(value: &str) -> Result<Address, ParseTokenConfigSourceError> {
-        Address::from_str(value).map_err(ParseTokenConfigSourceError::AddressParseError)
+    pub fn validate_address(value: &str) -> Result<Address, ParseTokenCfgError> {
+        Address::from_str(value).map_err(ParseTokenCfgError::AddressParseError)
     }
-    pub fn validate_decimals(value: &str) -> Result<u8, ParseTokenConfigSourceError> {
+    pub fn validate_decimals(value: &str) -> Result<u8, ParseTokenCfgError> {
         value
             .parse::<u8>()
-            .map_err(ParseTokenConfigSourceError::DecimalsParseError)
+            .map_err(ParseTokenCfgError::DecimalsParseError)
     }
 
     pub fn update_address(&mut self, address: &str) -> Result<Self, YamlError> {
@@ -304,8 +304,8 @@ impl YamlParsableHash for TokenCfg {
             if let Some(yaml_cache) = &context.yaml_cache {
                 for (key, token) in &yaml_cache.remote_tokens {
                     if tokens.contains_key(key) {
-                        return Err(YamlError::ParseTokenConfigSourceError(
-                            ParseTokenConfigSourceError::RemoteTokenKeyShadowing(key.clone()),
+                        return Err(YamlError::ParseTokenCfgError(
+                            ParseTokenCfgError::RemoteTokenKeyShadowing(key.clone()),
                         ));
                     }
                     tokens.insert(key.clone(), token.clone());
@@ -349,7 +349,7 @@ impl PartialEq for TokenCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseTokenConfigSourceError {
+pub enum ParseTokenCfgError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
     #[error("Failed to parse decimals")]
@@ -360,43 +360,18 @@ pub enum ParseTokenConfigSourceError {
     RemoteTokenKeyShadowing(String),
 }
 
-impl ParseTokenConfigSourceError {
+impl ParseTokenCfgError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseTokenConfigSourceError::AddressParseError(err) =>
+            ParseTokenCfgError::AddressParseError(err) =>
                 format!("The token address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
-            ParseTokenConfigSourceError::DecimalsParseError(err) =>
+            ParseTokenCfgError::DecimalsParseError(err) =>
                 format!("The token decimals in your YAML configuration must be a valid number between 0 and 255: {}", err),
-            ParseTokenConfigSourceError::NetworkNotFoundError(network) =>
+            ParseTokenCfgError::NetworkNotFoundError(network) =>
                 format!("The network '{}' specified for this token was not found in your YAML configuration. Please define this network or use an existing one.", network),
-            ParseTokenConfigSourceError::RemoteTokenKeyShadowing(key) =>
+            ParseTokenCfgError::RemoteTokenKeyShadowing(key) =>
                 format!("The remote token key '{}' is already defined in token configuration", key),
         }
-    }
-}
-
-impl TokenConfigSource {
-    pub fn try_into_token(
-        self,
-        name: &str,
-        networks: &HashMap<String, Arc<NetworkCfg>>,
-    ) -> Result<TokenCfg, ParseTokenConfigSourceError> {
-        let network_ref = networks
-            .get(&self.network)
-            .ok_or(ParseTokenConfigSourceError::NetworkNotFoundError(
-                self.network.clone(),
-            ))
-            .map(Arc::clone)?;
-
-        Ok(TokenCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: name.to_string(),
-            network: network_ref,
-            address: self.address,
-            decimals: self.decimals,
-            label: self.label,
-            symbol: self.symbol,
-        })
     }
 }
 
@@ -412,85 +387,6 @@ mod tests {
         let mut networks = HashMap::new();
         networks.insert("TestNetwork".to_string(), network);
         networks
-    }
-
-    #[test]
-    fn test_token_creation_success_with_all_fields() {
-        let networks = setup_networks();
-        let token_string = TokenConfigSource {
-            network: "TestNetwork".to_string(),
-            address: Address::repeat_byte(0x01),
-            decimals: Some(18),
-            label: Some("TestToken".to_string()),
-            symbol: Some("TTK".to_string()),
-        };
-
-        let token = token_string.try_into_token("TestNetwork", &networks);
-
-        assert!(token.is_ok());
-        let token = token.unwrap();
-
-        assert_eq!(token.key, "TestNetwork");
-        assert_eq!(
-            Arc::as_ptr(&token.network),
-            Arc::as_ptr(networks.get("TestNetwork").unwrap())
-        );
-        assert_eq!(token.address, Address::repeat_byte(0x01));
-        assert_eq!(token.decimals, Some(18));
-        assert_eq!(token.label, Some("TestToken".to_string()));
-        assert_eq!(token.symbol, Some("TTK".to_string()));
-    }
-
-    #[test]
-    fn test_token_creation_success_with_minimal_fields() {
-        let networks = setup_networks();
-        let token_string = TokenConfigSource {
-            network: "TestNetwork".to_string(),
-            address: Address::repeat_byte(0x01),
-            decimals: None,
-            label: None,
-            symbol: None,
-        };
-
-        let token = token_string.try_into_token("TestNetwork", &networks);
-
-        assert!(token.is_ok());
-        let token = token.unwrap();
-
-        assert_eq!(token.key, "TestNetwork");
-        assert_eq!(
-            Arc::as_ptr(&token.network),
-            Arc::as_ptr(networks.get("TestNetwork").unwrap())
-        );
-        assert_eq!(token.address, Address::repeat_byte(0x01));
-        assert_eq!(token.decimals, None);
-        assert_eq!(token.label, None);
-        assert_eq!(token.symbol, None);
-    }
-
-    #[test]
-    fn test_token_creation_failure_due_to_invalid_network() {
-        let networks = setup_networks();
-        let token_string = TokenConfigSource {
-            network: "InvalidNetwork".to_string(),
-            address: Address::repeat_byte(0x01),
-            decimals: None,
-            label: None,
-            symbol: None,
-        };
-
-        let token = token_string.try_into_token("TestNetwork", &networks);
-
-        assert!(token.is_err());
-        let error = token.unwrap_err();
-        assert_eq!(
-            error,
-            ParseTokenConfigSourceError::NetworkNotFoundError("InvalidNetwork".to_string())
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "The network 'InvalidNetwork' specified for this token was not found in your YAML configuration. Please define this network or use an existing one."
-        );
     }
 
     #[test]
