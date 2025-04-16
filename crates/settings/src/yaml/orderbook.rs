@@ -122,6 +122,10 @@ impl OrderbookYaml {
         let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(tokens.keys().cloned().collect())
     }
+    pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+    }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
@@ -140,6 +144,10 @@ impl OrderbookYaml {
         let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(subgraphs.keys().cloned().collect())
     }
+    pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
+        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(subgraphs)
+    }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
@@ -148,6 +156,10 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(orderbooks.keys().cloned().collect())
+    }
+    pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -167,6 +179,10 @@ impl OrderbookYaml {
         let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(metaboards.keys().cloned().collect())
     }
+    pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
+        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(metaboards)
+    }
     pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
         MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
@@ -178,6 +194,10 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(deployers.keys().cloned().collect())
+    }
+    pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;

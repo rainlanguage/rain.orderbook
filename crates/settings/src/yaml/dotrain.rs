@@ -86,6 +86,10 @@ impl DotrainYaml {
         let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(orders.keys().cloned().collect())
     }
+    pub fn get_orders(&self) -> Result<HashMap<String, OrderCfg>, YamlError> {
+        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(orders)
+    }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
         self.expand_context_with_current_order(&mut context, Some(key.to_string()));
@@ -99,6 +103,10 @@ impl DotrainYaml {
         let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(scenarios.keys().cloned().collect())
     }
+    pub fn get_scenarios(&self) -> Result<HashMap<String, ScenarioCfg>, YamlError> {
+        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(scenarios)
+    }
     pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
         ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
@@ -106,6 +114,10 @@ impl DotrainYaml {
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
         let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(deployments.keys().cloned().collect())
+    }
+    pub fn get_deployments(&self) -> Result<HashMap<String, DeploymentCfg>, YamlError> {
+        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(deployments)
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
@@ -129,7 +141,10 @@ impl DotrainYaml {
         let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
         Ok(charts.keys().cloned().collect())
     }
-
+    pub fn get_charts(&self) -> Result<HashMap<String, ChartCfg>, YamlError> {
+        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(charts)
+    }
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
         ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
