@@ -4,9 +4,9 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
-    ParseNetworkCfgError, ParseOrderConfigSourceError, ParseOrderbookCfgError,
-    ParseScenarioCfgError, ParseTokenCfgError, TokenCfg,
+    NetworkCfg, ParseDeployerCfgError, ParseDeploymentConfigSourceError, ParseNetworkCfgError,
+    ParseOrderConfigSourceError, ParseOrderbookCfgError, ParseScenarioCfgError, ParseTokenCfgError,
+    TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
@@ -180,7 +180,7 @@ pub enum YamlError {
     #[error(transparent)]
     ParseOrderbookCfgError(#[from] ParseOrderbookCfgError),
     #[error(transparent)]
-    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    ParseDeployerCfgError(#[from] ParseDeployerCfgError),
     #[error(transparent)]
     ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
     #[error(transparent)]
@@ -222,10 +222,7 @@ impl PartialEq for YamlError {
             (Self::ParseNetworkCfgError(e1), Self::ParseNetworkCfgError(e2)) => e1 == e2,
             (Self::ParseTokenCfgError(e1), Self::ParseTokenCfgError(e2)) => e1 == e2,
             (Self::ParseOrderbookCfgError(e1), Self::ParseOrderbookCfgError(e2)) => e1 == e2,
-            (
-                Self::ParseDeployerConfigSourceError(e1),
-                Self::ParseDeployerConfigSourceError(e2),
-            ) => e1 == e2,
+            (Self::ParseDeployerCfgError(e1), Self::ParseDeployerCfgError(e2)) => e1 == e2,
             (Self::ParseOrderConfigSourceError(e1), Self::ParseOrderConfigSourceError(e2)) => {
                 e1 == e2
             }
@@ -300,7 +297,7 @@ impl YamlError {
                 "Orderbook configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseDeployerConfigSourceError(err) => format!(
+            YamlError::ParseDeployerCfgError(err) => format!(
                 "Deployer configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
