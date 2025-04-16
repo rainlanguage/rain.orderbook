@@ -5,7 +5,7 @@ pub mod orderbook;
 
 use crate::{
     NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
-    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseNetworkCfgError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
     ParseScenarioCfgError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
@@ -174,7 +174,7 @@ pub enum YamlError {
     InvalidTraitFunction,
 
     #[error(transparent)]
-    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
+    ParseNetworkCfgError(#[from] ParseNetworkCfgError),
     #[error(transparent)]
     ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
     #[error(transparent)]
@@ -219,9 +219,7 @@ impl PartialEq for YamlError {
             (Self::RuintParseError(e1), Self::RuintParseError(e2)) => {
                 e1.to_string() == e2.to_string()
             }
-            (Self::ParseNetworkConfigSourceError(e1), Self::ParseNetworkConfigSourceError(e2)) => {
-                e1 == e2
-            }
+            (Self::ParseNetworkCfgError(e1), Self::ParseNetworkCfgError(e2)) => e1 == e2,
             (Self::ParseTokenConfigSourceError(e1), Self::ParseTokenConfigSourceError(e2)) => {
                 e1 == e2
             }
@@ -296,7 +294,7 @@ impl YamlError {
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
-            YamlError::ParseNetworkConfigSourceError(err) => {
+            YamlError::ParseNetworkCfgError(err) => {
                 format!("Network configuration error in your YAML: {}", err)
             }
             YamlError::ParseTokenConfigSourceError(err) => format!(
