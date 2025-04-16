@@ -113,7 +113,7 @@
 	/>
 	<AppTable
 		{query}
-		queryKey={undefined}
+		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
