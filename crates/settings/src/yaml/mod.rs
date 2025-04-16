@@ -4,7 +4,7 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    NetworkCfg, ParseDeployerCfgError, ParseDeploymentConfigSourceError, ParseNetworkCfgError,
+    NetworkCfg, ParseDeployerCfgError, ParseDeploymentCfgError, ParseNetworkCfgError,
     ParseOrderConfigSourceError, ParseOrderbookCfgError, ParseScenarioCfgError, ParseTokenCfgError,
     TokenCfg,
 };
@@ -186,7 +186,7 @@ pub enum YamlError {
     #[error(transparent)]
     ParseScenarioCfgError(#[from] ParseScenarioCfgError),
     #[error(transparent)]
-    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    ParseDeploymentCfgError(#[from] ParseDeploymentCfgError),
     #[error(transparent)]
     ContextError(#[from] ContextError),
 }
@@ -227,10 +227,7 @@ impl PartialEq for YamlError {
                 e1 == e2
             }
             (Self::ParseScenarioCfgError(e1), Self::ParseScenarioCfgError(e2)) => e1 == e2,
-            (
-                Self::ParseDeploymentConfigSourceError(e1),
-                Self::ParseDeploymentConfigSourceError(e2),
-            ) => e1 == e2,
+            (Self::ParseDeploymentCfgError(e1), Self::ParseDeploymentCfgError(e2)) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
             _ => false,
         }
@@ -309,7 +306,7 @@ impl YamlError {
                 "Scenario configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseDeploymentConfigSourceError(err) => format!(
+            YamlError::ParseDeploymentCfgError(err) => format!(
                 "Deployment configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
