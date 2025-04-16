@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from './icon/Refresh.svelte';
 	import type { CreateInfiniteQueryResult, InfiniteData } from '@tanstack/svelte-query';
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
@@ -10,7 +10,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	export let queryKey: string | undefined;
+	export let queryKey: string;
 	// eslint-disable-next-line no-undef
 	export let query: CreateInfiniteQueryResult<InfiniteData<T[], unknown>, Error>;
 	export let emptyMessage: string = 'None found';
@@ -27,9 +27,8 @@
 		spin={$query.isLoading || $query.isFetching}
 		on:click={async () => {
 			if (queryKey) {
-				await invalidateIdQuery(queryClient, queryKey);
+				invalidateTanstackQueries(queryClient, [queryKey]);
 			}
-			$query.refetch();
 		}}
 	/>
 </div>
