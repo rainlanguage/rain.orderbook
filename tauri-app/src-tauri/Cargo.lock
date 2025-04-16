@@ -6103,10 +6103,11 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.69"
+version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29c15563dc2726973df627357ce0c9ddddbea194836909d655df6a75d2cf296d"
+checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
+ "once_cell",
  "wasm-bindgen",
 ]
 
@@ -8128,7 +8129,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils 0.0.6",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8174,7 +8175,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils 0.0.6",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8276,7 +8277,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8285,7 +8286,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "serde",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8322,7 +8323,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8355,7 +8356,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8376,7 +8377,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -10493,7 +10494,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid 1.10.0",
- "wasm-bindgen-utils 0.0.6",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -11760,21 +11761,6 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils"
-version = "0.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04293ba23e84c21b0d42179abedf35e6eb082bd6f06bce7a42a8dd8e0b2b589f"
-dependencies = [
- "js-sys",
- "paste",
- "serde",
- "serde-wasm-bindgen 0.6.5",
- "tsify",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "wasm-bindgen-utils"
 version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1275439b9979266e83596c1d8853fde5efc5f3b7316bf7b4d37fee8b05da26d2"
@@ -11802,9 +11788,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.69"
+version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77afa9a11836342370f4817622a2f0f418b134426d91a82dfb48f532d2ec13ef"
+checksum = "33b6dd2ef9186f1f2072e409e99cd22a975331a6b3591b12c764e0e55c60d5d2"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
