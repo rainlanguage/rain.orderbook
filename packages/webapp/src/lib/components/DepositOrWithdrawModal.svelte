@@ -140,30 +140,34 @@
 			</h3>
 
 			<div class="h-10">
-				{#await getUserBalance() then userBalance}
-					{#if userBalance || userBalance === 0n}
-						<div in:fade class="w-full flex-col justify-between">
-							<div class="flex justify-between">
-								<p>
-									Balance of connected wallet <span class="text-green-500"
-										>{truncateEthAddress(account)}</span
-									>
-								</p>
-								<p in:fade>
-									{formatUnits(userBalance, Number(vault.token.decimals))}
-									{vault.token.symbol}
-								</p>
+				{#if account}
+					{#await getUserBalance() then userBalance}
+						{#if userBalance || userBalance === 0n}
+							<div in:fade class="w-full flex-col justify-between">
+								<div class="flex justify-between">
+									<p>
+										Balance of connected wallet <span class="text-green-500"
+											>{truncateEthAddress(account)}</span
+										>
+									</p>
+									<p in:fade>
+										{formatUnits(userBalance, Number(vault.token.decimals))}
+										{vault.token.symbol}
+									</p>
+								</div>
+								<div class="flex justify-between">
+									<p>Balance of vault</p>
+									<p in:fade>
+										{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
+										{vault.token.symbol}
+									</p>
+								</div>
 							</div>
-							<div class="flex justify-between">
-								<p>Balance of vault</p>
-								<p in:fade>
-									{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
-									{vault.token.symbol}
-								</p>
-							</div>
-						</div>
-					{/if}
-				{/await}
+						{/if}
+					{/await}
+				{:else}
+					<p>Connect your wallet to continue.</p>
+				{/if}
 			</div>
 			<InputTokenAmount
 				bind:value={amount}

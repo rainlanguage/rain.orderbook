@@ -419,6 +419,7 @@ describe('DepositOrWithdrawModal', () => {
 		});
 
 		await waitFor(() => {
+			expect(screen.getByText('Connect your wallet to continue.')).toBeInTheDocument();
 			expect(screen.queryByTestId('deposit-withdraw-button')).not.toBeInTheDocument();
 		});
 	});
