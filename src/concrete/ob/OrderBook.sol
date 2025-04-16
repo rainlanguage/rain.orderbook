@@ -462,10 +462,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             if (!remainingTakerInput.gt(Float(0, 0))) {
                 revert ZeroMaximumInput();
             }
-            Float memory maximumInput = Float({
-                signedCoefficient: remainingTakerInput.signedCoefficient,
-                exponent: remainingTakerInput.exponent
-            });
 
             uint256 i = 0;
             while (i < config.orders.length && remainingTakerInput.gt(Float(0, 0))) {
@@ -523,6 +519,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         remainingTakerInput = remainingTakerInput.sub(takerInput);
 
                         totalTakerOutput = totalTakerOutput.add(takerOutput);
+                        totalTakerInput = totalTakerInput.add(takerInput);
 
                         recordVaultIO(takerOutput, takerInput, orderIOCalculation);
                         emit TakeOrderV3(msg.sender, takeOrderConfig, takerInput, takerOutput);
@@ -545,7 +542,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     i++;
                 }
             }
-            totalTakerInput = maximumInput.sub(remainingTakerInput);
         }
 
         {
@@ -710,7 +706,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     (TOFUOutcome inputOutcome, uint8 inputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
                         sTOFUTokenDecimals, order.validInputs[inputIOIndex].token
                     );
-                    if (inputOutcome != TOFUOutcome.Consistent) {
+                    if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
 
@@ -730,7 +726,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
                         sTOFUTokenDecimals, order.validOutputs[outputIOIndex].token
                     );
-                    if (outputOutcome != TOFUOutcome.Consistent) {
+                    if (outputOutcome != TOFUOutcome.Consistent && outputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
 
@@ -784,12 +780,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 PackedFloat orderIORatioPacked;
                 PackedFloat orderOutputMaxPacked;
                 assembly ("memory-safe") {
-                    orderIORatio := mload(add(calculateOrderStack, 0x20))
-                    orderOutputMax := mload(add(calculateOrderStack, 0x40))
+                    orderIORatioPacked := mload(add(calculateOrderStack, 0x20))
+                    orderOutputMaxPacked := mload(add(calculateOrderStack, 0x40))
                 }
-                (orderIORatio.signedCoefficient, orderIORatio.exponent) = LibDecimalFloat.unpack(orderIORatioPacked);
-                (orderOutputMax.signedCoefficient, orderOutputMax.exponent) =
-                    LibDecimalFloat.unpack(orderOutputMaxPacked);
+                orderIORatio = orderIORatioPacked.unpackMem();
+                orderOutputMax = orderOutputMaxPacked.unpackMem();
             }
 
             {
@@ -1005,7 +1000,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // made before a push can be made, and this will have initialized the
         // token decimals.
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
-        if (tofuOutcome == TOFUOutcome.Initial) {
+        if (tofuOutcome != TOFUOutcome.Consistent) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
 

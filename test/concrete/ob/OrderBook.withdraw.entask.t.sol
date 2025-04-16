@@ -281,7 +281,9 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
 
         vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18), abi.encode(true)
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18),
+            abi.encode(true)
         );
 
         bytes[] memory evals = new bytes[](1);
