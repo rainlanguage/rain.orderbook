@@ -5,7 +5,7 @@ pub mod orderbook;
 
 use crate::{
     NetworkCfg, ParseDeployerCfgError, ParseDeploymentCfgError, ParseNetworkCfgError,
-    ParseOrderConfigSourceError, ParseOrderbookCfgError, ParseScenarioCfgError, ParseTokenCfgError,
+    ParseOrderCfgError, ParseOrderbookCfgError, ParseScenarioCfgError, ParseTokenCfgError,
     TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
@@ -182,7 +182,7 @@ pub enum YamlError {
     #[error(transparent)]
     ParseDeployerCfgError(#[from] ParseDeployerCfgError),
     #[error(transparent)]
-    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    ParseOrderCfgError(#[from] ParseOrderCfgError),
     #[error(transparent)]
     ParseScenarioCfgError(#[from] ParseScenarioCfgError),
     #[error(transparent)]
@@ -223,9 +223,7 @@ impl PartialEq for YamlError {
             (Self::ParseTokenCfgError(e1), Self::ParseTokenCfgError(e2)) => e1 == e2,
             (Self::ParseOrderbookCfgError(e1), Self::ParseOrderbookCfgError(e2)) => e1 == e2,
             (Self::ParseDeployerCfgError(e1), Self::ParseDeployerCfgError(e2)) => e1 == e2,
-            (Self::ParseOrderConfigSourceError(e1), Self::ParseOrderConfigSourceError(e2)) => {
-                e1 == e2
-            }
+            (Self::ParseOrderCfgError(e1), Self::ParseOrderCfgError(e2)) => e1 == e2,
             (Self::ParseScenarioCfgError(e1), Self::ParseScenarioCfgError(e2)) => e1 == e2,
             (Self::ParseDeploymentCfgError(e1), Self::ParseDeploymentCfgError(e2)) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
@@ -298,7 +296,7 @@ impl YamlError {
                 "Deployer configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseOrderConfigSourceError(err) => format!(
+            YamlError::ParseOrderCfgError(err) => format!(
                 "Order configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
