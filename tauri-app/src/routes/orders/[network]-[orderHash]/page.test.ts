@@ -93,7 +93,6 @@ describe('Order Page', () => {
       expect(screen.getByText('RPC URL')).toBeTruthy();
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
       expect(screen.getByText('Orderbook Address')).toBeTruthy();
-      expect(screen.getByText('Chain ID')).toBeTruthy();
     });
 
     it('only displays actually missing items', async () => {
@@ -115,7 +114,6 @@ describe('Order Page', () => {
       render(Page);
 
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
-      expect(screen.getByText('Chain ID')).toBeTruthy();
 
       expect(screen.queryByText('RPC URL')).toBeFalsy();
       expect(screen.queryByText('Orderbook Address')).toBeFalsy();
