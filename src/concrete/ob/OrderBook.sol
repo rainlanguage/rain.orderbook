@@ -318,6 +318,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         vaultId,
                         PackedFloat.unwrap(currentVaultBalance.pack()),
                         PackedFloat.unwrap(withdrawAmount.pack()),
+                        PackedFloat.unwrap(targetAmount.pack()),
                         bytes32(uint256(decimals))
                     )
                 ),
