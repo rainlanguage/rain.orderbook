@@ -1,7 +1,6 @@
 pub mod blocks;
 pub mod chart;
 pub mod config;
-pub mod config_source;
 pub mod deployer;
 pub mod deployment;
 pub mod gui;
@@ -23,7 +22,6 @@ pub mod unit_test;
 pub mod yaml;
 
 pub(crate) use chart::*;
-pub(crate) use config_source::*;
 pub(crate) use deployer::*;
 pub(crate) use deployment::*;
 pub(crate) use gui::*;
