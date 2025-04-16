@@ -16,7 +16,7 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
@@ -58,13 +58,7 @@
 	};
 
 	const interval = setInterval(async () => {
-		// This invalidate function invalidates
-		// both vault detail and vault balance changes queries
-		await queryClient.invalidateQueries({
-			queryKey: [id],
-			refetchType: 'active',
-			exact: false
-		});
+		invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
 	}, 5000);
 
 	onDestroy(() => {
@@ -103,7 +97,8 @@
 			{/if}
 
 			<Refresh
-				on:click={async () => await invalidateIdQuery(queryClient, id)}
+				testId="top-refresh"
+				on:click={() => invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id])}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
 			/>
 		</div>

@@ -10,6 +10,7 @@ import type { ComponentProps } from 'svelte';
 import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook';
 type VaultDetailProps = ComponentProps<VaultDetail>;
 import { useAccount } from '../lib/providers/wallet/useAccount';
+import { QKEY_VAULT } from '$lib/queries/keys';
 
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -178,10 +179,10 @@ describe('VaultDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.findAllByTestId('refresh-button');
-			await userEvent.click(refreshButton[0]);
+			const refreshButton = await screen.getByTestId('top-refresh');
+			await userEvent.click(refreshButton);
 			expect(invalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['100'],
+				queryKey: ['100', QKEY_VAULT + '100'],
 				refetchType: 'all',
 				exact: false
 			});

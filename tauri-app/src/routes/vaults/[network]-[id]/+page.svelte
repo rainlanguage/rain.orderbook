@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageHeader } from '@rainlanguage/ui-components';
+  import { invalidateTanstackQueries, PageHeader } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { VaultDetail } from '@rainlanguage/ui-components';
   import { lightweightChartsTheme } from '$lib/stores/darkMode';
@@ -10,23 +10,15 @@
 
   const queryClient = useQueryClient();
 
-  function invalidateVaultDetailQuery() {
-    queryClient.invalidateQueries({
-      queryKey: [$page.params.id],
-      refetchType: 'all',
-      exact: false,
-    });
-  }
-
   function onDeposit(vault: SgVault) {
     handleDepositModal(vault, () => {
-      invalidateVaultDetailQuery();
+      invalidateTanstackQueries(queryClient, [$page.params.id]);
     });
   }
 
   function onWithdraw(vault: SgVault) {
     handleWithdrawModal(vault, () => {
-      invalidateVaultDetailQuery();
+      invalidateTanstackQueries(queryClient, [$page.params.id]);
     });
   }
 </script>
