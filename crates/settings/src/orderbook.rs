@@ -34,8 +34,8 @@ pub struct OrderbookCfg {
 impl_wasm_traits!(OrderbookCfg);
 
 impl OrderbookCfg {
-    pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookConfigSourceError> {
-        Address::from_str(address).map_err(ParseOrderbookConfigSourceError::AddressParseError)
+    pub fn validate_address(address: &str) -> Result<Address, ParseOrderbookCfgError> {
+        Address::from_str(address).map_err(ParseOrderbookCfgError::AddressParseError)
     }
 
     pub fn parse_network_key(
@@ -184,7 +184,7 @@ impl PartialEq for OrderbookCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseOrderbookConfigSourceError {
+pub enum ParseOrderbookCfgError {
     #[error("Failed to parse address")]
     AddressParseError(FromHexError),
     #[error("Network not found for Orderbook: {0}")]
@@ -193,64 +193,16 @@ pub enum ParseOrderbookConfigSourceError {
     SubgraphNotFoundError(String),
 }
 
-impl ParseOrderbookConfigSourceError {
+impl ParseOrderbookCfgError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseOrderbookConfigSourceError::AddressParseError(err) =>
+            ParseOrderbookCfgError::AddressParseError(err) =>
                 format!("The orderbook address in your YAML configuration is invalid. Please provide a valid EVM address: {}", err),
-            ParseOrderbookConfigSourceError::NetworkNotFoundError(network) =>
+            ParseOrderbookCfgError::NetworkNotFoundError(network) =>
                 format!("The network '{}' specified for this orderbook was not found in your YAML configuration. Please define this network or use an existing one.", network),
-            ParseOrderbookConfigSourceError::SubgraphNotFoundError(subgraph) =>
+            ParseOrderbookCfgError::SubgraphNotFoundError(subgraph) =>
                 format!("The subgraph '{}' specified for this orderbook was not found in your YAML configuration. Please define this subgraph or use an existing one.", subgraph),
         }
-    }
-}
-
-impl OrderbookConfigSource {
-    pub fn try_into_orderbook(
-        self,
-        name: String,
-        networks: &HashMap<String, Arc<NetworkCfg>>,
-        subgraphs: &HashMap<String, Arc<SubgraphCfg>>,
-    ) -> Result<OrderbookCfg, ParseOrderbookConfigSourceError> {
-        let network_ref = match self.network {
-            Some(network_name) => networks
-                .get(&network_name)
-                .ok_or(ParseOrderbookConfigSourceError::NetworkNotFoundError(
-                    network_name.clone(),
-                ))
-                .map(Arc::clone)?,
-            None => networks
-                .get(&name)
-                .ok_or(ParseOrderbookConfigSourceError::NetworkNotFoundError(
-                    name.clone(),
-                ))
-                .map(Arc::clone)?,
-        };
-
-        let subgraph_ref = match self.subgraph {
-            Some(subgraph_name) => subgraphs
-                .get(&subgraph_name)
-                .ok_or(ParseOrderbookConfigSourceError::SubgraphNotFoundError(
-                    subgraph_name.clone(),
-                ))
-                .map(Arc::clone)?,
-            None => subgraphs
-                .get(&name)
-                .ok_or(ParseOrderbookConfigSourceError::SubgraphNotFoundError(
-                    name.clone(),
-                ))
-                .map(Arc::clone)?,
-        };
-
-        Ok(OrderbookCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: name,
-            address: self.address,
-            network: network_ref,
-            subgraph: subgraph_ref,
-            label: self.label,
-        })
     }
 }
 
@@ -258,7 +210,6 @@ impl OrderbookConfigSource {
 mod tests {
     use super::*;
     use crate::test::*;
-    use alloy::primitives::Address;
     use strict_yaml_rust::StrictYamlLoader;
 
     fn setup() -> (
@@ -275,89 +226,6 @@ mod tests {
         subgraphs.insert("TestSubgraph".to_string(), subgraph);
 
         (networks, subgraphs)
-    }
-
-    #[test]
-    fn test_orderbook_creation_success() {
-        let (networks, subgraphs) = setup();
-        let address = "0x1234567890123456789012345678901234567890"
-            .parse::<Address>()
-            .unwrap();
-        let orderbook_string = OrderbookConfigSource {
-            address,
-            network: Some("TestNetwork".to_string()),
-            subgraph: Some("TestSubgraph".to_string()),
-            label: Some("TestLabel".to_string()),
-        };
-
-        let orderbook =
-            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
-
-        assert!(orderbook.is_ok());
-        let orderbook = orderbook.unwrap();
-
-        assert_eq!(orderbook.address, address);
-        assert_eq!(
-            Arc::as_ptr(&orderbook.network),
-            Arc::as_ptr(networks.get("TestNetwork").unwrap())
-        );
-        assert_eq!(
-            Arc::as_ptr(&orderbook.subgraph),
-            Arc::as_ptr(subgraphs.get("TestSubgraph").unwrap())
-        );
-        assert_eq!(orderbook.label, Some("TestLabel".to_string()));
-    }
-
-    #[test]
-    fn test_orderbook_creation_with_missing_network() {
-        let (networks, subgraphs) = setup();
-        let orderbook_string = OrderbookConfigSource {
-            address: Address::random(),
-            network: Some("NonExistingNetwork".to_string()),
-            subgraph: Some("TestSubgraph".to_string()),
-            label: None,
-        };
-
-        let result =
-            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert_eq!(
-            error,
-            ParseOrderbookConfigSourceError::NetworkNotFoundError("NonExistingNetwork".to_string())
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "The network 'NonExistingNetwork' specified for this orderbook was not found in your YAML configuration. Please define this network or use an existing one."
-        );
-    }
-
-    #[test]
-    fn test_orderbook_creation_with_missing_subgraph() {
-        let (networks, subgraphs) = setup();
-        let orderbook_string = OrderbookConfigSource {
-            address: Address::random(),
-            network: Some("TestNetwork".to_string()),
-            subgraph: Some("NonExistingSubgraph".to_string()),
-            label: None,
-        };
-
-        let result =
-            orderbook_string.try_into_orderbook("TestName".to_string(), &networks, &subgraphs);
-
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert_eq!(
-            error,
-            ParseOrderbookConfigSourceError::SubgraphNotFoundError(
-                "NonExistingSubgraph".to_string()
-            )
-        );
-        assert_eq!(
-            error.to_readable_msg(),
-            "The subgraph 'NonExistingSubgraph' specified for this orderbook was not found in your YAML configuration. Please define this subgraph or use an existing one."
-        );
     }
 
     fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
