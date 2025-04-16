@@ -94,8 +94,6 @@
         {/if}
       </ul>
     </div>
-    <a href="/settings">
-      <Button>Go to settings</Button>
-    </a>
+    <Button href="/settings">Go to settings</Button>
   </div>
 {/if}
