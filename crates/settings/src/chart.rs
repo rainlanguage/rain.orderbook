@@ -12,7 +12,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::StrictYaml;
-use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
