@@ -204,9 +204,9 @@ impl OrderbookYaml {
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_sentry(&self) -> Result<bool, YamlError> {
+    pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
         let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
-        Ok(value.map_or(false, |v| v == "true"))
+        Ok(value.map(|v| v == "true"))
     }
 
     pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {
@@ -429,7 +429,7 @@ mod tests {
             "mainnet"
         );
 
-        assert!(ob_yaml.get_sentry().unwrap());
+        assert_eq!(ob_yaml.get_sentry().unwrap(), Some(true));
 
         assert_eq!(
             ob_yaml.get_raindex_version().unwrap(),
