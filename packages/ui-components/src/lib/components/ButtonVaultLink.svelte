@@ -13,10 +13,10 @@
 	data-testid="vault-link"
 >
 	<div class="flex flex-col items-start gap-y-2">
-		<Tooltip triggeredBy="#token-info">
+		<Tooltip triggeredBy={`#token-info-${tokenVault.vaultId}`}>
 			ID: <span class="font-mono">{bigintStringToHex(tokenVault.vaultId)}</span>
 		</Tooltip>
-		<a href={`/vaults/${subgraphName}-${tokenVault.id}`} id="token-info">
+		<a href={`/vaults/${subgraphName}-${tokenVault.id}`} id={`token-info-${tokenVault.vaultId}`}>
 			{tokenVault.token.name} ({tokenVault.token.symbol})
 		</a>
 		<span class="text-sm text-gray-500 dark:text-gray-400">
