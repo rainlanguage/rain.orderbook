@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
+	import { DotrainOrderGui } from '@rainlanguage/orderbook';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
 
@@ -26,7 +26,12 @@
 
 	const getStrategyWithMarkdown = async () => {
 		try {
-			const strategyDetails = await DotrainOrderGui.getStrategyDetails(dotrain);
+			const result = await DotrainOrderGui.getStrategyDetails(dotrain);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			const strategyDetails = result.value;
+
 			if (strategyDetails.description && isMarkdownUrl(strategyDetails.description)) {
 				await fetchMarkdownContent(strategyDetails.description);
 			}

@@ -8,7 +8,7 @@
 		type SgDeposit,
 		type SgTradeVaultBalanceChange,
 		type SgWithdrawal
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
@@ -40,7 +40,7 @@
 
 <AppTable
 	query={balanceChangesQuery}
-	queryKey={undefined}
+	queryKey={id}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
 >

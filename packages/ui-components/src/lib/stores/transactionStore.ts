@@ -4,19 +4,19 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositAndAddOrderCalldataResult,
 	DepositCalldataResult,
 	SgTransaction,
 	RemoveOrderCalldata,
 	SgVault,
 	WithdrawCalldataResult
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook/js_api';
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../services/getExplorerLink';
+import type { DeploymentArgs } from '$lib/types/transaction';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -38,7 +38,7 @@ export enum TransactionStatus {
 export enum TransactionErrorMessage {
 	BAD_CALLLDATA = 'Bad calldata.',
 	DEPLOY_FAILED = 'Lock transaction failed.',
-	TIMEOUT = 'Transaction timed out.',
+	TIMEOUT = 'The subgraph took too long to respond. Please check the transaction link.',
 	APPROVAL_FAILED = 'Approval transaction failed.',
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
@@ -51,14 +51,9 @@ export enum TransactionErrorMessage {
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
-export type DeploymentTransactionArgs = {
+export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
+export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
 	config: Config;
-	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl: string;
-	network: string;
 };
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -104,7 +99,7 @@ export type TransactionStore = {
 	transactionError: (message: TransactionErrorMessage, hash?: string) => void;
 };
 
-const initialState: TransactionState = {
+export const initialState: TransactionState = {
 	status: TransactionStatus.IDLE,
 	error: '',
 	hash: '',
@@ -119,6 +114,11 @@ const initialState: TransactionState = {
 const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
+
+	const returnError = (interval: NodeJS.Timeout) => {
+		clearInterval(interval);
+		return transactionError(TransactionErrorMessage.TIMEOUT);
+	};
 
 	const awaitTransactionIndexing = async (
 		subgraphUrl: string,
@@ -137,17 +137,20 @@ const transactionStore = () => {
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
 
-			newTx = await getTransaction(subgraphUrl, txHash);
-			if (newTx) {
-				clearInterval(interval);
-				transactionSuccess(txHash, successMessage);
-			} else if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
+			try {
+				newTx = await getTransaction(subgraphUrl, txHash);
+				if (newTx) {
+					clearInterval(interval);
+					transactionSuccess(txHash, successMessage);
+				} else if (attempts >= 10) {
+					update((state) => ({
+						...state,
+						message: 'The subgraph took too long to respond. Please check again later.'
+					}));
+					return returnError(interval);
+				}
+			} catch {
+				return returnError(interval);
 			}
 		}, 1000);
 	};
@@ -162,17 +165,16 @@ const transactionStore = () => {
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
-			if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (addOrders?.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+			try {
+				const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
+				if (attempts >= 10) {
+					return returnError(interval);
+				} else if (addOrders?.length > 0) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
+				}
+			} catch {
+				return returnError(interval);
 			}
 		}, 1000);
 	};
@@ -187,17 +189,20 @@ const transactionStore = () => {
 		let attempts = 0;
 		const interval: NodeJS.Timeout = setInterval(async () => {
 			attempts++;
-			const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
-			if (attempts >= 10) {
-				update((state) => ({
-					...state,
-					message: 'The subgraph took too long to respond. Please check again later.'
-				}));
-				clearInterval(interval);
-				return transactionError(TransactionErrorMessage.TIMEOUT);
-			} else if (removeOrders?.length > 0) {
-				clearInterval(interval);
-				return transactionSuccess(txHash);
+			try {
+				const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
+				if (attempts >= 10) {
+					update((state) => ({
+						...state,
+						message: 'The subgraph took too long to respond. Please check again later.'
+					}));
+					return returnError(interval);
+				} else if (removeOrders?.length > 0) {
+					clearInterval(interval);
+					return transactionSuccess(txHash, 'Order removed successfully');
+				}
+			} catch {
+				return returnError(interval);
 			}
 		}, 1000);
 	};
@@ -249,11 +254,11 @@ const transactionStore = () => {
 			network: network || ''
 		}));
 	};
-	const transactionError = (message: TransactionErrorMessage, hash?: string) =>
+	const transactionError = (error: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
 			status: TransactionStatus.ERROR,
-			error: message,
+			error: error,
 			hash: hash || ''
 		}));
 
@@ -306,7 +311,15 @@ const transactionStore = () => {
 			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
-			return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			if (subgraphUrl) {
+				return awaitNewOrderIndexing(subgraphUrl, hash, network);
+			}
+			return transactionSuccess(
+				hash,
+				'Deployment successful. Check the Orders page for your new order.',
+				'',
+				network
+			);
 		} catch {
 			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}

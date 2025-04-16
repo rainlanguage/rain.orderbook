@@ -2,7 +2,6 @@
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
 
   import {
     activeOrderbook,
@@ -41,7 +40,6 @@
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
 <VaultsListTable
-  {walletAddressMatchesOrBlank}
   {activeAccounts}
   {activeOrderbook}
   {subgraphUrl}
@@ -59,5 +57,4 @@
   {handleWithdrawModal}
   {currentRoute}
   showMyItemsOnly={writable(false)}
-  signerAddress={writable('')}
 />

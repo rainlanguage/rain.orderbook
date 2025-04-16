@@ -1,25 +1,27 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type {
-		DotrainOrderGui,
-		GuiSelectTokensCfg,
-		TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import type { GuiSelectTokensCfg, TokenInfo } from '@rainlanguage/orderbook';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	export let token: GuiSelectTokensCfg;
-	export let gui: DotrainOrderGui;
 	export let onSelectTokenSelect: () => void;
 	let inputValue: string | null = null;
 	let tokenInfo: TokenInfo | null = null;
 	let error = '';
 	let checking = false;
 
+	const gui = useGui();
+
 	onMount(async () => {
 		try {
-			tokenInfo = await gui?.getTokenInfo(token.key);
+			let result = await gui.getTokenInfo(token.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 			if (tokenInfo?.address) {
 				inputValue = tokenInfo.address;
 			}
@@ -31,7 +33,11 @@
 	async function getInfoForSelectedToken() {
 		error = '';
 		try {
-			tokenInfo = await gui.getTokenInfo(token.key);
+			let result = await gui.getTokenInfo(token.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 			error = '';
 		} catch {
 			return (error = 'No token exists at this address.');
@@ -48,11 +54,7 @@
 			}
 			checking = true;
 			try {
-				if (gui.isSelectTokenSet(token.key)) {
-					await gui.replaceSelectToken(token.key, currentTarget.value);
-				} else {
-					await gui.saveSelectToken(token.key, currentTarget.value);
-				}
+				await gui.saveSelectToken(token.key, currentTarget.value);
 				await getInfoForSelectedToken();
 			} catch (e) {
 				const errorMessage = (e as Error).message ? (e as Error).message : 'Invalid token address.';

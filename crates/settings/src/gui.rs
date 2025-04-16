@@ -289,6 +289,18 @@ pub struct NameAndDescriptionCfg {
 impl_wasm_traits!(NameAndDescriptionCfg);
 
 impl GuiCfg {
+    pub fn check_gui_key_exists(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+    ) -> Result<bool, YamlError> {
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+            if optional_hash(&document_read, "gui").is_some() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     pub fn parse_deployment_keys(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
     ) -> Result<Vec<String>, YamlError> {
@@ -453,12 +465,14 @@ impl GuiCfg {
                         Some(location.clone()),
                     )?;
 
+                    let short_description = optional_string(deployment_yaml, "short-description");
+
                     deployment_details.insert(
                         deployment_key,
                         NameAndDescriptionCfg {
                             name,
                             description,
-                            short_description: None,
+                            short_description,
                         },
                     );
                 }
@@ -562,7 +576,7 @@ impl YamlParseableValue for GuiCfg {
         let mut gui_res: Option<GuiCfg> = None;
         let mut gui_deployments_res: HashMap<String, GuiDeploymentCfg> = HashMap::new();
 
-        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), None);
+        let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -795,7 +809,10 @@ impl YamlParseableValue for GuiCfg {
                     };
 
                     if gui_deployments_res.contains_key(&deployment_name) {
-                        return Err(YamlError::KeyShadowing(deployment_name));
+                        return Err(YamlError::KeyShadowing(
+                            deployment_name.clone(),
+                            "gui deployment".to_string(),
+                        ));
                     }
                     gui_deployments_res.insert(deployment_name, gui_deployment);
                 }
@@ -1788,7 +1805,10 @@ gui:
         )
         .unwrap_err();
 
-        assert_eq!(error, YamlError::KeyShadowing("deployment1".to_string()));
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("deployment1".to_string(), "gui deployment".to_string())
+        );
     }
 
     #[test]
@@ -1933,5 +1953,22 @@ gui:
 
         let keys = GuiCfg::parse_deployment_keys(vec![get_document(yaml)]).unwrap();
         assert_eq!(keys, vec!["test".to_string(), "test2".to_string()]);
+    }
+
+    #[test]
+    fn test_check_gui_key_exists() {
+        let yaml = r#"
+        gui:
+            name: test
+            description: test
+        "#;
+        let res = GuiCfg::check_gui_key_exists(vec![get_document(yaml)]).unwrap();
+        assert!(res);
+
+        let yaml = r#"
+        test: test
+        "#;
+        let res = GuiCfg::check_gui_key_exists(vec![get_document(yaml)]).unwrap();
+        assert!(!res);
     }
 }

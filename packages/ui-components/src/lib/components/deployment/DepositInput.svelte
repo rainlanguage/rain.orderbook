@@ -1,18 +1,16 @@
 <script lang="ts">
-	import {
-		DotrainOrderGui,
-		type GuiDepositCfg,
-		type TokenDeposit,
-		type TokenInfo
-	} from '@rainlanguage/orderbook/js_api';
+	import { type GuiDepositCfg, type TokenDeposit, type TokenInfo } from '@rainlanguage/orderbook';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
 
 	export let deposit: GuiDepositCfg;
-	export let gui: DotrainOrderGui;
+
+	const gui = useGui();
+
 	let error: string = '';
 	let currentDeposit: TokenDeposit | undefined;
 	let inputValue: string = '';
@@ -22,19 +20,32 @@
 		setCurrentDeposit();
 	});
 
-	const setCurrentDeposit = async () => {
+	const getCurrentDeposit = () => {
+		const deposits = gui.getDeposits();
+		if (deposits.error) {
+			throw new Error(deposits.error.msg);
+		}
+		return deposits.value.find((d) => d.token === deposit.token?.key);
+	};
+
+	const setCurrentDeposit = () => {
 		try {
-			currentDeposit = gui.getDeposits().find((d) => d.token === deposit.token?.key);
+			currentDeposit = getCurrentDeposit();
 			inputValue = currentDeposit?.amount || '';
-		} catch {
+		} catch (e) {
 			currentDeposit = undefined;
+			error = (e as Error).message ? (e as Error).message : 'Error setting current deposit.';
 		}
 	};
 
 	const getTokenSymbol = async () => {
 		if (!deposit.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(deposit.token?.key);
+			let result = await gui.getTokenInfo(deposit.token?.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message
@@ -46,9 +57,13 @@
 	function handlePresetClick(preset: string) {
 		if (deposit.token?.key) {
 			inputValue = preset;
-			gui?.saveDeposit(deposit.token?.key, preset);
-			gui = gui;
-			currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+			gui.saveDeposit(deposit.token?.key, preset);
+
+			try {
+				currentDeposit = getCurrentDeposit();
+			} catch (e) {
+				error = (e as Error).message ? (e as Error).message : 'Error handling preset click.';
+			}
 		}
 	}
 
@@ -56,9 +71,12 @@
 		if (deposit.token?.key) {
 			if (e.currentTarget instanceof HTMLInputElement) {
 				inputValue = e.currentTarget.value;
-				gui?.saveDeposit(deposit.token.key, e.currentTarget.value);
-				gui = gui;
-				currentDeposit = gui?.getDeposits().find((d) => d.token === deposit.token?.key);
+				gui.saveDeposit(deposit.token.key, e.currentTarget.value);
+				try {
+					currentDeposit = getCurrentDeposit();
+				} catch (e) {
+					error = (e as Error).message ? (e as Error).message : 'Error handling input.';
+				}
 			}
 		}
 	}

@@ -1,17 +1,23 @@
 <script lang="ts">
-	import { PageHeader, TransactionStatus, transactionStore } from '@rainlanguage/ui-components';
+	import { invalidateTanstackQueries, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { wagmiConfig, signerAddress } from '$lib/stores/wagmi';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
 	import { Toast } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { fade } from 'svelte/transition';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import type { SgVault } from '@rainlanguage/orderbook';
+	import type { Hex } from 'viem';
 	const queryClient = useQueryClient();
+	import { lightweightChartsTheme } from '$lib/darkMode';
 
-	const { settings, activeOrderbookRef, activeNetworkRef, lightweightChartsTheme } =
-		$page.data.stores;
+	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
+	const { account } = useAccount();
+	const network = $page.params.network;
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;
@@ -27,13 +33,30 @@
 		toastOpen = false;
 	}
 
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
-		queryClient.invalidateQueries({
-			queryKey: [$page.params.id],
-			refetchType: 'all',
-			exact: false
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					invalidateTanstackQueries(queryClient, [$page.params.id]);
+					triggerToast();
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				account: $account as Hex
+			}
 		});
-		triggerToast();
+	}
+
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
+	function onWithdraw(vault: SgVault) {
+		handleVaultAction(vault, 'withdraw');
 	}
 </script>
 
@@ -54,7 +77,6 @@
 	{settings}
 	{activeNetworkRef}
 	{activeOrderbookRef}
-	{wagmiConfig}
-	{handleDepositOrWithdrawModal}
-	{signerAddress}
+	{onDeposit}
+	{onWithdraw}
 />

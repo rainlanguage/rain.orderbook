@@ -2,7 +2,6 @@
   import { PageHeader } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
   import { OrdersListTable } from '@rainlanguage/ui-components';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { handleOrderRemoveModal } from '$lib/services/modal';
 
   import {
@@ -37,7 +36,6 @@
 <OrdersListTable
   {activeNetworkRef}
   {activeOrderbookRef}
-  {walletAddressMatchesOrBlank}
   {handleOrderRemoveModal}
   {activeSubgraphs}
   {settings}
@@ -48,5 +46,4 @@
   {hideZeroBalanceVaults}
   {currentRoute}
   showMyItemsOnly={writable(false)}
-  signerAddress={writable('')}
 />

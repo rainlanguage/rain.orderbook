@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import DeployModal from '../lib/components/DeployModal.svelte';
-import { get } from 'svelte/store';
 import type { DeployModalProps } from '@rainlanguage/ui-components';
+import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 
 const { mockTransactionStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
-const { mockWagmiConfigStore } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
+const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
@@ -28,10 +28,7 @@ describe('DeployModal', () => {
 				token: '0x',
 				spender: '0x'
 			},
-			deploymentCalldata: {
-				calldata: '0x',
-				value: 0n
-			},
+			deploymentCalldata: '0x',
 			orderbookAddress: '0x123' as const,
 			chainId: 1,
 			subgraphUrl: 'https://example.com',
@@ -40,7 +37,6 @@ describe('DeployModal', () => {
 	} as unknown as DeployModalProps;
 
 	it('renders and initiates transaction handling', () => {
-		const config = get(mockWagmiConfigStore);
 		const handleDeploymentTransactionSpy = vi.spyOn(
 			mockTransactionStore,
 			'handleDeploymentTransaction'
@@ -48,9 +44,11 @@ describe('DeployModal', () => {
 
 		render(DeployModal, { props: mockProps });
 
-		expect(handleDeploymentTransactionSpy).toHaveBeenCalledWith({
-			config,
-			...mockProps.args
-		});
+		expect(handleDeploymentTransactionSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				config: mockWeb3Config,
+				...mockProps.args
+			})
+		);
 	});
 });

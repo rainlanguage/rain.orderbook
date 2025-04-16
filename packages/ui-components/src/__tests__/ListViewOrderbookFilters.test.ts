@@ -1,12 +1,21 @@
 import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
-import { beforeEach, expect, test, describe } from 'vitest';
+import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
-import { createResolvableInfiniteQuery } from '../lib/__mocks__/queries';
+import type { ConfigSource } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
-// Get the props type from the component
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: () => ({
+		account: writable(null),
+		matchesAccount: vi.fn()
+	})
+}));
+
+vi.mock('@tanstack/svelte-query', () => ({
+	createInfiniteQuery: vi.fn()
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
@@ -25,10 +34,6 @@ describe('ListViewOrderbookFilters', () => {
 		}
 	});
 
-	const { query } = createResolvableInfiniteQuery((pageParam) => {
-		return ['page' + pageParam];
-	});
-
 	const defaultProps = {
 		settings: mockSettings,
 		accounts: writable({}),
@@ -39,13 +44,10 @@ describe('ListViewOrderbookFilters', () => {
 		orderHash: writable(''),
 		isVaultsPage: false,
 		isOrdersPage: false,
-		query,
-		showMyItemsOnly: writable(false),
-		signerAddress: writable('')
+		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {
-		// Reset settings to default state before each test
 		mockSettings.set({
 			networks: {
 				ethereum: {
@@ -94,7 +96,6 @@ describe('ListViewOrderbookFilters', () => {
 	test('shows common components when networks exist', () => {
 		const props = {
 			...defaultProps,
-			signerAddress: writable('0x123'),
 			showMyItemsOnly: writable(true),
 			activeAccountsItems: undefined,
 			accounts: undefined

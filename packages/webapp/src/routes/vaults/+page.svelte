@@ -2,7 +2,7 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { connected, signerAddress } from '$lib/stores/wagmi';
+	import { connected } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
 
 	const {
@@ -18,7 +18,6 @@
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
-		walletAddressMatchesOrBlank,
 		activeNetworkOrderbooks,
 		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
@@ -49,6 +48,7 @@
 			resetActiveOrderbookRef();
 		}
 	});
+
 	$: showMyItemsOnly.set($connected);
 </script>
 
@@ -59,7 +59,6 @@
 	{subgraphUrl}
 	{orderHash}
 	{showMyItemsOnly}
-	{signerAddress}
 	{activeSubgraphs}
 	{settings}
 	{accounts}
@@ -69,6 +68,5 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
-	{walletAddressMatchesOrBlank}
 	currentRoute={$page.url.pathname}
 />

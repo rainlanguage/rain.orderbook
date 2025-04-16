@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{yaml::get_hash_value, *};
 use blocks::BlocksCfg;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -111,9 +111,30 @@ impl ScenarioCfg {
         let runs = optional_string(scenario_yaml, "runs")
             .map(|runs| ScenarioCfg::validate_runs(&runs))
             .transpose()?;
-        let blocks = optional_string(scenario_yaml, "blocks")
-            .map(|blocks| ScenarioCfg::validate_blocks(&blocks))
-            .transpose()?;
+        let blocks = if let Some(blocks) = optional_string(scenario_yaml, "blocks") {
+            Some(ScenarioCfg::validate_blocks(&blocks)?)
+        } else if let Some(blocks) = optional_hash(scenario_yaml, "blocks") {
+            let location = format!("blocks in scenario '{scenario_key}'");
+
+            let range = get_hash_value(blocks, "range", Some(location.clone()))?
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::Missing("range".to_string()),
+                    location: location.clone(),
+                })?;
+            let interval = get_hash_value(blocks, "interval", Some(location.clone()))?
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::Missing("interval".to_string()),
+                    location,
+                })?;
+
+            Some(ScenarioCfg::validate_blocks(&format!(
+                "range: {range}\ninterval: {interval}"
+            ))?)
+        } else {
+            None
+        };
 
         let mut current_deployer: Option<DeployerCfg> = None;
 
@@ -145,7 +166,10 @@ impl ScenarioCfg {
         }
 
         if scenarios.contains_key(&scenario_key) {
-            return Err(YamlError::KeyShadowing(scenario_key));
+            return Err(YamlError::KeyShadowing(
+                scenario_key.clone(),
+                "scenarios".to_string(),
+            ));
         }
         let key = if parent_scenario.key.is_empty() {
             scenario_key.clone()
@@ -331,7 +355,7 @@ impl YamlParsableHash for ScenarioCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), None)?;
+        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -415,6 +439,25 @@ pub enum ParseScenarioConfigSourceError {
     ParentOrderbookShadowedError(String),
     #[error("Failed to parse blocks: {0}")]
     BlocksParseError(String),
+}
+
+impl ParseScenarioConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseScenarioConfigSourceError::RunsParseError(err) =>
+                format!("The 'runs' value in your scenario YAML configuration must be a valid number: {}", err),
+            ParseScenarioConfigSourceError::ParentBindingShadowedError(binding) =>
+                format!("Binding conflict in your YAML configuration: The child scenario is trying to override the binding '{}' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.", binding),
+            ParseScenarioConfigSourceError::ParentDeployerShadowedError(deployer) =>
+                format!("Deployer conflict in your YAML configuration: The child scenario is trying to use deployer '{}' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.", deployer),
+            ParseScenarioConfigSourceError::DeployerNotFound(scenario) =>
+                format!("No deployer was found for scenario '{}' in your YAML configuration. Please specify a deployer for this scenario or ensure it inherits one from a parent scenario.", scenario),
+            ParseScenarioConfigSourceError::ParentOrderbookShadowedError(orderbook) =>
+                format!("Orderbook conflict in your YAML configuration: The child scenario is trying to use orderbook '{}' which differs from the orderbook specified in the parent scenario. Child scenarios must use the same orderbook as their parent.", orderbook),
+            ParseScenarioConfigSourceError::BlocksParseError(blocks) =>
+                format!("Failed to parse the 'blocks' configuration in your YAML: {}. Please ensure it follows the correct format.", blocks),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -510,10 +553,12 @@ impl ScenarioConfigSource {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
-    use crate::test::mock_deployer;
+    use crate::{
+        blocks::{BlockCfg, BlockRangeCfg},
+        test::mock_deployer,
+    };
     use alloy::primitives::Address;
     use std::collections::HashMap;
     use url::Url;
@@ -606,7 +651,6 @@ mod tests {
 
         // Perform the conversion
         let config_result = Config::try_from(config_string);
-        println!("{:?}", config_result);
         assert!(config_result.is_ok());
 
         let config = config_result.unwrap();
@@ -665,8 +709,6 @@ mod tests {
             &HashMap::new(), // Empty deployers for simplification
         );
 
-        println!("{:?}", result);
-
         assert!(result.is_err());
         match result.err().unwrap() {
             ParseScenarioConfigSourceError::ParentBindingShadowedError(key) => {
@@ -697,6 +739,10 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'scenarios' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -724,6 +770,10 @@ scenarios:
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string"
+        );
 
         let yaml = r#"
 networks:
@@ -750,6 +800,10 @@ scenarios:
                 },
                 location: "binding key 'key1' in scenario 'scenario1'".to_string()
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'value' in binding key 'key1' in scenario 'scenario1' must be a string"
         );
 
         let yaml = r#"
@@ -779,6 +833,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Binding conflict in your YAML configuration: The child scenario is trying to override the binding 'key1' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.");
 
         let yaml = r#"
 networks:
@@ -814,6 +869,7 @@ scenarios:
             )
             .to_string()
         );
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
     }
 
     #[test]
@@ -931,7 +987,169 @@ scenarios:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateScenario".to_string())
+            YamlError::KeyShadowing("DuplicateScenario".to_string(), "scenarios".to_string())
+        );
+        assert_eq!(error.to_readable_msg(), "The key 'DuplicateScenario' is defined multiple times in your YAML configuration at scenarios");
+    }
+
+    #[test]
+    fn test_parse_scenario_blocks() {
+        let prefix = r#"
+networks:
+    mainnet:
+        rpc: https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+"#;
+
+        let simple_range = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [1..2]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Number(1),
+                end: BlockCfg::Number(2),
+            }))
+        );
+
+        let simple_range_genesis = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [..2]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range_genesis)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Genesis,
+                end: BlockCfg::Number(2),
+            }))
+        );
+
+        let simple_range_latest = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks: [1..]
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(simple_range_latest)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::SimpleRange(BlockRangeCfg {
+                start: BlockCfg::Number(1),
+                end: BlockCfg::Latest,
+            }))
+        );
+
+        let range = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [1..2]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Number(1),
+                    end: BlockCfg::Number(2),
+                },
+                interval: 10,
+            })
+        );
+
+        let range_genesis = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [..2]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range_genesis)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Genesis,
+                    end: BlockCfg::Number(2),
+                },
+                interval: 10,
+            })
+        );
+
+        let range_latest = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        blocks:
+            range: [1..]
+            interval: 10
+        bindings:
+            key1: binding1
+"#;
+        let scenario = ScenarioCfg::parse_from_yaml(
+            vec![get_document(prefix), get_document(range_latest)],
+            "mainnet",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            scenario.blocks,
+            Some(BlocksCfg::RangeWithInterval {
+                range: BlockRangeCfg {
+                    start: BlockCfg::Number(1),
+                    end: BlockCfg::Latest,
+                },
+                interval: 10,
+            })
         );
     }
 }

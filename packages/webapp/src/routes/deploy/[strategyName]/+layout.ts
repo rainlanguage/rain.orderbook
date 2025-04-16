@@ -1,6 +1,6 @@
 import type { LayoutLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook/js_api';
+import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { strategyName } = params;
 	const { registryDotrains, validStrategies } = await parent();
@@ -26,6 +26,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
 	return {
 		dotrain,
 		strategyName,
-		strategyDetail
+		strategyDetail,
+		pageName: strategyName
 	};
 };

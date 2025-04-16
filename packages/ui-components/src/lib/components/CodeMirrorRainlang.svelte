@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
-	import { extendOrder } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook';
+	import { extendOrder } from '@rainlanguage/orderbook';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { RainlangLR } from 'codemirror-rainlang';
 
@@ -13,7 +13,7 @@
 	$: extendedOrder = order ? extendOrder(order) : undefined;
 </script>
 
-{#if extendedOrder?.rainlang}
+{#if rainlangText || extendedOrder?.rainlang}
 	<CodeMirror
 		value={rainlangText || extendedOrder.rainlang}
 		extensions={[RainlangLR]}

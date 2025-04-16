@@ -68,11 +68,7 @@ export { default as InputRegistryUrl } from './components/input/InputRegistryUrl
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type {
-	ConfigSource,
-	OrderbookConfigSource,
-	OrderbookCfgRef
-} from '@rainlanguage/orderbook/js_api';
+export type { ConfigSource, OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatus,
 	TransactionErrorMessage,
@@ -99,9 +95,10 @@ export {
 } from './utils/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
-export { prepareHistoricalOrderChartData } from './services/historicalOrderCharts';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+export { invalidateTanstackQueries } from './queries/queryClient';
+
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
 export {
@@ -127,3 +124,11 @@ export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
 export { default as logoDark } from './assets/logo-dark.svg';
+
+// Providers
+export { default as GuiProvider } from './providers/GuiProvider.svelte';
+export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+
+// Hooks
+export { useGui } from './hooks/useGui';
+export { useAccount } from './providers/wallet/useAccount';

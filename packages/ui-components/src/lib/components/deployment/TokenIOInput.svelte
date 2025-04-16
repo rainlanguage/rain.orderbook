@@ -1,24 +1,27 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import {
-		type OrderIOCfg,
-		type TokenInfo,
-		type DotrainOrderGui
-	} from '@rainlanguage/orderbook/js_api';
+	import { type OrderIOCfg, type TokenInfo } from '@rainlanguage/orderbook';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
+	import { useGui } from '$lib/hooks/useGui';
+
+	const gui = useGui();
 
 	export let i: number;
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
-	export let gui: DotrainOrderGui;
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
 	let error: string = '';
 
 	onMount(() => {
-		const vaultIds = gui.getVaultIds();
+		const result = gui.getVaultIds();
+		if (result.error) {
+			error = result.error.msg;
+			return;
+		}
+		const vaultIds = result.value;
 		if (label === 'Input') {
 			inputValue = vaultIds.get('input')?.[i] as unknown as string;
 		} else if (label === 'Output') {
@@ -29,7 +32,12 @@
 	const handleGetTokenInfo = async () => {
 		if (!vault.token?.key) return;
 		try {
-			tokenInfo = await gui?.getTokenInfo(vault.token?.key);
+			let result = await gui.getTokenInfo(vault.token?.key);
+			if (result.error) {
+				error = result.error.msg;
+				return;
+			}
+			tokenInfo = result.value;
 		} catch (e) {
 			const errorMessage = (e as Error).message
 				? (e as Error).message

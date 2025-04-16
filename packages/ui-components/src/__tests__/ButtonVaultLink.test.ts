@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ButtonVaultLink from '../lib/components/ButtonVaultLink.svelte';
-import type { SgVault } from '@rainlanguage/orderbook/js_api';
+import type { SgVault } from '@rainlanguage/orderbook';
 
 describe('ButtonVaultLink', () => {
 	const mockVault = {
@@ -27,5 +27,17 @@ describe('ButtonVaultLink', () => {
 		expect(vaultLink).toBeTruthy();
 		expect(vaultLink).toHaveTextContent('Test Token');
 		expect(vaultLink).toHaveTextContent('TEST');
+	});
+
+	it('should set the link id attribute correctly', () => {
+		render(ButtonVaultLink, {
+			props: {
+				tokenVault: mockVault,
+				subgraphName: 'test'
+			}
+		});
+
+		const linkElement = screen.getByRole('link');
+		expect(linkElement).toHaveAttribute('id', `token-info-${mockVault.vaultId}`);
 	});
 });

@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
-import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook/js_api';
+import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
 export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
   await invoke('order_add', {
@@ -12,7 +12,7 @@ export async function orderAdd(dotrain: string, deployment: DeploymentCfg) {
       rpc_url: deployment.order.network.rpc,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: get(ledgerWalletDerivationIndex),
-      chain_id: deployment.order.network['chain-id'],
+      chain_id: deployment.order.network.chainId,
     },
   });
 }
@@ -40,7 +40,7 @@ export async function orderAddCalldata(dotrain: string, deployment: DeploymentCf
       rpc_url: deployment.order.network.rpc,
       orderbook_address: deployment.order.orderbook?.address,
       derivation_index: undefined,
-      chain_id: deployment.order.network['chain-id'],
+      chain_id: deployment.order.network.chainId,
     },
   });
 }

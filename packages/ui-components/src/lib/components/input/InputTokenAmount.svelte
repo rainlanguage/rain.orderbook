@@ -46,7 +46,7 @@
 			/>
 
 			{#if maxValue}
-				<div class="absolute right-4 flex h-10 flex-col justify-center">
+				<div class="absolute right-2 flex h-10 flex-col justify-center">
 					<Button color="blue" class="px-2 py-1" size="xs" pill on:click={fillMaxValue}>MAX</Button>
 				</div>
 			{/if}

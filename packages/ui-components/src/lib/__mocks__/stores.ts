@@ -1,4 +1,4 @@
-import type { ConfigSource } from '@rainlanguage/orderbook/js_api';
+import type { ConfigSource } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
@@ -17,20 +17,11 @@ const mockActiveNetworkRefWritable = writable<string>('');
 const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
-const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
-const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
-const mockConnectedWritable = writable<boolean>(false);
+const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockPageWritable = writable<Page>();
-
-export const mockWalletAddressMatchesOrBlankStore = {
-	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
-	set: mockWalletAddressMatchesOrBlankWritable.set,
-	mockSetSubscribeValue: (value: () => boolean): void =>
-		mockWalletAddressMatchesOrBlankWritable.set(value)
-};
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
@@ -98,13 +89,6 @@ export const mockSubgraphUrlStore = {
 	subscribe: mockSubgraphUrlWritable.subscribe,
 	set: mockSubgraphUrlWritable.set,
 	mockSetSubscribeValue: (value: string): void => mockSubgraphUrlWritable.set(value)
-};
-
-export const mockSignerAddressStore = {
-	subscribe: mockSignerAddressWritable.subscribe,
-	set: mockSignerAddressWritable.set,
-	mockSetSubscribeValue: (value: string): void => mockSignerAddressWritable.set(value),
-	update: mockSignerAddressWritable.update
 };
 
 export const mockChainIdStore = {

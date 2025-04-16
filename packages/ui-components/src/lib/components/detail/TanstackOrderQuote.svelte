@@ -1,24 +1,23 @@
 <script lang="ts" generics="T">
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
-	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook/quote';
+	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
 	import { QKEY_ORDER_QUOTE } from '../../queries/keys';
 	import { formatUnits, hexToNumber, isHex } from 'viem';
 	import type { Hex } from 'viem';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import type { SgOrder } from '@rainlanguage/orderbook/js_api';
+	import type { SgOrder } from '@rainlanguage/orderbook';
 	import {
 		Table,
 		TableBody,
 		TableBodyCell,
 		TableBodyRow,
 		TableHead,
-		TableHeadCell,
-		Tooltip
+		TableHeadCell
 	} from 'flowbite-svelte';
 	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
-
+	import Tooltip from '../Tooltip.svelte';
 	export let id: string;
 	export let order: SgOrder;
 	export let rpcUrl: string;
@@ -40,7 +39,7 @@
 	const queryClient = useQueryClient();
 
 	const refreshQuotes = async () => {
-		await invalidateIdQuery(queryClient, id);
+		invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({

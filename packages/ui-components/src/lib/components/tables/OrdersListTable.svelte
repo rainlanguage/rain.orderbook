@@ -1,9 +1,12 @@
 <script lang="ts" generics="T">
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { type SgOrderWithSubgraphName } from '@rainlanguage/orderbook/js_api';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { getOrders, type MultiSubgraphArgs } from '@rainlanguage/orderbook/js_api';
+	import {
+		getOrders,
+		type MultiSubgraphArgs,
+		type SgOrderWithSubgraphName
+	} from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -19,13 +22,10 @@
 		TableBodyCell,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import type { Writable } from 'svelte/store';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	// Optional props only used in tauri-app
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export const walletAddressMatchesOrBlank: any = undefined;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export const handleOrderRemoveModal: any = undefined;
+	export let handleOrderRemoveModal: any = undefined;
 	// End of optional props
 
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
@@ -37,9 +37,10 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let currentRoute: string;
-	export let signerAddress: Writable<string | null> | undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
+
+	const { matchesAccount, account } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -51,8 +52,8 @@
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $signerAddress
-				? [$signerAddress]
+			: $showMyItemsOnly && $account
+				? [$account]
 				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
@@ -100,12 +101,11 @@
 	{hideZeroBalanceVaults}
 	{isVaultsPage}
 	{isOrdersPage}
-	{signerAddress}
 />
 
 <AppTable
 	{query}
-	queryKey={undefined}
+	queryKey={QKEY_ORDERS}
 	emptyMessage="No Orders Found"
 	on:clickRow={(e) => {
 		activeNetworkRef.set(e.detail.item.subgraphName);
@@ -114,7 +114,10 @@
 	}}
 >
 	<svelte:fragment slot="title">
-		<slot name="filters" />
+		<div class="mt-2 flex w-full justify-between">
+			<div class="text-3xl font-medium dark:text-white" data-testid="title">Orders</div>
+			<slot name="filters" />
+		</div>
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
@@ -165,10 +168,10 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2"
 			>{item.order.trades.length > 99 ? '>99' : item.order.trades.length}</TableBodyCell
 		>
-		{#if walletAddressMatchesOrBlank && handleOrderRemoveModal}
+		{#if matchesAccount(item.order.owner) && handleOrderRemoveModal}
 			<div data-testid="wallet-actions">
 				<TableBodyCell tdClass="px-0 text-right">
-					{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+					{#if item.order.active}
 						<Button
 							color="alternative"
 							outline={false}
@@ -183,7 +186,7 @@
 						</Button>
 					{/if}
 				</TableBodyCell>
-				{#if $walletAddressMatchesOrBlank(item.order.owner) && item.order.active}
+				{#if item.order.active}
 					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.order.id}`}>
 						<DropdownItem
 							on:click={(e) => {

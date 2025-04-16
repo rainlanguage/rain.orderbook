@@ -1,19 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import StrategyPage from '../lib/components/deployment/StrategyPage.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook/js_api';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 
 // Mock fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-// Mock DotrainOrderGui
-vi.mock('@rainlanguage/orderbook/js_api', () => ({
-	DotrainOrderGui: {
-		getStrategyDetails: vi.fn(),
-		getDeploymentDetails: vi.fn()
-	}
-}));
+vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
+	const MockDeploymentsSection = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockDeploymentsSection };
+});
 
 describe('StrategyPage', () => {
 	beforeEach(() => {
@@ -24,19 +21,19 @@ describe('StrategyPage', () => {
 	it('renders strategy details successfully with rawDotrain', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
-			name: 'Test Strategy',
-			description: 'Test Description',
-			short_description: 'Test Short Description'
+			value: {
+				name: 'Test Strategy',
+				description: 'Test Description',
+				short_description: 'Test Short Description'
+			}
 		};
-		const strategyPromise = Promise.resolve(mockStrategyDetails);
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockReturnValue(strategyPromise);
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
 				dotrain: mockDotrain
 			}
 		});
-		await strategyPromise;
 
 		await waitFor(() => {
 			expect(screen.getByText('Test Strategy')).toBeInTheDocument();
@@ -47,16 +44,18 @@ describe('StrategyPage', () => {
 	it('renders strategy details successfully from fetch', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
-			name: 'Test Strategy',
-			description: 'Test Description',
-			short_description: 'Test Short Description'
+			value: {
+				name: 'Test Strategy',
+				description: 'Test Description',
+				short_description: 'Test Short Description'
+			}
 		};
 
 		mockFetch.mockResolvedValueOnce({
 			text: () => Promise.resolve(mockDotrain)
 		});
 
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
@@ -74,9 +73,17 @@ describe('StrategyPage', () => {
 	it('displays error message when strategy details fail', async () => {
 		const mockDotrain = 'mock dotrain content';
 
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockRejectedValueOnce(
-			new Error('Error: Failed to get strategy details')
-		);
+		// Mock fetch response
+		mockFetch.mockResolvedValueOnce({
+			text: () => Promise.resolve(mockDotrain)
+		});
+
+		// Mock DotrainOrderGui methods
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({
+			error: {
+				msg: 'Failed to get strategy details'
+			}
+		});
 
 		render(StrategyPage, {
 			props: {
@@ -92,15 +99,15 @@ describe('StrategyPage', () => {
 
 	it('handles markdown fetch failure', async () => {
 		const mockDotrain = 'mock dotrain content';
-		const mockStrategyDetails = {
-			name: 'Test Strategy',
-			description: 'https://example.com/description.md',
-			short_description: 'Test Short Description'
-		};
-
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce({
+			value: {
+				name: 'Test Strategy',
+				description: 'https://example.com/description.md',
+				short_description: 'Test Short Description'
+			}
+		});
+		// Mock fetch to reject
 		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
-
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
@@ -110,16 +117,18 @@ describe('StrategyPage', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('https://example.com/description.md')).toBeInTheDocument();
+			expect(screen.getByText('Failed to fetch markdown')).toBeInTheDocument();
 		});
 	});
 
 	it('renders markdown if description is a markdown url', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
-			name: 'Test Strategy',
-			description: 'https://example.com/description.md',
-			short_description: 'Test Short Description'
+			value: {
+				name: 'Test Strategy',
+				description: 'https://example.com/description.md',
+				short_description: 'Test Short Description'
+			}
 		};
 
 		mockFetch.mockResolvedValueOnce({
@@ -127,7 +136,7 @@ describe('StrategyPage', () => {
 			text: () => Promise.resolve('mock markdown content')
 		});
 
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {
@@ -146,9 +155,11 @@ describe('StrategyPage', () => {
 	it('falls back to plain text when markdown fetch fails', async () => {
 		const mockDotrain = 'mock dotrain content';
 		const mockStrategyDetails = {
-			name: 'Test Strategy',
-			description: 'https://example.com/description.md',
-			short_description: 'Test Short Description'
+			value: {
+				name: 'Test Strategy',
+				description: 'https://example.com/description.md',
+				short_description: 'Test Short Description'
+			}
 		};
 
 		mockFetch.mockResolvedValueOnce({
@@ -156,7 +167,7 @@ describe('StrategyPage', () => {
 			statusText: 'Not Found'
 		});
 
-		vi.mocked(DotrainOrderGui.getStrategyDetails).mockResolvedValueOnce(mockStrategyDetails);
+		(DotrainOrderGui.getStrategyDetails as Mock).mockResolvedValueOnce(mockStrategyDetails);
 
 		render(StrategyPage, {
 			props: {

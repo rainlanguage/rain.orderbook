@@ -10,16 +10,17 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook/js_api';
-	import { type SgVault } from '@rainlanguage/orderbook/js_api';
+	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook';
+	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
 		getVaults,
 		type MultiSubgraphArgs,
 		type SgVaultWithSubgraphName
-	} from '@rainlanguage/orderbook/js_api';
+	} from '@rainlanguage/orderbook';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
 	export let subgraphUrl: Readable<string | undefined>;
@@ -35,7 +36,6 @@
 	export let activeAccounts: Readable<{
 		[k: string]: string;
 	}>;
-	export let walletAddressMatchesOrBlank: Readable<(otherAddress: string) => boolean>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
@@ -43,7 +43,8 @@
 		undefined;
 	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let signerAddress: Writable<string | null> | undefined;
+
+	const { account, matchesAccount } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
@@ -55,8 +56,8 @@
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $signerAddress
-				? [$signerAddress]
+			: $showMyItemsOnly && $account
+				? [$account]
 				: [];
 	$: query = createInfiniteQuery({
 		queryKey: [
@@ -109,11 +110,10 @@
 		{hideZeroBalanceVaults}
 		{isVaultsPage}
 		{isOrdersPage}
-		{signerAddress}
 	/>
 	<AppTable
 		{query}
-		queryKey={undefined}
+		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
 			updateActiveNetworkAndOrderbook(e.detail.item.subgraphName);
@@ -201,47 +201,44 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && $walletAddressMatchesOrBlank(item.vault.owner)}
+			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.vault.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
-					{#if $walletAddressMatchesOrBlank(item.vault.owner)}
-						<Button
-							color="alternative"
-							outline={false}
-							data-testid="vault-menu"
-							id={`vault-menu-${item.vault.id}`}
-							class="mr-2 border-none px-2"
-							on:click={(e) => {
-								e.stopPropagation();
-							}}
-						>
-							<DotsVerticalOutline class="dark:text-white" />
-						</Button>
-					{/if}
-				</TableBodyCell>
-				{#if $walletAddressMatchesOrBlank(item.vault.owner)}
-					<Dropdown
-						data-testid="dropdown"
-						placement="bottom-end"
-						triggeredBy={`#vault-menu-${item.vault.id}`}
+					<Button
+						color="alternative"
+						outline={false}
+						data-testid="vault-menu"
+						id={`vault-menu-${item.vault.id}`}
+						class="mr-2 border-none px-2"
+						on:click={(e) => {
+							e.stopPropagation();
+						}}
 					>
-						<DropdownItem
-							data-testid="deposit-button"
-							on:click={(e) => {
-								e.stopPropagation();
-								handleDepositModal(item.vault, $query.refetch);
-							}}
-							>Deposit
-						</DropdownItem>
-						<DropdownItem
-							data-testid="withdraw-button"
-							on:click={(e) => {
-								e.stopPropagation();
-								handleWithdrawModal(item.vault, $query.refetch);
-							}}
-							>Withdraw
-						</DropdownItem>
-					</Dropdown>
-				{/if}
+						<DotsVerticalOutline class="dark:text-white" />
+					</Button>
+				</TableBodyCell>
+
+				<Dropdown
+					data-testid="dropdown"
+					placement="bottom-end"
+					triggeredBy={`#vault-menu-${item.vault.id}`}
+				>
+					<DropdownItem
+						data-testid="deposit-button"
+						on:click={(e) => {
+							e.stopPropagation();
+							handleDepositModal(item.vault, $query.refetch);
+						}}
+						>Deposit
+					</DropdownItem>
+					<DropdownItem
+						data-testid="withdraw-button"
+						on:click={(e) => {
+							e.stopPropagation();
+							handleWithdrawModal(item.vault, $query.refetch);
+						}}
+						>Withdraw
+					</DropdownItem>
+				</Dropdown>
 			{/if}
 		</svelte:fragment>
 	</AppTable>

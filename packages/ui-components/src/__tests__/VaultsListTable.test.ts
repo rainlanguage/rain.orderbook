@@ -3,10 +3,21 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import VaultsListTable from '../lib/components/tables/VaultsListTable.svelte';
 import { readable } from 'svelte/store';
-import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook/js_api';
-
+import type { SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import userEvent from '@testing-library/user-event';
+import { useAccount } from '$lib/providers/wallet/useAccount';
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
+
+const mockMatchesAccount = vi.fn();
+const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
+
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
 
 const mockVaultWithSubgraph: SgVaultWithSubgraphName = {
 	vault: {
@@ -65,7 +76,6 @@ const defaultProps = {
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
-	walletAddressMatchesOrBlank: readable(() => true),
 	activeAccounts: mockActiveAccountsStore,
 	currentRoute: '/vaults'
 };
@@ -74,6 +84,13 @@ const defaultProps = {
 type VaultsListTableProps = ComponentProps<VaultsListTable<any>>;
 
 describe('VaultsListTable', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(useAccount as Mock).mockReturnValue({
+			matchesAccount: mockMatchesAccount,
+			account: mockAccountStore
+		});
+	});
 	it('displays vault information correctly', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -95,8 +112,10 @@ describe('VaultsListTable', () => {
 	});
 
 	it('shows deposit/withdraw buttons when handlers are provided', async () => {
+		mockMatchesAccount.mockReturnValue(true);
 		const handleDepositModal = vi.fn();
 		const handleWithdrawModal = vi.fn();
+
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
@@ -116,9 +135,9 @@ describe('VaultsListTable', () => {
 			handleWithdrawModal
 		} as unknown as VaultsListTableProps);
 
-		const menuButton = screen.getByTestId('vault-menu');
-		await userEvent.click(menuButton);
 		await waitFor(() => {
+			const menuButton = screen.getByTestId('vault-menu');
+			userEvent.click(menuButton);
 			expect(screen.getByTestId('deposit-button')).toBeInTheDocument();
 			expect(screen.getByTestId('withdraw-button')).toBeInTheDocument();
 		});
@@ -149,6 +168,7 @@ describe('VaultsListTable', () => {
 	});
 
 	it('handles deposit action', async () => {
+		mockMatchesAccount.mockReturnValue(true);
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
@@ -181,9 +201,9 @@ describe('VaultsListTable', () => {
 	});
 
 	it('hides action buttons when user is not the vault owner', () => {
+		mockMatchesAccount.mockReturnValue(false);
 		render(VaultsListTable, {
-			...defaultProps,
-			walletAddressMatchesOrBlank: readable(() => false)
+			...defaultProps
 		} as unknown as VaultsListTableProps);
 
 		expect(screen.queryByTestId('vault-menu')).not.toBeInTheDocument();

@@ -1,5 +1,5 @@
-use super::*;
-use crate::{DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
+use super::{cache::Cache, orderbook::OrderbookYaml, *};
+use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, SeqAccess, Visitor},
     ser::SerializeSeq,
@@ -17,6 +17,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub struct DotrainYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
+    pub cache: Cache,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DotrainYaml);
@@ -42,11 +43,41 @@ impl YamlParsable for DotrainYaml {
             DeploymentCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
-        Ok(DotrainYaml { documents })
+        Ok(DotrainYaml {
+            documents,
+            cache: Cache::default(),
+        })
     }
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
-        DotrainYaml { documents }
+        DotrainYaml {
+            documents,
+            cache: Cache::default(),
+        }
+    }
+
+    fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
+        DotrainYaml {
+            documents: dotrain_yaml.documents,
+            cache: dotrain_yaml.cache,
+        }
+    }
+
+    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
+        DotrainYaml {
+            documents: orderbook_yaml.documents,
+            cache: orderbook_yaml.cache,
+        }
+    }
+}
+
+impl ContextProvider for DotrainYaml {
+    fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
+        self.cache.get_remote_networks()
+    }
+
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg> {
+        self.cache.get_remote_tokens()
     }
 }
 
@@ -57,7 +88,10 @@ impl DotrainYaml {
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_order(key.to_string());
+        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -75,16 +109,29 @@ impl DotrainYaml {
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
         let mut context = Context::new();
-        context.add_current_deployment(key.to_string());
+        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
         let mut context = Context::new();
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
+        self.expand_context_with_current_deployment(&mut context, current_deployment);
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
+    }
+
+    pub fn get_chart_keys(&self) -> Result<Vec<String>, YamlError> {
+        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(charts.keys().cloned().collect())
+    }
+
+    pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
+        ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 }
 
@@ -132,7 +179,10 @@ impl<'de> Deserialize<'de> for DotrainYaml {
                     documents.push(Arc::new(RwLock::new(doc)));
                 }
 
-                Ok(DotrainYaml { documents })
+                Ok(DotrainYaml {
+                    documents,
+                    cache: Cache::default(),
+                })
             }
         }
 
@@ -142,7 +192,11 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 
 #[cfg(test)]
 mod tests {
-    use crate::GuiSelectTokensCfg;
+    use crate::{
+        BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg, GuiSelectTokensCfg, HexBinOptionsCfg,
+        HexBinTransformCfg, LineOptionsCfg, MarkCfg, RectYOptionsCfg, TransformCfg,
+        TransformOutputsCfg,
+    };
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
 
@@ -223,6 +277,66 @@ mod tests {
                     - key: token2
                       name: Test token
                       description: Test description
+    charts:
+        chart1:
+            scenario: scenario1.scenario2
+            plots:
+                plot1:
+                    title: Test title
+                    subtitle: Test subtitle
+                    marks:
+                        - type: dot
+                          options:
+                            x: 1
+                            y: 2
+                            r: 3
+                            fill: red
+                            stroke: blue
+                            transform:
+                                type: hexbin
+                                content:
+                                    outputs:
+                                        x: 1
+                                        y: 2
+                                        r: 3
+                                        z: 4
+                                        stroke: green
+                                        fill: blue
+                                    options:
+                                        x: 1
+                                        y: 2
+                                        bin-width: 10
+                        - type: line
+                          options:
+                            transform:
+                                type: binx
+                                content:
+                                    outputs:
+                                        x: 1
+                                    options:
+                                        thresholds: 10
+                        - type: recty
+                          options:
+                            x0: 1
+                            x1: 2
+                            y0: 3
+                            y1: 4
+                    x:
+                       label: Test x label
+                       anchor: start
+                       label-anchor: start
+                       label-arrow: none
+                    y:
+                       label: Test y label
+                       anchor: start
+                       label-anchor: start
+                       label-arrow: none
+                    margin: 10
+                    margin-left: 20
+                    margin-right: 30
+                    margin-top: 40
+                    margin-bottom: 50
+                    inset: 60
     "#;
 
     const HANDLEBARS_YAML: &str = r#"
@@ -450,6 +564,82 @@ mod tests {
         assert_eq!(field_presets[0].id, "0");
         assert_eq!(field_presets[0].name, None);
         assert_eq!(field_presets[0].value, "value2");
+
+        let chart_keys = dotrain_yaml.get_chart_keys().unwrap();
+        assert_eq!(chart_keys.len(), 1);
+        let chart = dotrain_yaml.get_chart(&chart_keys[0]).unwrap();
+        assert_eq!(chart.key, "chart1");
+        assert_eq!(chart.scenario.key, "scenario1.scenario2");
+        let plot = chart.plots.unwrap()[0].clone();
+        assert_eq!(plot.title, Some("Test title".to_string()));
+        assert_eq!(plot.subtitle, Some("Test subtitle".to_string()));
+        assert_eq!(plot.x.unwrap().label, Some("Test x label".to_string()));
+        assert_eq!(plot.y.unwrap().label, Some("Test y label".to_string()));
+        assert_eq!(plot.margin, Some(10));
+        assert_eq!(plot.margin_left, Some(20));
+        assert_eq!(plot.margin_right, Some(30));
+        assert_eq!(plot.margin_top, Some(40));
+        assert_eq!(plot.margin_bottom, Some(50));
+        assert_eq!(plot.marks.len(), 3);
+        assert_eq!(
+            plot.marks[0],
+            MarkCfg::Dot(DotOptionsCfg {
+                x: Some("1".to_string()),
+                y: Some("2".to_string()),
+                r: Some(3),
+                fill: Some("red".to_string()),
+                stroke: Some("blue".to_string()),
+                transform: Some(TransformCfg::HexBin(HexBinTransformCfg {
+                    outputs: TransformOutputsCfg {
+                        x: Some("1".to_string()),
+                        y: Some("2".to_string()),
+                        r: Some(3),
+                        z: Some("4".to_string()),
+                        stroke: Some("green".to_string()),
+                        fill: Some("blue".to_string()),
+                    },
+                    options: HexBinOptionsCfg {
+                        x: Some("1".to_string()),
+                        y: Some("2".to_string()),
+                        bin_width: Some(10),
+                    },
+                })),
+            })
+        );
+        assert_eq!(
+            plot.marks[1],
+            MarkCfg::Line(LineOptionsCfg {
+                x: None,
+                y: None,
+                r: None,
+                fill: None,
+                stroke: None,
+                transform: Some(TransformCfg::BinX(BinXTransformCfg {
+                    outputs: TransformOutputsCfg {
+                        x: Some("1".to_string()),
+                        y: None,
+                        r: None,
+                        z: None,
+                        stroke: None,
+                        fill: None,
+                    },
+                    options: BinXOptionsCfg {
+                        x: None,
+                        thresholds: Some(10),
+                    },
+                })),
+            })
+        );
+        assert_eq!(
+            plot.marks[2],
+            MarkCfg::RectY(RectYOptionsCfg {
+                x0: Some("1".to_string()),
+                x1: Some("2".to_string()),
+                y0: Some("3".to_string()),
+                y1: Some("4".to_string()),
+                transform: None,
+            })
+        );
     }
 
     #[test]
@@ -757,6 +947,10 @@ orders:
                 location: "input index '0' in order 'order1'".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in input index '0' in order 'order1': missing yaml data for token 'token-three'"
+        );
 
         let dotrain_yaml = DotrainYaml::new(vec![missing_output_token_yaml], false).unwrap();
         let error = dotrain_yaml.get_gui(None).unwrap_err();
@@ -769,6 +963,10 @@ orders:
                 },
                 location: "output index '0' in order 'order1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Invalid value for field 'token' in output index '0' in order 'order1': missing yaml data for token 'token-three'"
         );
     }
 }

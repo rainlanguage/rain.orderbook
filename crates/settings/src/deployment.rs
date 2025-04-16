@@ -114,13 +114,26 @@ impl YamlParsableHash for DeploymentCfg {
                     };
 
                     if deployments.contains_key(&deployment_key) {
-                        return Err(YamlError::KeyShadowing(deployment_key));
+                        return Err(YamlError::KeyShadowing(
+                            deployment_key.clone(),
+                            "deployments".to_string(),
+                        ));
                     }
                     deployments.insert(deployment_key, deployment);
                 }
             }
         }
 
+        if let Some(context) = context {
+            if let Some(current_deployment) = context.get_current_deployment() {
+                if !deployments.contains_key(current_deployment) {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(current_deployment.to_string()),
+                        location: "deployments".to_string(),
+                    });
+                }
+            }
+        }
         if deployments.is_empty() {
             return Err(YamlError::Field {
                 kind: FieldErrorKind::Missing("deployments".to_string()),
@@ -157,6 +170,19 @@ pub enum ParseDeploymentConfigSourceError {
     OrderNotFoundError(String),
     #[error("Scenario and Order do not match")]
     NoMatch,
+}
+
+impl ParseDeploymentConfigSourceError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseDeploymentConfigSourceError::ScenarioNotFoundError(scenario) =>
+                format!("The scenario '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this scenario is defined correctly.", scenario),
+            ParseDeploymentConfigSourceError::OrderNotFoundError(order) =>
+                format!("The order '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this order is defined correctly.", order),
+            ParseDeploymentConfigSourceError::NoMatch =>
+                "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario.".to_string(),
+        }
+    }
 }
 
 impl DeploymentConfigSource {
@@ -301,6 +327,10 @@ test: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'deployments' in root"
+        );
 
         let yaml = r#"
 networks:
@@ -333,6 +363,10 @@ deployments:
                 kind: FieldErrorKind::Missing("order".to_string()),
                 location: "deployment 'deployment1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'order' in deployment 'deployment1'"
         );
 
         let yaml = r#"
@@ -367,6 +401,10 @@ deployments:
                 kind: FieldErrorKind::Missing("scenario".to_string()),
                 location: "deployment 'deployment1'".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Missing required field 'scenario' in deployment 'deployment1'"
         );
 
         let yaml = r#"
@@ -410,6 +448,10 @@ deployments:
             error.to_string(),
             YamlError::ParseDeploymentConfigSourceError(ParseDeploymentConfigSourceError::NoMatch)
                 .to_string()
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Deployment configuration error in your YAML: The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario."
         );
     }
 
@@ -523,7 +565,11 @@ deployments:
 
         assert_eq!(
             error,
-            YamlError::KeyShadowing("DuplicateDeployment".to_string())
+            YamlError::KeyShadowing("DuplicateDeployment".to_string(), "deployments".to_string())
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "The key 'DuplicateDeployment' is defined multiple times in your YAML configuration at deployments"
         );
     }
 
@@ -544,6 +590,10 @@ deployments: test
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
+        );
 
         let yaml = r#"
 deployments:
@@ -561,6 +611,10 @@ deployments:
                 location: "root".to_string(),
             }
         );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
+        );
 
         let yaml = r#"
 deployments:
@@ -577,6 +631,10 @@ deployments:
                 },
                 location: "root".to_string(),
             }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'deployments' in root must be a map"
         );
 
         let yaml = r#"
