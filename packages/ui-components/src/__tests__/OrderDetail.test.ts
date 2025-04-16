@@ -7,9 +7,8 @@ import { readable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { invalidateIdQuery } from '$lib/queries/queryClient';
 import type { ComponentProps } from 'svelte';
-
+import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -22,7 +21,7 @@ vi.mock('@rainlanguage/orderbook', () => ({
 
 // Mock the query client functions
 vi.mock('$lib/queries/queryClient', () => ({
-	invalidateIdQuery: vi.fn()
+	invalidateTanstackQueries: vi.fn()
 }));
 
 vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
@@ -31,7 +30,6 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 });
 const subgraphUrl = 'https://example.com';
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
-const chainId = 1;
 const rpcUrl = 'https://eth-mainnet.alchemyapi.io/v2/your-api-key';
 const orderHash = 'mockOrderHash';
 
@@ -40,7 +38,6 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	rpcUrl,
 	subgraphUrl,
 	orderbookAddress,
-	chainId,
 	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
@@ -119,8 +116,7 @@ const mockOrder: SgOrder = {
 	expression: '0x123456' // Your existing field
 } as unknown as SgOrder;
 
-const mockAccountStore = readable('0x1234567890123456789012345678901234567890');
-
+const mockMatchesAccount = vi.fn();
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;
 
@@ -129,12 +125,10 @@ describe('OrderDetail', () => {
 		vi.resetAllMocks();
 		queryClient = new QueryClient();
 
-		// Set up account mock
 		(useAccount as Mock).mockReturnValue({
-			account: mockAccountStore
+			matchesAccount: mockMatchesAccount
 		});
 
-		// Mock getOrderByHash to return our data structure
 		(getOrderByHash as Mock).mockResolvedValue({
 			order: mockOrder,
 			vaults: new Map([
@@ -184,6 +178,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('shows remove button if owner wallet matches and order is active', async () => {
+		mockMatchesAccount.mockReturnValue(true);
 		render(OrderDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
@@ -195,7 +190,6 @@ describe('OrderDetail', () => {
 			expect(defaultProps.onRemove).not.toHaveBeenCalled();
 		});
 
-		// Click the Remove button
 		await userEvent.click(screen.getByTestId('remove-button'));
 
 		await waitFor(() => {
@@ -204,9 +198,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('does not show remove button if account does not match owner', async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x0987654321098765432109876543210987654321')
-		});
+		mockMatchesAccount.mockReturnValue(false);
 
 		render(OrderDetail, {
 			props: defaultProps,
@@ -252,11 +244,12 @@ describe('OrderDetail', () => {
 			const refreshButton = await screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 
-			expect(invalidateIdQuery).toHaveBeenCalledWith(queryClient, orderHash);
+			expect(invalidateTanstackQueries).toHaveBeenCalledWith(queryClient, [orderHash]);
 		});
 	});
 
 	it('calls onDeposit callback when deposit button is clicked', async () => {
+		mockMatchesAccount.mockReturnValue(true);
 		const user = userEvent.setup();
 		const mockOnDeposit = vi.fn();
 
@@ -285,9 +278,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('calls onWithdraw callback when withdraw button is clicked', async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: mockAccountStore
-		});
+		mockMatchesAccount.mockReturnValue(true);
 		const user = userEvent.setup();
 		const mockOnWithdraw = vi.fn();
 

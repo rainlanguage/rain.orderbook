@@ -9,6 +9,7 @@ import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
 import { get } from 'svelte/store';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
+import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 
 type ModalProps = ComponentProps<DepositOrWithdrawModal>;
 
@@ -99,13 +100,11 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByTestId('deposit-withdraw-button');
 		await fireEvent.click(depositButton);
 
-		const wagmiConfig = get(mockWagmiConfigStore);
-
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: { to: '0x789', data: '0xabc' },
 			transactionCalldata: { to: '0x123', data: '0x456' }
@@ -133,10 +132,8 @@ describe('DepositOrWithdrawModal', () => {
 		const withdrawButton = screen.getByTestId('deposit-withdraw-button');
 		await fireEvent.click(withdrawButton);
 
-		const wagmiConfig = get(mockWagmiConfigStore);
-
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			transactionCalldata: { to: '0xdef', data: '0xghi' },
 			action: 'withdraw',
 			chainId: 1,
@@ -285,12 +282,11 @@ describe('DepositOrWithdrawModal', () => {
 		const depositButton = screen.getByTestId('deposit-withdraw-button');
 		await fireEvent.click(depositButton);
 
-		const wagmiConfig = get(mockWagmiConfigStore);
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			action: 'deposit',
 			chainId: 1,
 			vault: mockVault,
-			config: wagmiConfig,
+			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
 			transactionCalldata: { to: '0x123', data: '0x456' }
