@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, IERC20} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     ClearConfigV2,
     OrderV4,
@@ -17,6 +17,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @title OrderBookTakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
@@ -42,11 +43,13 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             vm.etch(inputToken, hex"fe");
             // Mock every call to output as a success, so the orderbook thinks it
             // is transferring tokens.
-            vm.mockCall(outputToken, "", abi.encode(true));
+            vm.mockCall(outputToken, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
+            vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook)), abi.encode(true));
+            vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transfer.selector, address(this)), abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
-        iOrderbook.deposit3(outputToken, vaultId, Float(type(int256).max, 0), new TaskV2[](0));
-        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(type(int256).max, 0)));
+        iOrderbook.deposit3(outputToken, vaultId, Float(type(int256).max, -18), new TaskV2[](0));
+        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(type(int256).max, -18)));
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);
 
@@ -130,7 +133,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO7(uint256 toClear18) external {
-        toClear18 = bound(toClear18, 3e18 + 1, type(uint256).max);
+        toClear18 = bound(toClear18, 3e18 + 1, uint256(type(int256).max));
         Float memory toClear = LibDecimalFloat.fromFixedDecimalLosslessMem(toClear18, 18);
         bytes[] memory configs = new bytes[](4);
         configs[0] = "_ _:1 1;:set(0 1);";
@@ -142,7 +145,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderHandleIO8(uint256 toClear18) external {
-        toClear18 = bound(toClear18, 4e18 + 1, type(uint256).max);
+        toClear18 = bound(toClear18, 4e18 + 1, uint256(type(int256).max));
         Float memory toClear = LibDecimalFloat.fromFixedDecimalLosslessMem(toClear18, 18);
         bytes[] memory configs = new bytes[](5);
         configs[0] = "_ _:1 1;:;";
