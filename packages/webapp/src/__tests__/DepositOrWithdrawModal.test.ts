@@ -6,7 +6,6 @@ import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
 import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
-import { get } from 'svelte/store';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
