@@ -134,8 +134,8 @@ describe('transactionStore', () => {
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let resolveIndexing: (value: any) => void;
-		const indexingPromise = new Promise((resolve) => {
+		let resolveIndexing: ((value: unknown) => void) | undefined;
+		const indexingPromise = new Promise<unknown>((resolve) => {
 			resolveIndexing = resolve;
 		});
 
@@ -160,12 +160,14 @@ describe('transactionStore', () => {
 
 		expect(getExplorerLink).toHaveBeenCalledWith('deployHash', 1, 'tx');
 
-		resolveIndexing!({
-			value: {
-				txHash: 'mockHash',
-				successMessage: 'Transaction confirmed'
-			}
-		});
+		if (resolveIndexing) {
+			resolveIndexing({
+				value: {
+					txHash: 'mockHash',
+					successMessage: 'Transaction confirmed'
+				}
+			});
+		}
 
 		await deploymentPromise;
 
@@ -430,8 +432,8 @@ describe('handleRemoveOrderTransaction', () => {
 		);
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let resolveIndexing: (value: any) => void;
-		const indexingPromise = new Promise((resolve) => {
+		let resolveIndexing: ((value: unknown) => void) | undefined;
+		const indexingPromise = new Promise<unknown>((resolve) => {
 			resolveIndexing = resolve;
 		});
 
@@ -462,12 +464,16 @@ describe('handleRemoveOrderTransaction', () => {
 		expect(getExplorerLink).toHaveBeenCalledWith(mockTxHash, mockChainId, 'tx');
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
 
-		resolveIndexing!({
-			value: {
-				txHash: mockTxHash,
-				successMessage: 'Order removed successfully'
-			}
-		});
+		if (resolveIndexing) {
+			resolveIndexing({
+				value: {
+					txHash: mockTxHash,
+					successMessage: 'Order removed successfully'
+				}
+			});
+		} else {
+			throw new Error('resolveIndexing is undefined');
+		}
 
 		await transactionPromise;
 
@@ -608,12 +614,12 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deposittxhash');
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let resolveIndexing: (value: any) => void;
-		const indexingPromise = new Promise((resolve) => {
-			resolveIndexing = resolve;
+		let resolveIndexing3: ((value: unknown) => void) | undefined;
+		const indexingPromise3 = new Promise<unknown>((resolve) => {
+			resolveIndexing3 = resolve;
 		});
 
-		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise);
+		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise3);
 
 		const transactionPromise = handleDepositOrWithdrawTransaction({
 			config: mockConfig,
@@ -631,12 +637,14 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		expect(pendingState.hash).toBe(mockTxHash);
 		expect(pendingState.message).toBe('Checking for transaction indexing...');
 
-		resolveIndexing!({
-			value: {
-				txHash: mockTxHash,
-				successMessage: 'The deposit was successful.'
-			}
-		});
+		if (resolveIndexing3) {
+			resolveIndexing3({
+				value: {
+					txHash: mockTxHash,
+					successMessage: 'The deposit was successful.'
+				}
+			});
+		}
 
 		await transactionPromise;
 

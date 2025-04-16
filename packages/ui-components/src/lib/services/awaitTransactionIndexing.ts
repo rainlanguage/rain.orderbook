@@ -1,4 +1,3 @@
-// subgraphIndexing.ts
 import type {
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,

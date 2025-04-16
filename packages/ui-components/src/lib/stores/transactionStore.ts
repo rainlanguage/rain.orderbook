@@ -285,7 +285,6 @@ const transactionStore = () => {
 		}
 		try {
 			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			console.log('transactionExplorerLink', transactionExplorerLink);
 			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			if (subgraphUrl) {
