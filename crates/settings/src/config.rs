@@ -1,9 +1,10 @@
-use super::config_source::ConfigSourceError;
+use crate::yaml::dotrain::DotrainYaml;
+use crate::yaml::orderbook::OrderbookYaml;
+use crate::yaml::{YamlError, YamlParsable};
 use crate::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::{collections::HashMap, sync::RwLock};
-use strict_yaml_rust::StrictYaml;
 use subgraph::SubgraphCfg;
 use thiserror::Error;
 use url::Url;
@@ -21,352 +22,179 @@ pub struct Config {
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, NetworkCfg>")
     )]
-    pub networks: HashMap<String, Arc<NetworkCfg>>,
+    networks: HashMap<String, Arc<NetworkCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, SubgraphCfg>")
     )]
-    pub subgraphs: HashMap<String, Arc<SubgraphCfg>>,
+    subgraphs: HashMap<String, Arc<SubgraphCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, string>")
     )]
-    pub metaboards: HashMap<String, Arc<Url>>,
+    metaboards: HashMap<String, Arc<Url>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, OrderbookCfg>")
     )]
-    pub orderbooks: HashMap<String, Arc<OrderbookCfg>>,
+    orderbooks: HashMap<String, Arc<OrderbookCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, TokenCfg>")
     )]
-    pub tokens: HashMap<String, Arc<TokenCfg>>,
+    tokens: HashMap<String, Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, DeployerCfg>")
     )]
-    pub deployers: HashMap<String, Arc<DeployerCfg>>,
+    deployers: HashMap<String, Arc<DeployerCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, OrderCfg>")
     )]
-    pub orders: HashMap<String, Arc<OrderCfg>>,
+    orders: HashMap<String, Arc<OrderCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, ScenarioCfg>")
     )]
-    pub scenarios: HashMap<String, Arc<ScenarioCfg>>,
+    scenarios: HashMap<String, Arc<ScenarioCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, ChartCfg>")
     )]
-    pub charts: HashMap<String, Arc<ChartCfg>>,
+    charts: HashMap<String, Arc<ChartCfg>>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, DeploymentCfg>")
     )]
-    pub deployments: HashMap<String, Arc<DeploymentCfg>>,
+    deployments: HashMap<String, Arc<DeploymentCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub sentry: Option<bool>,
+    sentry: Option<bool>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub raindex_version: Option<String>,
+    raindex_version: Option<String>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_opt_hashmap_as_object"),
         tsify(type = "Record<string, string>", optional)
     )]
-    pub accounts: Option<HashMap<String, Arc<String>>>,
+    accounts: Option<HashMap<String, Arc<String>>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub gui: Option<GuiCfg>,
+    gui: Option<GuiCfg>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(Config);
 
 #[derive(Error, Debug)]
-pub enum ParseConfigSourceError {
+pub enum ParseConfigError {
     #[error(transparent)]
-    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
+    ParseNetworkCfgError(#[from] ParseNetworkCfgError),
     #[error(transparent)]
-    ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    ParseOrderbookCfgError(#[from] ParseOrderbookCfgError),
     #[error(transparent)]
-    ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
+    ParseTokenCfgError(#[from] ParseTokenCfgError),
     #[error(transparent)]
-    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    ParseOrderCfgError(#[from] ParseOrderCfgError),
     #[error(transparent)]
-    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    ParseDeployerCfgError(#[from] ParseDeployerCfgError),
     #[error(transparent)]
-    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
+    ParseScenarioCfgError(#[from] ParseScenarioCfgError),
     #[error(transparent)]
-    ParseChartConfigSourceError(#[from] ParseChartConfigSourceError),
+    ParseDeploymentCfgError(#[from] ParseDeploymentCfgError),
     #[error(transparent)]
-    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    ParseGuiCfgError(#[from] ParseGuiCfgError),
     #[error(transparent)]
-    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
-    #[error("Failed to parse subgraph {}", 0)]
-    SubgraphParseError(url::ParseError),
-    #[error(transparent)]
-    YamlDeserializerError(#[from] serde_yaml::Error),
-    #[error(transparent)]
-    ConfigSourceError(#[from] ConfigSourceError),
-}
-
-impl TryFrom<ConfigSource> for Config {
-    type Error = ParseConfigSourceError;
-
-    fn try_from(item: ConfigSource) -> Result<Self, Self::Error> {
-        let networks = item
-            .networks
-            .into_iter()
-            .map(|(name, network)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(network.try_into_network(name.clone())?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<NetworkCfg>>, ParseConfigSourceError>>()?;
-
-        let subgraphs = item
-            .subgraphs
-            .into_iter()
-            .map(|(name, subgraph)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(SubgraphCfg {
-                        document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-                        key: name.clone(),
-                        url: subgraph.clone(),
-                    }),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<SubgraphCfg>>, ParseConfigSourceError>>()?;
-
-        let metaboards = item
-            .metaboards
-            .into_iter()
-            .map(|(name, metaboard)| Ok((name, Arc::new(metaboard))))
-            .collect::<Result<HashMap<String, Arc<Url>>, ParseConfigSourceError>>()?;
-
-        let orderbooks = item
-            .orderbooks
-            .into_iter()
-            .map(|(name, orderbook)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(orderbook.try_into_orderbook(name, &networks, &subgraphs)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<OrderbookCfg>>, ParseConfigSourceError>>()?;
-
-        let tokens = item
-            .tokens
-            .into_iter()
-            .map(|(name, token)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(token.try_into_token(&name, &networks)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<TokenCfg>>, ParseConfigSourceError>>()?;
-
-        let deployers = item
-            .deployers
-            .into_iter()
-            .map(|(name, deployer)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(deployer.try_into_deployer(name, &networks)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<DeployerCfg>>, ParseConfigSourceError>>()?;
-
-        let orders = item
-            .orders
-            .into_iter()
-            .map(|(name, order)| {
-                Ok((
-                    name,
-                    Arc::new(order.try_into_order(&deployers, &orderbooks, &tokens)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<OrderCfg>>, ParseConfigSourceError>>()?;
-
-        // Initialize an empty HashMap for all scenarios
-        let mut scenarios = HashMap::new();
-
-        // Directly iterate over scenarios if it's a HashMap
-        for (name, scenario_string) in item.scenarios {
-            let scenario_map = scenario_string.try_into_scenarios(
-                name.clone(),
-                &ScenarioParent::default(),
-                &deployers,
-            )?;
-
-            // Merge the scenarios
-            scenarios.extend(scenario_map);
-        }
-
-        let deployments = item
-            .deployments
-            .into_iter()
-            .map(|(name, deployment)| {
-                Ok((
-                    name,
-                    Arc::new(deployment.try_into_deployment(&scenarios, &orders)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<DeploymentCfg>>, ParseConfigSourceError>>()?;
-
-        let charts = item
-            .charts
-            .into_iter()
-            .map(|(name, chart)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(chart.try_into_chart(name, &scenarios)?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<ChartCfg>>, ParseConfigSourceError>>()?;
-
-        let accounts = item.accounts.map(|wl| {
-            wl.into_iter()
-                .map(|(name, address)| (name, Arc::new(address)))
-                .collect::<HashMap<String, Arc<String>>>()
-        });
-
-        let gui = match item.gui {
-            Some(g) => Some(g.try_into_gui(&deployments, &tokens)?),
-            None => None,
-        };
-
-        let config = Config {
-            raindex_version: item.raindex_version,
-            networks,
-            subgraphs,
-            metaboards,
-            orderbooks,
-            tokens,
-            deployers,
-            orders,
-            scenarios,
-            charts,
-            deployments,
-            sentry: item.sentry,
-            accounts,
-            gui,
-        };
-
-        Ok(config)
-    }
+    YamlError(#[from] YamlError),
+    #[error("Network not found: {0}")]
+    NetworkNotFound(String),
+    #[error("Subgraph not found: {0}")]
+    SubgraphNotFound(String),
+    #[error("Metaboard not found: {0}")]
+    MetaboardNotFound(String),
+    #[error("Orderbook not found: {0}")]
+    OrderbookNotFound(String),
+    #[error("Token not found: {0}")]
+    OrderNotFound(String),
+    #[error("Deployer not found: {0}")]
+    TokenNotFound(String),
+    #[error("Order not found: {0}")]
+    DeployerNotFound(String),
+    #[error("Scenario not found: {0}")]
+    ScenarioNotFound(String),
+    #[error("Chart not found: {0}")]
+    ChartNotFound(String),
+    #[error("Deployment not found: {0}")]
+    DeploymentNotFound(String),
 }
 
 impl Config {
-    pub async fn try_from_string(val: String) -> Result<Config, ParseConfigSourceError> {
-        let config_source = ConfigSource::try_from_string(val, None).await?.0;
-        std::convert::TryInto::<Config>::try_into(config_source)
-    }
-}
+    pub fn try_from_settings(settings: Vec<String>) -> Result<Self, ParseConfigError> {
+        let dotrain_yaml = DotrainYaml::new(settings.clone(), false)?;
+        let orderbook_yaml = OrderbookYaml::new(settings, false)?;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use alloy::primitives::Address;
-    use std::collections::HashMap;
-    use url::Url;
+        let networks = orderbook_yaml
+            .get_networks()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let subgraphs = orderbook_yaml
+            .get_subgraphs()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let metaboards = orderbook_yaml
+            .get_metaboards()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v.url)))
+            .collect::<HashMap<_, _>>();
+        let orderbooks = orderbook_yaml
+            .get_orderbooks()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let tokens = orderbook_yaml
+            .get_tokens()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let deployers = orderbook_yaml
+            .get_deployers()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let orders = dotrain_yaml
+            .get_orders()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let scenarios = dotrain_yaml
+            .get_scenarios()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let deployments = dotrain_yaml
+            .get_deployments()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let charts = dotrain_yaml
+            .get_charts()?
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
+        let sentry = orderbook_yaml.get_sentry()?;
+        let raindex_version = orderbook_yaml.get_raindex_version()?;
+        let gui = dotrain_yaml.get_gui(None)?;
 
-    #[test]
-    fn test_basic_conversion() {
-        let mut networks = HashMap::new();
-        networks.insert(
-            "mainnet".to_string(),
-            NetworkConfigSource {
-                rpc: Url::parse("https://mainnet.node").unwrap(),
-                chain_id: 1,
-                label: Some("Ethereum Mainnet".to_string()),
-                network_id: Some(1),
-                currency: Some("ETH".to_string()),
-            },
-        );
-
-        let mut subgraphs = HashMap::new();
-        subgraphs.insert(
-            "mainnet".to_string(),
-            Url::parse("https://mainnet.subgraph").unwrap(),
-        );
-
-        let mut metaboards = HashMap::new();
-        metaboards.insert(
-            "mainnet".to_string(),
-            Url::parse("https://mainnet.metaboard").unwrap(),
-        );
-
-        let mut orderbooks = HashMap::new();
-        orderbooks.insert(
-            "mainnetOrderbook".to_string(),
-            OrderbookConfigSource {
-                address: "0x1234567890123456789012345678901234567890"
-                    .parse::<Address>()
-                    .unwrap(),
-                network: Some("mainnet".to_string()),
-                subgraph: Some("mainnet".to_string()),
-                label: Some("Mainnet Orderbook".to_string()),
-            },
-        );
-
-        let mut tokens = HashMap::new();
-        tokens.insert(
-            "ETH".to_string(),
-            TokenConfigSource {
-                network: "mainnet".to_string(),
-                address: "0x7890123456789012345678901234567890123456"
-                    .parse::<Address>()
-                    .unwrap(),
-                decimals: Some(18),
-                label: Some("Ethereum".to_string()),
-                symbol: Some("ETH".to_string()),
-            },
-        );
-
-        let mut deployers = HashMap::new();
-        deployers.insert(
-            "mainDeployer".to_string(),
-            DeployerConfigSource {
-                address: "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
-                    .parse::<Address>()
-                    .unwrap(),
-                network: Some("mainnet".to_string()),
-                label: Some("Mainnet Deployer".to_string()),
-            },
-        );
-
-        let using_networks_from = HashMap::new();
-        let orders = HashMap::new();
-        let scenarios = HashMap::new();
-        let charts = HashMap::new();
-        let deployments = HashMap::new();
-        let sentry = Some(true);
-        let accounts = Some(HashMap::from([(
-            "name-one".to_string(),
-            "address-one".to_string(),
-        )]));
-        let gui = Some(GuiConfigSourceCfg {
-            name: "Some name".to_string(),
-            description: "Some description".to_string(),
-            deployments: HashMap::new(),
-        });
-
-        let config_string = ConfigSource {
-            raindex_version: Some("0x123".to_string()),
-            using_networks_from,
+        let config = Config {
             networks,
             subgraphs,
             metaboards,
@@ -378,79 +206,268 @@ mod tests {
             charts,
             deployments,
             sentry,
-            accounts,
+            raindex_version,
+            // TODO: add accounts
+            accounts: None,
             gui,
         };
+        Ok(config)
+    }
 
-        let config_result = Config::try_from(config_string);
-        assert!(config_result.is_ok());
+    pub fn get_networks(&self) -> &HashMap<String, Arc<NetworkCfg>> {
+        &self.networks
+    }
+    pub fn get_network(&self, key: &str) -> Result<&Arc<NetworkCfg>, ParseConfigError> {
+        self.networks
+            .get(key)
+            .ok_or(ParseConfigError::NetworkNotFound(key.to_string()))
+    }
 
-        let config = config_result.unwrap();
+    pub fn get_subgraphs(&self) -> &HashMap<String, Arc<SubgraphCfg>> {
+        &self.subgraphs
+    }
+    pub fn get_subgraph(&self, key: &str) -> Result<&Arc<SubgraphCfg>, ParseConfigError> {
+        self.subgraphs
+            .get(key)
+            .ok_or(ParseConfigError::SubgraphNotFound(key.to_string()))
+    }
 
-        // Verify networks
-        assert_eq!(config.networks.len(), 1);
-        let mainnet_network = config.networks.get("mainnet").unwrap();
-        assert_eq!(
-            mainnet_network.rpc,
-            Url::parse("https://mainnet.node").unwrap()
-        );
-        assert_eq!(mainnet_network.chain_id, 1);
-        assert_eq!(mainnet_network.key, "mainnet".to_string());
+    pub fn get_metaboards(&self) -> &HashMap<String, Arc<Url>> {
+        &self.metaboards
+    }
+    pub fn get_metaboard(&self, key: &str) -> Result<&Arc<Url>, ParseConfigError> {
+        self.metaboards
+            .get(key)
+            .ok_or(ParseConfigError::MetaboardNotFound(key.to_string()))
+    }
 
-        // Verify subgraphs
-        assert_eq!(config.subgraphs.len(), 1);
-        let mainnet_subgraph = config.subgraphs.get("mainnet").unwrap();
-        assert_eq!(mainnet_subgraph.url.as_str(), "https://mainnet.subgraph/");
+    pub fn get_orderbooks(&self) -> &HashMap<String, Arc<OrderbookCfg>> {
+        &self.orderbooks
+    }
+    pub fn get_orderbook(&self, key: &str) -> Result<&Arc<OrderbookCfg>, ParseConfigError> {
+        self.orderbooks
+            .get(key)
+            .ok_or(ParseConfigError::OrderbookNotFound(key.to_string()))
+    }
 
-        // Verify orderbooks
-        assert_eq!(config.orderbooks.len(), 1);
-        let mainnet_orderbook = config.orderbooks.get("mainnetOrderbook").unwrap();
-        assert_eq!(
-            mainnet_orderbook.address,
-            "0x1234567890123456789012345678901234567890"
-                .parse::<Address>()
-                .unwrap()
-        );
+    pub fn get_tokens(&self) -> &HashMap<String, Arc<TokenCfg>> {
+        &self.tokens
+    }
+    pub fn get_token(&self, key: &str) -> Result<&Arc<TokenCfg>, ParseConfigError> {
+        self.tokens
+            .get(key)
+            .ok_or(ParseConfigError::TokenNotFound(key.to_string()))
+    }
 
-        // Verify tokens
-        assert_eq!(config.tokens.len(), 1);
-        let eth_token = config.tokens.get("ETH").unwrap();
-        assert_eq!(
-            eth_token.address,
-            "0x7890123456789012345678901234567890123456"
-                .parse::<Address>()
-                .unwrap()
-        );
-        assert_eq!(eth_token.decimals, Some(18));
+    pub fn get_deployers(&self) -> &HashMap<String, Arc<DeployerCfg>> {
+        &self.deployers
+    }
+    pub fn get_deployer(&self, key: &str) -> Result<&Arc<DeployerCfg>, ParseConfigError> {
+        self.deployers
+            .get(key)
+            .ok_or(ParseConfigError::DeployerNotFound(key.to_string()))
+    }
 
-        // Verify deployers
-        assert_eq!(config.deployers.len(), 1);
-        let main_deployer = config.deployers.get("mainDeployer").unwrap();
-        assert_eq!(
-            main_deployer.address,
-            "0xabcdef0123456789ABCDEF0123456789ABCDEF01"
-                .parse::<Address>()
-                .unwrap()
-        );
+    pub fn get_orders(&self) -> &HashMap<String, Arc<OrderCfg>> {
+        &self.orders
+    }
+    pub fn get_order(&self, key: &str) -> Result<&Arc<OrderCfg>, ParseConfigError> {
+        self.orders
+            .get(key)
+            .ok_or(ParseConfigError::OrderNotFound(key.to_string()))
+    }
 
-        // Verify sentry
-        assert!(config.sentry.unwrap());
+    pub fn get_scenarios(&self) -> &HashMap<String, Arc<ScenarioCfg>> {
+        &self.scenarios
+    }
+    pub fn get_scenario(&self, key: &str) -> Result<&Arc<ScenarioCfg>, ParseConfigError> {
+        self.scenarios
+            .get(key)
+            .ok_or(ParseConfigError::ScenarioNotFound(key.to_string()))
+    }
 
-        // Verify raindex_version
-        assert_eq!(config.raindex_version, Some("0x123".to_string()));
+    pub fn get_deployments(&self) -> &HashMap<String, Arc<DeploymentCfg>> {
+        &self.deployments
+    }
+    pub fn get_deployment(&self, key: &str) -> Result<&Arc<DeploymentCfg>, ParseConfigError> {
+        self.deployments
+            .get(key)
+            .ok_or(ParseConfigError::DeploymentNotFound(key.to_string()))
+    }
 
-        // Verify accounts
-        assert!(config.accounts.is_some());
-        let accounts = config.accounts.as_ref().unwrap();
-        assert_eq!(accounts.len(), 1);
-        let (name, address) = accounts.iter().next().unwrap();
-        assert_eq!(name, "name-one");
-        assert_eq!(address.as_str(), "address-one");
+    pub fn get_charts(&self) -> &HashMap<String, Arc<ChartCfg>> {
+        &self.charts
+    }
+    pub fn get_chart(&self, key: &str) -> Result<&Arc<ChartCfg>, ParseConfigError> {
+        self.charts
+            .get(key)
+            .ok_or(ParseConfigError::ChartNotFound(key.to_string()))
+    }
 
-        // Verify gui
-        assert!(config.gui.is_some());
-        let gui = config.gui.as_ref().unwrap();
-        assert_eq!(gui.name, "Some name");
-        assert_eq!(gui.description, "Some description");
+    pub fn get_gui(&self) -> &Option<GuiCfg> {
+        &self.gui
+    }
+
+    pub fn get_sentry(&self) -> &Option<bool> {
+        &self.sentry
+    }
+
+    pub fn get_raindex_version(&self) -> &Option<String> {
+        &self.raindex_version
+    }
+
+    pub fn get_accounts(&self) -> &Option<HashMap<String, Arc<String>>> {
+        &self.accounts
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Config;
+
+    const ORDERBOOK_YAML: &str = r#"
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+        testnet:
+            rpc: https://testnet.infura.io
+            chain-id: 1337
+    tokens:
+        token1:
+            network: mainnet
+            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+            decimals: 18
+            label: Wrapped Ether
+            symbol: WETH
+        token2:
+            network: mainnet
+            address: 0x0000000000000000000000000000000000000002
+            decimals: 6
+            label: USD Coin
+            symbol: USDC
+    deployers:
+        scenario1:
+            address: 0x0000000000000000000000000000000000000002
+            network: mainnet
+        deployer2:
+            address: 0x0000000000000000000000000000000000000003
+            network: testnet
+    "#;
+    const DOTRAIN_YAML: &str = r#"
+    orders:
+        order1:
+            inputs:
+                - token: token1
+                  vault-id: 1
+            outputs:
+                - token: token2
+                  vault-id: 2
+    scenarios:
+        scenario1:
+            bindings:
+                key1: value1
+            scenarios:
+                scenario2:
+                    bindings:
+                        key2: value2
+                    scenarios:
+                        runs: 10
+    deployments:
+        deployment1:
+            order: order1
+            scenario: scenario1.scenario2
+        deployment2:
+            order: order1
+            scenario: scenario1
+    gui:
+        name: Test gui
+        description: Test description
+        short-description: Test short description
+        deployments:
+            deployment1:
+                name: Test deployment
+                description: Test description
+                deposits:
+                    - token: token1
+                      presets:
+                        - 100
+                        - 2000
+                fields:
+                    - binding: key1
+                      name: Binding test
+                      presets:
+                        - value: value2
+                select-tokens:
+                    - key: token2
+                      name: Test token
+                      description: Test description
+    charts:
+        chart1:
+            scenario: scenario1.scenario2
+            plots:
+                plot1:
+                    title: Test title
+                    subtitle: Test subtitle
+                    marks:
+                        - type: dot
+                          options:
+                            x: 1
+                            y: 2
+                            r: 3
+                            fill: red
+                            stroke: blue
+                            transform:
+                                type: hexbin
+                                content:
+                                    outputs:
+                                        x: 1
+                                        y: 2
+                                        r: 3
+                                        z: 4
+                                        stroke: green
+                                        fill: blue
+                                    options:
+                                        x: 1
+                                        y: 2
+                                        bin-width: 10
+                        - type: line
+                          options:
+                            transform:
+                                type: binx
+                                content:
+                                    outputs:
+                                        x: 1
+                                    options:
+                                        thresholds: 10
+                        - type: recty
+                          options:
+                            x0: 1
+                            x1: 2
+                            y0: 3
+                            y1: 4
+                    x:
+                       label: Test x label
+                       anchor: start
+                       label-anchor: start
+                       label-arrow: none
+                    y:
+                       label: Test y label
+                       anchor: start
+                       label-anchor: start
+                       label-arrow: none
+                    margin: 10
+                    margin-left: 20
+                    margin-right: 30
+                    margin-top: 40
+                    margin-bottom: 50
+                    inset: 60
+    "#;
+
+    #[test]
+    fn test_try_from_settings() {
+        let config =
+            Config::try_from_settings(vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()])
+                .unwrap();
     }
 }
