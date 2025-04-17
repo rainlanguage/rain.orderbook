@@ -57,8 +57,8 @@
     enabled = !enabled;
     if (enabled) {
       blockNumber = undefined;
+      handleRefresh();
     }
-    handleRefresh();
   };
 </script>
 
@@ -123,13 +123,16 @@
               {@const fuzzResult = item.result}
               {@const data = transformData(fuzzResult)[0]}
               {@const dataEntries = Object.entries(data)}
+              {@const keyRegex = /^\d+\.\d+$/}
+              {@const mainEntries = dataEntries.filter(([key]) => keyRegex.test(key))}
+
               {#if dataEntries.length < 2}
                 <TableBodyCell colspan="2" class="text-red-500"
                   >Missing stack data for max output and ratio</TableBodyCell
                 >
               {:else}
-                {@const maxOutput = dataEntries[dataEntries.length - 2]}
-                {@const ioRatio = dataEntries[dataEntries.length - 1]}
+                {@const maxOutput = mainEntries[mainEntries.length - 2]}
+                {@const ioRatio = mainEntries[mainEntries.length - 1]}
                 <TableBodyCell>
                   {maxOutput[1][0]}
                 </TableBodyCell>
