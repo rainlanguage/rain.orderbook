@@ -3,7 +3,6 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args};
-use rain_orderbook_app_settings::Config;
 use rain_orderbook_common::add_order::AddOrderArgs;
 use rain_orderbook_common::frontmatter::parse_frontmatter;
 use rain_orderbook_common::transaction::TransactionArgs;
@@ -40,10 +39,10 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config: Config = parse_frontmatter(text.clone()).await?.try_into()?;
+        let config = parse_frontmatter(text.clone())?;
 
         if !self.skip_version_check {
-            if let Some(ver) = config.raindex_version {
+            if let Some(ver) = config.get_raindex_version() {
                 if ver.to_ascii_lowercase() != GH_COMMIT_SHA.to_ascii_lowercase() {
                     return Err(anyhow!(format!(
                         "mismatch raindex version: expected: {}, got: {}",
@@ -58,7 +57,7 @@ impl CliOrderAddArgs {
         }
 
         let config_deployment = config
-            .deployments
+            .get_deployments()
             .get(&self.deployment)
             .ok_or(anyhow!("specified deployment is undefined!"))?;
 
