@@ -923,10 +923,16 @@ _: input-vault-id(),
 _: output-token(),
 _: output-token-decimals(),
 _: output-vault-id(),
-max-output: 30,
-io-ratio: mul(0.99 20);
+calculation: call<'another>(21),
+_ _: 30 calculation;
+
 #handle-io
 :;
+
+#another
+something:,
+_: add(something 30);
+
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
@@ -951,13 +957,18 @@ io-ratio: mul(0.99 20);
             .rows[0]
             .clone();
         assert_eq!(
-            result_rows[0],
+            result_rows[0], // input token
             U256::from_be_slice(usdce_address.as_slice())
         );
-        assert_eq!(result_rows[1], U256::from(6));
-        assert_eq!(result_rows[2], U256::from(10));
-        assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice()));
-        assert_eq!(result_rows[4], U256::from(18));
-        assert_eq!(result_rows[5], U256::from(20));
+        assert_eq!(result_rows[1], U256::from(6)); // input token decimals
+        assert_eq!(result_rows[2], U256::from(10)); // input vault id
+        assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
+        assert_eq!(result_rows[4], U256::from(18)); // output token decimals
+        assert_eq!(result_rows[5], U256::from(20)); // output vault id
+        assert_eq!(result_rows[6], U256::from(51000000000000000000 as u128)); // calculation
+        assert_eq!(result_rows[7], U256::from(30000000000000000000 as u128)); // max output
+        assert_eq!(result_rows[8], U256::from(51000000000000000000 as u128)); // io ratio
+
+        println!("{:#?}", result_rows);
     }
 }
