@@ -322,7 +322,7 @@ impl TestRunner {
         self.test_setup.deployer = self
             .settings
             .main_config
-            .deployers
+            .get_deployers()
             .get(&self.settings.test_config.scenario_name)
             .ok_or(TestRunnerError::ScenarioNotFound(
                 self.settings.test_config.scenario_name.clone(),
@@ -369,28 +369,18 @@ impl TestRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::{
-        config_source::ConfigSource, unit_test::UnitTestConfigSource,
-    };
+    use rain_orderbook_app_settings::unit_test::UnitTestConfigSource;
     use rain_orderbook_test_fixtures::LocalEvm;
 
     fn get_main_config(dotrain: &str) -> Config {
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+        Config::try_from_settings(vec![frontmatter.to_string()]).unwrap()
     }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
         let frontmatter = RainDocument::get_front_matter(test_dotrain).unwrap();
         let source = serde_yaml::from_str::<UnitTestConfigSource>(frontmatter).unwrap();
-        source
-            .test
-            .try_into_test_config()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+        source.test.try_into_test_config()
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
