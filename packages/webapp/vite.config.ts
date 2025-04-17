@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
 		server: {
 			deps: {
 				inline: [
-					/@reown\/appkit/, /@tanstack\/svelte-query/
+					/@reown\/appkit/, /@tanstack\/svelte-query/, /@rainlanguage\/orderbook/
 				]
 			}
 		},
