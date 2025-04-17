@@ -965,9 +965,9 @@ _: add(something 30);
         assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
         assert_eq!(result_rows[4], U256::from(18)); // output token decimals
         assert_eq!(result_rows[5], U256::from(20)); // output vault id
-        assert_eq!(result_rows[6], U256::from(51000000000000000000 as u128)); // calculation
-        assert_eq!(result_rows[7], U256::from(30000000000000000000 as u128)); // max output
-        assert_eq!(result_rows[8], U256::from(51000000000000000000 as u128)); // io ratio
+        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
+        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
+        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
 
         println!("{:#?}", result_rows);
     }
