@@ -292,7 +292,11 @@ mod tests {
         gui.get_field_value("binding-1".to_string()).unwrap();
 
         gui.remove_field_value("binding-1".to_string()).unwrap();
-        gui.get_field_value("binding-1".to_string()).unwrap_err();
+        let err = gui.get_field_value("binding-1".to_string()).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldBindingNotFound("binding-1".to_string()).to_string()
+        );
     }
 
     #[wasm_bindgen_test]
@@ -363,6 +367,7 @@ mod tests {
 
         gui.save_field_value("binding-2".to_string(), "99.2".to_string())
             .unwrap();
-        gui.check_field_values().unwrap();
+        let res = gui.check_field_values();
+        assert!(res.is_ok());
     }
 }
