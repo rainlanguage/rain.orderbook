@@ -99,9 +99,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let networks = NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(networks.keys().cloned().collect())
+        Ok(self.get_networks()?.keys().cloned().collect())
     }
     pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -118,9 +116,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(tokens.keys().cloned().collect())
+        Ok(self.get_tokens()?.keys().cloned().collect())
     }
     pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -141,8 +137,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
-        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(subgraphs.keys().cloned().collect())
+        Ok(self.get_subgraphs()?.keys().cloned().collect())
     }
     pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
         let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -153,9 +148,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(orderbooks.keys().cloned().collect())
+        Ok(self.get_orderbooks()?.keys().cloned().collect())
     }
     pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
@@ -176,8 +169,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
-        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(metaboards.keys().cloned().collect())
+        Ok(self.get_metaboards()?.keys().cloned().collect())
     }
     pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
         let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
@@ -191,9 +183,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
-        let deployers = DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        Ok(deployers.keys().cloned().collect())
+        Ok(self.get_deployers()?.keys().cloned().collect())
     }
     pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
