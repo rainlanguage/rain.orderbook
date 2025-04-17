@@ -12,7 +12,7 @@
   } from 'flowbite-svelte';
   import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
   import { handleScenarioDebugModal } from '$lib/services/modal';
-  import { Refresh } from '@rainlanguage/ui-components';
+  import { DEFAULT_REFRESH_INTERVAL, Refresh } from '@rainlanguage/ui-components';
   import { EditableSpan } from '@rainlanguage/ui-components';
   import { makeDeploymentDebugData } from '$lib/services/chart';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -48,6 +48,7 @@
     queryFn: fetchData,
     refetchOnWindowFocus: false,
     enabled: $globalDotrainFile.text !== '' && $settingsText !== '',
+    refetchInterval: enabled ? DEFAULT_REFRESH_INTERVAL : false,
   });
 
   $: {
