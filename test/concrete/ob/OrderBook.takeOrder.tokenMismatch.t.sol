@@ -86,7 +86,7 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         aOutputIOIndex = bound(aOutputIOIndex, 0, a.validOutputs.length - 1);
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
-        maxTakerInput18 = bound(maxTakerInput18, 1, type(uint256).max);
+        maxTakerInput18 = bound(maxTakerInput18, 1, uint256(type(int256).max));
 
         vm.assume(a.validOutputs[aOutputIOIndex].token != a.validInputs[aInputIOIndex].token);
 

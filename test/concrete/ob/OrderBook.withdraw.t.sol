@@ -35,20 +35,21 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
     /// forge-config: default.fuzz.runs = 100
     function testWithdrawEmptyVault(address alice, address token, bytes32 vaultId, uint256 amount18) external {
-        vm.assume(amount18 > 0);
+        amount18 = bound(amount18, 1, uint256(type(int256).max));
         vm.prank(alice);
-        vm.record();
-        vm.recordLogs();
         Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        vm.mockCall(
+            token,
+            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+            abi.encode(uint8(18))
+        );
+        vm.expectEmit(false, false, false, true);
+        emit WithdrawV2(alice, token, vaultId, amount, Float(0, 0), 0);
+        vm.record();
         iOrderbook.withdraw3(token, vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        // Zero logs because nothing happened.
-        assertEq(vm.getRecordedLogs().length, 0, "logs");
-        // - reentrancy guard x3
-        // - vault balance x1
-        assertEq(reads.length, 4, "reads");
-        // - reentrancy guard x2
-        assertEq(writes.length, 2, "writes");
+        assertEq(reads.length, 10, "reads");
+        assertEq(writes.length, 5, "writes");
     }
 
     /// Withdrawing the full amount from a vault should delete the vault.
