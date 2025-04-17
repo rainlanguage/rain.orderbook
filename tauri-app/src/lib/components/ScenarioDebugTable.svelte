@@ -136,7 +136,7 @@
               {@const keyRegex = /^\d+\.\d+$/}
               {@const mainEntries = dataEntries.filter(([key]) => keyRegex.test(key))}
 
-              {#if dataEntries.length < 2}
+              {#if mainEntries.length < 2}
                 <TableBodyCell colspan="2" class="text-red-500"
                   >Missing stack data for max output and ratio</TableBodyCell
                 >
