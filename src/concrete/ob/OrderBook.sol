@@ -996,11 +996,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     function pushTokens(address token, Float memory amountFloat) internal returns (uint256, uint8) {
-        // Push cannot initialize token decimals as at least one pull must be
-        // made before a push can be made, and this will have initialized the
-        // token decimals.
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
-        if (tofuOutcome != TOFUOutcome.Consistent) {
+        if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
 

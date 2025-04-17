@@ -79,7 +79,7 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
         (totalTakerInput, totalTakerOutput);
     }
 
-    function testTakeOrderHandleIO0() external {
+    function testTakeOrderHandleIO00() external {
         bytes[] memory configs = new bytes[](1);
         configs[0] = "_ _:max-value() 1;:ensure(0 \"err\");";
         checkTakeOrderHandleIO(configs, "err", Float(type(int256).max, 0));

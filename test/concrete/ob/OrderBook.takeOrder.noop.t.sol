@@ -15,6 +15,7 @@ import {
     EvaluableV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @title OrderBookTakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
@@ -100,6 +101,9 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         // mismatch error.
         order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
+
+        vm.mockCall(address(order1.validInputs[inputIOIndex1].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
+        vm.mockCall(address(order1.validOutputs[outputIOIndex1].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
 
         TakeOrdersConfigV4 memory config;
         {
