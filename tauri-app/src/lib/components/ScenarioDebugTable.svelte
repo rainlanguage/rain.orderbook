@@ -25,6 +25,7 @@
   let blockNumber: number | undefined;
 
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
+  let displayData: DeploymentDebugData['result'] | undefined = undefined;
 
   const fetchData = async () => {
     const res = await makeDeploymentDebugData(
@@ -48,6 +49,14 @@
     refetchOnWindowFocus: false,
     enabled: $globalDotrainFile.text !== '' && $settingsText !== '',
   });
+
+  $: {
+    if (!$scenarioDebugQuery.isError && $scenarioDebugQuery.data) {
+      displayData = $scenarioDebugQuery.data.result;
+    } else if ($globalDotrainFile.text === '' || $settingsText === '') {
+      displayData = undefined;
+    }
+  }
 
   const handleRefresh = () => {
     $scenarioDebugQuery.refetch();
@@ -100,8 +109,8 @@
   </div>
 </div>
 
-{#if !$scenarioDebugQuery.error}
-  {#each Object.entries($scenarioDebugQuery.data?.result ?? {}) as [deploymentName, results]}
+{#if !$scenarioDebugQuery.error && displayData}
+  {#each Object.entries(displayData) as [deploymentName, results]}
     <h2 class="text-md my-4">Deployment: <strong>{deploymentName}</strong></h2>
     <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
       <TableHead>
