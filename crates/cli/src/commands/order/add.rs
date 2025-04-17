@@ -192,6 +192,9 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
+metaboards:
+    some-metaboard: https://www.some-metaboard.com
+
 deployers:
     some-deployer:
         network: some-network

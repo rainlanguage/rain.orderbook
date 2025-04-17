@@ -377,17 +377,9 @@ impl ParseTokenCfgError {
 
 #[cfg(test)]
 mod tests {
-    use self::test::*;
     use super::*;
     use alloy::primitives::Address;
     use yaml::tests::get_document;
-
-    fn setup_networks() -> HashMap<String, Arc<NetworkCfg>> {
-        let network = mock_network();
-        let mut networks = HashMap::new();
-        networks.insert("TestNetwork".to_string(), network);
-        networks
-    }
 
     #[test]
     fn test_parse_tokens_errors() {

@@ -209,24 +209,7 @@ impl ParseOrderbookCfgError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::*;
     use strict_yaml_rust::StrictYamlLoader;
-
-    fn setup() -> (
-        HashMap<String, Arc<NetworkCfg>>,
-        HashMap<String, Arc<SubgraphCfg>>,
-    ) {
-        let network = mock_network();
-        let subgraph = mock_subgraph();
-
-        let mut networks = HashMap::new();
-        networks.insert("TestNetwork".to_string(), network);
-
-        let mut subgraphs = HashMap::new();
-        subgraphs.insert("TestSubgraph".to_string(), subgraph);
-
-        (networks, subgraphs)
-    }
 
     fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
         let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
