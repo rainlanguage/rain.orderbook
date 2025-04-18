@@ -68,7 +68,10 @@ describe('Settings active accounts items', () => {
       name_two: 'address_two',
     });
     activeSubgraphs.set({
-      mainnet: 'https://api.thegraph.com/subgraphs/name/mainnet',
+      mainnet: {
+        key: 'mainnet',
+        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+      },
     });
 
     // Verify initial state
@@ -78,7 +81,10 @@ describe('Settings active accounts items', () => {
       name_two: 'address_two',
     });
     expect(get(activeSubgraphs)).toEqual({
-      mainnet: 'https://api.thegraph.com/subgraphs/name/mainnet',
+      mainnet: {
+        key: 'mainnet',
+        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+      },
     });
   });
 
