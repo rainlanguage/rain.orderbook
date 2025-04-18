@@ -8,16 +8,16 @@
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import type { Readable, Writable } from 'svelte/store';
-	import type { ConfigSource } from '@rainlanguage/orderbook';
+	import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	export let settings: Writable<ConfigSource | undefined>;
+	export let settings: Writable<Config | undefined>;
 	export let accounts: Readable<Record<string, string>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
 	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	export let showMyItemsOnly: Writable<boolean>;
-	export let activeSubgraphs: Writable<Record<string, string>>;
+	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
 	export let orderHash: Writable<string>;
 	export let isVaultsPage: boolean;

@@ -6,7 +6,7 @@ import {
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import { type Config, type OrderbookCfg } from '@rainlanguage/orderbook';
+import { type Config, type OrderbookCfg, type SubgraphCfg } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
@@ -123,7 +123,7 @@ export const activeAccounts = derived(
 export const subgraph = derived(settings, ($settings) =>
   $settings?.subgraphs !== undefined ? Object.entries($settings.subgraphs) : [],
 );
-export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
+export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
   'settings.activeSubgraphs',
   {},
   JSON.stringify,
@@ -187,11 +187,11 @@ settings.subscribe(async () => {
       Object.entries($settings.subgraphs)
         .filter(([key, value]) => {
           if (key in currentActiveSubgraphs) {
-            return currentActiveSubgraphs[key] === value.key;
+            return currentActiveSubgraphs[key].key === value.key;
           }
           return false;
         })
-        .map(([key, value]) => [key, value.key]),
+        .map(([key, value]) => [key, value]),
     );
     activeSubgraphs.set(updatedActiveSubgraphs);
   }

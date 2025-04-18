@@ -1,8 +1,8 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { ConfigSource, OrderbookConfigSource } from '@rainlanguage/orderbook';
+import type { Config, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 export interface AppStoresInterface {
-	settings: Writable<ConfigSource | undefined>;
-	activeSubgraphs: Writable<Record<string, string>>;
+	settings: Writable<Config | undefined>;
+	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	accounts: Readable<Record<string, string>>;
 	activeAccountsItems: Writable<Record<string, string>>;
 	activeOrderStatus: Writable<boolean | undefined>;
@@ -11,7 +11,7 @@ export interface AppStoresInterface {
 	activeNetworkRef: Writable<string | undefined>;
 	activeOrderbookRef: Writable<string | undefined>;
 	// New ones
-	activeOrderbook: Readable<OrderbookConfigSource | undefined>;
+	activeOrderbook: Readable<OrderbookCfg | undefined>;
 	subgraphUrl: Readable<string | undefined>;
 	activeAccounts: Readable<{
 		[k: string]: string;

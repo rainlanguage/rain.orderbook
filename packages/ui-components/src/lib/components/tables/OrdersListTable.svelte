@@ -44,9 +44,9 @@
 
 	$: multiSubgraphArgs = Object.entries(
 		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
+	).map(([name, value]) => ({
 		name,
-		url
+		url: value.url
 	})) as MultiSubgraphArgs[];
 
 	$: owners =
