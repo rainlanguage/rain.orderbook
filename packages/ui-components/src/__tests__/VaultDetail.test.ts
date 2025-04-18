@@ -31,7 +31,10 @@ vi.mock('$lib/services/modal', () => ({
 
 const mockSettings = readable({
 	subgraphs: {
-		mainnet: 'https://example.com'
+		mainnet: {
+			key: 'mainnet',
+			url: 'https://example.com'
+		}
 	}
 });
 

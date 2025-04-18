@@ -404,7 +404,8 @@ deployments:
 
     fn get_main_config(dotrain: &str) -> Config {
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap()
+        Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string(), false])
+            .unwrap()
     }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {

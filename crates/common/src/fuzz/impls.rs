@@ -325,7 +325,8 @@ b: fuzzed;
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -377,7 +378,8 @@ _: block-number();
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -437,7 +439,8 @@ d: 4;
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -493,8 +496,8 @@ _: context<4 4>();
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
-
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
@@ -539,7 +542,8 @@ _: context<50 50>();
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -579,7 +583,8 @@ _: context<1 0>();
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
         let config =
-            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()]).unwrap();
+            Config::try_from_settings(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 

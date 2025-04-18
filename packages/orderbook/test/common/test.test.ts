@@ -154,6 +154,11 @@ scenarios:
             key: 10
 deployers:
     some-deployer:
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
 ---
 #calculate-io
 _ _: 0 0;
@@ -166,7 +171,10 @@ _ _: 0 0;
 			assert.fail('expected to fail, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.equal(error.message, "Missing required field 'address' in deployer 'some-deployer'");
+			assert.equal(
+				error.message,
+				"Invalid value for field 'deployers': Missing required field 'address' in deployer 'some-deployer' in root"
+			);
 		}
 	});
 

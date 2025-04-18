@@ -40,6 +40,7 @@ impl From<Error> for JsValue {
 #[wasm_bindgen(js_name = "getAddOrderCalldata")]
 pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<Uint8Array, Error> {
     let config = parse_frontmatter(dotrain.to_string())?;
+    web_sys::console::log_1(&format!("config: {:?}", config.get_deployments()).into());
     let deployment_ref = config.get_deployment(deployment)?;
     let add_order_args =
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())

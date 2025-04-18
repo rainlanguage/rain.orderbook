@@ -22,7 +22,7 @@ impl Execute for Chart {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let config = Config::try_from_settings(vec![frontmatter.to_string()])?;
+        let config = Config::try_from_settings(vec![frontmatter.to_string()], false)?;
         let fuzzer = FuzzRunner::new(&dotrain, config, None).await;
         let chart_data = fuzzer.make_chart_data().await?;
 

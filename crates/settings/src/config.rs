@@ -136,9 +136,12 @@ pub enum ParseConfigError {
 }
 
 impl Config {
-    pub fn try_from_settings(settings: Vec<String>) -> Result<Self, ParseConfigError> {
-        let dotrain_yaml = DotrainYaml::new(settings.clone(), false)?;
-        let orderbook_yaml = OrderbookYaml::new(settings, false)?;
+    pub fn try_from_settings(
+        settings: Vec<String>,
+        validate: bool,
+    ) -> Result<Self, ParseConfigError> {
+        let dotrain_yaml = DotrainYaml::new(settings.clone(), validate)?;
+        let orderbook_yaml = OrderbookYaml::new(settings, validate)?;
 
         let networks = orderbook_yaml
             .get_networks()
@@ -502,9 +505,11 @@ mod tests {
 
     #[test]
     fn test_try_from_settings() {
-        let config =
-            Config::try_from_settings(vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()])
-                .unwrap();
+        let config = Config::try_from_settings(
+            vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
+            false,
+        )
+        .unwrap();
 
         assert_eq!(config.get_networks().len(), 2);
         assert_eq!(config.get_subgraphs().len(), 2);
