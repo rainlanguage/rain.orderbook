@@ -141,52 +141,62 @@ impl Config {
         let orderbook_yaml = OrderbookYaml::new(settings, false)?;
 
         let networks = orderbook_yaml
-            .get_networks()?
+            .get_networks()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let subgraphs = orderbook_yaml
-            .get_subgraphs()?
+            .get_subgraphs()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let metaboards = orderbook_yaml
-            .get_metaboards()?
+            .get_metaboards()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v.url)))
             .collect::<HashMap<_, _>>();
         let orderbooks = orderbook_yaml
-            .get_orderbooks()?
+            .get_orderbooks()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let tokens = orderbook_yaml
-            .get_tokens()?
+            .get_tokens()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let deployers = orderbook_yaml
-            .get_deployers()?
+            .get_deployers()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let orders = dotrain_yaml
-            .get_orders()?
+            .get_orders()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let scenarios = dotrain_yaml
-            .get_scenarios()?
+            .get_scenarios()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let deployments = dotrain_yaml
-            .get_deployments()?
+            .get_deployments()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
         let charts = dotrain_yaml
-            .get_charts()?
+            .get_charts()
+            .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();

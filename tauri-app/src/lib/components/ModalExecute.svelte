@@ -33,7 +33,7 @@
 
   const getNetworkName = (chainId: number) => {
     const existingNetwork = Object.entries($settings?.networks || {}).find(
-      (entry) => entry[1]['chain-id'] === chainId,
+      (entry) => entry[1].chainId === chainId,
     );
 
     if (existingNetwork) {

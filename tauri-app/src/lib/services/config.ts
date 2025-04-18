@@ -1,13 +1,10 @@
 import { settingsText } from '$lib/stores/settings';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { get } from 'svelte/store';
 
-export const parseConfigSource = async (text: string): Promise<ConfigSource> =>
+export const parseConfig = async (text: string): Promise<Config> =>
   invoke('parse_configstring', { text });
 
-export const mergeDotrainConfigWithSettings = async (dotrain: string): Promise<ConfigSource> =>
+export const mergeDotrainConfigWithSettings = async (dotrain: string): Promise<Config> =>
   invoke('merge_configstrings', { dotrain, configText: get(settingsText) });
-
-export const convertConfigstringToConfig = async (configString: ConfigSource): Promise<Config> =>
-  invoke('convert_configstring_to_config', { configString });

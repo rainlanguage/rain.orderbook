@@ -1,12 +1,7 @@
 import { expect, test } from 'vitest';
 import type { Dictionary } from 'lodash';
 import { pickDeployments, pickScenarios } from '$lib/services/pickConfig';
-import type {
-  Config,
-  ConfigSource,
-  DeploymentConfigSource,
-  ScenarioCfg,
-} from '@rainlanguage/orderbook';
+import type { Config, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
 export const config: Config = {
   networks: {
@@ -181,84 +176,61 @@ export const config: Config = {
   },
 };
 
-export const configSource: ConfigSource = {
-  networks: {
-    network1: {
-      rpc: 'rpc-url',
-      'chain-id': 14,
-    },
-    network2: {
-      rpc: 'rpc-url',
-      'chain-id': 137,
-    },
-  },
-  subgraphs: {
-    network1: 'some-url',
-  },
-  orderbooks: {
-    network1: {
-      address: '0x123456',
-      network: 'network1',
-      subgraph: 'network1',
-    },
-  },
-  deployers: {
-    network1: {
-      address: '0xabcdef',
-      network: 'network1',
-    },
-  },
-  orders: {
+test('pick deployments', () => {
+  const activeNetwork = 'network1';
+  const result = pickDeployments(config, activeNetwork);
+  const expectedPickedDeployments: Dictionary<DeploymentCfg> = {
     sell: {
-      inputs: [],
-      outputs: [],
-    },
-    buy: {
-      inputs: [],
-      outputs: [],
-    },
-  },
-  scenarios: {
-    network1: {
-      bindings: {},
-      scenarios: {
-        buy: {
-          bindings: {},
+      key: 'sell',
+      scenario: {
+        key: 'network1.sell',
+        bindings: {},
+        deployer: {
+          key: 'network1',
+          address: '0xabcdef',
+          network: {
+            key: 'network1',
+            rpc: 'rpc-url',
+            chainId: 14,
+          },
         },
-        sell: {
-          bindings: {},
+      },
+      order: {
+        key: 'sell',
+        inputs: [],
+        outputs: [],
+        network: {
+          key: 'network1',
+          rpc: 'rpc-url',
+          chainId: 14,
         },
       },
     },
-  },
-  charts: {},
-  deployments: {
     buy: {
-      scenario: 'network1.buy',
-      order: 'buy',
-    },
-    sell: {
-      scenario: 'network1.sell',
-      order: 'sell',
-    },
-  },
-  accounts: {
-    name_one: 'address_one',
-    name_two: 'address_two',
-  },
-};
-
-test('pick deployments', () => {
-  const activeNetwork = 'network1';
-  const result = pickDeployments(configSource, config, activeNetwork);
-  const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {
-    sell: {
-      scenario: 'network1.sell',
-      order: 'sell',
-    },
-    buy: {
-      scenario: 'network1.buy',
-      order: 'buy',
+      key: 'buy',
+      scenario: {
+        key: 'network1.buy',
+        bindings: {},
+        deployer: {
+          key: 'network1',
+          address: '0xabcdef',
+          network: {
+            key: 'network1',
+            rpc: 'rpc-url',
+            chainId: 14,
+          },
+        },
+      },
+      order: {
+        key: 'buy',
+        inputs: [],
+        outputs: [],
+        network: {
+          key: 'network1',
+          rpc: 'rpc-url',
+          chainId: 14,
+        },
+      },
     },
   };
 
@@ -267,8 +239,8 @@ test('pick deployments', () => {
 
 test('pick deployments when empty', () => {
   const activeNetwork = 'network2';
-  const result = pickDeployments(configSource, config, activeNetwork);
-  const expectedPickedDeployments: Dictionary<DeploymentConfigSource> = {};
+  const result = pickDeployments(config, activeNetwork);
+  const expectedPickedDeployments: Dictionary<DeploymentCfg> = {};
 
   expect(result).toStrictEqual(expectedPickedDeployments);
 });

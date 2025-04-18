@@ -94,7 +94,7 @@ impl YamlParsableHash for MetaboardCfg {
             if let Ok(metaboards_hash) = require_hash(&document_read, Some("metaboards"), None) {
                 for (key_yaml, metaboard_yaml) in metaboards_hash {
                     let metaboard_key = key_yaml.as_str().unwrap_or_default().to_string();
-                    let location = format!("metaboards[{}]", metaboard_key);
+                    let location = format!("metaboards '{}'", metaboard_key);
 
                     let url_str = require_string(metaboard_yaml, None, Some(location.clone()))?;
                     let url =

@@ -25,6 +25,7 @@ vi.mock('$lib/stores/settings', async (importOriginal) => ({
 // Import components and stores after mocks
 import ModalExecute from './ModalExecute.svelte';
 import { settings } from '$lib/stores/settings';
+import type { Config } from '@rainlanguage/orderbook';
 
 describe('ModalExecute', () => {
   beforeEach(() => {
@@ -32,7 +33,7 @@ describe('ModalExecute', () => {
     // Reset settings store before each test
     settings.set({
       networks: {},
-    });
+    } as unknown as Config);
   });
 
   describe('network connection error', () => {
@@ -63,11 +64,12 @@ describe('ModalExecute', () => {
       settings.set({
         networks: {
           mainnet: {
-            'chain-id': 1,
+            key: 'mainnet',
+            chainId: 1,
             rpc: 'https://mainnet.com',
           },
         },
-      });
+      } as unknown as Config);
 
       render(ModalExecute, {
         props: {

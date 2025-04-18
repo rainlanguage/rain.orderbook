@@ -6,7 +6,7 @@ use crate::{
 };
 use alloy::primitives::Bytes;
 use js_sys::Uint8Array;
-use rain_orderbook_app_settings::{Config, ParseConfigSourceError};
+use rain_orderbook_app_settings::ParseConfigError;
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
@@ -23,7 +23,7 @@ pub enum Error {
     #[error("undefined deployment")]
     UndefinedDeployment,
     #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
+    ParseConfigError(#[from] ParseConfigError),
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
@@ -39,11 +39,8 @@ impl From<Error> for JsValue {
 /// Get addOrder() calldata from a given dotrain text and deployment key from its frontmatter
 #[wasm_bindgen(js_name = "getAddOrderCalldata")]
 pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<Uint8Array, Error> {
-    let config: Config = parse_frontmatter(dotrain.to_string()).await?.try_into()?;
-    let deployment_ref = config
-        .deployments
-        .get(deployment)
-        .ok_or(Error::UndefinedDeployment)?;
+    let config = parse_frontmatter(dotrain.to_string())?;
+    let deployment_ref = config.get_deployment(deployment)?;
     let add_order_args =
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())
             .await?;

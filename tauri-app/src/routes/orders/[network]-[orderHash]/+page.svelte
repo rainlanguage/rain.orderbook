@@ -19,7 +19,7 @@
   const { orderHash, network } = $page.params;
 
   const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
-  const subgraphUrl = $settings?.subgraphs?.[network];
+  const subgraphUrl = $settings?.subgraphs?.[network].url;
   const rpcUrl = $settings?.networks?.[network]?.rpc;
 
   function onRemove(order: SgOrder) {

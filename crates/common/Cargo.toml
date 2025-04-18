@@ -41,6 +41,7 @@ chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
+web-sys = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

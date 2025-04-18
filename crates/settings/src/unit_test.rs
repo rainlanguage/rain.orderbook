@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+use wasm_bindgen_utils::{
+    impl_wasm_traits, prelude::*, serialize_hashmap_as_object, serialize_opt_hashmap_as_object,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]

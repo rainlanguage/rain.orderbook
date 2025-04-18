@@ -3,34 +3,45 @@ import { settings, activeAccountsItems, activeSubgraphs } from './settings';
 import { get } from 'svelte/store';
 
 // Import the ConfigSource type
-import type { ConfigSource } from '@rainlanguage/orderbook';
+import type { Config, NetworkCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 
 // Define the mock directly in the tests
-const mockConfigSource: ConfigSource = {
+const mockConfig: Config = {
   networks: {
     mainnet: {
+      key: 'mainnet',
       rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
-      'chain-id': 1,
+      chainId: 1,
       label: 'Ethereum Mainnet',
       currency: 'ETH',
     },
   },
   subgraphs: {
-    mainnet: 'https://api.thegraph.com/subgraphs/name/mainnet',
+    mainnet: {
+      key: 'mainnet',
+      url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+    },
   },
   orderbooks: {
     orderbook1: {
+      key: 'orderbook1',
       address: '0xOrderbookAddress1',
-      network: 'mainnet',
-      subgraph: 'uniswap',
+      network: {
+        key: 'mainnet',
+      } as unknown as NetworkCfg,
+      subgraph: {
+        key: 'uniswap',
+      } as unknown as SubgraphCfg,
       label: 'Orderbook 1',
     },
   },
   deployers: {
     deployer1: {
+      key: 'deployer1',
       address: '0xDeployerAddress1',
-      network: 'mainnet',
-      label: 'Deployer 1',
+      network: {
+        key: 'mainnet',
+      } as unknown as NetworkCfg,
     },
   },
   metaboards: {
@@ -40,7 +51,7 @@ const mockConfigSource: ConfigSource = {
     name_one: 'address_one',
     name_two: 'address_two',
   },
-};
+} as unknown as Config;
 
 describe('Settings active accounts items', () => {
   // Reset store values before each test to prevent state leakage
@@ -51,7 +62,7 @@ describe('Settings active accounts items', () => {
     activeSubgraphs.set({});
 
     // Then set our initial test values
-    settings.set(mockConfigSource);
+    settings.set(mockConfig);
     activeAccountsItems.set({
       name_one: 'address_one',
       name_two: 'address_two',
@@ -61,7 +72,7 @@ describe('Settings active accounts items', () => {
     });
 
     // Verify initial state
-    expect(get(settings)).toEqual(mockConfigSource);
+    expect(get(settings)).toEqual(mockConfig);
     expect(get(activeAccountsItems)).toEqual({
       name_one: 'address_one',
       name_two: 'address_two',
@@ -74,7 +85,7 @@ describe('Settings active accounts items', () => {
   test('should remove account if that account is removed', () => {
     // Test removing an account
     const newSettings = {
-      ...mockConfigSource,
+      ...mockConfig,
       accounts: {
         name_one: 'address_one',
       },
@@ -91,7 +102,7 @@ describe('Settings active accounts items', () => {
 
   test('should remove account if the value is different', () => {
     const newSettings = {
-      ...mockConfigSource,
+      ...mockConfig,
       accounts: {
         name_one: 'address_one',
         name_two: 'new_value',
@@ -107,37 +118,37 @@ describe('Settings active accounts items', () => {
 
   test('should update active subgraphs when subgraph value changes', () => {
     const newSettings = {
-      ...mockConfigSource,
+      ...mockConfig,
       subgraphs: {
         mainnet: 'new value',
       },
     };
 
-    settings.set(newSettings);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });
 
   test('should update active subgraphs when subgraph removed', () => {
     const newSettings = {
-      ...mockConfigSource,
+      ...mockConfig,
       subgraphs: {
         testnet: 'testnet',
       },
     };
 
-    settings.set(newSettings);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });
 
   test('should reset active subgraphs when subgraphs are undefined', () => {
     const newSettings = {
-      ...mockConfigSource,
+      ...mockConfig,
       subgraphs: undefined,
     };
 
-    settings.set(newSettings);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });

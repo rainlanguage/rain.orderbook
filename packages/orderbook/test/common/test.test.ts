@@ -19,6 +19,9 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
+metaboards:
+    test: https://metaboard.com
+
 deployers:
     some-deployer:
         network: some-network
@@ -112,16 +115,46 @@ _ _: 0 0;
 			assert.fail('expected to fail, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.equal(error.message, 'undefined deployment');
+			assert.equal(error.message, 'Deployment not found: some-other-deployment');
 		}
 	});
 
 	it('should throw frontmatter missing field error', async () => {
 		try {
 			const dotrain = `
+networks:
+    some-network:
+        rpc: http://localhost:8080/rpc-url
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+subgraphs:
+    some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+orders:
+    some-order:
+        deployer: some-deployer
+        inputs:
+            - token: token1
+        outputs:
+            - token: token1
+scenarios:
+    some-deployer:
+        bindings:
+            key: 10
 deployers:
     some-deployer:
-        ---
+---
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -133,10 +166,7 @@ _ _: 0 0;
 			assert.fail('expected to fail, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
-			assert.equal(
-				error.message,
-				'deployers.some-deployer: missing field `address` at line 3 column 19'
-			);
+			assert.equal(error.message, "Missing required field 'address' in deployer 'some-deployer'");
 		}
 	});
 

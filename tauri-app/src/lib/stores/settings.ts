@@ -6,11 +6,7 @@ import {
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
-import {
-  type ConfigSource,
-  type OrderbookCfgRef,
-  type OrderbookConfigSource,
-} from '@rainlanguage/orderbook';
+import { type Config, type OrderbookCfg } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
@@ -26,13 +22,13 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
-export const settings = cachedWritableStore<ConfigSource | undefined>(
+export const settings = cachedWritableStore<Config | undefined>(
   'settings',
   undefined,
   (value) => JSON.stringify(value),
   (str) => {
     try {
-      return JSON.parse(str) as ConfigSource;
+      return JSON.parse(str) as Config;
     } catch {
       return undefined;
     }
@@ -53,7 +49,7 @@ export const activeNetwork = asyncDerived(
   },
 );
 export const rpcUrl = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.rpc);
-export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.['chain-id']);
+export const chainId = derived(activeNetwork, ($activeNetwork) => $activeNetwork?.chainId);
 export const activeChain = derived(chainId, ($activeChainId) =>
   find(Object.values(chains), (c) => c.id === $activeChainId),
 );
@@ -72,9 +68,9 @@ export const activeNetworkOrderbooks = derived(
     $settings?.orderbooks
       ? (pickBy(
           $settings.orderbooks,
-          (orderbook) => orderbook.network === $activeNetworkRef,
-        ) as Record<OrderbookCfgRef, OrderbookConfigSource>)
-      : ({} as Record<OrderbookCfgRef, OrderbookConfigSource>),
+          (orderbook) => orderbook.network.key === $activeNetworkRef,
+        ) as Record<string, OrderbookCfg>)
+      : ({} as Record<string, OrderbookCfg>),
 );
 export const activeOrderbook = derived(
   [settings, activeOrderbookRef],
@@ -85,7 +81,7 @@ export const activeOrderbook = derived(
 );
 export const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
   $settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-    ? $settings.subgraphs[$activeOrderbook.subgraph]
+    ? $settings.subgraphs[$activeOrderbook.subgraph.key]
     : undefined,
 );
 export const orderbookAddress = derived(
@@ -188,12 +184,14 @@ settings.subscribe(async () => {
   } else {
     const currentActiveSubgraphs = get(activeSubgraphs);
     const updatedActiveSubgraphs = Object.fromEntries(
-      Object.entries($settings.subgraphs).filter(([key, value]) => {
-        if (key in currentActiveSubgraphs) {
-          return currentActiveSubgraphs[key] === value;
-        }
-        return false;
-      }),
+      Object.entries($settings.subgraphs)
+        .filter(([key, value]) => {
+          if (key in currentActiveSubgraphs) {
+            return currentActiveSubgraphs[key] === value.key;
+          }
+          return false;
+        })
+        .map(([key, value]) => [key, value.key]),
     );
     activeSubgraphs.set(updatedActiveSubgraphs);
   }
