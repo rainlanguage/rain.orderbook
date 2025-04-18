@@ -19,7 +19,7 @@
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
+	const subgraphUrl = $settings.subgraphs[network]?.url;
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
 	const { account } = useAccount();
@@ -59,8 +59,8 @@
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
 		const network = $page.params.network;
 		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+		const subgraphUrl = $settings?.subgraphs?.[network]?.url || '';
+		const chainId = $settings?.networks?.[network]?.chainId || 0;
 
 		handleDepositOrWithdrawModal({
 			open: true,
