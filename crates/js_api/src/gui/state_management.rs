@@ -321,7 +321,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
         gui.deserialize_state(YAML.to_string(), SERIALIZED_STATE.to_string(), None)
             .await
             .unwrap();
@@ -351,7 +351,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state_invalid_dotrain() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
         let dotrain = r#"
         dotrain:
             name: Test
