@@ -39,7 +39,7 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config = parse_frontmatter(text.clone())?;
+        let config = parse_frontmatter(text.clone(), true)?;
 
         if !self.skip_version_check {
             if let Some(ver) = config.get_raindex_version() {

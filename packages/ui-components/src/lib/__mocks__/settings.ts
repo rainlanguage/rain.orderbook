@@ -15,6 +15,14 @@ export const mockConfigSource: Config = {
 		mainnet: {
 			key: 'mainnet',
 			url: 'https://api.thegraph.com/subgraphs/name/mainnet'
+		},
+		flare: {
+			key: 'flare',
+			url: 'https://api.thegraph.com/subgraphs/name/flare'
+		},
+		testnet: {
+			key: 'testnet',
+			url: 'https://api.thegraph.com/subgraphs/name/testnet'
 		}
 	},
 	orderbooks: {

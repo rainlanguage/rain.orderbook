@@ -1,9 +1,5 @@
-import type {
-	AppStoresInterface,
-	ConfigSource,
-	OrderbookConfigSource,
-	OrderbookCfgRef
-} from '@rainlanguage/ui-components';
+import type { AppStoresInterface } from '@rainlanguage/ui-components';
+import type { Config, OrderbookCfgSource } from '@rainlanguage/orderbook';
 import { writable, derived, get } from 'svelte/store';
 import pkg from 'lodash';
 
@@ -19,213 +15,7 @@ export const load = async ({ fetch }) => {
 	);
 	const settingsJson = await response.json();
 
-	// const settingsJson = {
-	// 	accounts: {},
-	// 	networks: {
-	// 		flare: {
-	// 			key: 'flare',
-	// 			rpc: 'https://flare.rpc.thirdweb.com',
-	// 			'chain-id': 14,
-	// 			currency: 'FLR'
-	// 		},
-	// 		base: {
-	// 			key: 'base',
-	// 			rpc: 'https://base-rpc.publicnode.com',
-	// 			'chain-id': 8453,
-	// 			'network-id': 8453,
-	// 			currency: 'ETH'
-	// 		},
-	// 		polygon: {
-	// 			key: 'polygon',
-	// 			rpc: 'https://1rpc.io/matic',
-	// 			'chain-id': 137,
-	// 			'network-id': 137,
-	// 			currency: 'POL'
-	// 		},
-	// 		arbitrum: {
-	// 			key: 'arbitrum',
-	// 			rpc: 'https://1rpc.io/arb',
-	// 			'chain-id': 42161,
-	// 			'network-id': 42161,
-	// 			currency: 'ETH'
-	// 		},
-	// 		bsc: {
-	// 			key: 'bsc',
-	// 			rpc: 'https://bsc-dataseed.bnbchain.org',
-	// 			'chain-id': 56,
-	// 			'network-id': 56,
-	// 			currency: 'BNB'
-	// 		},
-	// 		linea: {
-	// 			key: 'linea',
-	// 			rpc: 'https://rpc.linea.build',
-	// 			'chain-id': 59144,
-	// 			'network-id': 59144,
-	// 			currency: 'ETH'
-	// 		},
-	// 		ethereum: {
-	// 			key: 'ethereum',
-	// 			rpc: 'https://1rpc.io/eth',
-	// 			'chain-id': 1,
-	// 			'network-id': 1,
-	// 			currency: 'ETH'
-	// 		}
-	// 	},
-	// 	subgraphs: {
-	// 		flare: {
-	// 			key: 'flare',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/2024-12-13-9dc7/gn'
-	// 		},
-	// 		base: {
-	// 			key: 'base',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/2024-12-13-9c39/gn'
-	// 		},
-	// 		polygon: {
-	// 			key: 'polygon',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-matic/2024-12-13-d2b4/gn'
-	// 		},
-	// 		arbitrum: {
-	// 			key: 'arbitrum',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-arbitrum-one/2024-12-13-7435/gn'
-	// 		},
-	// 		bsc: {
-	// 			key: 'bsc',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-bsc/2024-12-13-2244/gn'
-	// 		},
-	// 		linea: {
-	// 			key: 'linea',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-linea/2024-12-13-09c7/gn'
-	// 		},
-	// 		ethereum: {
-	// 			key: 'ethereum',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-mainnet/2024-12-13-7f22/gn'
-	// 		}
-	// 	},
-	// 	metaboards: {
-	// 		flare: {
-	// 			key: 'flare',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn'
-	// 		},
-	// 		base: {
-	// 			key: 'base',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn'
-	// 		},
-	// 		polygon: {
-	// 			key: 'polygon',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-polygon/0.1/gn'
-	// 		},
-	// 		arbitrum: {
-	// 			key: 'arbitrum',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-arbitrum/0.1/gn'
-	// 		},
-	// 		bsc: {
-	// 			key: 'bsc',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-bsc/0.1/gn'
-	// 		},
-	// 		linea: {
-	// 			key: 'linea',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-linea-0xed7d6156/1.0.0/gn'
-	// 		},
-	// 		ethereum: {
-	// 			key: 'ethereum',
-	// 			url: 'https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-mainnet/2024-10-25-2857/gn'
-	// 		}
-	// 	},
-	// 	orderbooks: {
-	// 		flare: {
-	// 			key: 'flare',
-	// 			address: '0xCEe8Cd002F151A536394E564b84076c41bBBcD4d',
-	// 			network: 'flare',
-	// 			subgraph: 'flare'
-	// 		},
-	// 		base: {
-	// 			key: 'base',
-	// 			address: '0xd2938e7c9fe3597f78832ce780feb61945c377d7',
-	// 			network: 'base',
-	// 			subgraph: 'base'
-	// 		},
-	// 		polygon: {
-	// 			key: 'polygon',
-	// 			address: '0x7D2f700b1f6FD75734824EA4578960747bdF269A',
-	// 			network: 'polygon',
-	// 			subgraph: 'polygon'
-	// 		},
-	// 		arbitrum: {
-	// 			key: 'arbitrum',
-	// 			address: '0x550878091b2B1506069F61ae59e3A5484Bca9166',
-	// 			network: 'arbitrum',
-	// 			subgraph: 'arbitrum'
-	// 		},
-	// 		matchain: {
-	// 			key: 'matchain',
-	// 			address: '0x40312edab8fe65091354172ad79e9459f21094e2',
-	// 			network: 'matchain',
-	// 			subgraph: 'matchain'
-	// 		},
-	// 		bsc: {
-	// 			key: 'bsc',
-	// 			address: '0xd2938E7c9fe3597F78832CE780Feb61945c377d7',
-	// 			network: 'bsc',
-	// 			subgraph: 'bsc'
-	// 		},
-	// 		linea: {
-	// 			key: 'linea',
-	// 			address: '0x22410e2a46261a1B1e3899a072f303022801C764',
-	// 			network: 'linea',
-	// 			subgraph: 'linea'
-	// 		},
-	// 		ethereum: {
-	// 			key: 'ethereum',
-	// 			address: '0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C',
-	// 			network: 'ethereum',
-	// 			subgraph: 'ethereum'
-	// 		}
-	// 	},
-	// 	deployers: {
-	// 		flare: {
-	// 			key: 'flare',
-	// 			address: '0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb',
-	// 			network: 'flare'
-	// 		},
-	// 		base: {
-	// 			key: 'base',
-	// 			address: '0xC1A14cE2fd58A3A2f99deCb8eDd866204eE07f8D',
-	// 			network: 'base'
-	// 		},
-	// 		polygon: {
-	// 			key: 'polygon',
-	// 			address: '0xE7116BC05C8afe25e5B54b813A74F916B5D42aB1',
-	// 			network: 'polygon'
-	// 		},
-	// 		arbitrum: {
-	// 			key: 'arbitrum',
-	// 			address: '0x9B0D254bd858208074De3d2DaF5af11b3D2F377F',
-	// 			network: 'arbitrum'
-	// 		},
-	// 		matchain: {
-	// 			key: 'matchain',
-	// 			address: '0x582d9e838FE6cD9F8147C66A8f56A3FBE513a6A2',
-	// 			network: 'polygon'
-	// 		},
-	// 		bsc: {
-	// 			key: 'bsc',
-	// 			address: '0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA',
-	// 			network: 'bsc'
-	// 		},
-	// 		linea: {
-	// 			key: 'linea',
-	// 			address: '0xA2f56F8F74B7d04d61f281BE6576b6155581dcBA',
-	// 			network: 'linea'
-	// 		},
-	// 		ethereum: {
-	// 			key: 'ethereum',
-	// 			address: '0xd19581a021f4704ad4eBfF68258e7A0a9DB1CD77',
-	// 			network: 'ethereum'
-	// 		}
-	// 	}
-	// };
-
-	const settings = writable<ConfigSource | undefined>(settingsJson);
+	const settings = writable<Config | undefined>(settingsJson);
 	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(
@@ -238,13 +28,14 @@ export const load = async ({ fetch }) => {
 
 	const activeNetworkOrderbooks = derived(
 		[settings, activeNetworkRef],
-		([$settings, $activeNetworkRef]) =>
-			$settings?.orderbooks
+		([$settings, $activeNetworkRef]) => {
+			return $settings?.orderbooks
 				? (pickBy(
-						$settings.orderbooks,
+						$settings.orderbooks as unknown as Record<string, OrderbookCfgSource>,
 						(orderbook) => orderbook.network === $activeNetworkRef
-					) as Record<OrderbookCfgRef, OrderbookConfigSource>)
-				: ({} as Record<OrderbookCfgRef, OrderbookConfigSource>)
+					) as Record<string, OrderbookCfgSource>)
+				: ({} as Record<string, OrderbookCfgSource>);
+		}
 	);
 
 	const accounts = derived(settings, ($settings) => $settings?.accounts);
@@ -252,7 +43,7 @@ export const load = async ({ fetch }) => {
 
 	const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
 		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-			? $settings.subgraphs[$activeOrderbook.subgraph]
+			? $settings.subgraphs[$activeOrderbook.subgraph.key]
 			: undefined
 	);
 	const activeAccounts = derived(
@@ -314,7 +105,7 @@ if (import.meta.vitest) {
 					network: 'network1',
 					subgraph: 'subgraph3'
 				}
-			},
+			} as unknown as Record<string, OrderbookCfgSource>,
 			subgraphs: {
 				subgraph1: {
 					key: 'subgraph1',
@@ -329,7 +120,7 @@ if (import.meta.vitest) {
 					url: 'https://subgraph3.url'
 				}
 			}
-		};
+		} as unknown as Config;
 
 		beforeEach(() => {
 			vi.clearAllMocks();
@@ -502,7 +293,7 @@ if (import.meta.vitest) {
 
 			stores.activeOrderbookRef.set('orderbook1');
 
-			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks);
 			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
 
 			stores.activeNetworkRef.set('network2');

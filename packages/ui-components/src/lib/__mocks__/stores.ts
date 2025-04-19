@@ -1,12 +1,12 @@
-import type { ConfigSource } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
-import { type Config } from '@wagmi/core';
+import { type Config as WagmiConfig } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { Page } from '@sveltejs/kit';
 
-const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
+const mockSettingsWritable = writable<Config | undefined>(settingsFixture as unknown as Config);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
@@ -19,14 +19,14 @@ const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
-const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
+const mockWagmiConfigWritable = writable<WagmiConfig>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockPageWritable = writable<Page>();
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
 	set: mockSettingsWritable.set,
-	mockSetSubscribeValue: (value: ConfigSource | undefined): void => mockSettingsWritable.set(value)
+	mockSetSubscribeValue: (value: Config | undefined): void => mockSettingsWritable.set(value)
 };
 
 export const mockActiveSubgraphsStore = {
@@ -108,7 +108,7 @@ export const mockWagmiConfigStore = {
 	subscribe: mockWagmiConfigWritable.subscribe,
 	set: mockWagmiConfigWritable.set,
 	update: mockWagmiConfigWritable.update,
-	mockSetSubscribeValue: (value: Config): void => mockWagmiConfigWritable.set(value)
+	mockSetSubscribeValue: (value: WagmiConfig): void => mockWagmiConfigWritable.set(value)
 };
 
 export const mockShowMyItemsOnlyStore = {

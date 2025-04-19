@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { ConfigSource } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
@@ -20,19 +20,23 @@ vi.mock('@tanstack/svelte-query', () => ({
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
-	const mockSettings = writable<ConfigSource>({
+	const mockSettings = writable<Config>({
 		networks: {
 			ethereum: {
+				key: 'ethereum',
 				rpc: 'https://rpc.ankr.com/eth',
-				'chain-id': 1,
-				'network-id': 1,
+				chainId: 1,
+				networkId: 1,
 				currency: 'ETH'
 			}
 		},
 		subgraphs: {
-			mainnet: 'mainnet-url'
+			mainnet: {
+				key: 'mainnet',
+				url: 'mainnet-url'
+			}
 		}
-	});
+	} as unknown as Config);
 
 	const defaultProps = {
 		settings: mockSettings,
@@ -51,20 +55,24 @@ describe('ListViewOrderbookFilters', () => {
 		mockSettings.set({
 			networks: {
 				ethereum: {
+					key: 'ethereum',
 					rpc: 'https://rpc.ankr.com/eth',
-					'chain-id': 1,
-					'network-id': 1,
+					chainId: 1,
+					networkId: 1,
 					currency: 'ETH'
 				}
 			},
 			subgraphs: {
-				mainnet: 'mainnet-url'
+				mainnet: {
+					key: 'mainnet',
+					url: 'mainnet-url'
+				}
 			}
-		});
+		} as unknown as Config);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({ networks: {}, subgraphs: {} });
+		mockSettings.set({ networks: {}, subgraphs: {} } as unknown as Config);
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();

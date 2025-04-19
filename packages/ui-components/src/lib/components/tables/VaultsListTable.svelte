@@ -23,7 +23,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let activeOrderbook: Readable<OrderbookCfg | undefined>;
-	export let subgraphUrl: Readable<string | undefined>;
+	export let subgraphUrl: Readable<SubgraphCfg | undefined>;
 	export let accounts: AppStoresInterface['accounts'] | undefined;
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let orderHash: Writable<string>;

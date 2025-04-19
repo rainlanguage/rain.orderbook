@@ -90,12 +90,11 @@ impl TestConfigSource {
             deployer: Arc::new(DeployerCfg::dummy()),
         });
 
-        let config = TestConfig {
+        TestConfig {
             calculate_entrypoint: self.calculate_entrypoint,
             handle_entrypoint: self.handle_entrypoint,
             scenario_name: self.scenario_name.clone(),
             scenario,
-        };
-        config
+        }
     }
 }

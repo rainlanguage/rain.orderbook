@@ -163,7 +163,7 @@ describe('DeploymentSteps', () => {
 			expect(handleDeployment).toHaveBeenCalledWith(
 				mockGui,
 				'0x123',
-				mockConfigSource.subgraphs?.mainnet
+				mockConfigSource.subgraphs?.mainnet.url
 			);
 		});
 	});
@@ -466,7 +466,7 @@ describe('DeploymentSteps', () => {
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
+			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.flare.url);
 		});
 	});
 });

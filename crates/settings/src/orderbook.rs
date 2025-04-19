@@ -19,6 +19,20 @@ use yaml::{
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
+pub struct OrderbookCfgSource {
+    pub key: String,
+    pub address: String,
+    pub network: String,
+    pub subgraph: String,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub label: Option<String>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderbookCfgSource);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct OrderbookCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,

@@ -804,7 +804,7 @@ mod tests {
         );
 
         let sentry = config.get_sentry().unwrap();
-        assert_eq!(sentry, true);
+        assert!(sentry);
         let raindex_version = config.get_raindex_version().as_ref().unwrap();
         assert_eq!(raindex_version, "0.1.0");
     }
