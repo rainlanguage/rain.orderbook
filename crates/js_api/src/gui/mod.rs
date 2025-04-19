@@ -540,6 +540,9 @@ gui:
         - key: token3
           name: Token 3
           description: Token 3 description
+        - key: token4
+          name: Token 4
+          description: Token 4 description
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
