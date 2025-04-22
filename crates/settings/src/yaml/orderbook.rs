@@ -1,8 +1,8 @@
 use super::{cache::Cache, *};
 use crate::{
-    metaboard::MetaboardCfg, raindex_version::RaindexVersion, remote_networks::RemoteNetworksCfg,
-    remote_tokens::RemoteTokensCfg, sentry::Sentry, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg,
-    OrderbookCfg, TokenCfg,
+    accounts::AccountCfg, metaboard::MetaboardCfg, raindex_version::RaindexVersion,
+    remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg, sentry::Sentry,
+    subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -203,6 +203,18 @@ impl OrderbookYaml {
         let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
         Ok(value)
     }
+
+    pub fn get_account_keys(&self) -> Result<Vec<String>, YamlError> {
+        let accounts = self.get_accounts()?;
+        Ok(accounts.keys().cloned().collect())
+    }
+    pub fn get_accounts(&self) -> Result<HashMap<String, AccountCfg>, YamlError> {
+        let accounts = AccountCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        Ok(accounts)
+    }
+    pub fn get_account(&self, key: &str) -> Result<AccountCfg, YamlError> {
+        AccountCfg::parse_from_yaml(self.documents.clone(), key, None)
+    }
 }
 
 impl Serialize for OrderbookYaml {
@@ -303,8 +315,8 @@ mod tests {
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
     accounts:
-        admin: 0x4567890123abcdef
-        user: 0x5678901234abcdef
+        admin: 0x0000000000000000000000000000000000000001
+        user: 0x0000000000000000000000000000000000000002
     sentry: true
     raindex-version: 1.0.0
     "#;
@@ -424,6 +436,16 @@ mod tests {
         assert_eq!(
             ob_yaml.get_raindex_version().unwrap(),
             Some("1.0.0".to_string())
+        );
+
+        assert_eq!(ob_yaml.get_account_keys().unwrap().len(), 2);
+        assert_eq!(
+            ob_yaml.get_account("admin").unwrap().address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        assert_eq!(
+            ob_yaml.get_account("user").unwrap().address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
     }
 
