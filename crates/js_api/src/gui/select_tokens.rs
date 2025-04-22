@@ -136,7 +136,7 @@ impl DotrainOrderGui {
     }
 }
 
-#[cfg(test)]
+#[cfg(not(target_family = "wasm"))]
 mod tests {
     use super::*;
     use alloy_ethers_typecast::rpc::Response;
