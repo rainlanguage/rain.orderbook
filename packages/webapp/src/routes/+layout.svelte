@@ -46,6 +46,7 @@
 				<Homepage {colorTheme} />
 			{:else}
 				<div
+					data-testid="layout-container"
 					class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
 				>
 					<Sidebar {colorTheme} page={$page} />
