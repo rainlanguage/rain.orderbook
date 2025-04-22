@@ -1,5 +1,6 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
-import type { Config, OrderbookCfgSource } from '@rainlanguage/orderbook';
+import { parseSettings } from '@rainlanguage/orderbook';
+import type { Config, OrderbookCfg } from '@rainlanguage/orderbook';
 import { writable, derived, get } from 'svelte/store';
 import pkg from 'lodash';
 
@@ -11,11 +12,11 @@ export interface LayoutData {
 
 export const load = async ({ fetch }) => {
 	const response = await fetch(
-		'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
+		'https://raw.githubusercontent.com/findolor/sample-dotrains/6865d8c76dc4182c5f6f41c20299cb017a6298fe/settings.yaml'
 	);
-	const settingsJson = await response.json();
+	const settingsYaml = await response.text();
 
-	const settings = writable<Config | undefined>(settingsJson);
+	const settings = writable<Config | undefined>(await parseSettings([settingsYaml]));
 	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(
@@ -31,10 +32,10 @@ export const load = async ({ fetch }) => {
 		([$settings, $activeNetworkRef]) => {
 			return $settings?.orderbooks
 				? (pickBy(
-						$settings.orderbooks as unknown as Record<string, OrderbookCfgSource>,
-						(orderbook) => orderbook.network === $activeNetworkRef
-					) as Record<string, OrderbookCfgSource>)
-				: ({} as Record<string, OrderbookCfgSource>);
+						$settings.orderbooks as unknown as Record<string, OrderbookCfg>,
+						(orderbook) => orderbook.network.key === $activeNetworkRef
+					) as Record<string, OrderbookCfg>)
+				: ({} as Record<string, OrderbookCfg>);
 		}
 	);
 
@@ -84,43 +85,104 @@ if (import.meta.vitest) {
 	vi.stubGlobal('fetch', mockFetch);
 
 	describe('Layout load function', () => {
+		const mockSettingsYaml = `
+accounts:
+  account1: 0x1234567890123456789012345678901234567890
+  account2: 0x1234567890123456789012345678901234567890
+networks:
+  network1:
+    rpc: https://network1.rpc
+    chainId: 1
+    label: Network 1
+    currency: ETH
+  network2:
+    rpc: https://network2.rpc
+    chainId: 2
+    label: Network 2
+    currency: ETH
+orderbooks:
+  orderbook1:
+    address: 0x1234567890123456789012345678901234567890
+    network: network1
+    subgraph: subgraph1
+  orderbook2:
+    address: 0x1234567890123456789012345678901234567890
+    network: network2
+    subgraph: subgraph2
+  orderbook3:
+    address: 0x1234567890123456789012345678901234567890
+    network: network1
+    subgraph: subgraph3
+subgraphs:
+  subgraph1: https://subgraph1.url
+  subgraph2: https://subgraph2.url
+  subgraph3: https://subgraph3.url
+`;
+		const network1 = {
+			key: 'network1',
+			rpc: 'https://network1.rpc',
+			chainId: 1,
+			label: 'Network 1',
+			currency: 'ETH'
+		};
+		const network2 = {
+			key: 'network2',
+			rpc: 'https://network2.rpc',
+			chainId: 2,
+			label: 'Network 2',
+			currency: 'ETH'
+		};
+		const subgraph1 = {
+			key: 'subgraph1',
+			url: 'https://subgraph1.url'
+		};
+		const subgraph2 = {
+			key: 'subgraph2',
+			url: 'https://subgraph2.url'
+		};
+		const subgraph3 = {
+			key: 'subgraph3',
+			url: 'https://subgraph3.url'
+		};
 		const mockSettingsJson = {
 			accounts: {
-				account1: { name: 'Test Account 1' },
-				account2: { name: 'Test Account 2' }
+				account1: {
+					name: 'Test Account 1'
+				},
+				account2: {
+					name: 'Test Account 2'
+				}
+			},
+			networks: {
+				network1,
+				network2
+			},
+			subgraphs: {
+				subgraph1,
+				subgraph2,
+				subgraph3
 			},
 			orderbooks: {
 				orderbook1: {
 					key: 'orderbook1',
-					network: 'network1',
-					subgraph: 'subgraph1'
+					address: '0x1234567890123456789012345678901234567890',
+					network: network1,
+					subgraph: subgraph1
 				},
 				orderbook2: {
 					key: 'orderbook2',
-					network: 'network2',
-					subgraph: 'subgraph2'
+					address: '0x1234567890123456789012345678901234567890',
+					network: network2,
+					subgraph: subgraph2
 				},
 				orderbook3: {
 					key: 'orderbook3',
-					network: 'network1',
-					subgraph: 'subgraph3'
-				}
-			} as unknown as Record<string, OrderbookCfgSource>,
-			subgraphs: {
-				subgraph1: {
-					key: 'subgraph1',
-					url: 'https://subgraph1.url'
-				},
-				subgraph2: {
-					key: 'subgraph2',
-					url: 'https://subgraph2.url'
-				},
-				subgraph3: {
-					key: 'subgraph3',
-					url: 'https://subgraph3.url'
+					address: '0x1234567890123456789012345678901234567890',
+					network: network1,
+					subgraph: subgraph3
 				}
 			}
-		} as unknown as Config;
+		};
 
 		beforeEach(() => {
 			vi.clearAllMocks();
@@ -128,15 +190,16 @@ if (import.meta.vitest) {
 		});
 
 		it('should load settings and initialize stores correctly', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
+				'https://raw.githubusercontent.com/findolor/sample-dotrains/6865d8c76dc4182c5f6f41c20299cb017a6298fe/settings.yaml'
 			);
 
 			expect(result).toHaveProperty('stores');
@@ -165,8 +228,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle derived store: activeOrderbook', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -181,8 +245,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle derived store: activeNetworkOrderbooks', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,8 +265,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle derived store: subgraphUrl', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,8 +282,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -228,8 +295,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,8 +319,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle empty or malformed settings JSON', async () => {
+			vi.mocked(parseSettings).mockResolvedValue({} as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({})
+				text: () => Promise.resolve({})
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,8 +338,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,7 +363,7 @@ if (import.meta.vitest) {
 
 			stores.activeOrderbookRef.set('orderbook1');
 
-			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks);
+			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
 			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
 
 			stores.activeNetworkRef.set('network2');
@@ -307,8 +377,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle multiple interrelated store updates correctly', async () => {
+			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(mockSettingsJson)
+				text: () => Promise.resolve(mockSettingsYaml)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -342,23 +413,30 @@ if (import.meta.vitest) {
 		});
 
 		it('should handle partial or invalid data in settings correctly', async () => {
-			const partialSettings = {
-				accounts: mockSettingsJson.accounts,
-				orderbooks: {
-					orderbook1: {
-						key: 'orderbook1',
-						network: 'network1'
-					},
-					orderbook2: {
-						key: 'orderbook2',
-						network: 'network2',
-						subgraph: 'nonexistent_subgraph'
-					}
-				}
-			};
+			const partialSettings = `
+networks:
+  network1:
+    rpc: https://network1.rpc
+    chainId: 1
+    label: Network 1
+    currency: ETH
+subgraphs:
+  subgraph1:
+    key: subgraph1
+    url: https://subgraph1.url
+orderbooks:
+  orderbook1:
+  	address: 0x1234567890123456789012345678901234567890
+    network: network1
+    subgraph: non-existent-subgraph
+  orderbook2:
+    address: 0x1234567890123456789012345678901234567890
+    network: network1
+`;
 
+			vi.mocked(parseSettings).mockResolvedValue(partialSettings as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve(partialSettings)
+				text: () => Promise.resolve(partialSettings)
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -366,11 +444,11 @@ if (import.meta.vitest) {
 			const { stores } = result;
 
 			stores.activeOrderbookRef.set('orderbook1');
-			expect(get(stores.activeOrderbook)).toEqual(partialSettings.orderbooks.orderbook1);
+			expect(get(stores.activeOrderbook)).toBeUndefined();
 			expect(get(stores.subgraphUrl)).toBeUndefined();
 
 			stores.activeOrderbookRef.set('orderbook2');
-			expect(get(stores.activeOrderbook)).toEqual(partialSettings.orderbooks.orderbook2);
+			expect(get(stores.activeOrderbook)).toBeUndefined();
 			expect(get(stores.subgraphUrl)).toBeUndefined();
 		});
 	});
