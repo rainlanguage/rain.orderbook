@@ -93,6 +93,7 @@ describe('Layout component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
+			expect(screen.getByTestId('mock-component')).toBeInTheDocument();
 		});
 	});
 });
