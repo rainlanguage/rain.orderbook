@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import { useAccount } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { connected } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
+
+	const { account } = useAccount();
 
 	const {
 		activeOrderbook,
@@ -49,7 +51,7 @@
 		}
 	});
 
-	$: showMyItemsOnly.set($connected);
+	$: showMyItemsOnly.set($account);
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />

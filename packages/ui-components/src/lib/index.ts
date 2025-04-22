@@ -131,7 +131,7 @@ export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
 
 // Mocks
-export { mockPageStore } from './__mocks__/stores';
+export { mockPageStore, initialPageState } from './__mocks__/stores';
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';

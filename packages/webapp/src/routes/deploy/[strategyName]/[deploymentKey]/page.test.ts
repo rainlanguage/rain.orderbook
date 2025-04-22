@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
+import { writable } from 'svelte/store';
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
@@ -71,7 +72,7 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: mockDotrain,
 				deployment: { key: mockDeploymentKey },
 				strategyDetail: {}
@@ -93,7 +94,7 @@ describe('DeployPage', () => {
 	it('should not call handleGuiInitialization when dotrain is missing', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: null as unknown as string,
 				deployment: { key: 'test-key' },
 				strategyDetail: {}
@@ -111,7 +112,7 @@ describe('DeployPage', () => {
 	it('should not call handleGuiInitialization when deployment is missing', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: 'some-dotrain',
 				deployment: null as unknown as { key: string },
 				strategyDetail: {}
@@ -131,7 +132,7 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: null as unknown as string,
 				deployment: null as unknown as { key: string },
 				strategyDetail: {}
@@ -155,7 +156,7 @@ describe('DeployPage', () => {
 	it('should show error message when GUI initialization fails', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'
@@ -181,7 +182,7 @@ describe('DeployPage', () => {
 	it('should handle initialization with empty state from URL', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'
@@ -209,7 +210,7 @@ describe('DeployPage', () => {
 
 		mockPageStore.mockSetSubscribeValue({
 			data: {
-				stores: { settings: {} },
+				stores: { settings: writable({}) },
 				dotrain: 'https://dotrain.example.com',
 				deployment: {
 					key: 'test-deployment'

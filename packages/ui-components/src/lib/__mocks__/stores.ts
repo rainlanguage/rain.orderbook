@@ -5,9 +5,9 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
-const initialPageState = {
+export const initialPageState = {
 	data: {
-		stores: { settings: {} },
+		stores: { settings: writable({}) },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
 		strategyDetail: {}
@@ -22,8 +22,8 @@ const initialPageState = {
 	}
 };
 
-const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
+const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
