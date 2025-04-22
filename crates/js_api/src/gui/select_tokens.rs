@@ -135,3 +135,179 @@ impl DotrainOrderGui {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy_ethers_typecast::rpc::Response;
+    use httpmock::MockServer;
+
+    #[tokio::test]
+    async fn test_save_select_token() {
+        let server = MockServer::start_async().await;
+        let yaml = format!(
+            r#"
+gui:
+  name: Fixed limit
+  description: Fixed limit order strategy
+  short-description: Buy WETH with USDC on Base.
+  deployments:
+    some-deployment:
+      name: Select token deployment
+      description: Select token deployment description
+      deposits:
+        - token: token3
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
+      select-tokens:
+        - key: token3
+          name: Token 3
+          description: Token 3 description
+    normal-deployment:
+      name: Normal deployment
+      description: Normal deployment description
+      deposits:
+        - token: token3
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          default: 10
+networks:
+  some-network:
+    rpc: {rpc_url}
+    chain-id: 123
+    network-id: 123
+    currency: ETH
+subgraphs:
+  some-sg: https://www.some-sg.com
+metaboards:
+  test: https://metaboard.com
+deployers:
+  some-deployer:
+    network: some-network
+    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+  some-orderbook:
+    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+    network: some-network
+    subgraph: some-sg
+scenarios:
+  some-scenario:
+    deployer: some-deployer
+    bindings:
+      test-binding: 5
+    scenarios:
+      sub-scenario:
+        bindings:
+          another-binding: 300
+orders:
+  some-order:
+    deployer: some-deployer
+    inputs:
+      - token: token3
+    outputs:
+      - token: token3
+deployments:
+  some-deployment:
+    scenario: some-scenario
+    order: some-order
+  normal-deployment:
+    scenario: some-scenario
+    order: some-order
+---
+#test-binding !
+#another-binding !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            rpc_url = server.url("/rpc")
+        );
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+            then.body(Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap());
+        });
+
+        let mut gui = DotrainOrderGui::new();
+        gui.choose_deployment(yaml.to_string(), "some-deployment".to_string(), None)
+            .await
+            .unwrap();
+
+        let deployment = gui.get_current_deployment().unwrap();
+        assert_eq!(deployment.deployment.order.inputs[0].token, None);
+        assert_eq!(deployment.deployment.order.outputs[0].token, None);
+
+        gui.save_select_token(
+            "token3".to_string(),
+            "0x0000000000000000000000000000000000000001".to_string(),
+        )
+        .await
+        .unwrap();
+        assert!(gui.is_select_token_set("token3".to_string()).unwrap());
+
+        let deployment = gui.get_current_deployment().unwrap();
+        let token = deployment.deployment.order.inputs[0]
+            .token
+            .as_ref()
+            .unwrap();
+        assert_eq!(
+            token.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        assert_eq!(token.decimals, Some(6));
+        assert_eq!(token.label, Some("Token 1".to_string()));
+        assert_eq!(token.symbol, Some("T1".to_string()));
+
+        let err = gui
+            .save_select_token(
+                "token4".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenNotFound("token4".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token4' could not be found in the YAML configuration."
+        );
+
+        let mut gui = DotrainOrderGui::new();
+        gui.choose_deployment(yaml.to_string(), "normal-deployment".to_string(), None)
+            .await
+            .unwrap();
+
+        let err = gui
+            .save_select_token(
+                "token3".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(err.to_string(), GuiError::SelectTokensNotSet.to_string());
+        assert_eq!(
+            err.to_readable_msg(),
+            "No tokens have been configured for selection. Please check your YAML configuration."
+        );
+    }
+}
