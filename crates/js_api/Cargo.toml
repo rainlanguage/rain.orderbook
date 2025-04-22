@@ -9,7 +9,7 @@ homepage.workspace = true
 publish = false
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 serde = { workspace = true }
@@ -33,4 +33,6 @@ strict-yaml-rust = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
