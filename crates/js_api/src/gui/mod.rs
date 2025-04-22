@@ -1349,8 +1349,6 @@ _ _: 0 0;
 
         #[tokio::test]
         async fn test_get_token_info_remote() {
-            use httpmock::MockServer;
-
             let server = MockServer::start_async().await;
             let yaml = format!(
                 r#"
@@ -1412,9 +1410,9 @@ networks:
                 token_infos[0].address.to_string(),
                 "0x0000000000000000000000000000000000000001"
             );
-            assert_eq!(token_info.decimals, 6);
-            assert_eq!(token_info.name, "Token 1");
-            assert_eq!(token_info.symbol, "T1");
+            assert_eq!(token_infos[0].decimals, 6);
+            assert_eq!(token_infos[0].name, "Token 1");
+            assert_eq!(token_infos[0].symbol, "T1");
         }
     }
 }
