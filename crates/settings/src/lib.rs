@@ -1,3 +1,4 @@
+pub mod accounts;
 pub mod blocks;
 pub mod chart;
 pub mod config;

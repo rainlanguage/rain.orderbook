@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { OrderDetail, PageHeader, useAccount } from '@rainlanguage/ui-components';
+	import {
+		invalidateTanstackQueries,
+		OrderDetail,
+		PageHeader,
+		useAccount
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
@@ -44,11 +49,7 @@
 				orderbookAddress,
 				subgraphUrl,
 				onRemove: () => {
-					queryClient.invalidateQueries({
-						queryKey: [orderHash],
-						refetchType: 'all',
-						exact: false
-					});
+					invalidateTanstackQueries(queryClient, [orderHash]);
 					triggerToast('Order removed successfully');
 				}
 			}
@@ -66,11 +67,7 @@
 			args: {
 				vault,
 				onDepositOrWithdraw: () => {
-					queryClient.invalidateQueries({
-						queryKey: [orderHash],
-						refetchType: 'all',
-						exact: false
-					});
+					invalidateTanstackQueries(queryClient, [orderHash]);
 				},
 				action,
 				chainId,
@@ -109,7 +106,6 @@
 	{lightweightChartsTheme}
 	{colorTheme}
 	{orderbookAddress}
-	{chainId}
 	{onRemove}
 	{onDeposit}
 	{onWithdraw}

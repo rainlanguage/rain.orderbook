@@ -18,7 +18,6 @@
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
-		walletAddressMatchesOrBlank,
 		activeNetworkOrderbooks,
 		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
@@ -49,6 +48,7 @@
 			resetActiveOrderbookRef();
 		}
 	});
+
 	$: showMyItemsOnly.set($connected);
 </script>
 
@@ -68,6 +68,5 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
-	{walletAddressMatchesOrBlank}
 	currentRoute={$page.url.pathname}
 />

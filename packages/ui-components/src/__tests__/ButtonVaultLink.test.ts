@@ -28,4 +28,16 @@ describe('ButtonVaultLink', () => {
 		expect(vaultLink).toHaveTextContent('Test Token');
 		expect(vaultLink).toHaveTextContent('TEST');
 	});
+
+	it('should set the link id attribute correctly', () => {
+		render(ButtonVaultLink, {
+			props: {
+				tokenVault: mockVault,
+				subgraphName: 'test'
+			}
+		});
+
+		const linkElement = screen.getByRole('link');
+		expect(linkElement).toHaveAttribute('id', `token-info-${mockVault.vaultId}`);
+	});
 });

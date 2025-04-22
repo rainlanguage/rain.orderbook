@@ -4,7 +4,9 @@ import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
 
-const { mockPageStore, mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
+const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+
+const { mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
 );
 
