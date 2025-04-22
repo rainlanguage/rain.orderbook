@@ -8,6 +8,7 @@ const mockErcKit = vi.hoisted(() => ({
 	init: vi.fn().mockResolvedValue(undefined)
 }));
 const mockDefaultConfig = vi.hoisted(() => vi.fn().mockReturnValue(mockErcKit));
+const mockEnv = vi.hoisted(() => ({ browser: true }));
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -16,9 +17,7 @@ vi.mock('$app/stores', async (importOriginal) => {
 	};
 });
 
-vi.mock('$app/environment', () => ({
-	browser: true
-}));
+vi.mock('$app/environment', () => mockEnv);
 
 vi.mock('../lib/components/Sidebar.svelte', async () => {
 	const MockSidebar = (await import('@rainlanguage/ui-components')).MockComponent;
@@ -57,19 +56,25 @@ describe('Layout component', () => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
 		mockDefaultConfig.mockReturnValue(mockErcKit);
+		mockEnv.browser = true;
 	});
 
 	it('initializes wallet when in browser environment', async () => {
+		const originalNavigator = global.navigator;
+
 		Object.defineProperty(global, 'navigator', {
 			value: {},
 			writable: true
 		});
-
 		mockPageStore.mockSetSubscribeValue(initialPageState);
 
 		render(Layout);
 
 		expect(mockErcKit.init).toHaveBeenCalled();
+		Object.defineProperty(global, 'navigator', {
+			value: originalNavigator,
+			writable: true
+		});
 	});
 	it('renders Homepage when on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
@@ -94,6 +99,17 @@ describe('Layout component', () => {
 		await waitFor(() => {
 			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
 			expect(screen.getByTestId('mock-component')).toBeInTheDocument();
+		});
+	});
+
+	it('does not initialize wallet when not in browser environment', async () => {
+		const originalNavigator = global.navigator;
+		mockEnv.browser = false;
+		render(Layout);
+		expect(mockErcKit.init).not.toHaveBeenCalled();
+		Object.defineProperty(global, 'navigator', {
+			value: originalNavigator,
+			writable: true
 		});
 	});
 });
