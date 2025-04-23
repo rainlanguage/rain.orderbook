@@ -4,7 +4,7 @@
 	import { Alert } from 'flowbite-svelte';
 	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
-	import CheckboxOrderStatus from './checkbox/CheckboxActiveOrders.svelte';
+	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
@@ -53,7 +53,9 @@
 
 		{#if isOrdersPage}
 			<InputOrderHash {orderHash} />
-			<CheckboxOrderStatus {activeOrderStatus} />
+			<div class="mt-4">
+				<CheckboxActiveOrders {activeOrderStatus} />
+			</div>
 		{/if}
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />
