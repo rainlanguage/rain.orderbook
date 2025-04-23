@@ -19,7 +19,7 @@
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
-	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
+	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
 
 	export let id: string;
 	export let network: string;
@@ -83,7 +83,7 @@
 					aria-label="Deposit to vault"
 					on:click={() => onDeposit(data)}
 				>
-					<ArrowDownOutline size="xs" />
+					<ArrowDownToBracketOutline size="xs" />
 				</Button>
 				<Button
 					color="light"
@@ -92,7 +92,7 @@
 					aria-label="Withdraw from vault"
 					on:click={() => onWithdraw(data)}
 				>
-					<ArrowUpOutline size="xs" />
+					<ArrowUpFromBracketOutline size="xs" />
 				</Button>
 			{/if}
 
