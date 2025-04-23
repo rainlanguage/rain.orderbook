@@ -90,7 +90,7 @@ describe('Layout component', () => {
 		render(Layout);
 
 		const errorMessage = await screen.findByText(
-			'Failed to initialize wallet connection. Please try again or check console.'
+			'Failed to initialize wallet connection: Initialization failed. Please try again or check console.'
 		);
 		expect(errorMessage).toBeInTheDocument();
 

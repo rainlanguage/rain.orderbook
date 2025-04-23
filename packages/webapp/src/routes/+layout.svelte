@@ -36,9 +36,8 @@
 			});
 			await erckit.init();
 			walletInitError = null;
-		} catch {
-			walletInitError =
-				'Failed to initialize wallet connection. Please try again or check console.';
+		} catch (error) {
+			walletInitError = `Failed to initialize wallet connection: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or check console.`;
 		}
 	};
 
