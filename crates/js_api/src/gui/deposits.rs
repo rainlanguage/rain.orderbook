@@ -15,7 +15,7 @@ impl DotrainOrderGui {
 
         for deposit in deployment.deposits.iter() {
             if deposit.token.is_none() {
-                return Err(GuiError::TokenMustBeSelected("deposit".to_string()));
+                return Err(GuiError::MissingDepositToken(deployment.key.clone()));
             }
 
             let token = deposit.token.as_ref().unwrap();
@@ -143,5 +143,185 @@ impl DotrainOrderGui {
     #[wasm_export(js_name = "hasAnyDeposit", unchecked_return_type = "boolean")]
     pub fn has_any_deposit(&self) -> Result<bool, GuiError> {
         Ok(!self.deposits.is_empty())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    use std::str::FromStr;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    async fn test_get_gui_deposit() {
+        let gui = initialize_gui().await;
+
+        let deposit = gui.get_gui_deposit("token1").unwrap();
+        assert_eq!(deposit.token.unwrap().key, "token1");
+        assert_eq!(
+            deposit.presets,
+            Some(vec![
+                "0".to_string(),
+                "10".to_string(),
+                "100".to_string(),
+                "1000".to_string(),
+                "10000".to_string()
+            ])
+        );
+
+        let err = gui.get_gui_deposit("token2").unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositTokenNotFound("token2".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The deposit token 'token2' was not found in the YAML configuration."
+        );
+
+        let gui = initialize_gui_with_select_tokens().await;
+        let err = gui.get_gui_deposit("token3").unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositTokenNotFound("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The deposit token 'token3' was not found in the YAML configuration."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_deposits() {
+        let mut gui = initialize_gui().await;
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+
+        let deposit = gui.get_deposits().unwrap();
+        assert_eq!(deposit.len(), 1);
+        assert_eq!(deposit[0].token, "token1");
+        assert_eq!(deposit[0].amount, "999");
+        assert_eq!(
+            deposit[0].address,
+            Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap()
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_deposit() {
+        let mut gui = initialize_gui().await;
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+
+        let deposit = gui.get_deposits().unwrap();
+        assert_eq!(deposit.len(), 1);
+        assert_eq!(deposit[0].token, "token1");
+        assert_eq!(deposit[0].amount, "999");
+        assert_eq!(
+            deposit[0].address,
+            Address::from_str("0xc2132d05d31c914a87c6611c10748aeb04b58e8f").unwrap()
+        );
+
+        gui.save_deposit("token1".to_string(), "".to_string())
+            .unwrap();
+        let deposit = gui.get_deposits().unwrap();
+        assert_eq!(deposit.len(), 0);
+
+        let mut gui = initialize_gui_with_select_tokens().await;
+        let err = gui
+            .save_deposit("token3".to_string(), "999".to_string())
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositTokenNotFound("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The deposit token 'token3' was not found in the YAML configuration."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_remove_deposit() {
+        let mut gui = initialize_gui().await;
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+        let deposit = gui.get_deposits().unwrap();
+        assert_eq!(deposit.len(), 1);
+
+        gui.remove_deposit("token1".to_string()).unwrap();
+        assert_eq!(gui.get_deposits().unwrap().len(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_deposit_presets() {
+        let gui = initialize_gui().await;
+
+        let presets = gui.get_deposit_presets("token1".to_string()).unwrap();
+        assert_eq!(
+            presets,
+            vec![
+                "0".to_string(),
+                "10".to_string(),
+                "100".to_string(),
+                "1000".to_string(),
+                "10000".to_string()
+            ]
+        );
+    }
+    #[wasm_bindgen_test]
+    async fn test_get_missing_deposits() {
+        let gui = initialize_gui().await;
+
+        let missing_deposits = gui.get_missing_deposits().unwrap();
+        assert_eq!(missing_deposits, vec!["token1".to_string()]);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_has_any_deposit() {
+        let mut gui = initialize_gui().await;
+
+        let has_any_deposit = gui.has_any_deposit().unwrap();
+        assert_eq!(has_any_deposit, false);
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+        let has_any_deposit = gui.has_any_deposit().unwrap();
+        assert_eq!(has_any_deposit, true);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_check_deposits() {
+        let mut gui = initialize_gui().await;
+
+        gui.save_deposit("token1".to_string(), "999".to_string())
+            .unwrap();
+        gui.check_deposits().unwrap();
+        gui.remove_deposit("token1".to_string()).unwrap();
+
+        let err = gui.check_deposits().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::DepositNotSet("T1".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "A deposit for token 'T1' is required but has not been set."
+        );
+
+        let gui = initialize_gui_with_select_tokens().await;
+        let err = gui.check_deposits().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::MissingDepositToken("select-token-deployment".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "A deposit for token is required but has not been set for deployment 'select-token-deployment'."
+        );
     }
 }
