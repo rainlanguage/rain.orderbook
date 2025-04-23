@@ -76,6 +76,30 @@ describe('Layout component', () => {
 			writable: true
 		});
 	});
+
+	it('displays an error message if wallet initialization fails', async () => {
+		const originalNavigator = global.navigator;
+		Object.defineProperty(global, 'navigator', {
+			value: {},
+			writable: true
+		});
+
+		mockErcKit.init.mockRejectedValue(new Error('Initialization failed'));
+		mockPageStore.mockSetSubscribeValue(initialPageState);
+
+		render(Layout);
+
+		const errorMessage = await screen.findByText(
+			'Failed to initialize wallet connection. Please try again or check console.'
+		);
+		expect(errorMessage).toBeInTheDocument();
+
+		Object.defineProperty(global, 'navigator', {
+			value: originalNavigator,
+			writable: true
+		});
+	});
+
 	it('renders Homepage when on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
