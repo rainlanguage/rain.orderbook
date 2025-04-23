@@ -4,7 +4,6 @@
 	export let activeOrderStatus: Writable<boolean | undefined>;
 
 	let includeInactive = $activeOrderStatus;
-
 	$: activeOrderStatus.set(includeInactive ? undefined : true);
 </script>
 
