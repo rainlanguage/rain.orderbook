@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
-	import { useAccount } from '@rainlanguage/ui-components';
-	import { onMount } from 'svelte';
+	import { PageHeader, VaultsListTable, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { writable } from 'svelte/store';
 
@@ -20,36 +18,8 @@
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
-		activeNetworkOrderbooks,
 		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
-
-	export async function resetActiveNetworkRef() {
-		const $networks = $settings?.networks;
-
-		if ($networks !== undefined && Object.keys($networks).length > 0) {
-			activeNetworkRef.set(Object.keys($networks)[0]);
-		} else {
-			activeNetworkRef.set(undefined);
-		}
-	}
-
-	export function resetActiveOrderbookRef() {
-		const $activeNetworkOrderbookRefs = Object.keys($activeNetworkOrderbooks);
-
-		if ($activeNetworkOrderbookRefs.length > 0) {
-			activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
-		} else {
-			activeOrderbookRef.set(undefined);
-		}
-	}
-
-	onMount(async () => {
-		if (!$activeOrderbook) {
-			await resetActiveNetworkRef();
-			resetActiveOrderbookRef();
-		}
-	});
 
 	$: showMyItemsOnly.set($account);
 </script>

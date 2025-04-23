@@ -4,104 +4,77 @@ import { get, writable } from 'svelte/store';
 import VaultsPage from './+page.svelte';
 import { useAccount } from '@rainlanguage/ui-components';
 
-const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const { mockPageStore, initialPageState } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const mockAccountStore = writable('0xabcdef1234567890abcdef1234567890abcdef12');
 
-const mockAccountStore = vi.fn();
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-
-	const mockComponent = (await import('@rainlanguage/ui-components')).default
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	const original = (await importOriginal()) as object;
 	return {
-		...(await importOriginal()),
-		VaultsListTable: mockComponent,
+		...original,
+		VaultsListTable: MockComponent,
 		useAccount: vi.fn()
-	}
-})
+	};
+});
 
 // Mock the page store
 const mockShowMyItemsOnly = writable(false);
 const mockPageData = {
-  stores: {
-    activeOrderbook: writable(null),
-    subgraphUrl: writable(null),
-    orderHash: writable(''),
-    activeSubgraphs: writable({}),
-    settings: writable({ networks: { network1: {} } }),
-    accounts: writable({}),
-    activeAccountsItems: writable({}),
-    activeOrderStatus: writable(undefined),
-    hideZeroBalanceVaults: writable(false),
-    activeNetworkRef: writable(''),
-    activeOrderbookRef: writable(''),
-    activeAccounts: writable({}),
-    activeNetworkOrderbooks: writable({}),
-    showMyItemsOnly: mockShowMyItemsOnly
-  }
+	data: {
+		stores: {
+			activeOrderbook: writable(null),
+			subgraphUrl: writable(null),
+			orderHash: writable(''),
+			activeSubgraphs: writable({}),
+			settings: writable({ networks: { network1: {} } }),
+			accounts: writable({}),
+			activeAccountsItems: writable({}),
+			activeOrderStatus: writable(undefined),
+			hideZeroBalanceVaults: writable(false),
+			activeNetworkRef: writable(''),
+			activeOrderbookRef: writable(''),
+			activeAccounts: writable({}),
+			activeNetworkOrderbooks: writable({}),
+			showMyItemsOnly: mockShowMyItemsOnly
+		}
+	},
+	url: {
+		pathname: '/vaults'
+	}
 };
 
-vi.mock('$app/stores', () => ({
-  page: mockPageStore
-}));
+vi.mock('$app/stores', async (importOriginal) => {
+	return {
+		...((await importOriginal()) as object),
+		page: mockPageStore
+	};
+});
+
 
 describe('Vaults Page', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-(useAccount as Mock).mockReturnValue({
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(useAccount as Mock).mockReturnValue({
 			account: mockAccountStore
 		});
-    mockShowMyItemsOnly.set(false);
-  });
+		mockPageStore.mockSetSubscribeValue({ ...initialPageState, data: { ...initialPageState.data, stores: { ...initialPageState.data.stores, showMyItemsOnly: mockShowMyItemsOnly } } });
+		mockShowMyItemsOnly.set(false);
+	});
 
+	it('updates showMyItemsOnly store when account changes', async () => {
+		render(VaultsPage);
 
-  it('updates showMyItemsOnly store when account changes', async () => {
-    render(VaultsPage);
-    
-    expect(get(mockShowMyItemsOnly)).toBe(false);
-    
-    const testAccount = '0xabcdef1234567890';
-	mockAccountStore.mockReturnValue(writable(testAccount));
-    
-    expect(get(mockShowMyItemsOnly)).toBe(testAccount);
-    
-    mockAccountStore.mockReturnValue(writable(null));
-    
-    expect(get(mockShowMyItemsOnly)).toBe(null);
-  });
+		expect(get(mockShowMyItemsOnly)).toBe(false);
 
-  it('initializes network and orderbook refs when no active orderbook', async () => {
-    const resetActiveNetworkRefSpy = vi.fn();
-    const resetActiveOrderbookRefSpy = vi.fn();
-    
-    const CustomVaultsPage = {
-      ...VaultsPage,
-      resetActiveNetworkRef: resetActiveNetworkRefSpy,
-      resetActiveOrderbookRef: resetActiveOrderbookRefSpy
-    };
-    
-    mockPageData.stores.activeOrderbook.set(null);
-    
-    render(CustomVaultsPage);
-    
-    await vi.waitFor(() => {
-      expect(resetActiveNetworkRefSpy).toHaveBeenCalled();
-      expect(resetActiveOrderbookRefSpy).toHaveBeenCalled();
-    });
-  });
+		const testAccount = '0xabcdef1234567890';
+		mockAccountStore.set(testAccount);
 
-  it('does not initialize network and orderbook refs when active orderbook exists', async () => {
-    const resetActiveNetworkRefSpy = vi.fn();
-    const resetActiveOrderbookRefSpy = vi.fn();
-    
-    const CustomVaultsPage = {
-      ...VaultsPage,
-      resetActiveNetworkRef: resetActiveNetworkRefSpy,
-      resetActiveOrderbookRef: resetActiveOrderbookRefSpy
-    };
-    	 mockPageData.stores.activeOrderbook.set(null);
-    
-    render(CustomVaultsPage);
-    
-    expect(resetActiveNetworkRefSpy).not.toHaveBeenCalled();
-    expect(resetActiveOrderbookRefSpy).not.toHaveBeenCalled();
-  });
+		expect(get(mockShowMyItemsOnly)).toBe(testAccount);
+
+		mockAccountStore.set(null);
+
+		expect(get(mockShowMyItemsOnly)).toBe(null);
+	});
+
 });
