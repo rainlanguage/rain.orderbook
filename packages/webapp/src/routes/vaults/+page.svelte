@@ -22,6 +22,8 @@
 	} = $page.data.stores;
 
 	$: showMyItemsOnly.set($account);
+	$: console.log('showMyItemsOnly', $showMyItemsOnly);
+	$: console.log('account', $account);
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />

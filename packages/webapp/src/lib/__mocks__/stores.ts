@@ -3,11 +3,44 @@ import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { AppKit } from '@reown/appkit';
 
+export const initialPageState = {
+	data: {
+		stores: {
+			activeOrderbook: writable(null),
+			subgraphUrl: writable(null),
+			orderHash: writable(''),
+			activeSubgraphs: writable({}),
+			settings: writable({ networks: { network1: {} } }),
+			accounts: writable({}),
+			activeAccountsItems: writable({}),
+			activeOrderStatus: writable(undefined),
+			hideZeroBalanceVaults: writable(false),
+			activeNetworkRef: writable(''),
+			activeOrderbookRef: writable(''),
+			activeAccounts: writable({}),
+			activeNetworkOrderbooks: writable({}),
+			showMyItemsOnly: writable(false)
+		},
+		dotrain: 'some dotrain content',
+		deployment: { key: 'deploy-key' },
+		strategyDetail: {}
+	},
+	url: new URL('http://localhost:3000/deploy'),
+	params: {},
+	form: {},
+	status: 200,
+	error: null,
+	route: {
+		id: null
+	}
+};
+
 const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(false);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockAppKitModalWritable = writable<AppKit | null>(null);
+const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 
 export const mockSignerAddressStore = {
 	subscribe: mockSignerAddressWritable.subscribe,
@@ -37,4 +70,17 @@ export const mockAppKitModalStore = {
 	subscribe: mockAppKitModalWritable.subscribe,
 	set: mockAppKitModalWritable.set,
 	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
+};
+
+
+export const mockPageStore = {
+	subscribe: mockPageWritable.subscribe,
+	set: mockPageWritable.set,
+	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+		mockPageWritable.update((currentValue) => ({
+			...currentValue,
+			...newValue
+		}));
+	},
+	reset: () => mockPageWritable.set(initialPageState)
 };
