@@ -173,7 +173,7 @@ mod tests {
     "#;
 
     #[wasm_bindgen_test]
-    async fn test_parse_settings() {
+    fn test_parse_settings() {
         let config = Config::try_from_settings(
             vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
             false,
@@ -183,7 +183,6 @@ mod tests {
             vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
             None,
         )
-        .await
         .unwrap();
         assert_eq!(config, Config::try_from_js_value(js_value).unwrap());
     }

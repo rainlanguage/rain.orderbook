@@ -10,7 +10,12 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type Config, type OrderbookCfg, type SubgraphCfg } from '@rainlanguage/orderbook';
+	import {
+		type AccountCfg,
+		type Config,
+		type OrderbookCfg,
+		type SubgraphCfg
+	} from '@rainlanguage/orderbook';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
@@ -23,7 +28,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let activeOrderbook: Readable<OrderbookCfg | undefined>;
-	export let subgraphUrl: Readable<SubgraphCfg | undefined>;
+	export let subgraph: Readable<SubgraphCfg | undefined>;
 	export let accounts: AppStoresInterface['accounts'] | undefined;
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let orderHash: Writable<string>;
@@ -34,7 +39,7 @@
 	export let activeNetworkRef: Writable<string | undefined>;
 	export let activeOrderbookRef: Writable<string | undefined>;
 	export let activeAccounts: Readable<{
-		[k: string]: string;
+		[k: string]: AccountCfg;
 	}>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
@@ -84,7 +89,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: !!$subgraphUrl
+		enabled: !!$subgraph
 	});
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {

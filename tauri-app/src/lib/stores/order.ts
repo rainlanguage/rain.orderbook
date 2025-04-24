@@ -8,7 +8,7 @@ export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',
   async (id: string) => {
     const loadedSubgraph = await subgraph.load();
-    return invoke('order_detail', { id, subgraphArgs: loadedSubgraph });
+    return invoke('order_detail', { id, subgraphArgs: { url: loadedSubgraph?.url } });
   },
 );
 

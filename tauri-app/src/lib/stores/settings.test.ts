@@ -93,7 +93,10 @@ describe('Settings active accounts items', () => {
     const newSettings = {
       ...mockConfig,
       accounts: {
-        name_one: 'address_one',
+        name_one: {
+          key: 'name_one',
+          address: 'address_one',
+        },
       },
     };
 
@@ -110,8 +113,14 @@ describe('Settings active accounts items', () => {
     const newSettings = {
       ...mockConfig,
       accounts: {
-        name_one: 'address_one',
-        name_two: 'new_value',
+        name_one: {
+          key: 'name_one',
+          address: 'address_one',
+        },
+        name_two: {
+          key: 'name_two',
+          address: 'new_value',
+        },
       },
     };
 

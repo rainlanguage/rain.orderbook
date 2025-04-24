@@ -171,8 +171,14 @@ export const config: Config = {
     },
   },
   accounts: {
-    name_one: 'address_one',
-    name_two: 'address_two',
+    name_one: {
+      key: 'name_one',
+      address: 'address_one',
+    },
+    name_two: {
+      key: 'name_two',
+      address: 'address_two',
+    },
   },
 };
 

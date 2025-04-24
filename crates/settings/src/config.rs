@@ -1,3 +1,4 @@
+use crate::accounts::AccountCfg;
 use crate::yaml::dotrain::DotrainYaml;
 use crate::yaml::orderbook::OrderbookYaml;
 use crate::yaml::{YamlError, YamlParsable};
@@ -9,9 +10,7 @@ use subgraph::SubgraphCfg;
 use thiserror::Error;
 use url::Url;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen_utils::{
-    impl_wasm_traits, prelude::*, serialize_hashmap_as_object, serialize_opt_hashmap_as_object,
-};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -83,10 +82,10 @@ pub struct Config {
     raindex_version: Option<String>,
     #[cfg_attr(
         target_family = "wasm",
-        serde(serialize_with = "serialize_opt_hashmap_as_object"),
-        tsify(type = "Record<string, string>", optional)
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, AccountCfg>", optional)
     )]
-    accounts: Option<HashMap<String, Arc<String>>>,
+    accounts: HashMap<String, Arc<AccountCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     gui: Option<GuiCfg>,
 }
@@ -133,6 +132,8 @@ pub enum ParseConfigError {
     ChartNotFound(String),
     #[error("Deployment not found: {0}")]
     DeploymentNotFound(String),
+    #[error("Account not found: {0}")]
+    AccountNotFound(String),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error),
@@ -216,6 +217,12 @@ impl Config {
         let sentry = orderbook_yaml.get_sentry()?;
         let raindex_version = orderbook_yaml.get_raindex_version()?;
         let gui = dotrain_yaml.get_gui(None)?;
+        let accounts = orderbook_yaml
+            .get_accounts()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(k, v)| (k, Arc::new(v)))
+            .collect::<HashMap<_, _>>();
 
         let config = Config {
             networks,
@@ -230,8 +237,7 @@ impl Config {
             deployments,
             sentry,
             raindex_version,
-            // TODO: add accounts
-            accounts: None,
+            accounts,
             gui,
         };
         Ok(config)
@@ -339,8 +345,13 @@ impl Config {
         &self.raindex_version
     }
 
-    pub fn get_accounts(&self) -> &Option<HashMap<String, Arc<String>>> {
+    pub fn get_accounts(&self) -> &HashMap<String, Arc<AccountCfg>> {
         &self.accounts
+    }
+    pub fn get_account(&self, key: &str) -> Result<&Arc<AccountCfg>, ParseConfigError> {
+        self.accounts
+            .get(key)
+            .ok_or(ParseConfigError::AccountNotFound(key.to_string()))
     }
 }
 
@@ -401,6 +412,9 @@ mod tests {
             address: 0x0000000000000000000000000000000000000003
             network: testnet
     sentry: true
+    accounts:
+        account1: 0x0000000000000000000000000000000000000001
+        account2: 0x0000000000000000000000000000000000000002
     "#;
     const DOTRAIN_YAML: &str = r#"
     orders:
@@ -534,7 +548,7 @@ mod tests {
         assert!(config.get_gui().is_some());
         assert!(config.get_sentry().is_some());
         assert!(config.get_raindex_version().is_some());
-        assert!(config.get_accounts().is_none());
+        assert_eq!(config.get_accounts().len(), 2);
 
         let mainnet_network = config.get_network("mainnet").unwrap();
         assert_eq!(mainnet_network.key, "mainnet");
@@ -817,5 +831,18 @@ mod tests {
         assert!(sentry);
         let raindex_version = config.get_raindex_version().as_ref().unwrap();
         assert_eq!(raindex_version, "0.1.0");
+
+        let account1 = config.get_account("account1").unwrap();
+        assert_eq!(account1.key, "account1");
+        assert_eq!(
+            account1.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
+        let account2 = config.get_account("account2").unwrap();
+        assert_eq!(account2.key, "account2");
+        assert_eq!(
+            account2.address,
+            Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
+        );
     }
 }

@@ -14,7 +14,7 @@ export const load = async ({ fetch }) => {
 	);
 	const settingsYaml = await response.text();
 
-	const settings = writable<Config | undefined>(parseSettings([settingsYaml]));
+	const settings = writable<Config>(parseSettings([settingsYaml]));
 	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(

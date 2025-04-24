@@ -168,12 +168,14 @@ settings.subscribe(async () => {
   } else {
     const currentActiveAccounts = get(activeAccountsItems);
     const updatedActiveAccounts = Object.fromEntries(
-      Object.entries($settings.accounts ?? {}).filter(([key, value]) => {
-        if (key in currentActiveAccounts) {
-          return currentActiveAccounts[key] === value;
-        }
-        return false;
-      }),
+      Object.entries($settings.accounts ?? {})
+        .filter(([key, value]) => {
+          if (key in currentActiveAccounts) {
+            return currentActiveAccounts[key] === value.address;
+          }
+          return false;
+        })
+        .map(([key, value]) => [key, value.address]),
     );
     activeAccountsItems.set(updatedActiveAccounts);
   }

@@ -2,16 +2,26 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import DropdownOrderListAccounts from '../lib/components/dropdown/DropdownOrderListAccounts.svelte';
 import { expect, test, describe, beforeEach } from 'vitest';
+import type { AccountCfg } from '@rainlanguage/orderbook';
 
 describe('DropdownOrderListAccounts', () => {
-	let accounts: Writable<Record<string, string>>;
+	let accounts: Writable<Record<string, AccountCfg>>;
 	let activeAccountsItems: Writable<Record<string, string>>;
 
 	beforeEach(() => {
 		accounts = writable({
-			address1: 'Label 1',
-			address2: 'Label 2',
-			address3: 'Label 3'
+			address1: {
+				address: 'Label 1',
+				key: 'address1'
+			},
+			address2: {
+				address: 'Label 2',
+				key: 'address2'
+			},
+			address3: {
+				address: 'Label 3',
+				key: 'address3'
+			}
 		});
 		activeAccountsItems = writable({});
 	});
