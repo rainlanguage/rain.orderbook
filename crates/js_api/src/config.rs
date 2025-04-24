@@ -2,7 +2,7 @@ use rain_orderbook_app_settings::{config::Config, ParseConfigError};
 use wasm_bindgen_utils::prelude::*;
 
 #[wasm_bindgen(js_name = "parseSettings", unchecked_return_type = "Config")]
-pub async fn parse_settings(
+pub fn parse_settings(
     settings: Vec<String>,
     validate: Option<bool>,
 ) -> Result<JsValue, ParseConfigError> {
@@ -12,9 +12,8 @@ pub async fn parse_settings(
 
 #[cfg(test)]
 mod tests {
-    use wasm_bindgen_test::wasm_bindgen_test;
-
     use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     const ORDERBOOK_YAML: &str = r#"
     raindex-version: 0.1.0

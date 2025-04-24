@@ -1,14 +1,14 @@
 import type { OrderDetailExtended, SgTrade } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
-import { subgraphUrl } from '$lib/stores/settings';
+import { subgraph } from '$lib/stores/settings';
 import { detailStore } from '$lib/storesGeneric/detailStore';
 import { listStore } from '$lib/storesGeneric/listStore';
 
 export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',
   async (id: string) => {
-    const url = await subgraphUrl.load();
-    return invoke('order_detail', { id, subgraphArgs: { url } });
+    const loadedSubgraph = await subgraph.load();
+    return invoke('order_detail', { id, subgraphArgs: loadedSubgraph });
   },
 );
 
@@ -16,15 +16,19 @@ export const useOrderTradesList = (orderId: string) =>
   listStore<SgTrade>(
     `orderTakesList-${orderId}`,
     async (page) => {
-      const url = await subgraphUrl.load();
+      const loadedSubgraph = await subgraph.load();
       return invoke('order_trades_list', {
-        subgraphArgs: { url },
+        subgraphArgs: { url: loadedSubgraph?.url },
         orderId,
         paginationArgs: { page: page + 1, page_size: 10 },
       });
     },
     async (path) => {
-      const url = await subgraphUrl.load();
-      return invoke('order_trades_list_write_csv', { path, subgraphArgs: { url }, orderId });
+      const loadedSubgraph = await subgraph.load();
+      return invoke('order_trades_list_write_csv', {
+        path,
+        subgraphArgs: { url: loadedSubgraph?.url },
+        orderId,
+      });
     },
   );

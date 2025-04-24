@@ -79,7 +79,7 @@ export const activeOrderbook = derived(
       ? $settings.orderbooks[$activeOrderbookRef]
       : undefined,
 );
-export const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
+export const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
   $settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
     ? $settings.subgraphs[$activeOrderbook.subgraph.key]
     : undefined,
@@ -120,7 +120,7 @@ export const activeAccounts = derived(
 );
 
 // subgraphs
-export const subgraph = derived(settings, ($settings) =>
+export const subgraphs = derived(settings, ($settings) =>
   $settings?.subgraphs !== undefined ? Object.entries($settings.subgraphs) : [],
 );
 export const activeSubgraphs = cachedWritableStore<Record<string, SubgraphCfg>>(
@@ -184,14 +184,12 @@ settings.subscribe(async () => {
   } else {
     const currentActiveSubgraphs = get(activeSubgraphs);
     const updatedActiveSubgraphs = Object.fromEntries(
-      Object.entries($settings.subgraphs)
-        .filter(([key, value]) => {
-          if (key in currentActiveSubgraphs) {
-            return currentActiveSubgraphs[key].key === value.key;
-          }
-          return false;
-        })
-        .map(([key, value]) => [key, value]),
+      Object.entries($settings.subgraphs).filter(([key, value]) => {
+        if (key in currentActiveSubgraphs) {
+          return currentActiveSubgraphs[key].key === value.key;
+        }
+        return false;
+      }),
     );
     activeSubgraphs.set(updatedActiveSubgraphs);
   }

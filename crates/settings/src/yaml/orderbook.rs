@@ -195,8 +195,23 @@ impl OrderbookYaml {
     }
 
     pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
-        let value = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
-        Ok(value.map(|v| v == "true"))
+        let value_opt_str = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
+
+        let res = value_opt_str
+            .map(|v| v.to_ascii_lowercase())
+            .map(|v| match v.as_str() {
+                "true" | "1" => Ok(true),
+                "false" => Ok(false),
+                _ => Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "sentry".to_string(),
+                        expected: "a boolean".to_string(),
+                    },
+                    location: "root".to_string(),
+                }),
+            });
+
+        res.transpose()
     }
 
     pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {

@@ -2,9 +2,7 @@ import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { parseSettings } from '@rainlanguage/orderbook';
 import type { Config, OrderbookCfg } from '@rainlanguage/orderbook';
 import { writable, derived, get } from 'svelte/store';
-import pkg from 'lodash';
-
-const { pickBy } = pkg;
+import pickBy from 'lodash/pickBy';
 
 export interface LayoutData {
 	stores: AppStoresInterface;
@@ -16,7 +14,7 @@ export const load = async ({ fetch }) => {
 	);
 	const settingsYaml = await response.text();
 
-	const settings = writable<Config | undefined>(await parseSettings([settingsYaml]));
+	const settings = writable<Config | undefined>(parseSettings([settingsYaml]));
 	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(
@@ -42,7 +40,7 @@ export const load = async ({ fetch }) => {
 	const accounts = derived(settings, ($settings) => $settings?.accounts);
 	const activeAccountsItems = writable<Record<string, string>>({});
 
-	const subgraphUrl = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
+	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
 		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
 			? $settings.subgraphs[$activeOrderbook.subgraph.key]
 			: undefined
@@ -70,7 +68,7 @@ export const load = async ({ fetch }) => {
 			activeNetworkRef,
 			activeOrderbookRef,
 			activeOrderbook,
-			subgraphUrl,
+			subgraph,
 			activeNetworkOrderbooks
 		}
 	};
@@ -190,7 +188,7 @@ subgraphs:
 		});
 
 		it('should load settings and initialize stores correctly', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -216,7 +214,7 @@ subgraphs:
 			expect(stores).toHaveProperty('activeNetworkRef');
 			expect(stores).toHaveProperty('activeOrderbookRef');
 			expect(stores).toHaveProperty('activeOrderbook');
-			expect(stores).toHaveProperty('subgraphUrl');
+			expect(stores).toHaveProperty('subgraph');
 			expect(stores).toHaveProperty('activeNetworkOrderbooks');
 
 			expect(get(stores.settings)).toEqual(mockSettingsJson);
@@ -228,7 +226,7 @@ subgraphs:
 		});
 
 		it('should handle derived store: activeOrderbook', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -245,7 +243,7 @@ subgraphs:
 		});
 
 		it('should handle derived store: activeNetworkOrderbooks', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -265,7 +263,7 @@ subgraphs:
 		});
 
 		it('should handle derived store: subgraphUrl', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -274,15 +272,15 @@ subgraphs:
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 
 			stores.activeOrderbookRef.set('orderbook1');
 
-			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
+			expect(get(stores.subgraph)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
 		});
 
 		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -295,7 +293,7 @@ subgraphs:
 		});
 
 		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -319,7 +317,7 @@ subgraphs:
 		});
 
 		it('should handle empty or malformed settings JSON', async () => {
-			vi.mocked(parseSettings).mockResolvedValue({} as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue({} as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve({})
 			});
@@ -334,11 +332,11 @@ subgraphs:
 			stores.activeOrderbookRef.set('orderbook1');
 
 			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 		});
 
 		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -348,7 +346,7 @@ subgraphs:
 			const { stores } = result;
 
 			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
 
 			stores.activeNetworkRef.set('network1');
@@ -359,12 +357,12 @@ subgraphs:
 			expect(networkOrderbooks).toHaveProperty('orderbook3');
 
 			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 
 			stores.activeOrderbookRef.set('orderbook1');
 
 			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
-			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
+			expect(get(stores.subgraph)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
 
 			stores.activeNetworkRef.set('network2');
 
@@ -377,7 +375,7 @@ subgraphs:
 		});
 
 		it('should handle multiple interrelated store updates correctly', async () => {
-			vi.mocked(parseSettings).mockResolvedValue(mockSettingsJson as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(mockSettingsJson as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)
 			});
@@ -392,7 +390,7 @@ subgraphs:
 
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
-			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
+			expect(get(stores.subgraph)).toEqual({ key: 'subgraph1', url: 'https://subgraph1.url' });
 			expect(get(stores.activeAccounts)).toHaveProperty('account1');
 
 			stores.activeNetworkRef.set('network2');
@@ -404,7 +402,7 @@ subgraphs:
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');
 			expect(get(stores.activeNetworkOrderbooks)).not.toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook2);
-			expect(get(stores.subgraphUrl)).toEqual({ key: 'subgraph2', url: 'https://subgraph2.url' });
+			expect(get(stores.subgraph)).toEqual({ key: 'subgraph2', url: 'https://subgraph2.url' });
 
 			const finalAccounts = get(stores.activeAccounts);
 			expect(Object.keys(finalAccounts).length).toBe(2);
@@ -434,7 +432,7 @@ orderbooks:
     network: network1
 `;
 
-			vi.mocked(parseSettings).mockResolvedValue(partialSettings as unknown as Config);
+			vi.mocked(parseSettings).mockReturnValue(partialSettings as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(partialSettings)
 			});
@@ -445,11 +443,11 @@ orderbooks:
 
 			stores.activeOrderbookRef.set('orderbook1');
 			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 
 			stores.activeOrderbookRef.set('orderbook2');
 			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraphUrl)).toBeUndefined();
+			expect(get(stores.subgraph)).toBeUndefined();
 		});
 	});
 }

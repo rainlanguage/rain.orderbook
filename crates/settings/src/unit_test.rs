@@ -12,7 +12,7 @@ use wasm_bindgen_utils::{
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct ScenarioConfigSource {
+pub struct ScenarioTestSource {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     #[cfg_attr(
         target_family = "wasm",
@@ -30,12 +30,12 @@ pub struct ScenarioConfigSource {
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_opt_hashmap_as_object"),
-        tsify(optional, type = "Record<string, ScenarioConfigSource>")
+        tsify(optional, type = "Record<string, ScenarioTestSource>")
     )]
-    pub scenarios: Option<HashMap<String, ScenarioConfigSource>>,
+    pub scenarios: Option<HashMap<String, ScenarioTestSource>>,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(ScenarioConfigSource);
+impl_wasm_traits!(ScenarioTestSource);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -55,7 +55,7 @@ pub struct TestConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle_entrypoint: Option<String>,
     pub scenario_name: String,
-    pub scenario: ScenarioConfigSource,
+    pub scenario: ScenarioTestSource,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TestConfigSource);

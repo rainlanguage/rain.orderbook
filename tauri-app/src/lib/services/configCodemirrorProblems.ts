@@ -6,7 +6,7 @@ export async function parseConfigSourceProblems(text: string) {
   const problems: Problem[] = [];
 
   try {
-    parseConfig(text);
+    await parseConfig(text);
   } catch (e) {
     reportErrorToSentry(e, SentrySeverityLevel.Info);
     problems.push(convertErrorToProblem(e));

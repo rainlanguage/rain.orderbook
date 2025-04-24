@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
-import { rpcUrl, orderbookAddress, chainId, subgraphUrl } from '$lib/stores/settings';
+import { rpcUrl, orderbookAddress, chainId, subgraph } from '$lib/stores/settings';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import type { DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
@@ -27,7 +27,7 @@ export async function orderRemove(id: string) {
       chain_id: get(chainId),
     },
     subgraphArgs: {
-      url: get(subgraphUrl),
+      url: get(subgraph),
     },
   });
 }
@@ -49,7 +49,7 @@ export async function orderRemoveCalldata(id: string) {
   return await invoke('order_remove_calldata', {
     id,
     subgraphArgs: {
-      url: get(subgraphUrl),
+      url: get(subgraph)?.url,
     },
   });
 }

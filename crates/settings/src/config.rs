@@ -121,11 +121,11 @@ pub enum ParseConfigError {
     MetaboardNotFound(String),
     #[error("Orderbook not found: {0}")]
     OrderbookNotFound(String),
-    #[error("Token not found: {0}")]
-    OrderNotFound(String),
-    #[error("Deployer not found: {0}")]
-    TokenNotFound(String),
     #[error("Order not found: {0}")]
+    OrderNotFound(String),
+    #[error("Token not found: {0}")]
+    TokenNotFound(String),
+    #[error("Deployer not found: {0}")]
     DeployerNotFound(String),
     #[error("Scenario not found: {0}")]
     ScenarioNotFound(String),
