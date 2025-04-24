@@ -10,6 +10,20 @@ import { type Config, type OrderbookCfg, type SubgraphCfg } from '@rainlanguage/
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
+export const EMPTY_SETTINGS: Config = {
+  networks: {},
+  subgraphs: {},
+  metaboards: {},
+  orderbooks: {},
+  accounts: {},
+  tokens: {},
+  deployers: {},
+  orders: {},
+  scenarios: {},
+  charts: {},
+  deployments: {},
+};
+
 // general
 export const settingsText = cachedWritableStore<string>(
   'settingsText',
@@ -22,15 +36,15 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
-export const settings = cachedWritableStore<Config | undefined>(
+export const settings = cachedWritableStore<Config>(
   'settings',
-  undefined,
+  EMPTY_SETTINGS,
   (value) => JSON.stringify(value),
   (str) => {
     try {
       return JSON.parse(str) as Config;
     } catch {
-      return undefined;
+      return EMPTY_SETTINGS;
     }
   },
 );

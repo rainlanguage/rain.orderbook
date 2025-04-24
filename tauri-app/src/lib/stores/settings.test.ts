@@ -1,5 +1,5 @@
 import { expect, test, beforeEach, describe } from 'vitest';
-import { settings, activeAccountsItems, activeSubgraphs } from './settings';
+import { settings, activeAccountsItems, activeSubgraphs, EMPTY_SETTINGS } from './settings';
 import { get } from 'svelte/store';
 import type { Config, NetworkCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 
@@ -55,7 +55,7 @@ describe('Settings active accounts items', () => {
   // Reset store values before each test to prevent state leakage
   beforeEach(() => {
     // Reset all store values
-    settings.set(undefined);
+    settings.set(EMPTY_SETTINGS);
     activeAccountsItems.set({});
     activeSubgraphs.set({});
 
