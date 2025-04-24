@@ -142,7 +142,12 @@ describe('Settings active accounts items', () => {
 
     settings.set(newSettings as unknown as Config);
 
-    expect(get(activeSubgraphs)).toEqual({});
+    expect(get(activeSubgraphs)).toEqual({
+      mainnet: {
+        key: 'mainnet',
+        url: 'new value',
+      },
+    });
   });
 
   test('should update active subgraphs when subgraph removed', () => {
