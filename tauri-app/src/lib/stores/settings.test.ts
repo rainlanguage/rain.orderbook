@@ -133,7 +133,10 @@ describe('Settings active accounts items', () => {
     const newSettings = {
       ...mockConfig,
       subgraphs: {
-        mainnet: 'new value',
+        mainnet: {
+          key: 'mainnet',
+          url: 'new value',
+        },
       },
     };
 
@@ -146,7 +149,10 @@ describe('Settings active accounts items', () => {
     const newSettings = {
       ...mockConfig,
       subgraphs: {
-        testnet: 'testnet',
+        testnet: {
+          key: 'testnet',
+          url: 'testnet',
+        },
       },
     };
 
