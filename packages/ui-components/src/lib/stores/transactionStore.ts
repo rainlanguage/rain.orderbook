@@ -38,7 +38,7 @@ export enum TransactionStatus {
 export enum TransactionErrorMessage {
 	BAD_CALLLDATA = 'Bad calldata.',
 	DEPLOY_FAILED = 'Lock transaction failed.',
-	TIMEOUT = 'The subgraph took too long to respond. Please check the transaction link.',
+	TIMEOUT = 'The subgraph took too long to respond.',
 	APPROVAL_FAILED = 'Approval transaction failed.',
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
