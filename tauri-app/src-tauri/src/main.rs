@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod error;
+pub mod shared_state;
 pub mod toast;
 pub mod transaction_status;
 pub mod types;
@@ -26,6 +27,7 @@ use commands::vault::{
     vault_deposit_calldata, vault_withdraw, vault_withdraw_calldata, vaults_list_write_csv,
 };
 use commands::wallet::get_address_from_ledger;
+use shared_state::SharedState;
 
 fn main() {
     if std::env::consts::OS == "linux" {
@@ -41,6 +43,7 @@ fn main() {
 
 fn run_tauri_app() {
     tauri::Builder::default()
+        .manage(SharedState::default())
         .invoke_handler(tauri::generate_handler![
             vaults_list_write_csv,
             vault_balance_changes_list_write_csv,
