@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Page from './+page.svelte';
+import type { Config } from '@rainlanguage/orderbook';
 
 const { mockPageStore, mockSettingsStore, MockComponent } = await vi.hoisted(
   () => import('@rainlanguage/ui-components'),
@@ -58,19 +59,33 @@ describe('Order Page', () => {
     mockSettingsStore.mockSetSubscribeValue({
       orderbooks: {
         ethereum: {
+          key: 'ethereum',
+          network: {
+            key: 'ethereum',
+            rpc: 'https://ethereum.example.com',
+            chainId: 1,
+          },
           address: '0xabc',
+          subgraph: {
+            key: 'ethereum',
+            url: 'https://api.thegraph.com/subgraphs/name/example',
+          },
         },
       },
       subgraphs: {
-        ethereum: 'https://api.thegraph.com/subgraphs/name/example',
+        ethereum: {
+          key: 'ethereum',
+          url: 'https://api.thegraph.com/subgraphs/name/example',
+        },
       },
       networks: {
         ethereum: {
+          key: 'ethereum',
           rpc: 'https://ethereum.example.com',
-          'chain-id': 1,
+          chainId: 1,
         },
       },
-    });
+    } as unknown as Config);
     render(Page);
 
     expect(screen.getByTestId('page-header')).toBeTruthy();
