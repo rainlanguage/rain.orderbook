@@ -115,11 +115,6 @@ const transactionStore = () => {
 	const { subscribe, set, update } = writable(initialState);
 	const reset = () => set(initialState);
 
-	const returnError = (interval: NodeJS.Timeout) => {
-		clearInterval(interval);
-		return transactionError(TransactionErrorMessage.TIMEOUT);
-	};
-
 	const awaitTransactionIndexing = async (
 		subgraphUrl: string,
 		txHash: string,
@@ -128,7 +123,7 @@ const transactionStore = () => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
-			message: 'Checking for transaction indexing...'
+			message: 'Waiting for transaction to be indexed...'
 		}));
 
 		let attempts = 0;
@@ -142,15 +137,12 @@ const transactionStore = () => {
 				if (newTx) {
 					clearInterval(interval);
 					transactionSuccess(txHash, successMessage);
-				} else if (attempts >= 10) {
-					update((state) => ({
-						...state,
-						message: 'The subgraph took too long to respond. Please check again later.'
-					}));
-					return returnError(interval);
 				}
 			} catch {
-				return returnError(interval);
+				if (attempts >= 10) {
+					clearInterval(interval);
+					return transactionError(TransactionErrorMessage.TIMEOUT);
+				}
 			}
 		}, 1000);
 	};
@@ -167,14 +159,15 @@ const transactionStore = () => {
 			attempts++;
 			try {
 				const addOrders = await getTransactionAddOrders(subgraphUrl, txHash);
-				if (attempts >= 10) {
-					return returnError(interval);
-				} else if (addOrders?.length > 0) {
+				if (addOrders?.length > 0) {
 					clearInterval(interval);
 					return transactionSuccess(txHash, '', addOrders[0].order.orderHash, network);
 				}
 			} catch {
-				return returnError(interval);
+				if (attempts >= 10) {
+					clearInterval(interval);
+					return transactionError(TransactionErrorMessage.TIMEOUT);
+				}
 			}
 		}, 1000);
 	};
@@ -191,18 +184,15 @@ const transactionStore = () => {
 			attempts++;
 			try {
 				const removeOrders = await getTransactionRemoveOrders(subgraphUrl, txHash);
-				if (attempts >= 10) {
-					update((state) => ({
-						...state,
-						message: 'The subgraph took too long to respond. Please check again later.'
-					}));
-					return returnError(interval);
-				} else if (removeOrders?.length > 0) {
+				if (removeOrders?.length > 0) {
 					clearInterval(interval);
 					return transactionSuccess(txHash, 'Order removed successfully');
 				}
 			} catch {
-				return returnError(interval);
+				if (attempts >= 10) {
+					clearInterval(interval);
+					return transactionError(TransactionErrorMessage.TIMEOUT);
+				}
 			}
 		}, 1000);
 	};
@@ -370,11 +360,13 @@ const transactionStore = () => {
 			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 		}
 		try {
+			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
 			awaitTx(
 				hash,
 				action === 'deposit'
 					? TransactionStatus.PENDING_DEPOSIT
-					: TransactionStatus.PENDING_WITHDRAWAL
+					: TransactionStatus.PENDING_WITHDRAWAL,
+				transactionExplorerLink
 			);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitTransactionIndexing(
@@ -416,7 +408,8 @@ const transactionStore = () => {
 		}
 
 		try {
-			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER);
+			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
+			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			return awaitRemoveOrderIndexing(subgraphUrl, hash);
 		} catch {
