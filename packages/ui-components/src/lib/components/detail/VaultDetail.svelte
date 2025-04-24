@@ -117,7 +117,7 @@
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailOwnerAddress">
-			<svelte:fragment slot="key">Owner Address</svelte:fragment>
+			<svelte:fragment slot="key">Owner address</svelte:fragment>
 			<svelte:fragment slot="value">
 				<Hash type={HashType.Wallet} value={data.owner} />
 			</svelte:fragment>
