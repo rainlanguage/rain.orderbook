@@ -26,7 +26,9 @@ export async function orderRemove(id: string) {
       derivation_index: get(ledgerWalletDerivationIndex),
       chain_id: get(chainId),
     },
-    subgraphArgs: get(subgraph)?.url,
+    subgraphArgs: {
+      url: get(subgraph)?.url,
+    },
   });
 }
 

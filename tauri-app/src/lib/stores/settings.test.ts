@@ -1,8 +1,6 @@
 import { expect, test, beforeEach, describe } from 'vitest';
 import { settings, activeAccountsItems, activeSubgraphs } from './settings';
 import { get } from 'svelte/store';
-
-// Import the ConfigSource type
 import type { Config, NetworkCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 
 // Define the mock directly in the tests
