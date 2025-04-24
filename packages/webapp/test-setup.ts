@@ -14,6 +14,7 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.deserializeState = vi.fn();
 	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
 	return {
-		DotrainOrderGui
+		DotrainOrderGui,
+		parseSettings: vi.fn()
 	};
 });

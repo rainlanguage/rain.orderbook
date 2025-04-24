@@ -133,6 +133,16 @@ pub enum ParseConfigError {
     ChartNotFound(String),
     #[error("Deployment not found: {0}")]
     DeploymentNotFound(String),
+    #[cfg(target_family = "wasm")]
+    #[error(transparent)]
+    SerdeWasmBindgenError(#[from] wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error),
+}
+
+#[cfg(target_family = "wasm")]
+impl From<ParseConfigError> for JsValue {
+    fn from(value: ParseConfigError) -> Self {
+        JsError::new(&value.to_string()).into()
+    }
 }
 
 impl Config {
