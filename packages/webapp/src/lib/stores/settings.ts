@@ -27,6 +27,20 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
 	}
 );
 
+export const showMyItemsOnly = cachedWritableStore<boolean>(
+	'settings.showMyItemsOnly',
+	false,
+	(value) => JSON.stringify(value),
+	(str) => {
+		try {
+			const value = JSON.parse(str);
+			return typeof value === 'boolean' ? value : false;
+		} catch {
+			return false;
+		}
+	}
+);
+
 // subgraphs
 export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
 	'settings.activeSubgraphs',
