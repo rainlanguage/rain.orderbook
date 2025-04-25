@@ -30,6 +30,6 @@
 			><CheckCircleOutline color="green" size="sm" />{truncateEthAddress($account)}</span
 		>
 	{:else}
-		<span>Connect Wallet</span>
+		<span>Connect</span>
 	{/if}
 </Button>
