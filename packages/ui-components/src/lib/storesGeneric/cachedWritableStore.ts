@@ -7,14 +7,22 @@ export function cachedWritableStore<T>(
 	deserialize: (serialized: string) => T
 ) {
 	const getCache = () => {
-		const cached = localStorage.getItem(key);
-		return cached !== null ? deserialize(cached) : defaultValue;
+		try {
+			const cached = localStorage.getItem(key);
+			return cached !== null ? deserialize(cached) : defaultValue;
+		} catch (error) {
+			return defaultValue;
+		}
 	};
 	const setCache = (value?: T) => {
-		if (value !== undefined) {
-			localStorage.setItem(key, serialize(value));
-		} else {
-			localStorage.removeItem(key);
+		try {
+			if (value !== undefined) {
+				localStorage.setItem(key, serialize(value));
+			} else {
+				localStorage.removeItem(key);
+			}
+		} catch {
+			// do nothing
 		}
 	};
 
