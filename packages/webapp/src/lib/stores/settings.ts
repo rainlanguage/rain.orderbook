@@ -39,3 +39,10 @@ export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
     }
   },
 );
+
+export const orderHash = cachedWritableStore<string>(
+  'settings.orderHash',
+  '',
+  (value) => value,
+  (str) => str || '',
+);

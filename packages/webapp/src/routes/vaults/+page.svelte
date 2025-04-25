@@ -5,6 +5,7 @@
 	import { connected } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
 	import { hideZeroBalanceVaults } from '$lib/stores/settings';
+	import { activeSubgraphs } from '$lib/stores/settings';
 
 	const {
 		activeOrderbook,
@@ -18,8 +19,7 @@
 		activeOrderbookRef,
 		activeAccounts,
 		activeNetworkOrderbooks,
-		showMyItemsOnly = writable(false),
-		activeSubgraphs
+		showMyItemsOnly = writable(false)
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {

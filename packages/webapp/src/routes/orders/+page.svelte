@@ -4,14 +4,13 @@
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
-	import { activeSubgraphs } from '$lib/stores/settings';
+	import { activeSubgraphs, orderHash } from '$lib/stores/settings';
 
 	const {
 		settings,
 		accounts,
 		activeAccountsItems,
 		activeOrderStatus,
-		orderHash,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef,
