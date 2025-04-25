@@ -6,7 +6,8 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
 	(value) => JSON.stringify(value),
 	(str) => {
 		try {
-			return JSON.parse(str) as boolean;
+			const value = JSON.parse(str);
+			return typeof value === 'boolean' ? value : true;
 		} catch {
 			return true;
 		}
