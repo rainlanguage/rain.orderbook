@@ -2,14 +2,14 @@ import { writable } from 'svelte/store';
 
 /**
  * Creates a writable Svelte store that persists its value to localStorage.
- * 
+ *
  * @template T - The type of the value stored in the store
  * @param {string} key - The localStorage key used to store the value
  * @param {T} defaultValue - The default value to use when no value is found in localStorage
  * @param {function(T): string} serialize - Function to convert the store value to a string for storage
  * @param {function(string): T} deserialize - Function to convert the stored string back to the original type
  * @returns {import('svelte/store').Writable<T>} A writable store that automatically syncs with localStorage
- * 
+ *
  * @example
  * // Create a store for a boolean value
  * const darkMode = cachedWritableStore(
@@ -18,7 +18,7 @@ import { writable } from 'svelte/store';
  *   value => JSON.stringify(value),
  *   str => JSON.parse(str)
  * );
- * 
+ *
  * // Create a store for a complex object
  * const userPreferences = cachedWritableStore(
  *   'userPrefs',
