@@ -26,7 +26,6 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
 	}
 );
 
-
 // subgraphs
 export const activeSubgraphs = cachedWritableStore<Record<string, string>>(
   'settings.activeSubgraphs',
