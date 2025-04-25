@@ -22,7 +22,8 @@ export function cachedWritableStore<T>(
 				localStorage.removeItem(key);
 			}
 		} catch {
-			// do nothing
+			// Silently ignore localStorage errors to allow the application to function
+			// without persistence in environments where localStorage is unavailable
 		}
 	};
 
