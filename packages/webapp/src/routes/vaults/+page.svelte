@@ -4,17 +4,16 @@
 	import { page } from '$app/stores';
 	import { connected } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
+	import { hideZeroBalanceVaults, activeSubgraphs } from '$lib/stores/settings';
 
 	const {
 		activeOrderbook,
 		subgraphUrl,
 		orderHash,
-		activeSubgraphs,
 		settings,
 		accounts,
 		activeAccountsItems,
 		activeOrderStatus,
-		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
