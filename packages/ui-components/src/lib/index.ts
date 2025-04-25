@@ -118,12 +118,7 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 // Stores
 export { default as transactionStore } from './stores/transactionStore';
 export {
-	cachedWritableStore,
-	cachedWritableString,
-	cachedWritableInt,
-	cachedWritableOptionalStore,
-	cachedWritableIntOptional,
-	cachedWritableStringOptional
+	cachedWritableStore
 } from './storesGeneric/cachedWritableStore';
 
 // Assets
