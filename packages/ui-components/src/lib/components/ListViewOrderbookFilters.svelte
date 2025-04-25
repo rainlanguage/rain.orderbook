@@ -35,7 +35,7 @@
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>
 	{:else}
-		{#if ($accounts && !Object.values($accounts).length) || $account}
+		{#if $accounts && !Object.values($accounts).length}
 			<div class="mt-4 w-full lg:w-auto" data-testid="my-items-only">
 				<CheckboxMyItemsOnly context={isVaultsPage ? 'vaults' : 'orders'} {showMyItemsOnly} />
 				{#if !$account}
