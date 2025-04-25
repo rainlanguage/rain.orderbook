@@ -3,7 +3,7 @@ import { toasts } from '../stores/toasts';
 import { save } from '@tauri-apps/api/dialog';
 import dayjs from 'dayjs';
 import { ToastMessageType } from '../types/tauriBindings';
-import { cachedWritableStore } from '@rainlanguage/ui-components';
+import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
 import { flatten } from 'lodash';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
