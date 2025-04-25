@@ -10,7 +10,7 @@ export function cachedWritableStore<T>(
 		try {
 			const cached = localStorage.getItem(key);
 			return cached !== null ? deserialize(cached) : defaultValue;
-		} catch (error) {
+		} catch {
 			return defaultValue;
 		}
 	};
