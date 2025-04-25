@@ -2,6 +2,7 @@
   import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
+  import { activeSubgraphs } from '$lib/stores/settings';
 
   import {
     activeOrderbook,
@@ -9,7 +10,6 @@
     orderHash,
     accounts,
     activeAccountsItems,
-    activeSubgraphs,
     settings,
     activeOrderStatus,
     hideZeroBalanceVaults,

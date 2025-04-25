@@ -4,9 +4,9 @@
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
 	import { connected } from '$lib/stores/wagmi.ts';
 	import { writable } from 'svelte/store';
+	import { activeSubgraphs } from '$lib/stores/settings';
 
 	const {
-		activeSubgraphs,
 		settings,
 		accounts,
 		activeAccountsItems,

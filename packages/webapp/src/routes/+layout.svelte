@@ -14,6 +14,10 @@
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
 	import { WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
+	import { settings as cachedSettings } from '$lib/stores/settings';
+
+	const { settings } = $page.data.stores;
+	cachedSettings.set(settings);
 
 	// Query client for caching
 	const queryClient = new QueryClient({
