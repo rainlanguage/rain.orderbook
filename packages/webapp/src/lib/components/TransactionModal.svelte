@@ -71,7 +71,7 @@
 						<div class="flex flex-row justify-center gap-2">
 							{#if $transactionStore.newOrderHash && $transactionStore.network}
 								<a href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderHash}`}>
-									<Button on:click={handleClose} color="alternative">View Order</Button>
+									<Button on:click={handleClose} color="alternative">View order</Button>
 								</a>
 							{/if}
 							<Button on:click={handleClose}>Dismiss</Button>

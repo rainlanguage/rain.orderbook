@@ -3,6 +3,24 @@ import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { AppKit } from '@reown/appkit';
 
+export const initialPageState = {
+	data: {
+		stores: { settings: {} },
+		dotrain: 'some dotrain content',
+		deployment: { key: 'deploy-key' },
+		strategyDetail: {}
+	},
+	url: new URL('http://localhost:3000/deploy'),
+	params: {},
+	form: {},
+	status: 200,
+	error: null,
+	route: {
+		id: null
+	}
+};
+
+const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockSignerAddressWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(false);
@@ -37,4 +55,10 @@ export const mockAppKitModalStore = {
 	subscribe: mockAppKitModalWritable.subscribe,
 	set: mockAppKitModalWritable.set,
 	mockSetSubscribeValue: (value: AppKit): void => mockAppKitModalWritable.set(value)
+};
+
+export const mockPageStore = {
+	subscribe: mockPageWritable.subscribe,
+	set: mockPageWritable.set,
+	mockSetSubscribeValue: (value: typeof initialPageState): void => mockPageWritable.set(value)
 };
