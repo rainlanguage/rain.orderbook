@@ -176,7 +176,7 @@ describe('TransactionModal Component', () => {
 		render(TransactionModal, { props: { open: true, messages } });
 
 		await waitFor(() => {
-			const viewOrderButton = screen.getByText('View Order');
+			const viewOrderButton = screen.getByText('View order');
 			expect(viewOrderButton).toBeInTheDocument();
 			expect(viewOrderButton.closest('a')).toHaveAttribute(
 				'href',

@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use alloy::sol_types::SolCall;
 use alloy::{hex::FromHex, primitives::Address};
 use alloy_ethers_typecast::transaction::{
@@ -15,6 +13,7 @@ use alloy_ethers_typecast::{
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_bindings::IERC20::{decimalsCall, nameCall, symbolCall};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use thiserror::Error;
 use url::Url;
 #[cfg(target_family = "wasm")]
@@ -197,4 +196,197 @@ pub enum Error {
         #[source]
         source: alloy::sol_types::Error,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::{hex, sol_types::SolValue};
+    use alloy_ethers_typecast::rpc::Response;
+    use httpmock::MockServer;
+
+    #[tokio::test]
+    async fn test_decimals() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x313ce567");
+            then.body(
+                Response::new_success(
+                    1,
+                    "0x0000000000000000000000000000000000000000000000000000000000000012",
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let decimals = erc20.decimals().await.unwrap();
+        assert_eq!(decimals, 18);
+    }
+
+    #[tokio::test]
+    async fn test_decimals_invalid() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x313ce567");
+            then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        assert!(erc20.decimals().await.is_err());
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x313ce567");
+            then.body(
+                Response::new_success(
+                    1,
+                    "0x0000000000000000000000000000000000000000000000000000000000000123",
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+        assert!(erc20.decimals().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_name() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x06fdde03");
+            then.body(
+                Response::new_success(
+                    1,
+                    &hex::encode_prefixed("Test Token".to_string().abi_encode()).to_string(),
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let name = erc20.name().await.unwrap();
+        assert_eq!(name, "Test Token");
+    }
+
+    #[tokio::test]
+    async fn test_name_invalid() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x06fdde03");
+            then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        assert!(erc20.name().await.is_err());
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x06fdde03");
+            then.body(
+                Response::new_success(
+                    1,
+                    "0x0000000000000000000000000000000000000000000000000000000000000123",
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+        assert!(erc20.name().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_symbol() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x95d89b41");
+            then.body(
+                Response::new_success(
+                    1,
+                    &hex::encode_prefixed("TEST".to_string().abi_encode()).to_string(),
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let symbol = erc20.symbol().await.unwrap();
+        assert_eq!(symbol, "TEST");
+    }
+
+    #[tokio::test]
+    async fn test_symbol_invalid() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x95d89b41");
+            then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        assert!(erc20.symbol().await.is_err());
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x95d89b41");
+            then.body(
+                Response::new_success(
+                    1,
+                    "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000205445535400000000000000000000000000000000000000000000000000000000",
+                )
+                .to_json_string()
+                .unwrap(),
+            );
+        });
+        assert!(erc20.symbol().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_token_info() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+            then.body(Response::new_success(
+                1,
+                "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
+            )
+            .to_json_string()
+            .unwrap(),
+            );
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        let token_info = erc20.token_info(None).await.unwrap();
+
+        assert_eq!(token_info.decimals, 6);
+        assert_eq!(token_info.name, "Token 1");
+        assert_eq!(token_info.symbol, "T1");
+    }
+
+    #[tokio::test]
+    async fn test_token_info_invalid() {
+        let server = MockServer::start_async().await;
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+            then.body(Response::new_success(1, "0x1").to_json_string().unwrap());
+        });
+
+        let erc20 = ERC20::new(Url::parse(&server.url("/rpc")).unwrap(), Address::ZERO);
+        assert!(erc20.token_info(None).await.is_err());
+
+        server.mock(|when, then| {
+            when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+            then.body(
+                Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000012300000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap(),
+            );
+        });
+        assert!(erc20.token_info(None).await.is_err());
+    }
 }

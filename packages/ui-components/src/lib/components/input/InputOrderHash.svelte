@@ -12,7 +12,7 @@
 </script>
 
 <div data-testid="order-hash-input" class="flex flex-col gap-x-2">
-	<Label>Order Hash</Label>
+	<Label>Order hash</Label>
 	<div class="w-full lg:w-32">
 		<input
 			type="text"

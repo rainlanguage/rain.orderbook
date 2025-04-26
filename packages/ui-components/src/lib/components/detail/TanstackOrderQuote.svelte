@@ -54,7 +54,7 @@
 
 <div class="mt-4">
 	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-lg font-semibold">Order Quotes</h2>
+		<h2 class="text-lg font-semibold">Order quotes</h2>
 		<div class="flex items-center gap-x-1">
 			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0 && isHex($orderQuoteQuery.data[0].blockNumber)}
 				<EditableSpan

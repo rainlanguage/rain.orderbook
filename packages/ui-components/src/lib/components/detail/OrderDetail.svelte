@@ -20,7 +20,11 @@
 	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
-	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
+	import {
+		ArrowDownToBracketOutline,
+		ArrowUpFromBracketOutline,
+		InfoCircleOutline
+	} from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import {
 		getOrderByHash,
@@ -159,7 +163,7 @@
 														data-testid="deposit-button"
 														on:click={() => onDeposit(vault)}
 													>
-														<ArrowDownOutline size="xs" />
+														<ArrowDownToBracketOutline size="xs" />
 													</Button>
 													<Button
 														color="light"
@@ -167,7 +171,7 @@
 														data-testid="withdraw-button"
 														on:click={() => onWithdraw(vault)}
 													>
-														<ArrowUpOutline size="xs" />
+														<ArrowUpFromBracketOutline size="xs" />
 													</Button>
 												</div>
 											{/if}
