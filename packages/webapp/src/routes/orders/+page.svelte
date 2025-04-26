@@ -18,7 +18,6 @@
 		showMyItemsOnly = writable(false)
 	}: AppStoresInterface = $page.data.stores;
 
-	$: currentRoute = $page.url.pathname;
 	$: showMyItemsOnly.set($connected);
 </script>
 
@@ -35,5 +34,4 @@
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
-	{currentRoute}
 />
