@@ -135,3 +135,209 @@ impl DotrainOrderGui {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+impl DotrainOrderGui {
+    pub fn add_record_to_yaml(
+        &self,
+        key: String,
+        network_key: String,
+        address: String,
+        decimals: String,
+        label: String,
+        symbol: String,
+    ) {
+        TokenCfg::add_record_to_yaml(
+            self.dotrain_order.orderbook_yaml().documents,
+            &key,
+            &network_key,
+            &address,
+            Some(&decimals),
+            Some(&label),
+            Some(&symbol),
+        )
+        .unwrap();
+    }
+
+    pub fn remove_record_from_yaml(&self, key: String) {
+        TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)
+            .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    async fn test_get_select_tokens() {
+        let gui = initialize_gui_with_select_tokens().await;
+        let select_tokens = gui.get_select_tokens().unwrap();
+        assert_eq!(select_tokens.len(), 2);
+        assert_eq!(select_tokens[0].key, "token3");
+        assert_eq!(select_tokens[1].key, "token4");
+
+        let gui = initialize_gui().await;
+        let select_tokens = gui.get_select_tokens().unwrap();
+        assert_eq!(select_tokens.len(), 0);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_is_select_token_set() {
+        let gui = initialize_gui_with_select_tokens().await;
+        let is_select_token_set = gui.is_select_token_set("token3".to_string()).unwrap();
+        assert!(!is_select_token_set);
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000001".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "T3".to_string(),
+        );
+
+        let is_select_token_set = gui.is_select_token_set("token3".to_string()).unwrap();
+        assert!(is_select_token_set);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_check_select_tokens() {
+        let gui = initialize_gui_with_select_tokens().await;
+
+        let err = gui.check_select_tokens().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000001".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "T3".to_string(),
+        );
+
+        let err = gui.check_select_tokens().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token4".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token4' must be selected to proceed."
+        );
+
+        gui.add_record_to_yaml(
+            "token4".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000002".to_string(),
+            "18".to_string(),
+            "Token 4".to_string(),
+            "T4".to_string(),
+        );
+
+        assert!(gui.check_select_tokens().is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_network_key() {
+        let gui = initialize_gui_with_select_tokens().await;
+        let network_key = gui.get_network_key().unwrap();
+        assert_eq!(network_key, "some-network");
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_save_select_token() {
+        let mut gui = initialize_gui_with_select_tokens().await;
+        let err = gui
+            .save_select_token(
+                "token5".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenNotFound("token5".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token5' could not be found in the YAML configuration."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_remove_select_token() {
+        let mut gui = initialize_gui_with_select_tokens().await;
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000001".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "T3".to_string(),
+        );
+
+        let err = gui.remove_select_token("token5".to_string()).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenNotFound("token5".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token5' could not be found in the YAML configuration."
+        );
+
+        assert!(gui.remove_select_token("token3".to_string()).is_ok());
+        assert!(!gui.is_select_token_set("token3".to_string()).unwrap());
+
+        let mut gui = initialize_gui().await;
+        let err = gui.remove_select_token("token3".to_string()).unwrap_err();
+        assert_eq!(err.to_string(), GuiError::SelectTokensNotSet.to_string());
+        assert_eq!(
+            err.to_readable_msg(),
+            "No tokens have been configured for selection. Please check your YAML configuration."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_are_all_tokens_selected() {
+        let gui = initialize_gui_with_select_tokens().await;
+
+        let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
+        assert!(!are_all_tokens_selected);
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000001".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "T3".to_string(),
+        );
+
+        let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
+        assert!(!are_all_tokens_selected);
+
+        gui.add_record_to_yaml(
+            "token4".to_string(),
+            "some-network".to_string(),
+            "0x0000000000000000000000000000000000000002".to_string(),
+            "18".to_string(),
+            "Token 4".to_string(),
+            "T4".to_string(),
+        );
+
+        let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
+        assert!(are_all_tokens_selected);
+    }
+}
