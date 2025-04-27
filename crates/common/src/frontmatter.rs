@@ -12,201 +12,21 @@ pub async fn parse_frontmatter(dotrain: String) -> Result<ConfigSource, ParseCon
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
+    use super::*;
+    use crate::test_helpers::TEST_DOTRAIN;
     use alloy::primitives::{Address, U256};
     use rain_orderbook_app_settings::plot_source::{
         BinXTransformCfg, DotOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
         RectYOptionsCfg, TransformCfg,
     };
+    use std::str::FromStr;
     use url::Url;
 
-    use super::*;
-
-    const DOTRAIN: &str = r#"
-    raindex-version: 123
-    networks:
-        mainnet:
-            rpc: https://mainnet.infura.io
-            chain-id: 1
-        testnet:
-            rpc: https://testnet.infura.io
-            chain-id: 1337
-    subgraphs:
-        mainnet: https://mainnet-subgraph.com
-        testnet: https://testnet-subgraph.com
-    metaboards:
-        mainnet: https://mainnet-metaboard.com
-        testnet: https://testnet-metaboard.com
-    orderbooks:
-        mainnet:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: mainnet
-            subgraph: mainnet
-        testnet:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: testnet
-            subgraph: testnet
-    tokens:
-        token1:
-            network: mainnet
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            decimals: 18
-            label: Wrapped Ether
-            symbol: WETH
-        token2:
-            network: mainnet
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            decimals: 6
-            label: USD Coin
-            symbol: USDC
-    deployers:
-        scenario1:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: mainnet
-        deployer2:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: testnet
-    sentry: true
-    accounts:
-        account1: 0x0000000000000000000000000000000000000001
-        account2: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-    orders:
-        order1:
-            deployer: scenario1
-            orderbook: mainnet
-            inputs:
-                - token: token1
-                  vault-id: 1
-            outputs:
-                - token: token2
-                  vault-id: 2
-    scenarios:
-        scenario1:
-            bindings:
-                key1: value1
-            scenarios:
-                scenario2:
-                    bindings:
-                        key2: value2
-                    runs: 10
-    deployments:
-        deployment1:
-            order: order1
-            scenario: scenario1.scenario2
-        deployment2:
-            order: order1
-            scenario: scenario1
-    gui:
-        name: Test gui
-        description: Test description
-        short-description: Test short description
-        deployments:
-            deployment1:
-                name: Test deployment
-                description: Test description
-                deposits:
-                    - token: token1
-                      presets:
-                        - 100
-                        - 2000
-                fields:
-                    - binding: key1
-                      name: Binding test
-                      presets:
-                        - value: value2
-                select-tokens:
-                    - key: token2
-                      name: Test token
-                      description: Test description
-    charts:
-        chart1:
-            scenario: scenario1.scenario2
-            plots:
-                plot1:
-                    title: Test title
-                    subtitle: Test subtitle
-                    marks:
-                        - type: dot
-                          options:
-                            x: 1
-                            y: 2
-                            r: 3
-                            fill: red
-                            stroke: blue
-                            transform:
-                                type: hexbin
-                                content:
-                                    outputs:
-                                        x: 1
-                                        y: 2
-                                        r: 3
-                                        z: 4
-                                        stroke: green
-                                        fill: blue
-                                    options:
-                                        x: 1
-                                        y: 2
-                                        bin-width: 10
-                        - type: line
-                          options:
-                            transform:
-                                type: binx
-                                content:
-                                    outputs:
-                                        x: 1
-                                    options:
-                                        thresholds: 10
-                        - type: recty
-                          options:
-                            x0: 1
-                            x1: 2
-                            y0: 3
-                            y1: 4
-                    x:
-                       label: Test x label
-                       anchor: start
-                       label-anchor: start
-                       label-arrow: none
-                    y:
-                       label: Test y label
-                       anchor: start
-                       label-anchor: start
-                       label-arrow: none
-                    margin: 10
-                    margin-left: 20
-                    margin-right: 30
-                    margin-top: 40
-                    margin-bottom: 50
-                    inset: 60
-    ---
-    #calculate-io:
-    _, _: 1 2;
-    #handle-io:
-    :;
-    #handle-add-order:
-    :;
-    "#;
-
     #[tokio::test]
-    async fn test_parse_frontmatter() {
-        let config = parse_frontmatter(DOTRAIN.to_string()).await.unwrap();
+    async fn test_parse_networks() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert!(config.raindex_version.is_some());
         assert_eq!(config.networks.len(), 2);
-        assert_eq!(config.subgraphs.len(), 2);
-        assert_eq!(config.metaboards.len(), 2);
-        assert_eq!(config.orderbooks.len(), 2);
-        assert_eq!(config.tokens.len(), 2);
-        assert_eq!(config.deployers.len(), 2);
-        assert_eq!(config.sentry, Some(true));
-        assert!(config.accounts.is_some());
-        assert_eq!(config.orders.len(), 1);
-        assert_eq!(config.scenarios.len(), 1);
-        assert_eq!(config.deployments.len(), 2);
-        assert_eq!(config.charts.len(), 1);
-        assert!(config.gui.is_some());
-
         let mainnet_network = config.networks.get("mainnet").unwrap();
         assert_eq!(
             mainnet_network.rpc,
@@ -225,7 +45,13 @@ mod tests {
         assert!(testnet_network.label.is_none());
         assert!(testnet_network.network_id.is_none());
         assert!(testnet_network.currency.is_none());
+    }
 
+    #[tokio::test]
+    async fn test_parse_subgraphs() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.subgraphs.len(), 2);
         let mainnet_subgraph = config.subgraphs.get("mainnet").unwrap();
         assert_eq!(
             mainnet_subgraph,
@@ -236,7 +62,13 @@ mod tests {
             testnet_subgraph,
             &Url::parse("https://testnet-subgraph.com").unwrap()
         );
+    }
 
+    #[tokio::test]
+    async fn test_parse_metaboards() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.metaboards.len(), 2);
         let mainnet_metaboard = config.metaboards.get("mainnet").unwrap();
         assert_eq!(
             mainnet_metaboard,
@@ -247,7 +79,13 @@ mod tests {
             testnet_metaboard,
             &Url::parse("https://testnet-metaboard.com").unwrap()
         );
+    }
 
+    #[tokio::test]
+    async fn test_parse_orderbooks() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.orderbooks.len(), 2);
         let mainnet_orderbook = config.orderbooks.get("mainnet").unwrap();
         assert_eq!(
             mainnet_orderbook.address,
@@ -258,7 +96,13 @@ mod tests {
             testnet_orderbook.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
         );
+    }
 
+    #[tokio::test]
+    async fn test_parse_tokens() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.tokens.len(), 2);
         let token1 = config.tokens.get("token1").unwrap();
         assert_eq!(
             token1.address,
@@ -275,7 +119,13 @@ mod tests {
         assert_eq!(token2.decimals, Some(6));
         assert_eq!(token2.label, Some("USD Coin".to_string()));
         assert_eq!(token2.symbol, Some("USDC".to_string()));
+    }
 
+    #[tokio::test]
+    async fn test_parse_deployers() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.deployers.len(), 2);
         let deployer_scenario1 = config.deployers.get("scenario1").unwrap();
         assert_eq!(
             deployer_scenario1.address,
@@ -286,7 +136,13 @@ mod tests {
             deployer2.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
         );
+    }
 
+    #[tokio::test]
+    async fn test_parse_orders() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.orders.len(), 1);
         let order1 = config.orders.get("order1").unwrap();
         assert_eq!(order1.inputs.len(), 1);
         let order1_input = &order1.inputs[0];
@@ -296,7 +152,13 @@ mod tests {
         let order1_output = &order1.outputs[0];
         assert_eq!(order1_output.token, "token2");
         assert_eq!(order1_output.vault_id, Some(U256::from(2)));
+    }
 
+    #[tokio::test]
+    async fn test_parse_scenarios() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.scenarios.len(), 1);
         let scenario1 = config.scenarios.get("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
@@ -308,14 +170,26 @@ mod tests {
         assert_eq!(scenario1_scenario2.bindings.get("key2").unwrap(), "value2");
         assert_eq!(scenario1_scenario2.runs.unwrap(), 10);
         assert!(scenario1_scenario2.blocks.is_none());
+    }
 
+    #[tokio::test]
+    async fn test_parse_deployments() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.deployments.len(), 2);
         let deployment1 = config.deployments.get("deployment1").unwrap();
         assert_eq!(deployment1.order, "order1");
         assert_eq!(deployment1.scenario, "scenario1.scenario2");
         let deployment2 = config.deployments.get("deployment2").unwrap();
         assert_eq!(deployment2.order, "order1");
         assert_eq!(deployment2.scenario, "scenario1");
+    }
 
+    #[tokio::test]
+    async fn test_parse_charts() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.charts.len(), 1);
         let chart1 = config.charts.get("chart1").unwrap();
         assert!(chart1.plots.is_some());
         assert!(chart1.metrics.is_none());
@@ -412,7 +286,13 @@ mod tests {
         assert_eq!(plot1.margin_top, Some(40));
         assert_eq!(plot1.margin_bottom, Some(50));
         assert_eq!(plot1.inset, Some(60));
+    }
 
+    #[tokio::test]
+    async fn test_parse_gui() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert!(config.gui.is_some());
         let gui = config.gui.as_ref().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
@@ -449,16 +329,57 @@ mod tests {
             select_token1.description,
             Some("Test description".to_string())
         );
+    }
 
+    #[tokio::test]
+    async fn test_parse_sentry() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert_eq!(config.sentry, Some(true));
         let sentry = config.sentry.unwrap();
         assert!(sentry);
+    }
+
+    #[tokio::test]
+    async fn test_parse_raindex_version() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert!(config.raindex_version.is_some());
         let raindex_version = config.raindex_version.as_ref().unwrap();
         assert_eq!(raindex_version, "123");
+    }
 
+    #[tokio::test]
+    async fn test_parse_accounts() {
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert!(config.accounts.is_some());
         let accounts = config.accounts.as_ref().unwrap();
         let account1 = accounts.get("account1").unwrap();
         assert_eq!(account1, "0x0000000000000000000000000000000000000001");
         let account2 = accounts.get("account2").unwrap();
         assert_eq!(account2, "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+    }
+
+    #[tokio::test]
+    async fn test_parse_overall_counts() {
+        // This test checks the top-level counts that were previously checked
+        // at the beginning of the original test.
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+
+        assert!(config.raindex_version.is_some());
+        assert_eq!(config.networks.len(), 2);
+        assert_eq!(config.subgraphs.len(), 2);
+        assert_eq!(config.metaboards.len(), 2);
+        assert_eq!(config.orderbooks.len(), 2);
+        assert_eq!(config.tokens.len(), 2);
+        assert_eq!(config.deployers.len(), 2);
+        assert_eq!(config.sentry, Some(true));
+        assert!(config.accounts.is_some());
+        assert_eq!(config.orders.len(), 1);
+        assert_eq!(config.scenarios.len(), 1);
+        assert_eq!(config.deployments.len(), 2);
+        assert_eq!(config.charts.len(), 1);
+        assert!(config.gui.is_some());
     }
 }
