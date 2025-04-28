@@ -91,22 +91,19 @@ pub async fn do_quote_targets(
         .do_quote(rpc_url, block_number, gas_value, multicall_address)
         .await?;
 
-    for quote in quotes {
-        match quote {
-            Ok(v) => {
-                res.push(QuoteResultEnum::Success {
-                    value: v,
-                    error: None,
-                });
-            }
-            Err(e) => {
-                res.push(QuoteResultEnum::Err {
-                    value: None,
-                    error: e.to_string(),
-                });
-            }
-        }
-    }
+    let res = quotes
+        .into_iter()
+        .map(|q| match q {
+            Ok(v) => QuoteResultEnum::Success {
+                value: v,
+                error: None,
+            },
+            Err(e) => QuoteResultEnum::Err {
+                value: None,
+                error: e.to_string(),
+            },
+        })
+        .collect();
 
     Ok(DoQuoteTargetsResult(res))
 }
@@ -146,22 +143,19 @@ pub async fn do_quote_specs(
         )
         .await?;
 
-    for quote in quotes {
-        match quote {
-            Ok(v) => {
-                res.push(QuoteResultEnum::Success {
-                    value: v,
-                    error: None,
-                });
-            }
-            Err(e) => {
-                res.push(QuoteResultEnum::Err {
-                    value: None,
-                    error: e.to_string(),
-                });
-            }
-        }
-    }
+    let res = quotes
+        .into_iter()
+        .map(|q| match q {
+            Ok(v) => QuoteResultEnum::Success {
+                value: v,
+                error: None,
+            },
+            Err(e) => QuoteResultEnum::Err {
+                value: None,
+                error: e.to_string(),
+            },
+        })
+        .collect();
 
     Ok(DoQuoteSpecsResult(res))
 }
