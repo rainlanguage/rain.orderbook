@@ -28,20 +28,35 @@
 		}
 	});
 
+	let walletInitError: string | null = null;
+
 	const initWallet = async () => {
-		const erckit = defaultConfig({
-			appName: 'Rain Language',
-			connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
-			chains: supportedChainsList as unknown as Chain[],
-			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
-		});
-		await erckit.init();
+		try {
+			const erckit = defaultConfig({
+				appName: 'Rain Language',
+				connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
+				chains: supportedChainsList as unknown as Chain[],
+				projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
+			});
+			await erckit.init();
+			walletInitError = null;
+		} catch (error) {
+			walletInitError = `Failed to initialize wallet connection: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or check console.`;
+		}
 	};
 
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
 </script>
+
+{#if walletInitError}
+	<div
+		class="fixed bottom-4 left-1/2 z-[100] -translate-x-1/2 transform rounded-lg bg-red-500 px-6 py-3 text-white shadow-md"
+	>
+		{walletInitError}
+	</div>
+{/if}
 
 <WalletProvider account={signerAddress}>
 	<QueryClientProvider client={queryClient}>
@@ -50,6 +65,7 @@
 				<Homepage {colorTheme} />
 			{:else}
 				<div
+					data-testid="layout-container"
 					class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
 				>
 					<Sidebar {colorTheme} page={$page} />

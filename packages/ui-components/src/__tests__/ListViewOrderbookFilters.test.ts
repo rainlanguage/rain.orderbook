@@ -5,11 +5,17 @@ import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters
 import type { ConfigSource } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
+const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
+
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: () => ({
 		account: writable(null),
 		matchesAccount: vi.fn()
 	})
+}));
+
+vi.mock('$app/stores', () => ({
+	page: mockPageStore
 }));
 
 vi.mock('@tanstack/svelte-query', () => ({
@@ -34,7 +40,7 @@ describe('ListViewOrderbookFilters', () => {
 		}
 	});
 
-	const defaultProps = {
+	const defaultProps: ListViewOrderbookFiltersProps = {
 		settings: mockSettings,
 		accounts: writable({}),
 		hideZeroBalanceVaults: writable(false),
@@ -42,8 +48,6 @@ describe('ListViewOrderbookFilters', () => {
 		activeSubgraphs: writable({}),
 		activeOrderStatus: writable(undefined),
 		orderHash: writable(''),
-		isVaultsPage: false,
-		isOrdersPage: false,
 		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;
 
@@ -72,24 +76,28 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows vault-specific components on vault page', () => {
-		render(ListViewOrderbookFilters, {
-			...defaultProps,
-			isVaultsPage: true
-		} as ListViewOrderbookFiltersProps);
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/vaults'
+			} as URL
+		});
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('zero-balance-vault-checkbox')).toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
-		expect(screen.queryByTestId('order-status-dropdown')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('order-status-checkbox')).not.toBeInTheDocument();
 	});
 
 	test('shows order-specific components on orders page', () => {
-		render(ListViewOrderbookFilters, {
-			...defaultProps,
-			isOrdersPage: true
-		} as ListViewOrderbookFiltersProps);
+		mockPageStore.mockSetSubscribeValue({
+			url: {
+				pathname: '/orders'
+			} as URL
+		});
+		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('order-hash-input')).toBeInTheDocument();
-		expect(screen.getByTestId('order-status-dropdown')).toBeInTheDocument();
+		expect(screen.getByTestId('order-status-checkbox')).toBeInTheDocument();
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
 	});
 
@@ -106,10 +114,11 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('does not show page-specific components on default view', () => {
+		mockPageStore.reset();
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
-		expect(screen.queryByTestId('order-status-dropdown')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('order-status-checkbox')).not.toBeInTheDocument();
 	});
 });

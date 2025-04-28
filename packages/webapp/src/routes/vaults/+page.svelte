@@ -62,5 +62,4 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
-	currentRoute={$page.url.pathname}
 />

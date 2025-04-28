@@ -13,8 +13,6 @@
 		activeNetworkRef,
 		activeOrderbookRef
 	}: AppStoresInterface = $page.data.stores;
-
-	$: currentRoute = $page.url.pathname;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
@@ -30,5 +28,4 @@
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
-	{currentRoute}
 />
