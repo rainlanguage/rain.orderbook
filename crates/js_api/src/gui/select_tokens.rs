@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(select_tokens[0].key, "token3");
         assert_eq!(select_tokens[1].key, "token4");
 
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
         let select_tokens = gui.get_select_tokens().unwrap();
         assert_eq!(select_tokens.len(), 0);
     }
@@ -300,7 +300,7 @@ mod tests {
         assert!(gui.remove_select_token("token3".to_string()).is_ok());
         assert!(!gui.is_select_token_set("token3".to_string()).unwrap());
 
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
         let err = gui.remove_select_token("token3".to_string()).unwrap_err();
         assert_eq!(err.to_string(), GuiError::SelectTokensNotSet.to_string());
         assert_eq!(
