@@ -5,13 +5,11 @@ export function pickDeployments(
   mergedConfig: Config | undefined,
   activeNetworkRef: string | undefined,
 ) {
-  return !isNil(mergedConfig) &&
-    !isNil(mergedConfig?.dotrainOrder.deployments) &&
-    !isNil(mergedConfig?.dotrainOrder.orders)
+  return mergedConfig?.dotrainOrder?.deployments && mergedConfig?.dotrainOrder?.orders
     ? pickBy(
         mergedConfig.dotrainOrder.deployments,
         (d) =>
-          mergedConfig?.dotrainOrder.scenarios?.[d.scenario.key]?.deployer?.network?.key ===
+          mergedConfig.dotrainOrder.scenarios?.[d.scenario.key]?.deployer?.network?.key ===
           activeNetworkRef,
       )
     : {};

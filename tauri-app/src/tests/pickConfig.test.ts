@@ -3,7 +3,7 @@ import type { Dictionary } from 'lodash';
 import { pickDeployments, pickScenarios } from '$lib/services/pickConfig';
 import type { Config, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
-export const config: Config = {
+const config: Config = {
   orderbook: {
     networks: {
       network1: {

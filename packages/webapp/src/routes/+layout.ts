@@ -264,7 +264,7 @@ subgraphs:
 			expect(networkOrderbooks).not.toHaveProperty('orderbook2');
 		});
 
-		it('should handle derived store: subgraphUrl', async () => {
+		it('should handle derived store: subgraph', async () => {
 			vi.mocked(parseYaml).mockReturnValue(mockConfig as unknown as Config);
 			mockFetch.mockResolvedValueOnce({
 				text: () => Promise.resolve(mockSettingsYaml)

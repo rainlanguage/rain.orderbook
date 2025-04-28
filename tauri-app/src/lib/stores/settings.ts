@@ -176,7 +176,7 @@ settings.subscribe(async () => {
   }
 
   if (
-    !$settings.orderbook.orderbooks === undefined ||
+    $settings.orderbook.orderbooks === undefined ||
     $activeOrderbookRef === undefined ||
     ($settings.orderbook.orderbooks !== undefined &&
       $activeOrderbookRef !== undefined &&
