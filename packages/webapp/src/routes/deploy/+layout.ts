@@ -5,6 +5,10 @@ import type { InvalidStrategyDetail, ValidStrategyDetail } from '@rainlanguage/u
 import { fetchRegistryDotrains, validateStrategies } from '@rainlanguage/ui-components/services';
 import type { RegistryDotrain } from '@rainlanguage/ui-components/services';
 
+/**
++ * Type defining the structure of the load function's return value,
++ * including registry information and validation results.
++ */
 type LoadResult = {
 	registryFromUrl: string;
 	registryDotrains: RegistryDotrain[];

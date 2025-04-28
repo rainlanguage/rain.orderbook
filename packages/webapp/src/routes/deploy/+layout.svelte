@@ -15,7 +15,8 @@
 
 	const registryManager = new RegistryManager(REGISTRY_URL);
 	const registryManagerStore = writable(registryManager);
-	$: advancedMode = registryManager?.isCustomRegistry?.() ?? false;
+	$: advancedMode = registryManager.isCustomRegistry();
+	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
 <RegistryProvider {registryManagerStore}>
@@ -25,17 +26,17 @@
 			<div class="flex w-full content-end items-end justify-between">
 				{#if $registryManagerStore.isCustomRegistry()}
 					<CustomRegistryWarning />
-				{:else if $page.url.pathname === '/deploy'}
+				{:else if isDeployPage}
 					<div class="ml-auto"></div>
 				{/if}
-				{#if $page.url.pathname === '/deploy'}
+				{#if isDeployPage}
 					<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 						<span class="whitespace-nowrap">Advanced mode</span>
 					</Toggle>
 				{/if}
 			</div>
 			<div class="flex flex-col items-end gap-4">
-				{#if advancedMode && $page.url.pathname === '/deploy'}
+				{#if advancedMode && isDeployPage}
 					<div in:slide class="w-full">
 						<InputRegistryUrl />
 					</div>

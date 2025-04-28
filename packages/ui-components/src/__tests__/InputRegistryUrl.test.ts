@@ -13,7 +13,7 @@ vi.mock('$lib/services/loadRegistryUrl', () => ({
 }));
 
 // Mock the useRegistry hook
-vi.mock('../../providers/registry/useRegistry', () => ({
+vi.mock('$lib/providers/registry/useRegistry', () => ({
 	useRegistry: mockRegistryStore
 }));
 
