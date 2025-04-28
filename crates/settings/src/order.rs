@@ -1,5 +1,6 @@
 use crate::{yaml::FieldErrorKind, *};
-use alloy::primitives::{private::rand, U256};
+// use alloy::primitives::{private::rand, U256};
+use alloy::primitives::U256;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeSet, HashMap},
@@ -171,7 +172,7 @@ impl OrderCfg {
     }
 
     pub fn populate_vault_ids(&mut self) -> Result<Self, YamlError> {
-        let vault_id: U256 = rand::random();
+        let vault_id: U256 = U256::from(0); // rand::random();
 
         let mut document = self
             .document
