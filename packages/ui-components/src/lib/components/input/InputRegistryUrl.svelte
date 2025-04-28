@@ -32,7 +32,7 @@
 			bind:value={newRegistryUrl}
 		/>
 		<Button class="w-36 text-nowrap" on:click={handleClick} disabled={loading}>
-			{loading ? 'Loading registry...' : 'Load Registry URL'}
+			{loading ? 'Loading registry...' : 'Load registry URL'}
 		</Button>
 	</div>
 	<div class="h-4">

@@ -62,7 +62,7 @@ describe('InputRegistryUrl', () => {
 
 		render(InputRegistryUrl);
 
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 		await fireEvent.click(button);
 
 		expect(await screen.findByTestId('registry-error')).toHaveTextContent('Test error');
@@ -81,7 +81,7 @@ describe('InputRegistryUrl', () => {
 
 		render(InputRegistryUrl);
 
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 		await user.click(button);
 
 		expect(screen.getByText('Loading registry...')).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('InputRegistryUrl', () => {
 
 		await vi.runAllTimersAsync();
 
-		expect(screen.getByText('Load Registry URL')).toBeInTheDocument();
+		expect(screen.getByText('Load registry URL')).toBeInTheDocument();
 		expect(button).not.toBeDisabled();
 
 		vi.useRealTimers();
