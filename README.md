@@ -29,6 +29,7 @@ This same package is [published to npm](https://www.npmjs.com/package/@rainlangu
 
 1. Copy `.env.example` to `.env`
 2. Copy `tauri-app/.env.example` to `tauri-app/.env` and fill out `VITE_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
+2. Copy `packages/webapp/.env.example` to `packages/webapp/.env` and fill out `PUBLIC_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
 
 Then run the following to install dependencies and build the project:
 ```bash
