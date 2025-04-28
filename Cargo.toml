@@ -54,7 +54,6 @@ portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 wasm-bindgen-utils = "0.0.7"
-web-sys = { version = "0.3.77", features = [ "console" ] }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

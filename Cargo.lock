@@ -6342,7 +6342,6 @@ dependencies = [
  "tokio",
  "url",
  "wasm-bindgen-utils 0.0.7",
- "web-sys",
 ]
 
 [[package]]
@@ -6420,7 +6419,6 @@ dependencies = [
  "tracing",
  "url",
  "wasm-bindgen-utils 0.0.7",
- "web-sys",
 ]
 
 [[package]]

@@ -8278,7 +8278,6 @@ dependencies = [
  "thiserror",
  "url",
  "wasm-bindgen-utils",
- "web-sys",
 ]
 
 [[package]]
@@ -8325,7 +8324,6 @@ dependencies = [
  "tracing",
  "url",
  "wasm-bindgen-utils",
- "web-sys",
 ]
 
 [[package]]
