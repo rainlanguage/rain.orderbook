@@ -4,9 +4,13 @@ import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
 
-vi.mock('@rainlanguage/orderbook', () => ({
-	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
-}));
+vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	const original = (await importOriginal()) as object;
+	return {
+		...original,
+		getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
+	};
+});
 
 vi.useFakeTimers();
 

@@ -3,6 +3,16 @@ import { handleGuiInitialization } from '../lib/services/handleGuiInitialization
 import { pushGuiStateToUrlHistory } from '../lib/services/handleUpdateGuiState';
 import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook';
 
+vi.mock('@rainlanguage/orderbook', () => {
+	const DotrainOrderGui = vi.fn();
+	DotrainOrderGui.prototype.deserializeState = vi.fn();
+	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
+	return {
+		DotrainOrderGui
+	};
+});
+
+
 describe('handleGuiInitialization', () => {
 	let guiInstance: DotrainOrderGui;
 	const mockDotrain = 'mockDotrain';
