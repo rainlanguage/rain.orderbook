@@ -27,7 +27,6 @@ describe('OrderRemoveModal', () => {
 
 	beforeEach(async () => {
 		transactionStore.reset();
-		console.log('getRemoveOrderCalldata !!!', getRemoveOrderCalldata);
 		(getRemoveOrderCalldata as Mock).mockResolvedValue('0x123');
 	});
 
