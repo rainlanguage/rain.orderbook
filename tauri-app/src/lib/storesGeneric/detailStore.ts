@@ -1,5 +1,5 @@
 import { toasts } from '$lib/stores/toasts';
-import { cachedWritableStore } from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableStore } from '@rainlanguage/ui-components';
 import {
   derived,
   writable,

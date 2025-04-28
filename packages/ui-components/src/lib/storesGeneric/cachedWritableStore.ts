@@ -62,3 +62,70 @@ export function cachedWritableStore<T>(
 
 	return data;
 }
+
+export const cachedWritableString = (key: string, defaultValue = '') =>
+	cachedWritableStore<string>(
+		key,
+		defaultValue,
+		(v) => v,
+		(v) => v
+	);
+export const cachedWritableInt = (key: string, defaultValue = 0) =>
+	cachedWritableStore<number>(
+		key,
+		defaultValue,
+		(v) => v.toString(),
+		(v) => parseInt(v)
+	);
+/**
+ * Creates a writable store that can hold an optional value of type T and persists to localStorage.
+ *
+ * @template T - The type of the value stored
+ * @param {string} key - The localStorage key to use for persistence
+ * @param {T | undefined} defaultValue - The default value if nothing is found in localStorage
+ * @param {function} serialize - Function to convert the value to a string for storage
+ * @param {function} deserialize - Function to convert the stored string back to a value
+ * @returns A writable store that persists to localStorage and can hold undefined values
+ */
+export const cachedWritableOptionalStore = <T>(
+	key: string,
+	defaultValue: T | undefined = undefined,
+	serialize: (value: T) => string,
+	deserialize: (serialized: string) => T
+) =>
+	cachedWritableStore<T | undefined>(
+		key,
+		defaultValue,
+		(v) => (v ? serialize(v) : ''),
+		(v) => (v ? deserialize(v) : undefined)
+	);
+
+/**
+ * Creates a writable store that can hold an optional number value and persists to localStorage.
+ *
+ * @param {string} key - The localStorage key to use for persistence
+ * @param {number | undefined} defaultValue - The default value if nothing is found in localStorage
+ * @returns A writable store that persists to localStorage and can hold an optional number
+ */
+export const cachedWritableIntOptional = (key: string, defaultValue = undefined) =>
+	cachedWritableOptionalStore<number>(
+		key,
+		defaultValue,
+		(v) => v.toString(),
+		(v) => parseInt(v)
+	);
+
+/**
+ * Creates a writable store that can hold an optional string value and persists to localStorage.
+ *
+ * @param {string} key - The localStorage key to use for persistence
+ * @param {string | undefined} defaultValue - The default value if nothing is found in localStorage
+ * @returns A writable store that persists to localStorage and can hold an optional string
+ */
+export const cachedWritableStringOptional = (key: string, defaultValue = undefined) =>
+	cachedWritableOptionalStore<string>(
+		key,
+		defaultValue,
+		(v) => v,
+		(v) => v
+	);
