@@ -8,13 +8,11 @@ import type { Page } from '@sveltejs/kit';
 import type { RegistryManager } from '../providers/registry/RegistryManager';
 import { vi } from 'vitest';
 
-// Define default values for the mock
 const mockDefaultRegistry = 'https://example.com/default-registry.json';
 let mockCurrentRegistry: string | null = mockDefaultRegistry; // Start with default
 
-// Mock object adhering to the public interface of RegistryManager
+
 export const initialRegistry: Partial<RegistryManager> = {
-	// Mock public methods
 	getCurrentRegistry: vi.fn(() => mockCurrentRegistry ?? mockDefaultRegistry),
 	setRegistry: vi.fn((newRegistry: string) => {
 		mockCurrentRegistry = newRegistry;
