@@ -113,7 +113,6 @@ describe('Page Component', () => {
 
 	it('should display no strategies found when no strategies are available', async () => {
 		mockPageStore.mockSetSubscribeValue({
-			// @ts-ignore - Type mismatch is expected in test
 			data: {
 				error: null,
 				validStrategies: [],

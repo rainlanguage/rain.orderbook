@@ -1,6 +1,5 @@
 import type { InvalidStrategyDetail, ValidStrategyDetail } from '$lib/types/strategy';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
-import type { Mock } from 'vitest';
 
 export type RegistryFile = {
 	name: string;

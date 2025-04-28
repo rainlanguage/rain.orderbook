@@ -12,7 +12,6 @@ vi.mock('@rainlanguage/orderbook', () => {
 	};
 });
 
-
 describe('handleGuiInitialization', () => {
 	let guiInstance: DotrainOrderGui;
 	const mockDotrain = 'mockDotrain';
