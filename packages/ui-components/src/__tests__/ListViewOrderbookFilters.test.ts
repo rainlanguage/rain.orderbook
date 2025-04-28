@@ -55,26 +55,28 @@ describe('ListViewOrderbookFilters', () => {
 
 	beforeEach(() => {
 		mockSettings.set({
-			networks: {
-				ethereum: {
-					key: 'ethereum',
-					rpc: 'https://rpc.ankr.com/eth',
-					chainId: 1,
-					networkId: 1,
-					currency: 'ETH'
-				}
-			},
-			subgraphs: {
-				mainnet: {
-					key: 'mainnet',
-					url: 'mainnet-url'
+			orderbook: {
+				networks: {
+					ethereum: {
+						key: 'ethereum',
+						rpc: 'https://rpc.ankr.com/eth',
+						chainId: 1,
+						networkId: 1,
+						currency: 'ETH'
+					}
+				},
+				subgraphs: {
+					mainnet: {
+						key: 'mainnet',
+						url: 'mainnet-url'
+					}
 				}
 			}
 		} as unknown as Config);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({ networks: {}, subgraphs: {} } as unknown as Config);
+		mockSettings.set({ orderbook: { networks: {}, subgraphs: {} } } as unknown as Config);
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();

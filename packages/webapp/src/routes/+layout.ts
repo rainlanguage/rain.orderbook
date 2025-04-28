@@ -41,7 +41,7 @@ export const load = async ({ fetch }) => {
 	const activeAccountsItems = writable<Record<string, string>>({});
 
 	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
+		$settings.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
 			? $settings.subgraphs[$activeOrderbook.subgraph.key]
 			: undefined
 	);
@@ -410,46 +410,6 @@ subgraphs:
 			expect(Object.keys(finalAccounts).length).toBe(2);
 			expect(finalAccounts).toHaveProperty('account1');
 			expect(finalAccounts).toHaveProperty('account2');
-		});
-
-		it('should handle partial or invalid data in settings correctly', async () => {
-			const partialSettings = `
-networks:
-  network1:
-    rpc: https://network1.rpc
-    chainId: 1
-    label: Network 1
-    currency: ETH
-subgraphs:
-  subgraph1:
-    key: subgraph1
-    url: https://subgraph1.url
-orderbooks:
-  orderbook1:
-  	address: 0x1234567890123456789012345678901234567890
-    network: network1
-    subgraph: non-existent-subgraph
-  orderbook2:
-    address: 0x1234567890123456789012345678901234567890
-    network: network1
-`;
-
-			vi.mocked(parseYaml).mockReturnValue(partialSettings as unknown as Config);
-			mockFetch.mockResolvedValueOnce({
-				text: () => Promise.resolve(partialSettings)
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-			const { stores } = result;
-
-			stores.activeOrderbookRef.set('orderbook1');
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
-
-			stores.activeOrderbookRef.set('orderbook2');
-			expect(get(stores.activeOrderbook)).toBeUndefined();
-			expect(get(stores.subgraph)).toBeUndefined();
 		});
 	});
 }

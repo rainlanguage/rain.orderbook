@@ -1,11 +1,11 @@
-import { pickBy, isNil } from 'lodash';
+import { pickBy } from 'lodash';
 import type { Config } from '@rainlanguage/orderbook';
 
 export function pickDeployments(
   mergedConfig: Config | undefined,
   activeNetworkRef: string | undefined,
 ) {
-  return mergedConfig?.dotrainOrder?.deployments && mergedConfig?.dotrainOrder?.orders
+  return mergedConfig?.dotrainOrder?.deployments
     ? pickBy(
         mergedConfig.dotrainOrder.deployments,
         (d) =>
@@ -19,7 +19,7 @@ export function pickScenarios(
   mergedConfig: Config | undefined,
   activeNetworkRef: string | undefined,
 ) {
-  return !isNil(mergedConfig)
+  return mergedConfig?.dotrainOrder.scenarios
     ? pickBy(
         mergedConfig.dotrainOrder.scenarios,
         (d) => d?.deployer?.network?.key === activeNetworkRef,
