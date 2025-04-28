@@ -1,12 +1,12 @@
 use rain_orderbook_app_settings::{config::Config, ParseConfigError};
 use wasm_bindgen_utils::prelude::*;
 
-#[wasm_bindgen(js_name = "parseSettings", unchecked_return_type = "Config")]
-pub fn parse_settings(
-    settings: Vec<String>,
+#[wasm_bindgen(js_name = "parseYaml", unchecked_return_type = "Config")]
+pub fn parse_yaml(
+    yaml_list: Vec<String>,
     validate: Option<bool>,
 ) -> Result<JsValue, ParseConfigError> {
-    let config = Config::try_from_settings(settings, validate.unwrap_or(false))?;
+    let config = Config::try_from_yaml(yaml_list, validate.unwrap_or(false))?;
     Ok(to_js_value(&config)?)
 }
 
@@ -173,13 +173,13 @@ mod tests {
     "#;
 
     #[wasm_bindgen_test]
-    fn test_parse_settings() {
-        let config = Config::try_from_settings(
+    fn test_parse_yaml() {
+        let config = Config::try_from_yaml(
             vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
             false,
         )
         .unwrap();
-        let js_value = parse_settings(
+        let js_value = parse_yaml(
             vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
             None,
         )

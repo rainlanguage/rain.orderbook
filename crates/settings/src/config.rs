@@ -13,9 +13,19 @@ use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct Config {
+    dotrain_order: DotrainOrderConfig,
+    orderbook: OrderbookConfig,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(Config);
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct OrderbookConfig {
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
@@ -52,6 +62,24 @@ pub struct Config {
         tsify(type = "Record<string, DeployerCfg>")
     )]
     deployers: HashMap<String, Arc<DeployerCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    sentry: Option<bool>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    raindex_version: Option<String>,
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, AccountCfg>", optional)
+    )]
+    accounts: HashMap<String, Arc<AccountCfg>>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderbookConfig);
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct DotrainOrderConfig {
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
@@ -67,30 +95,20 @@ pub struct Config {
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
-        tsify(type = "Record<string, ChartCfg>")
-    )]
-    charts: HashMap<String, Arc<ChartCfg>>,
-    #[cfg_attr(
-        target_family = "wasm",
-        serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, DeploymentCfg>")
     )]
     deployments: HashMap<String, Arc<DeploymentCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    sentry: Option<bool>,
-    #[cfg_attr(target_family = "wasm", tsify(optional))]
-    raindex_version: Option<String>,
+    gui: Option<GuiCfg>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
-        tsify(type = "Record<string, AccountCfg>", optional)
+        tsify(type = "Record<string, ChartCfg>")
     )]
-    accounts: HashMap<String, Arc<AccountCfg>>,
-    #[cfg_attr(target_family = "wasm", tsify(optional))]
-    gui: Option<GuiCfg>,
+    charts: HashMap<String, Arc<ChartCfg>>,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(Config);
+impl_wasm_traits!(DotrainOrderConfig);
 
 #[derive(Error, Debug)]
 pub enum ParseConfigError {
@@ -147,12 +165,9 @@ impl From<ParseConfigError> for JsValue {
 }
 
 impl Config {
-    pub fn try_from_settings(
-        settings: Vec<String>,
-        validate: bool,
-    ) -> Result<Self, ParseConfigError> {
-        let dotrain_yaml = DotrainYaml::new(settings.clone(), validate)?;
-        let orderbook_yaml = OrderbookYaml::new(settings, validate)?;
+    pub fn try_from_yaml(yaml: Vec<String>, validate: bool) -> Result<Self, ParseConfigError> {
+        let dotrain_yaml = DotrainYaml::new(yaml.clone(), validate)?;
+        let orderbook_yaml = OrderbookYaml::new(yaml, validate)?;
 
         let networks = orderbook_yaml
             .get_networks()
@@ -224,132 +239,158 @@ impl Config {
             .map(|(k, v)| (k, Arc::new(v)))
             .collect::<HashMap<_, _>>();
 
-        let config = Config {
+        let orderbook_config = OrderbookConfig {
             networks,
             subgraphs,
             metaboards,
             orderbooks,
             tokens,
             deployers,
-            orders,
-            scenarios,
-            charts,
-            deployments,
             sentry,
             raindex_version,
             accounts,
+        };
+        let dotrain_order_config = DotrainOrderConfig {
+            orders,
+            scenarios,
+            deployments,
             gui,
+            charts,
+        };
+
+        let config = Config {
+            dotrain_order: dotrain_order_config,
+            orderbook: orderbook_config,
         };
         Ok(config)
     }
 
+    pub fn get_orderbook_config(&self) -> OrderbookConfig {
+        self.orderbook.clone()
+    }
+
+    pub fn get_dotrain_order_config(&self) -> DotrainOrderConfig {
+        self.dotrain_order.clone()
+    }
+
     pub fn get_networks(&self) -> &HashMap<String, Arc<NetworkCfg>> {
-        &self.networks
+        &self.orderbook.networks
     }
     pub fn get_network(&self, key: &str) -> Result<&Arc<NetworkCfg>, ParseConfigError> {
-        self.networks
+        self.orderbook
+            .networks
             .get(key)
             .ok_or(ParseConfigError::NetworkNotFound(key.to_string()))
     }
 
     pub fn get_subgraphs(&self) -> &HashMap<String, Arc<SubgraphCfg>> {
-        &self.subgraphs
+        &self.orderbook.subgraphs
     }
     pub fn get_subgraph(&self, key: &str) -> Result<&Arc<SubgraphCfg>, ParseConfigError> {
-        self.subgraphs
+        self.orderbook
+            .subgraphs
             .get(key)
             .ok_or(ParseConfigError::SubgraphNotFound(key.to_string()))
     }
 
     pub fn get_metaboards(&self) -> &HashMap<String, Arc<Url>> {
-        &self.metaboards
+        &self.orderbook.metaboards
     }
     pub fn get_metaboard(&self, key: &str) -> Result<&Arc<Url>, ParseConfigError> {
-        self.metaboards
+        self.orderbook
+            .metaboards
             .get(key)
             .ok_or(ParseConfigError::MetaboardNotFound(key.to_string()))
     }
 
     pub fn get_orderbooks(&self) -> &HashMap<String, Arc<OrderbookCfg>> {
-        &self.orderbooks
+        &self.orderbook.orderbooks
     }
     pub fn get_orderbook(&self, key: &str) -> Result<&Arc<OrderbookCfg>, ParseConfigError> {
-        self.orderbooks
+        self.orderbook
+            .orderbooks
             .get(key)
             .ok_or(ParseConfigError::OrderbookNotFound(key.to_string()))
     }
 
     pub fn get_tokens(&self) -> &HashMap<String, Arc<TokenCfg>> {
-        &self.tokens
+        &self.orderbook.tokens
     }
     pub fn get_token(&self, key: &str) -> Result<&Arc<TokenCfg>, ParseConfigError> {
-        self.tokens
+        self.orderbook
+            .tokens
             .get(key)
             .ok_or(ParseConfigError::TokenNotFound(key.to_string()))
     }
 
     pub fn get_deployers(&self) -> &HashMap<String, Arc<DeployerCfg>> {
-        &self.deployers
+        &self.orderbook.deployers
     }
     pub fn get_deployer(&self, key: &str) -> Result<&Arc<DeployerCfg>, ParseConfigError> {
-        self.deployers
+        self.orderbook
+            .deployers
             .get(key)
             .ok_or(ParseConfigError::DeployerNotFound(key.to_string()))
     }
 
     pub fn get_orders(&self) -> &HashMap<String, Arc<OrderCfg>> {
-        &self.orders
+        &self.dotrain_order.orders
     }
     pub fn get_order(&self, key: &str) -> Result<&Arc<OrderCfg>, ParseConfigError> {
-        self.orders
+        self.dotrain_order
+            .orders
             .get(key)
             .ok_or(ParseConfigError::OrderNotFound(key.to_string()))
     }
 
     pub fn get_scenarios(&self) -> &HashMap<String, Arc<ScenarioCfg>> {
-        &self.scenarios
+        &self.dotrain_order.scenarios
     }
     pub fn get_scenario(&self, key: &str) -> Result<&Arc<ScenarioCfg>, ParseConfigError> {
-        self.scenarios
+        self.dotrain_order
+            .scenarios
             .get(key)
             .ok_or(ParseConfigError::ScenarioNotFound(key.to_string()))
     }
 
     pub fn get_deployments(&self) -> &HashMap<String, Arc<DeploymentCfg>> {
-        &self.deployments
+        &self.dotrain_order.deployments
     }
     pub fn get_deployment(&self, key: &str) -> Result<&Arc<DeploymentCfg>, ParseConfigError> {
-        self.deployments
+        self.dotrain_order
+            .deployments
             .get(key)
             .ok_or(ParseConfigError::DeploymentNotFound(key.to_string()))
     }
 
     pub fn get_charts(&self) -> &HashMap<String, Arc<ChartCfg>> {
-        &self.charts
+        &self.dotrain_order.charts
     }
     pub fn get_chart(&self, key: &str) -> Result<&Arc<ChartCfg>, ParseConfigError> {
-        self.charts
+        self.dotrain_order
+            .charts
             .get(key)
             .ok_or(ParseConfigError::ChartNotFound(key.to_string()))
     }
 
     pub fn get_gui(&self) -> &Option<GuiCfg> {
-        &self.gui
+        &self.dotrain_order.gui
     }
 
     pub fn get_sentry(&self) -> &Option<bool> {
-        &self.sentry
+        &self.orderbook.sentry
     }
 
     pub fn get_raindex_version(&self) -> &Option<String> {
-        &self.raindex_version
+        &self.orderbook.raindex_version
     }
 
     pub fn get_accounts(&self) -> &HashMap<String, Arc<AccountCfg>> {
-        &self.accounts
+        &self.orderbook.accounts
     }
     pub fn get_account(&self, key: &str) -> Result<&Arc<AccountCfg>, ParseConfigError> {
-        self.accounts
+        self.orderbook
+            .accounts
             .get(key)
             .ok_or(ParseConfigError::AccountNotFound(key.to_string()))
     }
@@ -357,7 +398,9 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+    use super::Config;
     use crate::{
+        test::{MOCK_DOTRAIN_YAML, MOCK_ORDERBOOK_YAML},
         BinXTransformCfg, DotOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
         RectYOptionsCfg, TransformCfg,
     };
@@ -365,191 +408,46 @@ mod tests {
     use std::str::FromStr;
     use url::Url;
 
-    use super::Config;
-
-    const ORDERBOOK_YAML: &str = r#"
-    raindex-version: 0.1.0
-    networks:
-        mainnet:
-            rpc: https://mainnet.infura.io
-            chain-id: 1
-        testnet:
-            rpc: https://testnet.infura.io
-            chain-id: 1337
-    subgraphs:
-        mainnet: https://mainnet-subgraph.com
-        testnet: https://testnet-subgraph.com
-    metaboards:
-        mainnet: https://mainnet-metaboard.com
-        testnet: https://testnet-metaboard.com
-    orderbooks:
-        mainnet:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: mainnet
-            subgraph: mainnet
-        testnet:
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            network: testnet
-            subgraph: testnet
-    tokens:
-        token1:
-            network: mainnet
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            decimals: 18
-            label: Wrapped Ether
-            symbol: WETH
-        token2:
-            network: mainnet
-            address: 0x0000000000000000000000000000000000000002
-            decimals: 6
-            label: USD Coin
-            symbol: USDC
-    deployers:
-        scenario1:
-            address: 0x0000000000000000000000000000000000000002
-            network: mainnet
-        deployer2:
-            address: 0x0000000000000000000000000000000000000003
-            network: testnet
-    sentry: true
-    accounts:
-        account1: 0x0000000000000000000000000000000000000001
-        account2: 0x0000000000000000000000000000000000000002
-    "#;
-    const DOTRAIN_YAML: &str = r#"
-    orders:
-        order1:
-            deployer: scenario1
-            orderbook: mainnet
-            inputs:
-                - token: token1
-                  vault-id: 1
-            outputs:
-                - token: token2
-                  vault-id: 2
-    scenarios:
-        scenario1:
-            bindings:
-                key1: value1
-            scenarios:
-                scenario2:
-                    bindings:
-                        key2: value2
-                    runs: 10
-    deployments:
-        deployment1:
-            order: order1
-            scenario: scenario1.scenario2
-        deployment2:
-            order: order1
-            scenario: scenario1
-    gui:
-        name: Test gui
-        description: Test description
-        short-description: Test short description
-        deployments:
-            deployment1:
-                name: Test deployment
-                description: Test description
-                deposits:
-                    - token: token1
-                      presets:
-                        - 100
-                        - 2000
-                fields:
-                    - binding: key1
-                      name: Binding test
-                      presets:
-                        - value: value2
-                select-tokens:
-                    - key: token2
-                      name: Test token
-                      description: Test description
-    charts:
-        chart1:
-            scenario: scenario1.scenario2
-            plots:
-                plot1:
-                    title: Test title
-                    subtitle: Test subtitle
-                    marks:
-                        - type: dot
-                          options:
-                            x: 1
-                            y: 2
-                            r: 3
-                            fill: red
-                            stroke: blue
-                            transform:
-                                type: hexbin
-                                content:
-                                    outputs:
-                                        x: 1
-                                        y: 2
-                                        r: 3
-                                        z: 4
-                                        stroke: green
-                                        fill: blue
-                                    options:
-                                        x: 1
-                                        y: 2
-                                        bin-width: 10
-                        - type: line
-                          options:
-                            transform:
-                                type: binx
-                                content:
-                                    outputs:
-                                        x: 1
-                                    options:
-                                        thresholds: 10
-                        - type: recty
-                          options:
-                            x0: 1
-                            x1: 2
-                            y0: 3
-                            y1: 4
-                    x:
-                       label: Test x label
-                       anchor: start
-                       label-anchor: start
-                       label-arrow: none
-                    y:
-                       label: Test y label
-                       anchor: start
-                       label-anchor: start
-                       label-arrow: none
-                    margin: 10
-                    margin-left: 20
-                    margin-right: 30
-                    margin-top: 40
-                    margin-bottom: 50
-                    inset: 60
-    "#;
-
-    #[test]
-    fn test_try_from_settings() {
-        let config = Config::try_from_settings(
-            vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
+    fn setup_config() -> Config {
+        Config::try_from_yaml(
+            vec![
+                MOCK_ORDERBOOK_YAML.to_string(),
+                MOCK_DOTRAIN_YAML.to_string(),
+            ],
             false,
         )
-        .unwrap();
+        .unwrap()
+    }
 
-        assert_eq!(config.get_networks().len(), 2);
-        assert_eq!(config.get_subgraphs().len(), 2);
-        assert_eq!(config.get_metaboards().len(), 2);
-        assert_eq!(config.get_orderbooks().len(), 2);
-        assert_eq!(config.get_tokens().len(), 2);
-        assert_eq!(config.get_deployers().len(), 2);
-        assert_eq!(config.get_orders().len(), 1);
-        assert_eq!(config.get_scenarios().len(), 2);
-        assert_eq!(config.get_deployments().len(), 2);
-        assert_eq!(config.get_charts().len(), 1);
-        assert!(config.get_gui().is_some());
-        assert!(config.get_sentry().is_some());
-        assert!(config.get_raindex_version().is_some());
-        assert_eq!(config.get_accounts().len(), 2);
+    #[test]
+    fn test_orderbook_config() {
+        let config = setup_config();
+        let orderbook_config = config.get_orderbook_config();
+        assert_eq!(orderbook_config.networks.len(), 2);
+        assert_eq!(orderbook_config.subgraphs.len(), 2);
+        assert_eq!(orderbook_config.metaboards.len(), 2);
+        assert_eq!(orderbook_config.orderbooks.len(), 2);
+        assert_eq!(orderbook_config.tokens.len(), 2);
+        assert_eq!(orderbook_config.deployers.len(), 2);
+        assert_eq!(orderbook_config.accounts.len(), 2);
+        assert!(orderbook_config.sentry.is_some());
+        assert!(orderbook_config.raindex_version.is_some());
+    }
 
+    #[test]
+    fn test_dotrain_order_config() {
+        let config = setup_config();
+        let dotrain_order_config = config.get_dotrain_order_config();
+        assert_eq!(dotrain_order_config.orders.len(), 1);
+        assert_eq!(dotrain_order_config.scenarios.len(), 2);
+        assert_eq!(dotrain_order_config.deployments.len(), 2);
+        assert!(dotrain_order_config.gui.is_some());
+        assert_eq!(dotrain_order_config.charts.len(), 1);
+    }
+
+    #[test]
+    fn test_networks() {
+        let config = setup_config();
         let mainnet_network = config.get_network("mainnet").unwrap();
         assert_eq!(mainnet_network.key, "mainnet");
         assert_eq!(
@@ -570,7 +468,11 @@ mod tests {
         assert!(testnet_network.label.is_none());
         assert!(testnet_network.network_id.is_none());
         assert!(testnet_network.currency.is_none());
+    }
 
+    #[test]
+    fn test_subgraphs() {
+        let config = setup_config();
         let mainnet_subgraph = config.get_subgraph("mainnet").unwrap();
         assert_eq!(mainnet_subgraph.key, "mainnet");
         assert_eq!(
@@ -583,7 +485,11 @@ mod tests {
             testnet_subgraph.url,
             Url::parse("https://testnet-subgraph.com").unwrap()
         );
+    }
 
+    #[test]
+    fn test_metaboards() {
+        let config = setup_config();
         let mainnet_metaboard = config.get_metaboard("mainnet").unwrap();
         assert_eq!(
             **mainnet_metaboard,
@@ -594,7 +500,11 @@ mod tests {
             **testnet_metaboard,
             Url::parse("https://testnet-metaboard.com").unwrap()
         );
+    }
 
+    #[test]
+    fn test_orderbooks() {
+        let config = setup_config();
         let mainnet_orderbook = config.get_orderbook("mainnet").unwrap();
         assert_eq!(mainnet_orderbook.key, "mainnet");
         assert_eq!(
@@ -613,7 +523,11 @@ mod tests {
         assert_eq!(testnet_orderbook.network.key, "testnet");
         assert_eq!(testnet_orderbook.subgraph.key, "testnet");
         assert!(testnet_orderbook.label.is_none());
+    }
 
+    #[test]
+    fn test_tokens() {
+        let config = setup_config();
         let token1 = config.get_token("token1").unwrap();
         assert_eq!(token1.key, "token1");
         assert_eq!(token1.network.key, "mainnet");
@@ -634,7 +548,11 @@ mod tests {
         assert_eq!(token2.decimals, Some(6));
         assert_eq!(token2.label, Some("USD Coin".to_string()));
         assert_eq!(token2.symbol, Some("USDC".to_string()));
+    }
 
+    #[test]
+    fn test_deployers() {
+        let config = setup_config();
         let deployer_scenario1 = config.get_deployer("scenario1").unwrap();
         assert_eq!(deployer_scenario1.key, "scenario1");
         assert_eq!(
@@ -649,7 +567,11 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
         );
         assert_eq!(deployer2.network.key, "testnet");
+    }
 
+    #[test]
+    fn test_orders() {
+        let config = setup_config();
         let order1 = config.get_order("order1").unwrap();
         assert_eq!(order1.key, "order1");
         assert_eq!(order1.network.key, "mainnet");
@@ -663,7 +585,11 @@ mod tests {
         let order1_output = &order1.outputs[0];
         assert_eq!(order1_output.token.as_ref().unwrap().key, "token2");
         assert_eq!(order1_output.vault_id, Some(U256::from(2)));
+    }
 
+    #[test]
+    fn test_scenarios() {
+        let config = setup_config();
         let scenario1 = config.get_scenario("scenario1").unwrap();
         assert_eq!(scenario1.key, "scenario1");
         assert_eq!(scenario1.bindings.len(), 1);
@@ -679,7 +605,11 @@ mod tests {
         assert_eq!(scenario1_scenario2.runs.unwrap(), 10);
         assert!(scenario1_scenario2.blocks.is_none());
         assert_eq!(scenario1_scenario2.deployer.key, "scenario1");
+    }
 
+    #[test]
+    fn test_deployments() {
+        let config = setup_config();
         let deployment1 = config.get_deployment("deployment1").unwrap();
         assert_eq!(deployment1.key, "deployment1");
         assert_eq!(deployment1.order.key, "order1");
@@ -688,7 +618,11 @@ mod tests {
         assert_eq!(deployment2.key, "deployment2");
         assert_eq!(deployment2.order.key, "order1");
         assert_eq!(deployment2.scenario.key, "scenario1");
+    }
 
+    #[test]
+    fn test_charts() {
+        let config = setup_config();
         let chart1 = config.get_chart("chart1").unwrap();
         assert_eq!(chart1.key, "chart1");
         assert_eq!(chart1.scenario.key, "scenario1.scenario2");
@@ -787,7 +721,11 @@ mod tests {
         assert_eq!(plot1.margin_top, Some(40));
         assert_eq!(plot1.margin_bottom, Some(50));
         assert_eq!(plot1.inset, Some(60));
+    }
 
+    #[test]
+    fn test_gui() {
+        let config = setup_config();
         let gui = config.get_gui().as_ref().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
@@ -826,12 +764,20 @@ mod tests {
             select_token1.description,
             Some("Test description".to_string())
         );
+    }
 
+    #[test]
+    fn test_sentry_raindex_version() {
+        let config = setup_config();
         let sentry = config.get_sentry().unwrap();
         assert!(sentry);
         let raindex_version = config.get_raindex_version().as_ref().unwrap();
         assert_eq!(raindex_version, "0.1.0");
+    }
 
+    #[test]
+    fn test_accounts() {
+        let config = setup_config();
         let account1 = config.get_account("account1").unwrap();
         assert_eq!(account1.key, "account1");
         assert_eq!(

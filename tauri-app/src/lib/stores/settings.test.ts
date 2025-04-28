@@ -5,49 +5,51 @@ import type { Config, NetworkCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 
 // Define the mock directly in the tests
 const mockConfig: Config = {
-  networks: {
-    mainnet: {
-      key: 'mainnet',
-      rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
-      chainId: 1,
-      label: 'Ethereum Mainnet',
-      currency: 'ETH',
-    },
-  },
-  subgraphs: {
-    mainnet: {
-      key: 'mainnet',
-      url: 'https://api.thegraph.com/subgraphs/name/mainnet',
-    },
-  },
-  orderbooks: {
-    orderbook1: {
-      key: 'orderbook1',
-      address: '0xOrderbookAddress1',
-      network: {
+  orderbook: {
+    networks: {
+      mainnet: {
         key: 'mainnet',
-      } as unknown as NetworkCfg,
-      subgraph: {
-        key: 'uniswap',
-      } as unknown as SubgraphCfg,
-      label: 'Orderbook 1',
+        rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+        chainId: 1,
+        label: 'Ethereum Mainnet',
+        currency: 'ETH',
+      },
     },
-  },
-  deployers: {
-    deployer1: {
-      key: 'deployer1',
-      address: '0xDeployerAddress1',
-      network: {
+    subgraphs: {
+      mainnet: {
         key: 'mainnet',
-      } as unknown as NetworkCfg,
+        url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+      },
     },
-  },
-  metaboards: {
-    metaboard1: 'https://example.com/metaboard1',
-  },
-  accounts: {
-    name_one: 'address_one',
-    name_two: 'address_two',
+    orderbooks: {
+      orderbook1: {
+        key: 'orderbook1',
+        address: '0xOrderbookAddress1',
+        network: {
+          key: 'mainnet',
+        } as unknown as NetworkCfg,
+        subgraph: {
+          key: 'uniswap',
+        } as unknown as SubgraphCfg,
+        label: 'Orderbook 1',
+      },
+    },
+    deployers: {
+      deployer1: {
+        key: 'deployer1',
+        address: '0xDeployerAddress1',
+        network: {
+          key: 'mainnet',
+        } as unknown as NetworkCfg,
+      },
+    },
+    metaboards: {
+      metaboard1: 'https://example.com/metaboard1',
+    },
+    accounts: {
+      name_one: 'address_one',
+      name_two: 'address_two',
+    },
   },
 } as unknown as Config;
 
@@ -89,13 +91,16 @@ describe('Settings active accounts items', () => {
   test('should remove account if that account is removed', () => {
     // Test removing an account
     const newSettings = {
-      ...mockConfig,
-      accounts: {
-        name_one: {
-          key: 'name_one',
-          address: 'address_one',
+      orderbook: {
+        ...mockConfig.orderbook,
+        accounts: {
+          name_one: {
+            key: 'name_one',
+            address: 'address_one',
+          },
         },
       },
+      dotrainOrder: mockConfig.dotrainOrder,
     };
 
     // Update settings - this should trigger the subscription
@@ -109,17 +114,20 @@ describe('Settings active accounts items', () => {
 
   test('should remove account if the value is different', () => {
     const newSettings = {
-      ...mockConfig,
-      accounts: {
-        name_one: {
-          key: 'name_one',
-          address: 'address_one',
-        },
-        name_two: {
-          key: 'name_two',
-          address: 'new_value',
+      orderbook: {
+        ...mockConfig.orderbook,
+        accounts: {
+          name_one: {
+            key: 'name_one',
+            address: 'address_one',
+          },
+          name_two: {
+            key: 'name_two',
+            address: 'new_value',
+          },
         },
       },
+      dotrainOrder: mockConfig.dotrainOrder,
     };
 
     settings.set(newSettings);
@@ -131,13 +139,16 @@ describe('Settings active accounts items', () => {
 
   test('should update active subgraphs when subgraph value changes', () => {
     const newSettings = {
-      ...mockConfig,
-      subgraphs: {
-        mainnet: {
-          key: 'mainnet',
-          url: 'new value',
+      orderbook: {
+        ...mockConfig.orderbook,
+        subgraphs: {
+          mainnet: {
+            key: 'mainnet',
+            url: 'new value',
+          },
         },
       },
+      dotrainOrder: mockConfig.dotrainOrder,
     };
 
     settings.set(newSettings as unknown as Config);
@@ -152,13 +163,16 @@ describe('Settings active accounts items', () => {
 
   test('should update active subgraphs when subgraph removed', () => {
     const newSettings = {
-      ...mockConfig,
-      subgraphs: {
-        testnet: {
-          key: 'testnet',
-          url: 'testnet',
+      orderbook: {
+        ...mockConfig.orderbook,
+        subgraphs: {
+          testnet: {
+            key: 'testnet',
+            url: 'testnet',
+          },
         },
       },
+      dotrainOrder: mockConfig.dotrainOrder,
     };
 
     settings.set(newSettings as unknown as Config);
@@ -168,8 +182,11 @@ describe('Settings active accounts items', () => {
 
   test('should reset active subgraphs when subgraphs are undefined', () => {
     const newSettings = {
-      ...mockConfig,
-      subgraphs: undefined,
+      orderbook: {
+        ...mockConfig.orderbook,
+        subgraphs: undefined,
+      },
+      dotrainOrder: mockConfig.dotrainOrder,
     };
 
     settings.set(newSettings as unknown as Config);

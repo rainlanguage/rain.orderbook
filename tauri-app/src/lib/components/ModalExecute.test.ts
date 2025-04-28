@@ -32,7 +32,9 @@ describe('ModalExecute', () => {
     vi.clearAllMocks();
     // Reset settings store before each test
     settings.set({
-      networks: {},
+      orderbook: {
+        networks: {},
+      },
     } as unknown as Config);
   });
 
@@ -62,11 +64,13 @@ describe('ModalExecute', () => {
 
     it('should show current connected network name when network is in settings', () => {
       settings.set({
-        networks: {
-          mainnet: {
-            key: 'mainnet',
-            chainId: 1,
-            rpc: 'https://mainnet.com',
+        orderbook: {
+          networks: {
+            mainnet: {
+              key: 'mainnet',
+              chainId: 1,
+              rpc: 'https://mainnet.com',
+            },
           },
         },
       } as unknown as Config);

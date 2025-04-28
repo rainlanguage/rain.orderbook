@@ -4,81 +4,45 @@ import { pickDeployments, pickScenarios } from '$lib/services/pickConfig';
 import type { Config, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
 
 export const config: Config = {
-  networks: {
-    network1: {
-      key: 'network1',
-      rpc: 'rpc-url',
-      chainId: 14,
-    },
-    network2: {
-      key: 'network2',
-      rpc: 'rpc-url',
-      chainId: 137,
-    },
-  },
-  subgraphs: {
-    network1: {
-      key: 'some-key',
-      url: 'some-url',
-    },
-  },
-  metaboards: {
-    network1: 'some-url',
-  },
-  orderbooks: {
-    network1: {
-      key: 'network1',
-      address: '0x123456',
-      network: {
+  orderbook: {
+    networks: {
+      network1: {
         key: 'network1',
         rpc: 'rpc-url',
         chainId: 14,
       },
-      subgraph: {
+      network2: {
+        key: 'network2',
+        rpc: 'rpc-url',
+        chainId: 137,
+      },
+    },
+    subgraphs: {
+      network1: {
         key: 'some-key',
         url: 'some-url',
       },
     },
-  },
-  deployers: {
-    network1: {
-      key: 'network1',
-      address: '0xabcdef',
-      network: {
+    metaboards: {
+      network1: 'some-url',
+    },
+    orderbooks: {
+      network1: {
         key: 'network1',
-        rpc: 'rpc-url',
-        chainId: 14,
+        address: '0x123456',
+        network: {
+          key: 'network1',
+          rpc: 'rpc-url',
+          chainId: 14,
+        },
+        subgraph: {
+          key: 'some-key',
+          url: 'some-url',
+        },
       },
     },
-  },
-  tokens: {},
-  orders: {
-    buy: {
-      key: 'buy',
-      inputs: [],
-      outputs: [],
-      network: {
-        key: 'network1',
-        rpc: 'rpc-url',
-        chainId: 14,
-      },
-    },
-    sell: {
-      key: 'sell',
-      inputs: [],
-      outputs: [],
-      network: {
-        key: 'network1',
-        rpc: 'rpc-url',
-        chainId: 14,
-      },
-    },
-  },
-  scenarios: {
-    'network1.sell': {
-      key: 'network1.sell',
-      bindings: {},
-      deployer: {
+    deployers: {
+      network1: {
         key: 'network1',
         address: '0xabcdef',
         network: {
@@ -88,38 +52,43 @@ export const config: Config = {
         },
       },
     },
-    network1: {
-      key: 'network1',
-      bindings: {},
-      deployer: {
-        key: 'network1',
-        address: '0xabcdef',
-        network: {
-          key: 'network1',
-          rpc: 'rpc-url',
-          chainId: 14,
-        },
+    tokens: {},
+    accounts: {
+      name_one: {
+        key: 'name_one',
+        address: 'address_one',
       },
-    },
-    'network1.buy': {
-      key: 'network1.buy',
-      bindings: {},
-      deployer: {
-        key: 'network1',
-        address: '0xabcdef',
-        network: {
-          key: 'network1',
-          rpc: 'rpc-url',
-          chainId: 14,
-        },
+      name_two: {
+        key: 'name_two',
+        address: 'address_two',
       },
     },
   },
-  charts: {},
-  deployments: {
-    sell: {
-      key: 'sell',
-      scenario: {
+  dotrainOrder: {
+    orders: {
+      buy: {
+        key: 'buy',
+        inputs: [],
+        outputs: [],
+        network: {
+          key: 'network1',
+          rpc: 'rpc-url',
+          chainId: 14,
+        },
+      },
+      sell: {
+        key: 'sell',
+        inputs: [],
+        outputs: [],
+        network: {
+          key: 'network1',
+          rpc: 'rpc-url',
+          chainId: 14,
+        },
+      },
+    },
+    scenarios: {
+      'network1.sell': {
         key: 'network1.sell',
         bindings: {},
         deployer: {
@@ -132,20 +101,20 @@ export const config: Config = {
           },
         },
       },
-      order: {
-        key: 'sell',
-        inputs: [],
-        outputs: [],
-        network: {
+      network1: {
+        key: 'network1',
+        bindings: {},
+        deployer: {
           key: 'network1',
-          rpc: 'rpc-url',
-          chainId: 14,
+          address: '0xabcdef',
+          network: {
+            key: 'network1',
+            rpc: 'rpc-url',
+            chainId: 14,
+          },
         },
       },
-    },
-    buy: {
-      key: 'buy',
-      scenario: {
+      'network1.buy': {
         key: 'network1.buy',
         bindings: {},
         deployer: {
@@ -158,26 +127,61 @@ export const config: Config = {
           },
         },
       },
-      order: {
-        key: 'buy',
-        inputs: [],
-        outputs: [],
-        network: {
-          key: 'network1',
-          rpc: 'rpc-url',
-          chainId: 14,
+    },
+    charts: {},
+    deployments: {
+      sell: {
+        key: 'sell',
+        scenario: {
+          key: 'network1.sell',
+          bindings: {},
+          deployer: {
+            key: 'network1',
+            address: '0xabcdef',
+            network: {
+              key: 'network1',
+              rpc: 'rpc-url',
+              chainId: 14,
+            },
+          },
+        },
+        order: {
+          key: 'sell',
+          inputs: [],
+          outputs: [],
+          network: {
+            key: 'network1',
+            rpc: 'rpc-url',
+            chainId: 14,
+          },
         },
       },
-    },
-  },
-  accounts: {
-    name_one: {
-      key: 'name_one',
-      address: 'address_one',
-    },
-    name_two: {
-      key: 'name_two',
-      address: 'address_two',
+      buy: {
+        key: 'buy',
+        scenario: {
+          key: 'network1.buy',
+          bindings: {},
+          deployer: {
+            key: 'network1',
+            address: '0xabcdef',
+            network: {
+              key: 'network1',
+              rpc: 'rpc-url',
+              chainId: 14,
+            },
+          },
+        },
+        order: {
+          key: 'buy',
+          inputs: [],
+          outputs: [],
+          network: {
+            key: 'network1',
+            rpc: 'rpc-url',
+            chainId: 14,
+          },
+        },
+      },
     },
   },
 };
