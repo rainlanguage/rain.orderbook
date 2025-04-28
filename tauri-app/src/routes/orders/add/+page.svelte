@@ -45,7 +45,7 @@
 
   let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
-  $: deployments = mergedConfig?.deployments;
+  $: deployments = mergedConfig?.dotrainOrder.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
 
   // Resetting the selected deployment to undefined if it is not in the current
@@ -75,7 +75,10 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    mergedConfig?.dotrainOrder.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {

@@ -2,24 +2,26 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import DropdownActiveSubgraphs from '../lib/components/dropdown/DropdownActiveSubgraphs.svelte';
-import { mockConfigSource } from '../lib/__mocks__/settings';
+import { mockConfig } from '../lib/__mocks__/settings';
 import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
 
 describe('DropdownActiveSubgraphs', () => {
 	const mockSettings = {
-		...mockConfigSource,
-		subgraphs: {
-			mainnet: {
-				key: 'mainnet',
-				url: 'mainnet'
-			},
-			testnet: {
-				key: 'testnet',
-				url: 'testnet'
-			},
-			local: {
-				key: 'local',
-				url: 'local'
+		orderbook: {
+			...mockConfig.orderbook,
+			subgraphs: {
+				mainnet: {
+					key: 'mainnet',
+					url: 'mainnet'
+				},
+				testnet: {
+					key: 'testnet',
+					url: 'testnet'
+				},
+				local: {
+					key: 'local',
+					url: 'local'
+				}
 			}
 		}
 	} as unknown as Config;

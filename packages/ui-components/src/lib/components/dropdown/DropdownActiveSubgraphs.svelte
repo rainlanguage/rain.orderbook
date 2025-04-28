@@ -6,7 +6,7 @@
 	export let settings: Config;
 	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 
-	$: dropdownOptions = Object.keys(settings?.subgraphs ?? {}).reduce(
+	$: dropdownOptions = Object.keys(settings.orderbook.subgraphs ?? {}).reduce(
 		(acc, key) => ({
 			...acc,
 			[key]: key
@@ -18,7 +18,7 @@
 		let items = Object.keys(event.detail);
 		activeSubgraphs.set(
 			Object.values(items).reduce(
-				(acc, key) => ({ ...acc, [key]: (settings?.subgraphs ?? {})[key] }),
+				(acc, key) => ({ ...acc, [key]: (settings.orderbook.subgraphs ?? {})[key] }),
 				{} as Record<string, SubgraphCfg>
 			)
 		);

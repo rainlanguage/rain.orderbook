@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
-import { mockConfigSource } from '../lib/__mocks__/settings';
+import { mockConfig } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -90,7 +90,7 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfigSource),
+	settings: writable(mockConfig),
 	registryUrl: 'https://registry.reown.xyz'
 } as DeploymentStepsProps;
 
@@ -163,7 +163,7 @@ describe('DeploymentSteps', () => {
 			expect(handleDeployment).toHaveBeenCalledWith(
 				mockGui,
 				'0x123',
-				mockConfigSource.subgraphs?.mainnet.url
+				mockConfig.orderbook.subgraphs.mainnet.url
 			);
 		});
 	});
@@ -466,7 +466,7 @@ describe('DeploymentSteps', () => {
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.flare.url);
+			expect(subgraphUrlArg).toBe(mockConfig.orderbook.subgraphs.flare.url);
 		});
 	});
 });

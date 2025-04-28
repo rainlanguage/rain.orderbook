@@ -43,7 +43,9 @@
 	const { matchesAccount, account } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
+		Object.keys($activeSubgraphs ?? {}).length
+			? $activeSubgraphs
+			: ($settings?.orderbook?.subgraphs ?? {})
 	).map(([name, value]) => ({
 		name,
 		url: value.url

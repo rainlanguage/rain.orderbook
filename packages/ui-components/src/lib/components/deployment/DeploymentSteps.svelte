@@ -71,7 +71,7 @@
 		if (error) {
 			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
 		} else if (value) {
-			subgraphUrl = $settings?.subgraphs?.[value].url;
+			subgraphUrl = $settings.orderbook.subgraphs[value].url;
 		}
 		await areAllTokensSelected();
 	});
