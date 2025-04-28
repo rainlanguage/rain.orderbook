@@ -124,7 +124,7 @@ const transactionStore = () => {
 		update((state) => ({
 			...state,
 			status: TransactionStatus.PENDING_SUBGRAPH,
-			message: 'Checking for transaction indexing...'
+			message: 'Waiting for transaction to be indexed...'
 		}));
 
 		const result = await awaitSubgraphIndexing(

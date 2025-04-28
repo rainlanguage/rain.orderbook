@@ -58,8 +58,7 @@ describe('transactionStore', () => {
 		transactionSuccess,
 		transactionError,
 		awaitTransactionIndexing,
-		awaitNewOrderIndexing,
-		awaitRemoveOrderIndexing
+		awaitNewOrderIndexing
 	} = transactionStore;
 
 	beforeEach(() => {
@@ -410,7 +409,7 @@ describe('handleRemoveOrderTransaction', () => {
 	const mockChainId = 1;
 	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/test/orderbook';
 
-	const { reset, handleRemoveOrderTransaction } = transactionStore;
+	const { reset, handleRemoveOrderTransaction, awaitRemoveOrderIndexing } = transactionStore;
 
 	beforeEach(() => {
 		vi.resetAllMocks();
@@ -661,6 +660,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
 
 		(waitForTransactionReceipt as Mock).mockResolvedValue({});
+		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
