@@ -1,8 +1,10 @@
 use super::*;
+use js_sys::{eval, Reflect};
 use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
+use wasm_bindgen::JsValue;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -248,37 +250,6 @@ impl DotrainOrderGui {
         Ok(())
     }
 
-    #[wasm_export(js_name = "clearState", unchecked_return_type = "void")]
-    pub fn clear_state(&mut self) -> Result<(), GuiError> {
-        self.field_values.clear();
-        self.deposits.clear();
-        Ok(())
-    }
-
-    fn is_preset<K: AsRef<str>>(
-        &self,
-        key: K,
-        map: &BTreeMap<String, field_values::PairValue>,
-    ) -> Option<bool> {
-        map.get(key.as_ref()).map(|v| v.is_preset)
-    }
-
-    #[wasm_export(
-        js_name = "isFieldPreset",
-        unchecked_return_type = "boolean | undefined"
-    )]
-    pub fn is_field_preset(&self, binding: String) -> Result<Option<bool>, GuiError> {
-        Ok(self.is_preset(binding, &self.field_values))
-    }
-
-    #[wasm_export(
-        js_name = "isDepositPreset",
-        unchecked_return_type = "boolean | undefined"
-    )]
-    pub fn is_deposit_preset(&self, token: String) -> Result<Option<bool>, GuiError> {
-        Ok(self.is_preset(token, &self.deposits))
-    }
-
     #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
@@ -307,5 +278,150 @@ impl DotrainOrderGui {
             order_inputs,
             order_outputs,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::{
+        field_values::FieldValue,
+        tests::{initialize_gui, initialize_gui_with_select_tokens, YAML},
+    };
+    use alloy::primitives::U256;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PwWrCQBDN2tJS6EkKPRX6AV2yMQ0YocdgwVpQoqI3jYvGrLNxXaPGn_CTRZ2NKM5h3nszw8y8knWOF8RRDOMYJtSxTDwgOozdDlUIFphVMEOeELVMOLj3tt2fvFavqJZyzilwvZYq-cDaVOu0ZttCRkMxlUtdq7KqZ6s0oislduYgMYyY00H4-4a0_N3d7G8SKZNnbIfHHz5d8mh0498tFVaKhRXfJxfl-P4X0laH11XeCBZ_wlkP8qydySbMVOw1Z1DveOEWIGdJFkS9_s-7ccoFjzQ92adjngq5nXPQB95yLdOoAQAA";
+
+    #[wasm_bindgen_test]
+    async fn test_serialize_state() {
+        let mut gui = initialize_gui_with_select_tokens().await;
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x1234567890123456789012345678901234567890".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "TKN3".to_string(),
+        );
+        gui.save_deposit("token3".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+        gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
+        gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
+
+        let state = gui.serialize_state().unwrap();
+        assert!(!state.is_empty());
+        assert_eq!(state, SERIALIZED_STATE);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_deserialize_state() {
+        let mut gui = initialize_gui(None).await;
+        gui.deserialize_state(YAML.to_string(), SERIALIZED_STATE.to_string(), None)
+            .await
+            .unwrap();
+
+        assert!(gui.is_select_token_set("token3".to_string()).unwrap());
+        assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
+        assert_eq!(
+            gui.get_field_value("binding-1".to_string()).unwrap(),
+            FieldValue {
+                binding: "binding-1".to_string(),
+                value: "100".to_string(),
+                is_preset: false,
+            }
+        );
+        assert_eq!(
+            gui.get_field_value("binding-2".to_string()).unwrap(),
+            FieldValue {
+                binding: "binding-2".to_string(),
+                value: "0".to_string(),
+                is_preset: true,
+            }
+        );
+        let vault_ids = gui.get_vault_ids().unwrap().0;
+        assert_eq!(vault_ids.get("input").unwrap()[0], Some(U256::from(199)));
+        assert_eq!(vault_ids.get("output").unwrap()[0], Some(U256::from(299)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_deserialize_state_invalid_dotrain() {
+        let mut gui = initialize_gui(None).await;
+        let dotrain = r#"
+        dotrain:
+            name: Test
+            description: Test
+        "#;
+
+        let err = gui
+            .deserialize_state(dotrain.to_string(), SERIALIZED_STATE.to_string(), None)
+            .await
+            .unwrap_err();
+        assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
+        assert_eq!(
+            err.to_readable_msg(),
+            "There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_execute_state_update_callback() {
+        eval(
+            r#"
+            globalThis.callbackCalled = false;
+            globalThis.receivedState = null;
+            globalThis.testCallback = function(state) {
+                globalThis.callbackCalled = true;
+                globalThis.receivedState = state;
+            };
+        "#,
+        )
+        .unwrap();
+
+        let global = js_sys::global();
+        let callback_js = Reflect::get(&global, &JsValue::from_str("testCallback"))
+            .expect("should have testCallback function on globalThis")
+            .dyn_into::<js_sys::Function>()
+            .expect("testCallback should be a function");
+
+        let mut gui = DotrainOrderGui::new();
+        gui.choose_deployment(
+            YAML.to_string(),
+            "some-deployment".to_string(),
+            Some(callback_js.clone()),
+        )
+        .await
+        .unwrap();
+
+        let callback_called = Reflect::get(&global, &JsValue::from_str("callbackCalled"))
+            .expect("should have callbackCalled flag on globalThis");
+        assert_eq!(callback_called, JsValue::from_bool(false));
+
+        gui.save_deposit("token1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-2".to_string(), "582.1".to_string())
+            .unwrap();
+        gui.set_vault_id(true, 0, Some("199".to_string())).unwrap();
+        gui.set_vault_id(false, 0, Some("299".to_string())).unwrap();
+
+        let callback_called = Reflect::get(&global, &JsValue::from_str("callbackCalled"))
+            .expect("should have callbackCalled flag on globalThis");
+        assert_eq!(callback_called, JsValue::from_bool(true));
+
+        let received_state_js = Reflect::get(&global, &JsValue::from_str("receivedState"))
+            .expect("should have receivedState on globalThis");
+        assert!(received_state_js.is_string());
+        let received_state_rust: String = received_state_js.as_string().unwrap();
+        assert!(!received_state_rust.is_empty());
+
+        let expected_state = gui.serialize_state().unwrap();
+        assert_eq!(received_state_rust, expected_state);
     }
 }
