@@ -92,13 +92,21 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	});
 };
 
-// Helper functions for common scenarios
+export interface TransactionConfig<T> {
+	subgraphUrl: string;
+	txHash: string;
+	successMessage: string;
+	network?: string;
+	fetchData: (subgraphUrl: string, txHash: string) => Promise<T>;
+	isSuccess: (data: T) => boolean;
+}
+
 export const getTransactionConfig = (
 	subgraphUrl: string,
 	txHash: string,
 	successMessage: string,
 	network?: string
-) => ({
+): TransactionConfig<SgTransaction> => ({
 	subgraphUrl,
 	txHash,
 	successMessage,
@@ -112,7 +120,7 @@ export const getNewOrderConfig = (
 	txHash: string,
 	successMessage: string,
 	network?: string
-) => ({
+): TransactionConfig<SgAddOrderWithOrder[]> => ({
 	subgraphUrl,
 	txHash,
 	successMessage,
@@ -125,7 +133,7 @@ export const getRemoveOrderConfig = (
 	subgraphUrl: string,
 	txHash: string,
 	successMessage: string
-) => ({
+): TransactionConfig<SgRemoveOrderWithOrder[]> => ({
 	subgraphUrl,
 	txHash,
 	successMessage,
