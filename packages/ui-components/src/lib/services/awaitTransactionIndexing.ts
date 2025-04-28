@@ -59,7 +59,7 @@ export type IndexingResult<T> = {
 /**
  * Generic function to handle waiting for subgraph indexing
  * Returns a promise that resolves with an object containing either value or error
- * 
+ *
  * @template T The type of data returned by the subgraph
  * @param options Configuration options for the indexing operation
  * @returns Promise resolving to an IndexingResult
@@ -197,7 +197,7 @@ export interface TransactionConfig<T> {
 
 /**
  * Creates a configuration for checking general transaction indexing
- * 
+ *
  * @param subgraphUrl URL of the subgraph to query
  * @param txHash Transaction hash to check for indexing
  * @param successMessage Message to display on successful indexing
@@ -226,7 +226,7 @@ export const getTransactionConfig = (
 
 /**
  * Creates a configuration for checking new order indexing
- * 
+ *
  * @param subgraphUrl URL of the subgraph to query
  * @param txHash Transaction hash to check for indexing
  * @param successMessage Message to display on successful indexing
@@ -255,7 +255,7 @@ export const getNewOrderConfig = (
 
 /**
  * Creates a configuration for checking order removal indexing
- * 
+ *
  * @param subgraphUrl URL of the subgraph to query
  * @param txHash Transaction hash to check for indexing
  * @param successMessage Message to display on successful indexing
