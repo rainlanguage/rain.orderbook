@@ -220,18 +220,26 @@ impl Context {
     }
 
     pub fn add_current_deployment(&mut self, deployment: String) -> &mut Self {
-        self.gui_context = Some(GuiContext {
-            current_deployment: Some(deployment),
-            current_order: None,
-        });
+        if let Some(gui_context) = self.gui_context.as_mut() {
+            gui_context.current_deployment = Some(deployment);
+        } else {
+            self.gui_context = Some(GuiContext {
+                current_deployment: Some(deployment),
+                current_order: None,
+            });
+        }
         self
     }
 
     pub fn add_current_order(&mut self, order: String) -> &mut Self {
-        self.gui_context = Some(GuiContext {
-            current_deployment: None,
-            current_order: Some(order),
-        });
+        if let Some(gui_context) = self.gui_context.as_mut() {
+            gui_context.current_order = Some(order);
+        } else {
+            self.gui_context = Some(GuiContext {
+                current_deployment: None,
+                current_order: Some(order),
+            });
+        }
         self
     }
 
@@ -295,9 +303,9 @@ impl Context {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::*;
     use crate::yaml::RwLock;
     use crate::OrderCfg;
+    use crate::{test::*, yaml::default_document};
     use alloy::primitives::{Address, U256};
     use strict_yaml_rust::StrictYaml;
 
@@ -405,6 +413,144 @@ mod tests {
         assert_eq!(
             error.to_readable_msg(),
             "No order is available in the current context. Please ensure an order is specified in your YAML configuration."
+        );
+    }
+
+    #[test]
+    fn test_order_context() {
+        let mut context = Context::new();
+
+        let order = OrderCfg {
+            document: default_document(),
+            key: "test_order".to_string(),
+            inputs: vec![OrderIOCfg {
+                token: Some(mock_token("token1")),
+                vault_id: Some(U256::from(10)),
+            }],
+            outputs: vec![OrderIOCfg {
+                token: Some(mock_token("token2")),
+                vault_id: None,
+            }],
+            network: mock_network(),
+            deployer: Some(mock_deployer()),
+            orderbook: Some(mock_orderbook()),
+        };
+        context.add_order(Arc::new(order));
+
+        assert!(context.order.is_some());
+        let context_order = context.order.unwrap();
+        assert_eq!(context_order.key, "test_order");
+        assert_eq!(context_order.inputs.len(), 1);
+        assert_eq!(context_order.inputs[0].token, Some(mock_token("token1")));
+        assert_eq!(context_order.inputs[0].vault_id, Some(U256::from(10)));
+        assert_eq!(context_order.outputs.len(), 1);
+        assert_eq!(context_order.outputs[0].token, Some(mock_token("token2")));
+        assert_eq!(context_order.outputs[0].vault_id, None);
+        assert_eq!(context_order.network, mock_network());
+        assert_eq!(context_order.deployer, Some(mock_deployer()));
+        assert_eq!(context_order.orderbook, Some(mock_orderbook()));
+    }
+
+    #[test]
+    fn test_select_tokens_context() {
+        let mut context = Context::new();
+        context.add_select_tokens(vec!["token1".to_string(), "token2".to_string()]);
+
+        assert_eq!(
+            context.select_tokens,
+            Some(vec!["token1".to_string(), "token2".to_string()])
+        );
+        assert_eq!(
+            context.select_tokens(),
+            Some(&vec!["token1".to_string(), "token2".to_string()])
+        );
+        assert!(context.is_select_token("token1"));
+        assert!(context.is_select_token("token2"));
+        assert!(!context.is_select_token("token3"));
+    }
+
+    #[test]
+    fn test_current_deployment_context() {
+        let mut context = Context::new();
+        context.add_current_deployment("deployment1".to_string());
+        assert_eq!(
+            context.gui_context.unwrap().current_deployment,
+            Some("deployment1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_current_order_context() {
+        let mut context = Context::new();
+        context.add_current_order("order1".to_string());
+        assert_eq!(
+            context.gui_context.unwrap().current_order,
+            Some("order1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_set_remote_networks() {
+        let mut context = Context::new();
+
+        let networks = HashMap::from([("network1".to_string(), mock_network().as_ref().clone())]);
+        context.set_remote_networks(networks.clone());
+
+        assert!(context.yaml_cache.is_some());
+        let yaml_cache = context.yaml_cache.unwrap();
+        assert_eq!(yaml_cache.remote_networks, networks);
+    }
+
+    #[test]
+    fn test_set_remote_tokens() {
+        let mut context = Context::new();
+
+        let tokens = HashMap::from([("token1".to_string(), mock_token("token1").as_ref().clone())]);
+        context.set_remote_tokens(tokens.clone());
+
+        assert!(context.yaml_cache.is_some());
+        let yaml_cache = context.yaml_cache.unwrap();
+        assert_eq!(yaml_cache.remote_tokens, tokens);
+    }
+
+    #[test]
+    fn test_from_context() {
+        let mut context = Context::new();
+        context.add_order(Arc::new(OrderCfg::default()));
+        context.add_select_tokens(vec!["token1".to_string(), "token2".to_string()]);
+        context.add_current_deployment("deployment1".to_string());
+        context.add_current_order("order1".to_string());
+        context.set_remote_networks(HashMap::from([(
+            "network1".to_string(),
+            mock_network().as_ref().clone(),
+        )]));
+        context.set_remote_tokens(HashMap::from([(
+            "token1".to_string(),
+            mock_token("token1").as_ref().clone(),
+        )]));
+
+        let new_context = Context::from_context(Some(&context));
+
+        assert_eq!(new_context.order, context.order);
+        assert_eq!(new_context.select_tokens, context.select_tokens);
+        assert!(new_context.gui_context.is_some());
+        assert!(new_context.yaml_cache.is_some());
+
+        let gui_context = new_context.gui_context.unwrap();
+        assert_eq!(
+            gui_context.current_deployment,
+            Some("deployment1".to_string())
+        );
+        assert_eq!(gui_context.current_order, Some("order1".to_string()));
+
+        let yaml_cache = new_context.yaml_cache.unwrap();
+        assert_eq!(
+            yaml_cache.remote_networks,
+            context.yaml_cache.as_ref().unwrap().remote_networks
+        );
+        assert_eq!(
+            yaml_cache.remote_tokens,
+            context.yaml_cache.unwrap().remote_tokens
         );
     }
 }
