@@ -146,7 +146,7 @@ describe('TransactionModal Component', () => {
 		render(TransactionModal, { props: { open: true, messages } });
 
 		await waitFor(() => {
-			const link = screen.getByText('View transaction on block explorer');
+			const link = screen.getByTestId('explorer-link');
 			expect(link).toHaveAttribute('href', 'https://www.google.com');
 		});
 	});
@@ -176,7 +176,7 @@ describe('TransactionModal Component', () => {
 		render(TransactionModal, { props: { open: true, messages } });
 
 		await waitFor(() => {
-			const viewOrderButton = screen.getByText('View Order');
+			const viewOrderButton = screen.getByText('View order');
 			expect(viewOrderButton).toBeInTheDocument();
 			expect(viewOrderButton.closest('a')).toHaveAttribute(
 				'href',

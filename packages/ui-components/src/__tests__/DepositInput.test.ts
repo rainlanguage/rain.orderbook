@@ -67,8 +67,6 @@ describe('DepositInput', () => {
 	});
 
 	it('handles custom input changes and triggers state update', async () => {
-		(DotrainOrderGui.prototype.isDepositPreset as Mock).mockReturnValue(false);
-
 		const { getByPlaceholderText } = render(DepositInput, {
 			props: {
 				deposit: mockDeposit,

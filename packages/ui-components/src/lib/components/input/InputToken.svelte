@@ -42,10 +42,10 @@
 		</div>
 
 		{#if !isAddressValid && address.length > 0}
-			<Helper class="mt-2 text-sm" color="red">Invalid Address</Helper>
+			<Helper class="mt-2 text-sm" color="red">Invalid address</Helper>
 		{/if}
 
-		<Helper class="mt-2 text-sm">Token Address</Helper>
+		<Helper class="mt-2 text-sm">Token address</Helper>
 	</div>
 	<div class="w-32 grow-0 break-all" data-testid="token-decimals-input">
 		<input

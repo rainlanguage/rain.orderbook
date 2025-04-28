@@ -71,7 +71,7 @@
 						<div class="flex flex-row justify-center gap-2">
 							{#if $transactionStore.newOrderHash && $transactionStore.network}
 								<a href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderHash}`}>
-									<Button on:click={handleClose} color="alternative">View Order</Button>
+									<Button on:click={handleClose} color="alternative">View order</Button>
 								</a>
 							{/if}
 							<Button on:click={handleClose}>Dismiss</Button>
@@ -98,11 +98,14 @@
 			{#if $transactionStore.explorerLink}
 				<p>
 					<a
+						data-testid="explorer-link"
 						class="cursor-pointer text-blue-500 hover:underline"
 						rel="noopener noreferrer"
 						href={$transactionStore.explorerLink}
-						target="_blank">View transaction on block explorer</a
+						target="_blank"
 					>
+						View transaction on block explorer.
+					</a>
 				</p>
 			{/if}
 		</div>

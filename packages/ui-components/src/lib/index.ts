@@ -7,7 +7,7 @@ export { default as DropdownCheckbox } from './components/dropdown/DropdownCheck
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
-export { default as DropdownOrderStatus } from './components/dropdown/DropdownOrderStatus.svelte';
+export { default as CheckboxActiveOrders } from './components/checkbox/CheckboxActiveOrders.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
@@ -97,6 +97,7 @@ export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
+export { invalidateTanstackQueries } from './queries/queryClient';
 
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
@@ -115,10 +116,7 @@ export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
-export { mockConfigSource } from './__mocks__/settings';
-export { mockSettingsStore } from './__mocks__/settings';
 export { default as transactionStore } from './stores/transactionStore';
-export { mockTransactionStore } from './__mocks__/mockTransactionStore';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
@@ -136,3 +134,9 @@ export { useRegistry } from './providers/registry/useRegistry';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
+
+// Mocks
+export { mockPageStore } from './__mocks__/stores';
+export { mockConfigSource } from './__mocks__/settings';
+export { mockSettingsStore } from './__mocks__/settings';
+export { mockTransactionStore } from './__mocks__/mockTransactionStore';

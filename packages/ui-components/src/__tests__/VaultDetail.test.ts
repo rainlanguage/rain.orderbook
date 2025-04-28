@@ -10,6 +10,7 @@ import type { ComponentProps } from 'svelte';
 import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderbook';
 type VaultDetailProps = ComponentProps<VaultDetail>;
 import { useAccount } from '../lib/providers/wallet/useAccount';
+import { QKEY_VAULT } from '$lib/queries/keys';
 
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -45,6 +46,8 @@ const defaultProps: VaultDetailProps = {
 	onWithdraw: vi.fn()
 };
 
+const mockMatchesAccount = vi.fn();
+
 describe('VaultDetail', () => {
 	let queryClient: QueryClient;
 	let mockData: SgVault;
@@ -53,8 +56,10 @@ describe('VaultDetail', () => {
 		vi.clearAllMocks();
 		queryClient = new QueryClient();
 
+		mockMatchesAccount.mockReturnValue(true);
+
 		(useAccount as Mock).mockReturnValue({
-			account: readable('0x1234567890123456789012345678901234567890')
+			matchesAccount: mockMatchesAccount
 		});
 
 		mockData = {
@@ -124,7 +129,7 @@ describe('VaultDetail', () => {
 			expect(screen.getByTestId('vaultDetailTokenName')).toHaveTextContent('USDC coin');
 			expect(screen.getByTestId('vaultDetailVaultId')).toHaveTextContent('Vault ID 0xabc');
 			expect(screen.getByTestId('vaultDetailOwnerAddress')).toHaveTextContent(
-				'Owner Address 0x123'
+				'Owner address 0x123'
 			);
 			expect(screen.getByTestId('vaultDetailTokenAddress')).toHaveTextContent(
 				'Token address 0x456'
@@ -135,17 +140,8 @@ describe('VaultDetail', () => {
 		});
 	});
 
-	it('shows deposit/withdraw buttons when conditions are met', async () => {
-		mockData.ordersAsInput = [
-			{ id: '1', owner: '0x1234567890123456789012345678901234567890' }
-		] as unknown as SgOrderAsIO[];
-		mockData.ordersAsOutput = [
-			{ id: '2', owner: '0x1234567890123456789012345678901234567890' }
-		] as unknown as SgOrderAsIO[];
-
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x1234567890123456789012345678901234567890')
-		});
+	it('shows deposit/withdraw buttons when account matches are met', async () => {
+		mockMatchesAccount.mockReturnValue(true);
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -158,44 +154,8 @@ describe('VaultDetail', () => {
 		});
 	});
 
-	it("doesn't show deposit/withdraw buttons when account doesn't match owner", async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x456')
-		});
-
-		render(VaultDetail, {
-			props: defaultProps,
-			context: new Map([['$$_queryClient', queryClient]])
-		});
-
-		await waitFor(() => {
-			expect(screen.queryByTestId('depositOrWithdrawButton')).not.toBeInTheDocument();
-		});
-	});
-
-	it("doesn't show deposit/withdraw buttons when account isn't an address", async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x456')
-		});
-
-		render(VaultDetail, {
-			props: defaultProps,
-			context: new Map([['$$_queryClient', queryClient]])
-		});
-
-		await waitFor(() => {
-			expect(screen.queryByTestId('depositOrWithdrawButton')).not.toBeInTheDocument();
-		});
-	});
-
-	it("doesn't show deposit/withdraw buttons when vault owner isn't an address", async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: readable('0x1234567890123456789012345678901234567890')
-		});
-		vi.mocked(getVault).mockResolvedValue({
-			...mockData,
-			owner: 'not an address'
-		} as unknown as SgVault);
+	it("doesn't show deposit/withdraw buttons when account doesn't match", async () => {
+		mockMatchesAccount.mockReturnValue(false);
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -219,10 +179,10 @@ describe('VaultDetail', () => {
 		});
 
 		await waitFor(async () => {
-			const refreshButton = await screen.findAllByTestId('refresh-button');
-			await userEvent.click(refreshButton[0]);
+			const refreshButton = await screen.getByTestId('top-refresh');
+			await userEvent.click(refreshButton);
 			expect(invalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['100'],
+				queryKey: ['100', QKEY_VAULT + '100'],
 				refetchType: 'all',
 				exact: false
 			});

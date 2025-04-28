@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
 	import { getOrderQuote, type BatchOrderQuotesResponse } from '@rainlanguage/orderbook';
@@ -39,7 +39,7 @@
 	const queryClient = useQueryClient();
 
 	const refreshQuotes = async () => {
-		await invalidateIdQuery(queryClient, id);
+		invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
@@ -54,7 +54,7 @@
 
 <div class="mt-4">
 	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-lg font-semibold">Order Quotes</h2>
+		<h2 class="text-lg font-semibold">Order quotes</h2>
 		<div class="flex items-center gap-x-1">
 			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0 && isHex($orderQuoteQuery.data[0].blockNumber)}
 				<EditableSpan

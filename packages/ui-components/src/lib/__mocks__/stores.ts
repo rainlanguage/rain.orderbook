@@ -26,6 +26,24 @@ export const initialRegistry: Partial<RegistryManager> = {
 	isCustomRegistry: vi.fn(() => mockCurrentRegistry !== mockDefaultRegistry)
 };
 
+const initialPageState = {
+	data: {
+		stores: { settings: {} },
+		dotrain: 'some dotrain content',
+		deployment: { key: 'deploy-key' },
+		strategyDetail: {}
+	},
+	url: new URL('http://localhost:3000/deploy'),
+	params: {},
+	form: {},
+	status: 200,
+	error: null,
+	route: {
+		id: null
+	}
+};
+
+const mockPageWritable = writable<typeof initialPageState>(initialPageState);
 const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
@@ -37,20 +55,11 @@ const mockActiveNetworkRefWritable = writable<string>('');
 const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
-const mockWalletAddressMatchesOrBlankWritable = writable<() => boolean>(() => false);
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
-const mockPageWritable = writable<Page>();
 const mockRegistryWritable = writable<RegistryManager>(initialRegistry as RegistryManager);
-
-export const mockWalletAddressMatchesOrBlankStore = {
-	subscribe: mockWalletAddressMatchesOrBlankWritable.subscribe,
-	set: mockWalletAddressMatchesOrBlankWritable.set,
-	mockSetSubscribeValue: (value: () => boolean): void =>
-		mockWalletAddressMatchesOrBlankWritable.set(value)
-};
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
@@ -149,7 +158,13 @@ export const mockShowMyItemsOnlyStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (value: Page): void => mockPageWritable.set(value)
+	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+		mockPageWritable.update((currentValue) => ({
+			...currentValue,
+			...newValue
+		}));
+	},
+	reset: () => mockPageWritable.set(initialPageState)
 };
 
 export const mockRegistryStore = {

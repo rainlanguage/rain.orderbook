@@ -28,7 +28,7 @@ describe('InputRegistryUrl', () => {
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 
 		expect(input).toBeInTheDocument();
 		expect(button).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('InputRegistryUrl', () => {
 		await userEvent.clear(input);
 		await userEvent.type(input, testUrl);
 
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 		await fireEvent.click(button);
 
 		expect(loadRegistryUrl).toHaveBeenCalledWith(testUrl, initialRegistry);

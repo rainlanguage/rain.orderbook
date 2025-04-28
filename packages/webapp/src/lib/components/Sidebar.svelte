@@ -111,6 +111,7 @@
 					on:click={toggleSide}
 					label="Documentation"
 					target="_blank"
+					rel="noopener noreferrer"
 					href="https://docs.rainlang.xyz/raindex/overview"
 				>
 					<svelte:fragment slot="icon">
@@ -122,6 +123,7 @@
 					on:click={toggleSide}
 					label="Ask for help"
 					target="_blank"
+					rel="noopener noreferrer"
 					href="https://t.me/+W0aQ36ptN_E2MjZk"
 				>
 					<svelte:fragment slot="icon">
