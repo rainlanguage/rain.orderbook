@@ -16,10 +16,18 @@ use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
-#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum QuoteResultEnum {
-    Ok(OrderQuoteValue),
-    Err(String),
+    Success {
+        value: OrderQuoteValue,
+        #[tsify(type = "undefined")]
+        error: Option<String>,
+    },
+    Err {
+        #[tsify(type = "undefined")]
+        value: Option<OrderQuoteValue>,
+        error: String,
+    },
 }
 impl_wasm_traits!(QuoteResultEnum);
 
@@ -86,10 +94,16 @@ pub async fn do_quote_targets(
     for quote in quotes {
         match quote {
             Ok(v) => {
-                res.push(QuoteResultEnum::Ok(v));
+                res.push(QuoteResultEnum::Success {
+                    value: v,
+                    error: None,
+                });
             }
             Err(e) => {
-                res.push(QuoteResultEnum::Err(e.to_string()));
+                res.push(QuoteResultEnum::Err {
+                    value: None,
+                    error: e.to_string(),
+                });
             }
         }
     }
@@ -135,10 +149,16 @@ pub async fn do_quote_specs(
     for quote in quotes {
         match quote {
             Ok(v) => {
-                res.push(QuoteResultEnum::Ok(v));
+                res.push(QuoteResultEnum::Success {
+                    value: v,
+                    error: None,
+                });
             }
             Err(e) => {
-                res.push(QuoteResultEnum::Err(e.to_string()));
+                res.push(QuoteResultEnum::Err {
+                    value: None,
+                    error: e.to_string(),
+                });
             }
         }
     }
