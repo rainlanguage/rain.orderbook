@@ -149,7 +149,10 @@ impl DepositArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, B256};
+    use alloy_ethers_typecast::{gas_fee_middleware::GasFeeSpeed, rpc::Response};
+    use httpmock::MockServer;
+    use std::str::FromStr;
 
     #[test]
     fn test_deposit_args_into() {
@@ -171,5 +174,137 @@ mod tests {
         );
         assert_eq!(deposit_call.vaultId, U256::from(42));
         assert_eq!(deposit_call.amount, U256::from(100));
+    }
+
+    #[tokio::test]
+    async fn test_read_allowance() {
+        let rpc_server = MockServer::start_async().await;
+
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xdd62ed3e");
+            then.body(
+                Response::new_success(1, &B256::left_padding_from(&[200u8]).to_string())
+                    .to_json_string()
+                    .unwrap(),
+            );
+        });
+
+        let args = DepositArgs {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vault_id: U256::from(42),
+            amount: U256::from(100),
+        };
+
+        let res = args
+            .read_allowance(
+                Address::ZERO,
+                TransactionArgs {
+                    rpc_url: rpc_server.url("/rpc"),
+                    orderbook_address: Address::ZERO,
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(res, U256::from(200));
+    }
+
+    #[tokio::test]
+    async fn test_get_deposit_calldata() {
+        let args = DepositArgs {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vault_id: U256::from(42),
+            amount: U256::from(100),
+        };
+        let calldata = args.get_deposit_calldata().await.unwrap();
+
+        let deposit_call = deposit2Call {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vaultId: U256::from(42),
+            amount: U256::from(100),
+            tasks: vec![],
+        };
+        let expected_calldata = deposit_call.abi_encode();
+
+        assert_eq!(calldata, expected_calldata);
+        assert_eq!(calldata.len(), 164);
+    }
+
+    #[tokio::test]
+    async fn test_deposit_call_try_into_write_contract_parameters() {
+        let args = TransactionArgs {
+            rpc_url: "http://test.com".to_string(),
+            orderbook_address: Address::ZERO,
+            derivation_index: Some(0_usize),
+            chain_id: Some(1),
+            max_priority_fee_per_gas: Some(U256::from(200)),
+            max_fee_per_gas: Some(U256::from(100)),
+            gas_fee_speed: Some(GasFeeSpeed::Fast),
+        };
+        let deposit_call = deposit2Call {
+            token: Address::ZERO,
+            vaultId: U256::from(42),
+            amount: U256::from(100),
+            tasks: vec![],
+        };
+        let params = args
+            .try_into_write_contract_parameters(deposit_call.clone(), Address::ZERO)
+            .await
+            .unwrap();
+        assert_eq!(params.address, Address::ZERO);
+        assert_eq!(params.call, deposit_call);
+        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
+        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
+    }
+
+    #[tokio::test]
+    async fn test_get_approve_calldata() {
+        let args = DepositArgs {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vault_id: U256::from(42),
+            amount: U256::from(100),
+        };
+        let calldata = args
+            .get_approve_calldata(TransactionArgs {
+                rpc_url: "https://mainnet.infura.io/v3/".to_string(),
+                orderbook_address: Address::ZERO,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        let approve_call = approveCall {
+            spender: Address::ZERO,
+            amount: U256::from(100),
+        };
+        let expected_calldata = approve_call.abi_encode();
+
+        assert_eq!(calldata, expected_calldata);
+        assert_eq!(calldata.len(), 68);
+    }
+
+    #[tokio::test]
+    async fn test_approve_call_try_into_write_contract_parameters() {
+        let args = TransactionArgs {
+            rpc_url: "http://test.com".to_string(),
+            orderbook_address: Address::ZERO,
+            derivation_index: Some(0_usize),
+            chain_id: Some(1),
+            max_priority_fee_per_gas: Some(U256::from(200)),
+            max_fee_per_gas: Some(U256::from(100)),
+            gas_fee_speed: Some(GasFeeSpeed::Fast),
+        };
+        let approve_call = approveCall {
+            spender: Address::ZERO,
+            amount: U256::from(100),
+        };
+        let params = args
+            .try_into_write_contract_parameters(approve_call.clone(), Address::ZERO)
+            .await
+            .unwrap();
+        assert_eq!(params.address, Address::ZERO);
+        assert_eq!(params.call, approve_call);
+        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
+        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
     }
 }
