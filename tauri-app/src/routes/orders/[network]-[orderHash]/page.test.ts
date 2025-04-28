@@ -57,32 +57,34 @@ describe('Order Page', () => {
 
   it('renders OrderDetail when all settings are available', () => {
     mockSettingsStore.mockSetSubscribeValue({
-      orderbooks: {
-        ethereum: {
-          key: 'ethereum',
-          network: {
+      orderbook: {
+        orderbooks: {
+          ethereum: {
             key: 'ethereum',
-            rpc: 'https://ethereum.example.com',
-            chainId: 1,
+            network: {
+              key: 'ethereum',
+              rpc: 'https://ethereum.example.com',
+              chainId: 1,
+            },
+            address: '0xabc',
+            subgraph: {
+              key: 'ethereum',
+              url: 'https://api.thegraph.com/subgraphs/name/example',
+            },
           },
-          address: '0xabc',
-          subgraph: {
+        },
+        subgraphs: {
+          ethereum: {
             key: 'ethereum',
             url: 'https://api.thegraph.com/subgraphs/name/example',
           },
         },
-      },
-      subgraphs: {
-        ethereum: {
-          key: 'ethereum',
-          url: 'https://api.thegraph.com/subgraphs/name/example',
-        },
-      },
-      networks: {
-        ethereum: {
-          key: 'ethereum',
-          rpc: 'https://ethereum.example.com',
-          chainId: 1,
+        networks: {
+          ethereum: {
+            key: 'ethereum',
+            rpc: 'https://ethereum.example.com',
+            chainId: 1,
+          },
         },
       },
     } as unknown as Config);
@@ -95,7 +97,7 @@ describe('Order Page', () => {
   describe('Missing settings tests', () => {
     beforeEach(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockSettingsStore.mockSetSubscribeValue({} as any);
+      mockSettingsStore.mockSetSubscribeValue({ orderbook: {} } as any);
     });
 
     it('displays error when all settings are missing', () => {
@@ -113,14 +115,16 @@ describe('Order Page', () => {
     it('only displays actually missing items', async () => {
       // Set partial settings
       mockSettingsStore.mockSetSubscribeValue({
-        orderbooks: {
-          ethereum: {
-            address: '0xabc',
+        orderbook: {
+          orderbooks: {
+            ethereum: {
+              address: '0xabc',
+            },
           },
-        },
-        networks: {
-          ethereum: {
-            rpc: 'https://ethereum.example.com',
+          networks: {
+            ethereum: {
+              rpc: 'https://ethereum.example.com',
+            },
           },
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
