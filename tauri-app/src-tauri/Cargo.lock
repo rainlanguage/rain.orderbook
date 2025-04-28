@@ -11776,7 +11776,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils"
 version = "0.0.7"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=918b543f8296387d357575dc3b231733c2a0a8e1#918b543f8296387d357575dc3b231733c2a0a8e1"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
 dependencies = [
  "js-sys",
  "paste",
@@ -11791,7 +11791,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils-macros"
 version = "0.0.2"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=918b543f8296387d357575dc3b231733c2a0a8e1#918b543f8296387d357575dc3b231733c2a0a8e1"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
 dependencies = [
  "proc-macro2",
  "quote",
