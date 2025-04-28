@@ -75,7 +75,7 @@ export const cachedWritableInt = (key: string, defaultValue = 0) =>
 		key,
 		defaultValue,
 		(v) => v.toString(),
-		(v) => parseInt(v)
+		(v) => Number.parseInt(v)
 	);
 /**
  * Creates a writable store that can hold an optional value of type T and persists to localStorage.
@@ -96,8 +96,8 @@ export const cachedWritableOptionalStore = <T>(
 	cachedWritableStore<T | undefined>(
 		key,
 		defaultValue,
-		(v) => (v ? serialize(v) : ''),
-		(v) => (v ? deserialize(v) : undefined)
+	(v) => (v !== undefined ? serialize(v) : ''),
+		(v) => (v !== '' ? deserialize(v) : undefined)
 	);
 
 /**
@@ -112,7 +112,7 @@ export const cachedWritableIntOptional = (key: string, defaultValue = undefined)
 		key,
 		defaultValue,
 		(v) => v.toString(),
-		(v) => parseInt(v)
+		(v) => Number.parseInt(v)
 	);
 
 /**
