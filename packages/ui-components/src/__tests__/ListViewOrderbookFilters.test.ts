@@ -21,19 +21,21 @@ type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any
 
 describe('ListViewOrderbookFilters', () => {
 	const mockSettings = writable<Config>({
-		networks: {
-			ethereum: {
-				key: 'ethereum',
-				rpc: 'https://rpc.ankr.com/eth',
-				chainId: 1,
-				networkId: 1,
-				currency: 'ETH'
-			}
-		},
-		subgraphs: {
-			mainnet: {
-				key: 'mainnet',
-				url: 'mainnet-url'
+		orderbook: {
+			networks: {
+				ethereum: {
+					key: 'ethereum',
+					rpc: 'https://rpc.ankr.com/eth',
+					chainId: 1,
+					networkId: 1,
+					currency: 'ETH'
+				}
+			},
+			subgraphs: {
+				mainnet: {
+					key: 'mainnet',
+					url: 'mainnet-url'
+				}
 			}
 		}
 	} as unknown as Config);
