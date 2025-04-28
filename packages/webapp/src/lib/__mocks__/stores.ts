@@ -60,5 +60,11 @@ export const mockAppKitModalStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (value: typeof initialPageState): void => mockPageWritable.set(value)
+	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+		mockPageWritable.update((currentValue) => ({
+			...currentValue,
+			...newValue
+		}));
+	},
+	reset: () => mockPageWritable.set(initialPageState)
 };

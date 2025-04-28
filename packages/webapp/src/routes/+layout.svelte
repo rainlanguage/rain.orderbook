@@ -44,6 +44,8 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
+
+	$: console.log($page.url.pathname);
 </script>
 
 {#if walletInitError}

@@ -4,7 +4,6 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
-import type { Page } from '@sveltejs/kit';
 import type { RegistryManager } from '../providers/registry/RegistryManager';
 import { vi } from 'vitest';
 

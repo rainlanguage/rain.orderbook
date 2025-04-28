@@ -20,7 +20,7 @@ vi.mock('$app/stores', async (importOriginal) => {
 vi.mock('$app/environment', () => mockEnv);
 
 vi.mock('../lib/components/Sidebar.svelte', async () => {
-	const MockSidebar = (await import('@rainlanguage/ui-components')).MockComponent;
+	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockSidebar };
 });
 
@@ -28,7 +28,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const MockWalletProvider = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),
-
 		WalletProvider: MockWalletProvider
 	};
 });
@@ -100,17 +99,23 @@ describe('Layout component', () => {
 		});
 	});
 
-	it('renders Homepage when on root path', async () => {
-		mockPageStore.mockSetSubscribeValue({
-			...initialPageState,
-			url: new URL('http://localhost/')
-		});
+	it.only('renders Homepage when on root path', async () => {
+  const mockUrl = new URL('http://localhost');
+  console.log('Mocked URL pathname:', mockUrl.pathname); // Should be '/'
+  
+  mockPageStore.mockSetSubscribeValue({
+    ...initialPageState,
+    url: mockUrl
+  });
 
-		const { container } = render(Layout);
-
-		expect(container.querySelector('main')).not.toBeInTheDocument();
-		expect(screen.getByTestId('homepage')).toBeInTheDocument();
-	});
+  const { container, debug } = render(Layout);
+  
+  // Add this to see what's being rendered
+  debug();
+  
+  expect(container.querySelector('main')).not.toBeInTheDocument();
+  expect(screen.getByTestId('homepage')).toBeInTheDocument();
+});
 
 	it('renders Sidebar and main content when not on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
