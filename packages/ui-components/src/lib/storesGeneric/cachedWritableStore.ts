@@ -96,7 +96,7 @@ export const cachedWritableOptionalStore = <T>(
 	cachedWritableStore<T | undefined>(
 		key,
 		defaultValue,
-	(v) => (v !== undefined ? serialize(v) : ''),
+		(v) => (v !== undefined ? serialize(v) : ''),
 		(v) => (v !== '' ? deserialize(v) : undefined)
 	);
 
