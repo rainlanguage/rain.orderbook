@@ -222,7 +222,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
-    mapping(address owner => mapping(address token => mapping(bytes32 vaultId => Float balance))) internal
+    mapping(address owner => mapping(address token => mapping(bytes32 vaultId => PackedFloat balance))) internal
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV5
@@ -232,7 +232,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         override
         returns (Float memory)
     {
-        return sVaultBalances[owner][token][vaultId];
+        return sVaultBalances[owner][token][vaultId].unpackMem();
     }
 
     /// @inheritdoc IOrderBookV5
@@ -262,11 +262,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // guard in place anyway.
         emit DepositV2(msg.sender, token, vaultId, depositAmountUint256);
 
-        Float memory currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+        Float memory currentVaultBalance = sVaultBalances[msg.sender][token][vaultId].unpackMem();
 
         Float memory newBalance = currentVaultBalance.add(depositAmount);
 
-        sVaultBalances[msg.sender][token][vaultId] = newBalance;
+        sVaultBalances[msg.sender][token][vaultId] = newBalance.pack();
 
         if (post.length != 0) {
             LibOrderBook.doPost(

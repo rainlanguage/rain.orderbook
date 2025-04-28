@@ -20,6 +20,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @title OrderBookV4FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for
@@ -175,6 +176,9 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         bobConfig.validOutputs[0] = aliceConfig.validInputs[0];
+
+        vm.mockCall(bobConfig.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
+        vm.mockCall(bobConfig.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
 
         vm.recordLogs();
         vm.prank(alice);
