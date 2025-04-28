@@ -16,15 +16,11 @@ const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await
 	() => import('../lib/__mocks__/stores')
 );
 
-vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
-	const original = (await importOriginal()) as object;
-	return {
-		...original,
-		getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
-		getVaultApprovalCalldata: vi.fn().mockResolvedValue({ to: '0x789', data: '0xabc' }),
-		getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
-	};
-});
+vi.mock('@rainlanguage/orderbook', () => ({
+	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
+	getVaultApprovalCalldata: vi.fn().mockResolvedValue({ to: '0x789', data: '0xabc' }),
+	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
+}));
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
