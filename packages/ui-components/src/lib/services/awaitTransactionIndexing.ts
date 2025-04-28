@@ -60,6 +60,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 					clearInterval(checkInterval);
 
 					let orderHash;
+					// Extract orderHash from order data if it exists in the expected format
 					if (Array.isArray(data) && data.length > 0 && data[0]?.order?.orderHash) {
 						orderHash = data[0].order.orderHash;
 					}
