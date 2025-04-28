@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
-
+import { mockRegistryStore } from './src/lib/__mocks__/stores';
 vi.mock('codemirror-rainlang', () => ({
 	RainlangLR: vi.fn()
+}));
+
+vi.mock('$lib/providers/registry/useRegistry', () => ({
+	useRegistry: vi.fn().mockReturnValue(mockRegistryStore)
 }));
 
 vi.mock('$app/stores', async () => {
