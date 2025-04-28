@@ -118,7 +118,7 @@ describe('Page Component', () => {
 				validStrategies: [],
 				invalidStrategies: []
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				} as any
+			} as any
 		});
 
 		render(Page, {

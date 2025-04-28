@@ -11,7 +11,6 @@ import { vi } from 'vitest';
 const mockDefaultRegistry = 'https://example.com/default-registry.json';
 let mockCurrentRegistry: string | null = mockDefaultRegistry; // Start with default
 
-
 export const initialRegistry: Partial<RegistryManager> = {
 	getCurrentRegistry: vi.fn(() => mockCurrentRegistry ?? mockDefaultRegistry),
 	setRegistry: vi.fn((newRegistry: string) => {
