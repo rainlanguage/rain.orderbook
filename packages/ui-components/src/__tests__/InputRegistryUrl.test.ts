@@ -7,20 +7,19 @@ import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
 const { mockRegistryStore, initialRegistry } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
-// Mock the loadRegistryUrl function
-vi.mock('$lib/services/loadRegistryUrl', () => ({
+
+vi.mock('../lib/services/loadRegistryUrl', () => ({
 	loadRegistryUrl: vi.fn()
 }));
 
-// Mock the useRegistry hook
-vi.mock('$lib/providers/registry/useRegistry', () => ({
-	useRegistry: mockRegistryStore
+
+vi.mock('../lib/providers/registry/useRegistry', () => ({
+	useRegistry: vi.fn().mockReturnValue(mockRegistryStore)
 }));
 
 describe('InputRegistryUrl', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Make loadRegistryUrl return a resolved promise by default
 		vi.mocked(loadRegistryUrl).mockResolvedValue(undefined);
 	});
 

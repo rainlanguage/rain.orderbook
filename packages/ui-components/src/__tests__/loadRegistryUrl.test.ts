@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
-import { loadRegistryUrl } from './loadRegistryUrl';
-import { fetchRegistryDotrains } from './registry';
-import { RegistryManager } from '../providers/registry/RegistryManager';
-import { initialRegistry } from '../__mocks__/stores';
+import { loadRegistryUrl } from '../lib/services/loadRegistryUrl';
+import { fetchRegistryDotrains } from '../lib/services/registry';
+import { RegistryManager } from '../lib/providers/registry/RegistryManager';
+import { initialRegistry } from '../lib/__mocks__/stores';
 
 // Mock dependencies
-vi.mock('./registry', () => ({
+vi.mock('../lib/services/registry', () => ({
 	fetchRegistryDotrains: vi.fn(),
 	validateStrategies: vi.fn()
 }));

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchParseRegistry, fetchRegistryDotrains, validateStrategies } from './registry';
+import { fetchParseRegistry, fetchRegistryDotrains, validateStrategies } from '../lib/services/registry';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
 
