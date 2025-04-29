@@ -85,8 +85,6 @@ pub async fn do_quote_targets(
         .collect();
     let batch_quote_target = BatchQuoteTarget(quote_targets);
 
-    let mut res: Vec<QuoteResultEnum> = vec![];
-
     let quotes = batch_quote_target
         .do_quote(rpc_url, block_number, gas_value, multicall_address)
         .await?;
@@ -130,8 +128,6 @@ pub async fn do_quote_specs(
         .map(|v| QuoteSpec::from(v.clone()))
         .collect();
     let batch_quote_spec = BatchQuoteSpec(quote_specs);
-
-    let mut res: Vec<QuoteResultEnum> = vec![];
 
     let quotes = batch_quote_spec
         .do_quote(
