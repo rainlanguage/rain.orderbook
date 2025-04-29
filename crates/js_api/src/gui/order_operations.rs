@@ -510,3 +510,190 @@ impl DotrainOrderGui {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    async fn test_generate_deposit_calldatas() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(_) => {
+                assert!(false);
+            }
+            DepositCalldataResult::NoDeposits => {
+                assert!(true);
+            }
+        }
+
+        gui.save_deposit("token1".to_string(), "1200".to_string())
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert_eq!(calldatas.len(), 1);
+                assert_eq!(calldatas[0].len(), 164);
+            }
+            DepositCalldataResult::NoDeposits => {
+                assert!(false);
+            }
+        }
+
+        gui.save_deposit("token1".to_string(), "0".to_string())
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert!(calldatas.is_empty());
+            }
+            DepositCalldataResult::NoDeposits => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_missing_select_tokens() {
+        let mut gui = initialize_gui_with_select_tokens().await;
+
+        let err = gui
+            .check_allowances(Address::random().to_string())
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui.generate_deposit_calldatas().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui.generate_add_order_calldata().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui
+            .generate_deposit_and_add_order_calldatas()
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_missing_field_values() {
+        let mut gui = initialize_gui(None).await;
+
+        let err = gui.generate_add_order_calldata().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldValueNotSet("Field 2 name".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The value for field 'Field 2 name' is required but has not been set."
+        );
+
+        let err = gui
+            .generate_deposit_and_add_order_calldatas()
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldValueNotSet("Field 2 name".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The value for field 'Field 2 name' is required but has not been set."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_vault_ids() {
+        let gui = initialize_gui(None).await;
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], Some(U256::from(1)));
+        assert_eq!(res.0["output"][0], Some(U256::from(1)));
+
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], None);
+        assert_eq!(res.0["output"][0], None);
+
+        gui.set_vault_id(true, 0, Some("999".to_string())).unwrap();
+        gui.set_vault_id(false, 0, Some("888".to_string())).unwrap();
+
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], Some(U256::from(999)));
+        assert_eq!(res.0["output"][0], Some(U256::from(888)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_has_any_vault_id() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+        assert!(!gui.has_any_vault_id().unwrap());
+        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        assert!(gui.has_any_vault_id().unwrap());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_update_scenario_bindings() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let deployment = gui.get_current_deployment().unwrap();
+        assert!(!deployment
+            .deployment
+            .scenario
+            .bindings
+            .contains_key("binding-1"));
+        assert!(!deployment
+            .deployment
+            .scenario
+            .bindings
+            .contains_key("binding-2"));
+
+        gui.save_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-2".to_string(), "200".to_string())
+            .unwrap();
+        gui.update_scenario_bindings().unwrap();
+
+        let deployment = gui.get_current_deployment().unwrap();
+        assert_eq!(deployment.deployment.scenario.bindings["binding-1"], "100");
+        assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
+    }
+}

@@ -185,7 +185,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_set_get_field_value() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
@@ -205,7 +205,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_set_get_all_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_values(vec![
             FieldValuePair {
@@ -285,7 +285,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_remove_field_value() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
@@ -301,7 +301,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_field_definition() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let field_definition = gui.get_field_definition("binding-1").unwrap();
         assert_eq!(field_definition, get_binding_1());
@@ -322,7 +322,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_all_field_definitions() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let field_definitions = gui.get_all_field_definitions(None).unwrap();
         assert_eq!(field_definitions.len(), 2);
@@ -340,7 +340,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_missing_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         let field_values = gui.get_missing_field_values().unwrap();
         assert_eq!(field_values.len(), 2);
@@ -357,7 +357,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_check_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         let err = gui.check_field_values().unwrap_err();
         assert_eq!(
