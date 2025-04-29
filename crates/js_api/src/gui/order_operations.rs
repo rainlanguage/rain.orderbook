@@ -521,11 +521,9 @@ mod tests {
         let res = gui.generate_deposit_calldatas().await.unwrap();
         match res {
             DepositCalldataResult::Calldatas(_) => {
-                assert!(false);
+                panic!("should not be calldatas");
             }
-            DepositCalldataResult::NoDeposits => {
-                assert!(true);
-            }
+            DepositCalldataResult::NoDeposits => {}
         }
 
         gui.save_deposit("token1".to_string(), "1200".to_string())
@@ -538,7 +536,7 @@ mod tests {
                 assert_eq!(calldatas[0].len(), 164);
             }
             DepositCalldataResult::NoDeposits => {
-                assert!(false);
+                panic!("should not be no deposits");
             }
         }
 
@@ -551,7 +549,7 @@ mod tests {
                 assert!(calldatas.is_empty());
             }
             DepositCalldataResult::NoDeposits => {
-                assert!(false);
+                panic!("should not be no deposits");
             }
         }
     }
