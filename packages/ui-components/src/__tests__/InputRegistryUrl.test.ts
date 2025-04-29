@@ -12,7 +12,6 @@ vi.mock('../lib/services/loadRegistryUrl', () => ({
 	loadRegistryUrl: vi.fn()
 }));
 
-
 vi.mock('../lib/providers/registry/useRegistry', () => ({
 	useRegistry: vi.fn().mockReturnValue(mockRegistryStore)
 }));
