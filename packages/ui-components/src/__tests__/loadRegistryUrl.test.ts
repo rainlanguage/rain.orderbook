@@ -14,11 +14,12 @@ vi.mock('../lib/services/registry', () => ({
 describe('loadRegistryUrl', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
-		// Reset window.location
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(global.window as any).location = undefined;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(global.window as any).location = { reload: vi.fn() };
+		const originalLocation = window.location;
+		const mockLocation = { ...originalLocation, reload: vi.fn() };
+		Object.defineProperty(window, 'location', {
+			writable: true,
+			value: mockLocation
+		});
 	});
 
 	it('should throw an error if no URL is provided', async () => {
