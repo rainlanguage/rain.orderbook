@@ -62,6 +62,11 @@ impl DotrainOrderGui {
         }
     }
 }
+impl Default for DotrainOrderGui {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[wasm_export]
 impl DotrainOrderGui {
@@ -250,7 +255,8 @@ impl DotrainOrderGui {
 
     #[wasm_export(js_name = "generateDotrainText", unchecked_return_type = "string")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
-        let rain_document = RainDocument::create(self.dotrain_order.dotrain(), None, None, None);
+        let rain_document =
+            RainDocument::create(self.dotrain_order.dotrain().to_string(), None, None, None);
         let dotrain = format!(
             "{}\n{}\n{}",
             DotrainYaml::get_yaml_string(self.dotrain_order.dotrain_yaml().documents[0].clone(),)?,
@@ -857,7 +863,6 @@ _ _: 0 0;
         );
     }
 
-    // TODO: We also need to add test for ERC20 calls
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
         let mut gui = DotrainOrderGui::new();
@@ -897,7 +902,6 @@ _ _: 0 0;
         );
     }
 
-    // TODO: We also need to add test for select token logic
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
         let mut gui = DotrainOrderGui::new();
@@ -1271,5 +1275,158 @@ _ _: 0 0;
         let expected_rainlang =
             "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;".to_string();
         assert_eq!(rainlang, expected_rainlang);
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod select_token_tests {
+        use super::*;
+        use alloy_ethers_typecast::rpc::Response;
+        use httpmock::MockServer;
+
+        pub const SELECT_TOKEN_YAML: &str = r#"
+gui:
+    name: Fixed limit
+    description: Fixed limit order strategy
+    short-description: Buy WETH with USDC on Base.
+    deployments:
+        some-deployment:
+            name: Select token deployment
+            description: Select token deployment description
+            deposits:
+            - token: token3
+              min: 0
+              presets:
+                - "0"
+            fields:
+            - binding: binding-1
+              name: Field 1 name
+              description: Field 1 description
+              presets:
+                - name: Preset 1
+                  value: "0"
+            - binding: binding-2
+              name: Field 2 name
+              description: Field 2 description
+              min: 100
+              presets:
+                - value: "0"
+            select-tokens:
+            - key: token3
+              name: Token 3
+              description: Token 3 description
+subgraphs:
+    some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+scenarios:
+    some-scenario:
+        deployer: some-deployer
+        bindings:
+            test-binding: 5
+        scenarios:
+            sub-scenario:
+                bindings:
+                    another-binding: 300
+orders:
+    some-order:
+        deployer: some-deployer
+        inputs:
+            - token: token3
+        outputs:
+            - token: token3
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+    normal-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#test-binding !
+#another-binding !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#;
+
+        #[tokio::test]
+        async fn test_get_token_info_remote() {
+            let server = MockServer::start_async().await;
+            let yaml = format!(
+                r#"
+networks:
+    some-network:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+{yaml}
+"#,
+                yaml = SELECT_TOKEN_YAML,
+                rpc_url = server.url("/rpc")
+            );
+
+            server.mock(|when, then| {
+                        when.method("POST").path("/rpc").body_contains("0x82ad56cb");
+                        then.body(Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap());
+                    });
+
+            let mut gui = DotrainOrderGui::new();
+            gui.choose_deployment(yaml.to_string(), "some-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+            let err = gui.get_token_info("token3".to_string()).await.unwrap_err();
+            assert_eq!(
+                err.to_string(),
+                YamlError::Field {
+                    kind: FieldErrorKind::Missing("tokens".to_string()),
+                    location: "root".to_string(),
+                }
+                .to_string()
+            );
+            assert_eq!(
+                err.to_readable_msg(),
+                "YAML configuration error: Missing required field 'tokens' in root"
+            );
+
+            gui.save_select_token(
+                "token3".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+            )
+            .await
+            .unwrap();
+
+            let token_info = gui.get_token_info("token3".to_string()).await.unwrap();
+            assert_eq!(
+                token_info.address.to_string(),
+                "0x0000000000000000000000000000000000000001"
+            );
+            assert_eq!(token_info.decimals, 6);
+            assert_eq!(token_info.name, "Token 1");
+            assert_eq!(token_info.symbol, "T1");
+
+            let token_infos = gui.get_all_token_infos().await.unwrap();
+            assert_eq!(token_infos.len(), 1);
+            assert_eq!(
+                token_infos[0].address.to_string(),
+                "0x0000000000000000000000000000000000000001"
+            );
+            assert_eq!(token_infos[0].decimals, 6);
+            assert_eq!(token_infos[0].name, "Token 1");
+            assert_eq!(token_infos[0].symbol, "T1");
+        }
     }
 }
