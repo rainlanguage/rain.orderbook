@@ -44,12 +44,20 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
             // Mock every call to output as a success, so the orderbook thinks it
             // is transferring tokens.
             vm.mockCall(outputToken, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
-            vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook)), abi.encode(true));
+            vm.mockCall(
+                outputToken,
+                abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook)),
+                abi.encode(true)
+            );
             vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transfer.selector, address(this)), abi.encode(true));
             vm.mockCall(inputToken, "", abi.encode(true));
         }
         iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int256).max, -18), new TaskV2[](0));
-        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(LibDecimalFloat.packLossless(type(int256).max, -18)));
+        assertTrue(
+            iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(
+                LibDecimalFloat.packLossless(type(int256).max, -18)
+            )
+        );
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);
 
@@ -66,8 +74,9 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
             orders[i] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV4 memory takeOrdersConfig =
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), maxInput, LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0), maxInput, LibDecimalFloat.packLossless(type(int256).max, 0), orders, ""
+        );
 
         if (err.length > 0) {
             vm.expectRevert(err);

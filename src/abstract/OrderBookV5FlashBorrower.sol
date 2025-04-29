@@ -166,9 +166,7 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
-        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(
-            takeOrders.minimumInput, inputDecimals
-        );
+        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumInput, inputDecimals);
 
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the

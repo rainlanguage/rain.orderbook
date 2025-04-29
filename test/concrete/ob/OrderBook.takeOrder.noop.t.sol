@@ -28,7 +28,11 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
         TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), new TakeOrderConfigV4[](0), ""
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            new TakeOrderConfigV4[](0),
+            ""
         );
         vm.expectRevert(NoOrders.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
@@ -52,7 +56,8 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         vm.assume(order.validOutputs.length > 0);
         outputIOIndex = bound(outputIOIndex, 0, order.validOutputs.length - 1);
 
-        vm.assume(order.validInputs[inputIOIndex].token != order.validOutputs[outputIOIndex].token);
+        order.validInputs[inputIOIndex].token = address(iToken0);
+        order.validOutputs[outputIOIndex].token = address(iToken1);
 
         // We don't bound the input or output indexes as we want to allow
         // malformed orders to be passed in, and still show that nothing happens.
@@ -61,8 +66,13 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrderConfigV4 memory orderConfig = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, signedContexts);
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV4 memory config =
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            orders,
+            ""
+        );
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -102,8 +112,16 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
 
-        vm.mockCall(address(order1.validInputs[inputIOIndex1].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
-        vm.mockCall(address(order1.validOutputs[outputIOIndex1].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
+        vm.mockCall(
+            address(order1.validInputs[inputIOIndex1].token),
+            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+            abi.encode(uint8(18))
+        );
+        vm.mockCall(
+            address(order1.validOutputs[outputIOIndex1].token),
+            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+            abi.encode(uint8(18))
+        );
 
         TakeOrdersConfigV4 memory config;
         {
@@ -124,7 +142,13 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+            config = TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                orders,
+                ""
+            );
         }
 
         vm.recordLogs();

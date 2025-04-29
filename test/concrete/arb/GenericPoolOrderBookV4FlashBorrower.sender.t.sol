@@ -37,7 +37,13 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
 
         GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
             iOrderBook,
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, ""),
+            TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int256).max, 0),
+                LibDecimalFloat.packLossless(type(int256).max, 0),
+                orders,
+                ""
+            ),
             abi.encode(iRefundoor, iRefundoor, ""),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),

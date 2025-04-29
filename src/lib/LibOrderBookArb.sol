@@ -31,8 +31,7 @@ library LibOrderBookArb {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
             uint8 inputDecimals = IERC20Metadata(ordersInputToken).decimals();
-            (Float input, bool lossless) =
-                LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
+            (Float input, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
             (lossless);
             col[0] = Float.unwrap(input);
         }
@@ -45,8 +44,7 @@ library LibOrderBookArb {
             }
 
             uint8 outputDecimals = IERC20Metadata(ordersOutputToken).decimals();
-            (Float output, bool lossless) =
-                LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
+            (Float output, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
             (lossless);
             col[1] = Float.unwrap(output);
         }

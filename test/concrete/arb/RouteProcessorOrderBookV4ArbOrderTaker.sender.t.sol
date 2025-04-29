@@ -30,7 +30,11 @@ contract RouteProcessorOrderBookV5ArbOrderTakerSenderTest is RouteProcessorOrder
         RouteProcessorOrderBookV5ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV4(
-                LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, abi.encode(bytes("0x00"))
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int256).max, 0),
+                LibDecimalFloat.packLossless(type(int256).max, 0),
+                orders,
+                abi.encode(bytes("0x00"))
             ),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),

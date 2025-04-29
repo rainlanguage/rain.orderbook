@@ -113,8 +113,13 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
 
             TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
             orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-            TakeOrdersConfigV4 memory takeOrdersConfig =
-                TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+            TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+                LibDecimalFloat.packLossless(0, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                orders,
+                ""
+            );
             (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
             assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
             assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
@@ -129,67 +134,111 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
 
     function testTakeOrderPrecisionKnownBad01() public {
         checkPrecision(
-            KNOWN_BAD, 18, 18, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            18,
+            18,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad02() public {
         checkPrecision(
-            KNOWN_BAD, 18, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            18,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad03() public {
         checkPrecision(
-            KNOWN_BAD, 19, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            19,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad04() public {
         checkPrecision(
-            KNOWN_BAD, 20, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            20,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad05() public {
         checkPrecision(
-            KNOWN_BAD, 21, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            21,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad06() public {
         checkPrecision(
-            KNOWN_BAD, 50, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            50,
+            6,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad07() public {
         checkPrecision(
-            KNOWN_BAD, 6, 18, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            6,
+            18,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad08() public {
         checkPrecision(
-            KNOWN_BAD, 6, 19, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            6,
+            19,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad09() public {
         checkPrecision(
-            KNOWN_BAD, 6, 20, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            6,
+            20,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad10() public {
         checkPrecision(
-            KNOWN_BAD, 6, 21, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            6,
+            21,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad11() public {
         checkPrecision(
-            KNOWN_BAD, 6, 50, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD,
+            6,
+            50,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 }

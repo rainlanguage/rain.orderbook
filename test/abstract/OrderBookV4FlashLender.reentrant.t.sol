@@ -147,8 +147,13 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory takeOrdersConfig =
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(type(int256).max, 0),
+            LibDecimalFloat.packLossless(type(int256).max, 0),
+            orders,
+            ""
+        );
 
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -177,8 +182,16 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         bobConfig.validOutputs[0] = aliceConfig.validInputs[0];
 
-        vm.mockCall(bobConfig.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
-        vm.mockCall(bobConfig.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
+        vm.mockCall(
+            bobConfig.validInputs[0].token,
+            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+            abi.encode(uint8(18))
+        );
+        vm.mockCall(
+            bobConfig.validOutputs[0].token,
+            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+            abi.encode(uint8(18))
+        );
 
         vm.recordLogs();
         vm.prank(alice);

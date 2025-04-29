@@ -35,21 +35,17 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
     /// forge-config: default.fuzz.runs = 100
     function testWithdrawEmptyVault(address alice, address token, bytes32 vaultId, uint256 amount18) external {
-        amount18 = bound(amount18, 1, uint256(type(int256).max));
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.prank(alice);
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
-        vm.mockCall(
-            token,
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(uint8(18))
-        );
+        vm.mockCall(token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
         vm.expectEmit(false, false, false, true);
         emit WithdrawV2(alice, token, vaultId, amount, Float.wrap(0), 0);
         vm.record();
         iOrderbook.withdraw3(token, vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        assertEq(reads.length, 10, "reads");
-        assertEq(writes.length, 5, "writes");
+        assertEq(reads.length, 8, "reads");
+        assertEq(writes.length, 4, "writes");
     }
 
     /// Withdrawing the full amount from a vault should delete the vault.
@@ -57,8 +53,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawFullVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount18 > 0);
-        vm.assume(withdrawAmount18 >= depositAmount18);
+        depositAmount18 = bound(depositAmount18, 1, type(uint224).max / 10);
+        withdrawAmount18 = bound(withdrawAmount18, depositAmount18, type(uint224).max / 10);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
@@ -74,7 +70,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
 
         vm.prank(alice);
         vm.mockCall(
-            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount), abi.encode(true)
+            address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector, alice, depositAmount18), abi.encode(true)
         );
         vm.expectEmit(false, false, false, true);
         emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, depositAmount, depositAmount18);
@@ -87,7 +83,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawPartialVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        depositAmount18 = bound(depositAmount18, 2, type(uint256).max / 10);
+        depositAmount18 = bound(depositAmount18, 2, type(uint224).max / 10);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18 - 1);
         vm.prank(alice);
         vm.mockCall(
@@ -123,8 +119,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawFailure(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
-        vm.assume(depositAmount18 > 0);
-        vm.assume(withdrawAmount18 > 0);
+        depositAmount18 = bound(depositAmount18, 1, type(uint224).max / 10);
+        withdrawAmount18 = bound(withdrawAmount18, 1, type(uint224).max / 10);
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
@@ -144,7 +140,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.prank(alice);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount.min(depositAmount)),
+            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18.min(depositAmount18)),
             abi.encode(false)
         );
         vm.expectRevert("SafeERC20: ERC20 operation did not succeed");
@@ -157,14 +153,13 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     /// @param alice The address taking action.
     /// @param token The token being deposited/withdrawn.
     /// @param vaultId The vault being deposited/withdrawn from.
-    /// @param amount The amount being deposited/withdrawn. `uint248` is used
-    /// as a simple hack to avoid dealing with overflows.
+    /// @param amount The amount being deposited/withdrawn.
     struct Action {
         bool actionKind;
         address alice;
         address token;
         bytes32 vaultId;
-        uint248 amount;
+        uint256 amount;
         Float amountFloat;
         uint256 pairedWith;
         bool fresh;
@@ -177,7 +172,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit and withdrawal amounts must be positive.
-            actions[i].amount = uint248(bound(actions[i].amount, 1, type(uint248).max));
+            actions[i].amount = bound(actions[i].amount, 1, type(uint224).max / 10);
             // Ensure the token doesn't hit some known address and cause bad
             // etching.
             actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
@@ -220,7 +215,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     "vault balance on deposit"
                 );
             } else {
-                Float expectedActualAmount = balance.min(action.amountFloat);
+                Float expectedActualAmount = action.amountFloat.min(balance);
                 uint256 expectedActualAmount18 = expectedActualAmount.toFixedDecimalLossless(18);
                 vm.mockCall(
                     action.token,

@@ -174,7 +174,10 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
 
         vm.prank(alice);
         iOrderbook.deposit3(
-            configAlice.validOutputs[0].token, configAlice.validOutputs[0].vaultId, LibDecimalFloat.packLossless(100e6, -18), new TaskV2[](0)
+            configAlice.validOutputs[0].token,
+            configAlice.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(100e6, -18),
+            new TaskV2[](0)
         );
 
         vm.prank(bob);
@@ -182,7 +185,10 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
 
         vm.prank(bob);
         iOrderbook.deposit3(
-            configBob.validOutputs[0].token, configBob.validOutputs[0].vaultId, LibDecimalFloat.packLossless(100e12, -18), new TaskV2[](0)
+            configBob.validOutputs[0].token,
+            configBob.validOutputs[0].vaultId,
+            LibDecimalFloat.packLossless(100e12, -18),
+            new TaskV2[](0)
         );
 
         iOrderbook.clear3(

@@ -32,8 +32,13 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
         orders[0] = TakeOrderConfigV4(order, 0, 0, signedContexts);
-        TakeOrdersConfigV4 memory config =
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(0, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            orders,
+            ""
+        );
         vm.expectRevert(ZeroMaximumInput.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
@@ -88,18 +93,19 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
 
         for (uint256 i = 0; i < testVaults.length; i++) {
             if (testVaults[i].deposit.gt(LibDecimalFloat.packLossless(0, 0))) {
+                uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
                 // Deposit the amount of tokens required to take the order.
                 vm.mockCall(
                     address(iToken1),
                     abi.encodeWithSelector(
-                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), testVaults[i].deposit
+                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), depositAmount18
                     ),
                     abi.encode(true)
                 );
                 vm.expectCall(
                     address(iToken1),
                     abi.encodeWithSelector(
-                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), testVaults[i].deposit
+                        IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook), depositAmount18
                     ),
                     1
                 );
@@ -119,8 +125,13 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < orders.length; i++) {
             takeOrders[i] = TakeOrderConfigV4(orders[i], 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV4 memory config =
-            TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), maximumTakerInput, LibDecimalFloat.packLossless(type(int256).max, 0), takeOrders, "");
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            LibDecimalFloat.packLossless(0, 0),
+            maximumTakerInput,
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            takeOrders,
+            ""
+        );
 
         {
             uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);
@@ -187,7 +198,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleOrderLessThanMaximumOutput(uint256 maximumTakerInput18) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
-        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint256).max);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint224).max);
 
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
 
@@ -214,7 +225,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1000;
         ownerDepositAmount18 = bound(ownerDepositAmount18, 0, orderLimit - 1);
-        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint256).max);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint224).max);
         Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
         Float expectedTakerInput = ownerDepositAmount;

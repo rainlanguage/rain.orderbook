@@ -110,7 +110,14 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
         Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
-        checkQuote(owner, config, "_ _:1 2;", depositAmount, LibDecimalFloat.packLossless(1, 0), LibDecimalFloat.packLossless(2, 0));
+        checkQuote(
+            owner,
+            config,
+            "_ _:1 2;",
+            depositAmount,
+            LibDecimalFloat.packLossless(1, 0),
+            LibDecimalFloat.packLossless(2, 0)
+        );
     }
 
     /// The output will be maxed at the deposit in the vault.
@@ -118,7 +125,14 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         depositAmount18 = bound(depositAmount18, 1, 1e12);
         Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 12);
-        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount.multiply(LibDecimalFloat.packLossless(1, 6)), LibDecimalFloat.packLossless(2, 0));
+        checkQuote(
+            owner,
+            config,
+            "_ _:1 2;:;",
+            depositAmount,
+            depositAmount.multiply(LibDecimalFloat.packLossless(1, 6)),
+            LibDecimalFloat.packLossless(2, 0)
+        );
     }
 
     /// Can access context.
