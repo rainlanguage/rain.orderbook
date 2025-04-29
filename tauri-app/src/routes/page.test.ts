@@ -33,7 +33,7 @@ describe('+page.svelte', () => {
     render(Page);
     expect(screen.getByTestId('description')).toBeInTheDocument();
     expect(screen.getByTestId('description').textContent).toContain(
-      'Raindex allows anyone to write, deploy and manage token trading strategies'
+      'Raindex allows anyone to write, deploy and manage token trading strategies',
     );
   });
 
