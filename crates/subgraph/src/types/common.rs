@@ -688,7 +688,6 @@ pub enum SgVaultOrderBy {
 mod impls {
     use super::*;
 
-    impl_wasm_traits!(SgOrder);
     impl_wasm_traits!(SgVault);
     impl_wasm_traits!(SgAddOrder);
     impl_wasm_traits!(SgOrderAsIO);

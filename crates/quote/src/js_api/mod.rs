@@ -73,15 +73,10 @@ pub async fn do_quote_targets(
     gas: Option<String>,
     multicall_address: Option<String>,
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
-    let multicall_address = multicall_address
-        .map(|v| Address::from_hex(v))
-        .transpose()?;
+    let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_targets: Vec<QuoteTarget> = quote_targets
-        .0
-        .iter()
-        .map(|v| QuoteTarget::from(v.clone()))
-        .collect();
+    let quote_targets: Vec<QuoteTarget> =
+        quote_targets.0.into_iter().map(QuoteTarget::from).collect();
     let batch_quote_target = BatchQuoteTarget(quote_targets);
 
     let quotes = batch_quote_target
@@ -117,15 +112,9 @@ pub async fn do_quote_specs(
     gas: Option<String>,
     multicall_address: Option<String>,
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
-    let multicall_address = multicall_address
-        .map(|v| Address::from_hex(v))
-        .transpose()?;
+    let multicall_address = multicall_address.map(Address::from_hex).transpose()?;
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let quote_specs: Vec<QuoteSpec> = quote_specs
-        .0
-        .iter()
-        .map(|v| QuoteSpec::from(v.clone()))
-        .collect();
+    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
     let batch_quote_spec = BatchQuoteSpec(quote_specs);
 
     let quotes = batch_quote_spec
@@ -167,11 +156,7 @@ pub async fn get_batch_quote_target_from_subgraph(
     quote_specs: BatchQuoteSpec,
     subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
-    let quote_specs: Vec<QuoteSpec> = quote_specs
-        .0
-        .iter()
-        .map(|v| QuoteSpec::from(v.clone()))
-        .collect();
+    let quote_specs: Vec<QuoteSpec> = quote_specs.0.into_iter().map(QuoteSpec::from).collect();
     let batch_quote_spec = BatchQuoteSpec(quote_specs);
 
     let quote_targets = batch_quote_spec
@@ -263,14 +248,14 @@ mod tests {
             assert_eq!(err.to_string(), "Odd number of digits");
             assert_eq!(
                 err.to_readable_msg(),
-                "Failed to parse orderbook address: Odd number of digits"
+                "Invalid address format: Odd number of digits"
             );
 
             let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();
             assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
             assert_eq!(
                 err.to_readable_msg(),
-                "Failed to parse u256 value: digit 18 is out of range for base 10"
+                "Invalid numeric value: digit 18 is out of range for base 10"
             );
         }
     }
@@ -278,8 +263,6 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
-        use crate::QuoteResult;
-        use alloy::hex;
         use alloy::primitives::{Bytes, FixedBytes};
         use alloy::{sol, sol_types::SolValue};
         use alloy_ethers_typecast::rpc::Response;
@@ -868,7 +851,7 @@ mod tests {
             assert_eq!(res.0.len(), 1);
             assert_eq!(res.0[0].data.unwrap().max_output, U256::from(1));
             assert_eq!(res.0[0].data.unwrap().ratio, U256::from(2));
-            assert_eq!(res.0[0].success, true);
+            assert!(res.0[0].success);
             assert_eq!(res.0[0].error, None);
             assert_eq!(res.0[0].pair.pair_name, "T2/T1");
             assert_eq!(res.0[0].pair.input_index, 0);
