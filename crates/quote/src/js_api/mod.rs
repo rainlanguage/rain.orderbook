@@ -62,13 +62,14 @@ pub fn get_id(orderbook: &str, order_hash: &str) -> Result<String, QuoteBindings
 
 /// Quotes the target on the given rpc url
 /// Resolves with array of OrderQuoteValue object or a string error
+#[cfg(target_family = "wasm")]
 #[wasm_export(
     js_name = "doQuoteTargets",
     unchecked_return_type = "DoQuoteTargetsResult"
 )]
 pub async fn do_quote_targets(
-    quote_targets: &BatchQuoteTarget,
-    rpc_url: &str,
+    quote_targets: BatchQuoteTarget,
+    rpc_url: String,
     block_number: Option<u64>,
     gas: Option<String>,
     multicall_address: Option<String>,
@@ -85,7 +86,7 @@ pub async fn do_quote_targets(
     let batch_quote_target = BatchQuoteTarget(quote_targets);
 
     let quotes = batch_quote_target
-        .do_quote(rpc_url, block_number, gas_value, multicall_address)
+        .do_quote(&rpc_url, block_number, gas_value, multicall_address)
         .await?;
 
     let res = quotes
@@ -108,11 +109,12 @@ pub async fn do_quote_targets(
 /// Given a subgraph url, will fetch the order details from the subgraph and
 /// then quotes them using the given rpc url.
 /// Resolves with array of OrderQuoteValue object or a string error
+#[cfg(target_family = "wasm")]
 #[wasm_export(js_name = "doQuoteSpecs", unchecked_return_type = "DoQuoteSpecsResult")]
 pub async fn do_quote_specs(
-    quote_specs: &BatchQuoteSpec,
-    subgraph_url: &str,
-    rpc_url: &str,
+    quote_specs: BatchQuoteSpec,
+    subgraph_url: String,
+    rpc_url: String,
     block_number: Option<u64>,
     gas: Option<String>,
     multicall_address: Option<String>,
@@ -130,8 +132,8 @@ pub async fn do_quote_specs(
 
     let quotes = batch_quote_spec
         .do_quote(
-            subgraph_url,
-            rpc_url,
+            &subgraph_url,
+            &rpc_url,
             block_number,
             gas_value,
             multicall_address,
@@ -159,13 +161,14 @@ pub async fn do_quote_specs(
 /// respective quote targets.
 /// Resolves with array of QuoteTarget object or undefined if no result
 /// found on subgraph for a specific spec
+#[cfg(target_family = "wasm")]
 #[wasm_export(
     js_name = "getQuoteTargetFromSubgraph",
     unchecked_return_type = "QuoteTargetResult"
 )]
 pub async fn get_batch_quote_target_from_subgraph(
-    quote_specs: &BatchQuoteSpec,
-    subgraph_url: &str,
+    quote_specs: BatchQuoteSpec,
+    subgraph_url: String,
 ) -> Result<QuoteTargetResult, QuoteBindingsError> {
     let quote_specs: Vec<QuoteSpec> = quote_specs
         .0
@@ -175,26 +178,26 @@ pub async fn get_batch_quote_target_from_subgraph(
     let batch_quote_spec = BatchQuoteSpec(quote_specs);
 
     let quote_targets = batch_quote_spec
-        .get_batch_quote_target_from_subgraph(subgraph_url)
+        .get_batch_quote_target_from_subgraph(&subgraph_url)
         .await?;
     Ok(QuoteTargetResult(quote_targets))
 }
 
 /// Get the quote for an order
 /// Resolves with a BatchOrderQuotesResponse object
+#[cfg(target_family = "wasm")]
 #[wasm_export(
     js_name = "getOrderQuote",
     unchecked_return_type = "DoOrderQuoteResult"
 )]
 pub async fn get_order_quote(
     order: Vec<SgOrder>,
-    rpc_url: &str,
+    rpc_url: String,
     block_number: Option<u64>,
     gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
     let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
-    let order_quotes =
-        get_order_quotes(order, block_number, rpc_url.to_string(), gas_value).await?;
+    let order_quotes = get_order_quotes(order, block_number, rpc_url, gas_value).await?;
     Ok(DoOrderQuoteResult(order_quotes))
 }
 
@@ -241,41 +244,50 @@ impl From<QuoteBindingsError> for WasmEncodedError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use wasm_bindgen_test::wasm_bindgen_test;
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use crate::js_api::get_id;
+        use alloy::{
+            hex::encode_prefixed,
+            primitives::{Address, U256},
+        };
+        use rain_orderbook_subgraph_client::utils::make_order_id;
+        use std::str::FromStr;
+        use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[wasm_bindgen_test]
-    async fn test_get_id() {
-        let orderbook = Address::from_str("0x0123456789123456789123456789123456789123").unwrap();
-        let order_hash = U256::from(30);
-        let expected_id = encode_prefixed(make_order_id(orderbook, order_hash));
+        #[wasm_bindgen_test]
+        async fn test_get_id() {
+            let orderbook =
+                Address::from_str("0x0123456789123456789123456789123456789123").unwrap();
+            let order_hash = U256::from(30);
+            let expected_id = encode_prefixed(make_order_id(orderbook, order_hash));
 
-        let res = get_id(&orderbook.to_string(), &order_hash.to_string()).unwrap();
-        assert_eq!(res, expected_id);
+            let res = get_id(&orderbook.to_string(), &order_hash.to_string()).unwrap();
+            assert_eq!(res, expected_id);
 
-        let err = get_id("invalid-hex", &order_hash.to_string()).unwrap_err();
-        assert_eq!(err.to_string(), "Odd number of digits");
-        assert_eq!(
-            err.to_readable_msg(),
-            "Failed to parse orderbook address: Odd number of digits"
-        );
+            let err = get_id("invalid-hex", &order_hash.to_string()).unwrap_err();
+            assert_eq!(err.to_string(), "Odd number of digits");
+            assert_eq!(
+                err.to_readable_msg(),
+                "Failed to parse orderbook address: Odd number of digits"
+            );
 
-        let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();
-        assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
-        assert_eq!(
-            err.to_readable_msg(),
-            "Failed to parse u256 value: digit 18 is out of range for base 10"
-        );
+            let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();
+            assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+            assert_eq!(
+                err.to_readable_msg(),
+                "Failed to parse u256 value: digit 18 is out of range for base 10"
+            );
+        }
     }
-}
 
-#[cfg(not(target_family = "wasm"))]
-mod quote_non_wasm_tests {
-    use super::*;
-    use httpmock::MockServer;
+    #[cfg(not(target_family = "wasm"))]
+    mod quote_non_wasm_tests {
+        use httpmock::MockServer;
 
-    #[tokio::test]
-    async fn test_do_quote_targets() {
-        let rpc_server = MockServer::start_async().await;
+        #[tokio::test]
+        async fn test_do_quote_targets() {
+            let rpc_server = MockServer::start_async().await;
+        }
     }
 }
