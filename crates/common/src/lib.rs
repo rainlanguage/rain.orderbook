@@ -25,4 +25,7 @@ pub mod js_api;
 pub use dotrain;
 pub use dotrain_lsp;
 
+#[cfg(test)]
+mod test_helpers;
+
 pub const GH_COMMIT_SHA: &str = env!("COMMIT_SHA", "$COMMIT_SHA not set.");
