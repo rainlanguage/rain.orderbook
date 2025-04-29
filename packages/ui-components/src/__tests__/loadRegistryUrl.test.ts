@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { loadRegistryUrl } from '../lib/services/loadRegistryUrl';
 import { fetchRegistryDotrains } from '../lib/services/registry';
 import { RegistryManager } from '../lib/providers/registry/RegistryManager';
-import { initialRegistry } from '../lib/__mocks__/stores';
+import { initialRegistry } from './InputRegistryUrl.test';
 
 // Mock dependencies
 vi.mock('../lib/services/registry', () => ({

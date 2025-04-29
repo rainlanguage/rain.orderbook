@@ -5,22 +5,6 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { RegistryManager } from '../providers/registry/RegistryManager';
-import { vi } from 'vitest';
-
-const mockDefaultRegistry = 'https://example.com/default-registry.json';
-let mockCurrentRegistry: string | null = mockDefaultRegistry; // Start with default
-
-export const initialRegistry: Partial<RegistryManager> = {
-	getCurrentRegistry: vi.fn(() => mockCurrentRegistry ?? mockDefaultRegistry),
-	setRegistry: vi.fn((newRegistry: string) => {
-		mockCurrentRegistry = newRegistry;
-	}),
-	resetToDefault: vi.fn(() => {
-		mockCurrentRegistry = mockDefaultRegistry;
-	}),
-	updateUrlWithRegistry: vi.fn(),
-	isCustomRegistry: vi.fn(() => mockCurrentRegistry !== mockDefaultRegistry)
-};
 
 const initialPageState = {
 	data: {
@@ -55,7 +39,7 @@ const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
-const mockRegistryWritable = writable<RegistryManager>(initialRegistry as RegistryManager);
+const mockRegistryWritable = writable<RegistryManager>();
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,

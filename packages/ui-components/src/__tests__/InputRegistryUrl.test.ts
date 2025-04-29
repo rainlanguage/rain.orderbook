@@ -3,10 +3,23 @@ import { vi } from 'vitest';
 import InputRegistryUrl from '../lib/components/input/InputRegistryUrl.svelte';
 import userEvent from '@testing-library/user-event';
 import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
+import type { RegistryManager } from '$lib/providers/registry/RegistryManager';
 
-const { mockRegistryStore, initialRegistry } = await vi.hoisted(
-	() => import('../lib/__mocks__/stores')
-);
+const { mockRegistryStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+const mockDefaultRegistry = 'https://example.com/default-registry.json';
+let mockCurrentRegistry: string | null = mockDefaultRegistry; // Start with default
+
+export const initialRegistry: Partial<RegistryManager> = {
+	getCurrentRegistry: vi.fn(() => mockCurrentRegistry ?? mockDefaultRegistry),
+	setRegistry: vi.fn((newRegistry: string) => {
+		mockCurrentRegistry = newRegistry;
+	}),
+	resetToDefault: vi.fn(() => {
+		mockCurrentRegistry = mockDefaultRegistry;
+	}),
+	updateUrlWithRegistry: vi.fn(),
+	isCustomRegistry: vi.fn(() => mockCurrentRegistry !== mockDefaultRegistry)
+};
 
 vi.mock('../lib/services/loadRegistryUrl', () => ({
 	loadRegistryUrl: vi.fn()
@@ -18,6 +31,7 @@ vi.mock('../lib/providers/registry/useRegistry', () => ({
 
 describe('InputRegistryUrl', () => {
 	beforeEach(() => {
+		mockRegistryStore.mockSetSubscribeValue(initialRegistry as RegistryManager);
 		vi.clearAllMocks();
 		vi.mocked(loadRegistryUrl).mockResolvedValue(undefined);
 	});
