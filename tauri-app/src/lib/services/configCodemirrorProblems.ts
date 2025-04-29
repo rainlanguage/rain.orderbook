@@ -28,7 +28,7 @@ export async function mergeDotrainConfigWithSettingsProblems(dotrain: string) {
   return problems;
 }
 
-function convertErrorToProblem(e: unknown) {
+export function convertErrorToProblem(e: unknown) {
   return {
     msg: typeof e === 'string' ? e : e instanceof Error ? e.message : 'something went wrong!',
     position: [0, 0],
