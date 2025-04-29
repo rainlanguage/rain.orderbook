@@ -1,6 +1,5 @@
 use crate::schema;
 use serde::{Deserialize, Serialize};
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -88,8 +87,7 @@ pub struct SgOrderbook {
 #[cfg_attr(target_family = "wasm", tsify::declare)]
 pub type SgRainMetaV1 = SgBytes;
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Order")]
 pub struct SgOrder {
@@ -108,6 +106,7 @@ pub struct SgOrder {
     pub trades: Vec<SgOrderStructPartialTrade>,
     pub remove_events: Vec<SgRemoveOrder>,
 }
+impl_wasm_traits!(SgOrder);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
