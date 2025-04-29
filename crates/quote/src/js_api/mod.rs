@@ -8,7 +8,6 @@ use alloy::primitives::{
     hex::{encode_prefixed, FromHex},
     Address, U256,
 };
-use rain_orderbook_bindings::wasm_traits::TryIntoU256;
 use rain_orderbook_subgraph_client::{types::common::SgOrder, utils::make_order_id};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -71,21 +70,19 @@ pub async fn do_quote_targets(
     quote_targets: &BatchQuoteTarget,
     rpc_url: &str,
     block_number: Option<u64>,
-    gas: Option<js_sys::BigInt>,
+    gas: Option<String>,
     multicall_address: Option<String>,
 ) -> Result<DoQuoteTargetsResult, QuoteBindingsError> {
     let multicall_address = multicall_address
         .map(|v| Address::from_hex(v))
         .transpose()?;
-    let gas_value = gas.map(|v| v.try_into_u256()).transpose()?;
+    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
     let quote_targets: Vec<QuoteTarget> = quote_targets
         .0
         .iter()
         .map(|v| QuoteTarget::from(v.clone()))
         .collect();
     let batch_quote_target = BatchQuoteTarget(quote_targets);
-
-    let mut res: Vec<QuoteResultEnum> = vec![];
 
     let quotes = batch_quote_target
         .do_quote(rpc_url, block_number, gas_value, multicall_address)
@@ -117,21 +114,19 @@ pub async fn do_quote_specs(
     subgraph_url: &str,
     rpc_url: &str,
     block_number: Option<u64>,
-    gas: Option<js_sys::BigInt>,
+    gas: Option<String>,
     multicall_address: Option<String>,
 ) -> Result<DoQuoteSpecsResult, QuoteBindingsError> {
     let multicall_address = multicall_address
         .map(|v| Address::from_hex(v))
         .transpose()?;
-    let gas_value = gas.map(|v| v.try_into_u256()).transpose()?;
+    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
     let quote_specs: Vec<QuoteSpec> = quote_specs
         .0
         .iter()
         .map(|v| QuoteSpec::from(v.clone()))
         .collect();
     let batch_quote_spec = BatchQuoteSpec(quote_specs);
-
-    let mut res: Vec<QuoteResultEnum> = vec![];
 
     let quotes = batch_quote_spec
         .do_quote(
@@ -195,9 +190,9 @@ pub async fn get_order_quote(
     order: Vec<SgOrder>,
     rpc_url: &str,
     block_number: Option<u64>,
-    gas: Option<js_sys::BigInt>,
+    gas: Option<String>,
 ) -> Result<DoOrderQuoteResult, QuoteBindingsError> {
-    let gas_value = gas.map(|v| v.try_into_u256()).transpose()?;
+    let gas_value = gas.map(|v| U256::from_str(&v)).transpose()?;
     let order_quotes =
         get_order_quotes(order, block_number, rpc_url.to_string(), gas_value).await?;
     Ok(DoOrderQuoteResult(order_quotes))
@@ -211,6 +206,8 @@ pub enum QuoteBindingsError {
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
     U256ParseError(#[from] ParseError),
+    #[error("JavaScript error: {0}")]
+    JsError(String),
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
 }
@@ -221,6 +218,7 @@ impl QuoteBindingsError {
             Self::QuoteError(e) => format!("Quote error: {}", e),
             Self::FromHexError(e) => format!("Failed to parse orderbook address: {}", e),
             Self::U256ParseError(e) => format!("Failed to parse u256 value: {}", e),
+            Self::JsError(msg) => format!("A JavaScript error occurred: {}", msg),
             Self::SerdeWasmBindgenError(err) => format!("Data serialization error: {}", err),
         }
     }
@@ -238,5 +236,46 @@ impl From<QuoteBindingsError> for WasmEncodedError {
             msg: value.to_string(),
             readable_msg: value.to_readable_msg(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    async fn test_get_id() {
+        let orderbook = Address::from_str("0x0123456789123456789123456789123456789123").unwrap();
+        let order_hash = U256::from(30);
+        let expected_id = encode_prefixed(make_order_id(orderbook, order_hash));
+
+        let res = get_id(&orderbook.to_string(), &order_hash.to_string()).unwrap();
+        assert_eq!(res, expected_id);
+
+        let err = get_id("invalid-hex", &order_hash.to_string()).unwrap_err();
+        assert_eq!(err.to_string(), "Odd number of digits");
+        assert_eq!(
+            err.to_readable_msg(),
+            "Failed to parse orderbook address: Odd number of digits"
+        );
+
+        let err = get_id(&orderbook.to_string(), "invalid-hash").unwrap_err();
+        assert_eq!(err.to_string(), "digit 18 is out of range for base 10");
+        assert_eq!(
+            err.to_readable_msg(),
+            "Failed to parse u256 value: digit 18 is out of range for base 10"
+        );
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+mod quote_non_wasm_tests {
+    use super::*;
+    use httpmock::MockServer;
+
+    #[tokio::test]
+    async fn test_do_quote_targets() {
+        let rpc_server = MockServer::start_async().await;
     }
 }
