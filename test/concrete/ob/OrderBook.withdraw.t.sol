@@ -29,7 +29,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawZero(address alice, address token, bytes32 vaultId) external {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(ZeroWithdrawTargetAmount.selector, alice, token, vaultId));
-        iOrderbook.withdraw3(token, vaultId, Float(0, 0), new TaskV2[](0));
+        iOrderbook.withdraw3(token, vaultId, Float.wrap(0), new TaskV2[](0));
     }
 
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
@@ -37,14 +37,14 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     function testWithdrawEmptyVault(address alice, address token, bytes32 vaultId, uint256 amount18) external {
         amount18 = bound(amount18, 1, uint256(type(int256).max));
         vm.prank(alice);
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
         vm.mockCall(
             token,
             abi.encodeWithSelector(IERC20Metadata.decimals.selector),
             abi.encode(uint8(18))
         );
         vm.expectEmit(false, false, false, true);
-        emit WithdrawV2(alice, token, vaultId, amount, Float(0, 0), 0);
+        emit WithdrawV2(alice, token, vaultId, amount, Float.wrap(0), 0);
         vm.record();
         iOrderbook.withdraw3(token, vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -66,8 +66,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
@@ -79,7 +79,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.expectEmit(false, false, false, true);
         emit WithdrawV2(alice, address(iToken0), vaultId, withdrawAmount, depositAmount, depositAmount18);
         iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, new TaskV2[](0));
-        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(Float(0, 0)));
+        assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).isZero(), "vault balance");
     }
 
     /// Withdrawing a partial amount from a vault should reduce the vault balance.
@@ -96,8 +96,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
@@ -131,8 +131,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
         iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
         assertTrue(iOrderbook.vaultBalance2(address(alice), address(iToken0), vaultId).eq(depositAmount));
 
@@ -181,7 +181,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             // Ensure the token doesn't hit some known address and cause bad
             // etching.
             actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
-            actions[i].amountFloat = LibDecimalFloat.fromFixedDecimalLosslessMem(actions[i].amount, 18);
+            actions[i].amountFloat = LibDecimalFloat.fromFixedDecimalLosslessPacked(actions[i].amount, 18);
 
             if (!actions[i].fresh && i > 0) {
                 actions[i].pairedWith = bound(actions[i].pairedWith, 0, i - 1);
@@ -194,7 +194,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(action.token, REVERTING_MOCK_BYTECODE);
             action = actions[i];
-            Float memory balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
+            Float balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
 
             vm.prank(action.alice);
             if (action.actionKind || !sHasDeposit[action.token]) {
@@ -220,7 +220,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     "vault balance on deposit"
                 );
             } else {
-                Float memory expectedActualAmount = balance.min(action.amountFloat);
+                Float expectedActualAmount = balance.min(action.amountFloat);
                 uint256 expectedActualAmount18 = expectedActualAmount.toFixedDecimalLossless(18);
                 vm.mockCall(
                     action.token,
@@ -231,7 +231,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
                     action.token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
                 );
 
-                if (expectedActualAmount.gt(Float(0, 0))) {
+                if (expectedActualAmount.gt(Float.wrap(0))) {
                     vm.expectEmit(false, false, false, true);
                     emit WithdrawV2(
                         action.alice,

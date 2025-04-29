@@ -18,8 +18,8 @@ contract GenericPoolOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
     function onTakeOrders2(
         address inputToken,
         address outputToken,
-        Float calldata inputAmountSent,
-        Float calldata totalOutputAmount,
+        Float inputAmountSent,
+        Float totalOutputAmount,
         bytes calldata takeOrdersData
     ) public virtual override {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);

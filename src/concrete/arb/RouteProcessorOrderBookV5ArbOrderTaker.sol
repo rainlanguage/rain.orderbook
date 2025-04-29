@@ -26,8 +26,8 @@ contract RouteProcessorOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
     function onTakeOrders2(
         address inputToken,
         address outputToken,
-        Float calldata inputAmountSent,
-        Float calldata totalOutputAmount,
+        Float inputAmountSent,
+        Float totalOutputAmount,
         bytes calldata takeOrdersData
     ) public virtual override {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
@@ -37,11 +37,11 @@ contract RouteProcessorOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
         (uint256 amountOut) = iRouteProcessor.processRoute(
             inputToken,
             LibDecimalFloat.toFixedDecimalLossless(
-                inputAmountSent.signedCoefficient, inputAmountSent.exponent, IERC20Metadata(inputToken).decimals()
+                inputAmountSent, IERC20Metadata(inputToken).decimals()
             ),
             outputToken,
             LibDecimalFloat.toFixedDecimalLossless(
-                totalOutputAmount.signedCoefficient, totalOutputAmount.exponent, IERC20Metadata(outputToken).decimals()
+                totalOutputAmount, IERC20Metadata(outputToken).decimals()
             ),
             address(this),
             route

@@ -72,7 +72,7 @@ abstract contract OrderBookV5ArbOrderTaker is
 
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
         IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
-        (Float memory totalInput, Float memory totalOutput) = orderBook.takeOrders3(takeOrders);
+        (Float totalInput, Float totalOutput) = orderBook.takeOrders3(takeOrders);
         (totalInput, totalOutput);
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
@@ -80,5 +80,5 @@ abstract contract OrderBookV5ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV5OrderTaker
-    function onTakeOrders2(address, address, Float calldata, Float calldata, bytes calldata) public virtual override {}
+    function onTakeOrders2(address, address, Float, Float, bytes calldata) public virtual override {}
 }

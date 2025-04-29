@@ -28,8 +28,8 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         bytes memory rainString,
         uint8 outputTokenDecimals,
         uint8 inputTokenDecimals,
-        Float memory expectedTakerTotalInput,
-        Float memory expectedTakerTotalOutput
+        Float expectedTakerTotalInput,
+        Float expectedTakerTotalOutput
     ) internal {
         bytes32 vaultId = 0;
         address inputToken = address(0x100);
@@ -101,7 +101,7 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
         }
 
         {
-            if (expectedTakerTotalInput.gt(Float(0, 0))) {
+            if (expectedTakerTotalInput.gt(LibDecimalFloat.packLossless(0, 0))) {
                 iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
             }
             assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
@@ -114,13 +114,13 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
             TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
             orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
             TakeOrdersConfigV4 memory takeOrdersConfig =
-                TakeOrdersConfigV4(Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), orders, "");
-            (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+                TakeOrdersConfigV4(LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), orders, "");
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
             assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
             assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
         }
 
-        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(Float(0, 0)), "vault balance");
+        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).isZero(), "vault balance");
     }
 
     // Older versions of OB had precision issues with this IO setup.
@@ -129,67 +129,67 @@ contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {
 
     function testTakeOrderPrecisionKnownBad01() public {
         checkPrecision(
-            KNOWN_BAD, 18, 18, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 18, 18, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad02() public {
         checkPrecision(
-            KNOWN_BAD, 18, 6, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 18, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad03() public {
         checkPrecision(
-            KNOWN_BAD, 19, 6, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 19, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad04() public {
         checkPrecision(
-            KNOWN_BAD, 20, 6, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 20, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad05() public {
         checkPrecision(
-            KNOWN_BAD, 21, 6, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 21, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad06() public {
         checkPrecision(
-            KNOWN_BAD, 50, 6, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 50, 6, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad07() public {
         checkPrecision(
-            KNOWN_BAD, 6, 18, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 6, 18, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad08() public {
         checkPrecision(
-            KNOWN_BAD, 6, 19, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 6, 19, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad09() public {
         checkPrecision(
-            KNOWN_BAD, 6, 20, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 6, 20, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad10() public {
         checkPrecision(
-            KNOWN_BAD, 6, 21, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 6, 21, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 
     function testTakeOrderPrecisionKnownBad11() public {
         checkPrecision(
-            KNOWN_BAD, 6, 50, Float(157116365680491867129910, -18), Float(4999999999999984457923789473657330035, -35)
+            KNOWN_BAD, 6, 50, LibDecimalFloat.packLossless(157116365680491867129910, -18), LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
         );
     }
 }

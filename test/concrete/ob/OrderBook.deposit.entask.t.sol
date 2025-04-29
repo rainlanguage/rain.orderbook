@@ -39,7 +39,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     function checkDeposit(
         address owner,
         bytes32 vaultId,
-        Float memory amount,
+        Float amount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
@@ -66,23 +66,23 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, Float memory amount) external {
-        vm.assume(amount.gt(Float(0, 0)));
+    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, Float amount) external {
+        vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](0);
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, Float memory amount) external {
-        vm.assume(amount.gt(Float(0, 0)));
+    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, Float amount) external {
+        vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
         checkDeposit(alice, vaultId, amount, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, Float memory amount) external {
-        vm.assume(amount.gt(Float(0, 0)));
+    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, Float amount) external {
+        vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         // each get is 2 reads. 1 during eval and 1 during store set.
@@ -93,7 +93,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, int256 amount18) external {
         amount18 = bound(amount18, 1, type(int128).max);
-        Float memory amount = Float(amount18, -18);
+        Float amount = LibDecimalFloat.packLossless(amount18, -18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":set(1 2);");
@@ -107,7 +107,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, int256 amount18) external {
         amount18 = bound(amount18, 1, type(int128).max);
-        Float memory amount = Float(amount18, -18);
+        Float amount = LibDecimalFloat.packLossless(amount18, -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -134,7 +134,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         vm.assume(alice != bob);
         amount18 = bound(amount18, 1, type(int128).max);
 
-        Float memory amount = Float(amount18, -18);
+        Float amount = LibDecimalFloat.packLossless(amount18, -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -168,8 +168,8 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         preDepositAmount18 = bound(preDepositAmount18, 1, type(int128).max);
         depositAmount18 = bound(depositAmount18, 1, type(int128).max);
 
-        Float memory preDepositAmount = Float(preDepositAmount18, -18);
-        Float memory depositAmount = Float(depositAmount18, -18);
+        Float preDepositAmount = LibDecimalFloat.packLossless(preDepositAmount18, -18);
+        Float depositAmount = LibDecimalFloat.packLossless(depositAmount18, -18);
 
         checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
 
@@ -237,18 +237,18 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"revert in action\");");
 
         TaskV2[] memory actions = evalsToActions(evals);
 
-        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).isZero());
 
         vm.expectRevert("revert in action");
         iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
 
-        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).eq(Float(0, 0)));
+        assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).isZero());
     }
 }

@@ -27,7 +27,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
 
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
 
         iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
         assertTrue(iOrderbook.vaultBalance2(depositor, address(iToken0), vaultId).eq(amount));
@@ -42,7 +42,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
                 IOrderBookV5.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
-        iOrderbook.deposit3(address(iToken0), vaultId, Float(0, 0), new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -56,14 +56,14 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit3(address(iToken0), 0, Float(1, -18), new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit3(address(iToken0), 0, Float(1, -18), new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -78,14 +78,14 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit3(address(iToken0), 0, Float(1, -18), new TaskV2[](0));
+        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
     }
 
     /// Any failure in the deposit should revert the entire transaction.
     /// forge-config: default.fuzz.runs = 100
     function testDepositFail(address depositor, bytes32 vaultId, uint256 amount18) external {
         amount18 = bound(amount18, 1, type(uint256).max / 10);
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
 
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
@@ -125,7 +125,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit amounts must be non-zero.
             actions[i].amount18 = bound(actions[i].amount18, 1, type(uint256).max / 10);
-            actions[i].amount = LibDecimalFloat.fromFixedDecimalLosslessMem(actions[i].amount18, 18);
+            actions[i].amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(actions[i].amount18, 18);
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             // Avoid errors from attempting to etch the orderbook.
@@ -137,7 +137,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
 
         for (uint256 i = 0; i < actions.length; i++) {
             vm.etch(actions[i].token, REVERTING_MOCK_BYTECODE);
-            Float memory vaultBalanceBefore =
+            Float vaultBalanceBefore =
                 iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId);
             vm.prank(actions[i].depositor);
             vm.mockCall(
@@ -188,7 +188,7 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         );
         vm.expectEmit(false, false, false, true);
         emit DepositV2(depositor, address(iToken0), vaultId, amount18);
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
         iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
     }
 
@@ -206,8 +206,8 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         reAmount18 = bound(reAmount18, 1, type(uint256).max / 10);
         vm.prank(depositor);
         Reenteroor reenteroor = new Reenteroor();
-        Float memory amount = LibDecimalFloat.fromFixedDecimalLosslessMem(amount18, 18);
-        Float memory reAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(reAmount18, 18);
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
+        Float reAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(reAmount18, 18);
         vm.mockCall(reToken, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
         vm.mockCall(
             address(reenteroor), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))

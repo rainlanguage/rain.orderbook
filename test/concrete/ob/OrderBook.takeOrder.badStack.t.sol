@@ -14,7 +14,7 @@ import {
     TakeOrderConfigV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
-import {Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
@@ -33,7 +33,7 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory takeOrderConfigs = new TakeOrderConfigV4[](1);
         takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
-            Float(0, 0), Float(type(int256).max, 0), Float(type(int256).max, 0), takeOrderConfigs, ""
+            LibDecimalFloat.packLossless(0, 0), LibDecimalFloat.packLossless(type(int256).max, 0), LibDecimalFloat.packLossless(type(int256).max, 0), takeOrderConfigs, ""
         );
 
         vm.prank(alice);

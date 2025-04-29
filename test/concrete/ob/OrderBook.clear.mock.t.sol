@@ -24,7 +24,7 @@ import {StateNamespace} from "rain.interpreter.interface/interface/unstable/IInt
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookClearTest
 /// Tests clearing an order.
@@ -34,7 +34,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     using LibDecimalFloat for Float;
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
-    function _depositInternal(address depositor, address token, bytes32 vaultId, Float memory amount) internal {
+    function _depositInternal(address depositor, address token, bytes32 vaultId, Float amount) internal {
         vm.prank(depositor);
         vm.mockCall(
             token,
@@ -43,7 +43,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         iOrderbook.deposit3(address(token), vaultId, amount, new TaskV2[](0));
 
-        Float memory balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
+        Float balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
 
         assertTrue(balance.eq(amount));
     }
@@ -110,39 +110,39 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
 
         {
-            Float memory aliceInputBalance = iOrderbook.vaultBalance2(
+            Float aliceInputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
             );
-            assertTrue(LibDecimalFloat.eq(aliceInputBalance.signedCoefficient, aliceInputBalance.exponent, 0, 0));
+            assertTrue(LibDecimalFloat.eq(aliceInputBalance, Float.wrap(0)));
         }
         {
-            Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
+            Float aliceOutputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
             );
             assertTrue(aliceOutputBalance.eq(clear.aliceAmount));
         }
         {
-            Float memory bobInputBalance = iOrderbook.vaultBalance2(
+            Float bobInputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
             );
-            assertTrue(LibDecimalFloat.eq(bobInputBalance.signedCoefficient, bobInputBalance.exponent, 0, 0));
+            assertTrue(LibDecimalFloat.eq(bobInputBalance, Float.wrap(0)));
         }
         {
-            Float memory bobOutputBalance = iOrderbook.vaultBalance2(
+            Float bobOutputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
             );
             assertTrue(bobOutputBalance.eq(clear.bobAmount), "Bob output balance should be equal to bob amount");
         }
         {
-            Float memory aliceBountyBalance = iOrderbook.vaultBalance2(
+            Float aliceBountyBalance = iOrderbook.vaultBalance2(
                 clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId
             );
-            assertTrue(LibDecimalFloat.eq(aliceBountyBalance.signedCoefficient, aliceBountyBalance.exponent, 0, 0));
+            assertTrue(LibDecimalFloat.eq(aliceBountyBalance, Float.wrap(0)));
         }
         {
-            Float memory bobBountyBalance =
+            Float bobBountyBalance =
                 iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId);
-            assertTrue(LibDecimalFloat.eq(bobBountyBalance.signedCoefficient, bobBountyBalance.exponent, 0, 0));
+            assertTrue(LibDecimalFloat.eq(bobBountyBalance, Float.wrap(0)));
         }
 
         {
@@ -232,7 +232,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         assertTrue(
             iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId)
-                .eq(Float(0, 0)),
+                .isZero(),
             "Alice bounty input"
         );
         assertTrue(
@@ -243,7 +243,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         );
         assertTrue(
             iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId).eq(
-                Float(0, 0)
+                LibDecimalFloat.packLossless(0, 0)
             ),
             "Bob bounty input"
         );
@@ -260,14 +260,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId
     ) external {
-        Float memory aliceAmount = Float(2, 0);
-        Float memory bobAmount = Float(2, 0);
+        Float aliceAmount = LibDecimalFloat.packLossless(2, 0);
+        Float bobAmount = LibDecimalFloat.packLossless(2, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
         StackItem[] memory orderStackAlice = new StackItem[](2);
-        orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(Float(0.99e18, -18).pack())); // orderIORatio
-        orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(Float(0.5e18, -18).pack())); // orderOutputMax
+        orderStackAlice[0] = StackItem.wrap(Float.unwrap(LibDecimalFloat.packLossless(0.99e18, -18))); // orderIORatio
+        orderStackAlice[1] = StackItem.wrap(Float.unwrap(LibDecimalFloat.packLossless(0.5e18, -18))); // orderOutputMax
 
         checkClear(
             CheckClear(
@@ -283,10 +283,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
                 expression,
                 orderStackAlice,
                 orderStackAlice,
-                Float(0.5e18, -18),
-                Float(0.5e18, -18),
-                Float(0.495e18, -18),
-                Float(0.495e18, -18),
+                LibDecimalFloat.packLossless(0.5e18, -18),
+                LibDecimalFloat.packLossless(0.5e18, -18),
+                LibDecimalFloat.packLossless(0.495e18, -18),
+                LibDecimalFloat.packLossless(0.495e18, -18),
                 ""
             )
         );
@@ -309,8 +309,8 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         aliceIORatio18 = bound(aliceIORatio18, 1, 1e18);
         bobIORatio18 = bound(bobIORatio18, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio18, Math.Rounding.Down));
 
-        Float memory aliceIORatio = LibDecimalFloat.fromFixedDecimalLosslessMem(aliceIORatio18, 18);
-        Float memory bobIORatio = LibDecimalFloat.fromFixedDecimalLosslessMem(bobIORatio18, 18);
+        Float aliceIORatio = LibDecimalFloat.fromFixedDecimalLosslessPacked(aliceIORatio18, 18);
+        Float bobIORatio = LibDecimalFloat.fromFixedDecimalLosslessPacked(bobIORatio18, 18);
 
         CheckClear memory checkClearStruct;
         checkClearStruct.alice = alice;
@@ -321,33 +321,33 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
         checkClearStruct.bobBountyVaultId = bobBountyVaultId;
         checkClearStruct.expression = expression;
-        checkClearStruct.aliceAmount = Float(1, 0);
-        checkClearStruct.bobAmount = Float(1, 0);
-        checkClearStruct.expectedAliceOutput = Float(1, 0);
+        checkClearStruct.aliceAmount = LibDecimalFloat.packLossless(1, 0);
+        checkClearStruct.bobAmount = LibDecimalFloat.packLossless(1, 0);
+        checkClearStruct.expectedAliceOutput = LibDecimalFloat.packLossless(1, 0);
         // Alice is outputting 1 so bob will output enough to match this
         // according to his own IO ratio.
-        checkClearStruct.expectedBobOutput = bobIORatio.inv().min(Float(1, 0));
+        checkClearStruct.expectedBobOutput = bobIORatio.inv().min(LibDecimalFloat.packLossless(1, 0));
         // Expected input for Alice is aliceOutput * aliceIORatio
 
-        Float memory aliceOutput = Float(1, 0);
+        Float aliceOutput = LibDecimalFloat.packLossless(1, 0);
         checkClearStruct.expectedAliceInput = aliceIORatio.multiply(aliceOutput);
         // Expected input for Bob is Alice's output in entirety, because
         // alice IO * bob IO <= 1 and Bob is the larger ratio.
         // As Bob's ratio is >= 1 he will have his input shrunk to match
         // Alice's output. This means in this case Bob's input will be
         // 1 always, as it either = 1 anyway or matches Alice's 1.
-        checkClearStruct.expectedBobInput = Float(1, 0);
+        checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(1, 0);
         checkClearStruct.expectedError = "";
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
         checkClearStruct.orderStackAlice = new StackItem[](2);
-        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
-        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio)); // orderIORatio
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutput)); // orderOutputMax
 
         checkClearStruct.orderStackBob = new StackItem[](2);
-        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
-        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(Float(1e18, -18).pack())); // orderOutputMax
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(Float.unwrap(bobIORatio)); // orderIORatio
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(Float.unwrap(LibDecimalFloat.packLossless(1e18, -18))); // orderOutputMax
 
         checkClear(checkClearStruct);
     }
@@ -376,30 +376,30 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         checkClearStruct.bountyBot = bountyBot;
         checkClearStruct.aliceBountyVaultId = aliceBountyVaultId;
         checkClearStruct.bobBountyVaultId = bobBountyVaultId;
-        checkClearStruct.aliceAmount = Float(1, 0);
-        checkClearStruct.bobAmount = Float(1, 0);
+        checkClearStruct.aliceAmount = LibDecimalFloat.packLossless(1, 0);
+        checkClearStruct.bobAmount = LibDecimalFloat.packLossless(1, 0);
         checkClearStruct.expression = expression;
 
-        Float memory aliceIORatio = Float(int256(aliceIORatio18), -18);
-        Float memory bobIORatio = Float(int256(bobIORatio18), -18);
+        Float aliceIORatio = LibDecimalFloat.packLossless(int256(aliceIORatio18), -18);
+        Float bobIORatio = LibDecimalFloat.packLossless(int256(bobIORatio18), -18);
 
-        Float memory aliceOutput = Float(1, 0);
-        Float memory bobOutput = Float(1, 0);
+        Float aliceOutput = LibDecimalFloat.packLossless(1, 0);
+        Float bobOutput = LibDecimalFloat.packLossless(1, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
         // Produce the stack output for OB
         checkClearStruct.orderStackAlice = new StackItem[](2);
-        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack())); // orderIORatio
-        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutput.pack())); // orderOutputMax
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio)); // orderIORatio
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutput)); // orderOutputMax
 
         checkClearStruct.orderStackBob = new StackItem[](2);
-        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack())); // orderIORatio
-        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutput.pack())); // orderOutputMax
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(Float.unwrap(bobIORatio)); // orderIORatio
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(Float.unwrap(bobOutput)); // orderOutputMax
 
-        checkClearStruct.expectedAliceOutput = Float(0, 0);
-        checkClearStruct.expectedBobOutput = Float(0, 0);
-        checkClearStruct.expectedAliceInput = Float(0, 0);
-        checkClearStruct.expectedBobInput = Float(0, 0);
+        checkClearStruct.expectedAliceOutput = LibDecimalFloat.packLossless(0, 0);
+        checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0, 0);
+        checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0, 0);
+        checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedError = stdError.arithmeticError;
 
         checkClear(checkClearStruct);
@@ -416,14 +416,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId
     ) external {
-        Float memory aliceAmount = Float(2e18, -18);
-        Float memory bobAmount = Float(3e18, -18);
+        Float aliceAmount = LibDecimalFloat.packLossless(2e18, -18);
+        Float bobAmount = LibDecimalFloat.packLossless(3e18, -18);
 
-        Float memory aliceIORatio = Float(0, 0);
-        Float memory bobIORatio = Float(1, 0);
+        Float aliceIORatio = LibDecimalFloat.packLossless(0, 0);
+        Float bobIORatio = LibDecimalFloat.packLossless(1, 0);
 
-        Float memory aliceOutputMax = Float(0.5e18, -18);
-        Float memory bobOutputMax = Float(0.5e18, -18);
+        Float aliceOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
+        Float bobOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
 
         CheckClear memory checkClearStruct;
         checkClearStruct.alice = alice;
@@ -438,17 +438,17 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         checkClearStruct.expression = expression;
 
         checkClearStruct.orderStackAlice = new StackItem[](2);
-        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutputMax));
 
         checkClearStruct.orderStackBob = new StackItem[](2);
-        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(Float.unwrap(bobIORatio));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(Float.unwrap(bobOutputMax));
 
-        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedAliceInput = Float(0, 0);
-        checkClearStruct.expectedBobInput = Float(0.5e18, -18);
+        checkClearStruct.expectedAliceOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0, 0);
+        checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0.5e18, -18);
 
         checkClearStruct.expectedError = "";
 
@@ -466,14 +466,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId
     ) external {
-        Float memory aliceAmount = Float(2, 0);
-        Float memory bobAmount = Float(3, 0);
+        Float aliceAmount = Float.wrap(bytes32(uint256(2)));
+        Float bobAmount = Float.wrap(bytes32(uint256(3)));
 
-        Float memory aliceIORatio = Float(1, 0);
-        Float memory bobIORatio = Float(0, 0);
+        Float aliceIORatio = LibDecimalFloat.packLossless(1, 0);
+        Float bobIORatio = LibDecimalFloat.packLossless(0, 0);
 
-        Float memory aliceOutputMax = Float(0.5e18, -18);
-        Float memory bobOutputMax = Float(0.5e18, -18);
+        Float aliceOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
+        Float bobOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
 
         CheckClear memory checkClearStruct;
         checkClearStruct.alice = alice;
@@ -488,17 +488,17 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         checkClearStruct.expression = expression;
 
         checkClearStruct.orderStackAlice = new StackItem[](2);
-        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutputMax));
 
         checkClearStruct.orderStackBob = new StackItem[](2);
-        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(Float.unwrap(bobIORatio));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(Float.unwrap(bobOutputMax));
 
-        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedAliceInput = Float(0.5e18, -18);
-        checkClearStruct.expectedBobInput = Float(0, 0);
+        checkClearStruct.expectedAliceOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedError = "";
 
         checkClear(checkClearStruct);
@@ -515,14 +515,14 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId
     ) external {
-        Float memory aliceAmount = Float(2, 0);
-        Float memory bobAmount = Float(3, 0);
+        Float aliceAmount = Float.wrap(bytes32(uint256(2)));
+        Float bobAmount = Float.wrap(bytes32(uint256(3)));
 
-        Float memory aliceIORatio = Float(0, 0);
-        Float memory bobIORatio = Float(0, 0);
+        Float aliceIORatio = Float.wrap(bytes32(uint256(0)));
+        Float bobIORatio = Float.wrap(bytes32(uint256(0)));
 
-        Float memory aliceOutputMax = Float(0.5e18, -18);
-        Float memory bobOutputMax = Float(0.5e18, -18);
+        Float aliceOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
+        Float bobOutputMax = LibDecimalFloat.packLossless(0.5e18, -18);
 
         CheckClear memory checkClearStruct;
         checkClearStruct.alice = alice;
@@ -538,18 +538,18 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         // Mock the interpreter.eval for Alice and Bob orders with zero ratio
         checkClearStruct.orderStackAlice = new StackItem[](2);
-        checkClearStruct.orderStackAlice[0] = StackItem.wrap(PackedFloat.unwrap(aliceIORatio.pack()));
-        checkClearStruct.orderStackAlice[1] = StackItem.wrap(PackedFloat.unwrap(aliceOutputMax.pack()));
+        checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio));
+        checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutputMax));
 
         checkClearStruct.orderStackBob = new StackItem[](2);
 
-        checkClearStruct.orderStackBob[0] = StackItem.wrap(PackedFloat.unwrap(bobIORatio.pack()));
-        checkClearStruct.orderStackBob[1] = StackItem.wrap(PackedFloat.unwrap(bobOutputMax.pack()));
+        checkClearStruct.orderStackBob[0] = StackItem.wrap(Float.unwrap(bobIORatio));
+        checkClearStruct.orderStackBob[1] = StackItem.wrap(Float.unwrap(bobOutputMax));
 
-        checkClearStruct.expectedAliceOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedBobOutput = Float(0.5e18, -18);
-        checkClearStruct.expectedAliceInput = Float(0, 0);
-        checkClearStruct.expectedBobInput = Float(0, 0);
+        checkClearStruct.expectedAliceOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0.5e18, -18);
+        checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0, 0);
+        checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedError = "";
 
         checkClear(checkClearStruct);

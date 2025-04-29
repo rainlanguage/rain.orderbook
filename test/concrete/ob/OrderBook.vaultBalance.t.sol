@@ -10,8 +10,7 @@ import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 contract OrderBookDepositTest is OrderBookExternalMockTest {
     using LibDecimalFloat for Float;
     /// Test that reading the vault balance without deposits is always zero.
-
     function testVaultBalanceNoDeposits(address token, bytes32 vaultId) external view {
-        assertTrue(iOrderbook.vaultBalance2(address(this), token, vaultId).eq(Float(0, 0)));
+        assertTrue(iOrderbook.vaultBalance2(address(this), token, vaultId).isZero());
     }
 }

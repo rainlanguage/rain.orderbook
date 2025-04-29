@@ -8,7 +8,7 @@ import {LibOrderBook} from "./LibOrderBook.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {LibDecimalFloat, PackedFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the stack is not empty after the access control dispatch.
 error NonZeroBeforeArbStack();
@@ -31,10 +31,10 @@ library LibOrderBookArb {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
             uint8 inputDecimals = IERC20Metadata(ordersInputToken).decimals();
-            (int256 inputSignedCoefficient, int256 inputExponent, bool lossless) =
-                LibDecimalFloat.fromFixedDecimalLossy(inputBalance, inputDecimals);
+            (Float input, bool lossless) =
+                LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
             (lossless);
-            col[0] = PackedFloat.unwrap(LibDecimalFloat.pack(inputSignedCoefficient, inputExponent));
+            col[0] = Float.unwrap(input);
         }
 
         {
@@ -45,10 +45,10 @@ library LibOrderBookArb {
             }
 
             uint8 outputDecimals = IERC20Metadata(ordersOutputToken).decimals();
-            (int256 outputSignedCoefficient, int256 outputExponent, bool lossless) =
-                LibDecimalFloat.fromFixedDecimalLossy(outputBalance, outputDecimals);
+            (Float output, bool lossless) =
+                LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
             (lossless);
-            col[1] = PackedFloat.unwrap(LibDecimalFloat.pack(outputSignedCoefficient, outputExponent));
+            col[1] = Float.unwrap(output);
         }
 
         {

@@ -30,17 +30,17 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     /// Dead orders always eval to false.
     /// forge-config: default.fuzz.runs = 100
     function testQuoteDeadOrder(QuoteV2 memory quoteConfig) external view {
-        (bool success, Float memory maxOutput, Float memory ioRatio) = iOrderbook.quote2(quoteConfig);
+        (bool success, Float maxOutput, Float ioRatio) = iOrderbook.quote2(quoteConfig);
         assert(!success);
-        assertTrue(maxOutput.eq(Float(0, 0)), "max output");
-        assertTrue(ioRatio.eq(Float(0, 0)), "io ratio");
+        assertTrue(maxOutput.isZero(), "max output");
+        assertTrue(ioRatio.isZero(), "io ratio");
     }
 
     function checkQuote(
         address owner,
         OrderConfigV4 memory config,
         bytes[] memory rainlang,
-        Float memory depositAmount,
+        Float depositAmount,
         Float[] memory expectedMaxOutput,
         Float[] memory expectedIoRatio
     ) internal {
@@ -79,7 +79,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
             QuoteV2 memory quoteConfig =
                 QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
-            (bool success, Float memory maxOutput, Float memory ioRatio) = iOrderbook.quote2(quoteConfig);
+            (bool success, Float maxOutput, Float ioRatio) = iOrderbook.quote2(quoteConfig);
             assert(success);
             assertTrue(maxOutput.eq(expectedMaxOutput[i]), "max output");
             assertTrue(ioRatio.eq(expectedIoRatio[i]), "io ratio");
@@ -90,9 +90,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         address owner,
         OrderConfigV4 memory config,
         bytes memory rainlang,
-        Float memory depositAmount,
-        Float memory expectedMaxOutput,
-        Float memory expectedIoRatio
+        Float depositAmount,
+        Float expectedMaxOutput,
+        Float expectedIoRatio
     ) internal {
         bytes[] memory rainlangArray = new bytes[](1);
         rainlangArray[0] = rainlang;
@@ -109,16 +109,16 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        checkQuote(owner, config, "_ _:1 2;", depositAmount, Float(1, 0), Float(2, 0));
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        checkQuote(owner, config, "_ _:1 2;", depositAmount, LibDecimalFloat.packLossless(1, 0), LibDecimalFloat.packLossless(2, 0));
     }
 
     /// The output will be maxed at the deposit in the vault.
     /// forge-config: default.fuzz.runs = 100
     function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         depositAmount18 = bound(depositAmount18, 1, 1e12);
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 12);
-        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount.multiply(Float(1, 6)), Float(2, 0));
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 12);
+        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount.multiply(LibDecimalFloat.packLossless(1, 6)), LibDecimalFloat.packLossless(2, 0));
     }
 
     /// Can access context.
@@ -128,7 +128,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         // from 12 decimals.
         depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -196,30 +196,30 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         );
 
         Float[] memory expectedMaxOutput = new Float[](10);
-        expectedMaxOutput[0] = Float(1, 0);
-        expectedMaxOutput[1] = Float(1, 0);
-        expectedMaxOutput[2] = Float(1, 0);
-        expectedMaxOutput[3] = Float(1, 0);
-        expectedMaxOutput[4] = Float(1, 0);
-        expectedMaxOutput[5] = Float(1, 0);
-        expectedMaxOutput[6] = Float(1, 0);
-        expectedMaxOutput[7] = Float(1, 0);
-        expectedMaxOutput[8] = Float(1, 0);
-        expectedMaxOutput[9] = Float(1, 0);
+        expectedMaxOutput[0] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[1] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[2] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[3] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[4] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[5] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[6] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[7] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[8] = LibDecimalFloat.packLossless(1, 0);
+        expectedMaxOutput[9] = LibDecimalFloat.packLossless(1, 0);
 
         Float[] memory expectedIoRatio = new Float[](10);
-        expectedIoRatio[0] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(this))), 18);
-        expectedIoRatio[1] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iOrderbook))), 18);
-        expectedIoRatio[2] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(owner)), 18);
-        expectedIoRatio[3] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(this))), 18);
-        expectedIoRatio[4] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iToken1))), 18);
+        expectedIoRatio[0] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(this))), 18);
+        expectedIoRatio[1] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iOrderbook))), 18);
+        expectedIoRatio[2] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(owner)), 18);
+        expectedIoRatio[3] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(this))), 18);
+        expectedIoRatio[4] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iToken1))), 18);
         // Input decimals scaled to 18 fixed point value.
-        expectedIoRatio[5] = LibDecimalFloat.fromFixedDecimalLosslessMem(6e18, 18);
-        expectedIoRatio[6] = LibDecimalFloat.fromFixedDecimalLosslessMem(0, 18);
-        expectedIoRatio[7] = LibDecimalFloat.fromFixedDecimalLosslessMem(uint256(uint160(address(iToken0))), 18);
-        expectedIoRatio[8] = LibDecimalFloat.fromFixedDecimalLosslessMem(12e18, 18);
+        expectedIoRatio[5] = LibDecimalFloat.fromFixedDecimalLosslessPacked(6e18, 18);
+        expectedIoRatio[6] = LibDecimalFloat.fromFixedDecimalLosslessPacked(0, 18);
+        expectedIoRatio[7] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iToken0))), 18);
+        expectedIoRatio[8] = LibDecimalFloat.fromFixedDecimalLosslessPacked(12e18, 18);
         // Output decimals scaled to 18 fixed point value from 12.
-        expectedIoRatio[9] = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18 * 1e6, 18);
+        expectedIoRatio[9] = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18 * 1e6, 18);
 
         checkQuote(owner, config, rainlang, depositAmount, expectedMaxOutput, expectedIoRatio);
     }

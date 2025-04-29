@@ -56,14 +56,14 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            Float(0, 0),
-            LibDecimalFloat.fromFixedDecimalLosslessMem(maxTakerInput18, 18),
-            LibDecimalFloat.fromFixedDecimalLosslessMem(maxIORatio, 18),
+            Float.wrap(0),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio, 18),
             orders,
             ""
         );
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -101,14 +101,14 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            Float(0, 0),
-            LibDecimalFloat.fromFixedDecimalLosslessMem(maxTakerInput18, 18),
-            LibDecimalFloat.fromFixedDecimalLosslessMem(maxIORatio18, 18),
+            Float.wrap(0),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio18, 18),
             orders,
             ""
         );
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (Float memory totalTakerInput, Float memory totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
     }
 }

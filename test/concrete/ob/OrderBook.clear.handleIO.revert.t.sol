@@ -22,6 +22,8 @@ import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 /// @notice A test harness for testing the OrderBook clear function will run
 /// handle IO and revert if it fails.
 contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
+    using LibDecimalFloat for Float;
+
     function userDeposit(bytes memory rainString, address owner, address inputToken, address outputToken)
         internal
         returns (OrderV4 memory)
@@ -46,9 +48,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit3(outputToken, vaultId, Float(type(int256).max, 0), new TaskV2[](0));
-        Float memory balance = iOrderbook.vaultBalance2(owner, outputToken, vaultId);
-        assertTrue(LibDecimalFloat.eq(balance.signedCoefficient, balance.exponent, type(int256).max, type(int256).max));
+        iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int256).max, 0), new TaskV2[](0));
+        Float balance = iOrderbook.vaultBalance2(owner, outputToken, vaultId);
+        assertTrue(balance.eq(LibDecimalFloat.packLossless(type(int256).max, type(int256).max)));
 
         bytes memory bytecode = iParserV2.parse2(rainString);
         EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);

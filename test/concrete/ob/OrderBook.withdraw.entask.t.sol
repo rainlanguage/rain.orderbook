@@ -40,8 +40,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     function checkWithdraw(
         address owner,
         bytes32 vaultId,
-        Float memory depositAmount,
-        Float memory targetAmount,
+        Float depositAmount,
+        Float targetAmount,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
@@ -99,8 +99,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     ) external {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
         checkWithdraw(alice, vaultId, depositAmount, withdrawAmount, new bytes[](0), 0, 0);
     }
 
@@ -114,8 +114,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
@@ -132,8 +132,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
@@ -151,8 +151,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](1);
         evals0[0] = bytes(":set(1 2);");
@@ -175,8 +175,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -209,8 +209,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
@@ -251,11 +251,11 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     {
         withdrawAmount18 = bound(withdrawAmount18, 1, type(uint128).max);
 
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":ensure(0 \"always fails\");");
-        checkWithdraw(alice, vaultId, Float(0, 0), withdrawAmount, evals, 0, 0);
+        checkWithdraw(alice, vaultId, Float.wrap(0), withdrawAmount, evals, 0, 0);
     }
 
     /// A revert in the action prevents withdraw from being enacted.
@@ -269,8 +269,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         depositAmount18 = bound(depositAmount18, 1, type(uint128).max);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18);
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(withdrawAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float withdrawAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(withdrawAmount18, 18);
 
         vm.startPrank(alice);
         vm.mockCall(
@@ -306,8 +306,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         targetAmount18 = bound(targetAmount18, 1, type(uint128).max);
         uint256 withdrawAmount18 = depositAmount18 > targetAmount18 ? targetAmount18 : depositAmount18;
 
-        Float memory depositAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(depositAmount18, 18);
-        Float memory targetAmount = LibDecimalFloat.fromFixedDecimalLosslessMem(targetAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float targetAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(targetAmount18, 18);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 

@@ -11,8 +11,6 @@ import {
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
 import {LibExternOpContextSenderNPE2} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSenderNPE2.sol";
-import {LibExternOpContextCallingContractNPE2} from
-    "rain.interpreter/lib/extern/reference/op/LibExternOpContextCallingContractNPE2.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
 import {
