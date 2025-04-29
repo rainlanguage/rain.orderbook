@@ -339,15 +339,10 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		);
 		assert.deepEqual(
 			doQuoteTargetsResult.error.readableMsg,
-			'Quote error: Execution reverted with unknown error. Data: "" '
+			'Failed to get quote: Execution reverted with unknown error. Data: "" '
 		);
 
-		const result = await doQuoteTargets(
-			[target],
-			mockServer.url + '/rpc-url',
-			undefined,
-			BigInt(123456)
-		);
+		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url', undefined, '123456');
 		if (result.error) expect.fail('Expected value');
 		const expected: OrderQuoteValue = {
 			maxOutput: '0x1',
