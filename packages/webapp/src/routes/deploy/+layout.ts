@@ -16,7 +16,7 @@ type LoadResult = {
 	error: string | null;
 };
 
-export const load: LayoutLoad = async ({ url }) => {
+export const load: LayoutLoad<LoadResult> = async ({ url }) => {
 	const registryFromUrl = url.searchParams.get('registry') || REGISTRY_URL;
 
 	try {
