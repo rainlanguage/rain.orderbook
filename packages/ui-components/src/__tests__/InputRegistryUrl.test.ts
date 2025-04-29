@@ -40,7 +40,7 @@ describe('InputRegistryUrl', () => {
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 
 		expect(input).toBeInTheDocument();
 		expect(button).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('InputRegistryUrl', () => {
 		const testUrl = 'https://example.com/registry.json';
 		await userEvent.type(input, testUrl);
 
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 		await fireEvent.click(button);
 
 		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=' + testUrl);
@@ -78,7 +78,7 @@ describe('InputRegistryUrl', () => {
 		mockLocalStorageGetItem.mockReturnValue('');
 		render(InputRegistryUrl);
 
-		const button = screen.getByText('Load Registry URL');
+		const button = screen.getByText('Load registry URL');
 		await fireEvent.click(button);
 
 		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=');

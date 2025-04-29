@@ -17,5 +17,5 @@
 		placeholder="Enter URL to raw strategy registry file"
 		bind:value={newRegistryUrl}
 	/>
-	<Button class="text-nowrap" on:click={loadRegistryUrl}>Load Registry URL</Button>
+	<Button class="text-nowrap" on:click={loadRegistryUrl}>Load registry URL</Button>
 </div>

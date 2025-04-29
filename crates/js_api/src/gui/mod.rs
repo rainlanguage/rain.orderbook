@@ -546,6 +546,9 @@ gui:
         - key: token3
           name: Token 3
           description: Token 3 description
+        - key: token4
+          name: Token 4
+          description: Token 4 description
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -597,13 +600,20 @@ orders:
           vault-id: 1
       deployer: some-deployer
       orderbook: some-orderbook
+    other-order:
+      inputs:
+        - token: token1
+      outputs:
+        - token: token1
+      deployer: some-deployer
+      orderbook: some-orderbook
 deployments:
     some-deployment:
         scenario: some-scenario
         order: some-order
     other-deployment:
         scenario: some-scenario.sub-scenario
-        order: some-order
+        order: other-order
     select-token-deployment:
         scenario: some-scenario
         order: some-order
@@ -618,11 +628,15 @@ _ _: 0 0;
 :;
     "#;
 
-    pub async fn initialize_gui() -> DotrainOrderGui {
+    pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
-            .await
-            .unwrap();
+        gui.choose_deployment(
+            YAML.to_string(),
+            deployment_name.unwrap_or("some-deployment".to_string()),
+            None,
+        )
+        .await
+        .unwrap();
         gui
     }
 
