@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { PageHeader } from '@rainlanguage/ui-components';
+  import { PageHeader, OrdersListTable } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
-  import { OrdersListTable } from '@rainlanguage/ui-components';
   import { handleOrderRemoveModal } from '$lib/services/modal';
 
   import {

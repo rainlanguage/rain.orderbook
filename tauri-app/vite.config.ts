@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    resolve: {
+		conditions: mode === 'test' ? ['browser'] : []
+	  },
 
     // prevent vite from obscuring rust errors
     clearScreen: false,
