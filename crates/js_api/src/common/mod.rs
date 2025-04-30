@@ -121,7 +121,7 @@ mod tests {
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
-        async fn test_get_add_order_calldata() {
+        async fn test_get_remove_order_calldata() {
             let remove_order_call = removeOrder2Call {
                 order: OrderV3 {
                     owner: Address::from_str("0x6171c21b2e553c59a64d1337211b77c367cefe5d").unwrap(),

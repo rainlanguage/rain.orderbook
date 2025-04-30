@@ -20,6 +20,7 @@ pub mod utils;
 pub mod withdraw;
 pub use dotrain;
 pub use dotrain_lsp;
+#[cfg(test)]
 pub mod test_helpers;
 
 pub const GH_COMMIT_SHA: &str = env!("COMMIT_SHA", "$COMMIT_SHA not set.");
