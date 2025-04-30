@@ -65,8 +65,8 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
         orders[0] = aliceTakeOrderConfig;
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
             minimumInput: LibDecimalFloat.packLossless(0, 0),
-            maximumInput: LibDecimalFloat.packLossless(type(int256).max, 0),
-            maximumIORatio: LibDecimalFloat.packLossless(type(int256).max, 0),
+            maximumInput: LibDecimalFloat.packLossless(type(int224).max, 0),
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
             orders: orders,
             data: ""
         });

@@ -39,8 +39,8 @@ contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
             iOrderBook,
             TakeOrdersConfigV4(
                 LibDecimalFloat.packLossless(0, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
                 orders,
                 ""
             ),

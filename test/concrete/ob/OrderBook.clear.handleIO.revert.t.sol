@@ -48,9 +48,9 @@ contract OrderBookClearHandleIORevertTest is OrderBookExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int256).max, 0), new TaskV2[](0));
+        iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, 0), new TaskV2[](0));
         Float balance = iOrderbook.vaultBalance2(owner, outputToken, vaultId);
-        assertTrue(balance.eq(LibDecimalFloat.packLossless(type(int256).max, type(int256).max)));
+        assertTrue(balance.eq(LibDecimalFloat.packLossless(type(int224).max, type(int32).max)));
 
         bytes memory bytecode = iParserV2.parse2(rainString);
         EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);

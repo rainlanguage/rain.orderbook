@@ -15,6 +15,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
@@ -34,12 +35,13 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
         takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
             LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int256).max, 0),
-            LibDecimalFloat.packLossless(type(int256).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
             takeOrderConfigs,
             ""
         );
-
+        vm.mockCall(address(config.validInputs[0].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
+        vm.mockCall(address(config.validOutputs[0].token), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
         vm.prank(alice);
         iOrderbook.addOrder3(config, new TaskV2[](0));
 

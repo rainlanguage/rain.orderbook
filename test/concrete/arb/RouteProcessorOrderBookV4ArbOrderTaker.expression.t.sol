@@ -45,8 +45,8 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
             iOrderBook,
             TakeOrdersConfigV4(
                 LibDecimalFloat.packLossless(0, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
                 orders,
                 abi.encode(iRefundoor, iRefundoor, "")
             ),
@@ -87,8 +87,8 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
             iOrderBook,
             TakeOrdersConfigV4(
                 LibDecimalFloat.packLossless(0, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
-                LibDecimalFloat.packLossless(type(int256).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
+                LibDecimalFloat.packLossless(type(int224).max, 0),
                 orders,
                 abi.encode(iRefundoor, iRefundoor, "")
             ),

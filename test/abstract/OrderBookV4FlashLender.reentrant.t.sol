@@ -149,8 +149,8 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
             LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int256).max, 0),
-            LibDecimalFloat.packLossless(type(int256).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
+            LibDecimalFloat.packLossless(type(int224).max, 0),
             orders,
             ""
         );
