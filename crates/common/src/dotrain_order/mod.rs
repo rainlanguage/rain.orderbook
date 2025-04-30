@@ -97,6 +97,15 @@ impl From<DotrainOrderError> for JsValue {
     }
 }
 
+impl From<DotrainOrderError> for WasmEncodedError {
+    fn from(value: DotrainOrderError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Debug, Clone)]
 #[serde(tag = "type", content = "data")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -144,13 +153,22 @@ impl DotrainOrder {
     }
 }
 
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
+#[wasm_bindgen]
 impl DotrainOrder {
-    #[cfg_attr(target_family = "wasm", wasm_bindgen(js_name = "create"))]
-    pub async fn new(
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> DotrainOrder {
+        Self::dummy()
+    }
+}
+
+#[wasm_export]
+impl DotrainOrder {
+    #[wasm_export(js_name = "initialize", unchecked_return_type = "void")]
+    pub async fn initialize(
+        &mut self,
         dotrain: String,
         settings: Option<Vec<String>>,
-    ) -> Result<DotrainOrder, DotrainOrderError> {
+    ) -> Result<(), DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -180,22 +198,21 @@ impl DotrainOrder {
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 
-        Ok(Self {
-            dotrain,
-            dotrain_yaml,
-        })
+        self.dotrain = dotrain;
+        self.dotrain_yaml = dotrain_yaml;
+
+        Ok(())
     }
 
     // get this instance's dotrain string
-    #[cfg(target_family = "wasm")]
-    #[wasm_bindgen(getter, js_name = "dotrain")]
-    pub fn dotrain(&self) -> String {
-        self.dotrain.clone()
+    #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
+    pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
+        Ok(self.dotrain.clone())
     }
 
-    #[cfg_attr(
-        target_family = "wasm",
-        wasm_bindgen(js_name = "composeScenarioToRainlang")
+    #[wasm_export(
+        js_name = "composeScenarioToRainlang",
+        unchecked_return_type = "string"
     )]
     pub async fn compose_scenario_to_rainlang(
         &self,
@@ -210,9 +227,9 @@ impl DotrainOrder {
         )?)
     }
 
-    #[cfg_attr(
-        target_family = "wasm",
-        wasm_bindgen(js_name = "composeScenarioToPostTaskRainlang")
+    #[wasm_export(
+        js_name = "composeScenarioToPostTaskRainlang",
+        unchecked_return_type = "string"
     )]
     pub async fn compose_scenario_to_post_task_rainlang(
         &self,
@@ -227,9 +244,9 @@ impl DotrainOrder {
         )?)
     }
 
-    #[cfg_attr(
-        target_family = "wasm",
-        wasm_bindgen(js_name = "composeDeploymentToRainlang")
+    #[wasm_export(
+        js_name = "composeDeploymentToRainlang",
+        unchecked_return_type = "string"
     )]
     pub async fn compose_deployment_to_rainlang(
         &self,
@@ -435,7 +452,11 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(
             dotrain_order
@@ -476,7 +497,11 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         let rainlang = dotrain_order
             .compose_scenario_to_rainlang("polygon".to_string())
@@ -524,7 +549,11 @@ _ _: 1 2;
             rpc_url = server.url("/rpc"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         let rainlang = dotrain_order
             .compose_scenario_to_post_task_rainlang("polygon".to_string())
@@ -569,10 +598,11 @@ networks:
             rpc_url = server.url("/rpc-mainnet"),
         );
 
-        let merged_dotrain_order =
-            DotrainOrder::new(dotrain.to_string(), Some(vec![settings.to_string()]))
-                .await
-                .unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), Some(vec![settings.to_string()]))
+            .await
+            .unwrap();
 
         assert_eq!(
             merged_dotrain_order
@@ -614,7 +644,11 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         let pragmas = dotrain_order
             .get_pragmas_for_scenario("sepolia")
@@ -656,7 +690,11 @@ _ _: 0 0;
             metaboard_url = server.url("/sg"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         let result = dotrain_order
             .get_contract_authoring_meta_v2_for_scenario("sepolia", pragma_addresses[0])
@@ -702,7 +740,12 @@ _ _: 0 0;
             metaboard_url = server.url("/sg"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
         let result = dotrain_order
             .get_pragma_words_for_scenario("sepolia")
             .await
@@ -752,7 +795,12 @@ _ _: 0 0;
             deployer_address = encode_prefixed(deployer),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
         let result = dotrain_order
             .get_deployer_words_for_scenario("sepolia")
             .await
@@ -803,7 +851,12 @@ _ _: 0 0;
             deployer_address = encode_prefixed(deployer),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
         let result = dotrain_order
             .get_all_words_for_scenario("sepolia")
             .await
@@ -876,7 +929,12 @@ _ _: 0 0;
             metaboard_url = server.url("/sg"),
             deployer_address = encode_prefixed(deployer),
         );
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
         let results = dotrain_order.get_all_scenarios_all_words().await.unwrap();
 
         assert_eq!(results.len(), 2);
@@ -1057,7 +1115,11 @@ _ _: 0 0;
             GH_COMMIT_SHA = GH_COMMIT_SHA,
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         dotrain_order.validate_raindex_version().await.unwrap();
     }
@@ -1082,7 +1144,11 @@ _ _: 0 0;
             GH_COMMIT_SHA = "1234567890",
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         assert!(dotrain_order.validate_raindex_version().await.is_err());
     }
@@ -1138,7 +1204,11 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
         );
 
-        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap();
 
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang("polygon".to_string())
