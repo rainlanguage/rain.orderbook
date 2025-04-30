@@ -354,7 +354,8 @@ _ _: 0 0;
                 .unwrap();
 
             // Nonce and secret are random, so we can't compare the whole calldata
-            assert_eq!(calldata.0.len(), expected_calldata.len());
+            assert_eq!(calldata.0[..164], expected_calldata[..164]);
+            assert_eq!(calldata.0[228..], expected_calldata[228..]);
         }
     }
 }
