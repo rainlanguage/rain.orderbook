@@ -1,5 +1,4 @@
 use super::*;
-use js_sys::{eval, Reflect};
 use rain_orderbook_app_settings::{gui::GuiDepositCfg, order::OrderIOCfg, token::TokenCfg};
 use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
@@ -289,6 +288,7 @@ mod tests {
         tests::{initialize_gui, initialize_gui_with_select_tokens, YAML},
     };
     use alloy::primitives::U256;
+    use js_sys::{eval, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PwWrCQBDN2tJS6EkKPRX6AV2yMQ0YocdgwVpQoqI3jYvGrLNxXaPGn_CTRZ2NKM5h3nszw8y8knWOF8RRDOMYJtSxTDwgOozdDlUIFphVMEOeELVMOLj3tt2fvFavqJZyzilwvZYq-cDaVOu0ZttCRkMxlUtdq7KqZ6s0oislduYgMYyY00H4-4a0_N3d7G8SKZNnbIfHHz5d8mh0498tFVaKhRXfJxfl-P4X0laH11XeCBZ_wlkP8qydySbMVOw1Z1DveOEWIGdJFkS9_s-7ccoFjzQ92adjngq5nXPQB95yLdOoAQAA";
