@@ -23,7 +23,7 @@ impl_wasm_traits!(RemoveOrderCalldata);
 /// Represents all possible errors of this module
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("undefined deployment")]
+    #[error("Undefined deployment")]
     UndefinedDeployment,
     #[error(transparent)]
     ParseConfigSourceError(#[from] ParseConfigSourceError),
@@ -36,10 +36,18 @@ pub enum Error {
 impl Error {
     fn to_readable_msg(&self) -> String {
         match self {
-            Self::UndefinedDeployment => "Undefined deployment".to_string(),
-            Self::ParseConfigSourceError(e) => format!("Parse config source error: {}", e),
-            Self::AddOrderArgsError(e) => format!("Add order args error: {}", e),
-            Self::RemoveOrderArgsError(e) => format!("Remove order args error: {}", e),
+            Self::UndefinedDeployment => {
+                "The specified deployment was not found in the .rain file.".to_string()
+            }
+            Self::ParseConfigSourceError(e) => {
+                format!("Failed to parse yaml configuration: {}", e)
+            }
+            Self::AddOrderArgsError(e) => {
+                format!("Failed to prepare the add order calldata: {}", e)
+            }
+            Self::RemoveOrderArgsError(e) => {
+                format!("Failed to prepare the remove order calldata: {}", e)
+            }
         }
     }
 }
@@ -348,7 +356,7 @@ _ _: 0 0;
                 .unwrap();
 
             // Nonce and secret are random, so we can't compare the whole calldata
-            assert_eq!(calldata.len(), expected_calldata.len());
+            assert_eq!(calldata.0, expected_calldata);
         }
     }
 }

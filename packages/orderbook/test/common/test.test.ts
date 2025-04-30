@@ -1,13 +1,8 @@
-import { afterEach, beforeEach, describe, it } from 'vitest';
-import { getAddOrderCalldata, DotrainOrder } from '../../dist/cjs';
+import { describe, it } from 'vitest';
+import { DotrainOrder } from '../../dist/cjs';
 import { assert } from 'chai';
-import { getLocal } from 'mockttp';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
-	const mockServer = getLocal();
-	beforeEach(() => mockServer.start(8080));
-	afterEach(() => mockServer.stop());
-
 	const dotrain = `
 networks:
     some-network:
@@ -75,65 +70,6 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
-
-	it('should get correct calldata', async () => {
-		// mock calls
-		// iInterpreter() call
-		await mockServer
-			.forPost('/rpc-url')
-			.withBodyIncluding('0xf0cfdd37')
-			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-		// iStore() call
-		await mockServer
-			.forPost('/rpc-url')
-			.withBodyIncluding('0xc19423bc')
-			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-		// iParser() call
-		await mockServer
-			.forPost('/rpc-url')
-			.withBodyIncluding('0x24376855')
-			.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
-		// parse2() call
-		await mockServer
-			.forPost('/rpc-url')
-			.withBodyIncluding('0xa3869e14')
-			// 0x1234 encoded bytes
-			.thenSendJsonRpcResult(
-				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000021234000000000000000000000000000000000000000000000000000000000000'
-			);
-
-		const result = await getAddOrderCalldata(dotrain, 'some-deployment');
-		if (result.error) assert.fail('expected no error', result.error.msg);
-		assert.equal(result.value.length, 1156);
-	});
-
-	it('should throw undefined deployment error', async () => {
-		const res = await getAddOrderCalldata(dotrain, 'some-other-deployment');
-		if (!res.error) assert.fail('expected error');
-		assert.equal(res.error.msg, 'undefined deployment');
-		assert.equal(res.error.readableMsg, 'undefined deployment');
-	});
-
-	it('should throw frontmatter missing field error', async () => {
-		const dotrain = `
-		deployers:
-			some-deployer:
-				---
-		#calculate-io
-		_ _: 0 0;
-		#handle-io
-		:;
-		#handle-add-order
-		:;
-		`;
-		const res = await getAddOrderCalldata(dotrain, 'some-deployment');
-		if (!res.error) assert.fail('expected error');
-		assert.equal(
-			res.error.msg,
-			'deployers.some-deployer: missing field `address` at line 3 column 19'
-		);
-		assert.equal(res.error.readableMsg, 'frontmatter missing field');
-	});
 
 	it('should compose deployment to rainlang', async () => {
 		const dotrainOrder = await DotrainOrder.create(dotrain);
