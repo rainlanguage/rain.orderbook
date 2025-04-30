@@ -89,7 +89,6 @@ pub enum DotrainOrderError {
     ParseRemoteTokensError(#[from] ParseRemoteTokensError),
 }
 
-#[cfg(target_family = "wasm")]
 impl From<DotrainOrderError> for JsValue {
     fn from(value: DotrainOrderError) -> Self {
         JsError::new(&value.to_string()).into()
@@ -150,24 +149,11 @@ impl DotrainOrder {
             },
         }
     }
-}
 
-#[wasm_bindgen]
-impl DotrainOrder {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> DotrainOrder {
-        Self::dummy()
-    }
-}
-
-#[wasm_export]
-impl DotrainOrder {
-    #[wasm_export(js_name = "initialize", unchecked_return_type = "void")]
-    pub async fn initialize(
-        &mut self,
+    async fn _initialize(
         dotrain: String,
         settings: Option<Vec<String>>,
-    ) -> Result<(), DotrainOrderError> {
+    ) -> Result<(String, DotrainYaml), DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -197,9 +183,83 @@ impl DotrainOrder {
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 
+        Ok((dotrain, dotrain_yaml))
+    }
+}
+
+#[wasm_bindgen]
+impl DotrainOrder {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> DotrainOrder {
+        Self::dummy()
+    }
+
+    /// Creates a new `DotrainOrder` instance asynchronously.
+    ///
+    /// **Deprecated:** This method is deprecated and will be removed in a future version.
+    /// The preferred way to create and initialize a `DotrainOrder` instance is to
+    /// first instantiate it using the constructor `new DotrainOrder()` and then
+    /// call the asynchronous `initialize` method.
+    ///
+    /// # Example (JavaScript)
+    ///
+    /// ```javascript
+    /// // Deprecated usage:
+    /// // const dotrainOrder = await DotrainOrder.create(dotrain, [settings]);
+    ///
+    /// // Preferred usage:
+    /// const dotrainOrder = new DotrainOrder();
+    /// await dotrainOrder.initialize(dotrain, [settings]);
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `dotrain` - A string containing the dotrain script.
+    /// * `settings` - An optional vector of strings representing additional configuration settings.
+    ///
+    /// # See Also
+    ///
+    /// * [`initialize`](#method.initialize)
+    #[wasm_bindgen(js_name = "create")]
+    pub async fn create(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
+        let (dotrain, dotrain_yaml) = DotrainOrder::_initialize(dotrain, settings).await?;
+        Ok(DotrainOrder {
+            dotrain,
+            dotrain_yaml,
+        })
+    }
+}
+
+#[wasm_export]
+impl DotrainOrder {
+    /// Initializes the `DotrainOrder` instance asynchronously with the provided dotrain script and settings.
+    ///
+    /// This method should be called after creating an instance with `new DotrainOrder()`.
+    /// It processes the dotrain script and settings, fetching remote configurations if necessary.
+    ///
+    /// # Example (JavaScript)
+    ///
+    /// ```javascript
+    /// const dotrainOrder = new DotrainOrder();
+    /// await dotrainOrder.initialize(dotrain, [settings]);
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `dotrain` - A string containing the dotrain script.
+    /// * `settings` - An optional vector of strings representing additional configuration settings.
+    #[wasm_export(js_name = "initialize", unchecked_return_type = "void")]
+    pub async fn initialize(
+        &mut self,
+        dotrain: String,
+        settings: Option<Vec<String>>,
+    ) -> Result<(), DotrainOrderError> {
+        let (dotrain, dotrain_yaml) = DotrainOrder::_initialize(dotrain, settings).await?;
         self.dotrain = dotrain;
         self.dotrain_yaml = dotrain_yaml;
-
         Ok(())
     }
 
