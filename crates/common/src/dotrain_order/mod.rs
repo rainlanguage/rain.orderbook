@@ -839,6 +839,114 @@ _ _: 0 0;
         }
     }
 
+    #[tokio::test]
+    async fn test_get_all_scenarios_all_words() {
+        let deployer = Address::random();
+        let pragma_addresses = vec![Address::random()];
+        let server = mock_server(pragma_addresses.clone());
+        let dotrain = format!(
+            r#"
+    networks:
+        sepolia:
+            rpc: {rpc_url}
+            chain-id: 0
+    deployers:
+        sepolia:
+            address: {deployer_address}
+    scenarios:
+        sepolia:
+            deployer: sepolia
+            bindings:
+                key1: 10
+        other-scenario:
+            deployer: sepolia
+            bindings:
+                key1: 40
+    metaboards:
+        sepolia: {metaboard_url}
+    ---
+    #key1 !Test binding
+    #calculate-io
+    using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
+    _: order-hash(),
+    _ _: 0 0;
+    #handle-io
+    :;"#,
+            rpc_url = server.url("/rpc"),
+            metaboard_url = server.url("/sg"),
+            deployer_address = encode_prefixed(deployer),
+        );
+        let dotrain_order = DotrainOrder::new(dotrain.to_string(), None).await.unwrap();
+        let results = dotrain_order.get_all_scenarios_all_words().await.unwrap();
+
+        assert_eq!(results.len(), 2);
+
+        let other_scenario_result = results
+            .iter()
+            .find(|r| r.scenario == "other-scenario")
+            .expect("Did not find results for 'other-scenario'");
+
+        assert_eq!(other_scenario_result.deployer_words.address, deployer);
+        assert!(matches!(
+            other_scenario_result.deployer_words.words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &other_scenario_result.deployer_words.words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
+        assert!(other_scenario_result.pragma_words.len() == 1);
+        assert_eq!(
+            other_scenario_result.pragma_words[0].address,
+            pragma_addresses[0]
+        );
+        assert!(matches!(
+            other_scenario_result.pragma_words[0].words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &other_scenario_result.pragma_words[0].words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
+
+        let sepolia_result = results
+            .iter()
+            .find(|r| r.scenario == "sepolia")
+            .expect("Did not find results for 'sepolia'");
+
+        assert_eq!(sepolia_result.deployer_words.address, deployer);
+        assert!(matches!(
+            sepolia_result.deployer_words.words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &sepolia_result.deployer_words.words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
+        assert!(sepolia_result.pragma_words.len() == 1);
+        assert_eq!(sepolia_result.pragma_words[0].address, pragma_addresses[0]);
+        assert!(matches!(
+            sepolia_result.pragma_words[0].words,
+            WordsResult::Success(_)
+        ));
+        if let WordsResult::Success(authoring_meta) = &sepolia_result.pragma_words[0].words {
+            assert_eq!(&authoring_meta.words[0].word, "some-word");
+            assert_eq!(&authoring_meta.words[0].description, "some-desc");
+
+            assert_eq!(&authoring_meta.words[1].word, "some-other-word");
+            assert_eq!(&authoring_meta.words[1].description, "some-other-desc");
+        }
+    }
+
     // helper function to mock rpc and sg response
     fn mock_server(with_pragma_addresses: Vec<Address>) -> MockServer {
         let server = MockServer::start();
