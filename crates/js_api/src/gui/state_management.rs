@@ -180,10 +180,7 @@ impl DotrainOrderGui {
             return Err(GuiError::DotrainMismatch);
         }
         let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        dotrain_order.initialize(dotrain.clone(), None).await?;
 
         let field_values = state
             .field_values
