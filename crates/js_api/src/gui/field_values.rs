@@ -195,12 +195,12 @@ mod tests {
         let field_value = gui.get_field_value("binding-1".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-1");
         assert_eq!(field_value.value, "some-default-value");
-        assert_eq!(field_value.is_preset, false);
+        assert!(!field_value.is_preset);
 
         let field_value = gui.get_field_value("binding-2".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-2");
         assert_eq!(field_value.value, "99.2");
-        assert_eq!(field_value.is_preset, true);
+        assert!(field_value.is_preset);
     }
 
     #[wasm_bindgen_test]
@@ -223,10 +223,10 @@ mod tests {
         assert_eq!(field_values.len(), 2);
         assert_eq!(field_values[0].binding, "binding-1");
         assert_eq!(field_values[0].value, "some-default-value");
-        assert_eq!(field_values[0].is_preset, false);
+        assert!(!field_values[0].is_preset);
         assert_eq!(field_values[1].binding, "binding-2");
         assert_eq!(field_values[1].value, "99.2");
-        assert_eq!(field_values[1].is_preset, true);
+        assert!(field_values[1].is_preset);
     }
 
     fn get_binding_1() -> GuiFieldDefinitionCfg {

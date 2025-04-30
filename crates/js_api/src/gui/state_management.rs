@@ -28,9 +28,9 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: &str) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(dotrain)?;
-        let hash = Sha256::digest(&dotrain_bytes);
+    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
+        let dotrain_bytes = bincode::serialize(&dotrain)?;
+        let hash = Sha256::digest(dotrain_bytes);
         Ok(URL_SAFE.encode(hash))
     }
 
@@ -51,7 +51,7 @@ impl DotrainOrderGui {
     }
 
     fn preset_to_pair_value(preset: GuiPresetCfg) -> field_values::PairValue {
-        if preset.id != "" {
+        if !preset.id.is_empty() {
             field_values::PairValue {
                 is_preset: true,
                 value: preset.id,
@@ -147,7 +147,9 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(&self.dotrain_order.dotrain())?,
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(
+                self.dotrain_order.dotrain().to_string(),
+            )?,
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -172,7 +174,7 @@ impl DotrainOrderGui {
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
 
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(&dotrain)?;
+        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
         if original_dotrain_hash != state.dotrain_hash {
