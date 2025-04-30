@@ -41,13 +41,13 @@ chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
+wasm-bindgen-utils = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
 proptest = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [dev-dependencies]

@@ -18,11 +18,10 @@ use rain_orderbook_app_settings::yaml::{
 use rain_orderbook_app_settings::ParseConfigSourceError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
+#[wasm_bindgen]
 pub struct DotrainOrder {
     dotrain: String,
     dotrain_yaml: DotrainYaml,
@@ -263,12 +262,6 @@ impl DotrainOrder {
 }
 
 impl DotrainOrder {
-    /// get this instance's dotrain string
-    #[cfg(not(target_family = "wasm"))]
-    pub fn dotrain(&self) -> &str {
-        &self.dotrain
-    }
-
     pub fn dotrain_yaml(&self) -> DotrainYaml {
         self.dotrain_yaml.clone()
     }
@@ -605,7 +598,7 @@ networks:
             .unwrap();
 
         assert_eq!(
-            merged_dotrain_order
+            dotrain_order
                 .orderbook_yaml()
                 .get_network("mainnet")
                 .unwrap()
