@@ -13,6 +13,10 @@ use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct AddOrderCalldata(#[tsify(type = "string")] Bytes);
+impl_wasm_traits!(AddOrderCalldata);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct RemoveOrderCalldata(#[tsify(type = "string")] Bytes);
 impl_wasm_traits!(RemoveOrderCalldata);
 
@@ -56,8 +60,14 @@ impl From<Error> for WasmEncodedError {
 }
 
 /// Get addOrder() calldata from a given dotrain text and deployment key from its frontmatter
-#[wasm_export(js_name = "getAddOrderCalldata", unchecked_return_type = "Bytes")]
-pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<Bytes, Error> {
+#[wasm_export(
+    js_name = "getAddOrderCalldata",
+    unchecked_return_type = "AddOrderCalldata"
+)]
+pub async fn get_add_order_calldata(
+    dotrain: &str,
+    deployment: &str,
+) -> Result<AddOrderCalldata, Error> {
     let config: Config = parse_frontmatter(dotrain.to_string()).await?.try_into()?;
     let deployment_ref = config
         .deployments
@@ -72,7 +82,7 @@ pub async fn get_add_order_calldata(dotrain: &str, deployment: &str) -> Result<B
         ..Default::default()
     };
     let calldata = add_order_args.get_add_order_calldata(tx_args).await?;
-    Ok(Bytes::copy_from_slice(&calldata))
+    Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
 /// Get removeOrder() calldata for a given order
