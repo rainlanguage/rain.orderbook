@@ -1,7 +1,7 @@
-import assert from 'assert';
-import { getLocal } from 'mockttp';
-import { describe, it, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, it } from 'vitest';
 import { getAddOrderCalldata, DotrainOrder } from '../../dist/cjs';
+import { assert } from 'chai';
+import { getLocal } from 'mockttp';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const mockServer = getLocal();
@@ -103,41 +103,36 @@ _ _: 0 0;
 			);
 
 		const result = await getAddOrderCalldata(dotrain, 'some-deployment');
-		assert.equal(result.length, 1156);
+		if (result.error) assert.fail('expected no error', result.error.msg);
+		assert.equal(result.value.length, 1156);
 	});
 
 	it('should throw undefined deployment error', async () => {
-		try {
-			await getAddOrderCalldata(dotrain, 'some-other-deployment');
-			assert.fail('expected to fail, but resolved');
-		} catch (error) {
-			assert.ok(error instanceof Error);
-			assert.equal(error.message, 'undefined deployment');
-		}
+		const res = await getAddOrderCalldata(dotrain, 'some-other-deployment');
+		if (!res.error) assert.fail('expected error');
+		assert.equal(res.error.msg, 'undefined deployment');
+		assert.equal(res.error.readableMsg, 'undefined deployment');
 	});
 
 	it('should throw frontmatter missing field error', async () => {
-		try {
-			const dotrain = `
-deployers:
-    some-deployer:
-        ---
-#calculate-io
-_ _: 0 0;
-#handle-io
-:;
-#handle-add-order
-:;
-`;
-			await getAddOrderCalldata(dotrain, 'some-deployment');
-			assert.fail('expected to fail, but resolved');
-		} catch (error) {
-			assert.ok(error instanceof Error);
-			assert.equal(
-				error.message,
-				'deployers.some-deployer: missing field `address` at line 3 column 19'
-			);
-		}
+		const dotrain = `
+		deployers:
+			some-deployer:
+				---
+		#calculate-io
+		_ _: 0 0;
+		#handle-io
+		:;
+		#handle-add-order
+		:;
+		`;
+		const res = await getAddOrderCalldata(dotrain, 'some-deployment');
+		if (!res.error) assert.fail('expected error');
+		assert.equal(
+			res.error.msg,
+			'deployers.some-deployer: missing field `address` at line 3 column 19'
+		);
+		assert.equal(res.error.readableMsg, 'frontmatter missing field');
 	});
 
 	it('should compose deployment to rainlang', async () => {
