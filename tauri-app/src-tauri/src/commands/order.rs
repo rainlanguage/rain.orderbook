@@ -144,12 +144,19 @@ pub async fn compose_from_scenario(
     settings: Option<Vec<String>>,
     scenario: ScenarioCfg,
 ) -> CommandResult<String> {
-    let order = DotrainOrder::new(dotrain.clone(), settings).await?;
-    Ok(order.compose_scenario_to_rainlang(scenario.key).await?)
+    let mut dotrain_order = DotrainOrder::new();
+    dotrain_order.initialize(dotrain, settings).await.unwrap();
+    Ok(dotrain_order
+        .compose_scenario_to_rainlang(scenario.key)
+        .await?)
 }
 
 #[tauri::command]
 pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
-    let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
-    Ok(order.validate_raindex_version().await?)
+    let mut dotrain_order = DotrainOrder::new();
+    dotrain_order
+        .initialize(dotrain, Some(settings))
+        .await
+        .unwrap();
+    Ok(dotrain_order.validate_raindex_version().await?)
 }
