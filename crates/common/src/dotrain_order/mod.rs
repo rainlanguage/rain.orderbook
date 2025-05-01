@@ -89,6 +89,73 @@ pub enum DotrainOrderError {
     ParseRemoteTokensError(#[from] ParseRemoteTokensError),
 }
 
+impl DotrainOrderError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            DotrainOrderError::ParseConfigSourceError(e) => {
+                format!("Error parsing the configuration source: {}", e)
+            }
+            DotrainOrderError::ScenarioNotFound(name) => {
+                format!("Scenario '{}' is not defined in the configuration.", name)
+            }
+            DotrainOrderError::MetaboardNotFound(name) => {
+                format!("Metaboard configuration for network '{}' is missing.", name)
+            }
+            DotrainOrderError::ComposeError(e) => {
+                format!(
+                    "Error composing the Rainlang script from the .rain file: {}",
+                    e
+                )
+            }
+            DotrainOrderError::AuthoringMetaV2Error(e) => {
+                format!("Error processing contract authoring metadata: {}", e)
+            }
+            DotrainOrderError::FetchAuthoringMetaV2WordError(e) => {
+                format!(
+                    "Error fetching words from contract authoring metadata: {}",
+                    e
+                )
+            }
+            DotrainOrderError::ReadableClientError(e) => {
+                format!("Problem communicating with the rpc: {}", e)
+            }
+            DotrainOrderError::ParserError(e) => {
+                format!("Error parsing the Rainlang script: {}", e)
+            }
+            DotrainOrderError::CleanUnusedFrontmatterError(e) => {
+                format!("Internal configuration processing error: {}", e)
+            }
+            DotrainOrderError::RaindexVersionMismatch(expected, got) => {
+                format!("Configuration Raindex version mismatch. Expected '{}', but found '{}'. Please update 'raindex-version'.", expected, got)
+            }
+            DotrainOrderError::MissingRaindexVersion(expected) => {
+                format!("The required 'raindex-version' field is missing. Please add it and set it to '{}'.", expected)
+            }
+            DotrainOrderError::DeploymentNotFound(name) => {
+                format!("Deployment '{}' is not defined in the configuration.", name)
+            }
+            DotrainOrderError::OrderNotFound(name) => {
+                format!("Order '{}' is not defined in the configuration.", name)
+            }
+            DotrainOrderError::TokenNotFound(name) => {
+                format!("Token '{}' is not defined in the configuration.", name)
+            }
+            DotrainOrderError::InvalidVaultIdIndex => {
+                "Internal error: Invalid index used for vault ID.".to_string()
+            }
+            DotrainOrderError::YamlError(e) => {
+                format!("Error parsing the YAML configuration: {}", e)
+            }
+            DotrainOrderError::ParseRemoteNetworksError(e) => {
+                format!("Error parsing the remote networks configuration: {}", e)
+            }
+            DotrainOrderError::ParseRemoteTokensError(e) => {
+                format!("Error parsing the remote tokens configuration: {}", e)
+            }
+        }
+    }
+}
+
 impl From<DotrainOrderError> for JsValue {
     fn from(value: DotrainOrderError) -> Self {
         JsError::new(&value.to_string()).into()
@@ -99,7 +166,7 @@ impl From<DotrainOrderError> for WasmEncodedError {
     fn from(value: DotrainOrderError) -> Self {
         WasmEncodedError {
             msg: value.to_string(),
-            readable_msg: value.to_string(),
+            readable_msg: value.to_readable_msg(),
         }
     }
 }
