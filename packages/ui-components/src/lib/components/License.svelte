@@ -14,7 +14,7 @@
 				source = await response.text();
 			}
 		} catch {
-			source = '';
+			source = 'Failed to fetch license';
 		}
 	});
 </script>
