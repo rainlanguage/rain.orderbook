@@ -1,4 +1,4 @@
-#[cfg(target_family = "wasm")]
+#[cfg(any(target_family = "wasm", test))]
 pub mod gui;
 #[cfg(target_family = "wasm")]
 pub mod subgraph;
