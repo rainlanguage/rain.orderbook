@@ -17,6 +17,8 @@ import {
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {console2} from "forge-std/Test.sol";
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
@@ -136,7 +138,6 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         {
             uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);
             uint256 expectedTakerOutput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerOutput, 18);
-
             // Mock and expect the token transfers.
             vm.mockCall(
                 address(iToken1),
@@ -159,7 +160,6 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 expectedTakerOutput18 > 0 ? 1 : 0
             );
         }
-
         vm.prank(bob);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         assertTrue(totalTakerInput.eq(expectedTakerInput), "totalTakerInput");
@@ -198,11 +198,11 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testTakeOrderMaximumInputSingleOrderLessThanMaximumOutput(uint256 maximumTakerInput18) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
-        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint224).max);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1000, uint256(int256(type(int224).max)));
 
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
 
-        Float expectedTakerInput = LibDecimalFloat.packLossless(1000, 0);
+        Float expectedTakerInput = LibDecimalFloat.packLossless(1, -15);
         Float expectedTakerOutput = expectedTakerInput.multiply(LibDecimalFloat.packLossless(2, 0));
 
         TestOrder[] memory testOrders = new TestOrder[](1);
@@ -225,7 +225,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1000;
         ownerDepositAmount18 = bound(ownerDepositAmount18, 0, orderLimit - 1);
-        maximumTakerInput18 = bound(maximumTakerInput18, 1000, type(uint224).max);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1000, uint256(int256(type(int224).max)));
         Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
         Float expectedTakerInput = ownerDepositAmount;
@@ -253,7 +253,8 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         TestOrder[] memory testOrders = new TestOrder[](1);
         testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
 
-        maximumTakerInput18 = bound(maximumTakerInput18, 1, type(uint256).max);
+        ownerDepositAmount18 = bound(ownerDepositAmount18, 0, uint256(int256(type(int224).max)));
+        maximumTakerInput18 = bound(maximumTakerInput18, 1, uint256(int256(type(int224).max)));
         // The expected input is the minimum of the maximum input and the order
         // limit.
         uint256 expectedTakerInput18 = maximumTakerInput18 < orderLimit18 ? maximumTakerInput18 : orderLimit18;
@@ -278,9 +279,10 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     /// that combined make up the maximum taker input. Both orders have the
     /// same owner.
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderMaximumInputMultipleOrders(uint256 ownerDepositAmount18, uint256 maximumTakerInput18)
-        external
-    {
+    function testTakeOrderMaximumInputMultipleOrdersSingleOwner(
+        uint256 ownerDepositAmount18,
+        uint256 maximumTakerInput18
+    ) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit18 = 1500;
 
@@ -288,7 +290,8 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         testOrders[0] = TestOrder(owner, "_ _:1e-15 2;:;");
         testOrders[1] = TestOrder(owner, "_ _:5e-16 2;:;");
 
-        maximumTakerInput18 = bound(maximumTakerInput18, 1, type(uint256).max);
+        ownerDepositAmount18 = bound(ownerDepositAmount18, 0, uint256(int256(type(int224).max)));
+        maximumTakerInput18 = bound(maximumTakerInput18, 1, uint256(int256(type(int224).max)));
         // The expected input is the minimum of the maximum input and the order
         // limit.
         uint256 expectedTakerInput18 = maximumTakerInput18 < orderLimit18 ? maximumTakerInput18 : orderLimit18;
@@ -318,8 +321,10 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         uint256 ownerTwoDepositAmount18,
         uint256 maximumTakerInput18
     ) external {
+        ownerOneDepositAmount18 = bound(ownerOneDepositAmount18, 0, uint256(int256(type(int224).max)) / 10);
         // Avoid information free overflow.
-        ownerTwoDepositAmount18 = bound(ownerTwoDepositAmount18, 0, type(uint256).max - ownerOneDepositAmount18);
+        ownerTwoDepositAmount18 =
+            bound(ownerTwoDepositAmount18, 0, uint256(int256(type(int224).max)) / 10 - ownerOneDepositAmount18);
 
         address ownerOne = address(uint160(uint256(keccak256("ownerOne.rain.test"))));
         address ownerTwo = address(uint160(uint256(keccak256("ownerTwo.rain.test"))));
@@ -328,7 +333,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         testOrders[0] = TestOrder(ownerOne, "_ _:1e-15 2;:;");
         testOrders[1] = TestOrder(ownerTwo, "_ _:5e-16 2;:;");
 
-        maximumTakerInput18 = bound(maximumTakerInput18, 1, type(uint256).max);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1, uint256(int256(type(int224).max)));
 
         // The first owner's deposit is fully used before the second owner's
         // deposit is used.
