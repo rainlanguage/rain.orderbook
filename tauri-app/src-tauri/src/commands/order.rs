@@ -154,9 +154,6 @@ pub async fn compose_from_scenario(
 #[tauri::command]
 pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
     let mut dotrain_order = DotrainOrder::new();
-    dotrain_order
-        .initialize(dotrain, Some(settings))
-        .await
-        .unwrap();
+    dotrain_order.initialize(dotrain, Some(settings)).await?;
     Ok(dotrain_order.validate_raindex_version().await?)
 }
