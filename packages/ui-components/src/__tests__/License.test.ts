@@ -52,6 +52,8 @@ describe('License', () => {
 			expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
 		});
 
-		expect(container.textContent).toBe('');
+		await waitFor(() => {
+			expect(screen.getByTestId('mock-component').getAttribute('source')).toBe('Failed to fetch license');
+		});
 	});
 });
