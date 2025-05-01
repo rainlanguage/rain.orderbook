@@ -215,10 +215,9 @@ io: if(
     }
 
     #[tokio::test]
-    #[cfg(not(target_family = "wasm"))] // Keep cfg consistent with the problems function
     async fn test_problems() {
         let lsp = DotrainAddOrderLsp::new(get_text_document(), HashMap::new());
-        let problems = lsp.problems("https://rpc.com", None, None).await;
+        let problems = lsp.problems("https://some-rpc-url.com", None, None).await;
 
         let expected_msgs = vec![
             "invalid reference to binding: raindex-subparser, only literal bindings can be referenced",
