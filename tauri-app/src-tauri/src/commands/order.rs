@@ -145,7 +145,7 @@ pub async fn compose_from_scenario(
     scenario: ScenarioCfg,
 ) -> CommandResult<String> {
     let mut dotrain_order = DotrainOrder::new();
-    dotrain_order.initialize(dotrain, settings).await.unwrap();
+    dotrain_order.initialize(dotrain, settings).await?;
     Ok(dotrain_order
         .compose_scenario_to_rainlang(scenario.key)
         .await?)
