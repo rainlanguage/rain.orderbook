@@ -45,7 +45,7 @@ describe('License', () => {
 	it('handles fetch network error gracefully', async () => {
 		mockFetch.mockRejectedValue(new Error('Network error'));
 
-		const { container } = render(License);
+		render(License);
 
 		await waitFor(() => {
 			expect(mockFetch).toHaveBeenCalledTimes(1);
