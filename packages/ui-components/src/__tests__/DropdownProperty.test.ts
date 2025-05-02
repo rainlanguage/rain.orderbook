@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest';
 import DropdownProperty from '../lib/components/DropdownProperty.svelte';
 
 describe('DropdownProperty', () => {
-    it('should render the component', () => {
-        render(DropdownProperty, {
-            key: 'testKey',
-            value: 'testValue'
-        });
+	it('should render the component', () => {
+		render(DropdownProperty, {
+			key: 'testKey',
+			value: 'testValue'
+		});
 
-        expect(screen.getByText('testKey')).toBeInTheDocument();
-        expect(screen.getByText('testValue')).toBeInTheDocument();
-    });
+		expect(screen.getByText('testKey')).toBeInTheDocument();
+		expect(screen.getByText('testValue')).toBeInTheDocument();
+	});
 });
