@@ -332,15 +332,15 @@ impl AddOrderArgs {
 
 #[cfg(test)]
 mod tests {
-    use crate::dotrain_order::DotrainOrder;
-
     use super::*;
+    use crate::dotrain_order::DotrainOrder;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
         order::{OrderCfg, OrderIOCfg},
         scenario::ScenarioCfg,
         token::TokenCfg,
+        yaml::default_document,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::sync::{Arc, RwLock};
@@ -973,5 +973,173 @@ _ _: 16 52;
             )
             .await
             .expect_err("expected to fail but resolved");
+    }
+
+    #[tokio::test]
+    async fn test_try_parse_rainlang() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let network = NetworkCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-network".to_string(),
+            rpc: Url::parse(&local_evm.url()).unwrap(),
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = DeployerCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            network: network_arc.clone(),
+            address: *local_evm.deployer.address(),
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = ScenarioCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token3 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token3".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let token3_arc = Arc::new(token3);
+        let order = OrderCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            inputs: vec![
+                OrderIOCfg {
+                    token: Some(token1_arc.clone()),
+                    vault_id: Some(U256::from(2)),
+                },
+                OrderIOCfg {
+                    token: Some(token2_arc.clone()),
+                    vault_id: Some(U256::from(1)),
+                },
+            ],
+            outputs: vec![OrderIOCfg {
+                token: Some(token3_arc.clone()),
+                vault_id: Some(U256::from(4)),
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = DeploymentCfg {
+            document: default_document(),
+            key: "".to_string(),
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
+        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        let res = add_order_args
+            .try_parse_rainlang(local_evm.url(), rainlang)
+            .await
+            .unwrap();
+        assert_eq!(
+            res,
+            vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 2, 0, 0, 0, 12, 2, 2, 0, 2, 1, 16, 0, 0, 1,
+                16, 0, 0, 0, 0, 0, 0
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_compose_to_rainlang() {
+        let local_evm = LocalEvm::new().await;
+        let dotrain = format!(
+            r#"
+networks:
+    test:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    test:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    test:
+        bindings:
+            key1: 10
+            key2: 20
+        deployer: test
+---
+#key1 !Test binding
+#key2 !Test binding
+#calculate-io
+_ _: key1 key2;
+#handle-io
+:;
+#handle-add-order
+:;"#,
+            rpc_url = local_evm.url(),
+        );
+
+        let add_order_args = AddOrderArgs {
+            dotrain: dotrain.clone(),
+            inputs: vec![],
+            outputs: vec![],
+            deployer: *local_evm.deployer.address(),
+            bindings: HashMap::from([
+                ("key1".to_string(), "10".to_string()),
+                ("key2".to_string(), "20".to_string()),
+            ]),
+        };
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        assert_eq!(
+            rainlang,
+            "/* 0. calculate-io */ \n_ _: 10 20;\n\n/* 1. handle-io */ \n:;"
+        );
     }
 }
