@@ -334,6 +334,7 @@ impl AddOrderArgs {
 mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
+    use alloy::primitives::Bytes;
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
@@ -343,7 +344,10 @@ mod tests {
         yaml::default_document,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
-    use std::sync::{Arc, RwLock};
+    use std::{
+        str::FromStr,
+        sync::{Arc, RwLock},
+    };
     use strict_yaml_rust::StrictYaml;
     use url::Url;
 
@@ -1141,5 +1145,58 @@ _ _: key1 key2;
             rainlang,
             "/* 0. calculate-io */ \n_ _: 10 20;\n\n/* 1. handle-io */ \n:;"
         );
+    }
+
+    #[tokio::test]
+    async fn test_add_order_call_try_into_write_contract_parameters() {
+        let add_order_call = addOrder2Call {
+            config: OrderConfigV3 {
+                evaluable: EvaluableV3 {
+                    interpreter: Address::from_str("0x1000000000000000000000000000000000000000")
+                        .unwrap(),
+                    store: Address::from_str("0x2000000000000000000000000000000000000000").unwrap(),
+                    bytecode: Bytes::from_str(
+                        "0x3000000000000000000000000000000000000000000000000000000000000000",
+                    )
+                    .unwrap(),
+                },
+                validInputs: vec![IO {
+                    token: Address::from_str("0x4000000000000000000000000000000000000000").unwrap(),
+                    decimals: 18,
+                    vaultId: U256::from(10),
+                }],
+                validOutputs: vec![IO {
+                    token: Address::from_str("0x5000000000000000000000000000000000000000").unwrap(),
+                    decimals: 18,
+                    vaultId: U256::from(20),
+                }],
+                nonce: alloy::primitives::private::rand::random::<U256>().into(),
+                secret: alloy::primitives::private::rand::random::<U256>().into(),
+                meta: Bytes::from_str("0x1234567890123456789012345678901234567890").unwrap(),
+            },
+            tasks: vec![],
+        };
+
+        let res = TransactionArgs {
+            orderbook_address: Address::from_str("0x1200000000000000000000000000000000000000")
+                .unwrap(),
+            max_priority_fee_per_gas: Some(U256::from(100)),
+            max_fee_per_gas: Some(U256::from(200)),
+            ..Default::default()
+        }
+        .try_into_write_contract_parameters(
+            add_order_call.clone(),
+            Address::from_str("0x1500000000000000000000000000000000000000").unwrap(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(res.call, add_order_call);
+        assert_eq!(
+            res.address,
+            Address::from_str("0x1500000000000000000000000000000000000000").unwrap()
+        );
+        assert_eq!(res.max_priority_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(res.max_fee_per_gas, Some(U256::from(200)));
     }
 }
