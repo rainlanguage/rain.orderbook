@@ -13,6 +13,7 @@ import {
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
     function checkBadStack(
@@ -30,6 +31,19 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(configBob, iInterpreter, iStore);
         configBob.validOutputs[0] = configAlice.validInputs[0];
         configBob.validInputs[0] = configAlice.validOutputs[0];
+
+        vm.mockCall(
+            configAlice.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
+        );
+        vm.mockCall(
+            configAlice.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
+        );
+        vm.mockCall(
+            configBob.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
+        );
+        vm.mockCall(
+            configBob.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
+        );
 
         configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
         configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, console2} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     IOrderBookV5,
     QuoteV2,
@@ -17,8 +17,9 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
-
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
+
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 /// @title OrderBookQuoteTest
 contract OrderBookQuoteTest is OrderBookExternalRealTest {
@@ -46,10 +47,13 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     ) internal {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
-        uint256 depositAmount18 = depositAmount.toFixedDecimalLossless(18);
+        uint8 depositDecimals = 12;
+        uint256 depositAmount18 = depositAmount.toFixedDecimalLossless(depositDecimals);
 
         config.validOutputs[0].token = address(iToken0);
-        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
+        vm.mockCall(
+            address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(depositDecimals)
+        );
 
         config.validInputs[0].token = address(iToken1);
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
@@ -81,6 +85,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
             (bool success, Float maxOutput, Float ioRatio) = iOrderbook.quote2(quoteConfig);
             assert(success);
+
             assertTrue(maxOutput.eq(expectedMaxOutput[i]), "max output");
             assertTrue(ioRatio.eq(expectedIoRatio[i]), "io ratio");
         }
@@ -108,8 +113,8 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
 
     /// forge-config: default.fuzz.runs = 100
     function testQuoteSimple(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
-        depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
-        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        depositAmount18 = bound(depositAmount18, 1e18, uint256(int256(type(int224).max)) / 1e6);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 12);
         checkQuote(
             owner,
             config,
@@ -125,14 +130,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     function testQuoteMaxOutput(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         depositAmount18 = bound(depositAmount18, 1, 1e12);
         Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 12);
-        checkQuote(
-            owner,
-            config,
-            "_ _:1 2;:;",
-            depositAmount,
-            depositAmount.multiply(LibDecimalFloat.packLossless(1, 6)),
-            LibDecimalFloat.packLossless(2, 0)
-        );
+        checkQuote(owner, config, "_ _:1 2;:;", depositAmount, depositAmount, LibDecimalFloat.packLossless(2, 0));
     }
 
     /// Can access context.
@@ -140,9 +138,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
     function testQuoteContextSender(address owner, OrderConfigV4 memory config, uint256 depositAmount18) external {
         // Max amount needs to be small enough to be scaled up to 18 decimals
         // from 12 decimals.
-        depositAmount18 = bound(depositAmount18, 1e18, type(uint256).max / 1e6);
+        depositAmount18 = bound(depositAmount18, 1e18, uint256(int256(type(int224).max)) / 1e6);
 
-        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 18);
+        Float depositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18, 12);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 

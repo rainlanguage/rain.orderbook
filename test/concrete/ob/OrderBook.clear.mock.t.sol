@@ -18,9 +18,9 @@ import {
     Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner, StackItem} from "src/concrete/ob/OrderBook.sol";
+import {NotOrderOwner, StackItem, NegativeBounty} from "src/concrete/ob/OrderBook.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {StateNamespace} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
@@ -35,10 +35,11 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
     function _depositInternal(address depositor, address token, bytes32 vaultId, Float amount) internal {
+        uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
         vm.prank(depositor);
         vm.mockCall(
             token,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount18),
             abi.encode(true)
         );
         iOrderbook.deposit3(address(token), vaultId, amount, new TaskV2[](0));
@@ -157,13 +158,9 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
                 vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackAlice, new uint256[](0)));
 
-                call = abi.encodeWithSelector(
-                    IInterpreterV4.eval4.selector,
-                    clear.bobConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(StateNamespace.wrap(uint256(uint160(clear.bob))), address(iOrderbook))
-                );
+                call = abi.encodeWithSelector(IInterpreterV4.eval4.selector);
 
-                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackBob, new uint256[](0)));
+                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackBob, new bytes32[](0)));
             }
 
             OrderV4 memory aliceOrder;
@@ -400,7 +397,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
         checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0, 0);
-        checkClearStruct.expectedError = stdError.arithmeticError;
+        checkClearStruct.expectedError = abi.encodeWithSelector(NegativeBounty.selector);
 
         checkClear(checkClearStruct);
     }

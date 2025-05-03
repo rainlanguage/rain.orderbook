@@ -44,10 +44,11 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
+        uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
         vm.startPrank(owner);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), amount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), amount18),
             abi.encode(true)
         );
 
@@ -229,7 +230,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     /// A revert in the action prevents the deposit from being enacted.
     /// forge-config: default.fuzz.runs = 10
     function testDepositRevertInAction(address alice, bytes32 vaultId, uint256 amount18) external {
-        vm.assume(amount18 > 0);
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.startPrank(alice);
         vm.mockCall(
             address(iToken0),

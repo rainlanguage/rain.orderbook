@@ -18,6 +18,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
     using Strings for address;
@@ -164,6 +165,19 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
             abi.encode(true)
         );
 
+        vm.mockCall(
+            configAlice.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12)
+        );
+        vm.mockCall(
+            configAlice.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6)
+        );
+        vm.mockCall(
+            configBob.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6)
+        );
+        vm.mockCall(
+            configBob.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12)
+        );
+
         OrderV4 memory orderAlice =
             OrderV4(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
         OrderV4 memory orderBob =
@@ -176,7 +190,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         iOrderbook.deposit3(
             configAlice.validOutputs[0].token,
             configAlice.validOutputs[0].vaultId,
-            LibDecimalFloat.packLossless(100e6, -18),
+            LibDecimalFloat.packLossless(100e6, -6),
             new TaskV2[](0)
         );
 
@@ -187,7 +201,7 @@ contract OrderBookClearOrderContextTest is OrderBookExternalRealTest {
         iOrderbook.deposit3(
             configBob.validOutputs[0].token,
             configBob.validOutputs[0].vaultId,
-            LibDecimalFloat.packLossless(100e12, -18),
+            LibDecimalFloat.packLossless(100e12, -12),
             new TaskV2[](0)
         );
 
