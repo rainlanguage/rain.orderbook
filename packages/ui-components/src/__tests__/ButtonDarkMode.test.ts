@@ -26,7 +26,7 @@ describe('ButtonDarkMode.svelte', () => {
 		expect(screen.getByTestId('mock-component')).toBeInTheDocument();
 	});
 
-	it('sets colorTheme to "light" when toggled from light mode', async () => {
+	it('sets colorTheme to "light" when toggled in light mode', async () => {
 		render(ButtonDarkMode, { props: { colorTheme: mockColorThemeStore } });
 		const button = screen.getByRole('button');
 
@@ -39,7 +39,7 @@ describe('ButtonDarkMode.svelte', () => {
 		expect(document.documentElement.classList.contains('dark')).toBe(false);
 	});
 
-	it('sets colorTheme to "dark" when toggled from dark mode', async () => {
+	it('sets colorTheme to "dark" when clicked in dark mode', async () => {
 		document.documentElement.classList.add('dark');
 
 		render(ButtonDarkMode, { props: { colorTheme: mockColorThemeStore } });
