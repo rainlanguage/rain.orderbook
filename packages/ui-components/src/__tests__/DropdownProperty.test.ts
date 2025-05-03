@@ -12,4 +12,11 @@ describe('DropdownProperty', () => {
 		expect(screen.getByText('testKey')).toBeInTheDocument();
 		expect(screen.getByText('testValue')).toBeInTheDocument();
 	});
+	it('should handle empty values', () => {
+		render(DropdownProperty, {
+			key: 'emptyTest',
+			value: ''
+		});
+		expect(screen.getByText('emptyTest')).toBeInTheDocument();
+	});
 });
