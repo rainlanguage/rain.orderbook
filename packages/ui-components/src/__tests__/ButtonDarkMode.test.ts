@@ -36,6 +36,7 @@ describe('ButtonDarkMode.svelte', () => {
 		await fireEvent.click(button);
 
 		expect(get(mockColorThemeStore)).toBe('light');
+		expect(document.documentElement.classList.contains('dark')).toBe(false);
 	});
 
 	it('sets colorTheme to "dark" when toggled from dark mode', async () => {
@@ -50,5 +51,6 @@ describe('ButtonDarkMode.svelte', () => {
 		await fireEvent.click(button);
 
 		expect(get(mockColorThemeStore)).toBe('dark');
+		expect(document.documentElement.classList.contains('dark')).toBe(true);
 	});
 });
