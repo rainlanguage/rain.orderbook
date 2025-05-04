@@ -7,6 +7,6 @@ export const makeChartData = async (dotrain: string): Promise<ChartData> =>
 export const makeDeploymentsDebugDataMap = async (
   dotrain: string,
   settings: string,
-  blockNumbers?: Record<string, number>,
+  blockNumbers?: Record<number, number>,
 ): Promise<DeploymentsDebugDataMap> =>
   invoke('make_deployment_debug', { dotrain, settings, blockNumbers });
