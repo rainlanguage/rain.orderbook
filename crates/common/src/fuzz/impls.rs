@@ -625,11 +625,9 @@ impl FuzzRunner {
                                     Ok(fuzz_result) => {
                                         pair_data.pair = pair_symbols;
                                         pair_data.result = Some(fuzz_result);
-                                        pair_data.error = eval_error.and_then(|v| match v {
-                                            Ok(abi_decoded_error) => {
-                                                Some(abi_decoded_error.to_string())
-                                            }
-                                            Err(e) => Some(e.to_string()),
+                                        pair_data.error = eval_error.map(|v| match v {
+                                            Ok(abi_decoded_error) => abi_decoded_error.to_string(),
+                                            Err(e) => e.to_string(),
                                         });
                                     }
                                     Err(e) => {
