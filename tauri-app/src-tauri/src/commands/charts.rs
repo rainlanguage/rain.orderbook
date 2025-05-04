@@ -7,7 +7,8 @@ use tauri::State;
 #[tauri::command]
 pub async fn make_charts(dotrain: String) -> CommandResult<ChartData> {
     let runner = FuzzRunner::new(None);
-    Ok(runner.make_chart_data(&dotrain, None, None).await?)
+    let mut context = FuzzRunnerContext::new(&dotrain, None, None)?;
+    Ok(runner.make_chart_data(&mut context).await?)
 }
 
 #[tauri::command]
@@ -18,7 +19,6 @@ pub async fn make_deployment_debug(
     shared_state: State<'_, SharedState>,
 ) -> CommandResult<DeploymentsDebugDataMap> {
     let mut runner = shared_state.debug_runner.lock().await;
-    Ok(runner
-        .make_debug_data(&dotrain, settings, None, block_numbers)
-        .await?)
+    let mut context = FuzzRunnerContext::new(&dotrain, settings, None)?;
+    Ok(runner.make_debug_data(&mut context, block_numbers).await?)
 }

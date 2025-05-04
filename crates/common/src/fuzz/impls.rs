@@ -46,13 +46,6 @@ impl FuzzResult {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct FuzzRunnerInputs {
-    pub dotrain: String,
-    pub dotrain_yaml: DotrainYaml,
-    pub rng: TestRng,
-}
-
 #[derive(Clone)]
 pub struct FuzzRunner {
     pub forker: Forker,
@@ -100,20 +93,20 @@ pub enum FuzzRunnerError {
     YamlError(#[from] YamlError),
 }
 
-impl FuzzRunner {
-    /// Creates a new instance optionally with the given [Forker] instance
-    pub fn new(forker: Option<Forker>) -> FuzzRunner {
-        Self {
-            forker: forker.unwrap_or_default(),
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct FuzzRunnerContext {
+    pub dotrain: String,
+    pub dotrain_yaml: DotrainYaml,
+    pub rng: TestRng,
+}
 
-    /// Prepares the given dotrain and settings text inputs consumable values by the FuzzRunner methods
-    pub fn prepare_inputs(
+impl FuzzRunnerContext {
+    /// Creates a new instance with the given dotrain and optional settings and seed
+    pub fn new(
         dotrain: &str,
         settings: Option<String>,
         seed: Option<[u8; 32]>,
-    ) -> Result<FuzzRunnerInputs, FuzzRunnerError> {
+    ) -> Result<FuzzRunnerContext, FuzzRunnerError> {
         let frontmatter = RainDocument::get_front_matter(dotrain)
             .unwrap_or("")
             .to_string();
@@ -126,25 +119,34 @@ impl FuzzRunner {
 
         let dotrain_yaml = DotrainYaml::new(source, false)?;
 
-        Ok(FuzzRunnerInputs {
+        Ok(FuzzRunnerContext {
             dotrain: dotrain.into(),
             dotrain_yaml,
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
         })
     }
+}
+
+impl FuzzRunner {
+    /// Creates a new instance optionally with the given [Forker] instance
+    pub fn new(forker: Option<Forker>) -> FuzzRunner {
+        Self {
+            forker: forker.unwrap_or_default(),
+        }
+    }
 
     pub async fn run_scenario_by_key(
         &mut self,
-        inputs: &mut FuzzRunnerInputs,
+        context: &mut FuzzRunnerContext,
         key: &str,
     ) -> Result<FuzzResult, FuzzRunnerError> {
-        let scenario = inputs.dotrain_yaml.get_scenario(key)?;
-        self.run_scenario(inputs, &scenario).await
+        let scenario = context.dotrain_yaml.get_scenario(key)?;
+        self.run_scenario(context, &scenario).await
     }
 
     pub async fn run_scenario(
         &mut self,
-        inputs: &mut FuzzRunnerInputs,
+        context: &mut FuzzRunnerContext,
         scenario: &ScenarioCfg,
     ) -> Result<FuzzResult, FuzzRunnerError> {
         // If the scenario doesn't have runs, default is 1
@@ -186,7 +188,7 @@ impl FuzzRunner {
         // Create a new RainDocument with the dotrain and the bindings
         // The bindings in the dotrain string are ignored by the RainDocument
         let rain_document = RainDocument::create(
-            inputs.dotrain.clone(),
+            context.dotrain.clone(),
             None,
             None,
             Some(scenario_bindings.clone()),
@@ -202,7 +204,7 @@ impl FuzzRunner {
                 .collect::<Vec<String>>(),
         );
 
-        let dotrain = Arc::new(inputs.dotrain.clone());
+        let dotrain = Arc::new(context.dotrain.clone());
         let mut handles = vec![];
 
         for block_number in blocks {
@@ -221,7 +223,7 @@ impl FuzzRunner {
                 // For each scenario.fuzz_binds, add a random value
                 for elided_binding in elided_binding_keys.as_slice() {
                     let mut val: [u8; 32] = [0; 32];
-                    inputs.rng.fill_bytes(&mut val);
+                    context.rng.fill_bytes(&mut val);
                     let hex = alloy::primitives::hex::encode_prefixed(val);
                     final_bindings.push(Rebind(elided_binding.to_string(), hex));
                 }
@@ -278,7 +280,7 @@ impl FuzzRunner {
     /// the given order on that fork.
     pub async fn run_debug(
         &mut self,
-        inputs: &mut FuzzRunnerInputs,
+        context: &mut FuzzRunnerContext,
         block_number: u64,
         input: OrderIOCfg,
         output: OrderIOCfg,
@@ -315,7 +317,7 @@ impl FuzzRunner {
         // Create a new RainDocument with the dotrain and the bindings
         // The bindings in the dotrain string are ignored by the RainDocument
         let rain_document = RainDocument::create(
-            inputs.dotrain.clone(),
+            context.dotrain.clone(),
             None,
             None,
             Some(scenario_bindings.clone()),
@@ -331,7 +333,7 @@ impl FuzzRunner {
                 .collect::<Vec<String>>(),
         );
 
-        let dotrain = Arc::new(inputs.dotrain.clone());
+        let dotrain = Arc::new(context.dotrain.clone());
         let elided_binding_keys = Arc::clone(&elided_binding_keys);
         let deployer = Arc::clone(&deployer);
         let scenario_bindings = scenario_bindings.clone();
@@ -342,7 +344,7 @@ impl FuzzRunner {
         // For each scenario.fuzz_binds, add a random value
         for elided_binding in elided_binding_keys.as_slice() {
             let mut val: [u8; 32] = [0; 32];
-            inputs.rng.fill_bytes(&mut val);
+            context.rng.fill_bytes(&mut val);
             let hex = alloy::primitives::hex::encode_prefixed(val);
             final_bindings.push(Rebind(elided_binding.to_string(), hex));
         }
@@ -472,12 +474,9 @@ impl FuzzRunner {
 
     pub async fn make_chart_data(
         &self,
-        dotrain: &str,
-        settings: Option<String>,
-        seed: Option<[u8; 32]>,
+        context: &mut FuzzRunnerContext,
     ) -> Result<ChartData, FuzzRunnerError> {
-        let mut inputs = Self::prepare_inputs(dotrain, settings, seed)?;
-        let charts = inputs.dotrain_yaml.get_charts()?;
+        let charts = context.dotrain_yaml.get_charts()?;
         let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
 
         for (_, chart) in charts.clone() {
@@ -485,7 +484,7 @@ impl FuzzRunner {
             let mut runner = self.clone();
             scenarios_data.entry(scenario_key.clone()).or_insert(
                 runner
-                    .run_scenario_by_key(&mut inputs, &scenario_key)
+                    .run_scenario_by_key(context, &scenario_key)
                     .await?
                     .flatten_traces()?,
             );
@@ -497,17 +496,14 @@ impl FuzzRunner {
         })
     }
 
-    /// Evals the given dotrain for all the deployments in the given settings and reports the results
+    /// Evals the given dotrain for all the deployments in the context settings and reports the results
     pub async fn make_debug_data(
         &mut self,
-        dotrain: &str,
-        settings: Option<String>,
-        seed: Option<[u8; 32]>,
+        context: &mut FuzzRunnerContext,
         block_numbers: Option<HashMap<u64, u64>>,
     ) -> Result<DeploymentsDebugDataMap, FuzzRunnerError> {
-        let mut inputs = Self::prepare_inputs(dotrain, settings, seed)?;
         let mut data_map: HashMap<String, DeploymentDebugData> = HashMap::new();
-        let deployments_keys = inputs.dotrain_yaml.get_deployment_keys()?;
+        let deployments_keys = context.dotrain_yaml.get_deployment_keys()?;
 
         for deployment_key in deployments_keys {
             let mut result = DeploymentDebugData {
@@ -515,7 +511,7 @@ impl FuzzRunner {
                 block_number: 0,
                 chain_id: 0,
             };
-            let deployment = match inputs.dotrain_yaml.get_deployment(&deployment_key) {
+            let deployment = match context.dotrain_yaml.get_deployment(&deployment_key) {
                 Ok(v) => v,
                 Err(e) => {
                     // record the error and continue to next deployment
@@ -626,7 +622,7 @@ impl FuzzRunner {
 
                         match self
                             .run_debug(
-                                &mut inputs,
+                                context,
                                 block_number,
                                 input.clone(),
                                 output.clone(),
@@ -674,16 +670,14 @@ mod tests {
     use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_prepare_inputs() {
-        let local_evm = LocalEvm::new().await;
-        let dotrain = format!(
-            r#"
+    async fn test_fuzz_runner_context_new_happy() {
+        let dotrain = r#"
 deployers:
     some-key:
-        address: {deployer}
+        address: 0x1111111111111111111111111111111111111111
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpc: https://example.com
         chain-id: 123
 scenarios:
     some-key:
@@ -699,17 +693,39 @@ b: fuzzed;
 #handle-io
 :;
 #handle-add-order
-:;"#,
-            rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
-        );
-        let inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+:;"#;
+        let context = FuzzRunnerContext::new(dotrain, None, None).unwrap();
 
-        assert_eq!(inputs.dotrain, dotrain);
+        assert_eq!(context.dotrain, dotrain);
         assert_eq!(
-            inputs.dotrain_yaml.get_scenario_keys().unwrap(),
+            context.dotrain_yaml.get_scenario_keys().unwrap(),
             vec!["some-key"]
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_fuzz_runner_context_new_unhappy() {
+        let dotrain = r#"
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: bound,
+b: fuzzed;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+        let bad_settings = r#"
+bad-networks-key:
+    some-key:
+        rpc: https://example.com
+        chain-id: 123"#;
+
+        let error = FuzzRunnerContext::new(dotrain, Some(bad_settings.to_string()), None)
+            .expect_err("expected to fail, but resolved");
+
+        matches!(error, FuzzRunnerError::YamlError(_));
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -743,10 +759,10 @@ b: fuzzed;
             deployer = local_evm.deployer.address()
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -793,10 +809,10 @@ _: block-number();
             end_block = last_block_number
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -851,10 +867,10 @@ d: 4;
             deployer = local_evm.deployer.address()
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -905,10 +921,10 @@ _: context<4 4>();
             deployer = local_evm.deployer.address()
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -949,10 +965,10 @@ _: context<50 50>();
             deployer = local_evm.deployer.address()
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e));
 
@@ -987,10 +1003,10 @@ _: context<1 0>();
             deployer = local_evm.deployer.address()
         );
         let mut runner = FuzzRunner::new(None);
-        let mut inputs = FuzzRunner::prepare_inputs(&dotrain, None, None).unwrap();
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .run_scenario_by_key(&mut inputs, "some-key")
+            .run_scenario_by_key(&mut context, "some-key")
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -1106,9 +1122,10 @@ _: add(something 30);
             usdce_address = usdce_address,
         );
         let mut runner = FuzzRunner::new(None);
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         let res = runner
-            .make_debug_data(&dotrain, None, None, None)
+            .make_debug_data(&mut context, None)
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
@@ -1139,11 +1156,12 @@ _: add(something 30);
         assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
 
         // run again with known block numbers
+        let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
         let known_block_number = local_evm.provider.get_block_number().await.unwrap();
         let mut block_numbers = HashMap::new();
         block_numbers.insert(123, known_block_number);
         let res = runner
-            .make_debug_data(&dotrain, None, None, Some(block_numbers))
+            .make_debug_data(&mut context, Some(block_numbers))
             .await
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
