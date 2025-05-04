@@ -72,13 +72,14 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
     /// Can reenter and deposit from within a flash loan.
     /// forge-config: default.fuzz.runs = 100
-    function testReenterDeposit(uint256 vaultId, uint256 loanAmount, uint256 depositAmount) external {
+    function testReenterDeposit(uint256 vaultId, uint256 loanAmount, uint256 depositAmount18) external {
+        depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int224).max)));
+        Float depositAmount = LibDecimalFloat.packLossless(int256(depositAmount18), -18);
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
-        depositAmount = bound(depositAmount, 1, type(uint256).max);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, borrower, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
         checkFlashLoanNotRevert(
@@ -92,13 +93,14 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
     /// Can reenter and withdraw from within a flash loan.
     /// forge-config: default.fuzz.runs = 100
-    function testReenterWithdraw(uint256 vaultId, uint256 loanAmount, uint256 withdrawAmount) external {
+    function testReenterWithdraw(uint256 vaultId, uint256 loanAmount, uint256 withdrawAmount18) external {
+        withdrawAmount18 = bound(withdrawAmount18, 1, uint256(int256(type(int224).max)));
+        Float withdrawAmount = LibDecimalFloat.packLossless(int256(withdrawAmount18), 0);
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
-        withdrawAmount = bound(withdrawAmount, 1, type(uint256).max);
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(borrower), withdrawAmount),
+            abi.encodeWithSelector(IERC20.transfer.selector, address(borrower), withdrawAmount18),
             abi.encode(true)
         );
         checkFlashLoanNotRevert(
@@ -138,6 +140,8 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
     /// forge-config: default.fuzz.runs = 100
     function testReenterTakeOrder(uint256 loanAmount, OrderConfigV4 memory config) external {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
+        config.validInputs[0].token = address(iToken0);
+        config.validOutputs[0].token = address(iToken1);
         config.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
 
         vm.recordLogs();

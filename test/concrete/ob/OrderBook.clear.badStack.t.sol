@@ -29,21 +29,10 @@ contract OrderBookClearOrderBadStackTest is OrderBookExternalRealTest {
 
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);
         LibTestAddOrder.conformConfig(configBob, iInterpreter, iStore);
+        configAlice.validInputs[0].token = address(iToken0);
+        configAlice.validOutputs[0].token = address(iToken1);
         configBob.validOutputs[0] = configAlice.validInputs[0];
         configBob.validInputs[0] = configAlice.validOutputs[0];
-
-        vm.mockCall(
-            configAlice.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
-        );
-        vm.mockCall(
-            configAlice.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
-        );
-        vm.mockCall(
-            configBob.validInputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
-        );
-        vm.mockCall(
-            configBob.validOutputs[0].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18)
-        );
 
         configAlice.evaluable.bytecode = iParserV2.parse2(rainStringAlice);
         configBob.evaluable.bytecode = iParserV2.parse2(rainStringBob);

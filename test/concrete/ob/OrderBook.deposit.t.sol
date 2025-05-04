@@ -161,12 +161,12 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
             assertEq(vm.getRecordedLogs().length, 1, "logs");
             // - reentrancy guard x3
-            // - vault balance floats x2 x2 (x4)
+            // - vault balance floats x2
             // - token decimals x2
-            assertTrue(reads.length == 8 || reads.length == 10, "reads");
+            assertTrue(reads.length == 6 || reads.length == 8, "reads");
             // // - reentrancy guard x2
             // // - vault balance x1
-            assertTrue(writes.length == 5 || writes.length == 4, "writes");
+            assertTrue(writes.length == 4 || writes.length == 3, "writes");
             assertTrue(
                 iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
                     actions[i].amount.add(vaultBalanceBefore)
