@@ -104,7 +104,7 @@ impl FuzzRunner {
     /// Creates a new instance optionally with the given [Forker] instance
     pub fn new(forker: Option<Forker>) -> FuzzRunner {
         Self {
-            forker: forker.unwrap_or(Forker::new()),
+            forker: forker.unwrap_or_default(),
         }
     }
 
