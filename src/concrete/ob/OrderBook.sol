@@ -71,6 +71,9 @@ import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol"
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
+import {console2} from "forge-std/Test.sol";
+
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
 error ReentrancyGuardReentrantCall();
@@ -636,6 +639,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         {
             Float aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
             Float bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
+
+            console2.log(LibFormatDecimalFloat.toDecimalString(aliceBounty));
+            console2.log(LibFormatDecimalFloat.toDecimalString(bobBounty));
 
             // A negative bounty means there is a spread between the orders.
             // This is a critical error because it means the DEX could be

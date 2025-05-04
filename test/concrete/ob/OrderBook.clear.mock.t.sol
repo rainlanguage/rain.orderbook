@@ -290,7 +290,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
-    function testClearFuzzIoRatio(
+    function testClearFuzzIoRatioHappy(
         address alice,
         OrderConfigV4 memory aliceConfig,
         address bob,
