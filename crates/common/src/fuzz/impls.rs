@@ -272,7 +272,10 @@ impl FuzzRunner {
         })
     }
 
-    /// Debugs (evals) the given order pair on the self [Forker] instance
+    /// Debugs (evals) the given order pair on the self [Forker] instance.
+    /// It first switches to the cached fork for the given chain/block number\
+    /// or creates a new fork one if it doesnt already exists, and then evals
+    /// the given order on that fork.
     pub async fn run_debug(
         &mut self,
         inputs: &mut FuzzRunnerInputs,
@@ -500,7 +503,7 @@ impl FuzzRunner {
         dotrain: &str,
         settings: Option<String>,
         seed: Option<[u8; 32]>,
-        block_numbers: Option<HashMap<String, u64>>,
+        block_numbers: Option<HashMap<u64, u64>>,
     ) -> Result<DeploymentsDebugDataMap, FuzzRunnerError> {
         let mut inputs = Self::prepare_inputs(dotrain, settings, seed)?;
         let mut data_map: HashMap<String, DeploymentDebugData> = HashMap::new();
@@ -509,11 +512,14 @@ impl FuzzRunner {
         for deployment_key in deployments_keys {
             let mut result = DeploymentDebugData {
                 pairs_data: vec![],
-                block_number: U256::from(0),
+                block_number: 0,
+                chain_id: 0,
             };
             let deployment = match inputs.dotrain_yaml.get_deployment(&deployment_key) {
                 Ok(v) => v,
                 Err(e) => {
+                    // record the error and continue to next deployment
+                    // if deployment was not found in the settings
                     result.pairs_data.push(DeploymentDebugPairData {
                         order: "".to_string(),
                         scenario: "".to_string(),
@@ -526,14 +532,19 @@ impl FuzzRunner {
                 }
             };
             let scenario = deployment.scenario.clone();
+
+            // set chain id for the result
+            result.chain_id = deployment.scenario.deployer.network.chain_id;
+
+            // handle the block number for this debug and keep it as last fetched block number for the returned report
             let block_number = if let Some(bn) = block_numbers
                 .as_ref()
                 .unwrap_or(&HashMap::new())
-                .get(&deployment_key)
+                .get(&result.chain_id)
             {
                 *bn
             } else {
-                // Fetch the latest block number
+                // Fetch the latest block number, if failed, record the error and continue to next deployment
                 match ReadableClientHttp::new_from_url(scenario.deployer.network.rpc.to_string()) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
@@ -562,7 +573,9 @@ impl FuzzRunner {
                     }
                 }
             };
-            result.block_number = U256::from(block_number);
+
+            // set the last fetched block number for the result
+            result.block_number = block_number;
 
             'outter: for input in &deployment.order.inputs {
                 let input_token = match input
@@ -572,6 +585,7 @@ impl FuzzRunner {
                 {
                     Ok(token) => token,
                     Err(e) => {
+                        // record the error and continue to next input token
                         result.pairs_data.push(DeploymentDebugPairData {
                             order: deployment.order.key.clone(),
                             scenario: scenario.key.clone(),
@@ -590,6 +604,7 @@ impl FuzzRunner {
                     {
                         Ok(token) => token,
                         Err(e) => {
+                            // record the error and continue to next output token
                             result.pairs_data.push(DeploymentDebugPairData {
                                 order: deployment.order.key.clone(),
                                 scenario: scenario.key.clone(),
@@ -624,6 +639,7 @@ impl FuzzRunner {
                                     Ok(fuzz_result) => {
                                         pair_data.pair = pair_symbols;
                                         pair_data.result = Some(fuzz_result);
+                                        // store the abi decoded eval revert error
                                         pair_data.error = eval_error.map(|v| match v {
                                             Ok(abi_decoded_error) => abi_decoded_error.to_string(),
                                             Err(e) => e.to_string(),
@@ -1097,6 +1113,11 @@ _: add(something 30);
             .map_err(|e| println!("{:#?}", e))
             .unwrap();
 
+        assert_eq!(res.data_map["sell-wflr"].chain_id, 123);
+        assert_eq!(
+            res.data_map["sell-wflr"].block_number,
+            local_evm.provider.get_block_number().await.unwrap()
+        );
         let result_rows = res.data_map["sell-wflr"].pairs_data[0]
             .result
             .as_ref()
@@ -1117,6 +1138,36 @@ _: add(something 30);
         assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
         assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
 
-        println!("{:#?}", result_rows);
+        // run again with known block numbers
+        let known_block_number = local_evm.provider.get_block_number().await.unwrap();
+        let mut block_numbers = HashMap::new();
+        block_numbers.insert(123, known_block_number);
+        let res = runner
+            .make_debug_data(&dotrain, None, None, Some(block_numbers))
+            .await
+            .map_err(|e| println!("{:#?}", e))
+            .unwrap();
+
+        assert_eq!(res.data_map["sell-wflr"].chain_id, 123);
+        assert_eq!(res.data_map["sell-wflr"].block_number, known_block_number);
+        let result_rows = res.data_map["sell-wflr"].pairs_data[0]
+            .result
+            .as_ref()
+            .unwrap()
+            .data
+            .rows[0]
+            .clone();
+        assert_eq!(
+            result_rows[0], // input token
+            U256::from_be_slice(usdce_address.as_slice())
+        );
+        assert_eq!(result_rows[1], U256::from(6)); // input token decimals
+        assert_eq!(result_rows[2], U256::from(10)); // input vault id
+        assert_eq!(result_rows[3], U256::from_be_slice(wflr_address.as_slice())); // output token
+        assert_eq!(result_rows[4], U256::from(18)); // output token decimals
+        assert_eq!(result_rows[5], U256::from(20)); // output vault id
+        assert_eq!(result_rows[6], U256::from(51000000000000000000_u128)); // calculation
+        assert_eq!(result_rows[7], U256::from(30000000000000000000_u128)); // max output
+        assert_eq!(result_rows[8], U256::from(51000000000000000000_u128)); // io ratio
     }
 }

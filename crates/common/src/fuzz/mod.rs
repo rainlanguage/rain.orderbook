@@ -1,4 +1,3 @@
-use alloy::primitives::U256;
 pub use rain_interpreter_eval::trace::*;
 use rain_orderbook_app_settings::chart::ChartCfg;
 use serde::{Deserialize, Serialize};
@@ -61,8 +60,8 @@ impl_wasm_traits!(DeploymentsDebugDataMap);
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentDebugData {
     pub pairs_data: Vec<DeploymentDebugPairData>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "`0x${string}`"))]
-    pub block_number: U256,
+    pub block_number: u64,
+    pub chain_id: u64,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DeploymentDebugData);

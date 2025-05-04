@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { formatUnits } from 'viem';
   import type { DeploymentsDebugDataMap } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
-  import { formatUnits, hexToBigInt } from 'viem';
   import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
   import { handleScenarioDebugModal } from '$lib/services/modal';
   import { DEFAULT_REFRESH_INTERVAL, Refresh } from '@rainlanguage/ui-components';
@@ -21,7 +21,7 @@
   } from 'flowbite-svelte';
 
   let enabled = false;
-  let blockNumbers: Record<string, number> = {};
+  let blockNumbers: Record<number, number> = {};
 
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
   let displayData: DeploymentsDebugDataMap['dataMap'] | undefined = undefined;
@@ -32,9 +32,15 @@
       $settingsText,
       enabled ? undefined : blockNumbers,
     );
-    // set block number of last debug data for each deployment key
+    // build a map of chain ids against block numbers for unified debug on same
+    // block number per chain id, this is because we dont want to run the debug
+    // on different blocks for different deployments if those deployments happen
+    // to be on the same network but for example with different rpc, so we keep
+    // a map of chain ids against block number rather than map of deployment keys
+    // against block numbers
     for (const deploymentKey in res.dataMap) {
-      blockNumbers[deploymentKey] = parseInt(res.dataMap[deploymentKey].blockNumber) || 0;
+      blockNumbers[res.dataMap[deploymentKey].chainId] =
+        res.dataMap[deploymentKey].blockNumber || 0;
     }
     return res;
   };
@@ -145,7 +151,7 @@
                   </span>
                 </TableBodyCell>
               {/if}
-              <TableBodyCell>{hexToBigInt(results.blockNumber).toString()}</TableBodyCell>
+              <TableBodyCell>{results.blockNumber}</TableBodyCell>
               <TableBodyCell>
                 <button on:click={() => handleScenarioDebugModal(item.pair, fuzzResult.data)}>
                   <BugOutline size="sm" color="grey" />
