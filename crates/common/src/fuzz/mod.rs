@@ -1,16 +1,6 @@
-use alloy::primitives::{Address, U256};
-use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_interpreter_bindings::{
-    DeployerISP::{iInterpreterCall, iStoreCall},
-    IInterpreterV3::eval3Call,
-};
+use alloy::primitives::U256;
 pub use rain_interpreter_eval::trace::*;
-use rain_orderbook_app_settings::{
-    chart::ChartCfg,
-    order::OrderIOCfg,
-    yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
-};
-use rain_orderbook_bindings::IERC20;
+use rain_orderbook_app_settings::chart::ChartCfg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -55,9 +45,23 @@ impl_wasm_traits!(FuzzResultFlat);
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
+pub struct DeploymentsDebugDataMap {
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, DeploymentDebugData>")
+    )]
+    pub data_map: HashMap<String, DeploymentDebugData>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeploymentsDebugDataMap);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct DeploymentDebugData {
-    pub result: HashMap<String, Vec<DeploymentDebugPairData>>,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub pairs_data: Vec<DeploymentDebugPairData>,
+    #[cfg_attr(target_family = "wasm", tsify(type = "`0x${string}`"))]
     pub block_number: U256,
 }
 #[cfg(target_family = "wasm")]
