@@ -1,5 +1,5 @@
 import { derived, writable } from 'svelte/store';
-import { cachedWritableStore } from './cachedWritableStore';
+import { cachedWritableStore } from '@rainlanguage/ui-components';
 import { toasts } from '$lib/stores/toasts';
 import { reportErrorToSentry } from '$lib/services/sentry';
 

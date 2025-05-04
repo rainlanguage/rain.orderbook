@@ -1,5 +1,5 @@
 import { derived } from 'svelte/store';
-import { cachedWritableString } from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableString } from '@rainlanguage/ui-components';
 
 interface ValidatedSetting<T> {
   value: T;
