@@ -196,7 +196,7 @@ impl DotrainOrderGui {
             }
             _ => {}
         }
-        Ok(self.get_current_deployment()?)
+        self.get_current_deployment()
     }
 
     /// Check allowances for all inputs and outputs of the order
@@ -259,7 +259,7 @@ impl DotrainOrderGui {
         let mut calldatas = Vec::new();
         for (token_address, deposit_amount) in deposits_map {
             let deposit_args = DepositArgs {
-                token: token_address.clone(),
+                token: token_address,
                 amount: deposit_amount,
                 vault_id: U256::default(),
             };
@@ -293,8 +293,8 @@ impl DotrainOrderGui {
             .get_scenario(&deployment.deployment.scenario.key)?
             .update_bindings(
                 self.field_values
-                    .iter()
-                    .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
+                    .keys()
+                    .map(|k| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
                     .collect::<Result<HashMap<String, String>, GuiError>>()?,
             )?;
         Ok(())
@@ -425,7 +425,7 @@ impl DotrainOrderGui {
                     .order
                     .inputs
                     .iter()
-                    .map(|input| input.vault_id.clone())
+                    .map(|input| input.vault_id)
                     .collect(),
             ),
             (
@@ -435,7 +435,7 @@ impl DotrainOrderGui {
                     .order
                     .outputs
                     .iter()
-                    .map(|output| output.vault_id.clone())
+                    .map(|output| output.vault_id)
                     .collect(),
             ),
         ]);
@@ -467,30 +467,27 @@ impl DotrainOrderGui {
 
         let mut approvals = Vec::new();
         let approval_calldata = self.generate_approval_calldatas(owner).await?;
-        match approval_calldata {
-            ApprovalCalldataResult::Calldatas(calldatas) => {
-                let mut output_token_infos = HashMap::new();
-                for output in deployment.deployment.order.outputs.clone() {
-                    if output.token.is_none() {
-                        return Err(GuiError::SelectTokensNotSet);
-                    }
-                    let token = output.token.as_ref().unwrap();
-                    let token_info = self.get_token_info(token.key.clone()).await?;
-                    output_token_infos.insert(token.address.clone(), token_info);
+        if let ApprovalCalldataResult::Calldatas(calldatas) = approval_calldata {
+            let mut output_token_infos = HashMap::new();
+            for output in deployment.deployment.order.outputs.clone() {
+                if output.token.is_none() {
+                    return Err(GuiError::SelectTokensNotSet);
                 }
-
-                for calldata in calldatas.iter() {
-                    let token_info = output_token_infos
-                        .get(&calldata.token)
-                        .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
-                    approvals.push(ExtendedApprovalCalldata {
-                        token: calldata.token,
-                        calldata: calldata.calldata.clone(),
-                        symbol: token_info.symbol.clone(),
-                    });
-                }
+                let token = output.token.as_ref().unwrap();
+                let token_info = self.get_token_info(token.key.clone()).await?;
+                output_token_infos.insert(token.address, token_info);
             }
-            _ => {}
+
+            for calldata in calldatas.iter() {
+                let token_info = output_token_infos
+                    .get(&calldata.token)
+                    .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
+                approvals.push(ExtendedApprovalCalldata {
+                    token: calldata.token,
+                    calldata: calldata.calldata.clone(),
+                    symbol: token_info.symbol.clone(),
+                });
+            }
         }
 
         let deposit_and_add_order_calldata =
@@ -508,5 +505,190 @@ impl DotrainOrderGui {
                 .address,
             chain_id: deployment.deployment.order.network.chain_id,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    async fn test_generate_deposit_calldatas() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(_) => {
+                panic!("should not be calldatas");
+            }
+            DepositCalldataResult::NoDeposits => {}
+        }
+
+        gui.save_deposit("token1".to_string(), "1200".to_string())
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert_eq!(calldatas.len(), 1);
+                assert_eq!(calldatas[0].len(), 164);
+            }
+            DepositCalldataResult::NoDeposits => {
+                panic!("should not be no deposits");
+            }
+        }
+
+        gui.save_deposit("token1".to_string(), "0".to_string())
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert!(calldatas.is_empty());
+            }
+            DepositCalldataResult::NoDeposits => {
+                panic!("should not be no deposits");
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_missing_select_tokens() {
+        let mut gui = initialize_gui_with_select_tokens().await;
+
+        let err = gui
+            .check_allowances(Address::random().to_string())
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui.generate_deposit_calldatas().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui.generate_add_order_calldata().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+
+        let err = gui
+            .generate_deposit_and_add_order_calldatas()
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenMustBeSelected("token3".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The token 'token3' must be selected to proceed."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_missing_field_values() {
+        let mut gui = initialize_gui(None).await;
+
+        let err = gui.generate_add_order_calldata().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldValueNotSet("Field 2 name".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The value for field 'Field 2 name' is required but has not been set."
+        );
+
+        let err = gui
+            .generate_deposit_and_add_order_calldatas()
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldValueNotSet("Field 2 name".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The value for field 'Field 2 name' is required but has not been set."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_vault_ids() {
+        let gui = initialize_gui(None).await;
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], Some(U256::from(1)));
+        assert_eq!(res.0["output"][0], Some(U256::from(1)));
+
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], None);
+        assert_eq!(res.0["output"][0], None);
+
+        gui.set_vault_id(true, 0, Some("999".to_string())).unwrap();
+        gui.set_vault_id(false, 0, Some("888".to_string())).unwrap();
+
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0.len(), 2);
+        assert_eq!(res.0["input"][0], Some(U256::from(999)));
+        assert_eq!(res.0["output"][0], Some(U256::from(888)));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_has_any_vault_id() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+        assert!(!gui.has_any_vault_id().unwrap());
+        gui.set_vault_id(true, 0, Some("1".to_string())).unwrap();
+        assert!(gui.has_any_vault_id().unwrap());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_update_scenario_bindings() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let deployment = gui.get_current_deployment().unwrap();
+        assert!(!deployment
+            .deployment
+            .scenario
+            .bindings
+            .contains_key("binding-1"));
+        assert!(!deployment
+            .deployment
+            .scenario
+            .bindings
+            .contains_key("binding-2"));
+
+        gui.save_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.save_field_value("binding-2".to_string(), "200".to_string())
+            .unwrap();
+        gui.update_scenario_bindings().unwrap();
+
+        let deployment = gui.get_current_deployment().unwrap();
+        assert_eq!(deployment.deployment.scenario.bindings["binding-1"], "100");
+        assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
     }
 }

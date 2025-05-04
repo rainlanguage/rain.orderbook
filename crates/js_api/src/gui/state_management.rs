@@ -29,9 +29,9 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: &str) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(dotrain)?;
-        let hash = Sha256::digest(&dotrain_bytes);
+    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
+        let dotrain_bytes = bincode::serialize(&dotrain)?;
+        let hash = Sha256::digest(dotrain_bytes);
         Ok(URL_SAFE.encode(hash))
     }
 
@@ -52,7 +52,7 @@ impl DotrainOrderGui {
     }
 
     fn preset_to_pair_value(preset: GuiPresetCfg) -> field_values::PairValue {
-        if preset.id != "" {
+        if !preset.id.is_empty() {
             field_values::PairValue {
                 is_preset: true,
                 value: preset.id,
@@ -148,7 +148,9 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(&self.dotrain_order.dotrain())?,
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(
+                self.dotrain_order.dotrain().to_string(),
+            )?,
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -173,7 +175,7 @@ impl DotrainOrderGui {
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
 
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(&dotrain)?;
+        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
         if original_dotrain_hash != state.dotrain_hash {
@@ -291,7 +293,7 @@ mod tests {
     use alloy::primitives::U256;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Py4rCQBDMuMsuC3uShT0t7Ac45KkkggcRRfFxEFH0ppNBjZOZmEx8_oSfLGpPRLEPXVXdTXdXTrvFF-Bsyf0ln2NTU_EGaBrG85CFoGBoGVPkA1CKFeX2q22vJx_VN6hEhBRzKrciXv1BbSFlVNZ1JsiULUQiy67hFvU4IjiN2VEdRIohdbo-aP4AzTvD3ekpoTz6hPbg8sO_jd6VbvfsXGYlW2h5Hror0_MKQIMAH-pJVfi4MwqDmtNp-d3NOh6n0-HGbdT6TupY41Jjwgip_CqnlFEi8dU-9mnExD6kXJ4Bw5ytw6gBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PwWrCQBDN2tJS6EkKPRX6AV2yMQ0YocdgwVpQoqI3jYvGrLNxXaPGn_CTRZ2NKM5h3nszw8y8knWOF8RRDOMYJtSxTDwgOozdDlUIFphVMEOeELVMOLj3tt2fvFavqJZyzilwvZYq-cDaVOu0ZttCRkMxlUtdq7KqZ6s0oislduYgMYyY00H4-4a0_N3d7G8SKZNnbIfHHz5d8mh0498tFVaKhRXfJxfl-P4X0laH11XeCBZ_wlkP8qydySbMVOw1Z1DveOEWIGdJFkS9_s-7ccoFjzQ92adjngq5nXPQB95yLdOoAQAA";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -321,7 +323,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
         gui.deserialize_state(YAML.to_string(), SERIALIZED_STATE.to_string(), None)
             .await
             .unwrap();
@@ -351,7 +353,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state_invalid_dotrain() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
         let dotrain = r#"
         dotrain:
             name: Test
