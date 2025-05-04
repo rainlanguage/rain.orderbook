@@ -2,7 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest, LibDecimalFloat, Float} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {
+    OrderBookExternalRealTest,
+    LibDecimalFloat,
+    Float,
+    console2
+} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderConfigV4,
     EvaluableV4,
@@ -21,31 +26,37 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
     using LibFormatDecimalFloat for Float;
 
+    bool internal isFirstDeposit = true;
+
     function checkReentrancyRW() internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
-        // 2 reads for deposit.
-        assert(reads.length == 5);
+        // 5 reads for deposit.
+        assertEq(reads.length, isFirstDeposit ? 8 : 6);
         assert(reads[0] == bytes32(uint256(0)));
         assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[4] == bytes32(uint256(0)));
+        assert(reads[reads.length - 1] == bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
-        // 1 write for deposit.
-        assert(writes.length == 3);
+        // 2 write for deposit.
+        assertEq(writes.length, isFirstDeposit ? 4 : 3);
         assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[2] == bytes32(uint256(0)));
+        assert(writes[writes.length - 1] == bytes32(uint256(0)));
+
+        isFirstDeposit = false;
     }
 
     function checkDeposit(
         address owner,
         bytes32 vaultId,
         Float amount,
+        uint8 decimals,
         bytes[] memory evalStrings,
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
-        uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
+        uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, decimals);
         vm.startPrank(owner);
+        console2.log("amount18", amount18);
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), amount18),
@@ -67,62 +78,68 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, Float amount) external {
+    function testOrderBookDepositEnactEmptyNoop(address alice, bytes32 vaultId, uint256 amount18) external {
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
         vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](0);
-        checkDeposit(alice, vaultId, amount, evals, 0, 0);
+        checkDeposit(alice, vaultId, amount, 18, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, Float amount) external {
+    function testOrderBookDepositEnactOneStateless(address alice, bytes32 vaultId, uint256 amount18) external {
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
         vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:1;");
-        checkDeposit(alice, vaultId, amount, evals, 0, 0);
+        checkDeposit(alice, vaultId, amount, 18, evals, 0, 0);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, Float amount) external {
+    function testOrderBookDepositEnactOneReadState(address alice, bytes32 vaultId, uint256 amount18) external {
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
         vm.assume(amount.gt(LibDecimalFloat.packLossless(0, 0)));
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes("_:get(0);");
         // each get is 2 reads. 1 during eval and 1 during store set.
         // each get is 1 write.
-        checkDeposit(alice, vaultId, amount, evals, 2, 1);
+        checkDeposit(alice, vaultId, amount, 18, evals, 2, 1);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, int256 amount18) external {
-        amount18 = bound(amount18, 1, type(int128).max);
-        Float amount = LibDecimalFloat.packLossless(amount18, -18);
+    function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, uint256 amount18) external {
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals = new bytes[](1);
         evals[0] = bytes(":set(1 2);");
         // 1 for the set.
-        checkDeposit(alice, vaultId, amount, evals, 1, 1);
+        checkDeposit(alice, vaultId, amount, 18, evals, 1, 1);
 
         evals[0] = bytes(":ensure(equal-to(get(1) 2) \"set works\");");
-        checkDeposit(alice, vaultId, amount, evals, 2, 1);
+        checkDeposit(alice, vaultId, amount, 18, evals, 2, 1);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, int256 amount18) external {
-        amount18 = bound(amount18, 1, type(int128).max);
-        Float amount = LibDecimalFloat.packLossless(amount18, -18);
+    function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, uint256 amount18) external {
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
         evals0[2] = bytes(":set(2 3);");
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
-        checkDeposit(alice, vaultId, amount, evals0, 6, 4);
+        checkDeposit(alice, vaultId, amount, 18, evals0, 6, 4);
 
         bytes[] memory evals1 = new bytes[](4);
         evals1[0] = bytes(":set(1 20);");
         evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
         evals1[2] = bytes(":set(2 30);");
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
-        checkDeposit(alice, vaultId, amount, evals1, 6, 4);
+        checkDeposit(alice, vaultId, amount, 18, evals1, 6, 4);
     }
 
     /// forge-config: default.fuzz.runs = 10
@@ -130,49 +147,54 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         address alice,
         address bob,
         bytes32 vaultId,
-        int256 amount18
+        uint256 amount18
     ) external {
         vm.assume(alice != bob);
-        amount18 = bound(amount18, 1, type(int128).max);
+        amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
 
-        Float amount = LibDecimalFloat.packLossless(amount18, -18);
+        Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals0 = new bytes[](4);
         evals0[0] = bytes(":set(1 2);");
         evals0[1] = bytes(":ensure(equal-to(get(1) 2) \"0th set not equal\");");
         evals0[2] = bytes(":set(2 3);");
         evals0[3] = bytes(":ensure(equal-to(get(2) 3) \"1st set not equal\");");
-        checkDeposit(alice, vaultId, amount, evals0, 6, 4);
+        checkDeposit(alice, vaultId, amount, 18, evals0, 6, 4);
 
         bytes[] memory evals1 = new bytes[](4);
         evals1[0] = bytes(":set(1 20);");
         evals1[1] = bytes(":ensure(equal-to(get(1) 20) \"0th set not equal\");");
         evals1[2] = bytes(":set(2 30);");
         evals1[3] = bytes(":ensure(equal-to(get(2) 30) \"1st set not equal\");");
-        checkDeposit(bob, vaultId, amount, evals1, 6, 4);
+        checkDeposit(bob, vaultId, amount, 18, evals1, 6, 4);
 
         bytes[] memory evals2 = new bytes[](2);
         evals2[0] = bytes(":ensure(equal-to(get(1) 2) \"alice state 1\");");
         evals2[1] = bytes(":ensure(equal-to(get(2) 3) \"alice state 2\");");
-        checkDeposit(alice, vaultId, amount, evals2, 4, 2);
+        checkDeposit(alice, vaultId, amount, 18, evals2, 4, 2);
 
         bytes[] memory evals3 = new bytes[](2);
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
-        checkDeposit(bob, vaultId, amount, evals3, 4, 2);
+        checkDeposit(bob, vaultId, amount, 18, evals3, 4, 2);
     }
 
     /// forge-config: default.fuzz.runs = 10
-    function testOrderDepositContext(address alice, bytes32 vaultId, int256 preDepositAmount18, int256 depositAmount18)
-        external
-    {
-        preDepositAmount18 = bound(preDepositAmount18, 1, type(int128).max);
-        depositAmount18 = bound(depositAmount18, 1, type(int128).max);
+    function testOrderDepositContext(
+        address alice,
+        bytes32 vaultId,
+        uint256 preDepositAmount18,
+        uint256 depositAmount18
+    ) external {
+        preDepositAmount18 = bound(preDepositAmount18, 1, uint256(int256(type(int128).max)));
+        depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int128).max)));
 
-        Float preDepositAmount = LibDecimalFloat.packLossless(preDepositAmount18, -18);
-        Float depositAmount = LibDecimalFloat.packLossless(depositAmount18, -18);
+        Float preDepositAmount = LibDecimalFloat.packLossless(int256(preDepositAmount18), -6);
+        Float depositAmount = LibDecimalFloat.packLossless(int256(depositAmount18), -6);
 
-        checkDeposit(alice, vaultId, preDepositAmount, new bytes[](0), 0, 0);
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
+
+        checkDeposit(alice, vaultId, preDepositAmount, 6, new bytes[](0), 0, 0);
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 
@@ -211,7 +233,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-balance() ",
                 preDepositAmount.toDecimalString(),
-                "e-6) \"vault balance is pre deposit\");"
+                ") \"vault balance is pre deposit\");"
             )
         );
         evals[5] = bytes(
@@ -219,12 +241,11 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-amount() ",
                 depositAmount.toDecimalString(),
-                "e-6) \"amount is depositAmount\");"
+                ") \"amount is depositAmount\");"
             )
         );
 
-        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
-        checkDeposit(alice, vaultId, depositAmount, evals, 0, 0);
+        checkDeposit(alice, vaultId, depositAmount, 6, evals, 0, 0);
     }
 
     /// A revert in the action prevents the deposit from being enacted.
