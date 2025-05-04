@@ -376,7 +376,6 @@ impl FuzzRunner {
             input_symbol_res.typed_return._0, output_symbol_res.typed_return._0
         );
 
-        // let handle = tokio::spawn(async move {
         final_bindings.extend(scenario_bindings.clone());
 
         let rainlang_string = RainDocument::compose_text(
