@@ -514,8 +514,8 @@ impl FuzzRunner {
             let deployment = match context.dotrain_yaml.get_deployment(&deployment_key) {
                 Ok(v) => v,
                 Err(e) => {
-                    // record the error and continue to next deployment
-                    // if deployment was not found in the settings
+                    // record the error and move on to the next key if no associated
+                    // deployment was not found in the settings for the current key
                     result.pairs_data.push(DeploymentDebugPairData {
                         order: "".to_string(),
                         scenario: "".to_string(),
@@ -529,18 +529,19 @@ impl FuzzRunner {
             };
             let scenario = deployment.scenario.clone();
 
-            // set chain id for the result
+            // set the result chain id
             result.chain_id = deployment.scenario.deployer.network.chain_id;
 
-            // handle the block number for this debug and keep it as last fetched block number for the returned report
-            let block_number = if let Some(bn) = block_numbers
+            // handle the block number for this network/deployment debug case
+            // and keep it as last fetched block number for the returned report
+            let block_number = if let Some(cached_block_number) = block_numbers
                 .as_ref()
                 .unwrap_or(&HashMap::new())
                 .get(&result.chain_id)
             {
-                *bn
+                *cached_block_number
             } else {
-                // Fetch the latest block number, if failed, record the error and continue to next deployment
+                // Fetch the latest block number, if failed, record the error and continue to next deployment key
                 match ReadableClientHttp::new_from_url(scenario.deployer.network.rpc.to_string()) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
@@ -570,10 +571,11 @@ impl FuzzRunner {
                 }
             };
 
-            // set the last fetched block number for the result
+            // set the result block number
             result.block_number = block_number;
 
-            'outter: for input in &deployment.order.inputs {
+            // loop over order's IO to create pairs and execute run_debug() for them
+            'inputs_loop: for input in &deployment.order.inputs {
                 let input_token = match input
                     .token
                     .clone()
@@ -589,10 +591,10 @@ impl FuzzRunner {
                             result: None,
                             error: Some(e.to_string()),
                         });
-                        continue 'outter;
+                        continue 'inputs_loop;
                     }
                 };
-                'inner: for output in &deployment.order.outputs {
+                'outputs_loop: for output in &deployment.order.outputs {
                     let output_token = match output
                         .token
                         .clone()
@@ -608,7 +610,7 @@ impl FuzzRunner {
                                 result: None,
                                 error: Some(e.to_string()),
                             });
-                            continue 'inner;
+                            continue 'outputs_loop;
                         }
                     };
                     if input_token.address != output_token.address {
