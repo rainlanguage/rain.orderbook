@@ -211,6 +211,8 @@
 
   $: deploymentNetworks = getDeploymentsNetworks(deployments);
 
+  // gathers key/value pairs of deployments chain ids
+  // against their network name to be used for debug modal
   function getDeploymentsNetworks(
     deployments: Record<string, DeploymentCfg> | undefined,
   ): Record<number, string> | undefined {

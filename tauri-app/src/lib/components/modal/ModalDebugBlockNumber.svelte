@@ -11,7 +11,7 @@
   } from 'flowbite-svelte';
 
   export let open = false;
-  export let networks: Record<string, string> | undefined = undefined;
+  export let networks: Record<number, string> | undefined = undefined;
   export let blockNumbers: Record<number, number | undefined> = {};
 </script>
 
