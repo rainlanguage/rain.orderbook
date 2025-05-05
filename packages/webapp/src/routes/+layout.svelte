@@ -12,9 +12,9 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import { ToastProvider, WalletProvider, useToasts } from '@rainlanguage/ui-components';
+	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
-	import { writable } from 'svelte/store';
+	import { toasts } from '$lib/stores/toasts';
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -45,7 +45,6 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
-	const toasts = writable<string[]>([]);
 </script>
 
 {#if walletInitError}
