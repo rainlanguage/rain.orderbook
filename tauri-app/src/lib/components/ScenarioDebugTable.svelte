@@ -2,7 +2,7 @@
   import { formatUnits } from 'viem';
   import type { DeploymentsDebugDataMap } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
-  import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
+  import { BugOutline, EditOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
   import { handleScenarioDebugModal } from '$lib/services/modal';
   import { DEFAULT_REFRESH_INTERVAL, Refresh } from '@rainlanguage/ui-components';
   import { makeDeploymentsDebugDataMap } from '$lib/services/chart';
@@ -11,6 +11,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { writable } from 'svelte/store';
+  import ModalDebugBlockNumber from './modal/ModalDebugBlockNumber.svelte';
   import {
     Table,
     TableBody,
@@ -21,7 +22,9 @@
   } from 'flowbite-svelte';
 
   let enabled = false;
+  let openDebugBlockNumberModal = false;
   let blockNumbers: Record<number, number> = {};
+  export let networks: Record<number, string> | undefined;
 
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
   let displayData: DeploymentsDebugDataMap['dataMap'] | undefined = undefined;
@@ -86,6 +89,7 @@
       <div class="text-red-500">{$scenarioDebugQuery.error}</div>
     {/if}
     <span></span>
+    <EditOutline on:click={() => (openDebugBlockNumberModal = true)} />
     <Refresh
       data-testid="refreshButton"
       class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
@@ -106,7 +110,7 @@
 </div>
 
 {#if !$scenarioDebugQuery.error && displayData}
-  {#each Object.entries(displayData) as [deploymentName, results]}
+  {#each Object.entries(displayData).sort( (a, b) => (a[1].chainId > b[1].chainId ? 1 : -1), ) as [deploymentName, results]}
     <h2 class="text-md my-4">Deployment: <strong>{deploymentName}</strong></h2>
     <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
       <TableHead>
@@ -166,3 +170,5 @@
     </Table>
   {/each}
 {/if}
+
+<ModalDebugBlockNumber bind:open={openDebugBlockNumberModal} bind:blockNumbers bind:networks />
