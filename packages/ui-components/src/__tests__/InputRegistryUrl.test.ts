@@ -2,25 +2,24 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import InputRegistryUrl from '../lib/components/input/InputRegistryUrl.svelte';
 import userEvent from '@testing-library/user-event';
-import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
-import type { RegistryManager } from '$lib/providers/registry/RegistryManager';
+import { loadRegistryUrl } from '../lib/services/loadRegistryUrl';
 import { initialRegistry } from '../__fixtures__/RegistryManager';
-
-const { mockRegistryStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
+import { useRegistry } from '$lib/providers/registry/useRegistry';
+import type { RegistryManager } from '$lib/providers/registry/RegistryManager';
 
 vi.mock('../lib/services/loadRegistryUrl', () => ({
 	loadRegistryUrl: vi.fn()
 }));
 
 vi.mock('../lib/providers/registry/useRegistry', () => ({
-	useRegistry: vi.fn().mockReturnValue(mockRegistryStore)
+	useRegistry: vi.fn()
 }));
 
 describe('InputRegistryUrl', () => {
 	beforeEach(() => {
-		mockRegistryStore.mockSetSubscribeValue(initialRegistry as RegistryManager);
 		vi.clearAllMocks();
 		vi.mocked(loadRegistryUrl).mockResolvedValue(undefined);
+		vi.mocked(useRegistry).mockReturnValue(initialRegistry as RegistryManager);
 	});
 
 	it('should render input and button', () => {

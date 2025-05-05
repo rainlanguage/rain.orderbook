@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { setRegistryContext } from './context';
-	import type { RegistryStore } from '$lib/types/registry';
+	import type { RegistryManager } from './RegistryManager';
 
-	export let registryManagerStore: RegistryStore;
+	export let registryManager: RegistryManager;
 
-	setRegistryContext(registryManagerStore);
+	setRegistryContext(registryManager);
 </script>
 
 <slot />

@@ -14,17 +14,16 @@
 	let advancedMode = false;
 
 	const registryManager = new RegistryManager(REGISTRY_URL);
-	const registryManagerStore = writable(registryManager);
 	$: advancedMode = registryManager.isCustomRegistry();
 	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
-<RegistryProvider {registryManagerStore}>
-	{#if $registryManagerStore}
+<RegistryProvider {registryManager}>
+	{#if registryManager}
 		<PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname} />
 		<div class="flex flex-col gap-2">
 			<div class="flex w-full content-end items-end justify-between">
-				{#if $registryManagerStore.isCustomRegistry()}
+				{#if registryManager.isCustomRegistry()}
 					<CustomRegistryWarning />
 				{:else if isDeployPage}
 					<div class="ml-auto"></div>

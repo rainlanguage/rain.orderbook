@@ -1,19 +1,12 @@
 import { getContext, setContext } from 'svelte';
-import type { Readable } from 'svelte/store';
 import type { RegistryManager } from './RegistryManager';
 
 export const REGISTRY_KEY = 'registry_key';
-
 /**
- * Type for the registry store
+ * Retrieves the registry manager directly from Svelte's context
  */
-export type Registry = Readable<RegistryManager>;
-
-/**
- * Retrieves the registry manager store directly from Svelte's context
- */
-export const getRegistryContext = (): Registry => {
-	const registry = getContext<Registry>(REGISTRY_KEY);
+export const getRegistryContext = (): RegistryManager => {
+	const registry = getContext<RegistryManager>(REGISTRY_KEY);
 	if (!registry) {
 		throw new Error(
 			'No registry manager was found in Svelte context. Did you forget to wrap your component with RegistryProvider?'
@@ -23,9 +16,9 @@ export const getRegistryContext = (): Registry => {
 };
 
 /**
- * Sets the registry manager store in Svelte's context
+ * Sets the registry manager in Svelte's context
  */
-export const setRegistryContext = (registry: Registry) => {
+export const setRegistryContext = (registry: RegistryManager) => {
 	setContext(REGISTRY_KEY, registry);
 };
 
@@ -45,7 +38,7 @@ if (import.meta.vitest) {
 		});
 
 		it('should return the registry from context when it exists', () => {
-			const mockRegistry = {} as Registry;
+			const mockRegistry = {} as RegistryManager;
 
 			mockGetContext.mockImplementation((key) => {
 				if (key === REGISTRY_KEY) return mockRegistry;

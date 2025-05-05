@@ -4,7 +4,7 @@
 	import { loadRegistryUrl } from '$lib/services/loadRegistryUrl';
 
 	const registry = useRegistry();
-	let newRegistryUrl = $registry.getCurrentRegistry();
+	let newRegistryUrl = registry.getCurrentRegistry();
 	let error: string | null = null;
 	let loading: boolean = false;
 
@@ -12,10 +12,10 @@
 		loading = true;
 		error = null;
 		try {
-			if (!$registry) {
+			if (!registry) {
 				throw new Error('Registry manager not yet available.');
 			}
-			await loadRegistryUrl(newRegistryUrl, $registry);
+			await loadRegistryUrl(newRegistryUrl, registry);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Unknown error';
 		}

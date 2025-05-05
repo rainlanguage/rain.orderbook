@@ -1,10 +1,10 @@
 import { getRegistryContext } from './context';
-import type { RegistryStore } from '$lib/types/registry';
+import type { RegistryManager } from './RegistryManager';
 
 /**
  * Hook to access registry manager information from context
  * Must be used within a component that is a child of RegistryProvider
- * @returns An object containing the registry manager store
+ * @returns An object containing the registry manager
  */
 export function useRegistry() {
 	const registry = getRegistryContext();
@@ -26,7 +26,7 @@ if (import.meta.vitest) {
 		});
 
 		it('should return registry', () => {
-			const mockRegistry = {} as RegistryStore;
+			const mockRegistry = {} as RegistryManager;
 			mockGetRegistryContext.mockReturnValue(mockRegistry);
 
 			const result = useRegistry();

@@ -152,7 +152,7 @@
 	}
 
 	async function _handleShareChoices() {
-		await handleShareChoices(gui, $registry.getCurrentRegistry());
+		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
 	async function onSelectTokenSelect() {

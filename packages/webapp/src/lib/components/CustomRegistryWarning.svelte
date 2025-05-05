@@ -23,7 +23,7 @@
 		You are using a <span class="font-medium">custom strategies registry. </span>
 		<a
 			on:click={() => {
-				$registry.resetToDefault();
+				registry.resetToDefault();
 			}}
 			href="/deploy"
 			data-sveltekit-reload

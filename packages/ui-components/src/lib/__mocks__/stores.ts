@@ -4,7 +4,6 @@ import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
-import type { RegistryManager } from '../providers/registry/RegistryManager';
 
 const initialPageState = {
 	data: {
@@ -39,7 +38,6 @@ const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
-const mockRegistryWritable = writable<RegistryManager>();
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
@@ -145,10 +143,4 @@ export const mockPageStore = {
 		}));
 	},
 	reset: () => mockPageWritable.set(initialPageState)
-};
-
-export const mockRegistryStore = {
-	subscribe: mockRegistryWritable.subscribe,
-	set: mockRegistryWritable.set,
-	mockSetSubscribeValue: (value: RegistryManager): void => mockRegistryWritable.set(value)
 };
