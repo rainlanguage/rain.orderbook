@@ -68,13 +68,9 @@ contract RouteProcessorOrderBookV5ArbOrderTakerExpressionTest is RouteProcessorO
         FullyQualifiedNamespace fqns = LibNamespace.qualifyNamespace(ns, address(iArb));
 
         vm.mockCall(
-            address(iInterpreter),
-            abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns),
-            abi.encode(stack, kvs)
+            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector), abi.encode(stack, kvs)
         );
-        vm.expectCall(
-            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns)
-        );
+        vm.expectCall(address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector));
 
         if (kvs.length > 0) {
             vm.mockCall(

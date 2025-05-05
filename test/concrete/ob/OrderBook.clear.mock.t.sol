@@ -33,9 +33,7 @@ contract MockInterpreter {
         sStack = stack;
     }
 
-    function eval4(
-        EvalV4 memory
-    ) external view returns (StackItem[] memory, bytes32[] memory) {
+    function eval4(EvalV4 memory) external view returns (StackItem[] memory, bytes32[] memory) {
         return (sStack, new bytes32[](0));
     }
 }

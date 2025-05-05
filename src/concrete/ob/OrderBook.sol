@@ -641,7 +641,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             // This is a critical error because it means the DEX could be
             // exploited if allowed.
             if (aliceBounty.lt(Float.wrap(0)) || bobBounty.lt(Float.wrap(0))) {
-
                 revert NegativeBounty();
             }
 
