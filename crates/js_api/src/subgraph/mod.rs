@@ -7,6 +7,7 @@ use wasm_bindgen_utils::prelude::*;
 pub mod add_order;
 pub mod order;
 pub mod remove_order;
+pub mod trades;
 pub mod transaction;
 pub mod vault;
 
