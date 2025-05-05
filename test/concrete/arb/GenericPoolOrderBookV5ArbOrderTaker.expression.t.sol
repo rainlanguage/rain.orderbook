@@ -74,16 +74,11 @@ contract GenericPoolOrderBookV5ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         StateNamespace ns = StateNamespace.wrap(uint256(uint160(address(this))));
-        FullyQualifiedNamespace fqns = LibNamespace.qualifyNamespace(ns, address(iArb));
 
         vm.mockCall(
-            address(iInterpreter),
-            abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns),
-            abi.encode(stack, kvs)
+            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector), abi.encode(stack, kvs)
         );
-        vm.expectCall(
-            address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector, iInterpreterStore, fqns)
-        );
+        vm.expectCall(address(iInterpreter), abi.encodeWithSelector(IInterpreterV4.eval4.selector));
 
         if (kvs.length > 0) {
             vm.mockCall(
