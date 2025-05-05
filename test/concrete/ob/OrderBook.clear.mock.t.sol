@@ -26,6 +26,20 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
+contract MockInterpreter {
+    StackItem[] internal sStack;
+
+    constructor(StackItem[] memory stack) {
+        sStack = stack;
+    }
+
+    function eval4(
+        EvalV4 memory
+    ) external view returns (StackItem[] memory, bytes32[] memory) {
+        return (sStack, new bytes32[](0));
+    }
+}
+
 /// @title OrderBookClearTest
 /// Tests clearing an order.
 contract OrderBookClearTest is OrderBookExternalMockTest {
@@ -148,19 +162,10 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
 
         {
             {
-                bytes memory call = abi.encodeWithSelector(
-                    IInterpreterV4.eval4.selector,
-                    clear.aliceConfig.evaluable.store,
-                    LibNamespace.qualifyNamespace(
-                        StateNamespace.wrap(uint256(uint160(clear.alice))), address(iOrderbook)
-                    )
-                );
-
-                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackAlice, new uint256[](0)));
-
-                call = abi.encodeWithSelector(IInterpreterV4.eval4.selector);
-
-                vm.mockCall(address(iInterpreter), call, abi.encode(clear.orderStackBob, new bytes32[](0)));
+                MockInterpreter aliceInterpreter = new MockInterpreter(clear.orderStackAlice);
+                MockInterpreter bobInterpreter = new MockInterpreter(clear.orderStackBob);
+                clear.aliceConfig.evaluable.interpreter = IInterpreterV4(address(aliceInterpreter));
+                clear.bobConfig.evaluable.interpreter = IInterpreterV4(address(bobInterpreter));
             }
 
             OrderV4 memory aliceOrder;
@@ -185,16 +190,6 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             }
             iOrderbook.clear3(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
-
-        // {
-        //     Float memory aliceOutputBalance = iOrderbook.vaultBalance2(
-        //         clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-        //     );
-        //     // Float memory expectedAliceOutput = Float({
-        //     //     signedCoefficient: clear.expectedAliceOutput,
-        //     //     exponent: 0
-        //     // });
-        // }
 
         assertTrue(
             iOrderbook.vaultBalance2(
