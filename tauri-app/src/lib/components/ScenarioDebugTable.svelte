@@ -11,7 +11,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { writable } from 'svelte/store';
-  import ModalDebugBlockNumber from './modal/ModalDebugBlockNumber.svelte';
+  import ModalDebugContext from './modal/ModalDebugContext.svelte';
   import {
     Table,
     TableBody,
@@ -171,4 +171,4 @@
   {/each}
 {/if}
 
-<ModalDebugBlockNumber bind:open={openDebugBlockNumberModal} bind:blockNumbers bind:networks />
+<ModalDebugContext bind:open={openDebugBlockNumberModal} bind:blockNumbers bind:networks />

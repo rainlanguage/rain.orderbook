@@ -1,10 +1,10 @@
 import { expect, describe, it } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import ModalDebugBlockNumber from './ModalDebugBlockNumber.svelte';
+import ModalDebugContext from './ModalDebugContext.svelte';
 
-describe('ModalDebugBlockNumber', () => {
+describe('ModalDebugContext', () => {
   it('test no deployments network', () => {
-    const modal = render(ModalDebugBlockNumber, {
+    const modal = render(ModalDebugContext, {
       props: {
         open: true,
         networks: undefined,
@@ -20,7 +20,7 @@ describe('ModalDebugBlockNumber', () => {
       1: 'abcd',
       2: 'efgh',
     };
-    render(ModalDebugBlockNumber, {
+    render(ModalDebugContext, {
       props: {
         open: true,
         networks,
@@ -52,7 +52,7 @@ describe('ModalDebugBlockNumber', () => {
       1: 12345,
       2: 67890,
     };
-    render(ModalDebugBlockNumber, {
+    render(ModalDebugContext, {
       props: {
         open: true,
         networks,
