@@ -48,6 +48,6 @@
       </TableBody>
     </Table>
   {:else}
-    Found no deployment
+    Found no deployment, please consider adding deployments to your order's configurations
   {/if}
 </Modal>

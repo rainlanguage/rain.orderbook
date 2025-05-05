@@ -12,7 +12,9 @@ describe('ModalDebugContext', () => {
       },
     });
 
-    expect(modal.baseElement).toHaveTextContent('Found no deployment');
+    expect(modal.baseElement).toHaveTextContent(
+      "Found no deployment, please consider adding deployments to your order's configurations",
+    );
   });
 
   it('test with networks without block numbers', () => {
