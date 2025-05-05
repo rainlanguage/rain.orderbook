@@ -196,7 +196,7 @@ impl DotrainOrderGui {
             }
             _ => {}
         }
-        Ok(self.get_current_deployment()?)
+        self.get_current_deployment()
     }
 
     /// Check allowances for all inputs and outputs of the order
@@ -259,7 +259,7 @@ impl DotrainOrderGui {
         let mut calldatas = Vec::new();
         for (token_address, deposit_amount) in deposits_map {
             let deposit_args = DepositArgs {
-                token: token_address.clone(),
+                token: token_address,
                 amount: deposit_amount,
                 vault_id: U256::default(),
             };
@@ -293,8 +293,8 @@ impl DotrainOrderGui {
             .get_scenario(&deployment.deployment.scenario.key)?
             .update_bindings(
                 self.field_values
-                    .iter()
-                    .map(|(k, _)| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
+                    .keys()
+                    .map(|k| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
                     .collect::<Result<HashMap<String, String>, GuiError>>()?,
             )?;
         Ok(())
@@ -425,7 +425,7 @@ impl DotrainOrderGui {
                     .order
                     .inputs
                     .iter()
-                    .map(|input| input.vault_id.clone())
+                    .map(|input| input.vault_id)
                     .collect(),
             ),
             (
@@ -435,7 +435,7 @@ impl DotrainOrderGui {
                     .order
                     .outputs
                     .iter()
-                    .map(|output| output.vault_id.clone())
+                    .map(|output| output.vault_id)
                     .collect(),
             ),
         ]);
@@ -467,30 +467,27 @@ impl DotrainOrderGui {
 
         let mut approvals = Vec::new();
         let approval_calldata = self.generate_approval_calldatas(owner).await?;
-        match approval_calldata {
-            ApprovalCalldataResult::Calldatas(calldatas) => {
-                let mut output_token_infos = HashMap::new();
-                for output in deployment.deployment.order.outputs.clone() {
-                    if output.token.is_none() {
-                        return Err(GuiError::SelectTokensNotSet);
-                    }
-                    let token = output.token.as_ref().unwrap();
-                    let token_info = self.get_token_info(token.key.clone()).await?;
-                    output_token_infos.insert(token.address.clone(), token_info);
+        if let ApprovalCalldataResult::Calldatas(calldatas) = approval_calldata {
+            let mut output_token_infos = HashMap::new();
+            for output in deployment.deployment.order.outputs.clone() {
+                if output.token.is_none() {
+                    return Err(GuiError::SelectTokensNotSet);
                 }
-
-                for calldata in calldatas.iter() {
-                    let token_info = output_token_infos
-                        .get(&calldata.token)
-                        .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
-                    approvals.push(ExtendedApprovalCalldata {
-                        token: calldata.token,
-                        calldata: calldata.calldata.clone(),
-                        symbol: token_info.symbol.clone(),
-                    });
-                }
+                let token = output.token.as_ref().unwrap();
+                let token_info = self.get_token_info(token.key.clone()).await?;
+                output_token_infos.insert(token.address, token_info);
             }
-            _ => {}
+
+            for calldata in calldatas.iter() {
+                let token_info = output_token_infos
+                    .get(&calldata.token)
+                    .ok_or(GuiError::TokenNotFound(calldata.token.to_string()))?;
+                approvals.push(ExtendedApprovalCalldata {
+                    token: calldata.token,
+                    calldata: calldata.calldata.clone(),
+                    symbol: token_info.symbol.clone(),
+                });
+            }
         }
 
         let deposit_and_add_order_calldata =
@@ -524,11 +521,9 @@ mod tests {
         let res = gui.generate_deposit_calldatas().await.unwrap();
         match res {
             DepositCalldataResult::Calldatas(_) => {
-                assert!(false);
+                panic!("should not be calldatas");
             }
-            DepositCalldataResult::NoDeposits => {
-                assert!(true);
-            }
+            DepositCalldataResult::NoDeposits => {}
         }
 
         gui.save_deposit("token1".to_string(), "1200".to_string())
@@ -541,7 +536,7 @@ mod tests {
                 assert_eq!(calldatas[0].len(), 164);
             }
             DepositCalldataResult::NoDeposits => {
-                assert!(false);
+                panic!("should not be no deposits");
             }
         }
 
@@ -554,7 +549,7 @@ mod tests {
                 assert!(calldatas.is_empty());
             }
             DepositCalldataResult::NoDeposits => {
-                assert!(false);
+                panic!("should not be no deposits");
             }
         }
     }

@@ -117,6 +117,12 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 
 // Stores
 export { default as transactionStore } from './stores/transactionStore';
+export {
+	cachedWritableStore,
+	cachedWritableIntOptional,
+	cachedWritableStringOptional,
+	cachedWritableString
+} from './storesGeneric/cachedWritableStore';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
