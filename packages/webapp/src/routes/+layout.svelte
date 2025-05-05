@@ -12,7 +12,7 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import { WalletProvider } from '@rainlanguage/ui-components';
+	import { WalletProvider, useToasts } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 
 	// Query client for caching
@@ -44,6 +44,9 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
+
+	const { toasts } = useToasts();
+	$: console.log(toasts);
 </script>
 
 {#if walletInitError}
@@ -54,6 +57,7 @@
 	</div>
 {/if}
 
+<!-- <ToastProvider {toasts}> -->
 <WalletProvider account={signerAddress}>
 	<QueryClientProvider client={queryClient}>
 		<LoadingWrapper>
@@ -73,3 +77,4 @@
 		</LoadingWrapper>
 	</QueryClientProvider>
 </WalletProvider>
+<!-- </ToastProvider> -->
