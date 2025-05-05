@@ -1,19 +1,14 @@
 import { getContext, setContext } from 'svelte';
-import { writable, type Writable } from 'svelte/store';
+import { type Writable } from 'svelte/store';
+import type { ToastProps } from '$lib/types/toast';
 
 export const TOASTS_KEY = 'toasts_key';
 
-export function createToastsContext() {
-	const toasts = writable<string[]>([]);
-	setContext(TOASTS_KEY, toasts);
-	return toasts;
-}
-
 /**
- * Retrieves the toasts directly from Svelte's context
+ * Retrieves the toasts store from Svelte's context
  */
-export function getToastsContext(): Writable<string[]> {
-	const toasts = getContext<Writable<string[]>>(TOASTS_KEY);
+export function getToastsContext(): Writable<ToastProps[]> {
+	const toasts = getContext<Writable<ToastProps[]>>(TOASTS_KEY);
 	if (!toasts) {
 		throw new Error(
 			'No toasts context found. Did you forget to wrap your component with ToastProvider?'
@@ -23,8 +18,8 @@ export function getToastsContext(): Writable<string[]> {
 }
 
 /**
- * Sets the toasts in Svelte's context
+ * Sets the toasts store in Svelte's context
  */
-export const setToastsContext = (toasts: string[]) => {
+export function setToastsContext(toasts: Writable<ToastProps[]>) {
 	setContext(TOASTS_KEY, toasts);
-};
+}

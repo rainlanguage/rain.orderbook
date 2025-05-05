@@ -1,8 +1,29 @@
 <script lang="ts">
-	import { createToastsContext } from './context';
+	import { Button } from 'flowbite-svelte';
+	import ToastDetail from '$lib/components/ToastDetail.svelte';
+	import { setToastsContext } from './context';
+	import { writable, type Writable } from 'svelte/store';
+	import { useToasts } from './useToasts';
+	import type { ToastProps } from '$lib/types/toast';
+	import { fade } from 'svelte/transition';
+	export let toasts: Writable<ToastProps[]> = writable([]);
 
-	// Initialize the store
-	const toastsStore = createToastsContext();
+	setToastsContext(toasts);
+	const { addToast } = useToasts();
 </script>
+
+<div class="fixed right-4 top-4">
+	<Button on:click={() => addToast({ message: 'Hello', type: 'success', color: 'green' })}
+		>Add Toast</Button
+	>
+	<Button on:click={() => addToast({ message: 'Hello', type: 'error', color: 'red' })}
+		>Add Toast</Button
+	>
+	{#each $toasts as toast}
+		<div out:fade>
+			<ToastDetail {toast} />
+		</div>
+	{/each}
+</div>
 
 <slot />
