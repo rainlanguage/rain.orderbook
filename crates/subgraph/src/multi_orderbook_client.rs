@@ -13,8 +13,8 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 pub struct MultiSubgraphArgs {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    url: Url,
-    name: String,
+    pub url: Url,
+    pub name: String,
 }
 impl_wasm_traits!(MultiSubgraphArgs);
 
