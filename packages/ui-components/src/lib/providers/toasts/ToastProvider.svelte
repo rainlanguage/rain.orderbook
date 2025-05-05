@@ -9,16 +9,9 @@
 	export let toasts: Writable<ToastProps[]> = writable([]);
 
 	setToastsContext(toasts);
-	const { addToast } = useToasts();
 </script>
 
 <div class="fixed right-4 top-4">
-	<Button on:click={() => addToast({ message: 'Hello', type: 'success', color: 'green' })}
-		>Add Toast</Button
-	>
-	<Button on:click={() => addToast({ message: 'Hello', type: 'error', color: 'red' })}
-		>Add Toast</Button
-	>
 	{#each $toasts as toast}
 		<div out:fade>
 			<ToastDetail {toast} />
