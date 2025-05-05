@@ -15,14 +15,7 @@
   export let blockNumbers: Record<number, number | undefined> = {};
 </script>
 
-<Modal
-  class="z-50000"
-  title="Set Debug Block Height For Networks"
-  bind:open
-  outsideclose
-  size="sm"
-  on:close={() => (open = false)}
->
+<Modal title="Debug Block Height" bind:open outsideclose size="sm" on:close={() => (open = false)}>
   {#if networks}
     <Table divClass="rounded-lg overflow-hidden dark:border-none border overflow-x-scroll">
       <TableHead>
