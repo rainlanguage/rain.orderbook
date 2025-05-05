@@ -19,8 +19,7 @@ use cynic::Id;
 use reqwest::Url;
 use std::num::ParseIntError;
 use thiserror::Error;
-#[cfg(target_family = "wasm")]
-use wasm_bindgen_utils::prelude::{JsError, JsValue};
+use wasm_bindgen_utils::prelude::*;
 
 const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
 
@@ -44,12 +43,11 @@ pub enum OrderbookSubgraphClientError {
     ParseIntError(#[from] ParseIntError),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
-    SerdeWasmBindgenError(#[from] wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error),
+    SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error("Failed to extend the order detail")]
     OrderDetailExtendError,
 }
 
-#[cfg(target_family = "wasm")]
 impl From<OrderbookSubgraphClientError> for JsValue {
     fn from(value: OrderbookSubgraphClientError) -> Self {
         JsError::new(&value.to_string()).into()

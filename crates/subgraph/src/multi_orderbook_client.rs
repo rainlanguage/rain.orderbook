@@ -8,17 +8,14 @@ use crate::{
 use futures::future::join_all;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 pub struct MultiSubgraphArgs {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     url: Url,
     name: String,
 }
-#[cfg(target_family = "wasm")]
 impl_wasm_traits!(MultiSubgraphArgs);
 
 pub struct MultiOrderbookSubgraphClient {
