@@ -8,7 +8,6 @@
 	} from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
-	import { writable } from 'svelte/store';
 	import { REGISTRY_URL } from '$lib/constants';
 	import { slide } from 'svelte/transition';
 	let advancedMode = false;
