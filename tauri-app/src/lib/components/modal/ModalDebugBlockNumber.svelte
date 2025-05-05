@@ -33,7 +33,7 @@
       <TableBody>
         {#each Object.entries(networks ?? {}).sort( (a, b) => (Number(a[0]) > Number(b[0]) ? 1 : -1), ) as [chainId, networkName]}
           <TableBodyRow>
-            <TableBodyCell>{networkName}</TableBodyCell>
+            <TableBodyCell data-testid={`network-name-${chainId}`}>{networkName}</TableBodyCell>
             <TableBodyCell>
               <Input
                 type="number"
@@ -47,6 +47,7 @@
                       parseInt(e.currentTarget.value, 10) || undefined;
                   }
                 }}
+                data-testid={`chain-block-${chainId}`}
               ></Input>
             </TableBodyCell>
           </TableBodyRow>
