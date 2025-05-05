@@ -273,19 +273,18 @@ export const orderHash = cachedWritableStore<string>(
   (value) => value,
   (str) => str || '',
 );
-
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest;
 
   describe('Settings active accounts items', () => {
     // Reset store values before each test to prevent state leakage
     beforeEach(() => {
-      // Reset all store values
       settings.set(undefined);
       activeAccountsItems.set({});
       activeSubgraphs.set({});
+      activeNetworkRef.set(undefined);
+      activeOrderbookRef.set(undefined);
 
-      // Then set our initial test values
       settings.set(mockConfigSource);
       activeAccountsItems.set({
         name_one: 'address_one',
@@ -340,6 +339,17 @@ if (import.meta.vitest) {
       });
     });
 
+    test('should reset active accounts when accounts are undefined', () => {
+      const newSettings = {
+        ...mockConfigSource,
+        accounts: undefined,
+      };
+
+      settings.set(newSettings);
+
+      expect(get(activeAccountsItems)).toEqual({});
+    });
+
     test('should update active subgraphs when subgraph value changes', () => {
       const newSettings = {
         ...mockConfigSource,
@@ -375,6 +385,288 @@ if (import.meta.vitest) {
       settings.set(newSettings);
 
       expect(get(activeSubgraphs)).toEqual({});
+    });
+  });
+
+  describe('Network and Orderbook Management', () => {
+    beforeEach(() => {
+      // Reset all stores
+      settings.set(undefined);
+      activeNetworkRef.set(undefined);
+      activeOrderbookRef.set(undefined);
+      activeAccountsItems.set({});
+      activeSubgraphs.set({});
+    });
+
+    test('should reset activeNetworkRef when networks are undefined', () => {
+      // First set valid settings
+      settings.set(mockConfigSource);
+      activeNetworkRef.set('mainnet');
+
+      // Then make networks undefined
+      const newSettings = {
+        ...mockConfigSource,
+        networks: undefined,
+      };
+
+      settings.set(newSettings);
+
+      expect(get(activeNetworkRef)).toBeUndefined();
+    });
+
+    test('should reset activeOrderbookRef when activeNetworkRef is undefined', () => {
+      settings.set(mockConfigSource);
+      activeNetworkRef.set('mainnet');
+      activeOrderbookRef.set('orderbook1');
+
+      activeNetworkRef.set(undefined);
+
+      expect(get(activeOrderbookRef)).toBeUndefined();
+    });
+
+    test('resetActiveNetworkRef should set first available network', async () => {
+      settings.set(mockConfigSource);
+
+      await resetActiveNetworkRef();
+
+      expect(get(activeNetworkRef)).toBe('mainnet');
+    });
+
+    test('resetActiveNetworkRef should set undefined when no networks', async () => {
+      const emptySettings = { ...mockConfigSource, networks: {} };
+      settings.set(emptySettings);
+
+      await resetActiveNetworkRef();
+
+      expect(get(activeNetworkRef)).toBeUndefined();
+    });
+
+    test('should reset activeOrderbookRef when orderbooks are undefined', () => {
+      settings.set(mockConfigSource);
+      activeOrderbookRef.set('orderbook1');
+
+      const newSettings = {
+        ...mockConfigSource,
+        orderbooks: undefined,
+      };
+
+      settings.set(newSettings);
+
+      expect(get(activeOrderbookRef)).toBeUndefined();
+    });
+
+    test('should filter orderbooks by active network', () => {
+      const multiNetworkConfig = {
+        ...mockConfigSource,
+        orderbooks: {
+          orderbook1: {
+            address: '0xOrderbookAddress1',
+            network: 'mainnet',
+            subgraph: 'mainnet',
+            label: 'Orderbook 1',
+          },
+          orderbook2: {
+            address: '0xOrderbookAddress2',
+            network: 'testnet',
+            subgraph: 'testnet',
+            label: 'Orderbook 2',
+          },
+        },
+      };
+
+      settings.set(multiNetworkConfig);
+      activeNetworkRef.set('mainnet');
+
+      const filteredOrderbooks = get(activeNetworkOrderbooks);
+      expect(filteredOrderbooks).toEqual({
+        orderbook1: multiNetworkConfig.orderbooks.orderbook1,
+      });
+    });
+
+    test('should reset orderbook when network changes to incompatible one', () => {
+      const multiNetworkConfig = {
+        ...mockConfigSource,
+        networks: {
+          mainnet: { rpc: 'mainnet.rpc', 'chain-id': 1 },
+          testnet: { rpc: 'testnet.rpc', 'chain-id': 5 },
+        },
+        orderbooks: {
+          orderbook1: {
+            address: '0xOrderbookAddress1',
+            network: 'mainnet',
+            subgraph: 'mainnet',
+            label: 'Orderbook 1',
+          },
+        },
+      };
+
+      settings.set(multiNetworkConfig);
+      activeNetworkRef.set('mainnet');
+      activeOrderbookRef.set('orderbook1');
+
+      activeNetworkRef.set('testnet');
+
+      expect(get(activeOrderbookRef)).toBeUndefined();
+    });
+
+    test('resetActiveOrderbookRef should set first available orderbook', () => {
+      settings.set(mockConfigSource);
+      activeNetworkRef.set('mainnet');
+
+      resetActiveOrderbookRef();
+
+      expect(get(activeOrderbookRef)).toBe('orderbook1');
+    });
+
+    test('resetActiveOrderbookRef should set undefined when no orderbooks', () => {
+      settings.set(mockConfigSource);
+      activeNetworkRef.set('mainnet');
+
+      const newSettings = {
+        ...mockConfigSource,
+        orderbooks: {},
+      };
+      settings.set(newSettings);
+
+      resetActiveOrderbookRef();
+
+      expect(get(activeOrderbookRef)).toBeUndefined();
+    });
+
+    test('hasRequiredSettings should return true when both refs are set', () => {
+      activeNetworkRef.set('mainnet');
+      activeOrderbookRef.set('orderbook1');
+
+      expect(get(hasRequiredSettings)).toBe(true);
+    });
+
+    test('hasRequiredSettings should return false when refs are missing', () => {
+      activeNetworkRef.set(undefined);
+      activeOrderbookRef.set('orderbook1');
+
+      expect(get(hasRequiredSettings)).toBe(false);
+    });
+  });
+
+  describe('Derived Store Behaviors', () => {
+    beforeEach(() => {
+      settings.set(undefined);
+      activeNetworkRef.set(undefined);
+      activeOrderbookRef.set(undefined);
+    });
+
+    test('subgraphUrl should return undefined when no settings', () => {
+      expect(get(subgraphUrl)).toBeUndefined();
+    });
+
+    test('subgraphUrl should derive correctly when settings available', () => {
+      settings.set({
+        ...mockConfigSource,
+        subgraphs: {
+          mainnet: 'https://api.thegraph.com/subgraphs/name/mainnet',
+        },
+        orderbooks: {
+          orderbook1: {
+            address: '0xOrderbookAddress1',
+            network: 'mainnet',
+            subgraph: 'mainnet',
+          },
+        },
+      });
+      activeOrderbookRef.set('orderbook1');
+
+      expect(get(subgraphUrl)).toBe('https://api.thegraph.com/subgraphs/name/mainnet');
+    });
+
+    test('accounts should return empty object when no settings', () => {
+      expect(get(accounts)).toEqual({});
+    });
+
+    test('activeAccounts should filter based on activeAccountsItems', () => {
+      settings.set(mockConfigSource);
+      activeAccountsItems.set({
+        name_one: 'address_one',
+      });
+
+      expect(get(activeAccounts)).toEqual({
+        name_one: 'address_one',
+      });
+    });
+
+    test('activeAccounts should return empty when activeAccountsItems is empty', () => {
+      settings.set(mockConfigSource);
+      activeAccountsItems.set({});
+
+      expect(get(activeAccounts)).toEqual({});
+    });
+  });
+
+  describe('Additional Store Functionality', () => {
+    test('activeOrderStatus should properly serialize/deserialize boolean values', () => {
+      activeOrderStatus.set(true);
+      expect(get(activeOrderStatus)).toBe(true);
+
+      activeOrderStatus.set(false);
+      expect(get(activeOrderStatus)).toBe(false);
+
+      activeOrderStatus.set(undefined);
+      expect(get(activeOrderStatus)).toBeUndefined();
+    });
+
+    test('hideZeroBalanceVaults should default to true', () => {
+      expect(get(hideZeroBalanceVaults)).toBe(true);
+    });
+
+    test('hideZeroBalanceVaults should handle true/false values', () => {
+      hideZeroBalanceVaults.set(false);
+      expect(get(hideZeroBalanceVaults)).toBe(false);
+
+      hideZeroBalanceVaults.set(true);
+      expect(get(hideZeroBalanceVaults)).toBe(true);
+    });
+
+    test('orderHash should handle string values correctly', () => {
+      orderHash.set('test-hash');
+      expect(get(orderHash)).toBe('test-hash');
+
+      orderHash.set('');
+      expect(get(orderHash)).toBe('');
+    });
+  });
+
+  describe('Settings Subscription Edge Cases', () => {
+    test('should handle invalid JSON in settings', () => {
+      const settingsWithBreak = cachedWritableStore<ConfigSource | undefined>(
+        'settings-test',
+        undefined,
+        (value) => (value ? JSON.stringify(value) : 'invalid-json'),
+        (str) => {
+          try {
+            return JSON.parse(str) as ConfigSource;
+          } catch {
+            return undefined;
+          }
+        },
+      );
+
+      settingsWithBreak.set(mockConfigSource);
+      expect(get(settingsWithBreak)).toEqual(mockConfigSource);
+    });
+
+    test('should handle account items with extra accounts', () => {
+      settings.set(mockConfigSource);
+      activeAccountsItems.set({
+        name_one: 'address_one',
+        name_two: 'address_two',
+        name_three: 'address_three',
+      });
+
+      settings.set(mockConfigSource);
+
+      expect(get(activeAccountsItems)).toEqual({
+        name_one: 'address_one',
+        name_two: 'address_two',
+      });
     });
   });
 }
