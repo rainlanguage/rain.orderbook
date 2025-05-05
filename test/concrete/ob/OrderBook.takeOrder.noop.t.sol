@@ -109,19 +109,11 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
 
         // The inputs and outputs need to match or we will trigger the token
         // mismatch error.
+        order2.validInputs[inputIOIndex2].token = address(iToken0);
+        order2.validOutputs[outputIOIndex2].token = address(iToken1);
+
         order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
-
-        vm.mockCall(
-            address(order1.validInputs[inputIOIndex1].token),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(uint8(18))
-        );
-        vm.mockCall(
-            address(order1.validOutputs[outputIOIndex1].token),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(uint8(18))
-        );
 
         TakeOrdersConfigV4 memory config;
         {
