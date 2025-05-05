@@ -6450,6 +6450,7 @@ dependencies = [
  "rain_orderbook_subgraph_client",
  "reqwest 0.12.5",
  "serde",
+ "serde_json",
  "sha2",
  "strict-yaml-rust",
  "thiserror",

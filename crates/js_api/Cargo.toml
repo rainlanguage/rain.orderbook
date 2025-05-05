@@ -34,6 +34,7 @@ url = { workspace = true, features = ["serde"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+serde_json = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
