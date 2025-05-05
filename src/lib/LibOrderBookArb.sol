@@ -58,7 +58,7 @@ library LibOrderBookArb {
             // See https://github.com/crytic/slither/issues/1658
             uint256 gasBalance = address(this).balance;
             Address.sendValue(payable(msg.sender), gasBalance);
-            col[2] = bytes32(gasBalance);
+            col[2] = Float.unwrap(LibDecimalFloat.packLossless(int256(gasBalance), -18));
         }
 
         context[0] = col;

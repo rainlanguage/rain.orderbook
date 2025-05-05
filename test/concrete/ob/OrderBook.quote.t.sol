@@ -149,7 +149,7 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         rainlang[0] = "_ _:1 context<0 0>();:;";
         // orderbook
         rainlang[1] = "_ _:1 context<0 1>();:;";
-        // We can't easily check order hash with this setup
+        // // We can't easily check order hash with this setup
         // rainlang[2] = "_ _:1 context<1 0>();:;";
         // quote order owner
         rainlang[2] = "_ _:1 context<1 1>();:;";
@@ -168,9 +168,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 "_ _:1 context<3 1>();:;"
             )
         );
-        // vault io vault id
-        // not easy to test with this setup
-        // rainlang[6] = "_ _:1 context<3 2>();:;";
+        // // vault io vault id
+        // // not easy to test with this setup
+        // // rainlang[6] = "_ _:1 context<3 2>();:;";
         // input vault balance before
         rainlang[6] = bytes(
             string.concat(
@@ -192,9 +192,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 "_ _:1 context<4 1>();:;"
             )
         );
-        // vault io vault id
-        // not easy to test with this setup
-        // rainlang[9] = "_ _:1 context<4 2>();:;";
+        // // vault io vault id
+        // // not easy to test with this setup
+        // // rainlang[9] = "_ _:1 context<4 2>();:;";
         // output vault balance before
         rainlang[9] = bytes(
             string.concat(
@@ -220,15 +220,15 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
         expectedMaxOutput[9] = LibDecimalFloat.packLossless(1, 0);
 
         Float[] memory expectedIoRatio = new Float[](10);
-        expectedIoRatio[0] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(this))), 18);
-        expectedIoRatio[1] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iOrderbook))), 18);
-        expectedIoRatio[2] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(owner)), 18);
-        expectedIoRatio[3] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(this))), 18);
-        expectedIoRatio[4] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iToken1))), 18);
+        expectedIoRatio[0] = Float.wrap(bytes32(uint256(uint160(address(this)))));
+        expectedIoRatio[1] = Float.wrap(bytes32(uint256(uint160(address(iOrderbook)))));
+        expectedIoRatio[2] = Float.wrap(bytes32(uint256(uint160(owner))));
+        expectedIoRatio[3] = Float.wrap(bytes32(uint256(uint160(address(this)))));
+        expectedIoRatio[4] = Float.wrap(bytes32(uint256(uint160(address(iToken1)))));
         // Input decimals scaled to 18 fixed point value.
-        expectedIoRatio[5] = LibDecimalFloat.fromFixedDecimalLosslessPacked(6e18, 18);
-        expectedIoRatio[6] = LibDecimalFloat.fromFixedDecimalLosslessPacked(0, 18);
-        expectedIoRatio[7] = LibDecimalFloat.fromFixedDecimalLosslessPacked(uint256(uint160(address(iToken0))), 18);
+        expectedIoRatio[5] = LibDecimalFloat.packLossless(6, 0);
+        expectedIoRatio[6] = LibDecimalFloat.packLossless(0, 0);
+        expectedIoRatio[7] = Float.wrap(bytes32(uint256(uint160(address(iToken0)))));
         expectedIoRatio[8] = LibDecimalFloat.fromFixedDecimalLosslessPacked(12e18, 18);
         // Output decimals scaled to 18 fixed point value from 12.
         expectedIoRatio[9] = LibDecimalFloat.fromFixedDecimalLosslessPacked(depositAmount18 * 1e6, 18);

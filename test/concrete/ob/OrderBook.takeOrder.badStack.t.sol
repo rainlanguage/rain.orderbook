@@ -40,16 +40,9 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
             takeOrderConfigs,
             ""
         );
-        vm.mockCall(
-            address(config.validInputs[0].token),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(18)
-        );
-        vm.mockCall(
-            address(config.validOutputs[0].token),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(18)
-        );
+        config.validInputs[0].token = address(iToken0);
+        config.validOutputs[0].token = address(iToken1);
+
         vm.prank(alice);
         iOrderbook.addOrder3(config, new TaskV2[](0));
 

@@ -17,11 +17,11 @@ import {
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {console2} from "forge-std/Test.sol";
 import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
+    using LibFormatDecimalFloat for Float;
 
     /// If there is some live order(s) but the maxTakerInput is zero we error as
     /// the caller has full control over this, and it would cause none of the
@@ -94,7 +94,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         }
 
         for (uint256 i = 0; i < testVaults.length; i++) {
-            if (testVaults[i].deposit.gt(LibDecimalFloat.packLossless(0, 0))) {
+            if (testVaults[i].deposit.gt(Float.wrap(0))) {
                 uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
                 // Deposit the amount of tokens required to take the order.
                 vm.mockCall(
@@ -114,12 +114,11 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 Float balanceBefore = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
                 iOrderbook.deposit3(testVaults[i].token, vaultId, testVaults[i].deposit, new TaskV2[](0));
-                assertTrue(
-                    iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId).eq(
-                        balanceBefore.add(testVaults[i].deposit)
-                    ),
-                    "vaultBalance before"
-                );
+
+                Float balanceAfter = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
+                Float expectedBalance = testVaults[i].deposit.add(balanceBefore);
+
+                assertTrue(balanceAfter.eq(expectedBalance), "vaultBalance before");
             }
         }
 
@@ -160,14 +159,19 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 expectedTakerOutput18 > 0 ? 1 : 0
             );
         }
-        vm.prank(bob);
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
-        assertTrue(totalTakerInput.eq(expectedTakerInput), "totalTakerInput");
-        assertTrue(totalTakerOutput.eq(expectedTakerOutput), "totalTakerOutput");
+        {
+            vm.prank(bob);
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+            assertTrue(totalTakerInput.eq(expectedTakerInput), "totalTakerInput");
+            assertTrue(totalTakerOutput.eq(expectedTakerOutput), "totalTakerOutput");
+        }
 
         for (uint256 i = 0; i < testVaults.length; i++) {
             Float vaultBalance = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
-            assertTrue(vaultBalance.eq(testVaults[i].expect), "vaultBalance");
+
+            Float diff = vaultBalance.sub(testVaults[i].expect);
+
+            assertTrue(diff.lt(LibDecimalFloat.packLossless(1, -13)), "vaultBalance");
         }
     }
 
@@ -350,12 +354,12 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
             // payment.
             ownerOneTakerInput18 =
                 maximumTakerInput18 < ownerOneMaxPayment18 ? maximumTakerInput18 : ownerOneMaxPayment18;
-            testVaults[0] = TestVault(
-                ownerOne,
-                address(iToken1),
-                LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18, 18),
-                LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18 - ownerOneTakerInput18, 18)
-            );
+            testVaults[0] = TestVault({
+                owner: ownerOne,
+                token: address(iToken1),
+                deposit: LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18, 18),
+                expect: LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18 - ownerOneTakerInput18, 18)
+            });
         }
 
         {

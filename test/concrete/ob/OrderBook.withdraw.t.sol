@@ -34,15 +34,14 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
 
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
     /// forge-config: default.fuzz.runs = 100
-    function testWithdrawEmptyVault(address alice, address token, bytes32 vaultId, uint256 amount18) external {
+    function testWithdrawEmptyVault(address alice, bytes32 vaultId, uint256 amount18) external {
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.prank(alice);
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
-        vm.mockCall(token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18)));
         vm.expectEmit(false, false, false, true);
-        emit WithdrawV2(alice, token, vaultId, amount, Float.wrap(0), 0);
+        emit WithdrawV2(alice, address(iToken0), vaultId, amount, Float.wrap(0), 0);
         vm.record();
-        iOrderbook.withdraw3(token, vaultId, amount, new TaskV2[](0));
+        iOrderbook.withdraw3(address(iToken0), vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         assertEq(reads.length, 8, "reads");
         assertEq(writes.length, 4, "writes");

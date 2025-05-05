@@ -105,6 +105,7 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(12));
 
+        // 5e18 is 5 eth as wei is 18 decimals.
         vm.deal(address(arbOrderTaker), 5e18);
         vm.prank(bob);
         arbOrderTaker.arb4(iOrderbook, takeOrdersConfig, task);
