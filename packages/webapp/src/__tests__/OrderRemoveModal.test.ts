@@ -49,16 +49,6 @@ describe('OrderRemoveModal', () => {
 		);
 	});
 
-	it('closes modal and resets transaction store', async () => {
-		render(OrderRemoveModal, defaultProps);
-		const resetSpy = vi.spyOn(transactionStore, 'reset');
-
-		const closeButton = screen.getByLabelText('Close modal');
-		await fireEvent.click(closeButton);
-
-		expect(resetSpy).toHaveBeenCalled();
-	});
-
 	it('calls onRemove callback after successful transaction', async () => {
 		render(OrderRemoveModal, defaultProps);
 

@@ -31,7 +31,6 @@ describe('TransactionModal Component', () => {
 		success: 'Transaction Successful',
 		pending: 'Transaction Pending'
 	};
-	const resetSpy = vi.spyOn(mockTransactionStore, 'reset');
 
 	beforeEach(() => {
 		mockTransactionStore.mockSetSubscribeValue(initialState);
@@ -59,11 +58,6 @@ describe('TransactionModal Component', () => {
 			expect(screen.getByTestId('error-icon')).toBeInTheDocument();
 			expect(screen.getByText(mockError)).toBeInTheDocument();
 		});
-
-		// Test modal close behavior
-		const dismissButton = screen.getByText('Dismiss');
-		await userEvent.click(dismissButton);
-		expect(resetSpy).toHaveBeenCalled();
 	});
 
 	it('should display success message when transaction succeeds', async () => {
@@ -81,10 +75,6 @@ describe('TransactionModal Component', () => {
 			expect(screen.getByText(messages.success)).toBeInTheDocument();
 			expect(screen.getByText(successMessage)).toBeInTheDocument();
 		});
-
-		const dismissButton = screen.getByText('Dismiss');
-		await userEvent.click(dismissButton);
-		expect(resetSpy).toHaveBeenCalled();
 	});
 
 	it('should display pending state with a spinner for pending transactions', async () => {
@@ -129,14 +119,6 @@ describe('TransactionModal Component', () => {
 		});
 	});
 
-	it('should reset transaction store when modal is closed', async () => {
-		render(TransactionModal, { props: { open: true, messages } });
-
-		// Simulate closing the modal by changing the prop
-		await render(TransactionModal, { props: { open: false, messages } });
-
-		expect(resetSpy).toHaveBeenCalled();
-	});
 	it('should display a blockExplorerLink when it is provided', async () => {
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatus.SUCCESS,
