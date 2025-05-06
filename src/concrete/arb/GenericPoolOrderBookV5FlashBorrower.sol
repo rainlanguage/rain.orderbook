@@ -15,7 +15,7 @@ import {
 } from "../../abstract/OrderBookV5FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV5FlashBorrower
-/// Implements the OrderBookV5FlashBorrower interface for a external liquidity
+/// Implements the OrderBookV5FlashBorrower interface for an external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
 /// `arb` is decoded into a spender, pool and callData. The `callData` is
 /// literally the encoded function call to the pool. This allows the `arb`
