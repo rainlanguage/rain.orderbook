@@ -26,7 +26,12 @@ import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
-import {LibTOFUTokenDecimals, TOFUTokenDecimals, TOFUOutcome, TokenDecimalsReadFailure} from "../lib/LibTOFUTokenDecimals.sol";
+import {
+    LibTOFUTokenDecimals,
+    TOFUTokenDecimals,
+    TOFUOutcome,
+    TokenDecimalsReadFailure
+} from "../lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the initiator is not the order book.
