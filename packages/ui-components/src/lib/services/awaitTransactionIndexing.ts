@@ -6,7 +6,8 @@
 import type {
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
-	SgTransaction
+	SgTransaction,
+	WasmEncodedResult
 } from '@rainlanguage/orderbook';
 import {
 	getTransaction,
@@ -94,7 +95,10 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	 * @param subgraphUrl URL of the subgraph
 	 * @param txHash Transaction hash to query
 	 */
-	fetchData: (subgraphUrl: string, txHash: string) => Promise<T | null | undefined>;
+	fetchData: (
+		subgraphUrl: string,
+		txHash: string
+	) => Promise<WasmEncodedResult<T | null | undefined>>;
 	/**
 	 * Function to determine if the fetched data indicates success
 	 * @param data The data returned from the subgraph
@@ -120,13 +124,17 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			try {
 				const data = await fetchData(subgraphUrl, txHash);
 
-				if (data && isSuccess(data)) {
+				if (data.value && isSuccess(data.value)) {
 					clearInterval(checkInterval);
 
 					let orderHash;
 					// Extract orderHash from order data if it exists in the expected format
-					if (Array.isArray(data) && data.length > 0 && data[0]?.order?.orderHash) {
-						orderHash = data[0].order.orderHash;
+					if (
+						Array.isArray(data.value) &&
+						data.value.length > 0 &&
+						data.value[0]?.order?.orderHash
+					) {
+						orderHash = data.value[0].order.orderHash;
 					}
 
 					resolve({
@@ -135,7 +143,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 							successMessage,
 							orderHash,
 							network,
-							data
+							data: data.value
 						}
 					});
 
@@ -188,7 +196,7 @@ export interface TransactionConfig<T> {
 	/**
 	 * Function to fetch data from the subgraph
 	 */
-	fetchData: (subgraphUrl: string, txHash: string) => Promise<T>;
+	fetchData: (subgraphUrl: string, txHash: string) => Promise<WasmEncodedResult<T>>;
 	/**
 	 * Function to determine if the fetched data indicates success
 	 */

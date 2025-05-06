@@ -4,10 +4,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import {
 		getVaultBalanceChanges,
-		type SgClearBounty,
-		type SgDeposit,
-		type SgTradeVaultBalanceChange,
-		type SgWithdrawal
+		type SgVaultBalanceChangeUnwrapped
 	} from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../utils/time';
 	import Hash, { HashType } from '../Hash.svelte';
@@ -20,11 +17,13 @@
 
 	$: balanceChangesQuery = createInfiniteQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id],
-		queryFn: ({ pageParam }) => {
-			return getVaultBalanceChanges(subgraphUrl || '', id, {
+		queryFn: async ({ pageParam }) => {
+			const result = await getVaultBalanceChanges(subgraphUrl || '', id, {
 				page: pageParam + 1,
 				pageSize: DEFAULT_PAGE_SIZE
 			});
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
@@ -33,9 +32,7 @@
 		enabled: !!subgraphUrl
 	});
 
-	const AppTable = TanstackAppTable<
-		SgWithdrawal | SgDeposit | SgTradeVaultBalanceChange | SgClearBounty
-	>;
+	const AppTable = TanstackAppTable<SgVaultBalanceChangeUnwrapped>;
 </script>
 
 <AppTable

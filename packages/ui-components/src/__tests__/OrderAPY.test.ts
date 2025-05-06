@@ -7,7 +7,7 @@ import OrderApy from '../lib/components/tables/OrderAPY.svelte';
 import { bigintStringToPercentage } from '../lib/utils/number';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getOrderPerformance: vi.fn(() => Promise.resolve(mockOrderApy))
+	getOrderPerformance: vi.fn(() => Promise.resolve({ value: mockOrderApy }))
 }));
 
 const mockOrderApy: OrderPerformance = {

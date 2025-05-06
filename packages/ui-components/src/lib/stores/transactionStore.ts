@@ -59,7 +59,7 @@ export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
 
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
-	approvalCalldata?: ApprovalCalldata;
+	approvalCalldata?: string;
 	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
 	action: 'deposit' | 'withdraw';
 	chainId: number;

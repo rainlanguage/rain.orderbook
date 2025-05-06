@@ -10,7 +10,6 @@
 		getVaultApprovalCalldata,
 		type DepositCalldataResult,
 		type WithdrawCalldataResult,
-		type ApprovalCalldata,
 		getVaultWithdrawCalldata
 	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
@@ -43,9 +42,6 @@
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
 	let errorMessage = '';
-	let depositCalldata: DepositCalldataResult | undefined = undefined;
-	let approvalCalldata: ApprovalCalldata | undefined = undefined;
-	let withdrawCalldata: WithdrawCalldataResult | undefined = undefined;
 	let isCheckingCalldata = false;
 
 	const messages = {
@@ -77,7 +73,7 @@
 
 	async function handleTransaction(
 		transactionCalldata: DepositCalldataResult | WithdrawCalldataResult,
-		approvalCalldata?: ApprovalCalldata | undefined
+		approvalCalldata?: string | undefined
 	) {
 		transactionStore.handleDepositOrWithdrawTransaction({
 			config: $wagmiConfig,
@@ -94,19 +90,30 @@
 		isCheckingCalldata = true;
 		try {
 			if (action === 'deposit') {
-				try {
-					approvalCalldata = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
-				} catch {
-					approvalCalldata = undefined;
+				const approvalCalldataResult = await getVaultApprovalCalldata(
+					rpcUrl,
+					vault,
+					amount.toString()
+				);
+				if (approvalCalldataResult.error) {
+					errorMessage = approvalCalldataResult.error.msg;
 				}
-				depositCalldata = await getVaultDepositCalldata(vault, amount.toString());
-				if (depositCalldata) {
-					handleTransaction(depositCalldata, approvalCalldata);
+
+				const depositCalldataResult = await getVaultDepositCalldata(vault, amount.toString());
+				if (depositCalldataResult.error) {
+					errorMessage = depositCalldataResult.error.msg;
+				} else {
+					handleTransaction(
+						[depositCalldataResult.value],
+						!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
+					);
 				}
 			} else if (action === 'withdraw') {
-				withdrawCalldata = await getVaultWithdrawCalldata(vault, amount.toString());
-				if (withdrawCalldata) {
-					handleTransaction(withdrawCalldata);
+				const withdrawCalldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
+				if (withdrawCalldataResult.error) {
+					errorMessage = withdrawCalldataResult.error.msg;
+				} else {
+					handleTransaction([withdrawCalldataResult.value]);
 				}
 			}
 			currentStep = 2;
