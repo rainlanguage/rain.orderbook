@@ -635,20 +635,18 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 revert NegativeBounty();
             }
 
-            if (aliceBounty.gt(Float.wrap(0))) {
-                Float currentBalance = sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex]
-                    .token][clearConfig.aliceBountyVaultId];
-                Float newBalance = currentBalance.add(aliceBounty);
-                sVaultBalances[msg.sender][aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token][clearConfig
-                    .aliceBountyVaultId] = newBalance;
-            }
-            if (bobBounty.gt(Float.wrap(0))) {
-                Float currentBalance = sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig.bobOutputIOIndex]
-                    .token][clearConfig.bobBountyVaultId];
-                Float newBalance = currentBalance.add(bobBounty);
-                sVaultBalances[msg.sender][bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token][clearConfig
-                    .bobBountyVaultId] = newBalance;
-            }
+            increaseVaultBalance(
+                msg.sender,
+                aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token,
+                clearConfig.aliceBountyVaultId,
+                aliceBounty
+            );
+            increaseVaultBalance(
+                msg.sender,
+                bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token,
+                clearConfig.bobBountyVaultId,
+                bobBounty
+            );
         }
 
         emit AfterClearV2(msg.sender, clearStateChange);
@@ -769,10 +767,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 // balance or their per-order limit.
                 Float ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
                     .validOutputs[outputIOIndex].vaultId];
-
-                if (orderOutputMax.gt(ownerVaultBalance)) {
-                    orderOutputMax = ownerVaultBalance;
-                }
+                orderOutputMax = orderOutputMax.min(ownerVaultBalance);
             }
 
             // Populate the context with the output max rescaled and vault capped.
@@ -964,6 +959,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         (uint256 amount18, bool lossless) = LibDecimalFloat.toFixedDecimalLossy(amount, decimals);
         // Round truncation up when pulling.
         if (!lossless) {
+            // This needs to be checked math as an overflow would cause tokens
+            // to silently not be pulled (wraps to 0).
             ++amount18;
         }
         if (amount18 > 0) {
