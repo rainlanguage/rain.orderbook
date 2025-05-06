@@ -20,7 +20,13 @@ error BadLender(address badLender);
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
-    function finalizeArb(TaskV2 memory task, address ordersInputToken, address ordersOutputToken) internal {
+    function finalizeArb(
+        TaskV2 memory task,
+        address ordersInputToken,
+        uint8 inputDecimals,
+        address ordersOutputToken,
+        uint8 outputDecimals
+    ) internal {
         bytes32[][] memory context = new bytes32[][](1);
         bytes32[] memory col = new bytes32[](3);
 
@@ -30,7 +36,6 @@ library LibOrderBookArb {
             if (inputBalance > 0) {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
-            uint8 inputDecimals = IERC20Metadata(ordersInputToken).decimals();
             (Float input, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
             (lossless);
             col[0] = Float.unwrap(input);
@@ -43,7 +48,6 @@ library LibOrderBookArb {
                 IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
             }
 
-            uint8 outputDecimals = IERC20Metadata(ordersOutputToken).decimals();
             (Float output, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
             (lossless);
             col[1] = Float.unwrap(output);

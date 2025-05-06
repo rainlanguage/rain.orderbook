@@ -97,4 +97,20 @@ library LibTOFUTokenDecimals {
         }
         return (tofuOutcome, readDecimals);
     }
+
+    /// Trust on first use (TOFU) token decimals.
+    /// Same as `decimalsForToken` but reverts with a standard error if the
+    /// token's decimals are inconsistent. On the first read the decimals are
+    /// never considered inconsistent.
+    /// @return The token's decimals.
+    function safeDecimalsForToken(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
+        internal
+        returns (uint8)
+    {
+        (TOFUOutcome tofuOutcome, uint8 readDecimals) = decimalsForToken(sTOFUTokenDecimals, token);
+        if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
+            revert TokenDecimalsReadFailure(token, tofuOutcome);
+        }
+        return readDecimals;
+    }
 }
