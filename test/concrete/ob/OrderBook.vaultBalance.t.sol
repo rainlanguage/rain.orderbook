@@ -7,7 +7,7 @@ import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookVaultBalanceTest
 /// Tests the basic functionality of reading from the vault balance.
-contract OrderBookDepositTest is OrderBookExternalMockTest {
+contract OrderBookVaultBalanceTest is OrderBookExternalMockTest {
     using LibDecimalFloat for Float;
     /// Test that reading the vault balance without deposits is always zero.
 

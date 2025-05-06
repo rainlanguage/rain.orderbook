@@ -75,7 +75,6 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         TaskV2[] memory actions = new TaskV2[](evalStrings.length);
         for (uint256 i = 0; i < evalStrings.length; i++) {
-            console2.log(string(evalStrings[i]));
             actions[i] =
                 TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
