@@ -311,7 +311,7 @@ const transactionStore = () => {
 		vault,
 		subgraphUrl
 	}: DepositOrWithdrawTransactionArgs) => {
-				reset();
+		reset();
 
 		try {
 			await switchChain(config, { chainId });
@@ -379,7 +379,7 @@ const transactionStore = () => {
 		chainId,
 		subgraphUrl
 	}: RemoveOrderTransactionArgs) => {
-				reset();
+		reset();
 
 		try {
 			await switchChain(config, { chainId });
