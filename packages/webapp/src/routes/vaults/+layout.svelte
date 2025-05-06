@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ToastListener from '$lib/components/ToastListener.svelte';
+	import ToastListener from '$lib/components/TransactionsListener.svelte';
 	import { page } from '$app/stores';
 	const { id } = $page.params;
 </script>

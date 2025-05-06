@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import ToastListener from '$lib/components/ToastListener.svelte';
+	import ToastListener from '$lib/components/TransactionsListener.svelte';
 	const { orderHash } = $page.params;
 </script>
 
