@@ -249,7 +249,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
 
         (uint256 depositAmountUint256, uint8 decimals) = pullTokens(token, depositAmount);
-        (decimals);
 
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
@@ -269,7 +268,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         bytes32(uint256(uint160(token))),
                         bytes32(vaultId),
                         Float.unwrap(currentVaultBalance),
-                        Float.unwrap(depositAmount)
+                        Float.unwrap(depositAmount),
+                        bytes32(uint256(decimals))
                     )
                 ),
                 post
