@@ -26,7 +26,7 @@ import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
-import {LibTOFUTokenDecimals, TOFUTokenDecimals, TOFUOutcome} from "../lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals, TOFUTokenDecimals, TOFUOutcome, TokenDecimalsReadFailure} from "../lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the initiator is not the order book.
@@ -162,7 +162,9 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
         (TOFUOutcome inputOutcome, uint8 inputDecimals) =
             LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, ordersInputToken);
-        (inputOutcome);
+        if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
+            revert TokenDecimalsReadFailure(ordersInputToken, inputOutcome);
+        }
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
