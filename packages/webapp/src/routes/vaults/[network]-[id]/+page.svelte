@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		PageHeader,
-		useAccount,
-		useToasts
-	} from '@rainlanguage/ui-components';
+	import { invalidateTanstackQueries, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
 	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
@@ -19,7 +14,6 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
-	const { addToast } = useToasts();
 	const { account } = useAccount();
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {

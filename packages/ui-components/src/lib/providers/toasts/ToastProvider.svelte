@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
 	import ToastDetail from '$lib/components/ToastDetail.svelte';
 	import { setToastsContext } from './context';
 	import { writable, type Writable } from 'svelte/store';
@@ -12,7 +11,7 @@
 
 <div class="fixed right-4 top-4 z-[100]">
 	{#each $toasts as toast}
-		<div out:fade>
+		<div out:fade data-testid="toast">
 			<ToastDetail {toast} />
 		</div>
 	{/each}
