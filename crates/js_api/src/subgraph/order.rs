@@ -3,9 +3,7 @@ use cynic::Id;
 use rain_orderbook_common::types::OrderDetailExtended;
 use rain_orderbook_subgraph_client::{
     performance::{vol::VaultVolume, OrderPerformance},
-    types::common::{
-        SgBytes, SgOrder, SgOrderWithSubgraphName, SgOrdersListFilterArgs, SgTrade, SgVault,
-    },
+    types::common::{SgBytes, SgOrder, SgOrderWithSubgraphName, SgOrdersListFilterArgs, SgVault},
     MultiOrderbookSubgraphClient, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError, SgPaginationArgs,
 };
@@ -874,7 +872,6 @@ mod test_helpers {
                 .await
                 .unwrap();
 
-            let expected_order = get_order1();
             assert_eq!(res.0.len(), 4);
 
             let volume1 = res.0[0].clone();

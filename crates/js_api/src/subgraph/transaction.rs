@@ -20,8 +20,7 @@ mod test_helpers {
     mod non_wasm {
         use super::*;
         use httpmock::MockServer;
-        use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes};
-        use serde_json::{json, Value};
+        use serde_json::json;
 
         #[tokio::test]
         async fn test_get_transaction() {

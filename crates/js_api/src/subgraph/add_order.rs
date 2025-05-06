@@ -34,10 +34,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes};
-        use serde_json::{json, Value};
+        use serde_json::json;
 
         #[tokio::test]
         async fn test_get_transaction_add_orders() {

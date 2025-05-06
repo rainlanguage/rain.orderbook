@@ -37,8 +37,8 @@ mod tests {
     mod non_wasm {
         use super::*;
         use httpmock::MockServer;
-        use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes};
-        use serde_json::{json, Value};
+        use rain_orderbook_subgraph_client::types::common::SgBigInt;
+        use serde_json::json;
 
         #[tokio::test]
         async fn test_get_transaction_remove_orders() {
