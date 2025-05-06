@@ -30,8 +30,7 @@ impl Execute for CliVaultBalanceChangesList {
 
         if self.pagination_args.csv {
             let csv_text = subgraph_args
-                .to_subgraph_client()
-                .await?
+                .to_subgraph_client()?
                 .vault_balance_changes_list_all(self.vault_id.clone().into())
                 .await?
                 .into_iter()
@@ -43,8 +42,7 @@ impl Execute for CliVaultBalanceChangesList {
         } else {
             let table = build_table(
                 subgraph_args
-                    .to_subgraph_client()
-                    .await?
+                    .to_subgraph_client()?
                     .vault_balance_changes_list(
                         self.vault_id.clone().into(),
                         self.pagination_args.clone().into(),
