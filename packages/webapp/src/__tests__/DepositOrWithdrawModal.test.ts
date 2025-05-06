@@ -110,7 +110,7 @@ describe('DepositOrWithdrawModal', () => {
 			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: '0xabc',
-			transactionCalldata: ['0x456']
+			transactionCalldata: '0x456'
 		});
 	});
 
@@ -137,7 +137,7 @@ describe('DepositOrWithdrawModal', () => {
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			config: mockWeb3Config,
-			transactionCalldata: ['0xghi'],
+			transactionCalldata: '0xghi',
 			action: 'withdraw',
 			chainId: 1,
 			vault: mockVault,
@@ -294,7 +294,7 @@ describe('DepositOrWithdrawModal', () => {
 			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
-			transactionCalldata: ['0x456']
+			transactionCalldata: '0x456'
 		});
 	});
 

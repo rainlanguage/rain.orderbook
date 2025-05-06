@@ -8,9 +8,8 @@
 	import {
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
-		type DepositCalldataResult,
-		type WithdrawCalldataResult,
-		getVaultWithdrawCalldata
+		getVaultWithdrawCalldata,
+		type VaultCalldataResult
 	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
 	import TransactionModal from './TransactionModal.svelte';
@@ -72,8 +71,8 @@
 	};
 
 	async function handleTransaction(
-		transactionCalldata: DepositCalldataResult | WithdrawCalldataResult,
-		approvalCalldata?: string | undefined
+		transactionCalldata: VaultCalldataResult,
+		approvalCalldata?: VaultCalldataResult | undefined
 	) {
 		transactionStore.handleDepositOrWithdrawTransaction({
 			config: $wagmiConfig,
@@ -104,7 +103,7 @@
 					errorMessage = depositCalldataResult.error.msg;
 				} else {
 					handleTransaction(
-						[depositCalldataResult.value],
+						depositCalldataResult.value,
 						!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
 					);
 				}
@@ -113,7 +112,7 @@
 				if (withdrawCalldataResult.error) {
 					errorMessage = withdrawCalldataResult.error.msg;
 				} else {
-					handleTransaction([withdrawCalldataResult.value]);
+					handleTransaction(withdrawCalldataResult.value);
 				}
 			}
 			currentStep = 2;
