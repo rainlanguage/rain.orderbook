@@ -8,7 +8,7 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {EvaluableV4, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {
     SourceIndexV2,
     StateNamespace,
@@ -98,6 +98,8 @@ library LibOrderBook {
         StateNamespace namespace = StateNamespace.wrap(uint256(uint160(msg.sender)));
         FullyQualifiedNamespace qualifiedNamespace = LibNamespace.qualifyNamespace(namespace, address(this));
         TaskV2 memory task;
+        StackItem[] memory emptyStack = new StackItem[](0);
+        bytes32[] memory emptyStateOverlay = new bytes32[](0);
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
             if (task.evaluable.bytecode.length > 0) {
@@ -108,8 +110,8 @@ library LibOrderBook {
                         bytecode: task.evaluable.bytecode,
                         sourceIndex: SourceIndexV2.wrap(0),
                         context: LibContext.build(context, task.signedContext),
-                        inputs: new StackItem[](0),
-                        stateOverlay: new bytes32[](0)
+                        inputs: emptyStack,
+                        stateOverlay: emptyStateOverlay
                     })
                 );
                 (stack);
