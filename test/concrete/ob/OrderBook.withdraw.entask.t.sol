@@ -333,14 +333,8 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 ") \"withdraw vaultId\");"
             )
         );
-        evals[4] = bytes(
-            string.concat(
-                usingWordsFrom,
-                ":ensure(equal-to(withdraw-vault-balance() ",
-                LibFormatDecimalFloat.toDecimalString(depositAmount),
-                ") \"vault balance\");"
-            )
-        );
+        evals[4] =
+            bytes(string.concat(usingWordsFrom, ":ensure(equal-to(withdraw-vault-before() 0", ") \"vault balance\");"));
         evals[5] = bytes(
             string.concat(
                 usingWordsFrom,

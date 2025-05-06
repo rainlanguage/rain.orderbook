@@ -43,7 +43,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
         vm.record();
         iOrderbook.withdraw3(address(iToken0), vaultId, amount, new TaskV2[](0));
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-        assertEq(reads.length, 8, "reads");
+        assertEq(reads.length, 9, "reads");
         assertEq(writes.length, 4, "writes");
     }
 

@@ -113,7 +113,12 @@ error NegativeInput();
 error NegativeOutput();
 
 /// Thrown when a negative vault balance is being recorded.
-error NegativeVaultBalance();
+/// @param vaultBalance The negative vault balance being recorded.
+error NegativeVaultBalance(Float vaultBalance);
+
+/// Thrown when a negative amount is being applied to a vault balance.
+/// @param amount The negative amount being applied.
+error NegativeVaultBalanceChange(Float amount);
 
 /// Thrown when a negative pull is attempted.
 error NegativePull();
@@ -255,11 +260,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // guard in place anyway.
         emit DepositV2(msg.sender, token, vaultId, depositAmountUint256);
 
-        Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-
-        Float newBalance = currentVaultBalance.add(depositAmount);
-
-        sVaultBalances[msg.sender][token][vaultId] = newBalance;
+        (Float beforeBalance, Float afterBalance) = increaseVaultBalance(msg.sender, token, vaultId, depositAmount);
 
         if (post.length != 0) {
             LibOrderBook.doPost(
@@ -267,8 +268,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(token))),
                         bytes32(vaultId),
-                        Float.unwrap(currentVaultBalance),
-                        Float.unwrap(depositAmount),
+                        Float.unwrap(beforeBalance),
+                        Float.unwrap(afterBalance),
                         bytes32(uint256(decimals))
                     )
                 ),
@@ -287,18 +288,9 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
 
         Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-
         Float withdrawAmount = targetAmount.min(currentVaultBalance);
 
-        // The overflow check here is redundant with .min above, so
-        // technically this is overly conservative but we REALLY don't want
-        // withdrawals to exceed vault balances.
-        Float newBalance = currentVaultBalance.sub(withdrawAmount);
-
-        if (newBalance.lt(Float.wrap(0))) {
-            revert NegativeVaultBalance();
-        }
-        sVaultBalances[msg.sender][token][vaultId] = newBalance;
+        (Float beforeBalance, Float afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
 
         (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(token, withdrawAmount);
 
@@ -310,8 +302,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(token))),
                         vaultId,
-                        Float.unwrap(currentVaultBalance),
-                        Float.unwrap(withdrawAmount),
+                        Float.unwrap(beforeBalance),
+                        Float.unwrap(afterBalance),
                         Float.unwrap(targetAmount),
                         bytes32(uint256(decimals))
                     )
@@ -799,6 +791,49 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    function increaseVaultBalance(address owner, address token, bytes32 vaultId, Float amount)
+        internal
+        returns (Float, Float)
+    {
+        if (amount.lt(Float.wrap(0))) {
+            revert NegativeVaultBalanceChange(amount);
+        }
+
+        Float oldBalance = sVaultBalances[owner][token][vaultId];
+        Float newBalance = oldBalance.add(amount);
+
+        // This should never be possible as amount is positive and floats are
+        // effectively impossible to overflow, but we check it anyway to be safe.
+        if (newBalance.lt(Float.wrap(0))) {
+            revert NegativeVaultBalance(newBalance);
+        }
+        sVaultBalances[owner][token][vaultId] = newBalance;
+
+        return (oldBalance, newBalance);
+    }
+
+    function decreaseVaultBalance(address owner, address token, bytes32 vaultId, Float amount)
+        internal
+        returns (Float, Float)
+    {
+        if (amount.lt(Float.wrap(0))) {
+            revert NegativeVaultBalanceChange(amount);
+        }
+
+        Float oldBalance = sVaultBalances[owner][token][vaultId];
+        Float newBalance = oldBalance.sub(amount);
+
+        // This can definitely happen, so needs to be guarded against.
+        // There's no specific check anywhere else that vault balances don't go
+        // negative, so this function should be used everywhere for safety.
+        if (newBalance.lt(Float.wrap(0))) {
+            revert NegativeVaultBalance(newBalance);
+        }
+        sVaultBalances[owner][token][vaultId] = newBalance;
+
+        return (oldBalance, newBalance);
+    }
+
     /// Given an order, final input and output amounts and the IO calculation
     /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
     /// it exists and update the order owner's vault balances.
@@ -809,37 +844,19 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = Float.unwrap(input);
         orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = Float.unwrap(output);
 
-        if (input.lt(Float.wrap(0))) {
-            revert NegativeInput();
-        }
+        increaseVaultBalance(
+            orderIOCalculation.order.owner,
+            address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),
+            orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
+            input
+        );
 
-        if (output.lt(Float.wrap(0))) {
-            revert NegativeOutput();
-        }
-
-        if (input.gt(Float.wrap(0))) {
-            Float inputVaultBalance = sVaultBalances[orderIOCalculation.order.owner][address(
-                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]];
-
-            Float newInputBalance = inputVaultBalance.add(input);
-
-            sVaultBalances[orderIOCalculation.order.owner][address(
-                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = newInputBalance;
-        }
-
-        if (output.gt(Float.wrap(0))) {
-            Float outputVaultBalance = sVaultBalances[orderIOCalculation.order.owner][address(
-                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]];
-
-            Float newOutputBalance = outputVaultBalance.sub(output);
-
-            sVaultBalances[orderIOCalculation.order.owner][address(
-                uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))
-            )][orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID]] = newOutputBalance;
-        }
+        decreaseVaultBalance(
+            orderIOCalculation.order.owner,
+            address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),
+            orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
+            output
+        );
 
         // Emit the context only once in its fully populated form rather than two
         // nearly identical emissions of a partial and full context.

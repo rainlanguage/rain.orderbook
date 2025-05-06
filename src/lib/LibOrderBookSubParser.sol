@@ -36,12 +36,12 @@ import {
     CONTEXT_SIGNED_CONTEXT_START_ROWS,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN,
     CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID,
-    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE,
-    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE,
+    CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID,
-    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BALANCE,
-    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_AMOUNT,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE,
+    CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TARGET_AMOUNT
 } from "./LibOrderBook.sol";
 
@@ -69,28 +69,28 @@ bytes constant WORD_OUTPUT_VAULT_BALANCE_DECREASE = "output-vault-decrease";
 bytes constant WORD_DEPOSITOR = "depositor";
 bytes constant WORD_DEPOSIT_TOKEN = "deposit-token";
 bytes constant WORD_DEPOSIT_VAULT_ID = "deposit-vault-id";
-bytes constant WORD_DEPOSIT_VAULT_BALANCE = "deposit-vault-balance";
-bytes constant WORD_DEPOSIT_AMOUNT = "deposit-amount";
+bytes constant WORD_DEPOSIT_VAULT_BEFORE = "deposit-vault-before";
+bytes constant WORD_DEPOSIT_VAULT_AFTER = "deposit-vault-after";
 
 bytes constant WORD_WITHDRAWER = "withdrawer";
 bytes constant WORD_WITHDRAW_TOKEN = "withdraw-token";
 bytes constant WORD_WITHDRAW_VAULT_ID = "withdraw-vault-id";
-bytes constant WORD_WITHDRAW_VAULT_BALANCE = "withdraw-vault-balance";
-bytes constant WORD_WITHDRAW_AMOUNT = "withdraw-amount";
+bytes constant WORD_WITHDRAW_VAULT_BEFORE = "withdraw-vault-before";
+bytes constant WORD_WITHDRAW_VAULT_AFTER = "withdraw-vault-after";
 bytes constant WORD_WITHDRAW_TARGET_AMOUNT = "withdraw-target-amount";
 
 uint256 constant DEPOSIT_WORD_DEPOSITOR = 0;
 uint256 constant DEPOSIT_WORD_TOKEN = 1;
 uint256 constant DEPOSIT_WORD_VAULT_ID = 2;
-uint256 constant DEPOSIT_WORD_VAULT_BALANCE = 3;
-uint256 constant DEPOSIT_WORD_AMOUNT = 4;
+uint256 constant DEPOSIT_WORD_VAULT_BEFORE = 3;
+uint256 constant DEPOSIT_WORD_VAULT_AFTER = 4;
 uint256 constant DEPOSIT_WORDS_LENGTH = 5;
 
 uint256 constant WITHDRAW_WORD_WITHDRAWER = 0;
 uint256 constant WITHDRAW_WORD_TOKEN = 1;
 uint256 constant WITHDRAW_WORD_VAULT_ID = 2;
-uint256 constant WITHDRAW_WORD_VAULT_BALANCE = 3;
-uint256 constant WITHDRAW_WORD_AMOUNT = 4;
+uint256 constant WITHDRAW_WORD_VAULT_BEFORE = 3;
+uint256 constant WITHDRAW_WORD_VAULT_AFTER = 4;
 uint256 constant WITHDRAW_WORD_TARGET_AMOUNT = 5;
 uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 
@@ -280,24 +280,26 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
     }
 
-    function subParserDepositVaultBalance(uint256, uint256, OperandV2)
+    function subParserDepositVaultBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE
         );
     }
 
-    function subParserDepositAmount(uint256, uint256, OperandV2)
+    function subParserDepositVaultBalanceAfter(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT);
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER
+        );
     }
 
     function subParserWithdrawToken(uint256, uint256, OperandV2)
@@ -319,24 +321,26 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID);
     }
 
-    function subParserWithdrawVaultBalance(uint256, uint256, OperandV2)
+    function subParserWithdrawVaultBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BALANCE
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE
         );
     }
 
-    function subParserWithdrawAmount(uint256, uint256, OperandV2)
+    function subParserWithdrawVaultBalanceAfter(uint256, uint256, OperandV2)
         internal
         pure
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_AMOUNT);
+        return LibSubParse.subParserContext(
+            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER
+        );
     }
 
     function subParserWithdrawTargetAmount(uint256, uint256, OperandV2)
@@ -459,12 +463,10 @@ library LibOrderBookSubParser {
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
             bytes32(WORD_DEPOSIT_VAULT_ID), "The ID of the vault that the token is being deposited into."
         );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BALANCE + 1] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSIT_VAULT_BALANCE),
-            "The starting balance of the vault that the token is being deposited into, before the deposit."
-        );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_AMOUNT + 1] =
-            AuthoringMetaV2(bytes32(WORD_DEPOSIT_AMOUNT), "The amount of the token that is being deposited.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_BEFORE), "The balance of the vault before the deposit.");
+        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER + 1] =
+            AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_AFTER), "The balance of the vault after deposit.");
 
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
 
@@ -476,12 +478,10 @@ library LibOrderBookSubParser {
         withdrawMeta[WITHDRAW_WORD_VAULT_ID] = AuthoringMetaV2(
             bytes32(WORD_WITHDRAW_VAULT_ID), "The ID of the vault that the token is being withdrawn from."
         );
-        withdrawMeta[WITHDRAW_WORD_VAULT_BALANCE] = AuthoringMetaV2(
-            bytes32(WORD_WITHDRAW_VAULT_BALANCE),
-            "The starting balance of the vault that the token is being withdrawn from, before the withdrawal."
-        );
-        withdrawMeta[WITHDRAW_WORD_AMOUNT] =
-            AuthoringMetaV2(bytes32(WORD_WITHDRAW_AMOUNT), "The amount of the token that is being withdrawn.");
+        withdrawMeta[WITHDRAW_WORD_VAULT_BEFORE] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_BEFORE), "The balance of the vault before the withdrawal.");
+        withdrawMeta[WITHDRAW_WORD_VAULT_AFTER] =
+            AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_AFTER), "The balance of the vault after withdrawal.");
         withdrawMeta[WITHDRAW_WORD_TARGET_AMOUNT] = AuthoringMetaV2(
             bytes32(WORD_WITHDRAW_TARGET_AMOUNT),
             "The target amount of the token that the withdrawer is trying to withdraw. This is the amount that the withdrawer is trying to withdraw, but it MAY NOT be the amount that the withdrawer actually receives."
