@@ -201,7 +201,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     using LibOrder for OrderV4;
     using LibUint256Array for uint256;
     using LibDecimalFloat for Float;
-    using LibDecimalFloat for Float;
     using LibBytes32Array for bytes32;
 
     /// All hashes of all active orders. There's nothing interesting in the value
