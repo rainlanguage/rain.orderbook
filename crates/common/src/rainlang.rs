@@ -18,33 +18,15 @@ pub fn compose_to_rainlang(
             .map(|(k, v)| Rebind(k.clone(), v.clone()))
             .collect(),
     );
-    let rain_document = RainDocument::create(
-        dotrain.clone(),
-        Some(meta_store.clone()),
-        None,
-        rebinds.clone(),
-    );
-
-    // search the namespace hash map for NamespaceItems that are elided
-    // to set them to 0 and finally merge main bindings into them
-    let final_bindings = rain_document
-        .namespace()
-        .iter()
-        .filter_map(|(k, v)| {
-            v.is_elided_binding().then_some(Rebind(
-                k.clone(),
-                alloy::primitives::hex::encode_prefixed([0; 32]),
-            ))
-        })
-        .chain(rebinds.unwrap_or(vec![]))
-        .collect::<Vec<Rebind>>();
 
     // compose a new RainDocument with final injected bindings
-    RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings)).compose(entrypoints)
+    RainDocument::create(dotrain, Some(meta_store), None, rebinds).compose(entrypoints)
 }
 
 #[cfg(test)]
 mod tests {
+    use dotrain::{error::ErrorCode, types::ast::Problem};
+
     use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
 
     use super::*;
@@ -147,28 +129,33 @@ _ _: 4e18 0x1234567890abcdef;"
         assert_eq!(actual, expected);
     }
 
-    // TODO: figure out what's the expected behavior here
-    //     #[test]
-    //     fn test_compose_to_rainlang_err_with_bindings() {
-    //         let dotrain = r"
-    // some front matter
-    // ---
-    // /** this is test */
+    #[test]
+    fn test_compose_to_rainlang_err_with_bindings() {
+        let dotrain = r"
+some front matter
+---
+/** this is test */
+                                                                           
 
-    // #const-binding 4e18
-    // #elided-binding ! this elided, rebind before use
-    // #exp-binding
-    // _ _: const-binding elided-binding;"
-    //             .trim_start();
+#const-binding 4e18
+#elided-binding ! this elided, rebind before use
+#exp-binding
+_ _: const-binding elided-binding;"
+            .trim_start();
 
-    //         let bindings = HashMap::new();
+        let bindings = HashMap::new();
 
-    //         let expected = "".trim_start();
+        let err = compose_to_rainlang(dotrain.to_string(), bindings, &["exp-binding"]).unwrap_err();
 
-    //         let actual = compose_to_rainlang(dotrain.to_string(), bindings, &["exp-binding"]).unwrap();
-
-    //         assert_eq!(actual, expected);
-    //     }
+        assert!(matches!(
+            err,
+            ComposeError::Problems(problems) if problems.len() == 1 && matches!(&problems[0], Problem {
+                msg,
+                code: ErrorCode::ElidedBinding,
+                ..
+            } if msg == "elided binding 'elided-binding': this elided, rebind before use")
+        ));
+    }
 }
 
 #[cfg(not(target_family = "wasm"))]
