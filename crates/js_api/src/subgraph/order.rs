@@ -158,9 +158,13 @@ mod test_helpers {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use alloy::primitives::U256;
         use httpmock::MockServer;
-        use rain_orderbook_subgraph_client::types::common::{
-            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
+        use rain_orderbook_subgraph_client::{
+            performance::vol::VolumeDetails,
+            types::common::{
+                SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
+            },
         };
         use serde_json::{json, Value};
 
@@ -393,10 +397,10 @@ mod test_helpers {
 
         #[tokio::test]
         async fn test_get_orders() {
-            let rpc_server = MockServer::start_async().await;
+            let sg_server = MockServer::start_async().await;
 
-            rpc_server.mock(|when, then| {
-                when.path("/rpc1");
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
                 then.status(200).json_body_obj(&json!({
                   "data": {
                     "orders": [
@@ -405,8 +409,8 @@ mod test_helpers {
                   }
                 }));
             });
-            rpc_server.mock(|when, then| {
-                when.path("/rpc2");
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                       "orders": [
@@ -483,11 +487,11 @@ mod test_helpers {
 
             let subgraphs = vec![
                 MultiSubgraphArgs {
-                    url: Url::parse(&rpc_server.url("/rpc1")).unwrap(),
+                    url: Url::parse(&sg_server.url("/sg1")).unwrap(),
                     name: "network-one".to_string(),
                 },
                 MultiSubgraphArgs {
-                    url: Url::parse(&rpc_server.url("/rpc2")).unwrap(),
+                    url: Url::parse(&sg_server.url("/sg2")).unwrap(),
                     name: "network-two".to_string(),
                 },
             ];
@@ -622,9 +626,9 @@ mod test_helpers {
 
         #[tokio::test]
         async fn test_get_order_by_hash() {
-            let rpc_server = MockServer::start_async().await;
-            rpc_server.mock(|when, then| {
-                when.path("/rpc1");
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "orders": [get_order1_json()]
@@ -632,7 +636,7 @@ mod test_helpers {
                 }));
             });
 
-            let res = get_order_by_hash(&rpc_server.url("/rpc1"), "hash")
+            let res = get_order_by_hash(&sg_server.url("/sg1"), "hash")
                 .await
                 .unwrap();
 
@@ -664,10 +668,242 @@ mod test_helpers {
         }
 
         #[tokio::test]
-        async fn test_order_detail_extended() {}
+        async fn test_order_detail_extended() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+
+            let res = order_detail_extended(get_order1()).unwrap();
+            assert_eq!(res.order.id, get_order1().id);
+            assert_eq!(res.order.order_bytes, get_order1().order_bytes);
+            assert_eq!(res.order.order_hash, get_order1().order_hash);
+            assert_eq!(res.order.owner, get_order1().owner);
+            assert_eq!(res.order.outputs.len(), 2);
+            assert_eq!(res.order.inputs.len(), 2);
+
+            assert_eq!(res.rainlang, Some("/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC 0x915E36ef882941816356bC3718Df868054F868aD\namount-epochs\ntrade-epochs:call<2>(),\nmax-output: call<3>(amount-epochs trade-epochs),\nio: call<4>(trade-epochs),\n:call<5>(io);\n\n/* 1. handle-io */ \nmin-amount: mul(1 0.9),\n:ensure(greater-than-or-equal-to(output-vault-decrease() min-amount) \"Min trade amount.\"),\nused: get(hash(order-hash() \"amount-used\")),\n:set(hash(order-hash() \"amount-used\") add(used output-vault-decrease()));\n\n/* 2. get-epoch */ \ninitial-time: call<6>(),\nlast-time _: call<7>(),\nduration: sub(now() any(last-time initial-time))),\ntotal-duration: sub(now() initial-time),\nratio-freeze-amount-epochs: div(1 1),\nratio-freeze-trade-epochs: mul(ratio-freeze-amount-epochs div(60 1800)),\namount-epochs: div(total-duration 60),\ntrade-epochs: saturating-sub(div(duration 1800) ratio-freeze-trade-epochs);\n\n/* 3. amount-for-epoch */ \namount-epochs\ntrade-epochs:,\ntotal-available: linear-growth(0 1 amount-epochs),\nused: get(hash(order-hash() \"amount-used\")),\nunused: sub(total-available used),\ndecay: call<8>(trade-epochs),\nshy-decay: every(greater-than(trade-epochs 0.05) decay),\nvariable-component: sub(1 1),\ntarget-amount: add(1 mul(variable-component shy-decay)),\ncapped-unused: min(unused target-amount);\n\n/* 4. io-for-epoch */ \nepoch:,\nlast-io: call<7>(),\nmax-next-trade: any(mul(last-io 1.01) call<9>()),\nbaseline-next-trade: mul(last-io 0),\nreal-baseline: max(baseline-next-trade call<9>()),\nvariable-component: saturating-sub(max-next-trade real-baseline),\nabove-baseline: mul(variable-component call<8>(epoch)),\n_: add(real-baseline above-baseline);\n\n/* 5. set-last-trade */ \nlast-io:,\n:set(hash(order-hash() \"last-trade-time\") now()),\n:set(hash(order-hash() \"last-trade-io\") last-io);\n\n/* 6. get-initial-time */ \n_:get(hash(order-hash() \"initial-time\"));\n\n/* 7. get-last-trade */ \nlast-time:get(hash(order-hash() \"last-trade-time\")),\nlast-io:get(hash(order-hash() \"last-trade-io\"));\n\n/* 8. halflife */ \nepoch:,\n/**\n * Shrinking the multiplier like this\n * then applying it 10 times allows for\n * better precision when max-io-ratio\n * is very large, e.g. ~1e10 or ~1e20+\n *\n * This works because `power` loses\n * precision on base `0.5` when the\n * exponent is large and can even go\n * to `0` while the io-ratio is still\n * large. Better to keep the multiplier\n * higher precision and drop the io-ratio\n * smoothly for as long as we can.\n *\nmultiplier:\n  power(0.5 div(epoch 10)),\nval:\n  mul(\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n    multiplier\n  );\n\n/* 9. sflr-baseline-inv */ \n_: inv(sflr-exchange-rate());".to_string()));
+        }
 
         #[tokio::test]
-        async fn test_order_vaults_volume() {}
+        async fn test_order_vaults_volume() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":0");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "trades": [
+                      {
+                        "id": "trade1",
+                        "tradeEvent": {
+                          "transaction": {
+                            "id": "tx1",
+                            "from": "from1",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "sender": "sender1"
+                        },
+                        "outputVaultBalanceChange": {
+                          "id": "ovbc1",
+                          "__typename": "TradeVaultBalanceChange",
+                          "amount": "-2",
+                          "newVaultBalance": "0",
+                          "oldVaultBalance": "0",
+                          "vault": {
+                            "id": "vault1",
+                            "vaultId": "1",
+                            "token": {
+                              "id": "output_token",
+                              "address": "output_token",
+                              "name": "output_token",
+                              "symbol": "output_token",
+                              "decimals": "0"
+                            }
+                          },
+                          "timestamp": "0",
+                          "transaction": {
+                            "id": "tx1",
+                            "from": "from1",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "orderbook": {
+                            "id": "ob1"
+                          }
+                        },
+                        "order": {
+                          "id": "order1",
+                          "orderHash": "hash1"
+                        },
+                        "inputVaultBalanceChange": {
+                          "id": "ivbc1",
+                          "__typename": "TradeVaultBalanceChange",
+                          "amount": "1",
+                          "newVaultBalance": "0",
+                          "oldVaultBalance": "0",
+                          "vault": {
+                            "id": "vault1",
+                            "vaultId": "1",
+                            "token": {
+                              "id": "output_token",
+                              "address": "output_token",
+                              "name": "output_token",
+                              "symbol": "output_token",
+                              "decimals": "0"
+                            }
+                          },
+                          "timestamp": "0",
+                          "transaction": {
+                            "id": "tx1",
+                            "from": "from1",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "orderbook": {
+                            "id": "ob1"
+                          }
+                        },
+                        "timestamp": "0",
+                        "orderbook": {
+                          "id": "ob1"
+                        }
+                      },
+                      {
+                        "id": "trade2",
+                        "tradeEvent": {
+                          "transaction": {
+                            "id": "tx2",
+                            "from": "from2",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "sender": "sender2"
+                        },
+                        "outputVaultBalanceChange": {
+                          "id": "ovbc2",
+                          "__typename": "TradeVaultBalanceChange",
+                          "amount": "-5",
+                          "newVaultBalance": "0",
+                          "oldVaultBalance": "0",
+                          "vault": {
+                            "id": "vault2",
+                            "vaultId": "2",
+                            "token": {
+                              "id": "output_token",
+                              "address": "output_token",
+                              "name": "output_token",
+                              "symbol": "output_token",
+                              "decimals": "0"
+                            }
+                          },
+                          "timestamp": "0",
+                          "transaction": {
+                            "id": "tx2",
+                            "from": "from2",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "orderbook": {
+                            "id": "ob2"
+                          }
+                        },
+                        "order": {
+                          "id": "order2",
+                          "orderHash": "hash2"
+                        },
+                        "inputVaultBalanceChange": {
+                          "id": "ivbc2",
+                          "__typename": "TradeVaultBalanceChange",
+                          "amount": "2",
+                          "newVaultBalance": "0",
+                          "oldVaultBalance": "0",
+                          "vault": {
+                            "id": "vault2",
+                            "vaultId": "2",
+                            "token": {
+                              "id": "output_token",
+                              "address": "output_token",
+                              "name": "output_token",
+                              "symbol": "output_token",
+                              "decimals": "0"
+                            }
+                          },
+                          "timestamp": "0",
+                          "transaction": {
+                            "id": "tx2",
+                            "from": "from2",
+                            "blockNumber": "0",
+                            "timestamp": "0"
+                          },
+                          "orderbook": {
+                            "id": "ob2"
+                          }
+                        },
+                        "timestamp": "0",
+                        "orderbook": {
+                          "id": "ob2"
+                        }
+                      }
+                    ]
+                  }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "trades": [] }
+                }));
+            });
+
+            let res = order_vaults_volume(&sg_server.url("/sg"), "hash", None, None)
+                .await
+                .unwrap();
+
+            let expected_order = get_order1();
+            assert_eq!(res.0.len(), 2);
+
+            let volume1 = res.0[0].clone();
+            assert_eq!(volume1.id, "1");
+            assert_eq!(volume1.token.address.0, "output_token");
+            assert_eq!(volume1.token.name, Some("output_token".to_string()));
+            assert_eq!(volume1.token.symbol, Some("output_token".to_string()));
+            assert_eq!(volume1.token.decimals, Some(SgBigInt("0".to_string())));
+            assert_eq!(
+                volume1.vol_details,
+                VolumeDetails {
+                    total_in: U256::from(1),
+                    total_out: U256::from(2),
+                    total_vol: U256::from(3),
+                    net_vol: U256::from(1),
+                }
+            );
+
+            let volume2 = res.0[1].clone();
+            assert_eq!(volume2.id, "2");
+            assert_eq!(volume2.token.address.0, "output_token");
+            assert_eq!(volume2.token.name, Some("output_token".to_string()));
+            assert_eq!(volume2.token.symbol, Some("output_token".to_string()));
+            assert_eq!(volume2.token.decimals, Some(SgBigInt("0".to_string())));
+            assert_eq!(
+                volume2.vol_details,
+                VolumeDetails {
+                    total_in: U256::from(2),
+                    total_out: U256::from(5),
+                    total_vol: U256::from(7),
+                    net_vol: U256::from(3),
+                }
+            );
+        }
 
         #[tokio::test]
         async fn test_order_performance() {}
