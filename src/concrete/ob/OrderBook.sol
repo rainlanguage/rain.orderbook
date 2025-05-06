@@ -30,7 +30,7 @@ import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
-import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {
     LibTOFUTokenDecimals,
     TOFUTokenDecimals,
