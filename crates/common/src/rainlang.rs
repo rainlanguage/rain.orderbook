@@ -43,6 +43,134 @@ pub fn compose_to_rainlang(
     RainDocument::create(dotrain, Some(meta_store), None, Some(final_bindings)).compose(entrypoints)
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+
+    use super::*;
+
+    #[test]
+    fn test_compose_to_rainlang_err_empty_entrypoints() {
+        let dotrain = r"
+some front matter
+---
+/** this is test */
+                                                                           
+
+#const-binding 4e18
+#elided-binding ! this elided, rebind before use
+#exp-binding
+_: opcode-1(0xabcd 456);
+"
+        .trim_start();
+
+        let bindings = HashMap::new();
+        let entrypoints = &[];
+
+        let err = compose_to_rainlang(dotrain.to_string(), bindings, entrypoints).unwrap_err();
+        assert_eq!(
+            err,
+            ComposeError::Reject("no entrypoints specified".to_owned())
+        );
+    }
+
+    #[test]
+    fn test_compose_to_rainlang_ok_empty_bindings() {
+        let dotrain = r"
+some front matter
+---
+#key1 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 1 2;
+"
+        .trim_start();
+
+        let expected = r"
+/* 0. calculate-io */ 
+_ _: 0 0;
+
+/* 1. handle-io */ 
+:;"
+        .trim_start();
+
+        let actual = compose_to_rainlang(
+            dotrain.to_string(),
+            HashMap::new(),
+            &ORDERBOOK_ORDER_ENTRYPOINTS,
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+
+        let expected = r"
+/* 0. handle-add-order */ 
+_ _: 1 2;"
+            .trim_start();
+
+        let actual =
+            compose_to_rainlang(dotrain.to_string(), HashMap::new(), &["handle-add-order"])
+                .unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_compose_to_rainlang_ok_with_bindings() {
+        let dotrain = r"
+some front matter
+---
+/** this is test */
+                                                                           
+
+#const-binding 4e18
+#elided-binding ! this elided, rebind before use
+#exp-binding
+_ _: const-binding elided-binding;"
+            .trim_start();
+
+        let bindings = HashMap::from([(
+            "elided-binding".to_string(),
+            "0x1234567890abcdef".to_string(),
+        )]);
+
+        let expected = r"
+/* 0. exp-binding */ 
+_ _: 4e18 0x1234567890abcdef;"
+            .trim_start();
+
+        let actual = compose_to_rainlang(dotrain.to_string(), bindings, &["exp-binding"]).unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    // TODO: figure out what's the expected behavior here
+    //     #[test]
+    //     fn test_compose_to_rainlang_err_with_bindings() {
+    //         let dotrain = r"
+    // some front matter
+    // ---
+    // /** this is test */
+
+    // #const-binding 4e18
+    // #elided-binding ! this elided, rebind before use
+    // #exp-binding
+    // _ _: const-binding elided-binding;"
+    //             .trim_start();
+
+    //         let bindings = HashMap::new();
+
+    //         let expected = "".trim_start();
+
+    //         let actual = compose_to_rainlang(dotrain.to_string(), bindings, &["exp-binding"]).unwrap();
+
+    //         assert_eq!(actual, expected);
+    //     }
+}
+
 #[cfg(not(target_family = "wasm"))]
 pub use fork_parse::*;
 
