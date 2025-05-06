@@ -175,7 +175,7 @@ mod tests {
                 "0xb0d70b12a2ddb9fd96b5a5f20d778c4adf81d5c9c9b7755b7ca2f015545f9077"
             );
             assert_eq!(order.owner.0, "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11");
-            assert_eq!(order.active, false);
+            assert!(!order.active);
             assert_eq!(order.timestamp_added.0, "1739813495");
             assert_eq!(
                 order.orderbook.id.0,
@@ -217,7 +217,7 @@ mod tests {
                 output.orders_as_output[0].order_hash.0,
                 "0xb0d70b12a2ddb9fd96b5a5f20d778c4adf81d5c9c9b7755b7ca2f015545f9077"
             );
-            assert_eq!(output.orders_as_output[0].active, false);
+            assert!(!output.orders_as_output[0].active);
             assert_eq!(
                 output.orders_as_input[0].id.0,
                 "0xd1639ec740f1fcfa7ca4aac827df554a03e88a36f13818d08ed77863f1be8177"
@@ -226,7 +226,7 @@ mod tests {
                 output.orders_as_input[0].order_hash.0,
                 "0xb0d70b12a2ddb9fd96b5a5f20d778c4adf81d5c9c9b7755b7ca2f015545f9077"
             );
-            assert_eq!(output.orders_as_input[0].active, false);
+            assert!(!output.orders_as_input[0].active);
             assert!(output.balance_changes.is_empty());
 
             let input = &order.inputs[0];
@@ -263,7 +263,7 @@ mod tests {
                 input.orders_as_output[0].order_hash.0,
                 "0xb0d70b12a2ddb9fd96b5a5f20d778c4adf81d5c9c9b7755b7ca2f015545f9077"
             );
-            assert_eq!(input.orders_as_output[0].active, false);
+            assert!(!input.orders_as_output[0].active);
             assert_eq!(
                 input.orders_as_input[0].id.0,
                 "0xd1639ec740f1fcfa7ca4aac827df554a03e88a36f13818d08ed77863f1be8177"
@@ -272,7 +272,7 @@ mod tests {
                 input.orders_as_input[0].order_hash.0,
                 "0xb0d70b12a2ddb9fd96b5a5f20d778c4adf81d5c9c9b7755b7ca2f015545f9077"
             );
-            assert_eq!(input.orders_as_input[0].active, false);
+            assert!(!input.orders_as_input[0].active);
             assert!(input.balance_changes.is_empty());
         }
     }
