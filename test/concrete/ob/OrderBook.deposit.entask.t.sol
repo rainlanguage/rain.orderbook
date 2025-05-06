@@ -2,12 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {
-    OrderBookExternalRealTest,
-    LibDecimalFloat,
-    Float,
-    console2
-} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookExternalRealTest, LibDecimalFloat, Float} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderConfigV4,
     EvaluableV4,
@@ -56,7 +51,6 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     ) internal {
         uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, decimals);
         vm.startPrank(owner);
-        console2.log("amount18", amount18);
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook), amount18),

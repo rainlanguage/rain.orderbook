@@ -22,7 +22,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     using LibDecimalFloat for Float;
     using LibDecimalFloatImplementation for Float;
 
-    mapping(address => bool) internal sHasDeposit;
+    uint256 internal sRunID;
+    mapping(uint256 => mapping(address => bool)) internal sHasDeposit;
 
     /// Withdrawing a zero target amount should revert.
     /// forge-config: default.fuzz.runs = 100
@@ -168,6 +169,7 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
     /// many depositors, tokens, and vaults.
     /// forge-config: default.fuzz.runs = 100
     function testWithdrawMany(Action[] memory actions) external {
+        sRunID++;
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
             // Deposit and withdrawal amounts must be positive.
@@ -194,8 +196,8 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             Float balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
 
             vm.prank(action.alice);
-            if (action.actionKind || !sHasDeposit[action.token]) {
-                sHasDeposit[action.token] = true;
+            if (action.actionKind || !sHasDeposit[sRunID][action.token]) {
+                sHasDeposit[sRunID][action.token] = true;
                 vm.mockCall(
                     action.token,
                     abi.encodeWithSelector(
