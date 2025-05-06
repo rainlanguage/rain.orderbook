@@ -15,7 +15,6 @@ import {
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {IOrderBookV5, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {
-    IOrderBookV5,
     IOrderBookV5ArbOrderTaker,
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5ArbOrderTaker.sol";
