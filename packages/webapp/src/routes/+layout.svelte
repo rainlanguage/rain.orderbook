@@ -12,9 +12,17 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
+	import {
+		ToastProvider,
+		TransactionStatus,
+		transactionStore,
+		useToasts,
+		WalletProvider
+	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
+
+	// const { addToast } = useToasts();
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -44,6 +52,14 @@
 
 	$: if (browser && window.navigator) {
 		initWallet();
+	}
+
+	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
+		// addToast({
+		// 	message: 'Transaction successful',
+		// 	type: 'success',
+		// 	color: 'green'
+		// });
 	}
 </script>
 

@@ -9,7 +9,7 @@ import type { ToastProps } from '$lib/types/toast';
  * @returns An object containing the toast store and methods to manipulate toasts
  */
 export function useToasts() {
-	const toastsStore = getToastsContext();
+	const toasts = getToastsContext();
 
 	/**
 	 * Removes a toast notification by its index
@@ -17,7 +17,7 @@ export function useToasts() {
 	 * @param index - The index of the toast to remove
 	 */
 	const removeToast = (index: number) => {
-		toastsStore.update((toasts) => toasts.filter((_, i) => i !== index));
+		toasts.update((toasts) => toasts.filter((_, i) => i !== index));
 	};
 
 	/**
@@ -29,7 +29,7 @@ export function useToasts() {
 		const newToast = toast;
 
 		let addedToastIndex = -1;
-		toastsStore.update((toasts) => {
+		toasts.update((toasts) => {
 			const updatedToasts = [...toasts, newToast];
 			addedToastIndex = updatedToasts.findIndex((t) => t === newToast);
 			return updatedToasts;
@@ -37,7 +37,7 @@ export function useToasts() {
 
 		if (addedToastIndex > -1) {
 			setTimeout(() => {
-				const currentToasts = get(toastsStore);
+				const currentToasts = get(toasts);
 				const currentIndex = currentToasts.findIndex((t) => t === newToast);
 				if (currentIndex > -1) {
 					removeToast(currentIndex);
@@ -47,7 +47,7 @@ export function useToasts() {
 	};
 
 	return {
-		toasts: toastsStore,
+		toasts,
 		addToast,
 		removeToast
 	};
