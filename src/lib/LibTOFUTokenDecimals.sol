@@ -77,7 +77,7 @@ library LibTOFUTokenDecimals {
     /// it anyway to convert to floating point numbers.
     ///
     /// If we have nothing stored we read from the token, store and return it
-    /// with TOFUOUTCOME.Consistent.
+    /// with TOFUOUTCOME.Initial.
     ///
     /// If the call to `decimals` is not a success that deserializes cleanly to
     /// a `uint8` we return the stored value and TOFUOUTCOME.ReadFailure.
