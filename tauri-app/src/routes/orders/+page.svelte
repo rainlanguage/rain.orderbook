@@ -21,8 +21,6 @@
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
 
-  $: currentRoute = $page.url.pathname;
-
   onMount(async () => {
     if (!$activeOrderbook) {
       await resetActiveNetworkRef();
@@ -44,6 +42,5 @@
   {activeOrderStatus}
   {orderHash}
   {hideZeroBalanceVaults}
-  {currentRoute}
   showMyItemsOnly={writable(false)}
 />

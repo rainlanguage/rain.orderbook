@@ -4,22 +4,22 @@
 	import { page } from '$app/stores';
 	import { connected } from '$lib/stores/wagmi';
 	import { writable } from 'svelte/store';
+	import { hideZeroBalanceVaults } from '$lib/stores/settings';
 
 	const {
 		activeOrderbook,
 		subgraphUrl,
 		orderHash,
-		activeSubgraphs,
 		settings,
 		accounts,
 		activeAccountsItems,
 		activeOrderStatus,
-		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
 		activeNetworkOrderbooks,
-		showMyItemsOnly = writable(false)
+		showMyItemsOnly = writable(false),
+		activeSubgraphs
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {
@@ -68,5 +68,4 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
-	currentRoute={$page.url.pathname}
 />
