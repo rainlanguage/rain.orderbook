@@ -15,7 +15,7 @@ import {
     StackItem,
     EvalV4
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
+import {LibNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 
 /// @dev Orderbook context is actually fairly complex. The calling context column
@@ -96,6 +96,7 @@ uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
 library LibOrderBook {
     function doPost(bytes32[][] memory context, TaskV2[] memory post) internal {
         StateNamespace namespace = StateNamespace.wrap(uint256(uint160(msg.sender)));
+        FullyQualifiedNamespace qualifiedNamespace = LibNamespace.qualifyNamespace(namespace, address(this));
         TaskV2 memory task;
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
@@ -103,7 +104,7 @@ library LibOrderBook {
                 (StackItem[] memory stack, bytes32[] memory writes) = task.evaluable.interpreter.eval4(
                     EvalV4({
                         store: task.evaluable.store,
-                        namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
+                        namespace: qualifiedNamespace,
                         bytecode: task.evaluable.bytecode,
                         sourceIndex: SourceIndexV2.wrap(0),
                         context: LibContext.build(context, task.signedContext),
