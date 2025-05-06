@@ -84,11 +84,6 @@ library LibTOFUTokenDecimals {
     ///
     /// If the stored value is inconsistent with the token's decimals we return
     /// the stored value and TOFUOUTCOME.Inconsistent.
-    ///
-    /// @return True if the token's decimals are consistent with the stored
-    /// value.
-    /// @return The token's decimals, prioritising the stored value if
-    /// inconsistent.
     function decimalsForToken(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
         internal
         returns (TOFUOutcome, uint8)
