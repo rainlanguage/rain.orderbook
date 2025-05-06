@@ -177,6 +177,9 @@ contract OrderBookWithdrawTest is OrderBookExternalMockTest {
             actions[i].token = address(uint160(uint256(keccak256(abi.encodePacked(actions[i].token)))));
             actions[i].amountFloat = LibDecimalFloat.fromFixedDecimalLosslessPacked(actions[i].amount, 18);
 
+            // If not a fresh action, pair it with a previous action to reuse the
+            // same alice, vaultId, and token, creating related deposit/withdraw
+            // sequences.
             if (!actions[i].fresh && i > 0) {
                 actions[i].pairedWith = bound(actions[i].pairedWith, 0, i - 1);
                 actions[i].alice = actions[actions[i].pairedWith].alice;
