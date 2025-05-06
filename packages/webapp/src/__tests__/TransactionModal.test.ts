@@ -2,7 +2,6 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import TransactionModal from '../lib/components/TransactionModal.svelte';
 import { TransactionStatus } from '@rainlanguage/ui-components';
-import userEvent from '@testing-library/user-event';
 import { initialState } from '../../../ui-components/dist/stores/transactionStore';
 
 // Add hoisted mock import

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
