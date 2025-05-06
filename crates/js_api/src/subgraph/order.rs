@@ -161,7 +161,9 @@ mod test_helpers {
         use alloy::primitives::U256;
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::{
-            performance::vol::VolumeDetails,
+            performance::{
+                apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
+            },
             types::common::{
                 SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
             },
@@ -393,6 +395,162 @@ mod test_helpers {
             trades: vec![],
             remove_events: vec![],
         }
+        }
+        fn get_trades_json() -> Value {
+            json!([
+              {
+                "id": "trade1",
+                "tradeEvent": {
+                  "transaction": {
+                    "id": "tx1",
+                    "from": "from1",
+                    "blockNumber": "0",
+                    "timestamp": "0"
+                  },
+                  "sender": "sender1"
+                },
+                "outputVaultBalanceChange": {
+                  "id": "ovbc1",
+                  "__typename": "TradeVaultBalanceChange",
+                  "amount": "-2",
+                  "newVaultBalance": "0",
+                  "oldVaultBalance": "0",
+                  "vault": {
+                    "id": "vault1",
+                    "vaultId": "1",
+                    "token": {
+                      "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                      "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                      "name": "Staked FLR",
+                      "symbol": "sFLR",
+                      "decimals": "18"
+                    }
+                  },
+                  "timestamp": "1700000000",
+                  "transaction": {
+                    "id": "tx1",
+                    "from": "from1",
+                    "blockNumber": "0",
+                    "timestamp": "1700000000"
+                  },
+                  "orderbook": {
+                    "id": "ob1"
+                  }
+                },
+                "order": {
+                  "id": "order1",
+                  "orderHash": "hash1"
+                },
+                "inputVaultBalanceChange": {
+                  "id": "ivbc1",
+                  "__typename": "TradeVaultBalanceChange",
+                  "amount": "1",
+                  "newVaultBalance": "0",
+                  "oldVaultBalance": "0",
+                  "vault": {
+                    "id": "vault1",
+                    "vaultId": "1",
+                    "token": {
+                      "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                      "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                      "name": "Wrapped Flare",
+                      "symbol": "WFLR",
+                      "decimals": "18"
+                    }
+                  },
+                  "timestamp": "1700000000",
+                  "transaction": {
+                    "id": "tx1",
+                    "from": "from1",
+                    "blockNumber": "0",
+                    "timestamp": "1700000000"
+                  },
+                  "orderbook": {
+                    "id": "ob1"
+                  }
+                },
+                "timestamp": "0",
+                "orderbook": {
+                  "id": "ob1"
+                }
+              },
+              {
+                "id": "trade2",
+                "tradeEvent": {
+                  "transaction": {
+                    "id": "tx2",
+                    "from": "from2",
+                    "blockNumber": "0",
+                    "timestamp": "0"
+                  },
+                  "sender": "sender2"
+                },
+                "outputVaultBalanceChange": {
+                  "id": "ovbc2",
+                  "__typename": "TradeVaultBalanceChange",
+                  "amount": "-5",
+                  "newVaultBalance": "0",
+                  "oldVaultBalance": "0",
+                  "vault": {
+                    "id": "vault2",
+                    "vaultId": "2",
+                    "token": {
+                      "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                      "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                      "name": "Staked FLR",
+                      "symbol": "sFLR",
+                      "decimals": "18"
+                    }
+                  },
+                  "timestamp": "1700086400",
+                  "transaction": {
+                    "id": "tx2",
+                    "from": "from2",
+                    "blockNumber": "0",
+                    "timestamp": "1700086400"
+                  },
+                  "orderbook": {
+                    "id": "ob2"
+                  }
+                },
+                "order": {
+                  "id": "order2",
+                  "orderHash": "hash2"
+                },
+                "inputVaultBalanceChange": {
+                  "id": "ivbc2",
+                  "__typename": "TradeVaultBalanceChange",
+                  "amount": "2",
+                  "newVaultBalance": "0",
+                  "oldVaultBalance": "0",
+                  "vault": {
+                    "id": "vault2",
+                    "vaultId": "2",
+                    "token": {
+                      "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                      "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                      "name": "Wrapped Flare",
+                      "symbol": "WFLR",
+                      "decimals": "18"
+                    }
+                  },
+                  "timestamp": "0",
+                  "transaction": {
+                    "id": "tx2",
+                    "from": "from2",
+                    "blockNumber": "0",
+                    "timestamp": "1700086400"
+                  },
+                  "orderbook": {
+                    "id": "ob2"
+                  }
+                },
+                "timestamp": "1700086400",
+                "orderbook": {
+                  "id": "ob2"
+                }
+              }
+            ])
         }
 
         #[tokio::test]
@@ -699,160 +857,7 @@ mod test_helpers {
                     .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                   "data": {
-                    "trades": [
-                      {
-                        "id": "trade1",
-                        "tradeEvent": {
-                          "transaction": {
-                            "id": "tx1",
-                            "from": "from1",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "sender": "sender1"
-                        },
-                        "outputVaultBalanceChange": {
-                          "id": "ovbc1",
-                          "__typename": "TradeVaultBalanceChange",
-                          "amount": "-2",
-                          "newVaultBalance": "0",
-                          "oldVaultBalance": "0",
-                          "vault": {
-                            "id": "vault1",
-                            "vaultId": "1",
-                            "token": {
-                              "id": "output_token",
-                              "address": "output_token",
-                              "name": "output_token",
-                              "symbol": "output_token",
-                              "decimals": "0"
-                            }
-                          },
-                          "timestamp": "0",
-                          "transaction": {
-                            "id": "tx1",
-                            "from": "from1",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "orderbook": {
-                            "id": "ob1"
-                          }
-                        },
-                        "order": {
-                          "id": "order1",
-                          "orderHash": "hash1"
-                        },
-                        "inputVaultBalanceChange": {
-                          "id": "ivbc1",
-                          "__typename": "TradeVaultBalanceChange",
-                          "amount": "1",
-                          "newVaultBalance": "0",
-                          "oldVaultBalance": "0",
-                          "vault": {
-                            "id": "vault1",
-                            "vaultId": "1",
-                            "token": {
-                              "id": "output_token",
-                              "address": "output_token",
-                              "name": "output_token",
-                              "symbol": "output_token",
-                              "decimals": "0"
-                            }
-                          },
-                          "timestamp": "0",
-                          "transaction": {
-                            "id": "tx1",
-                            "from": "from1",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "orderbook": {
-                            "id": "ob1"
-                          }
-                        },
-                        "timestamp": "0",
-                        "orderbook": {
-                          "id": "ob1"
-                        }
-                      },
-                      {
-                        "id": "trade2",
-                        "tradeEvent": {
-                          "transaction": {
-                            "id": "tx2",
-                            "from": "from2",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "sender": "sender2"
-                        },
-                        "outputVaultBalanceChange": {
-                          "id": "ovbc2",
-                          "__typename": "TradeVaultBalanceChange",
-                          "amount": "-5",
-                          "newVaultBalance": "0",
-                          "oldVaultBalance": "0",
-                          "vault": {
-                            "id": "vault2",
-                            "vaultId": "2",
-                            "token": {
-                              "id": "output_token",
-                              "address": "output_token",
-                              "name": "output_token",
-                              "symbol": "output_token",
-                              "decimals": "0"
-                            }
-                          },
-                          "timestamp": "0",
-                          "transaction": {
-                            "id": "tx2",
-                            "from": "from2",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "orderbook": {
-                            "id": "ob2"
-                          }
-                        },
-                        "order": {
-                          "id": "order2",
-                          "orderHash": "hash2"
-                        },
-                        "inputVaultBalanceChange": {
-                          "id": "ivbc2",
-                          "__typename": "TradeVaultBalanceChange",
-                          "amount": "2",
-                          "newVaultBalance": "0",
-                          "oldVaultBalance": "0",
-                          "vault": {
-                            "id": "vault2",
-                            "vaultId": "2",
-                            "token": {
-                              "id": "output_token",
-                              "address": "output_token",
-                              "name": "output_token",
-                              "symbol": "output_token",
-                              "decimals": "0"
-                            }
-                          },
-                          "timestamp": "0",
-                          "transaction": {
-                            "id": "tx2",
-                            "from": "from2",
-                            "blockNumber": "0",
-                            "timestamp": "0"
-                          },
-                          "orderbook": {
-                            "id": "ob2"
-                          }
-                        },
-                        "timestamp": "0",
-                        "orderbook": {
-                          "id": "ob2"
-                        }
-                      }
-                    ]
+                    "trades": get_trades_json()
                   }
                 }));
             });
@@ -870,42 +875,344 @@ mod test_helpers {
                 .unwrap();
 
             let expected_order = get_order1();
-            assert_eq!(res.0.len(), 2);
+            assert_eq!(res.0.len(), 4);
 
             let volume1 = res.0[0].clone();
             assert_eq!(volume1.id, "1");
-            assert_eq!(volume1.token.address.0, "output_token");
-            assert_eq!(volume1.token.name, Some("output_token".to_string()));
-            assert_eq!(volume1.token.symbol, Some("output_token".to_string()));
-            assert_eq!(volume1.token.decimals, Some(SgBigInt("0".to_string())));
+            assert_eq!(
+                volume1.token.address.0,
+                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+            );
+            assert_eq!(volume1.token.name, Some("Wrapped Flare".to_string()));
+            assert_eq!(volume1.token.symbol, Some("WFLR".to_string()));
+            assert_eq!(volume1.token.decimals, Some(SgBigInt("18".to_string())));
             assert_eq!(
                 volume1.vol_details,
                 VolumeDetails {
                     total_in: U256::from(1),
-                    total_out: U256::from(2),
-                    total_vol: U256::from(3),
+                    total_out: U256::from(0),
+                    total_vol: U256::from(1),
                     net_vol: U256::from(1),
                 }
             );
 
             let volume2 = res.0[1].clone();
-            assert_eq!(volume2.id, "2");
-            assert_eq!(volume2.token.address.0, "output_token");
-            assert_eq!(volume2.token.name, Some("output_token".to_string()));
-            assert_eq!(volume2.token.symbol, Some("output_token".to_string()));
-            assert_eq!(volume2.token.decimals, Some(SgBigInt("0".to_string())));
+            assert_eq!(volume2.id, "1");
+            assert_eq!(
+                volume2.token.address.0,
+                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+            );
+            assert_eq!(volume2.token.name, Some("Staked FLR".to_string()));
+            assert_eq!(volume2.token.symbol, Some("sFLR".to_string()));
+            assert_eq!(volume2.token.decimals, Some(SgBigInt("18".to_string())));
             assert_eq!(
                 volume2.vol_details,
                 VolumeDetails {
+                    total_in: U256::from(0),
+                    total_out: U256::from(2),
+                    total_vol: U256::from(2),
+                    net_vol: U256::from(2),
+                }
+            );
+
+            let volume3 = res.0[2].clone();
+            assert_eq!(volume3.id, "2");
+            assert_eq!(
+                volume3.token.address.0,
+                "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d"
+            );
+            assert_eq!(volume3.token.name, Some("Wrapped Flare".to_string()));
+            assert_eq!(volume3.token.symbol, Some("WFLR".to_string()));
+            assert_eq!(volume3.token.decimals, Some(SgBigInt("18".to_string())));
+            assert_eq!(
+                volume3.vol_details,
+                VolumeDetails {
                     total_in: U256::from(2),
+                    total_out: U256::from(0),
+                    total_vol: U256::from(2),
+                    net_vol: U256::from(2),
+                }
+            );
+
+            let volume4 = res.0[3].clone();
+            assert_eq!(volume4.id, "2");
+            assert_eq!(
+                volume4.token.address.0,
+                "0x12e605bc104e93b45e1ad99f9e555f659051c2bb"
+            );
+            assert_eq!(volume4.token.name, Some("Staked FLR".to_string()));
+            assert_eq!(volume4.token.symbol, Some("sFLR".to_string()));
+            assert_eq!(volume4.token.decimals, Some(SgBigInt("18".to_string())));
+            assert_eq!(
+                volume4.vol_details,
+                VolumeDetails {
+                    total_in: U256::from(0),
                     total_out: U256::from(5),
-                    total_vol: U256::from(7),
-                    net_vol: U256::from(3),
+                    total_vol: U256::from(5),
+                    net_vol: U256::from(5),
                 }
             );
         }
 
         #[tokio::test]
-        async fn test_order_performance() {}
+        async fn test_order_performance() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg").body_contains("SgOrderDetailByIdQuery");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "order": {
+                      "id": "order1",
+                      "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                      "orderHash": "0x1",
+                      "owner": "0x0000000000000000000000000000000000000000",
+                      "outputs": [
+                        {
+                          "id": "0x0000000000000000000000000000000000000000",
+                          "token": {
+                            "id": "token-1",
+                            "address": "0x1111111111111111111111111111111111111111",
+                            "name": "Token One",
+                            "symbol": "TK1",
+                            "decimals": "18"
+                          },
+                          "balance": "0",
+                          "vaultId": "1",
+                          "owner": "0x0000000000000000000000000000000000000000",
+                          "ordersAsOutput": [],
+                          "ordersAsInput": [],
+                          "balanceChanges": [],
+                          "orderbook": {
+                            "id": "0x0000000000000000000000000000000000000000"
+                          }
+                        }
+                      ],
+                      "inputs": [
+                        {
+                          "id": "0x0000000000000000000000000000000000000000",
+                          "token": {
+                            "id": "token-2",
+                            "address": "0x2222222222222222222222222222222222222222",
+                            "name": "Token Two",
+                            "symbol": "TK2",
+                            "decimals": "18"
+                          },
+                          "balance": "0",
+                          "vaultId": "2",
+                          "owner": "0x0000000000000000000000000000000000000000",
+                          "ordersAsOutput": [],
+                          "ordersAsInput": [],
+                          "balanceChanges": [],
+                          "orderbook": {
+                            "id": "0x0000000000000000000000000000000000000000"
+                          }
+                        }
+                      ],
+                      "active": true,
+                      "addEvents": [
+                        {
+                          "transaction": {
+                            "blockNumber": "0",
+                            "timestamp": "0",
+                            "id": "0x0000000000000000000000000000000000000000",
+                            "from": "0x0000000000000000000000000000000000000000"
+                          }
+                        }
+                      ],
+                      "meta": null,
+                      "timestampAdded": "0",
+                      "orderbook": {
+                        "id": "0x0000000000000000000000000000000000000000"
+                      },
+                      "trades": [],
+                      "removeEvents": []
+                    }
+                  }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":0");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "trades": [
+                      {
+                        "id": "0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894",
+                        "timestamp": "1632000000",
+                        "tradeEvent": {
+                          "sender": "0x0000000000000000000000000000000000000000",
+                          "transaction": {
+                            "id": "0x0000000000000000000000000000000000000000",
+                            "from": "0x0000000000000000000000000000000000000000",
+                            "timestamp": "1632000000",
+                            "blockNumber": "0"
+                          }
+                        },
+                        "outputVaultBalanceChange": {
+                          "amount": "-100000000000000000000",
+                          "vault": {
+                            "id": "vault-1",
+                            "vaultId": "1",
+                            "token": {
+                              "id": "token-1",
+                              "address": "0x1111111111111111111111111111111111111111",
+                              "name": "Token One",
+                              "symbol": "TK1",
+                              "decimals": "18"
+                            }
+                          },
+                          "id": "output-change-1",
+                          "__typename": "TradeVaultBalanceChange",
+                          "newVaultBalance": "900",
+                          "oldVaultBalance": "1000",
+                          "timestamp": "1632000000",
+                          "transaction": {
+                            "id": "0x0000000000000000000000000000000000000000",
+                            "from": "0x0000000000000000000000000000000000000000",
+                            "timestamp": "1632000000",
+                            "blockNumber": "0"
+                          },
+                          "orderbook": {
+                            "id": "orderbook-1"
+                          }
+                        },
+                        "order": {
+                          "id": "order1.id",
+                          "orderHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+                        },
+                        "inputVaultBalanceChange": {
+                          "amount": "50000000000000000000",
+                          "vault": {
+                            "id": "vault-2",
+                            "vaultId": "2",
+                            "token": {
+                              "id": "token-2",
+                              "address": "0x2222222222222222222222222222222222222222",
+                              "name": "Token Two",
+                              "symbol": "TK2",
+                              "decimals": "18"
+                            }
+                          },
+                          "id": "input-change-1",
+                          "__typename": "TradeVaultBalanceChange",
+                          "newVaultBalance": "150",
+                          "oldVaultBalance": "100",
+                          "timestamp": "1632000000",
+                          "transaction": {
+                            "id": "0x0000000000000000000000000000000000000000",
+                            "from": "0x0000000000000000000000000000000000000000",
+                            "timestamp": "1632000000",
+                            "blockNumber": "0"
+                          },
+                          "orderbook": {
+                            "id": "orderbook-1"
+                          }
+                        },
+                        "orderbook": {
+                          "id": "orderbook-1"
+                        }
+                      }
+                    ]
+                  }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "trades": [] }
+                }));
+            });
+
+            let res = order_performance(
+                &sg_server.url("/sg"),
+                "hash",
+                Some(1632000000),
+                Some(1734571449),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(res.order_id, "order1");
+            assert_eq!(res.order_hash, "0x1");
+            assert_eq!(res.orderbook, "0x0000000000000000000000000000000000000000");
+            assert_eq!(
+                res.denominated_performance,
+                Some(DenominatedPerformance {
+                    token: SgErc20 {
+                        id: SgBytes("token-2".to_string()),
+                        address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
+                        name: Some("Token Two".to_string()),
+                        symbol: Some("TK2".to_string()),
+                        decimals: Some(SgBigInt("18".to_string())),
+                    },
+                    apy: U256::from(0),
+                    apy_is_neg: false,
+                    net_vol: U256::from(0),
+                    net_vol_is_neg: false,
+                    starting_capital: U256::from(600),
+                })
+            );
+            assert_eq!(res.start_time, 1632000000);
+            assert_eq!(res.end_time, 1734571449);
+            assert_eq!(res.inputs_vaults.len(), 1);
+            assert_eq!(
+                res.inputs_vaults[0],
+                VaultPerformance {
+                    id: "2".to_string(),
+                    token: SgErc20 {
+                        id: SgBytes("token-2".to_string()),
+                        address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
+                        name: Some("Token Two".to_string()),
+                        symbol: Some("TK2".to_string()),
+                        decimals: Some(SgBigInt("18".to_string())),
+                    },
+                    vol_details: VolumeDetails {
+                        total_in: U256::from(50000000000000000000u128),
+                        total_out: U256::from(0u8),
+                        total_vol: U256::from(50000000000000000000u128),
+                        net_vol: U256::from(50000000000000000000u128),
+                    },
+                    apy_details: Some(APYDetails {
+                        start_time: 1632000000,
+                        end_time: 1734571449,
+                        net_vol: U256::from(50000000000000000000u128),
+                        capital: U256::from(150u8),
+                        apy: Some(U256::from(102484659254448087225972733172491493u128)),
+                        is_neg: false,
+                    }),
+                }
+            );
+            assert_eq!(res.outputs_vaults.len(), 1);
+            assert_eq!(
+                res.outputs_vaults[0],
+                VaultPerformance {
+                    id: "1".to_string(),
+                    token: SgErc20 {
+                        id: SgBytes("token-1".to_string()),
+                        address: SgBytes("0x1111111111111111111111111111111111111111".to_string()),
+                        name: Some("Token One".to_string()),
+                        symbol: Some("TK1".to_string()),
+                        decimals: Some(SgBigInt("18".to_string())),
+                    },
+                    vol_details: VolumeDetails {
+                        total_in: U256::from(0),
+                        total_out: U256::from(100000000000000000000u128),
+                        total_vol: U256::from(100000000000000000000u128),
+                        net_vol: U256::from(100000000000000000000u128),
+                    },
+                    apy_details: Some(APYDetails {
+                        start_time: 1632000000,
+                        end_time: 1734571449,
+                        net_vol: U256::from(100000000000000000000u128),
+                        capital: U256::from(900u16),
+                        apy: Some(U256::from(34161553084816029075324244390830497u128)),
+                        is_neg: true,
+                    }),
+                }
+            );
+        }
     }
 }
