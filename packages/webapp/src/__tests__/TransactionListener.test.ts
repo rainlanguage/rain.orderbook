@@ -4,7 +4,6 @@ import { writable } from 'svelte/store';
 import TransactionsListener from '$lib/components/TransactionsListener.svelte';
 import {
 	invalidateTanstackQueries,
-	transactionStore,
 	useToasts
 } from '@rainlanguage/ui-components';
 import { QueryClient, useQueryClient } from '@tanstack/svelte-query';
