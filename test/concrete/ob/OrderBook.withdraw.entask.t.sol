@@ -22,6 +22,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
     using Strings for address;
     using Strings for uint256;
     using LibDecimalFloat for Float;
+    using LibFormatDecimalFloat for Float;
 
     function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -89,7 +90,7 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
 
         vm.record();
         iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
-        checkReentrancyRW(6, 3);
+        checkReentrancyRW(7, 3);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assertEq(reads.length, expectedReads);
         assertEq(writes.length, expectedWrites);
@@ -333,14 +334,20 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
                 ") \"withdraw vaultId\");"
             )
         );
-        evals[4] =
-            bytes(string.concat(usingWordsFrom, ":ensure(equal-to(withdraw-vault-before() 0", ") \"vault balance\");"));
+        evals[4] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-before() ",
+                depositAmount.toDecimalString(),
+                ") \"vault before\");"
+            )
+        );
         evals[5] = bytes(
             string.concat(
                 usingWordsFrom,
-                ":ensure(equal-to(withdraw-amount() ",
-                LibFormatDecimalFloat.toDecimalString(withdrawAmount),
-                ") \"withdraw amount\");"
+                ":ensure(equal-to(withdraw-vault-after() ",
+                depositAmount.sub(withdrawAmount).toDecimalString(),
+                ") \"balance after\");"
             )
         );
         // target amount

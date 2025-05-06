@@ -12,7 +12,7 @@ pragma solidity =0.8.25;
 bytes32 constant BYTECODE_HASH = bytes32(0xc086fef77350fe097169d2cd99ed1ed5ab8c2c852781f0ad037dc77a08fae9c7);
 
 /// @dev The hash of the meta that describes the contract.
-bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xdfd338fdf179bf832d2bc3222c6b2ac399d0e341fe38960e1bbd59aa6ccfbf9b);
+bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x3457291434660c589b0e6c287e12b513e5194a5129c75fa47d01ce03fbc52178);
 
 /// @dev The parse meta that is used to lookup word definitions.
 /// The structure of the parse meta is:
@@ -31,7 +31,7 @@ bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0xdfd338fdf179bf832d2bc3222c6b
 /// bit count of the previous bloom filter. If we reach the end of the bloom
 /// filters then we have a miss.
 bytes constant PARSE_META =
-    hex"0107020018000200010a800031006400000c108040011004081000000060108401001a1e881d076953311b0ea2c515b13e8714f4f9f6088263d110ba293c0dd5138404f61b330bbfaf3f19643aac0cf54b9f092f4d56022ae5df1dd1ee1e180d2c9a0588d17b012c252b113ab93706804f771253aa0f0a6174091c2ec8c10f710f331306ce110095b42b16d79cf11746b706039f9ebc0ebb47a3";
+    hex"0101080010800082000100010480300038412a001800080010020004200004002018038ff54900cc66c60616592209895f0b16fec9301a02e0920c5bfe561c216092011c4c610b1974270f844db208bcd3bf1d989376111049db13b93430190ae9a00af82a7805c138f40d28083f0742ef2104d561fd1415a13317716a6118d260cc107b9bfc0eec7ade15cba2891b6b14a512792bdb02e0f147";
 
 /// @dev The build depth of the parser meta.
 
