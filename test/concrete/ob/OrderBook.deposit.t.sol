@@ -218,39 +218,4 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
         iOrderbook.deposit3(address(reenteroor), vaultId, amount, new TaskV2[](0));
     }
-
-    // /// Vault balances MUST NOT silently overflow.
-    // /// forge-config: default.fuzz.runs = 100
-    // function testDepositOverflow(address depositor, bytes32 vaultId, uint256 amountOne18, uint256 amountTwo18)
-    //     external
-    // {
-    //     amountOne18 = bound(amountOne18, type(uint128).max, type(uint256).max / 10);
-    //     amountTwo18 = bound(amountTwo18, type(uint128).max, type(uint256).max / 10);
-
-    //     Float memory amountOne = LibDecimalFloat.fromFixedDecimalLosslessMem(amountOne18, 18);
-    //     Float memory amountTwo = LibDecimalFloat.fromFixedDecimalLosslessMem(amountTwo18, 18);
-
-    //     bool didOverflow = false;
-    //     assembly {
-    //         didOverflow := lt(add(amountOne18, amountTwo18), amountOne18)
-    //     }
-    //     vm.assume(didOverflow == true);
-
-    //     vm.prank(depositor);
-    //     vm.mockCall(
-    //         address(iToken0),
-    //         abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountOne18),
-    //         abi.encode(true)
-    //     );
-    //     iOrderbook.deposit3(address(iToken0), vaultId, amountOne, new TaskV2[](0));
-
-    //     vm.prank(depositor);
-    //     vm.mockCall(
-    //         address(iToken0),
-    //         abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amountTwo18),
-    //         abi.encode(true)
-    //     );
-    //     vm.expectRevert(stdError.arithmeticError);
-    //     iOrderbook.deposit3(address(iToken0), vaultId, amountTwo, new TaskV2[](0));
-    // }
 }
