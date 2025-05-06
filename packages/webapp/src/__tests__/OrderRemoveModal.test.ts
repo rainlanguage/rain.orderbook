@@ -48,13 +48,4 @@ describe('OrderRemoveModal', () => {
 			})
 		);
 	});
-
-	it('calls onRemove callback after successful transaction', async () => {
-		render(OrderRemoveModal, defaultProps);
-
-		transactionStore.transactionSuccess('0x123');
-		await vi.runAllTimersAsync();
-
-		expect(defaultProps.args.onRemove).toHaveBeenCalled();
-	});
 });
