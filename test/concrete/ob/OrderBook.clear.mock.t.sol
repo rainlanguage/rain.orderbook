@@ -24,7 +24,7 @@ import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
     "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract MockInterpreter {
     StackItem[] internal sStack;
@@ -126,7 +126,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             Float aliceInputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
             );
-            assertTrue(LibDecimalFloat.eq(aliceInputBalance, Float.wrap(0)));
+            assertTrue(aliceInputBalance.isZero());
         }
         {
             Float aliceOutputBalance = iOrderbook.vaultBalance2(
@@ -138,7 +138,7 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             Float bobInputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
             );
-            assertTrue(LibDecimalFloat.eq(bobInputBalance, Float.wrap(0)));
+            assertTrue(bobInputBalance.isZero());
         }
         {
             Float bobOutputBalance = iOrderbook.vaultBalance2(
@@ -150,12 +150,12 @@ contract OrderBookClearTest is OrderBookExternalMockTest {
             Float aliceBountyBalance = iOrderbook.vaultBalance2(
                 clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId
             );
-            assertTrue(LibDecimalFloat.eq(aliceBountyBalance, Float.wrap(0)));
+            assertTrue(aliceBountyBalance.isZero());
         }
         {
             Float bobBountyBalance =
                 iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId);
-            assertTrue(LibDecimalFloat.eq(bobBountyBalance, Float.wrap(0)));
+            assertTrue(bobBountyBalance.isZero());
         }
 
         {

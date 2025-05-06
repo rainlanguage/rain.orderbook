@@ -18,7 +18,7 @@ import {
     TaskV2,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV5ArbOrderTakerSenderTest is GenericPoolOrderBookV5ArbOrderTakerTest {
     /// forge-config: default.fuzz.runs = 10

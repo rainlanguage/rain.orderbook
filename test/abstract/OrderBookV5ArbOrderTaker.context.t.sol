@@ -20,7 +20,7 @@ import {
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
-import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
     function testOrderBookV5ArbOrderTakerContext() external {
