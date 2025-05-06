@@ -183,19 +183,11 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
         LibTestAddOrder.conformConfig(bobConfig, iInterpreter, iStore);
         bobConfig.evaluable.bytecode = iParserV2.parse2("_ _:max-value() 1;:;");
 
+        aliceConfig.validInputs[0].token = address(iToken0);
+        aliceConfig.validOutputs[0].token = address(iToken1);
+
         bobConfig.validInputs[0] = aliceConfig.validOutputs[0];
         bobConfig.validOutputs[0] = aliceConfig.validInputs[0];
-
-        vm.mockCall(
-            bobConfig.validInputs[0].token,
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(uint8(18))
-        );
-        vm.mockCall(
-            bobConfig.validOutputs[0].token,
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(uint8(18))
-        );
 
         vm.recordLogs();
         vm.prank(alice);

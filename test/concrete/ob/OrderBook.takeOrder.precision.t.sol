@@ -17,8 +17,6 @@ import {
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {console2} from "forge-std/Test.sol";
-
 /// @title OrderBookTakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
 contract OrderBookTakeOrderPrecisionTest is OrderBookExternalRealTest {

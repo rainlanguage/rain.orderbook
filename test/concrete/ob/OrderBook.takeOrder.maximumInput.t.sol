@@ -118,7 +118,7 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
                 Float balanceAfter = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
                 Float expectedBalance = testVaults[i].deposit.add(balanceBefore);
 
-                assertTrue(balanceAfter.eq(expectedBalance), "vaultBalance before");
+                assertTrue(balanceAfter.eq(expectedBalance), "vaultBalance after");
             }
         }
 

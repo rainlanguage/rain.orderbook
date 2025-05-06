@@ -168,9 +168,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 "_ _:1 context<3 1>();:;"
             )
         );
-        // // vault io vault id
-        // // not easy to test with this setup
-        // // rainlang[6] = "_ _:1 context<3 2>();:;";
+        // vault io vault id
+        // not easy to test with this setup
+        // rainlang[6] = "_ _:1 context<3 2>();:;";
         // input vault balance before
         rainlang[6] = bytes(
             string.concat(
@@ -192,9 +192,9 @@ contract OrderBookQuoteTest is OrderBookExternalRealTest {
                 "_ _:1 context<4 1>();:;"
             )
         );
-        // // vault io vault id
-        // // not easy to test with this setup
-        // // rainlang[9] = "_ _:1 context<4 2>();:;";
+        // vault io vault id
+        // not easy to test with this setup
+        // rainlang[9] = "_ _:1 context<4 2>();:;";
         // output vault balance before
         rainlang[9] = bytes(
             string.concat(
