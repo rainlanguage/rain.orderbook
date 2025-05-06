@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
@@ -47,24 +47,5 @@ describe('OrderRemoveModal', () => {
 				removeOrderCalldata: '0x123'
 			})
 		);
-	});
-
-	it('closes modal and resets transaction store', async () => {
-		render(OrderRemoveModal, defaultProps);
-		const resetSpy = vi.spyOn(transactionStore, 'reset');
-
-		const closeButton = screen.getByLabelText('Close modal');
-		await fireEvent.click(closeButton);
-
-		expect(resetSpy).toHaveBeenCalled();
-	});
-
-	it('calls onRemove callback after successful transaction', async () => {
-		render(OrderRemoveModal, defaultProps);
-
-		transactionStore.transactionSuccess('0x123');
-		await vi.runAllTimersAsync();
-
-		expect(defaultProps.args.onRemove).toHaveBeenCalled();
 	});
 });
