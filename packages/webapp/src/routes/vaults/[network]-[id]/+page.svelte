@@ -21,7 +21,7 @@
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { addToast } = useToasts();
 	const { account } = useAccount();
-	$: console.log('account', subgraphUrl);
+
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
 		handleDepositOrWithdrawModal({
 			open: true,
@@ -29,7 +29,6 @@
 				vault,
 				onDepositOrWithdraw: () => {
 					invalidateTanstackQueries(queryClient, [$page.params.id]);
-					addToast({ message: 'Vault balance updated', type: 'success', color: 'green' });
 				},
 				action,
 				chainId,
