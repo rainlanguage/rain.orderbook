@@ -30,6 +30,9 @@ enum TOFUOutcome {
     ReadFailure
 }
 
+/// @dev The selector for the `decimals()` function in the ERC20 standard.
+bytes constant TOFU_DECIMALS_SELECTOR = hex"313ce567";
+
 library LibTOFUTokenDecimals {
     function decimalsForTokenReadOnly(mapping(address => TOFUTokenDecimals) storage sTOFUTokenDecimals, address token)
         internal
@@ -45,7 +48,7 @@ library LibTOFUTokenDecimals {
         // value. E.g. withdrawals will prefer to continue than trap funds, and
         // deposits will prefer to revert and prevent new funds entering the
         // DEX.
-        (bool success, bytes memory returnData) = token.staticcall(abi.encodeWithSignature("decimals()"));
+        (bool success, bytes memory returnData) = token.staticcall(TOFU_DECIMALS_SELECTOR);
         if (!success || returnData.length != 0x20) {
             return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
         }
