@@ -83,13 +83,9 @@
 	});
 
 	const handleRefresh = async () => {
-		console.log('REFRESHING!');
 		try {
-			console.log('INVALIDATING!');
 			await invalidateTanstackQueries(queryClient, [orderHash]);
-			console.log('SUCCESS!');
 		} catch {
-			console.log('FAILED!');
 			addToast({ message: 'Failed to refresh', type: 'error', color: 'red' });
 		}
 	};
