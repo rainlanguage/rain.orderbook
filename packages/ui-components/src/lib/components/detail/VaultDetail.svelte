@@ -69,7 +69,7 @@
 	const handleRefresh = async () => {
 		try {
 			await invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
-		} catch (error) {
+		} catch {
 			addToast({
 				message: 'Failed to refresh',
 				type: 'error',

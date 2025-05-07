@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
 	import EditableSpan from '../EditableSpan.svelte';
@@ -37,9 +38,18 @@
 	let enabled = true;
 
 	const queryClient = useQueryClient();
+	const { addToast } = useToasts();
 
 	const refreshQuotes = async () => {
-		invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
+		try {
+			await invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
+		} catch {
+			addToast({
+				message: 'Failed to refresh',
+				type: 'error',
+				color: 'red'
+			});
+		}
 	};
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
