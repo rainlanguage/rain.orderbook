@@ -40,11 +40,25 @@ describe('PageHeader.svelte', () => {
 		const nav = screen.getByRole('navigation', { name: 'Default breadcrumb example' });
 
 		const links = within(nav).getAllByRole('link');
+		expect(links.length).toBe(1 + mockCrumbs.length);
 
 		expect(links[0]).toHaveAttribute('href', '/');
 
-		mockCrumbs.forEach((crumb) => {
-			expect(screen.getByRole('link', { name: crumb.label })).toHaveAttribute('href', crumb.href);
+		mockCrumbs.forEach((crumb, index) => {
+			expect(links[index + 1]).toHaveTextContent(crumb.label);
+			expect(links[index + 1]).toHaveAttribute('href', crumb.href);
 		});
+	});
+
+	it('handles empty breadcrumbs array', () => {
+		vi.mocked(generateBreadcrumbs).mockReturnValue([]);
+		render(PageHeader, { props: { title: mockTitle, pathname: mockPathname } });
+
+		expect(screen.getByTestId('breadcrumb-page-title')).toHaveTextContent(mockTitle);
+
+		const nav = screen.getByRole('navigation', { name: 'Default breadcrumb example' });
+		const links = within(nav).getAllByRole('link');
+		expect(links.length).toBe(1);
+		expect(links[0]).toHaveAttribute('href', '/');
 	});
 });
