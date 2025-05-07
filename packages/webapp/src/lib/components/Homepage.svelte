@@ -6,14 +6,18 @@
 	export let colorTheme;
 </script>
 
-<div class="mx-auto flex min-h-screen w-full flex-col">
+<div data-testid="homepage" class="mx-auto flex min-h-screen w-full flex-col">
 	<div class="flex h-16 w-full items-center bg-gray-100 dark:bg-gray-800">
 		<div class="flex w-full items-center justify-between px-4">
 			<div class="flex h-full flex-row items-center gap-x-4">
 				<img src={$colorTheme === 'light' ? logoLight : logoDark} alt="Rainlang logo" class="h-8" />
 			</div>
 			<div class="flex h-full flex-row items-center gap-x-2 dark:text-gray-100 md:gap-x-6">
-				<a href="https://docs.rainlang.xyz/raindex/overview">Docs</a>
+				<a
+					href="https://docs.rainlang.xyz/raindex/overview"
+					target="_blank"
+					rel="noopener noreferrer">Docs</a
+				>
 				<a href="/deploy">Dashboard</a>
 			</div>
 		</div>
@@ -31,7 +35,11 @@
 			</h1>
 			<div class="mt-8 flex justify-start gap-x-4">
 				<Button color="blue" size="lg" on:click={() => goto('/deploy')}>Deploy a strategy</Button>
-				<a href="https://docs.rainlang.xyz/raindex/overview">
+				<a
+					href="https://docs.rainlang.xyz/raindex/overview"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
 					<Button color="light" size="lg">Learn</Button>
 				</a>
 			</div>

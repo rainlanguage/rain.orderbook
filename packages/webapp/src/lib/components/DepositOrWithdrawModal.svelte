@@ -17,9 +17,11 @@
 	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
-	import { erc20Abi, type Hex } from 'viem';
+	import { erc20Abi, formatUnits, type Hex } from 'viem';
 	import * as allChains from 'viem/chains';
 	import { validateAmount } from '$lib/services/validateAmount';
+	import { fade } from 'svelte/transition';
+	import truncateEthAddress from 'truncate-eth-address';
 
 	const { ...chains } = allChains;
 
@@ -48,27 +50,29 @@
 
 	const messages = {
 		success: 'Transaction successful.',
-		pending: 'Processing your transaction...',
-		error: 'Transaction failed.'
+		pending: 'Processing your transaction...'
 	};
-
-	$: if (action === 'deposit') {
-		getUserBalance();
-	}
 
 	const getUserBalance = async () => {
 		const targetChain = getTargetChain(chainId);
 		try {
 			await switchChain($wagmiConfig, { chainId });
 		} catch {
-			return (errorMessage = `Switch to ${targetChain.name} to check your balance.`);
+			errorMessage = `Switch to ${targetChain.name} to check your balance.`;
+			return;
 		}
-		userBalance = await readContract($wagmiConfig, {
-			abi: erc20Abi,
-			address: vault.token.address as Hex,
-			functionName: 'balanceOf',
-			args: [account as Hex]
-		});
+		try {
+			userBalance = await readContract($wagmiConfig, {
+				abi: erc20Abi,
+				address: vault.token.address as Hex,
+				functionName: 'balanceOf',
+				args: [account as Hex]
+			});
+		} catch {
+			errorMessage = 'Failed to get user balance.';
+			return;
+		}
+		return userBalance;
 	};
 
 	async function handleTransaction(
@@ -124,19 +128,52 @@
 		amount,
 		action === 'deposit' ? userBalance : BigInt(vault.balance)
 	);
+
+	$: maxValue = action === 'deposit' ? userBalance : BigInt(vault.balance);
 </script>
 
 {#if currentStep === 1}
 	<Modal bind:open autoclose={false} size="md">
-		<div class="space-y-6">
-			<div class="flex flex-col gap-4">
-				<h3 class="text-xl font-medium">Enter Amount</h3>
+		<div class="space-y-4">
+			<h3 class="text-xl font-medium" data-testid="modal-title">
+				{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+			</h3>
+
+			<div class="h-10">
+				{#if account}
+					{#await getUserBalance() then userBalance}
+						{#if userBalance || userBalance === 0n}
+							<div in:fade class="w-full flex-col justify-between">
+								<div class="flex justify-between">
+									<p>
+										Balance of connected wallet <span class="text-green-500"
+											>{truncateEthAddress(account)}</span
+										>
+									</p>
+									<p in:fade>
+										{formatUnits(userBalance, Number(vault.token.decimals))}
+										{vault.token.symbol}
+									</p>
+								</div>
+								<div class="flex justify-between">
+									<p>Balance of vault</p>
+									<p in:fade>
+										{formatUnits(BigInt(vault.balance), Number(vault.token.decimals))}
+										{vault.token.symbol}
+									</p>
+								</div>
+							</div>
+						{/if}
+					{/await}
+				{:else}
+					<p>Connect your wallet to continue.</p>
+				{/if}
 			</div>
 			<InputTokenAmount
 				bind:value={amount}
 				symbol={vault.token.symbol}
 				decimals={Number(vault.token.decimals)}
-				maxValue={action === 'deposit' ? userBalance : BigInt(vault.balance)}
+				{maxValue}
 			/>
 			<div class="flex flex-col justify-end gap-2">
 				<div class="flex gap-2">

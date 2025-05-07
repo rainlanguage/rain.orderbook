@@ -8,7 +8,7 @@
 	import { QKEY_VAULT } from '../../queries/keys';
 	import { getVault, type SgVault } from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
-	import { formatUnits, isAddress, isAddressEqual } from 'viem';
+	import { formatUnits } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
@@ -16,10 +16,10 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
-	import { ArrowDownOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
+	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
 
 	export let id: string;
 	export let network: string;
@@ -42,7 +42,7 @@
 
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
+	const { matchesAccount } = useAccount();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -58,13 +58,7 @@
 	};
 
 	const interval = setInterval(async () => {
-		// This invalidate function invalidates
-		// both vault detail and vault balance changes queries
-		await queryClient.invalidateQueries({
-			queryKey: [id],
-			refetchType: 'active',
-			exact: false
-		});
+		invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
 	}, 5000);
 
 	onDestroy(() => {
@@ -81,7 +75,7 @@
 			{data.token.name}
 		</div>
 		<div class="flex items-center gap-2">
-			{#if $account && isAddress($account) && isAddress(data.owner) && isAddressEqual($account, data.owner)}
+			{#if matchesAccount(data.owner)}
 				<Button
 					color="light"
 					size="xs"
@@ -89,7 +83,7 @@
 					aria-label="Deposit to vault"
 					on:click={() => onDeposit(data)}
 				>
-					<ArrowDownOutline size="xs" />
+					<ArrowDownToBracketOutline size="xs" />
 				</Button>
 				<Button
 					color="light"
@@ -98,12 +92,13 @@
 					aria-label="Withdraw from vault"
 					on:click={() => onWithdraw(data)}
 				>
-					<ArrowUpOutline size="xs" />
+					<ArrowUpFromBracketOutline size="xs" />
 				</Button>
 			{/if}
 
 			<Refresh
-				on:click={async () => await invalidateIdQuery(queryClient, id)}
+				testId="top-refresh"
+				on:click={() => invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id])}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
 			/>
 		</div>
@@ -122,7 +117,7 @@
 		</CardProperty>
 
 		<CardProperty data-testid="vaultDetailOwnerAddress">
-			<svelte:fragment slot="key">Owner Address</svelte:fragment>
+			<svelte:fragment slot="key">Owner address</svelte:fragment>
 			<svelte:fragment slot="value">
 				<Hash type={HashType.Wallet} value={data.owner} />
 			</svelte:fragment>

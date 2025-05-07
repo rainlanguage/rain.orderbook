@@ -180,144 +180,12 @@ impl DotrainOrderGui {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gui::tests::initialize_gui;
     use wasm_bindgen_test::wasm_bindgen_test;
-
-    const YAML: &str = r#"
-gui:
-  name: Fixed limit
-  description: Fixed limit order strategy
-  short-description: Buy WETH with USDC on Base.
-  deployments:
-    some-deployment:
-      name: Buy WETH with USDC on Base.
-      description: Buy WETH with USDC for fixed price on Base network.
-      short-description: Buy WETH with USDC on Base.
-      deposits:
-        - token: token1
-          min: 0
-          presets:
-            - "0"
-            - "10"
-            - "100"
-            - "1000"
-            - "10000"
-      fields:
-        - binding: binding-1
-          name: Field 1 name
-          description: Field 1 description
-          presets:
-            - name: Preset 1
-              value: "0x1234567890abcdef1234567890abcdef12345678"
-            - name: Preset 2
-              value: "false"
-            - name: Preset 3
-              value: "some-string"
-          default: some-default-value
-        - binding: binding-2
-          name: Field 2 name
-          description: Field 2 description
-          presets:
-            - value: "99.2"
-            - value: "582.1"
-            - value: "648.239"
-          show-custom-field: true
-    other-deployment:
-      name: Test test
-      description: Test test test
-      deposits:
-        - token: token1
-          min: 0
-          presets:
-            - "0"
-      fields:
-        - binding: binding-1
-          name: Field 1 name
-          description: Field 1 description
-          presets:
-            - name: Preset 1
-              value: "0"
-        - binding: binding-2
-          name: Field 2 name
-          description: Field 2 description
-          min: 100
-          presets:
-            - value: "0"
-networks:
-    some-network:
-        rpc: http://localhost:8085/rpc-url
-        chain-id: 123
-        network-id: 123
-        currency: ETH
-subgraphs:
-    some-sg: https://www.some-sg.com
-metaboards:
-    test: https://metaboard.com
-deployers:
-    some-deployer:
-        network: some-network
-        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-    some-orderbook:
-        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
-        network: some-network
-        subgraph: some-sg
-tokens:
-    token1:
-        network: some-network
-        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-        decimals: 6
-        label: Token 1
-        symbol: T1
-    token2:
-        network: some-network
-        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
-        decimals: 18
-        label: Token 2
-        symbol: T2
-scenarios:
-    some-scenario:
-        deployer: some-deployer
-        bindings:
-            test-binding: 5
-        scenarios:
-            sub-scenario:
-                bindings:
-                    another-binding: 300
-orders:
-    some-order:
-      inputs:
-        - token: token1
-          vault-id: 1
-      outputs:
-        - token: token2
-          vault-id: 1
-      deployer: some-deployer
-      orderbook: some-orderbook
-deployments:
-    some-deployment:
-        scenario: some-scenario
-        order: some-order
-    other-deployment:
-        scenario: some-scenario.sub-scenario
-        order: some-order
----
-#test-binding !
-#another-binding !
-#calculate-io
-_ _: 0 0;
-#handle-io
-:;
-#handle-add-order
-:;
-    "#;
 
     #[wasm_bindgen_test]
     async fn test_set_get_field_value() {
-        let mut gui = DotrainOrderGui::new();
-
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
-            .await
-            .unwrap();
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
@@ -327,21 +195,17 @@ _ _: 0 0;
         let field_value = gui.get_field_value("binding-1".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-1");
         assert_eq!(field_value.value, "some-default-value");
-        assert_eq!(field_value.is_preset, false);
+        assert!(!field_value.is_preset);
 
         let field_value = gui.get_field_value("binding-2".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-2");
         assert_eq!(field_value.value, "99.2");
-        assert_eq!(field_value.is_preset, true);
+        assert!(field_value.is_preset);
     }
 
     #[wasm_bindgen_test]
     async fn test_set_get_all_field_values() {
-        let mut gui = DotrainOrderGui::new();
-
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
-            .await
-            .unwrap();
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_values(vec![
             FieldValuePair {
@@ -359,9 +223,151 @@ _ _: 0 0;
         assert_eq!(field_values.len(), 2);
         assert_eq!(field_values[0].binding, "binding-1");
         assert_eq!(field_values[0].value, "some-default-value");
-        assert_eq!(field_values[0].is_preset, false);
+        assert!(!field_values[0].is_preset);
         assert_eq!(field_values[1].binding, "binding-2");
         assert_eq!(field_values[1].value, "99.2");
-        assert_eq!(field_values[1].is_preset, true);
+        assert!(field_values[1].is_preset);
+    }
+
+    fn get_binding_1() -> GuiFieldDefinitionCfg {
+        GuiFieldDefinitionCfg {
+            binding: String::from("binding-1"),
+            name: String::from("Field 1 name"),
+            description: Some(String::from("Field 1 description")),
+            presets: Some(Vec::from([
+                GuiPresetCfg {
+                    id: String::from("0"),
+                    name: Some(String::from("Preset 1")),
+                    value: String::from("0x1234567890abcdef1234567890abcdef12345678"),
+                },
+                GuiPresetCfg {
+                    id: String::from("1"),
+                    name: Some(String::from("Preset 2")),
+                    value: String::from("false"),
+                },
+                GuiPresetCfg {
+                    id: String::from("2"),
+                    name: Some(String::from("Preset 3")),
+                    value: String::from("some-string"),
+                },
+            ])),
+            default: Some(String::from("some-default-value")),
+            show_custom_field: None,
+        }
+    }
+
+    fn get_binding_2() -> GuiFieldDefinitionCfg {
+        GuiFieldDefinitionCfg {
+            binding: String::from("binding-2"),
+            name: String::from("Field 2 name"),
+            description: Some(String::from("Field 2 description")),
+            presets: Some(Vec::from([
+                GuiPresetCfg {
+                    id: String::from("0"),
+                    name: None,
+                    value: String::from("99.2"),
+                },
+                GuiPresetCfg {
+                    id: String::from("1"),
+                    name: None,
+                    value: String::from("582.1"),
+                },
+                GuiPresetCfg {
+                    id: String::from("2"),
+                    name: None,
+                    value: String::from("648.239"),
+                },
+            ])),
+            default: None,
+            show_custom_field: Some(true),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_remove_field_value() {
+        let mut gui = initialize_gui(None).await;
+
+        gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
+            .unwrap();
+        gui.get_field_value("binding-1".to_string()).unwrap();
+
+        gui.remove_field_value("binding-1".to_string()).unwrap();
+        let err = gui.get_field_value("binding-1".to_string()).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldBindingNotFound("binding-1".to_string()).to_string()
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_field_definition() {
+        let gui = initialize_gui(None).await;
+
+        let field_definition = gui.get_field_definition("binding-1").unwrap();
+        assert_eq!(field_definition, get_binding_1());
+
+        let field_definition = gui.get_field_definition("binding-2").unwrap();
+        assert_eq!(field_definition, get_binding_2());
+
+        let err = gui.get_field_definition("invalid-binding").unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldBindingNotFound("invalid-binding".to_string()).to_string()
+        );
+        assert_eq!(
+            err.to_readable_msg(),
+            "The field binding 'invalid-binding' could not be found in the YAML configuration."
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_all_field_definitions() {
+        let gui = initialize_gui(None).await;
+
+        let field_definitions = gui.get_all_field_definitions(None).unwrap();
+        assert_eq!(field_definitions.len(), 2);
+        assert_eq!(field_definitions[0], get_binding_1());
+        assert_eq!(field_definitions[1], get_binding_2());
+
+        let field_definitions = gui.get_all_field_definitions(Some(true)).unwrap();
+        assert_eq!(field_definitions.len(), 1);
+        assert_eq!(field_definitions[0], get_binding_1());
+
+        let field_definitions = gui.get_all_field_definitions(Some(false)).unwrap();
+        assert_eq!(field_definitions.len(), 1);
+        assert_eq!(field_definitions[0], get_binding_2());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_missing_field_values() {
+        let mut gui = initialize_gui(None).await;
+
+        let field_values = gui.get_missing_field_values().unwrap();
+        assert_eq!(field_values.len(), 2);
+        assert_eq!(field_values[0], "Field 1 name");
+        assert_eq!(field_values[1], "Field 2 name");
+
+        gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
+            .unwrap();
+
+        let field_values = gui.get_missing_field_values().unwrap();
+        assert_eq!(field_values.len(), 1);
+        assert_eq!(field_values[0], "Field 2 name");
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_check_field_values() {
+        let mut gui = initialize_gui(None).await;
+
+        let err = gui.check_field_values().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::FieldValueNotSet("Field 2 name".to_string()).to_string()
+        );
+
+        gui.save_field_value("binding-2".to_string(), "99.2".to_string())
+            .unwrap();
+        let res = gui.check_field_values();
+        assert!(res.is_ok());
     }
 }

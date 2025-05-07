@@ -66,7 +66,6 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.prototype.getCurrentDeployment = vi.fn();
 	DotrainOrderGui.prototype.getVaultIds = vi.fn();
 	DotrainOrderGui.prototype.saveDeposit = vi.fn();
-	DotrainOrderGui.prototype.isDepositPreset = vi.fn();
 	DotrainOrderGui.prototype.getDeposits = vi.fn();
 	DotrainOrderGui.prototype.saveFieldValue = vi.fn();
 	DotrainOrderGui.prototype.getFieldValue = vi.fn();

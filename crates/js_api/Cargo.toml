@@ -33,3 +33,6 @@ strict-yaml-rust = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
+httpmock = "0.7.0"

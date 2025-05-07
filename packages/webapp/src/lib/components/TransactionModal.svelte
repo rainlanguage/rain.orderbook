@@ -7,7 +7,7 @@
 	export let open: boolean;
 	export let messages: {
 		success: string;
-		error: string;
+		error?: string;
 		pending: string;
 	};
 
@@ -38,14 +38,14 @@
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center text-lg font-semibold text-gray-900 dark:text-white"
 				>
-					{messages.error}
+					{$transactionStore.status}
 				</p>
 				<p
 					class="w-full whitespace-pre-wrap break-words text-center font-normal text-gray-900 dark:text-white"
 				>
 					{$transactionStore.error}
 				</p>
-				<Button on:click={handleClose} class="mt-4">Dismiss</Button>
+				<Button on:click={handleClose}>Dismiss</Button>
 			{:else if $transactionStore.status === TransactionStatus.SUCCESS}
 				<div
 					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"
@@ -71,7 +71,7 @@
 						<div class="flex flex-row justify-center gap-2">
 							{#if $transactionStore.newOrderHash && $transactionStore.network}
 								<a href={`/orders/${$transactionStore.network}-${$transactionStore.newOrderHash}`}>
-									<Button on:click={handleClose} color="alternative">View Order</Button>
+									<Button on:click={handleClose} color="alternative">View order</Button>
 								</a>
 							{/if}
 							<Button on:click={handleClose}>Dismiss</Button>
@@ -94,16 +94,19 @@
 				>
 					{$transactionStore.message}
 				</p>
-				{#if $transactionStore.explorerLink}
-					<p>
-						<a
-							class="cursor-pointer text-blue-500 hover:underline"
-							rel="noopener noreferrer"
-							href={$transactionStore.explorerLink}
-							target="_blank">View transaction on block explorer</a
-						>
-					</p>
-				{/if}
+			{/if}
+			{#if $transactionStore.explorerLink}
+				<p>
+					<a
+						data-testid="explorer-link"
+						class="cursor-pointer text-blue-500 hover:underline"
+						rel="noopener noreferrer"
+						href={$transactionStore.explorerLink}
+						target="_blank"
+					>
+						View transaction on block explorer.
+					</a>
+				</p>
 			{/if}
 		</div>
 	{/if}

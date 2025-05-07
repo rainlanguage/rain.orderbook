@@ -40,12 +40,12 @@
 
 <AppTable
 	query={balanceChangesQuery}
-	queryKey={undefined}
+	queryKey={id}
 	emptyMessage="No deposits or withdrawals found"
 	rowHoverable={false}
 >
 	<svelte:fragment slot="title">
-		<Heading tag="h5" class="mb-4 mt-6 font-normal">Vault Balance Changes</Heading>
+		<Heading tag="h5" class="mb-4 mt-6 font-normal">Vault balance changes</Heading>
 	</svelte:fragment>
 	<svelte:fragment slot="head">
 		<TableHeadCell padding="p-4">Date</TableHeadCell>

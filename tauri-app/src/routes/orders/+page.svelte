@@ -2,7 +2,6 @@
   import { PageHeader } from '@rainlanguage/ui-components';
   import { onMount } from 'svelte';
   import { OrdersListTable } from '@rainlanguage/ui-components';
-  import { walletAddressMatchesOrBlank } from '$lib/stores/wallets';
   import { handleOrderRemoveModal } from '$lib/services/modal';
 
   import {
@@ -22,8 +21,6 @@
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
 
-  $: currentRoute = $page.url.pathname;
-
   onMount(async () => {
     if (!$activeOrderbook) {
       await resetActiveNetworkRef();
@@ -37,7 +34,6 @@
 <OrdersListTable
   {activeNetworkRef}
   {activeOrderbookRef}
-  {walletAddressMatchesOrBlank}
   {handleOrderRemoveModal}
   {activeSubgraphs}
   {settings}
@@ -46,6 +42,5 @@
   {activeOrderStatus}
   {orderHash}
   {hideZeroBalanceVaults}
-  {currentRoute}
   showMyItemsOnly={writable(false)}
 />

@@ -3,7 +3,7 @@ import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 import type { AppKit } from '@reown/appkit';
 
-const initialPageState = {
+export const initialPageState = {
 	data: {
 		stores: { settings: {} },
 		dotrain: 'some dotrain content',
@@ -60,11 +60,5 @@ export const mockAppKitModalStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
-		mockPageWritable.update((currentValue) => ({
-			...currentValue,
-			...newValue
-		}));
-	},
-	reset: () => mockPageWritable.set(initialPageState)
+	mockSetSubscribeValue: (value: typeof initialPageState): void => mockPageWritable.set(value)
 };

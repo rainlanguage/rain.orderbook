@@ -11,11 +11,6 @@
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
-	import {
-		getOrderByHash,
-		type OrderWithSortedVaults,
-		type SgOrder
-	} from '@rainlanguage/orderbook';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
@@ -24,11 +19,19 @@
 	import type { Hex } from 'viem';
 	import type { QuoteDebugModalHandler, DebugTradeModalHandler } from '../../types/modal';
 	import Refresh from '../icon/Refresh.svelte';
-	import { invalidateIdQuery } from '$lib/queries/queryClient';
-	import { ArrowDownOutline, ArrowUpOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
+	import {
+		ArrowDownToBracketOutline,
+		ArrowUpFromBracketOutline,
+		InfoCircleOutline
+	} from 'flowbite-svelte-icons';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { isAddressEqual, isAddress } from 'viem';
-	import type { SgVault } from '@rainlanguage/orderbook';
+	import {
+		getOrderByHash,
+		type OrderWithSortedVaults,
+		type SgOrder,
+		type SgVault
+	} from '@rainlanguage/orderbook';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -39,7 +42,6 @@
 	export let orderHash: string;
 	export let rpcUrl: string;
 	export let subgraphUrl: string;
-	export let chainId: number | undefined;
 
 	/** Callback function when remove action is triggered for an order
 	 * @param order The order to remove
@@ -60,7 +62,7 @@
 	let codeMirrorStyles = {};
 
 	const queryClient = useQueryClient();
-	const { account } = useAccount();
+	const { matchesAccount } = useAccount();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -71,7 +73,7 @@
 	});
 
 	const interval = setInterval(async () => {
-		await invalidateIdQuery(queryClient, orderHash);
+		await invalidateTanstackQueries(queryClient, [orderHash]);
 	}, 10000);
 
 	onDestroy(() => {
@@ -95,7 +97,7 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if $account && isAddress($account) && isAddress(data.order.owner) && isAddressEqual($account, data.order.owner)}
+				{#if matchesAccount(data.order.owner)}
 					{#if data.order.active}
 						<Button
 							on:click={() => onRemove(data.order)}
@@ -107,7 +109,7 @@
 
 				<Refresh
 					testId="top-refresh"
-					on:click={async () => await invalidateIdQuery(queryClient, orderHash)}
+					on:click={() => invalidateTanstackQueries(queryClient, [orderHash])}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
 			</div>
@@ -136,7 +138,7 @@
 				</svelte:fragment>
 			</CardProperty>
 
-			{#each [{ key: 'Input vaults', type: 'inputs' }, { key: 'Output vaults', type: 'outputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
+			{#each [{ key: 'Output vaults', type: 'outputs' }, { key: 'Input vaults', type: 'inputs' }, { key: 'Input & output vaults', type: 'inputs_outputs' }] as { key, type }}
 				{#if data.vaults.get(type)?.length !== 0}
 					<CardProperty>
 						<svelte:fragment slot="key"
@@ -153,7 +155,7 @@
 								{#each data.vaults.get(type) || [] as vault}
 									<ButtonVaultLink tokenVault={vault} {subgraphName}>
 										<svelte:fragment slot="buttons">
-											{#if $account && isAddress($account) && isAddress(vault.owner) && isAddressEqual($account, vault.owner) && chainId}
+											{#if matchesAccount(vault.owner)}
 												<div class="flex gap-1">
 													<Button
 														color="light"
@@ -161,7 +163,7 @@
 														data-testid="deposit-button"
 														on:click={() => onDeposit(vault)}
 													>
-														<ArrowDownOutline size="xs" />
+														<ArrowDownToBracketOutline size="xs" />
 													</Button>
 													<Button
 														color="light"
@@ -169,7 +171,7 @@
 														data-testid="withdraw-button"
 														on:click={() => onWithdraw(vault)}
 													>
-														<ArrowUpOutline size="xs" />
+														<ArrowUpFromBracketOutline size="xs" />
 													</Button>
 												</div>
 											{/if}
