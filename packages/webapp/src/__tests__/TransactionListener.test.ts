@@ -196,7 +196,6 @@ describe('TransactionsListener.svelte', () => {
 		});
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-
 		mockTransactionStore.mockSetSubscribeValue({ status: 'INVALID_STATUS_XYZ' } as any);
 		await waitFor(() => {
 			expect(mockAddToast).not.toHaveBeenCalled();
