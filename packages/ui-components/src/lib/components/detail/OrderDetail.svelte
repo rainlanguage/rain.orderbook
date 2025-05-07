@@ -32,6 +32,7 @@
 		type SgOrder,
 		type SgVault
 	} from '@rainlanguage/orderbook';
+	import { useToasts } from '$lib/providers/toasts/useToasts';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export const handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
@@ -63,6 +64,7 @@
 
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
+	const { addToast } = useToasts();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -79,6 +81,18 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
+
+	const handleRefresh = async () => {
+		console.log('REFRESHING!');
+		try {
+			console.log('INVALIDATING!');
+			await invalidateTanstackQueries(queryClient, [orderHash]);
+			console.log('SUCCESS!');
+		} catch {
+			console.log('FAILED!');
+			addToast({ message: 'Failed to refresh', type: 'error', color: 'red' });
+		}
+	};
 
 	$: subgraphName = $page.url.pathname.split('/')[2]?.split('-')[0];
 </script>
@@ -109,7 +123,7 @@
 
 				<Refresh
 					testId="top-refresh"
-					on:click={() => invalidateTanstackQueries(queryClient, [orderHash])}
+					on:click={handleRefresh}
 					spin={$orderDetailQuery.isLoading || $orderDetailQuery.isFetching}
 				/>
 			</div>
