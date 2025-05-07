@@ -34,7 +34,6 @@ export function useToasts() {
 	const addToast = (toast: ToastProps) => {
 		const newToast: ToastProps = { ...toast, id: uuidv4() };
 
-
 		let addedToastIndex = -1;
 		toasts.update((toasts) => {
 			const updatedToasts = [...toasts, newToast];
