@@ -57,6 +57,8 @@ impl WithdrawArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy_ethers_typecast::gas_fee_middleware::GasFeeSpeed;
+    use std::str::FromStr;
 
     #[test]
     fn test_withdraw_args_into() {
@@ -77,5 +79,53 @@ mod tests {
         );
         assert_eq!(withdraw_call.vaultId, U256::from(42));
         assert_eq!(withdraw_call.targetAmount, U256::from(100));
+    }
+
+    #[tokio::test]
+    async fn test_get_withdraw_calldata() {
+        let args = WithdrawArgs {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vault_id: U256::from(42),
+            target_amount: U256::from(100),
+        };
+        let calldata = args.get_withdraw_calldata().await.unwrap();
+
+        let expected_calldata = withdraw2Call {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vaultId: U256::from(42),
+            targetAmount: U256::from(100),
+            tasks: vec![],
+        }
+        .abi_encode();
+
+        assert_eq!(calldata, expected_calldata);
+        assert_eq!(calldata.len(), 164);
+    }
+
+    #[tokio::test]
+    async fn test_withdraw_call_try_into_write_contract_parameters() {
+        let args = TransactionArgs {
+            rpc_url: "http://test.com".to_string(),
+            orderbook_address: Address::ZERO,
+            derivation_index: Some(0_usize),
+            chain_id: Some(1),
+            max_priority_fee_per_gas: Some(U256::from(200)),
+            max_fee_per_gas: Some(U256::from(100)),
+            gas_fee_speed: Some(GasFeeSpeed::Fast),
+        };
+        let withdraw_call = withdraw2Call {
+            token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
+            vaultId: U256::from(123),
+            targetAmount: U256::from(456),
+            tasks: vec![],
+        };
+        let params = args
+            .try_into_write_contract_parameters(withdraw_call.clone(), Address::ZERO)
+            .await
+            .unwrap();
+        assert_eq!(params.address, Address::ZERO);
+        assert_eq!(params.call, withdraw_call);
+        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(200)));
+        assert_eq!(params.max_fee_per_gas, Some(U256::from(100)));
     }
 }
