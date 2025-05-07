@@ -18,29 +18,27 @@
 </script>
 
 <RegistryProvider {registryManager}>
-	{#if registryManager}
-		<PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname} />
-		<div class="flex flex-col gap-2">
-			<div class="flex w-full content-end items-end justify-between">
-				{#if registryManager.isCustomRegistry()}
-					<CustomRegistryWarning />
-				{:else if isDeployPage}
-					<div class="ml-auto"></div>
-				{/if}
-				{#if isDeployPage}
-					<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
-						<span class="whitespace-nowrap">Advanced mode</span>
-					</Toggle>
-				{/if}
-			</div>
-			<div class="flex flex-col items-end gap-4">
-				{#if advancedMode && isDeployPage}
-					<div in:slide class="w-full">
-						<InputRegistryUrl />
-					</div>
-				{/if}
-			</div>
+	<PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname} />
+	<div class="flex flex-col gap-2">
+		<div class="flex w-full content-end items-end justify-between">
+			{#if advancedMode}
+				<CustomRegistryWarning />
+			{:else if isDeployPage}
+				<div class="ml-auto"></div>
+			{/if}
+			{#if isDeployPage}
+				<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
+					<span class="whitespace-nowrap">Advanced mode</span>
+				</Toggle>
+			{/if}
 		</div>
-		<slot></slot>
-	{/if}
+		<div class="flex flex-col items-end gap-4">
+			{#if advancedMode && isDeployPage}
+				<div in:slide class="w-full">
+					<InputRegistryUrl />
+				</div>
+			{/if}
+		</div>
+	</div>
+	<slot></slot>
 </RegistryProvider>
