@@ -74,7 +74,8 @@ abstract contract OrderBookV5ArbOrderTaker is
 
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
         IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
-        orderBook.takeOrders3(takeOrders);
+        (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders3(takeOrders);
+        (totalTakerInput, totalTakerOutput);
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
         LibOrderBookArb.finalizeArb(

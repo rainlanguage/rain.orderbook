@@ -48,7 +48,11 @@ library LibTOFUTokenDecimals {
         // value. E.g. withdrawals will prefer to continue than trap funds, and
         // deposits will prefer to revert and prevent new funds entering the
         // DEX.
+        //slither-disable-start low-level-calls
+        //slither-disable-start calls-loop
         (bool success, bytes memory returnData) = token.staticcall(TOFU_DECIMALS_SELECTOR);
+        //slither-disable-end low-level-calls
+        //slither-disable-end calls-loop
         if (!success || returnData.length != 0x20) {
             return (TOFUOutcome.ReadFailure, tofuTokenDecimals.tokenDecimals);
         }
