@@ -21,9 +21,17 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
     using LibFormatDecimalFloat for Float;
 
-    bool internal isFirstDeposit = true;
+    uint256 internal runID = 0;
+    mapping(uint256 => bool) internal previouslyDeposited;
+
+    constructor() {
+        runID++;
+    }
 
     function checkReentrancyRW() internal {
+        bool isFirstDeposit = !previouslyDeposited[runID];
+        previouslyDeposited[runID] = true;
+
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 5 reads for deposit.
@@ -36,8 +44,6 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         assertEq(writes.length, isFirstDeposit ? 4 : 3);
         assert(writes[0] == bytes32(uint256(0)));
         assert(writes[writes.length - 1] == bytes32(uint256(0)));
-
-        isFirstDeposit = false;
     }
 
     function checkDeposit(
