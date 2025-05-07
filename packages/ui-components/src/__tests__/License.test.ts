@@ -1,9 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, expect, describe, vi, afterEach } from 'vitest';
 import License from '../lib/components/License.svelte';
+import { LICENSE_URL } from '../lib/consts';
 
 // Mock the global fetch function
 const mockFetch = vi.fn();
+
 vi.stubGlobal('fetch', mockFetch);
 
 vi.mock('svelte-markdown', async () => {
@@ -13,8 +15,6 @@ vi.mock('svelte-markdown', async () => {
 
 describe('License', () => {
 	const mockMarkdownContent = 'This is license text.';
-	const expectedUrl =
-		'https://raw.githubusercontent.com/rainlanguage/decentralicense/refs/heads/master/README.md';
 
 	beforeEach(() => {
 		mockFetch.mockReset();
@@ -34,7 +34,7 @@ describe('License', () => {
 
 		await waitFor(() => {
 			expect(mockFetch).toHaveBeenCalledTimes(1);
-			expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+			expect(mockFetch).toHaveBeenCalledWith(LICENSE_URL);
 		});
 
 		await waitFor(() => {
@@ -49,12 +49,33 @@ describe('License', () => {
 
 		await waitFor(() => {
 			expect(mockFetch).toHaveBeenCalledTimes(1);
-			expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+			expect(mockFetch).toHaveBeenCalledWith(LICENSE_URL);
 		});
 
 		await waitFor(() => {
 			expect(screen.getByTestId('mock-component').getAttribute('source')).toBe(
-				'Failed to fetch license'
+				'Failed to fetch license.'
+			);
+		});
+	});
+
+	it('handles non-OK HTTP responses gracefully', async () => {
+		mockFetch.mockResolvedValue({
+			ok: false,
+			status: 404,
+			statusText: 'Not Found'
+		});
+
+		render(License);
+
+		await waitFor(() => {
+			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(mockFetch).toHaveBeenCalledWith(LICENSE_URL);
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('mock-component').getAttribute('source')).toBe(
+				'Failed to fetch license: HTTP 404'
 			);
 		});
 	});
