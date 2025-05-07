@@ -286,12 +286,12 @@ mod tests {
         let mut gui = initialize_gui(None).await;
 
         let has_any_deposit = gui.has_any_deposit().unwrap();
-        assert_eq!(has_any_deposit, false);
+        assert!(!has_any_deposit);
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
         let has_any_deposit = gui.has_any_deposit().unwrap();
-        assert_eq!(has_any_deposit, true);
+        assert!(has_any_deposit);
     }
 
     #[wasm_bindgen_test]
