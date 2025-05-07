@@ -45,7 +45,12 @@ describe('useToasts', () => {
 	describe('addToast', () => {
 		it('should add a toast and schedule its removal', () => {
 			const { addToast } = useToasts();
-			const testToast: ToastProps = { message: 'Test Toast', type: 'info', color: 'green', id: 'mocked-uuid' };
+			const testToast: ToastProps = {
+				message: 'Test Toast',
+				type: 'info',
+				color: 'green',
+				id: 'mocked-uuid'
+			};
 
 			addToast(testToast);
 			expect(getStoreValue()).toEqual([testToast]);
@@ -56,8 +61,18 @@ describe('useToasts', () => {
 
 		it('should only remove the correct toast after state changes', () => {
 			const { addToast, removeToast } = useToasts();
-			const toast1: ToastProps = { message: 'Toast 1', type: 'info', color: 'green', id: 'mocked-uuid' };
-			const toast2: ToastProps = { message: 'Toast 2', type: 'info', color: 'green', id: 'mocked-uuid' };
+			const toast1: ToastProps = {
+				message: 'Toast 1',
+				type: 'info',
+				color: 'green',
+				id: 'mocked-uuid'
+			};
+			const toast2: ToastProps = {
+				message: 'Toast 2',
+				type: 'info',
+				color: 'green',
+				id: 'mocked-uuid'
+			};
 
 			addToast(toast1);
 			addToast(toast2);
@@ -71,6 +86,7 @@ describe('useToasts', () => {
 
 		it('should add a toast with missing properties', () => {
 			const { addToast } = useToasts();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const testToast = { message: 'Test Toast Only Message', id: 'mocked-uuid' } as any;
 
 			addToast(testToast);
@@ -82,9 +98,24 @@ describe('useToasts', () => {
 
 		it('should add multiple toasts in rapid succession', () => {
 			const { addToast } = useToasts();
-			const toast1: ToastProps = { message: 'Toast 1', type: 'info', color: 'green', id: 'mocked-uuid' };
-			const toast2: ToastProps = { message: 'Toast 2', type: 'success', color: 'blue', id: 'mocked-uuid' };
-			const toast3: ToastProps = { message: 'Toast 3', type: 'error', color: 'red', id: 'mocked-uuid' };
+			const toast1: ToastProps = {
+				message: 'Toast 1',
+				type: 'info',
+				color: 'green',
+				id: 'mocked-uuid'
+			};
+			const toast2: ToastProps = {
+				message: 'Toast 2',
+				type: 'success',
+				color: 'blue',
+				id: 'mocked-uuid'
+			};
+			const toast3: ToastProps = {
+				message: 'Toast 3',
+				type: 'error',
+				color: 'red',
+				id: 'mocked-uuid'
+			};
 
 			addToast(toast1);
 			addToast(toast2);
