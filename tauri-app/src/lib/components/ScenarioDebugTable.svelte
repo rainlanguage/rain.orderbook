@@ -89,7 +89,14 @@
       <div class="text-red-500">{$scenarioDebugQuery.error}</div>
     {/if}
     <span></span>
-    <EditOutline on:click={() => (openDebugBlockNumberModal = true)} />
+    <button
+      type="button"
+      class="mr-2 flex items-center text-sm text-gray-500 hover:text-gray-700 focus:outline-none"
+      on:click={() => (openDebugBlockNumberModal = true)}
+    >
+      <span class="mr-1">Change block heights</span>
+      <EditOutline />
+    </button>
     <Refresh
       data-testid="refreshButton"
       class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
