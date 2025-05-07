@@ -57,7 +57,7 @@ pub struct Explorer {
     pub standard: String,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum ChainIdError {
     #[error("provided rpc urls are not supported")]
     UnsupportedRpcUrls,
@@ -108,5 +108,108 @@ impl ChainId {
             }
         }
         Err(ChainIdError::UnsupportedRpcUrls)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_try_from_err_no_rpc() {
+        let chain_id = mk_chain_id_with_rpc(vec![]);
+
+        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
+        assert_eq!(network_cfg_source, Err(ChainIdError::NoRpc));
+
+        let strict_yaml = StrictYaml::String("".to_string());
+        let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
+
+        let network_cfg = chain_id.try_into_network_cfg(strict_yaml_arc);
+        assert_eq!(network_cfg, Err(ChainIdError::NoRpc));
+    }
+
+    #[test]
+    fn test_try_from_err_unsupported_rpc_urls() {
+        let rpc = vec![
+            Url::parse("https://abcd.com/v3/${API_KEY}").unwrap(),
+            Url::parse("wss://example.net/v3/${API_KEY}").unwrap(),
+            Url::parse("wss://api.mycryptoapi.com/eth").unwrap(),
+        ];
+
+        let chain_id = mk_chain_id_with_rpc(rpc);
+
+        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
+        assert_eq!(network_cfg_source, Err(ChainIdError::UnsupportedRpcUrls));
+
+        let strict_yaml = StrictYaml::String("".to_string());
+        let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
+
+        let network_cfg = chain_id.try_into_network_cfg(strict_yaml_arc);
+        assert_eq!(network_cfg, Err(ChainIdError::UnsupportedRpcUrls));
+    }
+
+    #[test]
+    fn test_try_from_ok() {
+        let rpc = vec![
+            Url::parse("https://abcd.com/v3/${API_KEY}").unwrap(),
+            Url::parse("wss://api.mycryptoapi.com/eth").unwrap(),
+            Url::parse("https://cloudflare-eth.com").unwrap(),
+        ];
+
+        let chain_id = mk_chain_id_with_rpc(rpc);
+
+        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
+        assert_eq!(
+            network_cfg_source,
+            Ok(NetworkConfigSource {
+                chain_id: 1,
+                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                network_id: Some(1),
+                currency: Some("ETH".to_string()),
+                label: Some("Ethereum Mainnet".to_string()),
+            })
+        );
+
+        let strict_yaml = StrictYaml::String("".to_string());
+        let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
+
+        let network_cfg = chain_id.try_into_network_cfg(strict_yaml_arc.clone());
+        assert_eq!(
+            network_cfg,
+            Ok(NetworkCfg {
+                document: strict_yaml_arc,
+                key: "short_name".to_string(),
+                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                chain_id: 1,
+                label: Some("Ethereum Mainnet".to_string()),
+                network_id: Some(1),
+                currency: Some("ETH".to_string()),
+            })
+        );
+    }
+
+    fn mk_chain_id_with_rpc(rpc: Vec<Url>) -> ChainId {
+        ChainId {
+            name: "Ethereum Mainnet".to_string(),
+            chain: "mainnet".to_string(),
+            icon: None,
+            rpc,
+            features: None,
+            faucets: None,
+            native_currency: NativeCurrency {
+                name: "Ethereum".to_string(),
+                symbol: "ETH".to_string(),
+                decimals: 18,
+            },
+            info_url: "info_url".to_string(),
+            short_name: "short_name".to_string(),
+            chain_id: 1,
+            network_id: 1,
+            slip44: None,
+            ens: None,
+            explorers: None,
+            red_flags: None,
+        }
     }
 }
