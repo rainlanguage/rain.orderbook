@@ -10,7 +10,7 @@ export interface LayoutData {
 
 export const load = async ({ fetch }) => {
 	const response = await fetch(
-		'https://raw.githubusercontent.com/findolor/sample-dotrains/6865d8c76dc4182c5f6f41c20299cb017a6298fe/settings.yaml'
+		'https://github.com/rainlanguage/rain.strategies/blob/246947a82cbc12a9cb6bbfa07b4743d0ec5e5ff2/settings.yaml'
 	);
 	const settingsYaml = await response.text();
 
@@ -199,7 +199,7 @@ subgraphs:
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/findolor/sample-dotrains/6865d8c76dc4182c5f6f41c20299cb017a6298fe/settings.yaml'
+				'https://github.com/rainlanguage/rain.strategies/blob/246947a82cbc12a9cb6bbfa07b4743d0ec5e5ff2/settings.yaml'
 			);
 
 			expect(result).toHaveProperty('stores');
