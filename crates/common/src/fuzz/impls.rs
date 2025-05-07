@@ -529,10 +529,7 @@ _: context<50 50>();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
-        let res = runner
-            .run_scenario_by_name("some-key")
-            .await
-            .map_err(|e| println!("{:#?}", e));
+        let res = runner.run_scenario_by_name("some-key").await;
 
         assert!(res.is_err());
     }
