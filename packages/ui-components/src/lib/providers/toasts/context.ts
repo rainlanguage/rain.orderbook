@@ -2,7 +2,7 @@ import { getContext, setContext } from 'svelte';
 import { type Writable } from 'svelte/store';
 import type { ToastProps } from '$lib/types/toast';
 
-export const TOASTS_KEY = 'toasts_key';
+export const TOASTS_KEY = 'rain:ui-components:toasts';
 
 /**
  * Retrieves the toasts store from Svelte's context
