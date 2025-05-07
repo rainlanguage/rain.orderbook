@@ -1,7 +1,16 @@
 <script lang="ts">
-  import type { DeploymentDebugData } from '@rainlanguage/orderbook';
+  import { formatUnits } from 'viem';
+  import type { DeploymentsDebugDataMap } from '@rainlanguage/orderbook';
   import { transformData } from '$lib/utils/chartData';
-  import { formatUnits, hexToNumber, isHex } from 'viem';
+  import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
+  import { handleScenarioDebugModal } from '$lib/services/modal';
+  import { DEFAULT_REFRESH_INTERVAL, Refresh } from '@rainlanguage/ui-components';
+  import { makeDeploymentsDebugDataMap } from '$lib/services/chart';
+  import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
+  import { settingsText } from '$lib/stores/settings';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
+  import { writable } from 'svelte/store';
   import {
     Table,
     TableBody,
@@ -10,30 +19,29 @@
     TableHead,
     TableHeadCell,
   } from 'flowbite-svelte';
-  import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
-  import { handleScenarioDebugModal } from '$lib/services/modal';
-  import { DEFAULT_REFRESH_INTERVAL, Refresh } from '@rainlanguage/ui-components';
-  import { EditableSpan } from '@rainlanguage/ui-components';
-  import { makeDeploymentDebugData } from '$lib/services/chart';
-  import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
-  import { settingsText } from '$lib/stores/settings';
-  import { createQuery } from '@tanstack/svelte-query';
-  import { useDebouncedFn } from '$lib/utils/asyncDebounce';
-  import { writable } from 'svelte/store';
 
   let enabled = false;
-  let blockNumber: number | undefined;
+  let blockNumbers: Record<number, number> = {};
 
   $: queryKey = writable([$globalDotrainFile.text, $settingsText]);
-  let displayData: DeploymentDebugData['result'] | undefined = undefined;
+  let displayData: DeploymentsDebugDataMap['dataMap'] | undefined = undefined;
 
   const fetchData = async () => {
-    const res = await makeDeploymentDebugData(
+    const res = await makeDeploymentsDebugDataMap(
       $queryKey[0],
       $settingsText,
-      enabled ? undefined : blockNumber,
+      enabled ? undefined : blockNumbers,
     );
-    blockNumber = parseInt(res.blockNumber) || 0;
+    // build a map of chain ids against block numbers for unified debug on same
+    // block number per chain id, this is because we dont want to run the debug
+    // on different blocks for different deployments if those deployments happen
+    // to be on the same network but for example with different rpc, so we keep
+    // a map of chain ids against block number rather than map of deployment keys
+    // against block numbers
+    for (const deploymentKey in res.dataMap) {
+      blockNumbers[res.dataMap[deploymentKey].chainId] =
+        res.dataMap[deploymentKey].blockNumber || 0;
+    }
     return res;
   };
 
@@ -43,7 +51,7 @@
   const { debouncedFn: debounceFileUpdate } = useDebouncedFn(fileUpdate, 500);
   $: debounceFileUpdate($globalDotrainFile.text, $settingsText);
 
-  $: scenarioDebugQuery = createQuery<DeploymentDebugData>({
+  $: scenarioDebugQuery = createQuery<DeploymentsDebugDataMap>({
     queryKey: $queryKey,
     queryFn: fetchData,
     refetchOnWindowFocus: false,
@@ -53,7 +61,7 @@
 
   $: {
     if (!$scenarioDebugQuery.isError && $scenarioDebugQuery.data) {
-      displayData = $scenarioDebugQuery.data.result;
+      displayData = $scenarioDebugQuery.data.dataMap;
     } else if ($globalDotrainFile.text === '' || $settingsText === '') {
       displayData = undefined;
     }
@@ -66,7 +74,7 @@
   const togglePlayback = () => {
     enabled = !enabled;
     if (enabled) {
-      blockNumber = undefined;
+      blockNumbers = {};
       handleRefresh();
     }
   };
@@ -76,19 +84,6 @@
   <div class="flex items-center gap-x-1">
     {#if $scenarioDebugQuery.isError}
       <div class="text-red-500">{$scenarioDebugQuery.error}</div>
-    {/if}
-    {#if $scenarioDebugQuery.data && isHex($scenarioDebugQuery.data.blockNumber)}
-      <EditableSpan
-        displayValue={blockNumber?.toString() ||
-          hexToNumber($scenarioDebugQuery.data.blockNumber).toString()}
-        on:focus={() => {
-          enabled = false;
-        }}
-        on:blur={({ detail: { value } }) => {
-          blockNumber = parseInt(value) || 0;
-          handleRefresh();
-        }}
-      />
     {/if}
     <span></span>
     <Refresh
@@ -120,11 +115,12 @@
         <TableHeadCell>Pair</TableHeadCell>
         <TableHeadCell>Maximum Output</TableHeadCell>
         <TableHeadCell>Ratio</TableHeadCell>
+        <TableHeadCell>Block Height</TableHeadCell>
         <TableHeadCell class="w-[50px]" />
       </TableHead>
 
       <TableBody>
-        {#each results as item}
+        {#each results.pairsData as item}
           <TableBodyRow>
             <TableBodyCell>{item.order}</TableBodyCell>
             <TableBodyCell>{item.scenario}</TableBodyCell>
@@ -155,6 +151,7 @@
                   </span>
                 </TableBodyCell>
               {/if}
+              <TableBodyCell>{results.blockNumber}</TableBodyCell>
               <TableBodyCell>
                 <button on:click={() => handleScenarioDebugModal(item.pair, fuzzResult.data)}>
                   <BugOutline size="sm" color="grey" />
