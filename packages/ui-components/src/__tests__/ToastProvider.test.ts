@@ -53,5 +53,7 @@ describe('ToastProvider', () => {
 		});
 
 		expect(screen.getByRole('alert')).toBeInTheDocument();
+		expect(screen.getByText('Test toast')).toBeInTheDocument();
+		expect(screen.getByRole('alert')).toHaveTextContent('Test toast');
 	});
 });

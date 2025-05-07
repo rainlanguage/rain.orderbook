@@ -1,6 +1,7 @@
 import { getToastsContext } from './context';
 import { get } from 'svelte/store';
 import type { ToastProps } from '$lib/types/toast';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Hook for managing toast notifications in the application.
@@ -17,28 +18,35 @@ export function useToasts() {
 	 * @param index - The index of the toast to remove
 	 */
 	const removeToast = (index: number) => {
-		toasts.update((toasts) => toasts.filter((_, i) => i !== index));
+		toasts.update((toasts) => {
+			if (index < 0 || index >= toasts.length) {
+				return toasts;
+			}
+			return toasts.filter((_, i) => i !== index);
+		});
 	};
 
 	/**
-	 * Adds a new toast notification and automatically removes it after 5 seconds
+	 * Adds a new toast notification and automatically removes it after 3 seconds
 	 *
 	 * @param toast - The toast properties (message and type)
 	 */
 	const addToast = (toast: ToastProps) => {
-		const newToast = toast;
+		const newToast: ToastProps = { ...toast, id: uuidv4() };
+
 
 		let addedToastIndex = -1;
 		toasts.update((toasts) => {
 			const updatedToasts = [...toasts, newToast];
-			addedToastIndex = updatedToasts.findIndex((t) => t === newToast);
+			addedToastIndex = updatedToasts.length - 1;
 			return updatedToasts;
 		});
+		const toastId = newToast.id;
 
 		if (addedToastIndex > -1) {
 			setTimeout(() => {
 				const currentToasts = get(toasts);
-				const currentIndex = currentToasts.findIndex((t) => t === newToast);
+				const currentIndex = currentToasts.findIndex((t) => t.id === toastId);
 				if (currentIndex > -1) {
 					removeToast(currentIndex);
 				}

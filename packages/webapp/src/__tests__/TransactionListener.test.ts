@@ -2,14 +2,8 @@ import { render, cleanup, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { writable } from 'svelte/store';
 import TransactionsListener from '$lib/components/TransactionsListener.svelte';
-import { invalidateTanstackQueries, useToasts } from '@rainlanguage/ui-components';
+import { invalidateTanstackQueries, useToasts, TransactionStatus } from '@rainlanguage/ui-components';
 import { QueryClient, useQueryClient } from '@tanstack/svelte-query';
-
-enum TransactionStatus {
-	IDLE = 'Idle',
-	SUCCESS = 'Success! Transaction confirmed',
-	ERROR = 'Something went wrong'
-}
 
 const mockAddToast = vi.fn();
 

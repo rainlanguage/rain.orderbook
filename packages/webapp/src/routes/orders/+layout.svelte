@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import ToastListener from '$lib/components/TransactionsListener.svelte';
+	import TransactionsListener from '$lib/components/TransactionsListener.svelte';
 	const { orderHash } = $page.params;
 </script>
 
-<ToastListener queryKey={orderHash}>
+<TransactionsListener queryKey={orderHash}>
 	<slot />
-</ToastListener>
+</TransactionsListener>
