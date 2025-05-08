@@ -239,6 +239,7 @@ mod fork_parse {
     #[cfg(test)]
     mod tests {
         use alloy::primitives::hex::encode_prefixed;
+        use httpmock::MockServer;
         use std::collections::HashMap;
 
         use super::*;
@@ -309,8 +310,15 @@ _ _: 1 2;
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-        async fn test_parse_rainlang_on_fork_err_invalid_url() {
-            let rpc_url = "http://localhost:1";
+        async fn test_parse_rainlang_on_fork_err_bad_rpc() {
+            let server = MockServer::start();
+
+            server.mock(|when, then| {
+                when.path("/rpc");
+                then.status(500);
+            });
+
+            let rpc_url = server.url("/rpc");
             let deployer = Address::ZERO;
 
             let dotrain = r"
@@ -340,7 +348,7 @@ _ _: 1 2;
             assert!(matches!(
                 err,
                 ForkParseError::ReadableClientError(ReadableClientError::ReadBlockNumberError(err_msg))
-                if err_msg == "error sending request for url (http://localhost:1/): error trying to connect: tcp connect error: Connection refused (os error 61)"
+                if err_msg == "Deserialization Error: EOF while parsing a value at line 1 column 0. Response: "
             ));
         }
     }
