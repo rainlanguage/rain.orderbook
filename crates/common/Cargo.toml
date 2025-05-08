@@ -1,6 +1,6 @@
 [package]
 name = "rain_orderbook_common"
-description = "Rain Orderbook CLI."
+description = "Rain Orderbook Common Tools."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

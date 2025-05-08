@@ -6383,6 +6383,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_orderbook_client"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "httpmock",
+ "rain_orderbook_app_settings",
+ "rain_orderbook_subgraph_client",
+ "rain_orderbook_test_fixtures",
+ "tokio",
+ "wasm-bindgen-utils 0.0.7",
+]
+
+[[package]]
 name = "rain_orderbook_common"
 version = "0.0.0-alpha.0"
 dependencies = [
