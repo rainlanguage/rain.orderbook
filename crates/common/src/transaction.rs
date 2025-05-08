@@ -103,6 +103,7 @@ impl TransactionArgs {
 #[cfg(test)]
 mod tests {
     use alloy::primitives::address;
+    use httpmock::MockServer;
 
     use super::*;
     use rain_orderbook_bindings::IOrderBookV4::vaultBalanceCall;
@@ -166,14 +167,63 @@ mod tests {
         assert_eq!(params.max_fee_per_gas, Some(U256::from(200)));
     }
 
-    // #[test]
-    // fn test_try_into_write_contract_parameters_err() {}
+    #[tokio::test]
+    async fn test_try_fill_chain_id_ok() {
+        let server = MockServer::start();
 
-    // #[tokio::test]
-    // async fn test_try_fill_chain_id_ok() {}
+        server.mock(|when, then| {
+            when.path("/rpc").body_contains("eth_chainId");
 
-    // #[tokio::test]
-    // async fn test_try_fill_chain_id_err() {}
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{ "jsonrpc": "2.0", "id": 1, "result": "0x1" }"#);
+        });
+
+        let mut args = TransactionArgs {
+            orderbook_address: Address::ZERO,
+            derivation_index: None,
+            chain_id: None,
+            rpc_url: server.url("/rpc"),
+            max_priority_fee_per_gas: None,
+            max_fee_per_gas: None,
+            gas_fee_speed: None,
+        };
+
+        args.try_fill_chain_id().await.unwrap();
+        assert_eq!(args.chain_id, Some(1));
+
+        // the URL is invalid but it shouldn't be used now that chain ID is set
+        args.rpc_url = "".to_string();
+        args.try_fill_chain_id().await.unwrap();
+        assert_eq!(args.chain_id, Some(1));
+    }
+
+    #[tokio::test]
+    async fn test_try_fill_chain_id_err() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/rpc").body_contains("eth_chainId");
+            then.status(500);
+        });
+
+        let mut args = TransactionArgs {
+            orderbook_address: Address::ZERO,
+            derivation_index: None,
+            chain_id: None,
+            rpc_url: server.url("/rpc"),
+            max_priority_fee_per_gas: None,
+            max_fee_per_gas: None,
+            gas_fee_speed: None,
+        };
+
+        let err = args.try_fill_chain_id().await.unwrap_err();
+        assert!(matches!(
+            err,
+            TransactionArgsError::ReadableClient(ReadableClientError::ReadChainIdError(msg))
+            if msg.contains("Deserialization Error: EOF while parsing a value at line 1 column 0. Response: ")
+        ));
+    }
 
     // #[tokio::test]
     // async fn test_try_into_ledger_client_ok() {}
