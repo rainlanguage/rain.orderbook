@@ -100,11 +100,84 @@ impl TransactionArgs {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use alloy::primitives::address;
 
-//     #[tokio::test]
-//     async fn test_try_into_write_contract_parameters() {
-//     }
-// }
+    use super::*;
+    use rain_orderbook_bindings::IOrderBookV4::vaultBalanceCall;
+
+    #[test]
+    fn test_try_into_write_contract_parameters_ok() {
+        let args = TransactionArgs {
+            orderbook_address: Address::ZERO,
+            derivation_index: None,
+            chain_id: None,
+            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
+            max_priority_fee_per_gas: None,
+            max_fee_per_gas: None,
+            gas_fee_speed: None,
+        };
+
+        let call = vaultBalanceCall {
+            owner: Address::ZERO,
+            token: Address::ZERO,
+            vaultId: U256::ZERO,
+        };
+
+        let params = args
+            .try_into_write_contract_parameters(call.clone(), Address::ZERO)
+            .unwrap();
+
+        assert_eq!(params.address, Address::ZERO);
+        assert_eq!(params.call, call);
+        assert_eq!(params.max_priority_fee_per_gas, None);
+        assert_eq!(params.max_fee_per_gas, None);
+
+        let args = TransactionArgs {
+            orderbook_address: address!("123abcdef24Ca5003905aA834De7156C68b2E1d0"),
+            derivation_index: Some(0),
+            chain_id: Some(1),
+            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
+            max_priority_fee_per_gas: Some(U256::from(100)),
+            max_fee_per_gas: Some(U256::from(200)),
+            gas_fee_speed: Some(GasFeeSpeed::Fast),
+        };
+
+        let call = vaultBalanceCall {
+            owner: address!("b20a608c624Ca5003905aA834De7156C68b2E1d0"),
+            token: address!("00000000219ab540356cBB839Cbe05303d7705Fa"),
+            vaultId: U256::from(123456),
+        };
+
+        let params = args
+            .try_into_write_contract_parameters(
+                call.clone(),
+                address!("0000000000000000000000000123456789abcdef"),
+            )
+            .unwrap();
+
+        assert_eq!(
+            params.address,
+            address!("0000000000000000000000000123456789abcdef")
+        );
+        assert_eq!(params.call, call);
+        assert_eq!(params.max_priority_fee_per_gas, Some(U256::from(100)));
+        assert_eq!(params.max_fee_per_gas, Some(U256::from(200)));
+    }
+
+    // #[test]
+    // fn test_try_into_write_contract_parameters_err() {}
+
+    // #[tokio::test]
+    // async fn test_try_fill_chain_id_ok() {}
+
+    // #[tokio::test]
+    // async fn test_try_fill_chain_id_err() {}
+
+    // #[tokio::test]
+    // async fn test_try_into_ledger_client_ok() {}
+
+    // #[tokio::test]
+    // async fn test_try_into_ledger_client_err() {}
+}
