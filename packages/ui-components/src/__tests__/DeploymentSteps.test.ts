@@ -235,7 +235,7 @@ describe('DeploymentSteps', () => {
 		render(DeploymentSteps, { props: defaultProps });
 
 		await waitFor(() => {
-			expect(screen.getByText('Connect Wallet')).toBeInTheDocument();
+			expect(screen.getByText('Connect')).toBeInTheDocument();
 		});
 	});
 

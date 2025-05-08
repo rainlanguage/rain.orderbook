@@ -132,7 +132,7 @@ describe('VaultDetail', () => {
 			expect(screen.getByTestId('vaultDetailTokenName')).toHaveTextContent('USDC coin');
 			expect(screen.getByTestId('vaultDetailVaultId')).toHaveTextContent('Vault ID 0xabc');
 			expect(screen.getByTestId('vaultDetailOwnerAddress')).toHaveTextContent(
-				'Owner Address 0x123'
+				'Owner address 0x123'
 			);
 			expect(screen.getByTestId('vaultDetailTokenAddress')).toHaveTextContent(
 				'Token address 0x456'

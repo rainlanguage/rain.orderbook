@@ -1,8 +1,5 @@
 import { asyncDerived, derived, get } from '@square/svelte-store';
-import {
-  cachedWritableStore,
-  cachedWritableStringOptional,
-} from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableStore, cachedWritableStringOptional } from '@rainlanguage/ui-components';
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
@@ -14,6 +11,7 @@ import {
 } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
+import { beforeEach, describe } from 'vitest';
 
 export const EMPTY_SETTINGS: Config = {
   orderbook: {
@@ -295,3 +293,200 @@ export const orderHash = cachedWritableStore<string>(
   (value) => value,
   (str) => str || '',
 );
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest;
+
+  const mockConfig: Config = {
+    orderbook: {
+      networks: {
+        mainnet: {
+          key: 'mainnet',
+          rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+          chainId: 1,
+          label: 'Ethereum Mainnet',
+          currency: 'ETH',
+        },
+      },
+      subgraphs: {
+        mainnet: {
+          key: 'mainnet',
+          url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+        },
+      },
+      orderbooks: {
+        orderbook1: {
+          key: 'orderbook1',
+          address: '0xOrderbookAddress1',
+          network: {
+            key: 'mainnet',
+            rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+            chainId: 1,
+            label: 'Ethereum Mainnet',
+            currency: 'ETH',
+          },
+          subgraph: {
+            key: 'uniswap',
+            url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+          },
+        },
+      },
+      tokens: {},
+      deployers: {
+        deployer1: {
+          key: 'deployer1',
+          address: '0xDeployerAddress1',
+          network: {
+            key: 'mainnet',
+            rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+            chainId: 1,
+            label: 'Ethereum Mainnet',
+            currency: 'ETH',
+          },
+        },
+      },
+      metaboards: {
+        metaboard1: 'https://example.com/metaboard1',
+      },
+      accounts: {
+        name_one: {
+          key: 'name_one',
+          address: 'address_one',
+        },
+        name_two: {
+          key: 'name_two',
+          address: 'address_two',
+        },
+      },
+    },
+    dotrainOrder: {
+      orders: {},
+      scenarios: {},
+      charts: {},
+      deployments: {},
+    },
+  };
+
+  describe('Settings active accounts items', () => {
+    // Reset store values before each test to prevent state leakage
+    beforeEach(() => {
+      // Reset all store values
+      settings.set(EMPTY_SETTINGS);
+      activeAccountsItems.set({});
+      activeSubgraphs.set({});
+
+      // Then set our initial test values
+      settings.set(mockConfig);
+      activeAccountsItems.set({
+        name_one: 'address_one',
+        name_two: 'address_two',
+      });
+      activeSubgraphs.set({
+        mainnet: {
+          key: 'mainnet',
+          url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+        },
+      });
+
+      // Verify initial state
+      expect(get(settings)).toEqual(mockConfig);
+      expect(get(activeAccountsItems)).toEqual({
+        name_one: 'address_one',
+        name_two: 'address_two',
+      });
+      expect(get(activeSubgraphs)).toEqual({
+        mainnet: {
+          key: 'mainnet',
+          url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+        },
+      });
+    });
+
+    test('should remove account if that account is removed', () => {
+      // Test removing an account
+      const newSettings = {
+        ...mockConfig,
+        orderbook: {
+          accounts: {
+            name_one: 'address_one',
+          },
+        },
+      } as unknown as Config;
+
+      // Update settings - this should trigger the subscription
+      settings.set(newSettings);
+
+      // Check the expected result
+      expect(get(activeAccountsItems)).toEqual({
+        name_one: 'address_one',
+      });
+    });
+
+    test('should remove account if the value is different', () => {
+      const newSettings = {
+        ...mockConfig,
+        orderbook: {
+          accounts: {
+            name_one: 'address_one',
+            name_two: 'new_value',
+          },
+        },
+      } as unknown as Config;
+
+      settings.set(newSettings);
+
+      expect(get(activeAccountsItems)).toEqual({
+        name_one: 'address_one',
+      });
+    });
+
+    test('should update active subgraphs when subgraph value changes', () => {
+      const newSettings = {
+        ...mockConfig,
+        orderbook: {
+          subgraphs: {
+            mainnet: {
+              key: 'mainnet',
+              url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+            },
+          },
+        },
+      } as unknown as Config;
+
+      settings.set(newSettings);
+
+      expect(get(activeSubgraphs)).toEqual({});
+    });
+
+    test('should update active subgraphs when subgraph removed', () => {
+      const newSettings = {
+        ...mockConfig,
+        orderbook: {
+          subgraphs: {
+            testnet: {
+              key: 'testnet',
+              url: 'testnet',
+            },
+          },
+        },
+      } as unknown as Config;
+
+      settings.set(newSettings);
+
+      expect(get(activeSubgraphs)).toEqual({});
+    });
+
+    test('should reset active subgraphs when subgraphs are undefined', () => {
+      const newSettings = {
+        ...mockConfig,
+        orderbook: {
+          subgraphs: undefined,
+        },
+      } as unknown as Config;
+
+      settings.set(newSettings);
+
+      expect(get(activeSubgraphs)).toEqual({});
+    });
+  });
+}

@@ -1,9 +1,10 @@
 <script lang="ts" generics="T">
+	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
 	import Tooltip from './Tooltip.svelte';
 	import DropdownActiveSubgraphs from './dropdown/DropdownActiveSubgraphs.svelte';
-	import DropdownOrderStatus from './dropdown/DropdownOrderStatus.svelte';
+	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
@@ -20,8 +21,9 @@
 	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
 	export let orderHash: Writable<string>;
-	export let isVaultsPage: boolean;
-	export let isOrdersPage: boolean;
+
+	$: isVaultsPage = $page.url.pathname === '/vaults';
+	$: isOrdersPage = $page.url.pathname === '/orders';
 
 	const { account } = useAccount();
 </script>
@@ -51,7 +53,9 @@
 
 		{#if isOrdersPage}
 			<InputOrderHash {orderHash} />
-			<DropdownOrderStatus {activeOrderStatus} />
+			<div class="mt-4">
+				<CheckboxActiveOrders {activeOrderStatus} />
+			</div>
 		{/if}
 		{#if $accounts && Object.values($accounts).length > 0}
 			<DropdownOrderListAccounts {accounts} {activeAccountsItems} />

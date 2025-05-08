@@ -33,8 +33,6 @@
       resetActiveOrderbookRef();
     }
   });
-
-  $: currentRoute = $page.url.pathname;
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -55,6 +53,5 @@
   {handleDepositGenericModal}
   {handleDepositModal}
   {handleWithdrawModal}
-  {currentRoute}
   showMyItemsOnly={writable(false)}
 />

@@ -62,7 +62,8 @@ export const load = async ({ fetch }) => {
 			accounts,
 			activeAccountsItems,
 			activeAccounts,
-			activeOrderStatus: writable<boolean | undefined>(undefined),
+			// Instantiate with false to show only active orders
+			activeOrderStatus: writable<boolean>(false),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			activeNetworkRef,

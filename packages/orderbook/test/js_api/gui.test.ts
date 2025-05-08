@@ -1040,44 +1040,6 @@ ${dotrainWithoutTokens}`;
 			);
 		});
 
-		it('should clear state', async () => {
-			gui.clearState();
-			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
-			assert.equal(fieldValues.length, 0);
-			const deposits = extractWasmEncodedData<TokenDeposit[]>(gui.getDeposits());
-			assert.equal(deposits.length, 0);
-		});
-
-		it('should check if field is preset', async () => {
-			gui.saveFieldValue(
-				'test-binding',
-				extractWasmEncodedData<GuiFieldDefinitionCfg>(gui.getFieldDefinition('test-binding'))
-					.presets?.[0].value || ''
-			);
-			assert.equal(
-				extractWasmEncodedData<boolean | undefined>(gui.isFieldPreset('test-binding')),
-				true
-			);
-			gui.saveFieldValue('test-binding', '100');
-			assert.equal(
-				extractWasmEncodedData<boolean | undefined>(gui.isFieldPreset('test-binding')),
-				false
-			);
-		});
-
-		it('should check if deposit is preset', async () => {
-			gui.saveDeposit('token1', '55');
-			assert.equal(
-				extractWasmEncodedData<boolean | undefined>(gui.isDepositPreset('token1')),
-				false
-			);
-			gui.saveDeposit('token1', '0');
-			assert.equal(
-				extractWasmEncodedData<boolean | undefined>(gui.isDepositPreset('token1')),
-				true
-			);
-		});
-
 		it('should keep the same vault ids after deserializing if not set during serializing', async () => {
 			mockServer
 				.forPost('/rpc-url')

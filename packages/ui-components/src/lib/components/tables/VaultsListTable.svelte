@@ -44,7 +44,6 @@
 		undefined;
 	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
-	export let currentRoute: string;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 
 	const { account, matchesAccount } = useAccount();
@@ -88,10 +87,6 @@
 		activeNetworkRef.set(subgraphName);
 		activeOrderbookRef.set(subgraphName);
 	};
-
-	$: isVaultsPage = currentRoute.startsWith('/vaults');
-	$: isOrdersPage = currentRoute.startsWith('/orders');
-
 	const AppTable = TanstackAppTable<SgVaultWithSubgraphName>;
 </script>
 
@@ -105,8 +100,6 @@
 		{activeOrderStatus}
 		{orderHash}
 		{hideZeroBalanceVaults}
-		{isVaultsPage}
-		{isOrdersPage}
 	/>
 	<AppTable
 		{query}

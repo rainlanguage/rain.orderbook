@@ -36,7 +36,6 @@
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
-	export let currentRoute: string;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
 
@@ -87,9 +86,6 @@
 	});
 
 	const AppTable = TanstackAppTable<SgOrderWithSubgraphName>;
-
-	$: isVaultsPage = currentRoute.startsWith('/vaults');
-	$: isOrdersPage = currentRoute.startsWith('/orders');
 </script>
 
 <ListViewOrderbookFilters
@@ -101,8 +97,6 @@
 	{activeOrderStatus}
 	{orderHash}
 	{hideZeroBalanceVaults}
-	{isVaultsPage}
-	{isOrdersPage}
 />
 
 <AppTable

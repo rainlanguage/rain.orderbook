@@ -155,7 +155,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_gui_deposit() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let deposit = gui.get_gui_deposit("token1").unwrap();
         assert_eq!(deposit.token.unwrap().key, "token1");
@@ -194,7 +194,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_deposits() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
@@ -211,7 +211,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_save_deposit() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
@@ -246,7 +246,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_remove_deposit() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
@@ -259,7 +259,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_deposit_presets() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let presets = gui.get_deposit_presets("token1".to_string()).unwrap();
         assert_eq!(
@@ -275,7 +275,7 @@ mod tests {
     }
     #[wasm_bindgen_test]
     async fn test_get_missing_deposits() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let missing_deposits = gui.get_missing_deposits().unwrap();
         assert_eq!(missing_deposits, vec!["token1".to_string()]);
@@ -283,20 +283,20 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_has_any_deposit() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         let has_any_deposit = gui.has_any_deposit().unwrap();
-        assert_eq!(has_any_deposit, false);
+        assert!(!has_any_deposit);
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
         let has_any_deposit = gui.has_any_deposit().unwrap();
-        assert_eq!(has_any_deposit, true);
+        assert!(has_any_deposit);
     }
 
     #[wasm_bindgen_test]
     async fn test_check_deposits() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_deposit("token1".to_string(), "999".to_string())
             .unwrap();
