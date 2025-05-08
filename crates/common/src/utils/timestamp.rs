@@ -90,14 +90,28 @@ mod tests {
 
     #[test]
     fn test_format_bigint_timestamp_display_ok() {
+        // Required to make local timezone deterministic
+        // NOTE: Setting TZ affects global state.
+        std::env::set_var("TZ", "CET");
+
         let timestamp = "1746537612".to_string();
-        std::env::set_var("TZ", "CET"); // Required to make local timezone deterministic
-        let result = format_bigint_timestamp_display(timestamp);
+        let result = format_bigint_timestamp_display(timestamp.clone());
         assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
 
+        let timestamp_i64 = timestamp.parse::<i64>().unwrap();
+        let result = format_timestamp_display(timestamp_i64);
+        assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
+
+        // Required to make local timezone deterministic
+        // NOTE: Setting TZ affects global state.
+        std::env::set_var("TZ", "EST");
+
         let timestamp = "970676358".to_string();
-        std::env::set_var("TZ", "EST"); // Required to make local timezone deterministic
-        let result = format_bigint_timestamp_display(timestamp);
+        let result = format_bigint_timestamp_display(timestamp.clone());
+        assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
+
+        let timestamp_i64 = timestamp.parse::<i64>().unwrap();
+        let result = format_timestamp_display(timestamp_i64);
         assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
     }
 }
