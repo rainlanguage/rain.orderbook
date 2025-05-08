@@ -8,7 +8,7 @@
 
 	const {
 		activeOrderbook,
-		subgraphUrl,
+		subgraph,
 		orderHash,
 		settings,
 		accounts,
@@ -56,7 +56,7 @@
 
 <VaultsListTable
 	{activeOrderbook}
-	{subgraphUrl}
+	{subgraph}
 	{orderHash}
 	{showMyItemsOnly}
 	{activeSubgraphs}

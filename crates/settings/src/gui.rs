@@ -5,7 +5,7 @@ use crate::{
         optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    DeploymentCfg, TokenCfg, TokenCfgRef,
+    DeploymentCfg, TokenCfg,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ impl_wasm_traits!(GuiPresetSourceCfg);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct GuiDepositSourceCfg {
-    pub token: TokenCfgRef,
+    pub token: String,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
 }
@@ -85,14 +85,14 @@ impl GuiConfigSourceCfg {
         self,
         deployments: &HashMap<String, Arc<DeploymentCfg>>,
         tokens: &HashMap<String, Arc<TokenCfg>>,
-    ) -> Result<GuiCfg, ParseGuiConfigSourceError> {
+    ) -> Result<GuiCfg, ParseGuiCfgError> {
         let gui_deployments = self
             .deployments
             .iter()
             .map(|(deployment_name, deployment_source)| {
                 let deployment = deployments
                     .get(deployment_name)
-                    .ok_or(ParseGuiConfigSourceError::DeploymentNotFoundError(
+                    .ok_or(ParseGuiCfgError::DeploymentNotFoundError(
                         deployment_name.clone(),
                     ))
                     .map(Arc::clone)?;
@@ -103,7 +103,7 @@ impl GuiConfigSourceCfg {
                     .map(|deposit_source| {
                         let token = tokens
                             .get(&deposit_source.token)
-                            .ok_or(ParseGuiConfigSourceError::TokenNotFoundError(
+                            .ok_or(ParseGuiCfgError::TokenNotFoundError(
                                 deposit_source.token.clone(),
                             ))
                             .map(Arc::clone)?;
@@ -113,7 +113,7 @@ impl GuiConfigSourceCfg {
                             presets: deposit_source.presets.clone(),
                         })
                     })
-                    .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
+                    .collect::<Result<Vec<_>, ParseGuiCfgError>>()?;
 
                 let fields = deployment_source
                     .fields
@@ -137,14 +137,14 @@ impl GuiConfigSourceCfg {
                                                 value: preset.value.clone(),
                                             })
                                         })
-                                        .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()
+                                        .collect::<Result<Vec<_>, ParseGuiCfgError>>()
                                 })
                                 .transpose()?,
                             default: field_source.default.clone(),
                             show_custom_field: field_source.show_custom_field,
                         })
                     })
-                    .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
+                    .collect::<Result<Vec<_>, ParseGuiCfgError>>()?;
 
                 Ok((
                     deployment_name.clone(),
@@ -160,7 +160,7 @@ impl GuiConfigSourceCfg {
                     },
                 ))
             })
-            .collect::<Result<HashMap<_, _>, ParseGuiConfigSourceError>>()?;
+            .collect::<Result<HashMap<_, _>, ParseGuiCfgError>>()?;
 
         Ok(GuiCfg {
             name: self.name,
@@ -171,7 +171,7 @@ impl GuiConfigSourceCfg {
 }
 
 #[derive(Error, Debug)]
-pub enum ParseGuiConfigSourceError {
+pub enum ParseGuiCfgError {
     #[error("Deployment not found: {0}")]
     DeploymentNotFoundError(String),
     #[error("Token not found: {0}")]
@@ -208,7 +208,7 @@ impl_wasm_traits!(GuiDepositCfg);
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiSelectTokensCfg {
-    pub key: TokenCfgRef,
+    pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]

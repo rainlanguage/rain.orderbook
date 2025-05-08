@@ -1,4 +1,3 @@
-use crate::config_source::*;
 use crate::yaml::context::Context;
 use crate::yaml::{
     default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
@@ -49,18 +48,18 @@ impl NetworkCfg {
         }
     }
 
-    pub fn validate_rpc(value: &str) -> Result<Url, ParseNetworkConfigSourceError> {
-        Url::parse(value).map_err(ParseNetworkConfigSourceError::RpcParseError)
+    pub fn validate_rpc(value: &str) -> Result<Url, ParseNetworkCfgError> {
+        Url::parse(value).map_err(ParseNetworkCfgError::RpcParseError)
     }
-    pub fn validate_chain_id(value: &str) -> Result<u64, ParseNetworkConfigSourceError> {
+    pub fn validate_chain_id(value: &str) -> Result<u64, ParseNetworkCfgError> {
         value
             .parse::<u64>()
-            .map_err(ParseNetworkConfigSourceError::ChainIdParseError)
+            .map_err(ParseNetworkCfgError::ChainIdParseError)
     }
-    pub fn validate_network_id(value: &str) -> Result<u64, ParseNetworkConfigSourceError> {
+    pub fn validate_network_id(value: &str) -> Result<u64, ParseNetworkCfgError> {
         value
             .parse::<u64>()
-            .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)
+            .map_err(ParseNetworkCfgError::NetworkIdParseError)
     }
 
     pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
@@ -215,8 +214,8 @@ impl YamlParsableHash for NetworkCfg {
             if let Some(yaml_cache) = &context.yaml_cache {
                 for (key, network) in &yaml_cache.remote_networks {
                     if networks.contains_key(key) {
-                        return Err(YamlError::ParseNetworkConfigSourceError(
-                            ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key.clone()),
+                        return Err(YamlError::ParseNetworkCfgError(
+                            ParseNetworkCfgError::RemoteNetworkKeyShadowing(key.clone()),
                         ));
                     }
                     networks.insert(key.clone(), network.clone());
@@ -252,7 +251,7 @@ impl PartialEq for NetworkCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseNetworkConfigSourceError {
+pub enum ParseNetworkCfgError {
     #[error("Failed to parse rpc: {}", 0)]
     RpcParseError(ParseError),
     #[error("Failed to parse chain_id: {}", 0)]
@@ -263,43 +262,26 @@ pub enum ParseNetworkConfigSourceError {
     RemoteNetworkKeyShadowing(String),
 }
 
-impl ParseNetworkConfigSourceError {
+impl ParseNetworkCfgError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseNetworkConfigSourceError::RpcParseError(err) => format!(
+            ParseNetworkCfgError::RpcParseError(err) => format!(
                 "The RPC URL in your network configuration is invalid: {}",
                 err
             ),
-            ParseNetworkConfigSourceError::ChainIdParseError(err) => format!(
+            ParseNetworkCfgError::ChainIdParseError(err) => format!(
                 "The chain ID in your network configuration must be a valid number: {}",
                 err
             ),
-            ParseNetworkConfigSourceError::NetworkIdParseError(err) => format!(
+            ParseNetworkCfgError::NetworkIdParseError(err) => format!(
                 "The network ID in your network configuration must be a valid number: {}",
                 err
             ),
-            ParseNetworkConfigSourceError::RemoteNetworkKeyShadowing(key) => format!(
+            ParseNetworkCfgError::RemoteNetworkKeyShadowing(key) => format!(
                 "The remote network key '{}' is already defined in network configuration",
                 key
             ),
         }
-    }
-}
-
-impl NetworkConfigSource {
-    pub fn try_into_network(
-        self,
-        key: String,
-    ) -> Result<NetworkCfg, ParseNetworkConfigSourceError> {
-        Ok(NetworkCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key,
-            rpc: self.rpc,
-            chain_id: self.chain_id,
-            label: self.label,
-            network_id: self.network_id,
-            currency: self.currency,
-        })
     }
 }
 
@@ -308,28 +290,6 @@ mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
     use url::Url;
-
-    #[test]
-    fn test_try_from_network_string_success() {
-        let network_string = NetworkConfigSource {
-            rpc: Url::parse("http://127.0.0.1:8545").unwrap(),
-            chain_id: 1,
-            network_id: Some(1),
-            label: Some("Local Testnet".into()),
-            currency: Some("ETH".into()),
-        };
-
-        let result = network_string.try_into_network("local".into());
-        assert!(result.is_ok());
-        let network = result.unwrap();
-
-        assert_eq!(network.rpc, Url::parse("http://127.0.0.1:8545").unwrap());
-        assert_eq!(network.chain_id, 1);
-        assert_eq!(network.network_id, Some(1));
-        assert_eq!(network.label, Some("Local Testnet".into()));
-        assert_eq!(network.currency, Some("ETH".into()));
-        assert_eq!(network.key, "local");
-    }
 
     #[test]
     fn test_parse_networks_from_yaml() {

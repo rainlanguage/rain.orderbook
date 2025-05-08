@@ -11,7 +11,7 @@ use commands::app::get_app_commit_sha;
 use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::make_charts;
-use commands::config::{convert_configstring_to_config, merge_configstrings, parse_configstring};
+use commands::config::{merge_configstrings, parse_configstring};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
@@ -59,7 +59,6 @@ fn run_tauri_app() {
             call_lsp_problems,
             parse_configstring,
             merge_configstrings,
-            convert_configstring_to_config,
             make_charts,
             order_add_calldata,
             order_remove_calldata,

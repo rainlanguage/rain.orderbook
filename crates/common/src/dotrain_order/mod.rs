@@ -15,7 +15,7 @@ use rain_orderbook_app_settings::yaml::cache::Cache;
 use rain_orderbook_app_settings::yaml::{
     default_document, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
-use rain_orderbook_app_settings::ParseConfigSourceError;
+use rain_orderbook_app_settings::ParseConfigError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
@@ -37,7 +37,7 @@ impl PartialEq for DotrainOrder {
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
     #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
+    ParseConfigError(#[from] ParseConfigError),
 
     #[error("Scenario {0} not found")]
     ScenarioNotFound(String),

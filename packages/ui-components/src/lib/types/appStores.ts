@@ -1,9 +1,10 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { ConfigSource, OrderbookConfigSource } from '@rainlanguage/orderbook';
+import type { AccountCfg, Config, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
+
 export interface AppStoresInterface {
-	settings: Writable<ConfigSource | undefined>;
-	activeSubgraphs: Writable<Record<string, string>>;
-	accounts: Readable<Record<string, string>>;
+	settings: Writable<Config>;
+	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
+	accounts: Readable<Record<string, AccountCfg>>;
 	activeAccountsItems: Writable<Record<string, string>>;
 	activeOrderStatus: Writable<boolean | undefined>;
 	orderHash: Writable<string>;
@@ -11,10 +12,10 @@ export interface AppStoresInterface {
 	activeNetworkRef: Writable<string | undefined>;
 	activeOrderbookRef: Writable<string | undefined>;
 	// New ones
-	activeOrderbook: Readable<OrderbookConfigSource | undefined>;
-	subgraphUrl: Readable<string | undefined>;
+	activeOrderbook: Readable<OrderbookCfg | undefined>;
+	subgraph: Readable<SubgraphCfg | undefined>;
 	activeAccounts: Readable<{
-		[k: string]: string;
+		[k: string]: AccountCfg;
 	}>;
 	showMyItemsOnly: Writable<boolean>;
 }

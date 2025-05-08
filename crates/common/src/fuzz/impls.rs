@@ -91,7 +91,7 @@ impl FuzzRunner {
         // find the scenario by name in the settings
         let scenario = self
             .settings
-            .scenarios
+            .get_scenarios()
             .get(name)
             .ok_or(FuzzRunnerError::ScenarioNotFound(name.into()))
             .cloned()?;
@@ -229,7 +229,7 @@ impl FuzzRunner {
     }
 
     pub async fn make_chart_data(&self) -> Result<ChartData, FuzzRunnerError> {
-        let charts = self.settings.charts.clone();
+        let charts = self.settings.get_charts();
         let mut scenarios_data: HashMap<String, FuzzResultFlat> = HashMap::new();
 
         for (_, chart) in charts.clone() {
@@ -262,8 +262,37 @@ mod tests {
         primitives::utils::parse_ether,
         providers::{ext::AnvilApi, Provider},
     };
-    use rain_orderbook_app_settings::config_source::ConfigSource;
     use rain_orderbook_test_fixtures::LocalEvm;
+
+    const SETTINGS: &str = r#"
+subgraphs:
+    some-subgraph: https://www.some-subgraph.com
+metaboards:
+    some-metaboard: https://www.some-metaboard.com
+orderbooks:
+    some-orderbook:
+        address: 0x0000000000000000000000000000000000000000
+        network: some-key
+        subgraph: some-subgraph
+tokens:
+    token1:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000001
+    token2:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000002
+orders:
+    some-order:
+        deployer: some-key
+        inputs:
+            - token: token1
+        outputs:
+            - token: token2
+deployments:
+    some-deployment:
+        scenario: some-key
+        order: some-order
+"#;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner() {
@@ -295,11 +324,9 @@ b: fuzzed;
             deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -350,11 +377,9 @@ _: block-number();
             end_block = last_block_number
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -413,11 +438,9 @@ d: 4;
             deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -472,12 +495,9 @@ _: context<4 4>();
             deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
-
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
         let res = runner
@@ -521,11 +541,9 @@ _: context<50 50>();
             deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 
@@ -564,11 +582,9 @@ _: context<1 0>();
             deployer = local_evm.deployer.address()
         );
         let frontmatter = RainDocument::get_front_matter(&dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        let config = settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap();
+        let config =
+            Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false)
+                .unwrap();
 
         let mut runner = FuzzRunner::new(&dotrain, config, None).await;
 

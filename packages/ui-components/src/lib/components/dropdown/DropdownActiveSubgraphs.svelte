@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { ConfigSource } from '@rainlanguage/orderbook';
+	import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
 
-	export let settings: ConfigSource;
-	export let activeSubgraphs: Writable<Record<string, string>>;
+	export let settings: Config;
+	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 
-	$: dropdownOptions = Object.keys(settings?.subgraphs ?? {}).reduce(
+	$: dropdownOptions = Object.keys(settings.orderbook.subgraphs ?? {}).reduce(
 		(acc, key) => ({
 			...acc,
 			[key]: key
@@ -14,12 +14,12 @@
 		{}
 	);
 
-	function handleStatusChange(event: CustomEvent<Record<string, string>>) {
+	function handleStatusChange(event: CustomEvent<Record<string, SubgraphCfg>>) {
 		let items = Object.keys(event.detail);
 		activeSubgraphs.set(
 			Object.values(items).reduce(
-				(acc, key) => ({ ...acc, [key]: (settings?.subgraphs ?? {})[key] }),
-				{} as Record<string, string>
+				(acc, key) => ({ ...acc, [key]: (settings.orderbook.subgraphs ?? {})[key] }),
+				{} as Record<string, SubgraphCfg>
 			)
 		);
 	}

@@ -1,4 +1,6 @@
 <script lang="ts" generics="T">
+	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
+
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -10,31 +12,32 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook';
+	import {
+		type AccountCfg,
+		type Config,
+		type OrderbookCfg,
+		type SubgraphCfg
+	} from '@rainlanguage/orderbook';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
-	import {
-		getVaults,
-		type MultiSubgraphArgs,
-		type SgVaultWithSubgraphName
-	} from '@rainlanguage/orderbook';
+	import { getVaults, type SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
 	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
-	export let subgraphUrl: Readable<string | undefined>;
+	export let activeOrderbook: Readable<OrderbookCfg | undefined>;
+	export let subgraph: Readable<SubgraphCfg | undefined>;
 	export let accounts: AppStoresInterface['accounts'] | undefined;
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let orderHash: Writable<string>;
-	export let activeSubgraphs: Writable<Record<string, string>>;
-	export let settings: Writable<ConfigSource | undefined>;
+	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
+	export let settings: Writable<Config | undefined>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
 	export let hideZeroBalanceVaults: Writable<boolean>;
 	export let activeNetworkRef: Writable<string | undefined>;
 	export let activeOrderbookRef: Writable<string | undefined>;
 	export let activeAccounts: Readable<{
-		[k: string]: string;
+		[k: string]: AccountCfg;
 	}>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
@@ -45,13 +48,7 @@
 
 	const { account, matchesAccount } = useAccount();
 
-	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
-		name,
-		url
-	})) as MultiSubgraphArgs[];
-
+	$: multiSubgraphArgs = getMultiSubgraphArgs($activeSubgraphs ?? {});
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
@@ -83,7 +80,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: !!$subgraphUrl
+		enabled: !!$subgraph
 	});
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {

@@ -9,16 +9,16 @@
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import type { Readable, Writable } from 'svelte/store';
-	import type { ConfigSource } from '@rainlanguage/orderbook';
+	import type { AccountCfg, Config, SubgraphCfg } from '@rainlanguage/orderbook';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	export let settings: Writable<ConfigSource | undefined>;
-	export let accounts: Readable<Record<string, string>> | undefined;
+	export let settings: Writable<Config | undefined>;
+	export let accounts: Readable<Record<string, AccountCfg>> | undefined;
 	export let hideZeroBalanceVaults: Writable<boolean>;
 	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	export let showMyItemsOnly: Writable<boolean>;
-	export let activeSubgraphs: Writable<Record<string, string>>;
+	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	export let activeOrderStatus: Writable<boolean | undefined>;
 	export let orderHash: Writable<string>;
 
@@ -32,7 +32,7 @@
 	class="grid w-full items-center gap-4 md:flex md:justify-end lg:min-w-[600px]"
 	style="grid-template-columns: repeat(2, minmax(0, 1fr));"
 >
-	{#if isEmpty($settings?.networks)}
+	{#if isEmpty($settings?.orderbook?.networks)}
 		<Alert color="gray" data-testid="no-networks-alert" class="w-full">
 			No networks added to <a class="underline" href="/settings">settings</a>
 		</Alert>

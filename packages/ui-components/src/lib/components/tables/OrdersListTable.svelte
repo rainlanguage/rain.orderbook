@@ -42,10 +42,12 @@
 	const { matchesAccount, account } = useAccount();
 
 	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
+		Object.keys($activeSubgraphs ?? {}).length
+			? $activeSubgraphs
+			: ($settings?.orderbook?.subgraphs ?? {})
+	).map(([name, value]) => ({
 		name,
-		url
+		url: value.url
 	})) as MultiSubgraphArgs[];
 
 	$: owners =

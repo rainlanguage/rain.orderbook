@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { ConfigSource } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
@@ -26,19 +26,25 @@ vi.mock('@tanstack/svelte-query', () => ({
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
-	const mockSettings = writable<ConfigSource>({
-		networks: {
-			ethereum: {
-				rpc: 'https://rpc.ankr.com/eth',
-				'chain-id': 1,
-				'network-id': 1,
-				currency: 'ETH'
+	const mockSettings = writable<Config>({
+		orderbook: {
+			networks: {
+				ethereum: {
+					key: 'ethereum',
+					rpc: 'https://rpc.ankr.com/eth',
+					chainId: 1,
+					networkId: 1,
+					currency: 'ETH'
+				}
+			},
+			subgraphs: {
+				mainnet: {
+					key: 'mainnet',
+					url: 'mainnet-url'
+				}
 			}
-		},
-		subgraphs: {
-			mainnet: 'mainnet-url'
 		}
-	});
+	} as unknown as Config);
 
 	const defaultProps: ListViewOrderbookFiltersProps = {
 		settings: mockSettings,
@@ -53,22 +59,28 @@ describe('ListViewOrderbookFilters', () => {
 
 	beforeEach(() => {
 		mockSettings.set({
-			networks: {
-				ethereum: {
-					rpc: 'https://rpc.ankr.com/eth',
-					'chain-id': 1,
-					'network-id': 1,
-					currency: 'ETH'
+			orderbook: {
+				networks: {
+					ethereum: {
+						key: 'ethereum',
+						rpc: 'https://rpc.ankr.com/eth',
+						chainId: 1,
+						networkId: 1,
+						currency: 'ETH'
+					}
+				},
+				subgraphs: {
+					mainnet: {
+						key: 'mainnet',
+						url: 'mainnet-url'
+					}
 				}
-			},
-			subgraphs: {
-				mainnet: 'mainnet-url'
 			}
-		});
+		} as unknown as Config);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({ networks: {}, subgraphs: {} });
+		mockSettings.set({ orderbook: { networks: {}, subgraphs: {} } } as unknown as Config);
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();
