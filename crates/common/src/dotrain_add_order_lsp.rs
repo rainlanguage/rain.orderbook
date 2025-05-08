@@ -123,6 +123,7 @@ impl DotrainAddOrderLsp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_test_fixtures::LocalEvm;
     use url::Url;
 
     const TEXT: &str = r#"
@@ -205,18 +206,38 @@ io: if(
 :;
 "#;
 
-    fn get_text_document() -> TextDocumentItem {
+    fn get_text_document(text: &str) -> TextDocumentItem {
         TextDocumentItem {
             uri: Url::parse("file:///temp.rain").unwrap(),
             language_id: "rainlang".to_string(),
             version: 0,
-            text: TEXT.to_string(),
+            text: text.to_string(),
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_no_problems() {
+        let local_evm = LocalEvm::new().await;
+
+        let rainlang = r#"
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#;
+        let lsp = DotrainAddOrderLsp::new(get_text_document(rainlang), HashMap::new());
+        let problems = lsp
+            .problems(&local_evm.url(), None, Some(*local_evm.deployer.address()))
+            .await;
+        assert_eq!(problems.len(), 0);
     }
 
     #[tokio::test]
     async fn test_problems() {
-        let lsp = DotrainAddOrderLsp::new(get_text_document(), HashMap::new());
+        let lsp = DotrainAddOrderLsp::new(get_text_document(TEXT), HashMap::new());
         let problems = lsp.problems("https://some-rpc-url.com", None, None).await;
 
         let expected_msgs = vec![
@@ -232,6 +253,9 @@ io: if(
         let actual_msgs: Vec<String> = problems.iter().map(|p| p.msg.clone()).collect();
 
         assert_eq!(problems.len(), 8);
-        assert_eq!(actual_msgs, expected_msgs, "Mismatch in problem messages");
+
+        for (actual, expected) in actual_msgs.iter().zip(expected_msgs.iter()) {
+            assert_eq!(actual, expected);
+        }
     }
 }
