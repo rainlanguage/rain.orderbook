@@ -1,8 +1,5 @@
 import { asyncDerived, derived, get } from '@square/svelte-store';
-import {
-  cachedWritableStore,
-  cachedWritableStringOptional,
-} from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableStore, cachedWritableStringOptional } from '@rainlanguage/ui-components';
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
