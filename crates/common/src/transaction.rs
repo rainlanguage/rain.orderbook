@@ -52,7 +52,7 @@ pub struct TransactionArgs {
 }
 
 impl TransactionArgs {
-    pub async fn try_into_write_contract_parameters<T: SolCall + Clone>(
+    pub fn try_into_write_contract_parameters<T: SolCall + Clone>(
         &self,
         call: T,
         contract: Address,
@@ -99,3 +99,12 @@ impl TransactionArgs {
         }
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+
+//     #[tokio::test]
+//     async fn test_try_into_write_contract_parameters() {
+//     }
+// }
