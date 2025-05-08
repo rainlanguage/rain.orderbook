@@ -2,10 +2,15 @@
 	import type { AccountCfg } from '@rainlanguage/orderbook';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import type { Writable, Readable } from 'svelte/store';
+	import { readable } from 'svelte/store';
 	import { getAccountsAsOptions } from '$lib/utils/configHelpers';
-	export let accounts: Readable<Record<string, AccountCfg>> | undefined;
+
+	export let accounts: Readable<Record<string, AccountCfg>> = readable<Record<string, AccountCfg>>(
+		{}
+	);
 	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
-	$: options = getAccountsAsOptions($accounts ?? {});
+
+	$: options = getAccountsAsOptions($accounts);
 </script>
 
 <div data-testid="accounts-dropdown">

@@ -4,7 +4,7 @@ export function getMultiSubgraphArgs(subgraphs: Record<string, SubgraphCfg>) {
 	return Object.entries(subgraphs).map(([name, value]) => ({
 		name,
 		url: value.url
-	})) as MultiSubgraphArgs[];
+	})) satisfies MultiSubgraphArgs[];
 }
 
 export function getAccountsAsOptions(accounts: Record<string, AccountCfg>) {

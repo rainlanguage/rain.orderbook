@@ -1,4 +1,4 @@
-import { asyncDerived, derived, get } from '@square/svelte-store';
+import { derived, get } from '@square/svelte-store';
 import { cachedWritableStore, cachedWritableStringOptional } from '@rainlanguage/ui-components';
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
@@ -60,9 +60,9 @@ export const enableSentry = derived(settings, ($settings) =>
 
 // networks
 export const activeNetworkRef = cachedWritableStringOptional('settings.activeNetworkRef');
-export const activeNetwork = asyncDerived(
+export const activeNetwork = derived(
   [settings, activeNetworkRef],
-  async ([$settings, $activeNetworkRef]) => {
+  ([$settings, $activeNetworkRef]) => {
     return $activeNetworkRef !== undefined && $settings.orderbook.networks !== undefined
       ? $settings.orderbook.networks[$activeNetworkRef]
       : undefined;

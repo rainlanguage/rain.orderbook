@@ -5,11 +5,11 @@ export function pickDeployments(
   mergedConfig: Config | undefined,
   activeNetworkRef: string | undefined,
 ) {
-  return mergedConfig?.dotrainOrder?.deployments
+  return mergedConfig?.dotrainOrder.deployments
     ? pickBy(
         mergedConfig.dotrainOrder.deployments,
         (d) =>
-          mergedConfig.dotrainOrder.scenarios?.[d.scenario.key]?.deployer?.network?.key ===
+          mergedConfig.dotrainOrder.scenarios[d.scenario.key].deployer.network.key ===
           activeNetworkRef,
       )
     : {};
@@ -22,7 +22,7 @@ export function pickScenarios(
   return mergedConfig?.dotrainOrder.scenarios
     ? pickBy(
         mergedConfig.dotrainOrder.scenarios,
-        (d) => d?.deployer?.network?.key === activeNetworkRef,
+        (d) => d.deployer.network.key === activeNetworkRef,
       )
     : {};
 }
