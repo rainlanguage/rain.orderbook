@@ -1,6 +1,6 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { parseYaml } from '@rainlanguage/orderbook';
-import type { Config, OrderbookCfg, OrderbookConfig } from '@rainlanguage/orderbook';
+import type { Config, OrderbookCfg } from '@rainlanguage/orderbook';
 import { writable, derived, get } from 'svelte/store';
 import pickBy from 'lodash/pickBy';
 
@@ -14,35 +14,39 @@ export const load = async ({ fetch }) => {
 	);
 	const settingsYaml = await response.text();
 
-	const settings = writable<OrderbookConfig>(parseYaml([settingsYaml]).orderbook);
+	const settings = writable<Config>(parseYaml([settingsYaml]));
 	const activeNetworkRef = writable<string>('');
 	const activeOrderbookRef = writable<string>('');
 	const activeOrderbook = derived(
 		[settings, activeOrderbookRef],
 		([$settings, $activeOrderbookRef]) =>
-			$settings?.orderbooks !== undefined && $activeOrderbookRef !== undefined
-				? $settings.orderbooks[$activeOrderbookRef]
+			$settings.orderbook.orderbooks !== undefined &&
+			Object.entries($settings.orderbook.orderbooks).length > 0 &&
+			$activeOrderbookRef !== undefined
+				? $settings.orderbook.orderbooks[$activeOrderbookRef]
 				: undefined
 	);
 
 	const activeNetworkOrderbooks = derived(
 		[settings, activeNetworkRef],
 		([$settings, $activeNetworkRef]) => {
-			return $settings?.orderbooks
+			return $settings.orderbook.orderbooks
 				? (pickBy(
-						$settings.orderbooks as unknown as Record<string, OrderbookCfg>,
+						$settings.orderbook.orderbooks,
 						(orderbook) => orderbook.network.key === $activeNetworkRef
 					) as Record<string, OrderbookCfg>)
 				: ({} as Record<string, OrderbookCfg>);
 		}
 	);
 
-	const accounts = derived(settings, ($settings) => $settings?.accounts);
+	const accounts = derived(settings, ($settings) => $settings.orderbook.accounts);
 	const activeAccountsItems = writable<Record<string, string>>({});
 
 	const subgraph = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-			? $settings.subgraphs[$activeOrderbook.subgraph.key]
+		$settings.orderbook.subgraphs !== undefined &&
+		Object.entries($settings.orderbook.subgraphs).length > 0 &&
+		$activeOrderbook?.subgraph !== undefined
+			? $settings.orderbook.subgraphs[$activeOrderbook.subgraph.key]
 			: undefined
 	);
 	const activeAccounts = derived(
@@ -220,7 +224,7 @@ subgraphs:
 			expect(stores).toHaveProperty('subgraph');
 			expect(stores).toHaveProperty('activeNetworkOrderbooks');
 
-			expect(get(stores.settings)).toEqual(mockConfig.orderbook);
+			expect(get(stores.settings)).toEqual(mockConfig);
 			expect(get(stores.activeNetworkRef)).toEqual('');
 			expect(get(stores.activeOrderbookRef)).toEqual('');
 			expect(get(stores.activeAccountsItems)).toEqual({});
@@ -329,7 +333,7 @@ subgraphs:
 			const result = await load({ fetch: mockFetch } as any);
 			const { stores } = result;
 
-			expect(get(stores.settings)).toEqual({});
+			expect(get(stores.settings)).toEqual({ orderbook: {} } as unknown as Config);
 			expect(get(stores.activeNetworkOrderbooks)).toEqual({});
 
 			stores.activeOrderbookRef.set('orderbook1');
