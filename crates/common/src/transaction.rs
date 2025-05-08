@@ -251,8 +251,9 @@ mod tests {
         args.try_fill_chain_id().await.unwrap();
         args.rpc_url = "".to_string();
         let result = args.try_into_ledger_client().await;
-        // The error is different based on whether you have a Ledger plugged in
-        assert!(matches!(result, Err(_)));
+        // The error is different based on whether you have a Ledger plugged in,
+        // hence no pattern matching to avoid breaking the test for devs
+        assert!(result.is_err());
     }
 
     // #[tokio::test]
