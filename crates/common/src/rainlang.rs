@@ -299,7 +299,7 @@ _ _: 0 0;
 _ _: 1 2;
 ";
 
-            let err = parse_rainlang_on_fork(&dotrain, &rpc_url, None, deployer)
+            let err = parse_rainlang_on_fork(dotrain, &rpc_url, None, deployer)
                 .await
                 .unwrap_err();
 
