@@ -11,7 +11,6 @@ import {
 } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
-import { beforeEach, describe } from 'vitest';
 
 export const EMPTY_SETTINGS: Config = {
   orderbook: {
@@ -295,7 +294,7 @@ export const orderHash = cachedWritableStore<string>(
 );
 
 if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest;
+  const { beforeEach, describe, test, expect } = import.meta.vitest;
 
   const mockConfig: Config = {
     orderbook: {
