@@ -209,7 +209,7 @@ settings.subscribe(async () => {
     const updatedActiveSubgraphs = Object.fromEntries(
       Object.entries($settings.orderbook.subgraphs).filter(([key, value]) => {
         if (key in currentActiveSubgraphs) {
-          return currentActiveSubgraphs[key].key === value.key;
+          return JSON.stringify(currentActiveSubgraphs[key]) === JSON.stringify(value);
         }
         return false;
       }),
@@ -407,8 +407,12 @@ if (import.meta.vitest) {
       const newSettings = {
         ...mockConfig,
         orderbook: {
+          ...mockConfig.orderbook,
           accounts: {
-            name_one: 'address_one',
+            name_one: {
+              key: 'name_one',
+              address: 'address_one',
+            },
           },
         },
       } as unknown as Config;
@@ -426,9 +430,16 @@ if (import.meta.vitest) {
       const newSettings = {
         ...mockConfig,
         orderbook: {
+          ...mockConfig.orderbook,
           accounts: {
-            name_one: 'address_one',
-            name_two: 'new_value',
+            name_one: {
+              key: 'name_one',
+              address: 'address_one',
+            },
+            name_two: {
+              key: 'name_two',
+              address: 'new_value',
+            },
           },
         },
       } as unknown as Config;
@@ -444,10 +455,11 @@ if (import.meta.vitest) {
       const newSettings = {
         ...mockConfig,
         orderbook: {
+          ...mockConfig.orderbook,
           subgraphs: {
             mainnet: {
               key: 'mainnet',
-              url: 'https://api.thegraph.com/subgraphs/name/mainnet',
+              url: 'new value',
             },
           },
         },
@@ -462,6 +474,7 @@ if (import.meta.vitest) {
       const newSettings = {
         ...mockConfig,
         orderbook: {
+          ...mockConfig.orderbook,
           subgraphs: {
             testnet: {
               key: 'testnet',
@@ -480,6 +493,7 @@ if (import.meta.vitest) {
       const newSettings = {
         ...mockConfig,
         orderbook: {
+          ...mockConfig.orderbook,
           subgraphs: undefined,
         },
       } as unknown as Config;
