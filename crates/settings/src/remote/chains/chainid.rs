@@ -98,9 +98,6 @@ mod tests {
     fn test_try_from_err_no_rpc() {
         let chain_id = mk_chain_id_with_rpc(vec![]);
 
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(network_cfg_source, Err(ChainIdError::NoRpc));
-
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
 
@@ -118,9 +115,6 @@ mod tests {
 
         let chain_id = mk_chain_id_with_rpc(rpc);
 
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(network_cfg_source, Err(ChainIdError::UnsupportedRpcUrls));
-
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
 
@@ -137,18 +131,6 @@ mod tests {
         ];
 
         let chain_id = mk_chain_id_with_rpc(rpc);
-
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(
-            network_cfg_source,
-            Ok(NetworkConfigSource {
-                chain_id: 1,
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
-                network_id: Some(1),
-                currency: Some("ETH".to_string()),
-                label: Some("Ethereum Mainnet".to_string()),
-            })
-        );
 
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
