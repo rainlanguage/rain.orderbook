@@ -25,6 +25,13 @@ mod tests {
         };
         let subgraph_client = subgraph_args.to_subgraph_client().unwrap();
         assert_eq!(subgraph_client.url().as_str(), url);
+
+        let url = "https://api.thegraph.com/subgraphs/name/org1/sg1?version=latest&format=json";
+        let subgraph_args = SubgraphArgs {
+            url: url.to_string(),
+        };
+        let subgraph_client = subgraph_args.to_subgraph_client().unwrap();
+        assert_eq!(subgraph_client.url().as_str(), url);
     }
 
     #[test]
@@ -42,6 +49,7 @@ mod tests {
         let url = "".to_string();
         let subgraph_args = SubgraphArgs { url };
         let err = subgraph_args.to_subgraph_client().unwrap_err();
+        // Empty URL results in RelativeUrlWithoutBase error
         assert_eq!(err, ParseError::RelativeUrlWithoutBase);
 
         let url = ":".to_string();
