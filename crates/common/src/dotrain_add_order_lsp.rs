@@ -240,7 +240,7 @@ _ _: 0 0;
         let lsp = DotrainAddOrderLsp::new(get_text_document(TEXT), HashMap::new());
         let problems = lsp.problems("https://some-rpc-url.com", None, None).await;
 
-        let expected_msgs = vec![
+        let expected_msgs = [
             "invalid reference to binding: raindex-subparser, only literal bindings can be referenced",
             "invalid expression line",
             "invalid expression line",
