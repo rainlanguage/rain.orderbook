@@ -6191,7 +6191,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils 0.0.6",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6237,7 +6237,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils 0.0.6",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6341,7 +6341,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6351,7 +6351,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6418,7 +6418,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6455,7 +6455,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6492,7 +6492,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -6516,7 +6516,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8890,31 +8890,6 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "wasm-bindgen-utils"
-version = "0.0.7"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
-dependencies = [
- "js-sys",
- "paste",
- "serde",
- "serde-wasm-bindgen 0.6.5",
- "tsify",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros",
-]
-
-[[package]]
-name = "wasm-bindgen-utils-macros"
-version = "0.0.2"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.74",
 ]
 
 [[package]]
