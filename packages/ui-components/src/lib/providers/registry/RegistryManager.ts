@@ -13,7 +13,7 @@ export class RegistryManager {
 
 	/**
 	 * Create a new RegistryManager
-	 * @param defaultRegistry The default registry URL to use, defaults to REGISTRY_URL constant
+	 * @param defaultRegistry The default registry URL to use.
 	 */
 	constructor(defaultRegistry: string) {
 		this.defaultRegistry = defaultRegistry;
