@@ -8,7 +8,7 @@
 		settings,
 		accounts,
 		activeAccountsItems,
-		activeOrderStatus,
+		showInactiveOrders,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef
@@ -25,7 +25,7 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{activeOrderStatus}
+	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
 />

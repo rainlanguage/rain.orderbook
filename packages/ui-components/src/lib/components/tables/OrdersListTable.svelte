@@ -32,7 +32,7 @@
 	export let settings: AppStoresInterface['settings'];
 	export let accounts: AppStoresInterface['accounts'] | undefined;
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
-	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
+	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
@@ -61,7 +61,7 @@
 			$settings,
 			multiSubgraphArgs,
 			owners,
-			$activeOrderStatus,
+			$showInactiveOrders,
 			$orderHash
 		],
 		queryFn: ({ pageParam }) => {
@@ -69,7 +69,7 @@
 				multiSubgraphArgs,
 				{
 					owners,
-					active: $activeOrderStatus,
+					active: $showInactiveOrders,
 					orderHash: $orderHash || undefined
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
@@ -92,7 +92,7 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{activeOrderStatus}
+	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
 />

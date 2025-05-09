@@ -67,7 +67,7 @@ const {
 	mockOrderHashStore,
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
-	mockActiveOrderStatusStore,
+	mockshowInactiveOrdersStore,
 	mockActiveSubgraphsStore,
 	mockSettingsStore,
 	mockShowMyItemsOnlyStore
@@ -81,7 +81,7 @@ const defaultProps: OrdersListTableProps = {
 	settings: mockSettingsStore,
 	accounts: mockAccountsStore,
 	activeAccountsItems: mockActiveAccountsItemsStore,
-	activeOrderStatus: mockActiveOrderStatusStore,
+	showInactiveOrders: mockshowInactiveOrdersStore,
 	orderHash: mockOrderHashStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	showMyItemsOnly: mockShowMyItemsOnlyStore,

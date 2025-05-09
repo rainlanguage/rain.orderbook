@@ -58,7 +58,7 @@ const {
 	mockOrderHashStore,
 	mockAccountsStore,
 	mockActiveAccountsItemsStore,
-	mockActiveOrderStatusStore,
+	mockshowInactiveOrdersStore,
 	mockActiveSubgraphsStore,
 	mockSettingsStore,
 	mockActiveAccountsStore
@@ -72,7 +72,7 @@ const defaultProps = {
 	activeAccountsItems: mockActiveAccountsItemsStore,
 	activeSubgraphs: mockActiveSubgraphsStore,
 	settings: mockSettingsStore,
-	activeOrderStatus: mockActiveOrderStatusStore,
+	showInactiveOrders: mockshowInactiveOrdersStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
