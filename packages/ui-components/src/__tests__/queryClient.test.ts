@@ -87,9 +87,66 @@ describe('queryClient module', () => {
 				queryFn: () => 'unrelated data'
 			});
 
+			const unrelatedQueryStateBefore = testQueryClient.getQueryState(unrelatedKey);
+
 			invalidateTanstackQueries(testQueryClient, parentKey);
 
+			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: parentKey,
+				refetchType: 'all',
+				exact: false
+			});
+
 			expect(testQueryClient.refetchQueries).toHaveBeenCalled();
+
+			const unrelatedQueryStateAfter = testQueryClient.getQueryState(unrelatedKey);
+			expect(unrelatedQueryStateAfter?.dataUpdatedAt).toBe(
+				unrelatedQueryStateBefore?.dataUpdatedAt
+			);
+		});
+
+		it('handles potential errors gracefully', async () => {
+			const queryKey = ['errorTest'];
+			vi.spyOn(testQueryClient, 'invalidateQueries').mockImplementationOnce(() => {
+				throw new Error('Simulated invalidateQueries error');
+			});
+
+			await expect(invalidateTanstackQueries(testQueryClient, queryKey)).rejects.toThrow(
+				'Failed to refresh data.'
+			);
+			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey,
+				refetchType: 'all',
+				exact: false
+			});
+		});
+
+		it('handles empty query key array', () => {
+			const queryKey: string[] = [];
+			invalidateTanstackQueries(testQueryClient, queryKey);
+			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey,
+				refetchType: 'all',
+				exact: false
+			});
+		});
+
+		it('handles query key with undefined or null values', () => {
+			const queryKey = ['test', undefined, 'key'];
+			invalidateTanstackQueries(testQueryClient, queryKey as any);
+			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: queryKey,
+				refetchType: 'all',
+				exact: false
+			});
+
+			const queryKeyWithNull = ['test', null, 'key'];
+			invalidateTanstackQueries(testQueryClient, queryKeyWithNull as any);
+			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: queryKeyWithNull,
+				refetchType: 'all',
+				exact: false
+			});
 		});
 	});
 });

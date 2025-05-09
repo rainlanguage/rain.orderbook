@@ -9,10 +9,14 @@ export const queryClient = new QueryClient({
 	}
 });
 
-export const invalidateTanstackQueries = (queryClient: QueryClient, queryKey: string[]) => {
-	queryClient.invalidateQueries({
-		queryKey,
-		refetchType: 'all',
-		exact: false
-	});
+export const invalidateTanstackQueries = async (queryClient: QueryClient, queryKey: string[]) => {
+	try {
+		await queryClient.invalidateQueries({
+			queryKey,
+			refetchType: 'all',
+			exact: false
+		});
+	} catch {
+		throw new Error('Failed to refresh data.');
+	}
 };
