@@ -240,16 +240,16 @@ export async function resetActiveNetworkRef() {
   }
 }
 
-export const activeOrderStatus = cachedWritableStore<boolean | undefined>(
+export const activeOrderStatus = cachedWritableStore<boolean>(
   'settings.activeOrderStatus',
-  undefined,
+  true,
   (value) => JSON.stringify(value),
   (str) => {
     try {
-      const parsed = JSON.parse(str);
-      return typeof parsed === 'boolean' ? parsed : undefined;
+      const value = JSON.parse(str);
+      return typeof value === 'boolean' ? value : true;
     } catch {
-      return undefined;
+      return true;
     }
   },
 );
