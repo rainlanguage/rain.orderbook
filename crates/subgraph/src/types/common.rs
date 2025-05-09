@@ -1,6 +1,5 @@
 use crate::schema;
 use serde::{Deserialize, Serialize};
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
@@ -10,8 +9,7 @@ pub struct SgIdQueryVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgOrdersListFilterArgs {
     pub owners: Vec<SgBytes>,
@@ -20,6 +18,7 @@ pub struct SgOrdersListFilterArgs {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub order_hash: Option<SgBytes>,
 }
+impl_wasm_traits!(SgOrdersListFilterArgs);
 
 #[derive(cynic::QueryVariables, Debug, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -88,8 +87,7 @@ pub struct SgOrderbook {
 #[cfg_attr(target_family = "wasm", tsify::declare)]
 pub type SgRainMetaV1 = SgBytes;
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Order")]
 pub struct SgOrder {
@@ -108,14 +106,15 @@ pub struct SgOrder {
     pub trades: Vec<SgOrderStructPartialTrade>,
     pub remove_events: Vec<SgRemoveOrder>,
 }
+impl_wasm_traits!(SgOrder);
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgOrderWithSubgraphName {
     pub order: SgOrder,
     pub subgraph_name: String,
 }
+impl_wasm_traits!(SgOrderWithSubgraphName);
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -136,13 +135,13 @@ pub struct SgOrderAsIO {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
 }
+impl_wasm_traits!(SgVaultsListFilterArgs);
 
 #[derive(cynic::InputObject, Debug, Clone)]
 #[cynic(graphql_type = "Vault_filter")]
@@ -167,8 +166,7 @@ pub struct SgVaultsListQueryVariables {
     pub filters: Option<SgVaultsListQueryFilters>,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Vault")]
 pub struct SgVault {
@@ -186,6 +184,7 @@ pub struct SgVault {
     pub orders_as_input: Vec<SgOrderAsIO>,
     pub balance_changes: Vec<SgVaultBalanceChangeType>,
 }
+impl_wasm_traits!(SgVault);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -371,13 +370,13 @@ pub struct SgRemoveOrder {
     pub transaction: SgTransaction,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "AddOrder")]
 pub struct SgAddOrderWithOrder {
     pub transaction: SgTransaction,
     pub order: SgOrder,
 }
+impl_wasm_traits!(SgAddOrderWithOrder);
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -689,8 +688,6 @@ pub enum SgVaultOrderBy {
 mod impls {
     use super::*;
 
-    impl_wasm_traits!(SgOrder);
-    impl_wasm_traits!(SgVault);
     impl_wasm_traits!(SgAddOrder);
     impl_wasm_traits!(SgOrderAsIO);
     impl_wasm_traits!(SgVaultBalanceChangeVault);
@@ -704,10 +701,7 @@ mod impls {
     impl_wasm_traits!(SgTransaction);
     impl_wasm_traits!(SgBigInt);
     impl_wasm_traits!(SgBytes);
-    impl_wasm_traits!(SgOrdersListFilterArgs);
-    impl_wasm_traits!(SgVaultsListFilterArgs);
     impl_wasm_traits!(SgTrade);
     impl_wasm_traits!(SgTradeStructPartialOrder);
     impl_wasm_traits!(SgTradeEvent);
-    impl_wasm_traits!(SgAddOrderWithOrder);
 }

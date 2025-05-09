@@ -7,6 +7,7 @@ use wasm_bindgen_utils::prelude::*;
 pub mod add_order;
 pub mod order;
 pub mod remove_order;
+pub mod trades;
 pub mod transaction;
 pub mod vault;
 
@@ -30,9 +31,19 @@ pub enum SubgraphError {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error(transparent)]
     DepositError(#[from] DepositError),
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
 }
 impl From<SubgraphError> for JsValue {
     fn from(value: SubgraphError) -> Self {
         JsError::new(&value.to_string()).into()
+    }
+}
+impl From<SubgraphError> for WasmEncodedError {
+    fn from(value: SubgraphError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_string(),
+        }
     }
 }

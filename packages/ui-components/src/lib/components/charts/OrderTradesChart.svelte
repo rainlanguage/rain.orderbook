@@ -23,7 +23,8 @@
 				BigInt(1000),
 				undefined
 			);
-			return prepareHistoricalOrderChartData(data, $colorTheme);
+			if (data.error) throw new Error(data.error.msg);
+			return prepareHistoricalOrderChartData(data.value, $colorTheme);
 		},
 		enabled: !!subgraphUrl
 	});

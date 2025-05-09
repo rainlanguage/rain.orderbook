@@ -379,47 +379,37 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 	it('should fetch a single order', async () => {
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 
-		try {
-			const result: OrderWithSortedVaults = await getOrderByHash(
-				mockServer.url + '/sg1',
-				order1.orderHash
-			);
-			assert.equal(result.order.id, order1.id);
-		} catch (e) {
-			console.log(e);
-			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
-		}
+		const result = await getOrderByHash(mockServer.url + '/sg1', order1.orderHash);
+		if (result.error) assert.fail('expected to resolve, but failed');
+		assert.equal(result.value.order.id, order1.id);
 	});
 
 	it('should fetch multiple orders from different subgraphs', async () => {
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 		await mockServer.forPost('/sg2').thenReply(200, JSON.stringify({ data: { orders: [order2] } }));
 
-		try {
-			const result: SgOrderWithSubgraphName[] = await getOrders(
-				[
-					{ url: mockServer.url + '/sg1', name: 'network-one' },
-					{ url: mockServer.url + '/sg2', name: 'network-two' }
-				],
-				{
-					owners: [],
-					active: undefined,
-					orderHash: undefined
-				},
-				{
-					page: 1,
-					pageSize: 10
-				}
-			);
-			assert.equal(result.length, 2);
-			assert.equal(result[0].order.id, order1.id);
-			assert.equal(result[0].subgraphName, 'network-one');
-			assert.equal(result[1].order.id, order2.id);
-			assert.equal(result[1].subgraphName, 'network-two');
-		} catch (e) {
-			console.log(e);
-			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
-		}
+		const result = await getOrders(
+			[
+				{ url: mockServer.url + '/sg1', name: 'network-one' },
+				{ url: mockServer.url + '/sg2', name: 'network-two' }
+			],
+			{
+				owners: [],
+				active: undefined,
+				orderHash: undefined
+			},
+			{
+				page: 1,
+				pageSize: 10
+			}
+		);
+		if (result.error) assert.fail('expected to resolve, but failed');
+
+		assert.equal(result.value.length, 2);
+		assert.equal(result.value[0].order.id, order1.id);
+		assert.equal(result.value[0].subgraphName, 'network-one');
+		assert.equal(result.value[1].order.id, order2.id);
+		assert.equal(result.value[1].subgraphName, 'network-two');
 	});
 
 	it('should fetch trades for a single order', async () => {
@@ -432,51 +422,43 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			})
 		);
 
-		try {
-			const result = await getOrderTradesList(
-				mockServer.url + '/sg1',
-				order1.id,
-				{
-					page: 1,
-					pageSize: 10
-				},
-				undefined,
-				undefined
-			);
+		const result = await getOrderTradesList(
+			mockServer.url + '/sg1',
+			order1.id,
+			{
+				page: 1,
+				pageSize: 10
+			},
+			undefined,
+			undefined
+		);
+		if (result.error) assert.fail('expected to resolve, but failed');
 
-			assert.ok(result, 'Result should exist');
-			assert.equal(result.length, 1, 'Should have one trade');
-			assert.equal(
-				result[0].id,
-				'0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
-				'Trade ID should match'
-			);
-		} catch (e: unknown) {
-			console.error('Test error:', e);
-			assert.fail(
-				'Expected to resolve, but failed: ' + (e instanceof Error ? e.message : String(e))
-			);
-		}
+		assert.ok(result.value, 'Result should exist');
+		assert.equal(result.value.length, 1, 'Should have one trade');
+		assert.equal(
+			result.value[0].id,
+			'0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
+			'Trade ID should match'
+		);
 	});
 
 	it('should fetch order trade detail', async () => {
 		await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { trade: mockTrade } }));
 
-		try {
-			const result: SgTrade = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
-			assert.equal(result.id, mockTrade.id);
-			assert.equal(result.order.id, mockTrade.order.id);
-			assert.equal(
-				result.outputVaultBalanceChange.amount,
-				mockTrade.outputVaultBalanceChange.amount
-			);
-			assert.equal(result.inputVaultBalanceChange.amount, mockTrade.inputVaultBalanceChange.amount);
-		} catch (e) {
-			console.log(e);
-			assert.fail(
-				'expected to resolve, but failed' + +(e instanceof Error ? e.message : String(e))
-			);
-		}
+		const result = await getOrderTradeDetail(mockServer.url + '/sg1', mockTrade.id);
+		if (result.error) assert.fail('expected to resolve, but failed');
+
+		assert.equal(result.value.id, mockTrade.id);
+		assert.equal(result.value.order.id, mockTrade.order.id);
+		assert.equal(
+			result.value.outputVaultBalanceChange.amount,
+			mockTrade.outputVaultBalanceChange.amount
+		);
+		assert.equal(
+			result.value.inputVaultBalanceChange.amount,
+			mockTrade.inputVaultBalanceChange.amount
+		);
 	});
 
 	it('should fetch trade count for a single order', async () => {
@@ -498,25 +480,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			})
 		);
 
-		try {
-			const count = await getOrderTradesCount(
-				mockServer.url + '/sg1',
-				'0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
-				undefined,
-				undefined
-			);
+		const count = await getOrderTradesCount(
+			mockServer.url + '/sg1',
+			'0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
+			undefined,
+			undefined
+		);
+		if (count.error) assert.fail('expected to resolve, but failed');
 
-			assert.strictEqual(typeof count, 'number', 'Count should be a number');
-			assert.strictEqual(count, 1, 'Should count one trade');
-		} catch (e) {
-			console.error('Test error:', e);
-			if (e instanceof Error) {
-				console.error('Error details:', e.stack);
-			}
-			assert.fail(
-				'Expected to resolve, but failed: ' + (e instanceof Error ? e.message : String(e))
-			);
-		}
+		assert.strictEqual(typeof count.value, 'number', 'Count should be a number');
+		assert.strictEqual(count.value, 1, 'Should count one trade');
 	});
 
 	it('should measure order performance given an order id and subgraph', async () => {
@@ -552,6 +525,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			BigInt(1632000000),
 			BigInt(1734571449)
 		);
+		if (result.error) assert.fail('expected to resolve, but failed');
+
 		const expected: OrderPerformance = {
 			orderId: 'order1',
 			orderHash: '0x1',
@@ -626,7 +601,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			]
 		};
 		mockServer.stop();
-		assert.deepEqual(result, expected);
+		assert.deepEqual(result.value, expected);
 	});
 
 	it('should return vaults sorted by inputs, outputs and inputs and outputs', async () => {
@@ -715,31 +690,24 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			.once()
 			.thenReply(200, JSON.stringify({ data: { orders: [{ ...order1, inputs, outputs }] } }));
 
-		try {
-			const result: OrderWithSortedVaults = await getOrderByHash(
-				mockServer.url + '/sg1',
-				order1.orderHash
-			);
+		const result = await getOrderByHash(mockServer.url + '/sg1', order1.orderHash);
+		if (result.error) assert.fail('expected to resolve, but failed');
 
-			const inputs = result.vaults.get('inputs');
-			const outputs = result.vaults.get('outputs');
-			const inputsOutputs = result.vaults.get('inputs_outputs');
+		const resultInputs = result.value.vaults.get('inputs');
+		const resultOutputs = result.value.vaults.get('outputs');
+		const resultInputsOutputs = result.value.vaults.get('inputs_outputs');
 
-			if (!inputs || !outputs || !inputsOutputs) {
-				assert.fail('inputs, outputs or inputsOutputs should not be null');
-			}
-
-			assert.equal(inputs.length, 1);
-			assert.equal(outputs.length, 1);
-			assert.equal(inputsOutputs.length, 1);
-
-			assert.equal(inputs[0].id, '0x0000000000000000000000000000000000000001');
-			assert.equal(outputs[0].id, '0x0000000000000000000000000000000000000002');
-			assert.equal(inputsOutputs[0].id, '0x0000000000000000000000000000000000000003');
-		} catch (e) {
-			console.log(e);
-			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
+		if (!resultInputs || !resultOutputs || !resultInputsOutputs) {
+			assert.fail('inputs, outputs or inputsOutputs should not be null');
 		}
+
+		assert.equal(resultInputs.length, 1);
+		assert.equal(resultOutputs.length, 1);
+		assert.equal(resultInputsOutputs.length, 1);
+
+		assert.equal(inputs[0].id, '0x0000000000000000000000000000000000000001');
+		assert.equal(outputs[0].id, '0x0000000000000000000000000000000000000002');
+		assert.equal(resultInputsOutputs[0].id, '0x0000000000000000000000000000000000000003');
 	});
 
 	it('should fetch an order by orderHash', async () => {
@@ -751,16 +719,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - SgOrder', async function
 			.forPost('/sg1')
 			.thenReply(200, JSON.stringify({ data: { orders: [mockOrder] } }));
 
-		try {
-			const result: OrderWithSortedVaults = await getOrderByHash(
-				mockServer.url + '/sg1',
-				mockOrder.orderHash
-			);
-
-			assert.equal(result.order.orderHash, mockOrder.orderHash);
-		} catch (e) {
-			console.log(e);
-			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
-		}
+		const result = await getOrderByHash(mockServer.url + '/sg1', mockOrder.orderHash);
+		if (result.error) assert.fail('expected to resolve, but failed');
+		assert.equal(result.value.order.orderHash, mockOrder.orderHash);
 	});
 });
