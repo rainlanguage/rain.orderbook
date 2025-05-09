@@ -1,35 +1,44 @@
 <script lang="ts">
 	import CustomRegistryWarning from '$lib/components/CustomRegistryWarning.svelte';
-	import { InputRegistryUrl, PageHeader } from '@rainlanguage/ui-components';
+	import {
+		InputRegistryUrl,
+		PageHeader,
+		RegistryProvider,
+		RegistryManager
+	} from '@rainlanguage/ui-components';
 	import { Toggle } from 'flowbite-svelte';
 	import { page } from '$app/stores';
+	import { REGISTRY_URL } from '$lib/constants';
+	import { slide } from 'svelte/transition';
+	let advancedMode = false;
 
-	let advancedMode = localStorage.getItem('registry') ? true : false;
-	$: customRegistry = $page.url.searchParams.get('registry');
+	const registryManager = new RegistryManager(REGISTRY_URL);
+	$: advancedMode = registryManager.isCustomRegistry();
 	$: isDeployPage = $page.url.pathname === '/deploy';
 </script>
 
-<PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname}>
-	<svelte:fragment slot="actions">
-		<div class="flex flex-col gap-2">
+<RegistryProvider {registryManager}>
+	<PageHeader title={$page.data.pageName || 'Deploy'} pathname={$page.url.pathname} />
+	<div class="flex flex-col gap-2">
+		<div class="flex w-full content-end items-end justify-between">
+			{#if advancedMode}
+				<CustomRegistryWarning />
+			{:else if isDeployPage}
+				<div class="ml-auto"></div>
+			{/if}
 			{#if isDeployPage}
 				<Toggle checked={advancedMode} on:change={() => (advancedMode = !advancedMode)}>
 					<span class="whitespace-nowrap">Advanced mode</span>
 				</Toggle>
 			{/if}
 		</div>
-	</svelte:fragment>
-	<svelte:fragment slot="warning">
-		{#if customRegistry}
-			<CustomRegistryWarning />
-		{/if}
-	</svelte:fragment>
-</PageHeader>
-<div class="flex flex-col items-end gap-4">
-	{#if advancedMode && isDeployPage}
-		<div class="flex w-full flex-col items-start gap-4 lg:w-2/3">
-			<InputRegistryUrl />
+		<div class="flex flex-col items-end gap-4">
+			{#if advancedMode && isDeployPage}
+				<div in:slide class="w-full">
+					<InputRegistryUrl />
+				</div>
+			{/if}
 		</div>
-	{/if}
-</div>
-<slot></slot>
+	</div>
+	<slot></slot>
+</RegistryProvider>
