@@ -269,9 +269,10 @@ impl AddOrderArgs {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
-        let params = transaction_args
-            .try_into_write_contract_parameters(add_order_call, transaction_args.orderbook_address)
-            .await?;
+        let params = transaction_args.try_into_write_contract_parameters(
+            add_order_call,
+            transaction_args.orderbook_address,
+        )?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
