@@ -48,4 +48,10 @@
     "CI_FORK_SEPOLIA_BLOCK_NUMBER": "",
     "COMMIT_SHA": ""
   },
+  "rust-analyzer.cargo.extraEnv": {
+    "COMMIT_SHA": ""
+  },
+  "rust-analyzer.check.extraEnv": {
+    "COMMIT_SHA": ""
+  }
 }

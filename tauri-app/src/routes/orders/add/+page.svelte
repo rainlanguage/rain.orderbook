@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -38,6 +38,7 @@
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import * as chains from 'viem/chains';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -136,7 +137,7 @@
   async function chart() {
     isCharting = true;
     try {
-      chartData = await makeChartData($globalDotrainFile.text, $settingsText);
+      chartData = await makeChartData($globalDotrainFile.text);
     } catch (e) {
       reportErrorToSentry(e);
       toasts.error(e as string);
@@ -207,6 +208,28 @@
     useDebouncedFn(validateRaindexVersion, 500);
 
   $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
+
+  $: deploymentNetworks = getDeploymentsNetworks(deployments);
+
+  // gathers key/value pairs of deployments chain ids
+  // against their network name to be used for debug modal
+  function getDeploymentsNetworks(
+    deployments: Record<string, DeploymentCfg> | undefined,
+  ): Record<number, string> | undefined {
+    if (deployments) {
+      const networks: Record<number, string> = {};
+      for (const key in deployments) {
+        const chainId = deployments[key].scenario.deployer.network.chainId;
+        const networkKey =
+          Object.values(chains).find((v) => v.id === chainId)?.name ??
+          deployments[key].scenario.deployer.network.key;
+        networks[chainId] = networkKey;
+      }
+      if (!Object.keys(networks).length) return undefined;
+      else return networks;
+    }
+    return undefined;
+  }
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
@@ -257,7 +280,7 @@
 </FileTextarea>
 
 <Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
-  ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
+  ><span class="mr-2">Generate charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button
 >
 
 <Tabs
@@ -284,7 +307,7 @@
       </Tabs>
     {/if}
   </TabItem>
-  <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
+  <TabItem title="Debug"><ScenarioDebugTable bind:networks={deploymentNetworks} /></TabItem>
   <TabItem title="Charts">
     <Charts {chartData} />
   </TabItem>
