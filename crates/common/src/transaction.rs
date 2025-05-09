@@ -256,6 +256,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // #[tokio::test]
-    // async fn test_try_into_ledger_client_ok() {}
+    // NOTE: `alloy` ignores all ledger tests so it seems like there is no way
+    // to mock a device. hence there is only a test case for a scenario that
+    // should fail regardless of whether a ledger is connected or not
 }
