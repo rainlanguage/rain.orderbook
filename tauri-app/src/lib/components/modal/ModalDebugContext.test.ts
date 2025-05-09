@@ -1,6 +1,7 @@
-import { expect, describe, it } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { expect, describe, it, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import ModalDebugContext from './ModalDebugContext.svelte';
+import userEvent from '@testing-library/user-event';
 
 describe('ModalDebugContext', () => {
   it('test no deployments network', () => {
@@ -9,6 +10,7 @@ describe('ModalDebugContext', () => {
         open: true,
         networks: undefined,
         blockNumbers: {},
+        onClose: () => {},
       },
     });
 
@@ -27,6 +29,7 @@ describe('ModalDebugContext', () => {
         open: true,
         networks,
         blockNumbers: {},
+        onClose: () => {},
       },
     });
 
@@ -59,6 +62,7 @@ describe('ModalDebugContext', () => {
         open: true,
         networks,
         blockNumbers,
+        onClose: () => {},
       },
     });
 
@@ -71,5 +75,44 @@ describe('ModalDebugContext', () => {
       const block = screen.getByTestId(`chain-block-${chainId}`);
       expect(block).toHaveValue(blockNumbers[Number(chainId)]);
     }
+  });
+
+  it('updates blockNumbers on input', async () => {
+    const networks = { 1: 'abcd' };
+    const blockNumbers = { 1: 12345 };
+    render(ModalDebugContext, {
+      props: { open: true, networks, blockNumbers, onClose: () => {} },
+    });
+
+    const input = screen.getByTestId('chain-block-1');
+    await userEvent.clear(input);
+    await userEvent.type(input, '54321');
+    expect(input).toHaveValue(54321);
+  });
+
+  it('calls onClose when close button is clicked', async () => {
+    const onClose = vi.fn();
+    const networks = { 1: 'abcd' };
+    render(ModalDebugContext, {
+      props: { open: true, networks, blockNumbers: {}, onClose },
+    });
+
+    // Find the close button by its accessible name
+    const closeButton = screen.getByLabelText(/close modal/i);
+    expect(closeButton).toBeInTheDocument();
+
+    // Simulate a click on the close button
+    await fireEvent.click(closeButton);
+
+    // Now onClose should have been called
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('does not render modal when open is false', () => {
+    const networks = { 1: 'abcd' };
+    render(ModalDebugContext, {
+      props: { open: false, networks, blockNumbers: {}, onClose: () => {} },
+    });
+    expect(screen.queryByText('Debug Block Height')).not.toBeInTheDocument();
   });
 });

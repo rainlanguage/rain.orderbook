@@ -11,7 +11,6 @@ import {
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 import { mockConfigSource } from '$lib/mocks/mockConfigSource';
-import { beforeEach, describe } from 'vitest';
 
 // general
 export const settingsText = cachedWritableStore<string>(
@@ -275,7 +274,7 @@ export const orderHash = cachedWritableStore<string>(
 );
 
 if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest;
+  const { test, expect, beforeEach, describe } = import.meta.vitest;
 
   describe('Settings active accounts items', () => {
     // Reset store values before each test to prevent state leakage

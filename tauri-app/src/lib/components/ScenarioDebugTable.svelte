@@ -42,8 +42,7 @@
     // a map of chain ids against block number rather than map of deployment keys
     // against block numbers
     for (const deploymentKey in res.dataMap) {
-      blockNumbers[res.dataMap[deploymentKey].chainId] =
-        res.dataMap[deploymentKey].blockNumber || 0;
+      blockNumbers[res.dataMap[deploymentKey].chainId] = res.dataMap[deploymentKey].blockNumber;
     }
     return res;
   };
@@ -150,15 +149,14 @@
               {:else}
                 {@const maxOutput = mainEntries[mainEntries.length - 2]}
                 {@const ioRatio = mainEntries[mainEntries.length - 1]}
+                {@const denominator = BigInt(ioRatio?.[1]?.[1] ?? 0n)}
                 <TableBodyCell>
                   {maxOutput[1][0]}
                 </TableBodyCell>
                 <TableBodyCell>
                   {ioRatio[1][0]}
                   <span class="text-gray-400">
-                    ({BigInt(ioRatio[1][1]) === 0n
-                      ? '0'
-                      : formatUnits(10n ** 36n / BigInt(ioRatio[1][1]), 18)})
+                    ({denominator === 0n ? '0' : formatUnits(10n ** 36n / denominator, 18)})
                   </span>
                 </TableBodyCell>
               {/if}
@@ -178,4 +176,9 @@
   {/each}
 {/if}
 
-<ModalDebugContext bind:open={openDebugBlockNumberModal} bind:blockNumbers bind:networks />
+<ModalDebugContext
+  bind:open={openDebugBlockNumberModal}
+  bind:blockNumbers
+  bind:networks
+  onClose={handleRefresh}
+/>

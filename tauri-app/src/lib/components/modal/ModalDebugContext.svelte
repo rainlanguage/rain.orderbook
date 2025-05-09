@@ -13,6 +13,7 @@
   export let open = false;
   export let networks: Record<number, string> | undefined = undefined;
   export let blockNumbers: Record<number, number | undefined> = {};
+  export let onClose: () => void;
 </script>
 
 <Modal
@@ -20,8 +21,11 @@
   bind:open
   outsideclose
   size="sm"
-  on:close={() => (open = false)}
-  backdropClass="fixed inset-0 z-40 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 z-[1000]"
+  on:close={() => {
+    onClose();
+    open = false;
+  }}
+  backdropClass="fixed inset-0 z-40 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 z-[1000] backdrop-class-id"
   dialogClass="fixed top-0 start-0 end-0 h-modal md:inset-0 md:h-full z-50 w-full p-4 flex z-[1000]"
 >
   {#if networks}
@@ -40,7 +44,7 @@
                 type="number"
                 size="sm"
                 class="self-center"
-                placeHolder="Enter Block Height"
+                placeholder="Enter Block Height"
                 value={blockNumbers[Number(chainId)]}
                 on:input={(e) => {
                   if (e.currentTarget instanceof HTMLInputElement) {
