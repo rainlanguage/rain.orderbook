@@ -153,8 +153,15 @@ amount price: 16 52;
             token2 = token2.address(),
         );
 
-        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.clone(), None)
+            .await
+            .unwrap();
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -276,8 +283,15 @@ _: 1;
             token2 = token2.address(),
         );
 
-        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.clone(), None)
+            .await
+            .unwrap();
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
