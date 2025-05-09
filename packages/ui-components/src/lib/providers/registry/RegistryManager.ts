@@ -142,6 +142,10 @@ export class RegistryManager {
 	 * @returns True if using a non-default registry
 	 */
 	public isCustomRegistry(): boolean {
-		return !!this.currentRegistry && this.currentRegistry !== this.defaultRegistry;
+		return (
+			this.currentRegistry !== undefined &&
+			this.currentRegistry !== null &&
+			this.currentRegistry !== this.defaultRegistry
+		);
 	}
 }
