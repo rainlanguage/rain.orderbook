@@ -21,10 +21,10 @@ describe('queryClient module', () => {
 			vi.restoreAllMocks();
 		});
 
-		it('calls invalidateQueries with the correct parameters', () => {
+		it('calls invalidateQueries with the correct parameters', async () => {
 			const queryKey = ['test', 'query'];
 
-			invalidateTanstackQueries(testQueryClient, queryKey);
+			await invalidateTanstackQueries(testQueryClient, queryKey);
 
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledTimes(1);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
@@ -34,10 +34,10 @@ describe('queryClient module', () => {
 			});
 		});
 
-		it('works with nested query keys', () => {
+		it('works with nested query keys', async () => {
 			const queryKey = ['orders', 'details', '123'];
 
-			invalidateTanstackQueries(testQueryClient, queryKey);
+			await invalidateTanstackQueries(testQueryClient, queryKey);
 
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey,
@@ -46,10 +46,10 @@ describe('queryClient module', () => {
 			});
 		});
 
-		it('works with single-item query keys', () => {
+		it('works with single-item query keys', async () => {
 			const queryKey = ['globalData'];
 
-			invalidateTanstackQueries(testQueryClient, queryKey);
+			await invalidateTanstackQueries(testQueryClient, queryKey);
 
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey,
@@ -89,7 +89,7 @@ describe('queryClient module', () => {
 
 			const unrelatedQueryStateBefore = testQueryClient.getQueryState(unrelatedKey);
 
-			invalidateTanstackQueries(testQueryClient, parentKey);
+			await invalidateTanstackQueries(testQueryClient, parentKey);
 
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: parentKey,
@@ -121,9 +121,9 @@ describe('queryClient module', () => {
 			});
 		});
 
-		it('handles empty query key array', () => {
+		it('handles empty query key array', async () => {
 			const queryKey: string[] = [];
-			invalidateTanstackQueries(testQueryClient, queryKey);
+			await invalidateTanstackQueries(testQueryClient, queryKey);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey,
 				refetchType: 'all',
@@ -131,10 +131,10 @@ describe('queryClient module', () => {
 			});
 		});
 
-		it('handles query key with undefined or null values', () => {
+		it('handles query key with undefined or null values', async () => {
 			const queryKey = ['test', undefined, 'key'];
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			invalidateTanstackQueries(testQueryClient, queryKey as any);
+			await invalidateTanstackQueries(testQueryClient, queryKey as any);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: queryKey,
 				refetchType: 'all',
@@ -143,7 +143,7 @@ describe('queryClient module', () => {
 
 			const queryKeyWithNull = ['test', null, 'key'];
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			invalidateTanstackQueries(testQueryClient, queryKeyWithNull as any);
+			await invalidateTanstackQueries(testQueryClient, queryKeyWithNull as any);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: queryKeyWithNull,
 				refetchType: 'all',
