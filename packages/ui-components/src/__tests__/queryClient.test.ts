@@ -133,6 +133,7 @@ describe('queryClient module', () => {
 
 		it('handles query key with undefined or null values', () => {
 			const queryKey = ['test', undefined, 'key'];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			invalidateTanstackQueries(testQueryClient, queryKey as any);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: queryKey,
@@ -141,6 +142,7 @@ describe('queryClient module', () => {
 			});
 
 			const queryKeyWithNull = ['test', null, 'key'];
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			invalidateTanstackQueries(testQueryClient, queryKeyWithNull as any);
 			expect(testQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: queryKeyWithNull,
