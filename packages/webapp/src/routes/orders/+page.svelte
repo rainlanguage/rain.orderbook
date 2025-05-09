@@ -2,23 +2,21 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { connected } from '$lib/stores/wagmi.ts';
-	import { writable } from 'svelte/store';
+	import {
+		activeSubgraphs,
+		orderHash,
+		showMyItemsOnly,
+		activeOrderStatus
+	} from '$lib/stores/settings';
 
 	const {
-		activeSubgraphs,
 		settings,
 		accounts,
 		activeAccountsItems,
-		activeOrderStatus,
-		orderHash,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
-		activeOrderbookRef,
-		showMyItemsOnly = writable(false)
+		activeOrderbookRef
 	}: AppStoresInterface = $page.data.stores;
-
-	$: showMyItemsOnly.set($connected);
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
