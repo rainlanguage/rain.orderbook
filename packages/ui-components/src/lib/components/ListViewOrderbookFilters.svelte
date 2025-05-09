@@ -19,7 +19,7 @@
 	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	export let showMyItemsOnly: Writable<boolean>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
-	export let activeOrderStatus: Writable<boolean>;
+	export let showInactiveOrders: Writable<boolean>;
 	export let orderHash: Writable<string>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
@@ -54,7 +54,7 @@
 		{#if isOrdersPage}
 			<InputOrderHash {orderHash} />
 			<div class="mt-4">
-				<CheckboxActiveOrders {activeOrderStatus} />
+				<CheckboxActiveOrders {showInactiveOrders} />
 			</div>
 		{/if}
 		{#if $accounts && Object.values($accounts).length > 0}
