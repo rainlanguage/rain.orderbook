@@ -11,3 +11,38 @@ pub async fn parse_dotrain(
 ) -> CommandResult<Bytes> {
     Ok(parse_rainlang_on_fork(rainlang, rpc_url, Some(block_number), deployer).await?)
 }
+
+#[cfg(test)]
+mod tests {
+    use alloy::{hex::encode_prefixed, providers::Provider};
+
+    use super::*;
+    use rain_orderbook_test_fixtures::LocalEvm;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_parse_dotrain_ok() {
+        let local_evm = LocalEvm::new().await;
+        let deployer = *local_evm.deployer.address();
+        let rpc_url = local_evm.url();
+
+        let rainlang = format!(
+            r"
+/* 0. calculate-io */
+_ _: 0 0;
+
+/* 1. handle-io */
+:;
+        "
+        );
+
+        let block_number = local_evm.provider.get_block_number().await.unwrap();
+
+        let bytes = parse_dotrain(&rainlang, &rpc_url, block_number, deployer)
+            .await
+            .unwrap();
+
+        let expected = "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c020200020110000001100000000000000000000000000000000000";
+
+        assert_eq!(encode_prefixed(&bytes), expected);
+    }
+}
