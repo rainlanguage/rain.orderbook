@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'vitest';
 import { getOrderHash, OrderV3 } from '../../dist/cjs';
+import { expect } from 'chai';
 
 describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 	it('should get correct order hash', async () => {
@@ -28,8 +29,9 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 			nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 		};
 		const result = getOrderHash(order);
+		if (!result.value) expect.fail('expected to resolve, but did not');
 		const expected = '0xf4058d50e798f18a048097265fe67fe2e8619f337b9377a7620bb87fc2f52721';
-		assert.equal(result, expected);
+		assert.equal(result.value, expected);
 	});
 
 	it('should error bad address length', async () => {
@@ -57,7 +59,8 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				],
 				nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 			};
-			getOrderHash(order);
+			const result = getOrderHash(order);
+			if (!result.error) expect.fail('expected to error, but did not');
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
@@ -90,7 +93,8 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				],
 				nonce: '0x0000000000000000000000000000000000000000000000000000000000000002'
 			};
-			getOrderHash(order);
+			const result = getOrderHash(order);
+			if (!result.error) expect.fail('expected to error, but did not');
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
@@ -125,7 +129,8 @@ describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
 				],
 				nonce: '0x0000000000000000000000000000000000000000000000000000000000000efg' // bad nonce
 			};
-			getOrderHash(order);
+			const result = getOrderHash(order);
+			if (!result.error) expect.fail('expected to error, but did not');
 			assert.fail('expected to error, but resolved');
 		} catch (error) {
 			assert.ok(error instanceof Error);
