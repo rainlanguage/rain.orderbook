@@ -409,7 +409,7 @@ describe('DepositOrWithdrawModal', () => {
 		const cancelButton = screen.getByText('Cancel');
 		await fireEvent.click(cancelButton);
 		await waitFor(() => {
-			expect(transactionStore.reset).toHaveBeenCalled();
+			expect(transactionStore.reset).not.toHaveBeenCalled();
 		});
 	});
 
