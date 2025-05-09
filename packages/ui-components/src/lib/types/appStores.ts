@@ -5,7 +5,7 @@ export interface AppStoresInterface {
 	activeSubgraphs: Writable<Record<string, string>>;
 	accounts: Readable<Record<string, string>>;
 	activeAccountsItems: Writable<Record<string, string>>;
-	activeOrderStatus: Writable<boolean>;
+	showInactiveOrders: Writable<boolean>;
 	orderHash: Writable<string>;
 	hideZeroBalanceVaults: Writable<boolean>;
 	activeNetworkRef: Writable<string | undefined>;

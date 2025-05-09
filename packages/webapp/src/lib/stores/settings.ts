@@ -110,16 +110,16 @@ export const orderHash = cachedWritableStore<string>(
  * @default false - Inactive orders are hidden by default
  * @returns A writable store containing a boolean value
  */
-export const activeOrderStatus = cachedWritableStore<boolean>(
-	'settings.activeOrderStatus',
-	true,
+export const showInactiveOrders = cachedWritableStore<boolean>(
+	'settings.showInactiveOrders',
+	false,
 	(value) => JSON.stringify(value),
 	(str) => {
 		try {
 			const value = JSON.parse(str);
-			return typeof value === 'boolean' ? value : true;
+			return typeof value === 'boolean' ? value : false;
 		} catch {
-			return true;
+			return false;
 		}
 	}
 );

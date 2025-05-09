@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Checkbox } from 'flowbite-svelte';
 	import type { Writable } from 'svelte/store';
-	export let activeOrderStatus: Writable<boolean>;
-	let checked: boolean = $activeOrderStatus ? false : true;
+	export let showInactiveOrders: Writable<boolean>;
+	let checked: boolean = $showInactiveOrders ? true : false;
 
 	function handleChange() {
-		$activeOrderStatus = $activeOrderStatus ? false : true;
+		$showInactiveOrders = !$showInactiveOrders;
 	}
 </script>
 

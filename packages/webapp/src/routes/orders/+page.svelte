@@ -6,7 +6,7 @@
 		activeSubgraphs,
 		orderHash,
 		showMyItemsOnly,
-		activeOrderStatus
+		showInactiveOrders
 	} from '$lib/stores/settings';
 
 	const {
@@ -29,7 +29,7 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{activeOrderStatus}
+	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
 />
