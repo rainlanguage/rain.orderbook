@@ -14,8 +14,7 @@ pub async fn order_trades_list_write_csv(
     end_timestamp: Option<u64>,
 ) -> CommandResult<()> {
     let order_takes = subgraph_args
-        .to_subgraph_client()
-        .await?
+        .to_subgraph_client()?
         .order_trades_list_all(order_id.clone().into(), start_timestamp, end_timestamp)
         .await?;
     let order_takes_flattened: Vec<OrderTakeFlattened> = order_takes

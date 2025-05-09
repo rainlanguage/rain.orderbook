@@ -31,8 +31,7 @@ impl Execute for CliVaultListArgs {
 
         if self.pagination_args.csv {
             let vaults = subgraph_args
-                .to_subgraph_client()
-                .await?
+                .to_subgraph_client()?
                 .vaults_list_all()
                 .await?;
             let vaults_flattened: Vec<TokenVaultFlattened> = vaults
@@ -46,8 +45,7 @@ impl Execute for CliVaultListArgs {
             let pagination_args: SgPaginationArgs = self.pagination_args.clone().into();
             let filter_args = self.filter_args.clone().into();
             let vaults = subgraph_args
-                .to_subgraph_client()
-                .await?
+                .to_subgraph_client()?
                 .vaults_list(filter_args, pagination_args)
                 .await?;
             let vaults_flattened: Vec<TokenVaultFlattened> = vaults

@@ -56,6 +56,7 @@ impl From<OrderbookSubgraphClientError> for JsValue {
     }
 }
 
+#[derive(Debug)]
 pub struct OrderbookSubgraphClient {
     url: Url,
 }
@@ -70,6 +71,10 @@ impl PaginationClient for OrderbookSubgraphClient {}
 impl OrderbookSubgraphClient {
     pub fn new(url: Url) -> Self {
         Self { url }
+    }
+
+    pub fn url(&self) -> &Url {
+        &self.url
     }
 
     /// Fetch single order
