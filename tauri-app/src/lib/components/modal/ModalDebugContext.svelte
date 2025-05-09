@@ -48,8 +48,8 @@
                 value={blockNumbers[Number(chainId)]}
                 on:input={(e) => {
                   if (e.currentTarget instanceof HTMLInputElement) {
-                    blockNumbers[Number(chainId)] =
-                      parseInt(e.currentTarget.value, 10) || undefined;
+                    const v = parseInt(e.currentTarget.value, 10);
+                    blockNumbers[Number(chainId)] = Number.isNaN(v) ? undefined : v;
                   }
                 }}
                 data-testid={`chain-block-${chainId}`}
