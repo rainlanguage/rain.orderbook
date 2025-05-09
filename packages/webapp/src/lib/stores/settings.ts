@@ -101,3 +101,25 @@ export const orderHash = cachedWritableStore<string>(
 	(value) => value,
 	(str) => str || ''
 );
+
+/**
+ * A persistent store that holds the currently show/hide setting for inactive orders.
+ *
+ * This setting is saved to local storage and persists between sessions.
+ *
+ * @default false - Inactive orders are hidden by default
+ * @returns A writable store containing a boolean value
+ */
+export const activeOrderStatus = cachedWritableStore<boolean>(
+	'settings.activeOrderStatus',
+	true,
+	(value) => JSON.stringify(value),
+	(str) => {
+		try {
+			const value = JSON.parse(str);
+			return typeof value === 'boolean' ? value : true;
+		} catch {
+			return true;
+		}
+	}
+);

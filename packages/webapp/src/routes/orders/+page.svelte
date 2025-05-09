@@ -2,13 +2,17 @@
 	import { page } from '$app/stores';
 	import { OrdersListTable, PageHeader } from '@rainlanguage/ui-components';
 	import type { AppStoresInterface } from '@rainlanguage/ui-components';
-	import { activeSubgraphs, orderHash, showMyItemsOnly } from '$lib/stores/settings';
+	import {
+		activeSubgraphs,
+		orderHash,
+		showMyItemsOnly,
+		activeOrderStatus
+	} from '$lib/stores/settings';
 
 	const {
 		settings,
 		accounts,
 		activeAccountsItems,
-		activeOrderStatus,
 		hideZeroBalanceVaults,
 		activeNetworkRef,
 		activeOrderbookRef
