@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Checkbox, Label } from 'flowbite-svelte';
-	import type { Writable } from 'svelte/store';
-	export let hideZeroBalanceVaults: Writable<boolean>;
+	import type { AppStoresInterface } from '$lib/types/appStores';
+	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 
 	function handleHideZeroBalanceChange() {
 		$hideZeroBalanceVaults = !$hideZeroBalanceVaults;

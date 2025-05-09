@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Label } from 'flowbite-svelte';
-	import type { Writable } from 'svelte/store';
-	export let orderHash: Writable<string>;
+	import type { AppStoresInterface } from '$lib/types/appStores';
+
+	export let orderHash: AppStoresInterface['orderHash'];
 	export let value = $orderHash;
 
 	function handleChange(event: Event) {
