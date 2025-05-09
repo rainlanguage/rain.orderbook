@@ -5,7 +5,9 @@ import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
+	getRemoveOrderCalldata: vi.fn().mockResolvedValue({
+		value: '0x123'
+	})
 }));
 
 vi.useFakeTimers();
