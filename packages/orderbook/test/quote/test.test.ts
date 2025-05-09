@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { getLocal } from 'mockttp';
-import { describe, it, beforeEach, afterEach } from 'vitest';
+import { describe, it, beforeEach, afterEach, expect } from 'vitest';
 import {
 	getId,
 	doQuoteTargets,
@@ -23,7 +23,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		const orderHash = '0xf4058d50e798f18a048097265fe67fe2e8619f337b9377a7620bb87fc2f52721';
 		const result = getId(orderbook, orderHash);
 		const expected = '0xca228cb816102ef9f8e0f9a87bb34e06c49c4d4ddf5a2a0ec229ab671475c235';
-		assert.equal(result, expected);
+		if (result.error) expect.fail('Expected value');
+		assert.equal(result.value, expected);
 	});
 
 	it('should get correct quote targets from subgraph', async () => {
@@ -113,6 +114,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		};
 		try {
 			const result = await getQuoteTargetFromSubgraph([quoteSpec], mockServer.url + '/sg-url');
+			if (!result.value) expect.fail('Expected value');
 			const expected: QuoteTarget = {
 				quoteConfig: {
 					order: {
@@ -144,9 +146,8 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 				},
 				orderbook: '0x713180d188e1ff758f508d9f2e1d350d650fea5e'
 			};
-			assert.deepEqual(result[0], expected);
+			expect(result.value[0]).toEqual(expected);
 		} catch (error) {
-			console.log(error);
 			assert.fail('expected to resolve, but failed');
 		}
 	});
@@ -188,17 +189,13 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 				signedContext: []
 			}
 		};
-		try {
-			const result = await doQuoteTargets([target], mockServer.url + '/rpc-url');
-			const expected: OrderQuoteValue = {
-				maxOutput: '0x1',
-				ratio: '0x2'
-			};
-			assert.deepEqual(result[0], expected);
-		} catch (error) {
-			console.log(error);
-			assert.fail('expected to resolve, but failed');
-		}
+		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		if (!result.value) expect.fail('Expected value');
+		const expected: OrderQuoteValue = {
+			maxOutput: '0x1',
+			ratio: '0x2'
+		};
+		assert.deepEqual(result.value[0].value, expected);
 	});
 	it('should get order quote', async () => {
 		await mockServer.forPost('/rpc-url').once().thenSendJsonRpcResult('0x01');
@@ -276,6 +273,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			removeEvents: []
 		} as unknown as SgOrder;
 		const result = await getOrderQuote([order], mockServer.url + '/rpc-url');
+		if (result.error) expect.fail('Expected value');
 		const expected: BatchOrderQuotesResponse[] = [
 			{
 				pair: { pairName: 'T2/T1', inputIndex: 0, outputIndex: 0 },
@@ -289,7 +287,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			}
 		];
 
-		assert.deepEqual(result, expected);
+		assert.deepEqual(result.value, expected);
 	});
 
 	it('should quote targets with gas', async () => {
@@ -333,29 +331,23 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		};
 
 		// should fail without gas specified
-		try {
-			await doQuoteTargets([target], mockServer.url + '/rpc-url');
-			throw 'expected to fail, but resolved';
-		} catch (error) {
-			if (error === 'expected to fail, but resolved') assert.fail(error);
-		}
+		const doQuoteTargetsResult = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		if (!doQuoteTargetsResult.error) expect.fail('Expected error');
+		assert.deepEqual(
+			doQuoteTargetsResult.error.msg,
+			'Execution reverted with unknown error. Data: "" '
+		);
+		assert.deepEqual(
+			doQuoteTargetsResult.error.readableMsg,
+			'Failed to get quote: Execution reverted with unknown error. Data: "" '
+		);
 
-		// should pass with gas specified
-		try {
-			const result = await doQuoteTargets(
-				[target],
-				mockServer.url + '/rpc-url',
-				undefined,
-				BigInt(123456)
-			);
-			const expected: OrderQuoteValue = {
-				maxOutput: '0x1',
-				ratio: '0x2'
-			};
-			assert.deepEqual(result[0], expected);
-		} catch (error) {
-			console.log(error);
-			assert.fail('expected to resolve, but failed');
-		}
+		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url', undefined, '123456');
+		if (result.error) expect.fail('Expected value');
+		const expected: OrderQuoteValue = {
+			maxOutput: '0x1',
+			ratio: '0x2'
+		};
+		assert.deepEqual(result.value[0].value, expected);
 	});
 });
