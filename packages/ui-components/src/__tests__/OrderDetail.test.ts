@@ -3,12 +3,13 @@ import { getOrderByHash, type SgOrder } from '@rainlanguage/orderbook';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
-import { readable } from 'svelte/store';
+import { readable, writable } from 'svelte/store';
 import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 import type { ComponentProps } from 'svelte';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
+import { useToasts } from '$lib/providers/toasts/useToasts';
 // Mock the account hook
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -22,6 +23,12 @@ vi.mock('@rainlanguage/orderbook', () => ({
 // Mock the query client functions
 vi.mock('$lib/queries/queryClient', () => ({
 	invalidateTanstackQueries: vi.fn()
+}));
+
+const mockAddToast = vi.fn();
+
+vi.mock('$lib/providers/toasts/useToasts', () => ({
+	useToasts: vi.fn()
 }));
 
 vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
@@ -137,6 +144,12 @@ describe('OrderDetail', () => {
 				['inputs_outputs', []]
 			])
 		});
+
+		(useToasts as Mock).mockReturnValue({
+			toasts: writable([]),
+			addToast: mockAddToast,
+			removeToast: vi.fn()
+		});
 	});
 
 	it('calls the order detail query with the correct order hash', async () => {
@@ -245,6 +258,28 @@ describe('OrderDetail', () => {
 			await userEvent.click(refreshButton);
 
 			expect(invalidateTanstackQueries).toHaveBeenCalledWith(queryClient, [orderHash]);
+		});
+	});
+
+	it('failed query invalidation triggers a toast', async () => {
+		(invalidateTanstackQueries as Mock).mockRejectedValue(new Error('Failed to refresh'));
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(async () => {
+			const refreshButton = await screen.getByTestId('top-refresh');
+			await userEvent.click(refreshButton);
+		});
+
+		await waitFor(() => {
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Failed to refresh',
+				type: 'error',
+				color: 'red'
+			});
 		});
 	});
 

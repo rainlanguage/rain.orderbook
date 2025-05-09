@@ -19,10 +19,6 @@
 	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
 		dispatch('success');
 	}
-
-	$: if (!open) {
-		transactionStore.reset();
-	}
 </script>
 
 <Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
