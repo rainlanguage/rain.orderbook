@@ -1,8 +1,5 @@
 import { asyncDerived, derived, get } from '@square/svelte-store';
-import {
-  cachedWritableStore,
-  cachedWritableStringOptional,
-} from '$lib/storesGeneric/cachedWritableStore';
+import { cachedWritableStore, cachedWritableStringOptional } from '@rainlanguage/ui-components';
 import find from 'lodash/find';
 import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
@@ -241,16 +238,16 @@ export async function resetActiveNetworkRef() {
   }
 }
 
-export const activeOrderStatus = cachedWritableStore<boolean | undefined>(
+export const activeOrderStatus = cachedWritableStore<boolean>(
   'settings.activeOrderStatus',
-  undefined,
+  true,
   (value) => JSON.stringify(value),
   (str) => {
     try {
-      const parsed = JSON.parse(str);
-      return typeof parsed === 'boolean' ? parsed : undefined;
+      const value = JSON.parse(str);
+      return typeof value === 'boolean' ? value : true;
     } catch {
-      return undefined;
+      return true;
     }
   },
 );
