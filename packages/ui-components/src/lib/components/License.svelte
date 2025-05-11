@@ -2,19 +2,20 @@
 	import { Heading, Text, BlockQuote } from '@rainlanguage/ui-components';
 	import Markdown from 'svelte-markdown';
 	import { onMount } from 'svelte';
+	import { LICENSE_URL } from '../consts';
 
 	let source = '';
 
 	onMount(async () => {
 		try {
-			const response = await fetch(
-				'https://raw.githubusercontent.com/rainlanguage/decentralicense/refs/heads/master/README.md'
-			);
+			const response = await fetch(LICENSE_URL);
 			if (response.ok) {
 				source = await response.text();
+			} else {
+				source = `Failed to fetch license: HTTP ${response.status}`;
 			}
 		} catch {
-			source = '';
+			source = 'Failed to fetch license.';
 		}
 	});
 </script>

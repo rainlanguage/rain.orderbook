@@ -27,7 +27,7 @@ const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture)
 const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
 const mockAccountsWritable = writable<Record<string, string>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
-const mockActiveOrderStatusWritable = writable<boolean | undefined>(undefined);
+const mockActiveOrderStatusWritable = writable<boolean>(true);
 const mockOrderHashWritable = writable<string>('');
 const mockHideZeroBalanceVaultsWritable = writable<boolean>(false);
 const mockActiveNetworkRefWritable = writable<string>('');
@@ -66,8 +66,7 @@ export const mockActiveAccountsItemsStore = {
 export const mockActiveOrderStatusStore = {
 	subscribe: mockActiveOrderStatusWritable.subscribe,
 	set: mockActiveOrderStatusWritable.set,
-	mockSetSubscribeValue: (value: boolean | undefined): void =>
-		mockActiveOrderStatusWritable.set(value)
+	mockSetSubscribeValue: (value: boolean): void => mockActiveOrderStatusWritable.set(value)
 };
 
 export const mockOrderHashStore = {
