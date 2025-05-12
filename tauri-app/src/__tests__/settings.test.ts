@@ -13,13 +13,12 @@ import {
   activeAccounts,
 } from '$lib/stores/settings';
 import { mockConfigSource } from '$lib/mocks/mockConfigSource';
-import { beforeEach, describe } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import { get } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
 import type { ConfigSource } from '@rainlanguage/orderbook';
 
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest;
+
 
   describe('Settings active accounts items', () => {
     // Reset store values before each test to prevent state leakage
@@ -172,7 +171,7 @@ if (import.meta.vitest) {
     test('resetActiveNetworkRef should set first available network', async () => {
       settings.set(mockConfigSource);
 
-      await resetActiveNetworkRef();
+      resetActiveNetworkRef();
 
       expect(get(activeNetworkRef)).toBe('mainnet');
     });
@@ -181,7 +180,7 @@ if (import.meta.vitest) {
       const emptySettings = { ...mockConfigSource, networks: {} };
       settings.set(emptySettings);
 
-      await resetActiveNetworkRef();
+      resetActiveNetworkRef();
 
       expect(get(activeNetworkRef)).toBeUndefined();
     });
@@ -390,4 +389,3 @@ if (import.meta.vitest) {
       });
     });
   });
-}
