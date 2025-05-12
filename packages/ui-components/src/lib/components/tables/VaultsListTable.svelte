@@ -29,7 +29,7 @@
 	export let orderHash: Writable<string>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
 	export let settings: Writable<ConfigSource | undefined>;
-	export let activeOrderStatus: Writable<boolean>;
+	export let showInactiveOrders: Writable<boolean>;
 	export let hideZeroBalanceVaults: Writable<boolean>;
 	export let activeNetworkRef: Writable<string | undefined>;
 	export let activeOrderbookRef: Writable<string | undefined>;
@@ -100,7 +100,7 @@
 		{accounts}
 		{activeAccountsItems}
 		{showMyItemsOnly}
-		{activeOrderStatus}
+		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
 	/>
