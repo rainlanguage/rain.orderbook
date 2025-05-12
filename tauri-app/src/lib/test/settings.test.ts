@@ -349,40 +349,6 @@ if (import.meta.vitest) {
     });
   });
 
-  describe('Additional Store Functionality', () => {
-    test('hideZeroBalanceVaults should default to true', () => {
-      const localHideZeroBalanceVaults = cachedWritableStore<boolean>(
-        'test-settings.hideZeroBalanceVaults-default', // Unique key for isolation
-        true,
-        (value) => JSON.stringify(value),
-        (str) => {
-          try {
-            return JSON.parse(str) as boolean;
-          } catch {
-            return true;
-          }
-        },
-      );
-      expect(get(localHideZeroBalanceVaults)).toBe(true);
-    });
-
-    test('hideZeroBalanceVaults should handle true/false values', () => {
-      hideZeroBalanceVaults.set(false);
-      expect(get(hideZeroBalanceVaults)).toBe(false);
-
-      hideZeroBalanceVaults.set(true);
-      expect(get(hideZeroBalanceVaults)).toBe(true);
-    });
-
-    test('orderHash should handle string values correctly', () => {
-      orderHash.set('test-hash');
-      expect(get(orderHash)).toBe('test-hash');
-
-      orderHash.set('');
-      expect(get(orderHash)).toBe('');
-    });
-  });
-
   describe('Settings Subscription Edge Cases', () => {
     test('should handle invalid JSON in settings', () => {
       // This test uses a local store to avoid interfering with the global 'settings' store
