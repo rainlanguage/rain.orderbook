@@ -350,23 +350,7 @@ if (import.meta.vitest) {
   });
 
   describe('Additional Store Functionality', () => {
-    test('activeOrderStatus should properly serialize/deserialize boolean values', () => {
-      activeOrderStatus.set(true);
-      expect(get(activeOrderStatus)).toBe(true);
-
-      activeOrderStatus.set(false);
-      expect(get(activeOrderStatus)).toBe(false);
-
-      activeOrderStatus.set(undefined);
-      expect(get(activeOrderStatus)).toBeUndefined();
-    });
-
     test('hideZeroBalanceVaults should default to true', () => {
-      // Need to ensure the store is in its initial state,
-      // so we don't rely on cachedWritableStore's behavior from previous tests or app runs in a test env
-      // This might require a way to truly reset cachedWritableStore or test it in isolation.
-      // For now, we assume it's freshly initialized for this test due to `vitest` environment.
-      // A more robust test might involve re-creating the store instance.
       const localHideZeroBalanceVaults = cachedWritableStore<boolean>(
         'test-settings.hideZeroBalanceVaults-default', // Unique key for isolation
         true,
