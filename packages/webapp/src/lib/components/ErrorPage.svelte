@@ -2,7 +2,10 @@
 	import { page } from '$app/stores';
 </script>
 
-<div class="error-container mx-auto my-10 flex max-w-xl flex-col gap-4 p-2 text-center">
+<div
+	data-testid="error-page"
+	class="error-container mx-auto my-10 flex max-w-xl flex-col gap-4 p-2 text-center"
+>
 	<h1 class="text-2xl font-bold text-red-600">An Error Occurred</h1>
 	<p>
 		We encountered a problem loading the application configuration. Please try again later or
