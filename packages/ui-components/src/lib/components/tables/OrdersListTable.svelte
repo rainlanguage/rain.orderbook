@@ -69,7 +69,7 @@
 				multiSubgraphArgs,
 				{
 					owners,
-					active: $activeOrderStatus,
+					active: !$activeOrderStatus ? undefined : true,
 					orderHash: $orderHash || undefined
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
