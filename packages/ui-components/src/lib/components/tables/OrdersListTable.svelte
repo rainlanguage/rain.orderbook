@@ -8,7 +8,7 @@
 		type SgOrderWithSubgraphName
 	} from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
