@@ -7,7 +7,6 @@ import type {
 import { writable, derived, get } from 'svelte/store';
 import pkg from 'lodash';
 import type { LayoutLoad } from './$types';
-
 const { pickBy } = pkg;
 
 export interface LayoutData {
