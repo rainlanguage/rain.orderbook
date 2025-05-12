@@ -117,6 +117,12 @@ export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThe
 
 // Stores
 export { default as transactionStore } from './stores/transactionStore';
+export {
+	cachedWritableStore,
+	cachedWritableIntOptional,
+	cachedWritableStringOptional,
+	cachedWritableString
+} from './storesGeneric/cachedWritableStore';
 
 // Assets
 export { default as logoLight } from './assets/logo-light.svg';
@@ -125,10 +131,15 @@ export { default as logoDark } from './assets/logo-dark.svg';
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+export { useRegistry } from './providers/registry/useRegistry';
+
+// Classes
+export { RegistryManager } from './providers/registry/RegistryManager';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
