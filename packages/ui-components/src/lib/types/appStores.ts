@@ -1,5 +1,5 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { ConfigSource, OrderbookConfigSource } from '@rainlanguage/orderbook';
+import type { ConfigSource, OrderbookCfgRef, OrderbookConfigSource } from '@rainlanguage/orderbook';
 export interface AppStoresInterface {
 	settings: Writable<ConfigSource | undefined>;
 	activeSubgraphs: Writable<Record<string, string>>;
@@ -17,4 +17,5 @@ export interface AppStoresInterface {
 		[k: string]: string;
 	}>;
 	showMyItemsOnly: Writable<boolean>;
+	activeNetworkOrderbooks: Readable<Record<OrderbookCfgRef, OrderbookConfigSource>>;
 }

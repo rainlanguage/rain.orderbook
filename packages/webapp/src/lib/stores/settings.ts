@@ -1,4 +1,5 @@
-import { cachedWritableStore, type ConfigSource } from '@rainlanguage/ui-components';
+import { cachedWritableStore, type AppStoresInterface, type ConfigSource } from '@rainlanguage/ui-components';
+import { get } from 'svelte/store';
 
 /**
  * A persistent store that holds the application configuration settings.
@@ -123,3 +124,40 @@ export const activeOrderStatus = cachedWritableStore<boolean>(
 		}
 	}
 );
+
+/**
+ * Resets the active orderbook reference to the first available orderbook in the active network.
+ * If no orderbooks are available, it sets the reference to undefined.
+ * 
+ * @param activeNetworkOrderbooks - A readable store containing the orderbooks for the active network
+ * @param activeOrderbookRef - A writable store for the active orderbook reference
+ * @returns A promise that resolves when the operation is complete
+ */
+export async function resetActiveOrderbookRef(activeNetworkOrderbooks: AppStoresInterface['activeNetworkOrderbooks'], activeOrderbookRef: AppStoresInterface['activeOrderbookRef']) {
+  const $activeNetworkOrderbooks = get(activeNetworkOrderbooks);
+  const $activeNetworkOrderbookRefs = Object.keys($activeNetworkOrderbooks);
+
+  if ($activeNetworkOrderbookRefs.length > 0) {
+    activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
+  } else {
+    activeOrderbookRef.set(undefined);
+  }
+}
+
+/**
+ * Resets the active network reference to the first available network in the settings.
+ * If no networks are available, it sets the reference to undefined.
+ * 
+ * @param settings - A readable store containing the application settings
+ * @param activeNetworkRef - A writable store for the active network reference
+ * @returns A promise that resolves when the operation is complete
+ */
+export function resetActiveNetworkRef(settings: AppStoresInterface['settings'], activeNetworkRef: AppStoresInterface['activeNetworkRef']) {
+  const $networks = get(settings)?.networks;
+
+  if ($networks !== undefined && Object.keys($networks).length > 0) {
+    activeNetworkRef.set(Object.keys($networks)[0]);
+  } else {
+    activeNetworkRef.set(undefined);
+  }
+}
