@@ -11,9 +11,6 @@ import {
   subgraphUrl,
   accounts,
   activeAccounts,
-  activeOrderStatus,
-  hideZeroBalanceVaults,
-  orderHash,
 } from '$lib/stores/settings';
 import { mockConfigSource } from '$lib/mocks/mockConfigSource';
 import { beforeEach, describe } from 'vitest';
