@@ -1,6 +1,6 @@
 import { activeSubgraphs } from '$lib/stores/settings';
 import { activeAccountsItems } from '$lib/stores/settings';
-import { mockConfigSource } from '$lib/mocks/mockConfigSource';
+import { mockConfigSource } from '$lib/__mocks__/mockConfigSource';
 import { settings } from '$lib/stores/settings';
 import { beforeEach, describe } from 'vitest';
 import { get } from '@square/svelte-store';
