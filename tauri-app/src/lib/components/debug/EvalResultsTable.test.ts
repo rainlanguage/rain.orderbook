@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '$lib/__tests__/matchers';
 import EvalResultsTable from './EvalResultsTable.svelte';
 import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
 import { formatEther, hexToBigInt, isHex } from 'viem';

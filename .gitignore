@@ -15,3 +15,4 @@ packages/orderbook/cjs.d.ts
 packages/orderbook/esm.js
 packages/orderbook/esm.d.ts
 tauri-app/src/lib/types
+.direnv/
