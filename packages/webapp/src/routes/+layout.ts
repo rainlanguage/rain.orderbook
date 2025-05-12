@@ -6,15 +6,16 @@ import type {
 } from '@rainlanguage/ui-components';
 import { writable, derived, get } from 'svelte/store';
 import pkg from 'lodash';
+import type { LayoutLoad } from './$types';
 
 const { pickBy } = pkg;
 
 export interface LayoutData {
-	errorMessage: string | undefined;
+	errorMessage?: string;
 	stores: AppStoresInterface | null;
 }
 
-export const load = async ({ fetch }) => {
+export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let settingsJson: ConfigSource | undefined;
 	let errorMessage: string | undefined;
 
@@ -29,8 +30,8 @@ export const load = async ({ fetch }) => {
 	} catch (error: unknown) {
 		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
 		return {
-			stores: null,
-			errorMessage
+			errorMessage,
+			stores: null
 		};
 	}
 

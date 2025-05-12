@@ -9,8 +9,11 @@
 	<h1 class="text-2xl font-bold text-red-600">An Error Occurred</h1>
 	<p>
 		We encountered a problem loading the application configuration. Please try again later or
-		<a href="https://t.me/rainlanguage" target="_blank" class="text-blue-500 hover:underline"
-			>contact support</a
+		<a
+			href="https://t.me/rainlanguage"
+			rel="noopener noreferrer"
+			target="_blank"
+			class="text-blue-500 hover:underline">contact support</a
 		>.
 	</p>
 
