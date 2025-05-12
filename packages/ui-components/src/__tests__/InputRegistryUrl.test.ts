@@ -2,41 +2,27 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { vi } from 'vitest';
 import InputRegistryUrl from '../lib/components/input/InputRegistryUrl.svelte';
 import userEvent from '@testing-library/user-event';
+import { loadRegistryUrl } from '../lib/services/loadRegistryUrl';
+import { initialRegistry } from '../__fixtures__/RegistryManager';
+import { useRegistry } from '$lib/providers/registry/useRegistry';
+import type { RegistryManager } from '$lib/providers/registry/RegistryManager';
+
+vi.mock('../lib/services/loadRegistryUrl', () => ({
+	loadRegistryUrl: vi.fn()
+}));
+
+vi.mock('../lib/providers/registry/useRegistry', () => ({
+	useRegistry: vi.fn()
+}));
 
 describe('InputRegistryUrl', () => {
-	const mockPushState = vi.fn();
-	const mockReload = vi.fn();
-	const mockLocalStorageSetItem = vi.fn();
-	const mockLocalStorageGetItem = vi.fn();
-
 	beforeEach(() => {
-		vi.stubGlobal('localStorage', {
-			setItem: mockLocalStorageSetItem,
-			getItem: mockLocalStorageGetItem
-		});
-
-		Object.defineProperty(window, 'location', {
-			value: {
-				pathname: '/test-path',
-				reload: mockReload
-			},
-			writable: true
-		});
-
-		window.history.pushState = mockPushState;
-
-		mockPushState.mockClear();
-		mockReload.mockClear();
-		mockLocalStorageSetItem.mockClear();
-		mockLocalStorageGetItem.mockClear();
-	});
-
-	afterEach(() => {
-		vi.unstubAllGlobals();
+		vi.clearAllMocks();
+		vi.mocked(loadRegistryUrl).mockResolvedValue(undefined);
+		vi.mocked(useRegistry).mockReturnValue(initialRegistry as RegistryManager);
 	});
 
 	it('should render input and button', () => {
-		mockLocalStorageGetItem.mockReturnValue('');
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
@@ -46,54 +32,64 @@ describe('InputRegistryUrl', () => {
 		expect(button).toBeInTheDocument();
 	});
 
-	it('should bind input value to newRegistryUrl', async () => {
-		mockLocalStorageGetItem.mockReturnValue('');
+	it('should call loadRegistryUrl when button is clicked', async () => {
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		const testUrl = 'https://example.com/registry.json';
-
-		await userEvent.type(input, testUrl);
-
-		expect(input).toHaveValue(testUrl);
-	});
-
-	it('should handle registry URL loading when button is clicked', async () => {
-		mockLocalStorageGetItem.mockReturnValue('');
-		render(InputRegistryUrl);
-
-		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
-		const testUrl = 'https://example.com/registry.json';
+		await userEvent.clear(input);
 		await userEvent.type(input, testUrl);
 
 		const button = screen.getByText('Load registry URL');
 		await fireEvent.click(button);
 
-		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=' + testUrl);
-		expect(mockReload).toHaveBeenCalled();
-		expect(mockLocalStorageSetItem).toHaveBeenCalledWith('registry', testUrl);
+		expect(loadRegistryUrl).toHaveBeenCalledWith(testUrl, initialRegistry);
 	});
 
-	it('should handle empty URL', async () => {
-		mockLocalStorageGetItem.mockReturnValue('');
-		render(InputRegistryUrl);
-
-		const button = screen.getByText('Load registry URL');
-		await fireEvent.click(button);
-
-		expect(mockPushState).toHaveBeenCalledWith({}, '', '/test-path?registry=');
-		expect(mockReload).toHaveBeenCalled();
-		expect(mockLocalStorageSetItem).toHaveBeenCalledWith('registry', '');
-	});
-
-	it('should load initial value from localStorage', () => {
+	it('should load initial value from registry manager', () => {
 		const initialUrl = 'https://example.com/registry.json';
-		mockLocalStorageGetItem.mockReturnValue(initialUrl);
-
+		initialRegistry.getCurrentRegistry = vi.fn().mockReturnValue(initialUrl);
 		render(InputRegistryUrl);
 
 		const input = screen.getByPlaceholderText('Enter URL to raw strategy registry file');
 		expect(input).toHaveValue(initialUrl);
-		expect(mockLocalStorageGetItem).toHaveBeenCalledWith('registry');
+	});
+
+	it('should display error message when loadRegistryUrl fails', async () => {
+		vi.mocked(loadRegistryUrl).mockRejectedValueOnce(new Error('Test error'));
+
+		render(InputRegistryUrl);
+
+		const button = screen.getByText('Load registry URL');
+		await fireEvent.click(button);
+
+		expect(await screen.findByTestId('registry-error')).toHaveTextContent('Test error');
+	});
+
+	it('should show loading state when request is in progress', async () => {
+		vi.useFakeTimers();
+
+		vi.mocked(loadRegistryUrl).mockImplementation(() => {
+			return new Promise<void>((resolve) => {
+				setTimeout(() => resolve(), 1000);
+			});
+		});
+
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+		render(InputRegistryUrl);
+
+		const button = screen.getByText('Load registry URL');
+		await user.click(button);
+
+		expect(screen.getByText('Loading registry...')).toBeInTheDocument();
+		expect(button).toBeDisabled();
+
+		await vi.runAllTimersAsync();
+
+		expect(screen.getByText('Load registry URL')).toBeInTheDocument();
+		expect(button).not.toBeDisabled();
+
+		vi.useRealTimers();
 	});
 });
