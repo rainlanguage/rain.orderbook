@@ -56,13 +56,20 @@ export const load = async ({ fetch }) => {
 				: ({} as Record<OrderbookCfgRef, OrderbookConfigSource>)
 	);
 
-	const accounts: AppStoresInterface['accounts'] = derived(settings, ($settings) => $settings?.accounts ?? {});
-	const activeAccountsItems: AppStoresInterface['activeAccountsItems'] = writable<Record<string, string>>({});
+	const accounts: AppStoresInterface['accounts'] = derived(
+		settings,
+		($settings) => $settings?.accounts ?? {}
+	);
+	const activeAccountsItems: AppStoresInterface['activeAccountsItems'] = writable<
+		Record<string, string>
+	>({});
 
-	const subgraphUrl: AppStoresInterface['subgraphUrl'] = derived([settings, activeOrderbook], ([$settings, $activeOrderbook]) =>
-		$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
-			? $settings.subgraphs[$activeOrderbook.subgraph]
-			: undefined
+	const subgraphUrl: AppStoresInterface['subgraphUrl'] = derived(
+		[settings, activeOrderbook],
+		([$settings, $activeOrderbook]) =>
+			$settings?.subgraphs !== undefined && $activeOrderbook?.subgraph !== undefined
+				? $settings.subgraphs[$activeOrderbook.subgraph]
+				: undefined
 	);
 	const activeAccounts: AppStoresInterface['activeAccounts'] = derived(
 		[accounts, activeAccountsItems],
