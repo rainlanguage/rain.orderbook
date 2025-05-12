@@ -15,6 +15,10 @@
 	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
+	import { settings as cachedSettings } from '$lib/stores/settings';
+
+	const { settings } = $page.data.stores;
+	cachedSettings.set(settings);
 
 	// Query client for caching
 	const queryClient = new QueryClient({

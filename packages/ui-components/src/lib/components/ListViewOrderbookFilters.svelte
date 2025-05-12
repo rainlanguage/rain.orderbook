@@ -19,7 +19,7 @@
 	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
 	export let showMyItemsOnly: Writable<boolean>;
 	export let activeSubgraphs: Writable<Record<string, string>>;
-	export let activeOrderStatus: Writable<boolean | undefined>;
+	export let activeOrderStatus: Writable<boolean>;
 	export let orderHash: Writable<string>;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';

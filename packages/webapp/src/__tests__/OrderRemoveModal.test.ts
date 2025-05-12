@@ -30,7 +30,7 @@ describe('OrderRemoveModal', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		transactionStore.reset();
+		vi.resetAllMocks();
 	});
 
 	it('handles transaction correctly', async () => {
@@ -38,14 +38,26 @@ describe('OrderRemoveModal', () => {
 		render(OrderRemoveModal, defaultProps);
 
 		await vi.runAllTimersAsync();
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			chainId: 1,
+			orderbookAddress: '0x789',
+			config: {},
+			onRemove: expect.any(Function),
+			order: {
+				id: '1',
+				orderHash: '0x123',
+				owner: '0x456'
+			},
+			removeOrderCalldata: undefined
+		});
+	});
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				chainId: 1,
-				orderbookAddress: '0x789',
-				config: {},
-				removeOrderCalldata: '0x123'
-			})
-		);
+	it('calls onRemove callback after successful transaction', async () => {
+		render(OrderRemoveModal, defaultProps);
+
+		transactionStore.transactionSuccess('0x123');
+		await vi.runAllTimersAsync();
+
+		expect(defaultProps.args.onRemove).toHaveBeenCalled();
 	});
 });
