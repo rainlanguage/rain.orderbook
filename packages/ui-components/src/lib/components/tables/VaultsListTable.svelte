@@ -205,10 +205,9 @@
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
-						outline={false}
 						data-testid="vault-menu"
 						id={`vault-menu-${item.vault.id}`}
-						class="mr-2 border-none px-2"
+						class="mr-2 border-none px-2 outline-none"
 						on:click={(e) => {
 							e.stopPropagation();
 						}}
