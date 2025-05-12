@@ -26,6 +26,10 @@
     handleWithdrawModal,
   } from '$lib/services/modal';
   import { writable } from 'svelte/store';
+  import { invalidateTanstackQueries } from '@rainlanguage/ui-components';
+  import { useQueryClient } from '@tanstack/svelte-query';
+  import type { SgVault } from '@rainlanguage/orderbook';
+  const queryClient = useQueryClient();
 
   onMount(async () => {
     if (!$activeOrderbook) {
@@ -33,6 +37,14 @@
       resetActiveOrderbookRef();
     }
   });
+
+  function onDeposit(vault: SgVault) {
+    handleDepositModal(vault, () => invalidateTanstackQueries(queryClient, [vault.id]));
+  }
+
+  function onWithdraw(vault: SgVault) {
+    handleWithdrawModal(vault, () => invalidateTanstackQueries(queryClient, [vault.id]));
+  }
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -51,7 +63,7 @@
   {activeNetworkRef}
   {activeOrderbookRef}
   {handleDepositGenericModal}
-  {handleDepositModal}
-  {handleWithdrawModal}
+  {onDeposit}
+  {onWithdraw}
   showMyItemsOnly={writable(false)}
 />

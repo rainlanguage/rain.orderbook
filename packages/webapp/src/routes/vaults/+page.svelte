@@ -1,9 +1,20 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import {
+		invalidateTanstackQueries,
+		PageHeader,
+		VaultsListTable,
+		useAccount
+	} from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
 	import { activeSubgraphs } from '$lib/stores/settings';
+	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
+	import type { SgVault } from '@rainlanguage/orderbook';
+	import type { Hex } from 'viem';
+	import { useQueryClient } from '@tanstack/svelte-query';
+
+	const queryClient = useQueryClient();
 
 	const {
 		activeOrderbook,
@@ -17,6 +28,11 @@
 		activeAccounts,
 		activeNetworkOrderbooks
 	} = $page.data.stores;
+
+	const { account } = useAccount();
+	const network = $page.params.network;
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 
 	export async function resetActiveNetworkRef() {
 		const $networks = $settings?.networks;
@@ -44,6 +60,31 @@
 			resetActiveOrderbookRef();
 		}
 	});
+
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		handleDepositOrWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					invalidateTanstackQueries(queryClient, [$page.params.id]);
+				},
+				action,
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				account: $account as Hex
+			}
+		});
+	}
+
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
+	function onWithdraw(vault: SgVault) {
+		handleVaultAction(vault, 'withdraw');
+	}
 </script>
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
@@ -62,4 +103,6 @@
 	{activeNetworkRef}
 	{activeOrderbookRef}
 	{activeAccounts}
+	{onDeposit}
+	{onWithdraw}
 />

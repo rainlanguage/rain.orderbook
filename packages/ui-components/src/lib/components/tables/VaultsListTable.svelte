@@ -37,11 +37,18 @@
 		[k: string]: string;
 	}>;
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
-	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
-		undefined;
-	export let handleWithdrawModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
-		undefined;
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	/**
+	 * Required callback function when deposit action is triggered for a vault
+	 * @param vault The vault to deposit into
+	 */
+	export let onDeposit: (vault: SgVault) => void;
+
+	/**
+	 * Required callback function when withdraw action is triggered for a vault
+	 * @param vault The vault to withdraw from
+	 */
+	export let onWithdraw: (vault: SgVault) => void;
 
 	const { account, matchesAccount } = useAccount();
 
@@ -194,7 +201,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && matchesAccount(item.vault.owner)}
+			{#if matchesAccount(item.vault.owner)}
 				<TableBodyCell tdClass="px-0 text-right">
 					<Button
 						color="alternative"
@@ -219,7 +226,7 @@
 						data-testid="deposit-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleDepositModal(item.vault, $query.refetch);
+							onDeposit(item.vault);
 						}}
 						>Deposit
 					</DropdownItem>
@@ -227,7 +234,7 @@
 						data-testid="withdraw-button"
 						on:click={(e) => {
 							e.stopPropagation();
-							handleWithdrawModal(item.vault, $query.refetch);
+							onWithdraw(item.vault);
 						}}
 						>Withdraw
 					</DropdownItem>
