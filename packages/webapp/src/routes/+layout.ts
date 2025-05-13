@@ -5,9 +5,8 @@ import type {
 	OrderbookCfgRef
 } from '@rainlanguage/ui-components';
 import { writable, derived, get } from 'svelte/store';
-import pkg from 'lodash';
+import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
-const { pickBy } = pkg;
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -105,7 +104,8 @@ export const ssr = false;
 
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
-
+	const { get } = await import('svelte/store');
+	
 	const mockFetch = vi.fn();
 	vi.stubGlobal('fetch', mockFetch);
 

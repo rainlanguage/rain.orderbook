@@ -3,6 +3,7 @@
 </script>
 
 <div
+	role="alert"
 	data-testid="error-page"
 	class="error-container mx-auto my-10 flex max-w-xl flex-col gap-4 p-2 text-center"
 >
