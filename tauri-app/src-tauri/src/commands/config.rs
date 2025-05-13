@@ -28,18 +28,18 @@ pub fn convert_configstring_to_config(config_string: ConfigSource) -> CommandRes
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use alloy::primitives::address;
-    use rain_orderbook_app_settings::config_source::{
-        ConfigSourceError, NetworkConfigSource, OrderbookConfigSource,
-    };
+    use std::collections::HashMap;
     use strict_yaml_rust::StrictYaml;
     use url::Url;
 
-    use crate::error::CommandError;
-
     use super::*;
+    use crate::error::CommandError;
+    use rain_orderbook_app_settings::{
+        config_source::{ConfigSourceError, NetworkConfigSource, OrderbookConfigSource},
+        orderbook::ParseOrderbookConfigSourceError,
+        ParseConfigSourceError,
+    };
 
     #[tokio::test]
     async fn test_parse_configstring_and_convert_configstring_to_config() {
@@ -132,6 +132,21 @@ orderbooks: &orderbooks
         assert_eq!(config_src.raindex_version, Some("123".to_string()));
         assert_eq!(config_src.accounts, None);
         assert_eq!(config_src.gui, None);
+
+        let err = convert_configstring_to_config(ConfigSource {
+            networks: HashMap::new(),
+            ..config_src.clone()
+        })
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::ParseConfigSourceError(
+                ParseConfigSourceError::ParseOrderbookConfigSourceError(
+                    ParseOrderbookConfigSourceError::NetworkNotFoundError(msg)
+                )
+            ) if &msg == "mainnet"
+        ));
 
         let config = convert_configstring_to_config(config_src).unwrap();
 
@@ -251,28 +266,20 @@ orderbooks: &orderbooks
 
         // Inspect tokens
         assert_eq!(config.tokens, HashMap::new());
-
         // Inspect deployers
         assert_eq!(config.deployers, HashMap::new());
-
         // Inspect orders
         assert_eq!(config.orders, HashMap::new());
-
         // Inspect scenarios
         assert_eq!(config.scenarios, HashMap::new());
-
         // Inspect charts
         assert_eq!(config.charts, HashMap::new());
-
         // Inspect deployments
         assert_eq!(config.deployments, HashMap::new());
-
         // Inspect sentry
         assert_eq!(config.sentry, None);
-
         // Inspect raindex_version
         assert_eq!(config.raindex_version, Some("123".to_string()));
-
         // Inspect accounts
         assert_eq!(config.accounts, None);
         // Inspect gui
