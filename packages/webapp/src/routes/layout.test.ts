@@ -28,7 +28,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const MockWalletProvider = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),
-
 		WalletProvider: MockWalletProvider
 	};
 });
@@ -135,5 +134,19 @@ describe('Layout component', () => {
 			value: originalNavigator,
 			writable: true
 		});
+	});
+
+	it('displays an error page if the page.error is set', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			...initialPageState,
+			data: {
+				...initialPageState.data,
+				errorMessage: 'Test error'
+			}
+		});
+		render(Layout);
+
+		expect(screen.getByText('Test error')).toBeInTheDocument();
+		expect(screen.getByTestId('error-page')).toBeInTheDocument();
 	});
 });
