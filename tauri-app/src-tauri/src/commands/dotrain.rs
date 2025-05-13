@@ -99,6 +99,7 @@ _ _: 1 2;
     async fn test_dotrain_err_invalid_deployer() {
         let local_evm = LocalEvm::new().await;
         let deployer = *local_evm.deployer.address();
+        // Make the deployer address invalid by flipping a bit in the original address
         let deployer = deployer
             .bit_xor(Address::from_hex("0000000000000000000000000000000000000001").unwrap());
 
