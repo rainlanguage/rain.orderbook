@@ -59,9 +59,9 @@ mod tests {
         let server = MockServer::start();
 
         server.mock(|when, then| {
-            when.path("/rpc-1");
-            then.status(200)
-                .body(r#"{"jsonrpc":"2.0","id":1,"result":1}"#);
+            when.path("/rpc-1").body_contains("eth_chainId");
+            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": 1 });
+            then.status(200).body(res_body.to_string());
         });
 
         server.mock(|when, then| {
@@ -83,6 +83,64 @@ mod tests {
             err,
             CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
             if msg.contains("Deserialization Error: EOF")
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_get_block_number_ok() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/rpc-1").body_contains("eth_blockNumber");
+            let res_body = json!({ "jsonrpc": "2.0", "id": 1, "result": "0x15536ee" });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-1");
+        let block_number = get_block_number(rpc_url).await.unwrap();
+        assert_eq!(block_number, 0x15536ee);
+
+        server.mock(|when, then| {
+            when.path("/rpc-2").body_contains("eth_blockNumber");
+            let res_body = json!({ "jsonrpc": "2.0", "id": 2, "result": "0xabcdef" });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-2");
+        let block_number = get_block_number(rpc_url).await.unwrap();
+        assert_eq!(block_number, 0xabcdef);
+    }
+
+    #[tokio::test]
+    async fn test_get_block_number_err() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/rpc-1").body_contains("eth_blockNumber");
+            let res_body = json!({ "jsonrpc": "2.0", "id": 1, "result": null });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-1");
+        let err = get_block_number(rpc_url).await.unwrap_err();
+        assert!(matches!(
+            err,
+            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
+            if msg.contains("Deserialization Error: invalid type: null")
+        ));
+
+        server.mock(|when, then| {
+            when.path("/rpc-2").body_contains("eth_blockNumber");
+            let res_body = json!({ "jsonrpc": "2.0", "id": 2, "error": { "code": -32000, "message": "Internal error" } });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-2");
+        let err = get_block_number(rpc_url).await.unwrap_err();
+        assert!(matches!(
+            err,
+            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
+            if msg.contains("message: Internal error")
         ));
     }
 }
