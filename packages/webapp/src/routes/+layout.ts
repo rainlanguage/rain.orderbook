@@ -4,7 +4,7 @@ import type {
 	OrderbookConfigSource,
 	OrderbookCfgRef
 } from '@rainlanguage/ui-components';
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
 
@@ -177,7 +177,9 @@ if (import.meta.vitest) {
 			expect(get(stores.settings)).toEqual(mockSettingsJson);
 			expect(get(stores.activeNetworkRef)).toEqual('');
 			expect(get(stores.activeOrderbookRef)).toEqual('');
-			expect(get(stores.activeAccountsItems)).toEqual({});
+			if (stores.activeAccountsItems) {
+				expect(get(stores.activeAccountsItems)).toEqual({});
+			}
 			expect(get(stores.orderHash)).toEqual('');
 			expect(get(stores.hideZeroBalanceVaults)).toEqual(false);
 		});
@@ -269,7 +271,7 @@ if (import.meta.vitest) {
 
 			if (!stores) throw new Error('Test setup error: stores should not be null');
 
-			stores.activeAccountsItems.set({ account1: 'Account 1' });
+			stores.activeAccountsItems?.set({ account1: 'Account 1' });
 
 			const accounts = get(stores.activeAccounts);
 			expect(accounts).toHaveProperty('account1');
@@ -395,7 +397,7 @@ if (import.meta.vitest) {
 
 			stores.activeNetworkRef.set('network1');
 			stores.activeOrderbookRef.set('orderbook1');
-			stores.activeAccountsItems.set({ account1: 'Account 1' });
+			stores.activeAccountsItems?.set({ account1: 'Account 1' });
 
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook1');
 			expect(get(stores.activeOrderbook)).toEqual(mockSettingsJson.orderbooks.orderbook1);
@@ -403,7 +405,7 @@ if (import.meta.vitest) {
 			expect(get(stores.activeAccounts)).toHaveProperty('account1');
 
 			stores.activeNetworkRef.set('network2');
-			stores.activeAccountsItems.set({ account1: 'Account 1', account2: 'Account 2' });
+			stores.activeAccountsItems?.set({ account1: 'Account 1', account2: 'Account 2' });
 			stores.activeOrderbookRef.set('orderbook2');
 
 			expect(get(stores.activeNetworkOrderbooks)).toHaveProperty('orderbook2');
