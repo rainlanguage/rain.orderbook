@@ -304,6 +304,14 @@ impl DotrainOrder {
         Self::dummy()
     }
 
+    fn ensure_initialized(&self) -> Result<(), DotrainOrderError> {
+        if self.is_initialized() {
+            Ok(())
+        } else {
+            Err(DotrainOrderError::DotrainOrderNotInitialized)
+        }
+    }
+
     /// Creates a new `DotrainOrder` instance asynchronously.
     ///
     /// **Deprecated:** This method is deprecated and will be removed in a future version.
@@ -376,9 +384,7 @@ impl DotrainOrder {
     // get this instance's dotrain string
     #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
     pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
         Ok(self.dotrain.clone())
     }
 
@@ -390,9 +396,7 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
@@ -411,9 +415,7 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
@@ -432,9 +434,7 @@ impl DotrainOrder {
         &self,
         deployment: String,
     ) -> Result<String, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
 
@@ -459,9 +459,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let deployer = self.dotrain_yaml.get_scenario(scenario)?.deployer;
         let parser: ParserV2 = deployer.address.into();
@@ -479,9 +477,7 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
@@ -497,9 +493,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
 
@@ -516,9 +510,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<ContractWords>, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let pragma_addresses = self.get_pragmas_for_scenario(scenario).await?;
         let mut futures = vec![];
@@ -541,9 +533,7 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
         let mut addresses = vec![*deployer];
@@ -578,9 +568,7 @@ impl DotrainOrder {
     pub async fn get_all_scenarios_all_words(
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let mut scenarios = vec![];
         for scenario in self.dotrain_yaml.get_scenario_keys()? {
@@ -590,9 +578,7 @@ impl DotrainOrder {
     }
 
     pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
-        if !self.is_initialized() {
-            return Err(DotrainOrderError::DotrainOrderNotInitialized);
-        }
+        self.ensure_initialized()?;
 
         let app_sha = GH_COMMIT_SHA.to_string();
 
