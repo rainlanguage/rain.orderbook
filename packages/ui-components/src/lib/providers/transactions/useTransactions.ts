@@ -11,18 +11,24 @@ import { getTransactionsContext } from './context';
 export function useTransactions() {
 	const transactions = getTransactionsContext();
 
-    // Add a transaction to the store
-    const addTransaction = (transaction: BaseTransaction) => {
-        transactions.update((transactions) => [...transactions, transaction]);
-    }
+	// Add a transaction to the store
+	const addTransaction = (transaction: BaseTransaction) => {
+		transactions.update((transactions) => [...transactions, transaction]);
+	};
 
-    // Lookup a transaction by its hash
-    const getTransaction = (hash: string) => {
-        return get(transactions).find((transaction) => transaction.state.hash === hash);
-    }
+	// Lookup a transaction by its hash
+	// TODO: Use nonce instead of hash
+	const getTransaction = (hash: string) => {
+		return get(transactions).find((transaction) => {
+			if ('hash' in transaction.state) {
+				return transaction.state.hash === hash;
+			}
+			return false;
+		});
+	};
 
 	return {
 		addTransaction,
-		getTransaction,
+		getTransaction
 	};
 }

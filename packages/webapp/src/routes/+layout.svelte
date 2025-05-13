@@ -15,10 +15,14 @@
 	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
+	import { transactions } from '$lib/stores/transactions';
 	import { settings as cachedSettings } from '$lib/stores/settings';
+	import { RemoveTransactionsProvider } from '@rainlanguage/ui-components';
 
 	const { settings } = $page.data.stores;
 	cachedSettings.set(settings);
+
+	$: console.log($transactions);
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -59,24 +63,26 @@
 	</div>
 {/if}
 
-<ToastProvider {toasts}>
-	<WalletProvider account={signerAddress}>
-		<QueryClientProvider client={queryClient}>
-			<LoadingWrapper>
-				{#if $page.url.pathname === '/'}
-					<Homepage {colorTheme} />
-				{:else}
-					<div
-						data-testid="layout-container"
-						class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-					>
-						<Sidebar {colorTheme} page={$page} />
-						<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-							<slot />
-						</main>
-					</div>
-				{/if}
-			</LoadingWrapper>
-		</QueryClientProvider>
-	</WalletProvider>
-</ToastProvider>
+<RemoveTransactionsProvider {transactions}>
+	<ToastProvider {toasts}>
+		<WalletProvider account={signerAddress}>
+			<QueryClientProvider client={queryClient}>
+				<LoadingWrapper>
+					{#if $page.url.pathname === '/'}
+						<Homepage {colorTheme} />
+					{:else}
+						<div
+							data-testid="layout-container"
+							class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+						>
+							<Sidebar {colorTheme} page={$page} />
+							<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+								<slot />
+							</main>
+						</div>
+					{/if}
+				</LoadingWrapper>
+			</QueryClientProvider>
+		</WalletProvider>
+	</ToastProvider>
+</RemoveTransactionsProvider>

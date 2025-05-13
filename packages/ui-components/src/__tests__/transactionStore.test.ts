@@ -1,9 +1,7 @@
 import { get } from 'svelte/store';
 import { describe, it, expect, vi, beforeEach, afterAll, type Mock } from 'vitest';
-import transactionStore, {
-	TransactionStatus,
-	TransactionErrorMessage
-} from '../lib/stores/transactionStore';
+import { TransactionStatusMessage, TransactionErrorMessage } from '../lib/types/transaction';
+import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
 import {
 	getTransaction,
@@ -71,7 +69,7 @@ describe('transactionStore', () => {
 
 	it('should initialize with the correct default state', () => {
 		expect(get(transactionStore)).toEqual({
-			status: TransactionStatus.IDLE,
+			status: TransactionStatusMessage.IDLE,
 			error: '',
 			hash: '',
 			data: null,
@@ -85,33 +83,33 @@ describe('transactionStore', () => {
 
 	it('should update status to CHECKING_ALLOWANCE', () => {
 		checkingWalletAllowance('Checking allowance...');
-		expect(get(transactionStore).status).toBe(TransactionStatus.CHECKING_ALLOWANCE);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.CHECKING_ALLOWANCE);
 		expect(get(transactionStore).message).toBe('Checking allowance...');
 	});
 
 	it('should update status to PENDING_WALLET', () => {
 		awaitWalletConfirmation('Waiting for wallet...');
-		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_WALLET);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.PENDING_WALLET);
 		expect(get(transactionStore).message).toBe('Waiting for wallet...');
 	});
 
 	it('should update status to PENDING_APPROVAL', () => {
 		awaitApprovalTx('mockHash', 'TEST');
-		expect(get(transactionStore).status).toBe(TransactionStatus.PENDING_APPROVAL);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.PENDING_APPROVAL);
 		expect(get(transactionStore).hash).toBe('mockHash');
 		expect(get(transactionStore).message).toBe('Approving TEST spend...');
 	});
 
 	it('should update status to SUCCESS', () => {
 		transactionSuccess('mockHash', 'Transaction successful');
-		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe('mockHash');
 		expect(get(transactionStore).message).toBe('Transaction successful');
 	});
 
 	it('should update status to ERROR', () => {
 		transactionError(TransactionErrorMessage.DEPLOY_FAILED, 'mockHash');
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.DEPLOY_FAILED);
 		expect(get(transactionStore).hash).toBe('mockHash');
 	});
@@ -129,7 +127,7 @@ describe('transactionStore', () => {
 			network: 'flare'
 		});
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
 	});
 
@@ -149,7 +147,7 @@ describe('transactionStore', () => {
 			network: 'flare'
 		});
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.USER_REJECTED_APPROVAL);
 	});
 
@@ -180,7 +178,7 @@ describe('transactionStore', () => {
 			mockSuccessMessage
 		);
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).message).toBe(mockSuccessMessage);
 	});
@@ -202,7 +200,7 @@ describe('transactionStore', () => {
 
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 
@@ -233,7 +231,7 @@ describe('transactionStore', () => {
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
 		expect(getNewOrderConfig).toHaveBeenCalledWith(mockSubgraphUrl, mockTxHash, '', mockNetwork);
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
 		expect(get(transactionStore).network).toBe(mockNetwork);
@@ -257,7 +255,7 @@ describe('transactionStore', () => {
 
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.ERROR);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
 		expect(get(transactionStore).error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 
@@ -277,7 +275,7 @@ describe('transactionStore', () => {
 			network: 'flare'
 		});
 
-		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
+		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe('deployHash');
 		expect(get(transactionStore).message).toBe(
 			'Deployment successful. Check the Orders page for your new order.'
@@ -337,7 +335,7 @@ describe('handleRemoveOrderTransaction', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		const pendingState = get(transactionStore);
-		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(pendingState.status).toBe(TransactionStatusMessage.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe(mockTxHash);
 		expect(pendingState.message).toBe('Waiting for order removal to be indexed...');
 		expect(pendingState.explorerLink).toBe('https://explorer.example.com/tx/removeordertxhash');
@@ -365,7 +363,7 @@ describe('handleRemoveOrderTransaction', () => {
 		await transactionPromise;
 
 		const finalState = get(transactionStore);
-		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
+		expect(finalState.status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(finalState.message).toBe('Order removed successfully');
 		expect(finalState.explorerLink).toBe('https://explorer.example.com/tx/removeordertxhash');
 	});
@@ -382,7 +380,7 @@ describe('handleRemoveOrderTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
 
 		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
@@ -402,7 +400,7 @@ describe('handleRemoveOrderTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
 
 		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
@@ -429,7 +427,7 @@ describe('handleRemoveOrderTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.REMOVE_ORDER_FAILED);
 
 		expect(switchChain).toHaveBeenCalledWith(mockConfig, { chainId: mockChainId });
@@ -460,7 +458,7 @@ describe('handleRemoveOrderTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 });
@@ -520,7 +518,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		const pendingState = get(transactionStore);
-		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(pendingState.status).toBe(TransactionStatusMessage.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe(mockTxHash);
 		expect(pendingState.message).toBe('Waiting for transaction to be indexed...');
 
@@ -536,7 +534,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		await transactionPromise;
 
 		const finalState = get(transactionStore);
-		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
+		expect(finalState.status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(finalState.message).toBe('The deposit was successful.');
 		expect(finalState.explorerLink).toBe('https://explorer.example.com/tx/deposittxhash');
 	});
@@ -564,7 +562,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 });
@@ -621,7 +619,7 @@ describe('handleDeploymentTransaction', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		const pendingState = get(transactionStore);
-		expect(pendingState.status).toBe(TransactionStatus.PENDING_SUBGRAPH);
+		expect(pendingState.status).toBe(TransactionStatusMessage.PENDING_SUBGRAPH);
 		expect(pendingState.hash).toBe('deployHash');
 		expect(pendingState.explorerLink).toBe('https://explorer.example.com/tx/deployHash');
 
@@ -639,7 +637,7 @@ describe('handleDeploymentTransaction', () => {
 		await deploymentPromise;
 
 		const finalState = get(transactionStore);
-		expect(finalState.status).toBe(TransactionStatus.SUCCESS);
+		expect(finalState.status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(finalState.message).toBe('Transaction confirmed');
 		expect(finalState.explorerLink).toBe('https://explorer.example.com/tx/deployHash');
 	});
@@ -667,7 +665,7 @@ describe('handleDeploymentTransaction', () => {
 		});
 
 		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatus.ERROR);
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 });

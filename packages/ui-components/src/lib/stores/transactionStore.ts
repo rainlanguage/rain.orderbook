@@ -3,7 +3,12 @@ import type { Hex } from 'viem';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import { getExplorerLink } from '../services/getExplorerLink';
 import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
-import type { DeploymentTransactionArgs, DepositOrWithdrawTransactionArgs, RemoveOrderTransactionArgs, TransactionState } from '$lib/types/transaction';
+import type {
+	DeploymentTransactionArgs,
+	DepositOrWithdrawTransactionArgs,
+	RemoveOrderTransactionArgs,
+	TransactionState
+} from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	getNewOrderConfig,

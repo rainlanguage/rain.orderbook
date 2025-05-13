@@ -1,12 +1,19 @@
 import type { Hex } from 'viem';
-import type { RemoveOrderCalldata, SgOrder, SgVault, WithdrawCalldataResult, ApprovalCalldata, DepositCalldataResult, DepositAndAddOrderCalldataResult } from '@rainlanguage/orderbook';
+import type {
+	RemoveOrderCalldata,
+	SgOrder,
+	SgVault,
+	WithdrawCalldataResult,
+	ApprovalCalldata,
+	DepositCalldataResult,
+	DepositAndAddOrderCalldataResult
+} from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
+import type { RemoveOrderTransaction } from '$lib/models/RemoveOrderTransaction';
 
 // The most generic transaction type, containing required fields for all transactions
-export type BaseTransaction = {
-	message: TransactionStatusMessage;
-	state: TransactionState;
-}
+export type BaseTransaction = RemoveOrderTransaction;
+// OR AddOrderTransaction OR etc etc
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
@@ -92,7 +99,6 @@ export type TransactionState = {
 	network: string;
 	explorerLink: string;
 };
-
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 

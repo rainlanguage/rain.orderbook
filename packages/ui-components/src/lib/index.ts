@@ -68,13 +68,14 @@ export { default as InputRegistryUrl } from './components/input/InputRegistryUrl
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
+export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
-	TransactionStatus,
+	TransactionStatusMessage,
 	TransactionErrorMessage,
 	type TransactionState,
-	type ExtendedApprovalCalldata
-} from './stores/transactionStore';
+	type ExtendedApprovalCalldata,
+	type BaseTransaction
+} from './types/transaction';
 export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
 export type {
 	DepositOrWithdrawModalProps,
@@ -134,15 +135,18 @@ export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
+export { default as RemoveTransactionsProvider } from './providers/transactions/RemoveTransactionsProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
+export { useTransactions } from './providers/transactions/useTransactions';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
+export { RemoveOrder } from './models/RemoveOrderTransaction';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';

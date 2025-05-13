@@ -5,7 +5,7 @@ import TransactionsListener from '$lib/components/TransactionsListener.svelte';
 import {
 	invalidateTanstackQueries,
 	useToasts,
-	TransactionStatus
+	TransactionStatusMessage
 } from '@rainlanguage/ui-components';
 import { QueryClient, useQueryClient } from '@tanstack/svelte-query';
 
@@ -50,7 +50,7 @@ describe('TransactionsListener.svelte', () => {
 		render(TransactionsListener, { props: { queryKey: testQueryKey } });
 
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: 'Transaction was super successful!'
 		});
 		await waitFor(() => {
@@ -71,7 +71,7 @@ describe('TransactionsListener.svelte', () => {
 
 		const errorMessage = 'Oh no, an error occurred!';
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error: errorMessage
 		});
 
@@ -97,17 +97,17 @@ describe('TransactionsListener.svelte', () => {
 		render(TransactionsListener, { props: { queryKey: testQueryKey } });
 
 		await mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: 'Success 1'
 		});
 
 		await mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error: 'Error 1'
 		});
 
 		await mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: 'Success 2'
 		});
 
@@ -143,7 +143,7 @@ describe('TransactionsListener.svelte', () => {
 		render(TransactionsListener, { props: { queryKey: testQueryKey } });
 
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error: undefined
 		});
 
@@ -159,7 +159,7 @@ describe('TransactionsListener.svelte', () => {
 		mockAddToast.mockClear();
 
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error: ''
 		});
 
