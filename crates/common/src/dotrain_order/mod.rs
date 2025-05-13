@@ -263,8 +263,42 @@ impl DotrainOrder {
     }
 }
 
+/*
+
+NOTE FOR DEVELOPERS:
+
+Due to the way `wasm_bindgen` works, and how the `impl_wasm_traits` macro, we must separate the construction and initialization steps for `DotrainOrder`.
+
+- When using the macro, the `DotrainOrder` object created on the JavaScript side is **not** a class instance; it's just a plain object with fields (which will be `undefined`).
+- To get a proper class instance in JavaScript, you must use the constructor exposed by `wasm_bindgen` (`new DotrainOrder()`), which gives you a real class object.
+- After construction, you must call the `.initialize()` method to populate the instance with your configuration and make it ready for use.
+
+This two-step process is required for correct interop between Rust and JavaScript via WASM.
+
+*/
 #[wasm_bindgen]
 impl DotrainOrder {
+    /// Creates a new, uninitialized `DotrainOrder` instance.
+    ///
+    /// # JavaScript Usage
+    ///
+    /// To use `DotrainOrder` from JavaScript, you must first create an instance
+    /// using this constructor, and then initialize it with your configuration:
+    ///
+    /// ```javascript
+    /// // Step 1: Create a new DotrainOrder instance (not yet initialized)
+    /// const dotrainOrder = new DotrainOrder();
+    ///
+    /// // Step 2: Initialize the instance with your dotrain script and optional settings
+    /// await dotrainOrder.initialize(dotrain, [settings]);
+    ///
+    /// // Now you can use other methods on dotrainOrder
+    /// const rainlang = await dotrainOrder.composeScenarioToRainlang("my-scenario");
+    /// ```
+    ///
+    /// **Note:** The constructor does NOT initialize the instance.  
+    /// You must always call `.initialize()` before using any other methods.  
+    /// If you try to use methods before initialization, they will throw an error.
     #[wasm_bindgen(constructor)]
     pub fn new() -> DotrainOrder {
         Self::dummy()
