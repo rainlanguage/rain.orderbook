@@ -106,7 +106,7 @@ export const ssr = false;
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
 	const { get } = await import('svelte/store');
-	
+
 	const mockFetch = vi.fn();
 	vi.stubGlobal('fetch', mockFetch);
 
