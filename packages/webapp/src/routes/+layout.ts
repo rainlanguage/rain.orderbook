@@ -67,7 +67,7 @@ export const load = async ({ fetch }) => {
 			activeAccountsItems,
 			activeAccounts,
 			// Instantiate with false to show only active orders
-			showInactiveOrders: writable<boolean>(false),
+			activeOrderStatus: writable<boolean>(false),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			activeNetworkRef,
@@ -215,7 +215,7 @@ subgraphs:
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
 			expect(stores).toHaveProperty('activeAccounts');
-			expect(stores).toHaveProperty('showInactiveOrders');
+			expect(stores).toHaveProperty('activeOrderStatus');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
 			expect(stores).toHaveProperty('activeNetworkRef');
