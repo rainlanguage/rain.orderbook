@@ -64,11 +64,6 @@ mod tests {
             then.status(200).body(res_body.to_string());
         });
 
-        server.mock(|when, then| {
-            when.path("/rpc-404");
-            then.status(404);
-        });
-
         let rpc_url = server.url("/rpc-1");
         let err = get_chainid(rpc_url).await.unwrap_err();
         assert!(matches!(
@@ -77,12 +72,31 @@ mod tests {
             if msg.contains("Deserialization Error: invalid type")
         ));
 
-        let rpc_url = server.url("/rpc-404");
+        server.mock(|when, then| {
+            when.path("/rpc-2");
+            then.status(404);
+        });
+
+        let rpc_url = server.url("/rpc-2");
         let err = get_chainid(rpc_url).await.unwrap_err();
         assert!(matches!(
             err,
             CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
             if msg.contains("Deserialization Error: EOF")
+        ));
+
+        server.mock(|when, then| {
+            when.path("/rpc-3").body_contains("eth_chainId");
+            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": "0xyz" });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-3");
+        let err = get_chainid(rpc_url).await.unwrap_err();
+        assert!(matches!(
+            err,
+            CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
+            if msg.contains("Deserialization Error: invalid hex character: y")
         ));
     }
 
@@ -141,6 +155,20 @@ mod tests {
             err,
             CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
             if msg.contains("message: Internal error")
+        ));
+
+        server.mock(|when, then| {
+            when.path("/rpc-3").body_contains("eth_blockNumber");
+            let res_body = json!({ "jsonrpc":"2.0", "id":1, "result": "0xyz" });
+            then.status(200).body(res_body.to_string());
+        });
+
+        let rpc_url = server.url("/rpc-3");
+        let err = get_block_number(rpc_url).await.unwrap_err();
+        assert!(matches!(
+            err,
+            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
+            if msg.contains("Deserialization Error: invalid hex character: y")
         ));
     }
 }
