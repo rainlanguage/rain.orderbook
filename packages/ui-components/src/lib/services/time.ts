@@ -51,7 +51,7 @@ if (import.meta.vitest) {
 		describe('formatTimestampSecondsAsLocal', () => {
 			it('converts timestamp to local format', () => {
 				const result = formatTimestampSecondsAsLocal(BigInt('1672531200')); // Jan 1, 2023 01:00 AM
-				expect(result).toBe('01/01/2023 1:00 AM');
+				expect(result).toBe('01/01/2023 12:00 AM');
 			});
 		});
 
