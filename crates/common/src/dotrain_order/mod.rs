@@ -35,6 +35,9 @@ impl PartialEq for DotrainOrder {
 
 #[derive(Error, Debug)]
 pub enum DotrainOrderError {
+    #[error("DotrainOrder is not initialized")]
+    DotrainOrderNotInitialized,
+
     #[error(transparent)]
     ParseConfigSourceError(#[from] ParseConfigSourceError),
 
@@ -92,6 +95,9 @@ pub enum DotrainOrderError {
 impl DotrainOrderError {
     pub fn to_readable_msg(&self) -> String {
         match self {
+            DotrainOrderError::DotrainOrderNotInitialized => {
+                "DotrainOrder is not initialized. Please call initialize() first.".to_string()
+            }
             DotrainOrderError::ParseConfigSourceError(e) => {
                 format!("Error parsing the configuration source: {}", e)
             }
@@ -216,6 +222,9 @@ impl DotrainOrder {
             },
         }
     }
+    pub fn is_initialized(&self) -> bool {
+        !self.dotrain.is_empty()
+    }
 
     async fn _initialize(
         dotrain: String,
@@ -333,6 +342,9 @@ impl DotrainOrder {
     // get this instance's dotrain string
     #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
     pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
         Ok(self.dotrain.clone())
     }
 
@@ -344,6 +356,10 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
@@ -361,6 +377,10 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
@@ -378,6 +398,10 @@ impl DotrainOrder {
         &self,
         deployment: String,
     ) -> Result<String, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
 
         Ok(compose_to_rainlang(
@@ -401,6 +425,10 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let deployer = self.dotrain_yaml.get_scenario(scenario)?.deployer;
         let parser: ParserV2 = deployer.address.into();
         let rainlang = self
@@ -417,6 +445,10 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
         let rpc = &network.rpc;
@@ -431,6 +463,10 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
 
         Ok(ContractWords {
@@ -446,6 +482,10 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<ContractWords>, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let pragma_addresses = self.get_pragmas_for_scenario(scenario).await?;
         let mut futures = vec![];
 
@@ -467,6 +507,10 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
         let mut addresses = vec![*deployer];
         addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
@@ -500,6 +544,10 @@ impl DotrainOrder {
     pub async fn get_all_scenarios_all_words(
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let mut scenarios = vec![];
         for scenario in self.dotrain_yaml.get_scenario_keys()? {
             scenarios.push(self.get_all_words_for_scenario(&scenario).await?);
@@ -508,6 +556,10 @@ impl DotrainOrder {
     }
 
     pub async fn validate_raindex_version(&self) -> Result<(), DotrainOrderError> {
+        if !self.is_initialized() {
+            return Err(DotrainOrderError::DotrainOrderNotInitialized);
+        }
+
         let app_sha = GH_COMMIT_SHA.to_string();
 
         if let Some(raindex_version) = &self.orderbook_yaml().get_raindex_version()? {
@@ -1343,5 +1395,83 @@ _ _: 0 0;
 /* 1. handle-io */ 
 :;"#
         );
+    }
+
+    #[tokio::test]
+    async fn test_is_initialized() {
+        let dotrain_order = DotrainOrder::new();
+        assert!(!dotrain_order.is_initialized());
+
+        assert!(matches!(
+            dotrain_order.dotrain().unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .compose_deployment_to_rainlang("".to_string())
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .compose_scenario_to_rainlang("".to_string())
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .compose_scenario_to_post_task_rainlang("".to_string())
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_pragmas_for_scenario("")
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_contract_authoring_meta_v2_for_scenario("", Address::ZERO)
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_deployer_words_for_scenario("")
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_pragma_words_for_scenario("")
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_all_words_for_scenario("")
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order
+                .get_all_scenarios_all_words()
+                .await
+                .unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
+        assert!(matches!(
+            dotrain_order.validate_raindex_version().await.unwrap_err(),
+            DotrainOrderError::DotrainOrderNotInitialized
+        ));
     }
 }
