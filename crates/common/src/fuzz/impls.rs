@@ -40,7 +40,7 @@ impl FuzzResult {
 
 #[derive(Error, Debug)]
 pub enum FuzzRunnerError {
-    #[error("Scenario not found")]
+    #[error("Scenario not found: {0}")]
     ScenarioNotFound(String),
     #[error("Scenario has no runs defined")]
     ScenarioNoRuns,
