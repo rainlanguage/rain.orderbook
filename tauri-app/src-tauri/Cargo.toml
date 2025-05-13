@@ -38,6 +38,7 @@ url = "2.5.0"
 serde_yaml = "0.9.32"
 dotrain = "6.0.1-alpha.24"
 futures = "0.3.17"
+tokio = { version = "1.28.0", features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-utils = "0.0"
@@ -49,6 +50,5 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [dev-dependencies]
 tauri-cli = "1.5"
-tokio = { version = "1.28.0", features = ["full"] }
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }

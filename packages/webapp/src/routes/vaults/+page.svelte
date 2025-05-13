@@ -11,7 +11,7 @@
 		settings,
 		accounts,
 		activeAccountsItems,
-		activeOrderStatus,
+		showInactiveOrders,
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
@@ -57,7 +57,7 @@
 	{settings}
 	{accounts}
 	{activeAccountsItems}
-	{activeOrderStatus}
+	{showInactiveOrders}
 	{hideZeroBalanceVaults}
 	{activeNetworkRef}
 	{activeOrderbookRef}
