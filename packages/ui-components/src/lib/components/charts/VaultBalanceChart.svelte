@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
+	import { timestampSecondsToUTCTimestamp } from '../../services/time';
 	import { bigintToFloat } from '../../utils/number';
 	import type { SgVault } from '@rainlanguage/orderbook';
 	import { createQuery } from '@tanstack/svelte-query';
