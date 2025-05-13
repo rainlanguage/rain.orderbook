@@ -37,9 +37,10 @@ impl WithdrawArgs {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call: withdraw2Call = self.clone().into();
-        let params = transaction_args
-            .try_into_write_contract_parameters(withdraw_call, transaction_args.orderbook_address)
-            .await?;
+        let params = transaction_args.try_into_write_contract_parameters(
+            withdraw_call,
+            transaction_args.orderbook_address,
+        )?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
@@ -102,8 +103,8 @@ mod tests {
         assert_eq!(calldata.len(), 164);
     }
 
-    #[tokio::test]
-    async fn test_withdraw_call_try_into_write_contract_parameters() {
+    #[test]
+    fn test_withdraw_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
             rpc_url: "http://test.com".to_string(),
             orderbook_address: Address::ZERO,
@@ -121,7 +122,6 @@ mod tests {
         };
         let params = args
             .try_into_write_contract_parameters(withdraw_call.clone(), Address::ZERO)
-            .await
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, withdraw_call);
