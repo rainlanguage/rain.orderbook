@@ -9,7 +9,7 @@
     settings,
     accounts,
     activeAccountsItems,
-    activeOrderStatus,
+    showInactiveOrders,
     orderHash,
     hideZeroBalanceVaults,
     resetActiveNetworkRef,
@@ -39,7 +39,7 @@
   {settings}
   {accounts}
   {activeAccountsItems}
-  {activeOrderStatus}
+  {showInactiveOrders}
   {orderHash}
   {hideZeroBalanceVaults}
   showMyItemsOnly={writable(false)}
