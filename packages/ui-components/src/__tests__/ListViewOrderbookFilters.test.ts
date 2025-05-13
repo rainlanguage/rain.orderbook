@@ -52,7 +52,7 @@ describe('ListViewOrderbookFilters', () => {
 		hideZeroBalanceVaults: writable(false),
 		activeAccountsItems: writable({}),
 		activeSubgraphs: writable({}),
-		activeOrderStatus: writable(undefined),
+		showInactiveOrders: writable(true),
 		orderHash: writable(''),
 		showMyItemsOnly: writable(false)
 	} as ListViewOrderbookFiltersProps;

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Writable } from 'svelte/store';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
+	import type { AppStoresInterface } from '$lib/types/appStores';
 
 	export let settings: Config;
-	export let activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
+	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 
 	$: dropdownOptions = Object.keys(settings.orderbook.subgraphs ?? {}).reduce(
 		(acc, key) => ({

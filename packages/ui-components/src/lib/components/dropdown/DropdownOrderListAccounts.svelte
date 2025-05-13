@@ -1,14 +1,9 @@
 <script lang="ts">
-	import type { AccountCfg } from '@rainlanguage/orderbook';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { Writable, Readable } from 'svelte/store';
-	import { readable } from 'svelte/store';
 	import { getAccountsAsOptions } from '$lib/utils/configHelpers';
-
-	export let accounts: Readable<Record<string, AccountCfg>> = readable<Record<string, AccountCfg>>(
-		{}
-	);
-	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
+	import type { AppStoresInterface } from '$lib/types/appStores';
+	export let accounts: AppStoresInterface['accounts'];
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 
 	$: options = getAccountsAsOptions($accounts);
 </script>

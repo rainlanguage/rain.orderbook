@@ -27,6 +27,7 @@
 	import { type DeploymentArgs } from '$lib/types/transaction';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { useRegistry } from '$lib/providers/registry/useRegistry';
 
 	interface Deployment {
 		key: string;
@@ -43,7 +44,6 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let settings: Writable<Config>;
-	export let registryUrl: string;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -58,6 +58,7 @@
 
 	const { account } = useAccount();
 	const gui = useGui();
+	const registry = useRegistry();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -151,7 +152,7 @@
 	}
 
 	async function _handleShareChoices() {
-		await handleShareChoices(gui, registryUrl);
+		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
 	async function onSelectTokenSelect() {
