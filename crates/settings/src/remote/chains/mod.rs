@@ -308,4 +308,53 @@ mod tests {
             ));
         }
     }
+
+    #[tokio::test]
+    async fn test_try_from_remote_network_config_source_empty_chain_list() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/chains");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body("[]");
+        });
+
+        let remote_networks_config_source = RemoteNetworksConfigSource {
+            format: "chainid".to_string(),
+            url: server.url("/chains"),
+        };
+
+        let result =
+            RemoteNetworks::try_from_remote_network_config_source(remote_networks_config_source)
+                .await
+                .unwrap();
+
+        let RemoteNetworks::ChainId(chains) = result;
+        assert!(chains.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_try_from_remote_network_config_source_missing_required_fields() {
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/chains");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"[{ "name": "Invalid Chain", "chain": "INV" }]"#);
+        });
+
+        let remote_networks_config_source = RemoteNetworksConfigSource {
+            format: "chainid".to_string(),
+            url: server.url("/chains"),
+        };
+
+        let err =
+            RemoteNetworks::try_from_remote_network_config_source(remote_networks_config_source)
+                .await
+                .unwrap_err();
+
+        assert!(matches!(err, RemoteNetworkError::ReqwestError(err) if err.is_decode()));
+    }
 }
