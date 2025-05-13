@@ -8276,7 +8276,7 @@ dependencies = [
  "strict-yaml-rust",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -8285,7 +8285,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "serde",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -8322,7 +8322,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -8355,7 +8355,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -8376,7 +8376,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "url",
- "wasm-bindgen-utils 0.0.7",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -11775,8 +11775,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils"
-version = "0.0.7"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6aecf1c1db3db8814f462fe89ace73ba8de1f27ee8394c58d74fc24dc7b6cfc"
 dependencies = [
  "js-sys",
  "paste",
@@ -11790,8 +11791,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils-macros"
-version = "0.0.2"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=4379d24a671742a58ec5cdab2c39fecbda59619d#4379d24a671742a58ec5cdab2c39fecbda59619d"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c58b27b0253678a6638beae169cb00dba24d96c5c45ae4bd03c2ba4ee94a5cc"
 dependencies = [
  "proc-macro2",
  "quote",
