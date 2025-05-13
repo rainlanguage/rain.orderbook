@@ -969,10 +969,7 @@ _: context<50 50>();
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
-        let res = runner
-            .run_scenario_by_key(&mut context, "some-key")
-            .await
-            .map_err(|e| println!("{:#?}", e));
+        let res = runner.run_scenario_by_key(&mut context, "some-key").await;
 
         assert!(res.is_err());
     }
