@@ -6,7 +6,6 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
-author = "Rain Open Source Software Ltd"
 version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
@@ -78,3 +77,6 @@ path = "crates/test_fixtures"
 
 [workspace.dependencies.rain_orderbook_math]
 path = "crates/math"
+
+[workspace.dependencies.rain_orderbook_js_api]
+path = "crates/js_api"

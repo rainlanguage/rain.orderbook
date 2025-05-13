@@ -185,7 +185,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_set_get_field_value() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
@@ -195,17 +195,17 @@ mod tests {
         let field_value = gui.get_field_value("binding-1".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-1");
         assert_eq!(field_value.value, "some-default-value");
-        assert_eq!(field_value.is_preset, false);
+        assert!(!field_value.is_preset);
 
         let field_value = gui.get_field_value("binding-2".to_string()).unwrap();
         assert_eq!(field_value.binding, "binding-2");
         assert_eq!(field_value.value, "99.2");
-        assert_eq!(field_value.is_preset, true);
+        assert!(field_value.is_preset);
     }
 
     #[wasm_bindgen_test]
     async fn test_set_get_all_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_values(vec![
             FieldValuePair {
@@ -223,10 +223,10 @@ mod tests {
         assert_eq!(field_values.len(), 2);
         assert_eq!(field_values[0].binding, "binding-1");
         assert_eq!(field_values[0].value, "some-default-value");
-        assert_eq!(field_values[0].is_preset, false);
+        assert!(!field_values[0].is_preset);
         assert_eq!(field_values[1].binding, "binding-2");
         assert_eq!(field_values[1].value, "99.2");
-        assert_eq!(field_values[1].is_preset, true);
+        assert!(field_values[1].is_preset);
     }
 
     fn get_binding_1() -> GuiFieldDefinitionCfg {
@@ -285,7 +285,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_remove_field_value() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         gui.save_field_value("binding-1".to_string(), "some-default-value".to_string())
             .unwrap();
@@ -301,7 +301,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_field_definition() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let field_definition = gui.get_field_definition("binding-1").unwrap();
         assert_eq!(field_definition, get_binding_1());
@@ -322,7 +322,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_all_field_definitions() {
-        let gui = initialize_gui().await;
+        let gui = initialize_gui(None).await;
 
         let field_definitions = gui.get_all_field_definitions(None).unwrap();
         assert_eq!(field_definitions.len(), 2);
@@ -340,7 +340,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_missing_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         let field_values = gui.get_missing_field_values().unwrap();
         assert_eq!(field_values.len(), 2);
@@ -357,7 +357,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_check_field_values() {
-        let mut gui = initialize_gui().await;
+        let mut gui = initialize_gui(None).await;
 
         let err = gui.check_field_values().unwrap_err();
         assert_eq!(

@@ -19,8 +19,7 @@ impl Execute for CliOrderTradeDetailArgs {
     async fn execute(&self) -> Result<()> {
         let subgraph_args: SubgraphArgs = self.subgraph_args.clone().into();
         let order_take = subgraph_args
-            .to_subgraph_client()
-            .await?
+            .to_subgraph_client()?
             .order_trade_detail(self.id.clone().into())
             .await?;
         info!("{:#?}", order_take);

@@ -6442,6 +6442,7 @@ dependencies = [
  "bincode",
  "cynic",
  "flate2",
+ "httpmock",
  "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
