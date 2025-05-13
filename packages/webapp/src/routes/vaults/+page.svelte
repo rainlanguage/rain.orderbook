@@ -2,12 +2,12 @@
 	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
-	import { activeSubgraphs } from '$lib/stores/settings';
+	import { hideZeroBalanceVaults, showMyItemsOnly } from '$lib/stores/settings';
 
 	const {
 		activeOrderbook,
-		subgraphUrl,
+		subgraph,
+		orderHash,
 		settings,
 		accounts,
 		activeAccountsItems,
@@ -15,7 +15,8 @@
 		activeNetworkRef,
 		activeOrderbookRef,
 		activeAccounts,
-		activeNetworkOrderbooks
+		activeNetworkOrderbooks,
+		activeSubgraphs
 	} = $page.data.stores;
 
 	export async function resetActiveNetworkRef() {
@@ -50,7 +51,7 @@
 
 <VaultsListTable
 	{activeOrderbook}
-	{subgraphUrl}
+	{subgraph}
 	{orderHash}
 	{showMyItemsOnly}
 	{activeSubgraphs}

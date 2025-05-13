@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{error::CommandResult, shared_state::SharedState};
 use rain_orderbook_common::fuzz::*;
+use std::collections::HashMap;
 use tauri::State;
 
 #[tauri::command]

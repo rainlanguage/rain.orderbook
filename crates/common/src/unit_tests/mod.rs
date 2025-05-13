@@ -322,7 +322,7 @@ impl TestRunner {
         self.test_setup.deployer = self
             .settings
             .main_config
-            .deployers
+            .get_deployers()
             .get(&self.settings.test_config.scenario_name)
             .ok_or(TestRunnerError::ScenarioNotFound(
                 self.settings.test_config.scenario_name.clone(),
@@ -369,28 +369,48 @@ impl TestRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::{
-        config_source::ConfigSource, unit_test::UnitTestConfigSource,
-    };
+    use rain_orderbook_app_settings::unit_test::UnitTestConfigSource;
     use rain_orderbook_test_fixtures::LocalEvm;
+
+    const SETTINGS: &str = r#"
+subgraphs:
+    some-subgraph: https://www.some-subgraph.com
+metaboards:
+    some-metaboard: https://www.some-metaboard.com
+orderbooks:
+    some-orderbook:
+        address: 0x0000000000000000000000000000000000000000
+        network: some-key
+        subgraph: some-subgraph
+tokens:
+    token1:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000001
+    token2:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000002
+orders:
+    some-order:
+        deployer: some-key
+        inputs:
+            - token: token1
+        outputs:
+            - token: token2
+deployments:
+    some-deployment:
+        scenario: some-key
+        order: some-order
+"#;
 
     fn get_main_config(dotrain: &str) -> Config {
         let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+        Config::try_from_yaml(vec![frontmatter.to_string(), SETTINGS.to_string()], false).unwrap()
     }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
         let frontmatter = RainDocument::get_front_matter(test_dotrain).unwrap();
         let source = serde_yaml::from_str::<UnitTestConfigSource>(frontmatter).unwrap();
-        source
-            .test
-            .try_into_test_config()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+        source.test.try_into_test_config()
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]

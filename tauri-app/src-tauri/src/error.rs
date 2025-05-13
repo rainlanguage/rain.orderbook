@@ -2,9 +2,7 @@ use alloy::hex::FromHexError;
 use alloy::primitives::ruint::{FromUintError, ParseError as FromUintParseError};
 use alloy_ethers_typecast::{client::LedgerClientError, transaction::ReadableClientError};
 use dotrain::error::ComposeError;
-use rain_orderbook_app_settings::config::ParseConfigSourceError;
-use rain_orderbook_app_settings::config_source::ConfigSourceError;
-use rain_orderbook_app_settings::merge::MergeError;
+use rain_orderbook_app_settings::ParseConfigError;
 use rain_orderbook_common::dotrain_order::DotrainOrderError;
 use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::remove_order::RemoveOrderArgsError;
@@ -58,10 +56,7 @@ pub enum CommandError {
     FuzzRunnerError(#[from] FuzzRunnerError),
 
     #[error(transparent)]
-    MergeError(#[from] MergeError),
-
-    #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
+    ParseConfigError(#[from] ParseConfigError),
 
     #[error(transparent)]
     ParseConfigYamlError(#[from] serde_yaml::Error),
@@ -74,9 +69,6 @@ pub enum CommandError {
 
     #[error(transparent)]
     ComposeError(#[from] ComposeError),
-
-    #[error(transparent)]
-    ConfigSourceError(#[from] ConfigSourceError),
 
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),

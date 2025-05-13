@@ -3,7 +3,7 @@
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
-		type ConfigSource,
+		type Config,
 		type GuiSelectTokensCfg,
 		type TokenInfo,
 		type GuiDepositCfg,
@@ -43,7 +43,7 @@
 	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<ConfigSource>;
+	export let settings: Writable<Config>;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -72,7 +72,7 @@
 		if (error) {
 			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
 		} else if (value) {
-			subgraphUrl = $settings?.subgraphs?.[value];
+			subgraphUrl = $settings.orderbook.subgraphs[value].url;
 		}
 		await areAllTokensSelected();
 	});

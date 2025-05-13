@@ -15,9 +15,9 @@
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const { account } = useAccount();
 	const network = $page.params.network;
-	const subgraphUrl = $settings?.subgraphs?.[network] || '';
-	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const subgraphUrl = $settings?.subgraphs?.[network]?.url || '';
+	const chainId = $settings?.networks?.[network]?.chainId || 0;
+	const rpcUrl = $settings?.networks?.[network]?.rpc || '';
 
 	let toastOpen: boolean = false;
 	let counter: number = 5;

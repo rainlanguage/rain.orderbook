@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import { getMultiSubgraphArgs } from '$lib/utils/configHelpers';
 	import { Button, Dropdown, DropdownItem, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
@@ -12,16 +13,12 @@
 	import { bigintStringToHex } from '../../utils/hex';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
-	import {
-		getVaults,
-		type MultiSubgraphArgs,
-		type SgVaultWithSubgraphName
-	} from '@rainlanguage/orderbook';
+	import { getVaults, type SgVaultWithSubgraphName } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
 	export let activeOrderbook: AppStoresInterface['activeOrderbook'];
-	export let subgraphUrl: AppStoresInterface['subgraphUrl'];
+	export let subgraph: AppStoresInterface['subgraph'];
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -42,13 +39,7 @@
 
 	const { account, matchesAccount } = useAccount();
 
-	$: multiSubgraphArgs = Object.entries(
-		Object.keys($activeSubgraphs ?? {}).length ? $activeSubgraphs : ($settings?.subgraphs ?? {})
-	).map(([name, url]) => ({
-		name,
-		url
-	})) as MultiSubgraphArgs[];
-
+	$: multiSubgraphArgs = getMultiSubgraphArgs($activeSubgraphs ?? {});
 	$: owners =
 		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
 			? Object.values($activeAccountsItems)
@@ -80,7 +71,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: !!$subgraphUrl
+		enabled: !!$subgraph
 	});
 
 	const updateActiveNetworkAndOrderbook = (subgraphName: string) => {

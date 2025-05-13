@@ -5,7 +5,7 @@
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
-  import { parseConfigSource } from '$lib/services/config';
+  import { parseConfig } from '$lib/services/config';
   import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
   import { onMount } from 'svelte';
   import { CheckOutline, CloseOutline } from 'flowbite-svelte-icons';
@@ -29,7 +29,7 @@
     settingsStatus = 'checking';
     try {
       settingsText.set(settingsContent);
-      settings.set(await parseConfigSource(settingsContent));
+      settings.set(await parseConfig(settingsContent));
       settingsStatus = 'success';
     } catch (error) {
       errorMessage = error as string;

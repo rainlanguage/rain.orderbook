@@ -1,10 +1,11 @@
 <script lang="ts">
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
+	import { getAccountsAsOptions } from '$lib/utils/configHelpers';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 	export let accounts: AppStoresInterface['accounts'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 
-	$: options = $accounts;
+	$: options = getAccountsAsOptions($accounts);
 </script>
 
 <div data-testid="accounts-dropdown">

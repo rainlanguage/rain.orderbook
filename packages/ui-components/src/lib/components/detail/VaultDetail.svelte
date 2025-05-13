@@ -40,7 +40,7 @@
 	 */
 	export let onWithdraw: (vault: SgVault) => void;
 
-	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const subgraphUrl = $settings?.subgraphs?.[network]?.url || '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
 

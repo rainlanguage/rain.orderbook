@@ -68,7 +68,6 @@ export { default as InputRegistryUrl } from './components/input/InputRegistryUrl
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatus,
 	TransactionErrorMessage,
@@ -143,6 +142,6 @@ export { RegistryManager } from './providers/registry/RegistryManager';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
-export { mockConfigSource } from './__mocks__/settings';
+export { mockConfig } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
 export { mockTransactionStore } from './__mocks__/mockTransactionStore';

@@ -671,6 +671,36 @@ mod tests {
     };
     use rain_orderbook_test_fixtures::LocalEvm;
 
+    const SETTINGS: &str = r#"
+subgraphs:
+    some-subgraph: https://www.some-subgraph.com
+metaboards:
+    some-metaboard: https://www.some-metaboard.com
+orderbooks:
+    some-orderbook:
+        address: 0x0000000000000000000000000000000000000000
+        network: some-key
+        subgraph: some-subgraph
+tokens:
+    token1:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000001
+    token2:
+        network: some-key
+        address: 0x0000000000000000000000000000000000000002
+orders:
+    some-order:
+        deployer: some-key
+        inputs:
+            - token: token1
+        outputs:
+            - token: token2
+deployments:
+    some-deployment:
+        scenario: some-key
+        order: some-order
+"#;
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_context_new_happy() {
         let dotrain = r#"

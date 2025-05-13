@@ -1,5 +1,7 @@
 #[cfg(target_family = "wasm")]
 pub mod bindings;
+#[cfg(target_family = "wasm")]
+pub mod config;
 #[cfg(any(target_family = "wasm", test))]
 pub mod gui;
 #[cfg(target_family = "wasm")]

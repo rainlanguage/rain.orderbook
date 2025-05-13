@@ -4,9 +4,9 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
-    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
+    NetworkCfg, ParseDeployerCfgError, ParseDeploymentCfgError, ParseNetworkCfgError,
+    ParseOrderCfgError, ParseOrderbookCfgError, ParseScenarioCfgError, ParseTokenCfgError,
+    TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError};
@@ -174,19 +174,19 @@ pub enum YamlError {
     InvalidTraitFunction,
 
     #[error(transparent)]
-    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigSourceError),
+    ParseNetworkCfgError(#[from] ParseNetworkCfgError),
     #[error(transparent)]
-    ParseTokenConfigSourceError(#[from] ParseTokenConfigSourceError),
+    ParseTokenCfgError(#[from] ParseTokenCfgError),
     #[error(transparent)]
-    ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
+    ParseOrderbookCfgError(#[from] ParseOrderbookCfgError),
     #[error(transparent)]
-    ParseDeployerConfigSourceError(#[from] ParseDeployerConfigSourceError),
+    ParseDeployerCfgError(#[from] ParseDeployerCfgError),
     #[error(transparent)]
-    ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
+    ParseOrderCfgError(#[from] ParseOrderCfgError),
     #[error(transparent)]
-    ParseScenarioConfigSourceError(#[from] ParseScenarioConfigSourceError),
+    ParseScenarioCfgError(#[from] ParseScenarioCfgError),
     #[error(transparent)]
-    ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
+    ParseDeploymentCfgError(#[from] ParseDeploymentCfgError),
     #[error(transparent)]
     ContextError(#[from] ContextError),
 }
@@ -219,31 +219,13 @@ impl PartialEq for YamlError {
             (Self::RuintParseError(e1), Self::RuintParseError(e2)) => {
                 e1.to_string() == e2.to_string()
             }
-            (Self::ParseNetworkConfigSourceError(e1), Self::ParseNetworkConfigSourceError(e2)) => {
-                e1 == e2
-            }
-            (Self::ParseTokenConfigSourceError(e1), Self::ParseTokenConfigSourceError(e2)) => {
-                e1 == e2
-            }
-            (
-                Self::ParseOrderbookConfigSourceError(e1),
-                Self::ParseOrderbookConfigSourceError(e2),
-            ) => e1 == e2,
-            (
-                Self::ParseDeployerConfigSourceError(e1),
-                Self::ParseDeployerConfigSourceError(e2),
-            ) => e1 == e2,
-            (Self::ParseOrderConfigSourceError(e1), Self::ParseOrderConfigSourceError(e2)) => {
-                e1 == e2
-            }
-            (
-                Self::ParseScenarioConfigSourceError(e1),
-                Self::ParseScenarioConfigSourceError(e2),
-            ) => e1 == e2,
-            (
-                Self::ParseDeploymentConfigSourceError(e1),
-                Self::ParseDeploymentConfigSourceError(e2),
-            ) => e1 == e2,
+            (Self::ParseNetworkCfgError(e1), Self::ParseNetworkCfgError(e2)) => e1 == e2,
+            (Self::ParseTokenCfgError(e1), Self::ParseTokenCfgError(e2)) => e1 == e2,
+            (Self::ParseOrderbookCfgError(e1), Self::ParseOrderbookCfgError(e2)) => e1 == e2,
+            (Self::ParseDeployerCfgError(e1), Self::ParseDeployerCfgError(e2)) => e1 == e2,
+            (Self::ParseOrderCfgError(e1), Self::ParseOrderCfgError(e2)) => e1 == e2,
+            (Self::ParseScenarioCfgError(e1), Self::ParseScenarioCfgError(e2)) => e1 == e2,
+            (Self::ParseDeploymentCfgError(e1), Self::ParseDeploymentCfgError(e2)) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
             _ => false,
         }
@@ -299,30 +281,30 @@ impl YamlError {
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
-            YamlError::ParseNetworkConfigSourceError(err) => {
+            YamlError::ParseNetworkCfgError(err) => {
                 format!("Network configuration error in your YAML: {}", err)
             }
-            YamlError::ParseTokenConfigSourceError(err) => format!(
+            YamlError::ParseTokenCfgError(err) => format!(
                 "Token configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseOrderbookConfigSourceError(err) => format!(
+            YamlError::ParseOrderbookCfgError(err) => format!(
                 "Orderbook configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseDeployerConfigSourceError(err) => format!(
+            YamlError::ParseDeployerCfgError(err) => format!(
                 "Deployer configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseOrderConfigSourceError(err) => format!(
+            YamlError::ParseOrderCfgError(err) => format!(
                 "Order configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseScenarioConfigSourceError(err) => format!(
+            YamlError::ParseScenarioCfgError(err) => format!(
                 "Scenario configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseDeploymentConfigSourceError(err) => format!(
+            YamlError::ParseDeploymentCfgError(err) => format!(
                 "Deployment configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
