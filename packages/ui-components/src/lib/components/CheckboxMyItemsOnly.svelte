@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Checkbox, Label } from 'flowbite-svelte';
-	import type { Writable } from 'svelte/store';
+	import type { AppStoresInterface } from '$lib/types/appStores';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	export let showMyItemsOnly: Writable<boolean>;
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let context: 'orders' | 'vaults';
 	const { account } = useAccount();
 

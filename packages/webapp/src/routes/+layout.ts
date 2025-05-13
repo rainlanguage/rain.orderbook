@@ -87,7 +87,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			accounts,
 			activeAccountsItems,
 			activeAccounts,
-			activeOrderStatus: writable<boolean>(false),
+			// Instantiate with false to show only active orders
+			showInactiveOrders: writable<boolean>(false),
 			orderHash: writable<string>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			activeNetworkRef,
@@ -164,7 +165,7 @@ if (import.meta.vitest) {
 			expect(stores).toHaveProperty('accounts');
 			expect(stores).toHaveProperty('activeAccountsItems');
 			expect(stores).toHaveProperty('activeAccounts');
-			expect(stores).toHaveProperty('activeOrderStatus');
+			expect(stores).toHaveProperty('showInactiveOrders');
 			expect(stores).toHaveProperty('orderHash');
 			expect(stores).toHaveProperty('hideZeroBalanceVaults');
 			expect(stores).toHaveProperty('activeNetworkRef');
