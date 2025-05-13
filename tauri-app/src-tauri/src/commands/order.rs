@@ -150,3 +150,47 @@ pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) ->
     let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
     Ok(order.validate_raindex_version().await?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // #[tokio::test]
+    // async fn test_orders_list_write_csv_ok()
+
+    // #[tokio::test]
+    // async fn test_orders_list_write_csv_err()
+
+    // #[tokio::test]
+    // async fn test_order_add_ok()
+
+    // #[tokio::test]
+    // async fn test_order_add_err()
+
+    // #[tokio::test]
+    // async fn test_order_remove_ok()
+
+    // #[tokio::test]
+    // async fn test_order_add_calldata_ok()
+
+    // #[tokio::test]
+    // async fn test_order_add_calldata_err()
+
+    // #[tokio::test]
+    // async fn test_order_remove_calldata_ok()
+
+    // #[tokio::test]
+    // async fn test_order_remove_calldata_err()
+
+    // #[tokio::test]
+    // async fn compose_from_scenario_ok()
+
+    // #[tokio::test]
+    // async fn compose_from_scenario_err()
+
+    // #[tokio::test]
+    // async fn validate_raindex_version_ok()
+
+    // #[tokio::test]
+    // async fn validate_raindex_version_err()
+}
