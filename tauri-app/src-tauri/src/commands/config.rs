@@ -34,6 +34,7 @@ mod tests {
     use rain_orderbook_app_settings::config_source::{
         ConfigSourceError, NetworkConfigSource, OrderbookConfigSource,
     };
+    use strict_yaml_rust::StrictYaml;
     use url::Url;
 
     use crate::error::CommandError;
@@ -41,7 +42,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_parse_configstring_ok() {
+    async fn test_parse_configstring_and_convert_configstring_to_config() {
         let yaml = r#"
 raindex-version: &raindex 123
 networks:
@@ -68,11 +69,11 @@ orderbooks: &orderbooks
         label: Mainnet Orderbook
 "#;
 
-        let config = parse_configstring(yaml.to_string()).await.unwrap();
+        let config_src = parse_configstring(yaml.to_string()).await.unwrap();
 
-        assert_eq!(config.using_networks_from, HashMap::new());
+        assert_eq!(config_src.using_networks_from, HashMap::new());
 
-        let expected_networks = HashMap::from([
+        let expected_network_config_sources = HashMap::from([
             (
                 "mainnet".to_string(),
                 NetworkConfigSource {
@@ -94,8 +95,7 @@ orderbooks: &orderbooks
                 },
             ),
         ]);
-
-        assert_eq!(config.networks, expected_networks);
+        assert_eq!(config_src.networks, expected_network_config_sources);
 
         let subgraphs = HashMap::from([
             (
@@ -108,7 +108,7 @@ orderbooks: &orderbooks
             ),
         ]);
 
-        assert_eq!(config.subgraphs, subgraphs);
+        assert_eq!(config_src.subgraphs, subgraphs);
 
         let orderbooks = HashMap::from([(
             "mainnetOrderbook".to_string(),
@@ -120,18 +120,162 @@ orderbooks: &orderbooks
             },
         )]);
 
-        assert_eq!(config.orderbooks, orderbooks);
-        assert_eq!(config.tokens, HashMap::new());
-        assert_eq!(config.deployers, HashMap::new());
-        assert_eq!(config.orders, HashMap::new());
-        assert_eq!(config.scenarios, HashMap::new());
-        assert_eq!(config.charts, HashMap::new());
-        assert_eq!(config.deployments, HashMap::new());
+        assert_eq!(config_src.orderbooks, orderbooks);
+        assert_eq!(config_src.tokens, HashMap::new());
+        assert_eq!(config_src.deployers, HashMap::new());
+        assert_eq!(config_src.orders, HashMap::new());
+        assert_eq!(config_src.scenarios, HashMap::new());
+        assert_eq!(config_src.charts, HashMap::new());
+        assert_eq!(config_src.deployments, HashMap::new());
+        assert_eq!(config_src.metaboards, HashMap::new());
+        assert_eq!(config_src.sentry, None);
+        assert_eq!(config_src.raindex_version, Some("123".to_string()));
+        assert_eq!(config_src.accounts, None);
+        assert_eq!(config_src.gui, None);
+
+        let config = convert_configstring_to_config(config_src).unwrap();
+
+        // Inspect config networks
+        assert_eq!(config.networks.len(), expected_network_config_sources.len());
+
+        let mainnet_network_cfg = config.networks.get("mainnet").unwrap();
+        assert_eq!(
+            mainnet_network_cfg.rpc,
+            Url::parse("https://mainnet.node").unwrap()
+        );
+        assert_eq!(mainnet_network_cfg.chain_id, 1);
+        assert_eq!(mainnet_network_cfg.label, Some("Mainnet".to_string()));
+        assert_eq!(mainnet_network_cfg.network_id, Some(1));
+        assert_eq!(mainnet_network_cfg.currency, Some("ETH".to_string()));
+        assert_eq!(mainnet_network_cfg.key, "mainnet");
+
+        let mainnet_doc = mainnet_network_cfg.document.read().unwrap().to_owned();
+        assert_eq!(mainnet_doc, StrictYaml::String("".to_string()));
+
+        let testnet_network_cfg = config.networks.get("testnet").unwrap();
+        assert_eq!(
+            testnet_network_cfg.rpc,
+            Url::parse("https://testnet.node").unwrap()
+        );
+        assert_eq!(testnet_network_cfg.chain_id, 2);
+        assert_eq!(testnet_network_cfg.label, Some("Testnet".to_string()));
+        assert_eq!(testnet_network_cfg.network_id, Some(2));
+        assert_eq!(testnet_network_cfg.currency, Some("ETH".to_string()));
+        assert_eq!(testnet_network_cfg.key, "testnet");
+
+        let testnet_doc = testnet_network_cfg.document.read().unwrap().to_owned();
+        assert_eq!(testnet_doc, StrictYaml::String("".to_string()));
+
+        // Inspect config subgraphs
+        assert_eq!(config.subgraphs.len(), subgraphs.len());
+
+        let mainnet_subgraph_cfg = config.subgraphs.get("mainnet").unwrap();
+        assert_eq!(
+            mainnet_subgraph_cfg.url,
+            Url::parse("https://mainnet.subgraph").unwrap()
+        );
+        assert_eq!(mainnet_subgraph_cfg.key, "mainnet");
+
+        let mainnet_subgraph_doc = mainnet_subgraph_cfg.document.read().unwrap().to_owned();
+        assert_eq!(mainnet_subgraph_doc, StrictYaml::String("".to_string()));
+
+        let testnet_subgraph_cfg = config.subgraphs.get("testnet").unwrap();
+        assert_eq!(
+            testnet_subgraph_cfg.url,
+            Url::parse("https://testnet.subgraph").unwrap()
+        );
+        assert_eq!(testnet_subgraph_cfg.key, "testnet");
+
+        let testnet_subgraph_doc = testnet_subgraph_cfg.document.read().unwrap().to_owned();
+        assert_eq!(testnet_subgraph_doc, StrictYaml::String("".to_string()));
+
+        // Inspect metaboards
         assert_eq!(config.metaboards, HashMap::new());
+
+        // Inspect orderbooks
+        assert_eq!(config.orderbooks.len(), orderbooks.len());
+
+        let mainnet_orderbook_cfg = config.orderbooks.get("mainnetOrderbook").unwrap();
+        assert_eq!(
+            mainnet_orderbook_cfg.address,
+            address!("abc0000000000000000000000000000000000001")
+        );
+
+        assert_eq!(mainnet_orderbook_cfg.network.chain_id, 1);
+        assert_eq!(
+            mainnet_orderbook_cfg.network.label,
+            Some("Mainnet".to_string())
+        );
+        assert_eq!(mainnet_orderbook_cfg.network.network_id, Some(1));
+        assert_eq!(
+            mainnet_orderbook_cfg.network.currency,
+            Some("ETH".to_string())
+        );
+        assert_eq!(mainnet_orderbook_cfg.network.key, "mainnet");
+
+        let mainnet_orderbook_network_doc = mainnet_orderbook_cfg
+            .network
+            .document
+            .read()
+            .unwrap()
+            .to_owned();
+        assert_eq!(
+            mainnet_orderbook_network_doc,
+            StrictYaml::String("".to_string())
+        );
+
+        assert_eq!(
+            mainnet_orderbook_cfg.subgraph.url,
+            Url::parse("https://mainnet.subgraph").unwrap()
+        );
+        assert_eq!(mainnet_orderbook_cfg.subgraph.key, "mainnet");
+
+        let mainnet_orderbook_subgraph_doc = mainnet_orderbook_cfg
+            .subgraph
+            .document
+            .read()
+            .unwrap()
+            .to_owned();
+        assert_eq!(
+            mainnet_orderbook_subgraph_doc,
+            StrictYaml::String("".to_string())
+        );
+
+        assert_eq!(
+            mainnet_orderbook_cfg.label,
+            Some("Mainnet Orderbook".to_string())
+        );
+
+        let mainnet_orderbook_doc = mainnet_orderbook_cfg.document.read().unwrap().to_owned();
+        assert_eq!(mainnet_orderbook_doc, StrictYaml::String("".to_string()));
+
+        // Inspect tokens
+        assert_eq!(config.tokens, HashMap::new());
+
+        // Inspect deployers
+        assert_eq!(config.deployers, HashMap::new());
+
+        // Inspect orders
+        assert_eq!(config.orders, HashMap::new());
+
+        // Inspect scenarios
+        assert_eq!(config.scenarios, HashMap::new());
+
+        // Inspect charts
+        assert_eq!(config.charts, HashMap::new());
+
+        // Inspect deployments
+        assert_eq!(config.deployments, HashMap::new());
+
+        // Inspect sentry
         assert_eq!(config.sentry, None);
+
+        // Inspect raindex_version
         assert_eq!(config.raindex_version, Some("123".to_string()));
+
+        // Inspect accounts
         assert_eq!(config.accounts, None);
-        assert_eq!(config.gui, None);
+        // Inspect gui
     }
 
     #[tokio::test]
