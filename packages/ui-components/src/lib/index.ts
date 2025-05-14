@@ -79,7 +79,7 @@ export {
 export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
 export type {
 	DepositOrWithdrawModalProps,
-	OrderRemoveModalProps,
+	TransactionConfirmationProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
 	DeployModalProps,
@@ -135,7 +135,7 @@ export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
-export { default as RemoveTransactionsProvider } from './providers/transactions/RemoveTransactionsProvider.svelte';
+export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
@@ -147,6 +147,7 @@ export { useTransactions } from './providers/transactions/useTransactions';
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
 export { RemoveOrder } from './models/RemoveOrderTransaction';
+export { TransactionManager } from './providers/transactions/TransactionManager';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';

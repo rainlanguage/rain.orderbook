@@ -67,7 +67,8 @@ export enum TransactionErrorMessage {
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
 	DEPOSIT_FAILED = 'Failed to deposit tokens.',
 	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
-	REMOVE_ORDER_FAILED = 'Failed to remove order.'
+	REMOVE_ORDER_FAILED = 'Failed to remove order.',
+	SUBGRAPH_FAILED = 'Failed to index order removal.'
 }
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -81,11 +82,11 @@ export type DepositOrWithdrawTransactionArgs = {
 };
 
 export type RemoveOrderTransactionArgs = {
+	orderHash: string;
 	config: Config;
-	orderbookAddress: Hex;
-	removeOrderCalldata: RemoveOrderCalldata;
 	chainId: number;
 	subgraphUrl: string;
+	txHash: Hex;
 };
 
 export type TransactionState = {

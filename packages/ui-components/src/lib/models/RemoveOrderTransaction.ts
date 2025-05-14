@@ -1,6 +1,5 @@
 import type { Hex } from 'viem';
-import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
-import { getExplorerLink } from '../services/getExplorerLink';
+import { waitForTransactionReceipt } from '@wagmi/core';
 import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
 import type { RemoveOrderTransactionArgs } from '$lib/types/transaction';
 import {
@@ -8,137 +7,83 @@ import {
 	getRemoveOrderConfig
 } from '$lib/services/awaitTransactionIndexing';
 import type { Config } from '@wagmi/core';
+import { getExplorerLink } from '$lib/services/getExplorerLink';
+import { match, P } from 'ts-pattern';
+
+type RemoveOrderTransactionState = 
+    | { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
+    | { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
+    | { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
+    | { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
+    | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
 
 export type RemoveOrderTransaction = {
 	message: TransactionStatusMessage;
-	state:
-		| RemoveOrderTransactionState
-		| ConfirmedRemoveOrderTransactionState
-		| FailedRemoveOrderTransactionState;
+	state: RemoveOrderTransactionState;
 };
-
-interface RemoveOrderTransactionState {
-	status: TransactionStatusMessage;
-	network: string;
-	message: string;
-};
-
-interface ConfirmedTransactionData {
-	hash: Hex;
-	explorerLink: string;
-};
-
-interface FailedRemoveOrderTransactionState extends RemoveOrderTransactionState {
-	errorDetails: TransactionErrorMessage;
-};
-
-interface ConfirmedRemoveOrderTransactionState extends RemoveOrderTransactionState, ConfirmedTransactionData {}
 
 export class RemoveOrder implements RemoveOrderTransaction {
 	private config: Config;
-	private orderbookAddress: Hex;
-	private removeOrderCalldata: Hex;
 	private chainId: number;
 	private subgraphUrl: string;
+    private txHash: Hex;
+    private onSuccess: () => void;
+    private onError: () => void;
 
-	public state:
-		| RemoveOrderTransactionState
-		| ConfirmedRemoveOrderTransactionState
-		| FailedRemoveOrderTransactionState;
+	public state: RemoveOrderTransactionState;
 
-	constructor(args: RemoveOrderTransactionArgs, onWalletConfirmation: () => void, onSuccess: () => void, onError: () => void) {
+	constructor(args: RemoveOrderTransactionArgs, onSuccess: () => void, onError: () => void) {
 		this.config = args.config;
-		this.orderbookAddress = args.orderbookAddress;
-		this.removeOrderCalldata = args.removeOrderCalldata as Hex;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
-		this.state = {
-			status: TransactionStatusMessage.IDLE,
-			network: '',
-			message: TransactionStatusMessage.IDLE
-		};
+        this.txHash = args.txHash;
+        this.state = {
+            status: TransactionStatusMessage.IDLE,
+            message: TransactionStatusMessage.IDLE,
+            explorerLink: ''
+        };
+        this.onSuccess = onSuccess;
+        this.onError = onError;
 	}
 
 	public get message(): TransactionStatusMessage {
 		return this.state.status;
 	}
 
-	private updateState(
-		newState: Partial<
-			| RemoveOrderTransactionState
-			| ConfirmedRemoveOrderTransactionState
-			| FailedRemoveOrderTransactionState
-		>
-	) {
-		this.state = { ...this.state, ...newState };
+	private updateState(partialState: Partial<RemoveOrderTransactionState>): void {
+		this.state = { ...this.state, ...partialState } as RemoveOrderTransactionState;
 	}
 
 	public async execute(): Promise<void> {
-		this.updateState({ status: TransactionStatusMessage.IDLE, message: 'Starting order removal.' });
-		if (!(await this.switchNetwork())) return;
-		const txHash = await this.sendRemoveOrderTransaction();
-		if (!txHash) return;
-		if (!(await this.waitForTxReceipt(txHash))) return;
-		await this.indexOrderRemoval(txHash);
+        const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
+		this.updateState({ 
+            status: TransactionStatusMessage.IDLE, 
+            message: 'Starting order removal.', 
+            explorerLink 
+        });
+		await this.waitForTxReceipt(this.txHash);
 	}
 
-	private async switchNetwork(): Promise<boolean> {
+	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
-			this.updateState({ message: 'Switching network...' });
-			await switchChain(this.config, { chainId: this.chainId });
-			this.updateState({ message: 'Network switched successfully.' });
-			return true;
-		} catch (error) {
-			this.updateState({
-				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.SWITCH_CHAIN_FAILED,
-				message: 'Failed to switch network.'
-			});
-			return false;
-		}
-	}
-
-	private async sendRemoveOrderTransaction(): Promise<Hex | null> {
-		try {
-			this.updateState({
-				status: TransactionStatusMessage.PENDING_WALLET,
-				message: 'Please confirm order removal in your wallet...'
-			});
-			const hash = await sendTransaction(this.config, {
-				to: this.orderbookAddress,
-				data: this.removeOrderCalldata
-			});
-			const explorerLink = await getExplorerLink(hash, this.chainId, 'tx');
-			this.updateState({
-				hash,
-				status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
-				message: 'Processing order removal...',
-				explorerLink
-			});
-			return hash;
-		} catch (error) {
-			this.updateState({
-				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.USER_REJECTED_TRANSACTION,
-				message: 'Failed to send transaction.'
-			});
-			return null;
-		}
-	}
-
-	private async waitForTxReceipt(hash: Hex): Promise<boolean> {
-		try {
-			this.updateState({ message: `Waiting for transaction receipt (hash: ${hash})...` });
+			this.updateState({ 
+                status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
+                message: `Waiting for transaction receipt (hash: ${hash})...` 
+            });
+            
 			await waitForTransactionReceipt(this.config, { hash });
-			this.updateState({ message: 'Transaction receipt received.' });
-			return true;
+			
+            this.updateState({ 
+                message: 'Transaction receipt received.' 
+            });
+            
+            await this.indexOrderRemoval(this.txHash);
 		} catch (error) {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.REMOVE_ORDER_FAILED,
 				message: 'Failed to get transaction receipt.'
 			});
-			return false;
+			return this.onError();
 		}
 	}
 
@@ -147,30 +92,42 @@ export class RemoveOrder implements RemoveOrderTransaction {
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for order removal to be indexed...'
 		});
+        
 		try {
 			const result = await awaitSubgraphIndexing(
 				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
 			);
 
-			if (result.error) {
-				this.updateState({
-					status: TransactionStatusMessage.ERROR,
-					errorDetails: TransactionErrorMessage.TIMEOUT,
-					message: 'Subgraph indexing timed out.'
-				});
-			} else if (result.value) {
-				this.updateState({
-					status: TransactionStatusMessage.SUCCESS,
-					hash: result.value.txHash as Hex,
-					message: result.value.successMessage || 'Order removal indexed successfully.'
-				});
-			}
+            await match(result)
+                .with({ error: TransactionErrorMessage.TIMEOUT }, () => {
+                    this.updateState({
+                        status: TransactionStatusMessage.ERROR,
+                        message: 'Subgraph indexing timed out.'
+                    });
+                    return this.onError();
+                })
+                .with({ value: P.not(P.nullish) }, ({ value }) => {
+                    this.updateState({
+                        status: TransactionStatusMessage.SUCCESS,
+                        hash: value.txHash as Hex,
+                        message: value.successMessage || 'Order removal indexed successfully.'
+                    });
+                    return this.onSuccess();
+                })
+                .otherwise(() => {
+                    this.updateState({
+                        status: TransactionStatusMessage.ERROR,
+                        message: 'Unknown error during indexing.'
+                    });
+                    return this.onError();
+                });
 		} catch (error) {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.TIMEOUT,
+				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,
 				message: 'Failed to index order removal.'
 			});
+			return this.onError();
 		}
 	}
 }

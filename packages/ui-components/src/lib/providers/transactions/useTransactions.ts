@@ -1,34 +1,20 @@
-import type { BaseTransaction } from '$lib/types/transaction';
-import { get } from 'svelte/store';
-import { getTransactionsContext } from './context';
+import { getTransactionManagerContext } from './context';
 
 /**
- * Hook for managing transactions in the application.
- * Provides functionality to add, remove, and access transactions.
+ * Hook for accessing the transaction manager in the application.
+ * Provides access to the transactions store for monitoring transaction states.
+ * 
+ * This hook connects to the TransactionManager context which handles order removal
+ * transactions and related operations.
  *
- * @returns An object containing the transactions store and methods to manipulate transactions
+ * @returns An object containing the transactions store that can be subscribed to
  */
 export function useTransactions() {
-	const transactions = getTransactionsContext();
+	const manager = getTransactionManagerContext();
 
-	// Add a transaction to the store
-	const addTransaction = (transaction: BaseTransaction) => {
-		transactions.update((transactions) => [...transactions, transaction]);
-	};
-
-	// Lookup a transaction by its hash
-	// TODO: Use nonce instead of hash
-	const getTransaction = (hash: string) => {
-		return get(transactions).find((transaction) => {
-			if ('hash' in transaction.state) {
-				return transaction.state.hash === hash;
-			}
-			return false;
-		});
-	};
-
+	const getTransactions = manager.getTransactions();
+	
 	return {
-		addTransaction,
-		getTransaction
+		getTransactions
 	};
 }

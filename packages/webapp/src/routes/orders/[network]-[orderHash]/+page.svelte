@@ -7,7 +7,10 @@
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
+	import {
+		handleDepositOrWithdrawModal,
+		handleTransactionConfirmationModal
+	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
@@ -22,15 +25,16 @@
 	const { account } = useAccount();
 
 	function onRemove(order: SgOrder) {
-		handleOrderRemoveModal({
+		handleTransactionConfirmationModal({
 			open: true,
 			args: {
 				order,
-				chainId,
 				orderbookAddress,
-				subgraphUrl,
-				onRemove: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
+				chainId,
+				onConfirm: (hash: Hex) => {
+					console.log('hash', hash);
+
+					// invalidateTanstackQueries(queryClient, [orderHash]);
 				}
 			}
 		});

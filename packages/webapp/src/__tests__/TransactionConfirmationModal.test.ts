@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
+import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
-import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
+import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
@@ -10,7 +10,7 @@ vi.mock('@rainlanguage/orderbook', () => ({
 
 vi.useFakeTimers();
 
-describe('OrderRemoveModal', () => {
+describe('TransactionConfirmationModal', () => {
 	const mockOrder = {
 		id: '1',
 		orderHash: '0x123',
@@ -23,10 +23,9 @@ describe('OrderRemoveModal', () => {
 			order: mockOrder,
 			chainId: 1,
 			orderbookAddress: '0x789',
-			config: {},
-			onRemove: vi.fn()
+			onConfirm: vi.fn()
 		}
-	} as unknown as OrderRemoveModalProps;
+	} as unknown as TransactionConfirmationProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -35,7 +34,7 @@ describe('OrderRemoveModal', () => {
 
 	it('handles transaction correctly', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleRemoveOrderTransaction');
-		render(OrderRemoveModal, defaultProps);
+		render(TransactionConfirmationModal, defaultProps);
 
 		await vi.runAllTimersAsync();
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
@@ -53,7 +52,7 @@ describe('OrderRemoveModal', () => {
 	});
 
 	it('calls onRemove callback after successful transaction', async () => {
-		render(OrderRemoveModal, defaultProps);
+		render(TransactionConfirmationModal, defaultProps);
 
 		transactionStore.transactionSuccess('0x123');
 		await vi.runAllTimersAsync();

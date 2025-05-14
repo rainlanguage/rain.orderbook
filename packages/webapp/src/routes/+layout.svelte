@@ -12,10 +12,14 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
+	import {
+		ToastProvider,
+		WalletProvider,
+		TransactionManager,
+		TransactionProvider
+	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
-	import { transactions } from '$lib/stores/transactions';
 	import { settings as cachedSettings } from '$lib/stores/settings';
 	import { RemoveTransactionsProvider } from '@rainlanguage/ui-components';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
@@ -25,8 +29,6 @@
 	$: if (stores?.settings) {
 		cachedSettings.set(stores.settings);
 	}
-
-	$: console.log($transactions);
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -57,6 +59,7 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
+	const transactionManager = new TransactionManager(queryClient);
 </script>
 
 {#if walletInitError}
@@ -67,7 +70,7 @@
 	</div>
 {/if}
 
-<RemoveTransactionsProvider {transactions}>
+<TransactionProvider {transactionManager}>
 	<ToastProvider {toasts}>
 		<WalletProvider account={signerAddress}>
 			<QueryClientProvider client={queryClient}>
@@ -91,4 +94,4 @@
 			</QueryClientProvider>
 		</WalletProvider>
 	</ToastProvider>
-</RemoveTransactionsProvider>
+</TransactionProvider>

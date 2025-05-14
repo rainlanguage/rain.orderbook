@@ -1,25 +1,17 @@
-import type { BaseTransaction } from '$lib/types/transaction';
 import { getContext, setContext } from 'svelte';
-import { type Writable } from 'svelte/store';
+import { TransactionManager } from './TransactionManager';
 
-export const TRANSACTIONS_KEY = 'rain:ui-components:transactions';
+export const TRANSACTION_MANAGER_CONTEXT_KEY = 'rain:ui-components:transactionManager';
 
-/**
- * Retrieves the transactions store from Svelte's context
- */
-export function getTransactionsContext(): Writable<BaseTransaction[]> {
-	const transactions = getContext<Writable<BaseTransaction[]>>(TRANSACTIONS_KEY);
-	if (!transactions) {
-		throw new Error(
-			'No toasts context found. Did you forget to wrap your component with ToastProvider?'
-		);
-	}
-	return transactions;
+export function setTransactionManagerContext(manager: TransactionManager) {
+    setContext(TRANSACTION_MANAGER_CONTEXT_KEY, manager);
 }
 
-/**
- * Sets the transactions store in Svelte's context
- */
-export function setTransactionsContext(transactions: Writable<BaseTransaction[]>) {
-	setContext(TRANSACTIONS_KEY, transactions);
+export function getTransactionManagerContext(): TransactionManager {
+    const manager = getContext<TransactionManager | undefined>(TRANSACTION_MANAGER_CONTEXT_KEY);
+    if (!manager) {
+        throw new Error('TransactionManager not found. Did you forget to setTransactionManagerContext?');
+    }
+    return manager;
 }
+
