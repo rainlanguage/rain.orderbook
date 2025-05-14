@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { test } from 'vitest';
 import Words from './Words.svelte';
 import type { ScenarioWords } from '@rainlanguage/orderbook';
-import { expect } from '$lib/test/matchers';
+import { expect } from '$lib/__tests__/matchers';
 import userEvent from '@testing-library/user-event';
 
 const authoringMetas: ScenarioWords[] = [

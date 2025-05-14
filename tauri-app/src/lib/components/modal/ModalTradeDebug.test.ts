@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test } from 'vitest';
-import { expect } from '$lib/test/matchers';
+import { expect } from '$lib/__tests__/matchers';
 import { mockIPC } from '@tauri-apps/api/mocks';
 import ModalTradeDebug from './ModalTradeDebug.svelte';
 import { QueryClient } from '@tanstack/svelte-query';

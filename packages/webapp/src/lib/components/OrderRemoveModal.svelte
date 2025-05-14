@@ -14,7 +14,6 @@
 	};
 
 	function handleClose() {
-		transactionStore.reset();
 		open = false;
 	}
 
