@@ -5,9 +5,13 @@
 </script>
 
 <div class="w-full max-w-md rounded-md p-2 shadow-sm">
-	<p class="mb-2 break-words p-1">Status: {$state.status}</p>
 	<p class="mb-2 break-words p-1">Message: {$state.message}</p>
 	<p class="break-words p-1">
-		Explorer Link: {$state.explorerLink}
+		<a
+			href={$state.explorerLink}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="text-blue-500 hover:underline">View transaction on explorer</a
+		>
 	</p>
 </div>

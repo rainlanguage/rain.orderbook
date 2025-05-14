@@ -16,9 +16,7 @@
 		ToastProvider,
 		WalletProvider,
 		TransactionManager,
-		TransactionProvider,
-		useToasts,
-		getToastsContext
+		TransactionProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
@@ -60,8 +58,8 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
-	const { addToast } = useToasts();
-	const manager = new TransactionManager(queryClient, addToast, $wagmiConfig);
+	const addToastFn = () => console.log('ADDING TOAST');
+	const manager = new TransactionManager(queryClient, addToastFn, $wagmiConfig);
 </script>
 
 {#if walletInitError}
