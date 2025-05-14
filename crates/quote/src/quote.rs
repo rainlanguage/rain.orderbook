@@ -16,11 +16,9 @@ use rain_orderbook_subgraph_client::{
 use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, str::FromStr};
 use url::Url;
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{add_ts_content, impl_wasm_traits, prelude::*};
 
 pub type QuoteResult = Result<OrderQuoteValue, FailedQuote>;
-#[cfg(target_family = "wasm")]
 add_ts_content!("export type QuoteResult = OrderQuoteValue | string");
 
 /// Holds quoted order max output and ratio
@@ -105,13 +103,10 @@ impl QuoteTarget {
 }
 
 /// Specifies a batch of [QuoteTarget]s
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BatchQuoteTarget(pub Vec<QuoteTarget>);
-
-#[cfg(target_family = "wasm")]
 impl_wasm_traits!(BatchQuoteTarget);
 
 impl BatchQuoteTarget {
@@ -204,13 +199,10 @@ impl QuoteSpec {
 }
 
 /// specifies a batch of [QuoteSpec]s
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, Tsify)]
 #[serde(transparent)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct BatchQuoteSpec(pub Vec<QuoteSpec>);
-
-#[cfg(target_family = "wasm")]
 impl_wasm_traits!(BatchQuoteSpec);
 
 impl BatchQuoteSpec {
