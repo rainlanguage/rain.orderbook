@@ -37,6 +37,7 @@ mod tests {
     use crate::error::CommandError;
     use rain_orderbook_app_settings::{
         config_source::{ConfigSourceError, NetworkConfigSource, OrderbookConfigSource},
+        merge::MergeError,
         orderbook::ParseOrderbookConfigSourceError,
         ParseConfigSourceError,
     };
@@ -331,6 +332,140 @@ networks:
             err,
             CommandError::ConfigSourceError(ConfigSourceError::YamlDeserializerError(msg))
             if msg.to_string().contains("missing field `chain-id`")
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_merge_configstrings_ok() {
+        let dotrain = r#"
+raindex-version: &raindex 123
+networks:
+    mainnet: &mainnet
+        rpc: https://mainnet.node
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+subgraphs:
+    mainnet: https://mainnet.subgraph
+orderbooks:
+    mainnetOrderbook:
+        address: 0xabc0000000000000000000000000000000000001
+        network: mainnet
+        subgraph: mainnet
+        label: Mainnet Orderbook
+---
+"#;
+
+        let config_text = r#"
+networks:
+    testnet: &testnet
+        rpc: https://testnet.node
+        chain-id: 2
+        label: Testnet
+        network-id: 2
+        currency: ETH
+subgraphs:
+    testnet: https://testnet.subgraph
+orderbooks:
+    testnetOrderbook:
+        address: 0xdef0000000000000000000000000000000000002
+        network: testnet
+        subgraph: testnet
+        label: Testnet Orderbook
+"#;
+
+        let merged_config = merge_configstrings(dotrain.to_string(), config_text.to_string())
+            .await
+            .unwrap();
+
+        // Verify networks were merged correctly
+        assert_eq!(merged_config.networks.len(), 2);
+        assert!(merged_config.networks.contains_key("mainnet"));
+        assert!(merged_config.networks.contains_key("testnet"));
+
+        // Verify subgraphs were merged correctly
+        assert_eq!(merged_config.subgraphs.len(), 2);
+        assert!(merged_config.subgraphs.contains_key("mainnet"));
+        assert!(merged_config.subgraphs.contains_key("testnet"));
+
+        // Verify orderbooks were merged correctly
+        assert_eq!(merged_config.orderbooks.len(), 2);
+        assert!(merged_config.orderbooks.contains_key("mainnetOrderbook"));
+        assert!(merged_config.orderbooks.contains_key("testnetOrderbook"));
+
+        // Verify raindex version was preserved
+        assert_eq!(merged_config.raindex_version, Some("123".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_merge_configstrings_collision() {
+        let dotrain = r#"
+networks:
+    mainnet: &mainnet
+        rpc: https://mainnet.node
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+subgraphs:
+    mainnet: https://mainnet.subgraph
+---
+"#;
+
+        let config_text = r#"
+networks:
+    mainnet: &mainnet
+        rpc: https://mainnet.node
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+subgraphs:
+    mainnet: https://mainnet.subgraph
+"#;
+
+        let err = merge_configstrings(dotrain.to_string(), config_text.to_string())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::MergeError(MergeError::NetworkCollision(msg))
+            if msg == "mainnet"
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_merge_configstrings_invalid_config() {
+        let dotrain = r#"
+networks:
+    mainnet: &mainnet
+        rpc: https://mainnet.node
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+---
+"#;
+
+        let config_text = r#"
+networks:
+    testnet: &testnet
+        chain-id: 2
+        label: Testnet
+        network-id: 2
+        currency: ETH
+"#;
+
+        let err = merge_configstrings(dotrain.to_string(), config_text.to_string())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::ConfigSourceError(ConfigSourceError::YamlDeserializerError(msg))
+            if msg.to_string().contains("missing field `rpc`")
         ));
     }
 }
