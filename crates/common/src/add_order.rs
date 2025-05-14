@@ -390,59 +390,23 @@ price: 2e18;
     }
 
     #[test]
-    fn test_order_config_v2_validity() {
-        let inputs = vec![
-            IO {
-                token: Address::random(),
-                vaultId: U256::from(0),
-                decimals: 18,
-            },
-            IO {
-                token: Address::random(),
-                vaultId: U256::from(1),
-                decimals: 18,
-            },
-        ];
-        let outputs = vec![
-            IO {
-                token: Address::random(),
-                vaultId: U256::from(0),
-                decimals: 18,
-            },
-            IO {
-                token: Address::random(),
-                vaultId: U256::from(1),
-                decimals: 18,
-            },
-        ];
-        let interpreter = Address::random();
-        let store = Address::random();
-
-        let bytecode = vec![
-            0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60, 0x60, 0x40, 0x60, 0x60,
-            0x60, 0x40,
-        ];
-        let meta = vec![9, 10, 11, 12];
-
-        let order_config_v2 = OrderConfigV3 {
-            nonce: U256::from(8).into(),
-            secret: U256::from(8).into(),
-            validInputs: inputs.clone(),
-            validOutputs: outputs.clone(),
-            evaluable: EvaluableV3 {
-                interpreter,
-                store,
-                bytecode: bytecode.clone().into(),
-            },
-            meta: meta.clone().into(),
+    fn test_try_generate_meta_empty_dotrain() {
+        let args = AddOrderArgs {
+            dotrain: "".into(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
         };
-
-        assert_eq!(order_config_v2.validInputs, inputs);
-        assert_eq!(order_config_v2.validOutputs, outputs);
-        assert_eq!(order_config_v2.evaluable.interpreter, interpreter);
-        assert_eq!(order_config_v2.evaluable.store, store);
-        assert_eq!(order_config_v2.evaluable.bytecode, bytecode);
-        assert_eq!(order_config_v2.meta, meta.clone());
+        let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
+        assert_eq!(
+            meta_bytes,
+            vec![
+                255, 10, 137, 198, 116, 238, 120, 116, 163, 0, 64, 1, 27, 255, 19, 16, 158, 65, 51,
+                111, 242, 2, 120, 24, 97, 112, 112, 108, 105, 99, 97, 116, 105, 111, 110, 47, 111,
+                99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
+            ]
+        );
     }
 
     #[tokio::test]
@@ -809,6 +773,46 @@ _ _: 0 0;
         assert_eq!(post_action, "/* 0. handle-add-order */ \n_ _: 0 0;");
     }
 
+    #[tokio::test]
+    async fn test_compose_addorder_post_task_empty_dotrain() {
+        let local_evm = LocalEvm::new().await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
+        let result = AddOrderArgs::new_from_deployment("".to_string(), deployment.clone())
+            .await
+            .unwrap();
+        let err = result.compose_addorder_post_task().unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::ComposeError(ComposeError::Reject(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_compose_addorder_post_task_missing_bindings() {
+        let local_evm = LocalEvm::new().await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
+        let result = AddOrderArgs::new_from_deployment(
+            r#"
+raindex-version: 1234
+---
+#key1 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-add-order
+_ _: 0 key1;
+"#
+            .to_string(),
+            deployment.clone(),
+        )
+        .await
+        .unwrap();
+        let err = result.compose_addorder_post_task().unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::ComposeError(ComposeError::Problems(_))
+        ));
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_simulate_execute_ok() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
@@ -980,13 +984,11 @@ _ _: 16 52;
             .expect_err("expected to fail but resolved");
     }
 
-    #[tokio::test]
-    async fn test_try_parse_rainlang() {
-        let local_evm = LocalEvm::new_with_tokens(2).await;
+    fn get_deployment(rpc_url: &str, deployer: Address) -> DeploymentCfg {
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse(&local_evm.url()).unwrap(),
+            rpc: Url::parse(rpc_url).unwrap(),
             chain_id: 137,
             label: None,
             network_id: None,
@@ -997,7 +999,7 @@ _ _: 16 52;
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
-            address: *local_evm.deployer.address(),
+            address: deployer,
         };
         let deployer_arc = Arc::new(deployer);
         let scenario = ScenarioCfg {
@@ -1065,6 +1067,13 @@ _ _: 16 52;
             scenario: Arc::new(scenario),
             order: Arc::new(order),
         };
+        deployment
+    }
+
+    #[tokio::test]
+    async fn test_try_parse_rainlang() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
 
         let dotrain = format!(
             r#"
@@ -1097,6 +1106,84 @@ _ _: 0 0;
                 16, 0, 0, 0, 0, 0, 0
             ]
         );
+    }
+
+    #[tokio::test]
+    async fn test_try_parse_rainlang_invalid_url() {
+        let deployment = get_deployment("https://testtest.com", Address::random());
+        let dotrain = r#"
+raindex-version: 1234
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#;
+        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        let err = add_order_args
+            .try_parse_rainlang("invalid-url".to_string(), rainlang)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AddOrderArgsError::ReadableClientError(_)));
+    }
+
+    #[tokio::test]
+    async fn test_try_parse_rainlang_missing_rpc_data() {
+        let deployment = get_deployment("https://testtest.com", Address::random());
+        let dotrain = r#"
+raindex-version: 1234
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#;
+        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        let err = add_order_args
+            .try_parse_rainlang("https://testtest.com".to_string(), rainlang)
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                ReadableClientError::AbiDecodedErrorType(_)
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_try_parse_rainlang_malformed_rainlang() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
+        let dotrain = r#"
+raindex-version: 1234
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#;
+        let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        let err = add_order_args
+            .try_parse_rainlang(local_evm.url(), rainlang.as_str()[..10].to_string())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, AddOrderArgsError::ParserError(_)));
     }
 
     #[tokio::test]
@@ -1161,7 +1248,10 @@ _ _: key1 key2;
             ]),
         };
         let err = add_order_args.compose_to_rainlang().unwrap_err();
-        assert!(matches!(err, AddOrderArgsError::ComposeError(_)));
+        assert!(matches!(
+            err,
+            AddOrderArgsError::ComposeError(ComposeError::Problems(_))
+        ));
     }
 
     #[tokio::test]
@@ -1198,11 +1288,11 @@ _ _: key1 key2;
             deployer: Address::random(),
             bindings: HashMap::new(),
         };
-        let rainlang = add_order_args.compose_to_rainlang().unwrap();
-        assert_eq!(
-            rainlang,
-            "/* 0. calculate-io */ \n_ _: 10 20;\n\n/* 1. handle-io */ \n:;"
-        );
+        let err = add_order_args.compose_to_rainlang().unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::ComposeError(ComposeError::Problems(_))
+        ));
     }
 
     #[tokio::test]
@@ -1246,7 +1336,6 @@ _ _: key1 key2;
             add_order_call.clone(),
             Address::from_str("0x1500000000000000000000000000000000000000").unwrap(),
         )
-        .await
         .unwrap();
 
         assert_eq!(res.call, add_order_call);
@@ -1256,5 +1345,114 @@ _ _: key1 key2;
         );
         assert_eq!(res.max_priority_fee_per_gas, Some(U256::from(100)));
         assert_eq!(res.max_fee_per_gas, Some(U256::from(200)));
+    }
+
+    #[tokio::test]
+    async fn test_get_add_order_calldata() {
+        let local_evm = LocalEvm::new().await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let calldata: Bytes = result
+            .get_add_order_calldata(TransactionArgs {
+                rpc_url: local_evm.url().to_string(),
+                ..Default::default()
+            })
+            .await
+            .unwrap()
+            .into();
+
+        let expected_bytes: Bytes = addOrder2Call {
+            config: OrderConfigV3 {
+                evaluable: EvaluableV3 {
+                    interpreter: *local_evm.interpreter.address(),
+                    store: *local_evm.store.address(),
+                    bytecode: Bytes::from_str("0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000").unwrap(),
+                },
+                validInputs: vec![
+                    IO {
+                        token: Address::default(),
+                        decimals: 18,
+                        vaultId: U256::from(2),
+                    },
+                    IO {
+                        token: Address::default(),
+                        decimals: 18,
+                        vaultId: U256::from(1),
+                    },
+                ],
+                validOutputs: vec![IO {
+                    token: Address::default(),
+                    decimals: 18,
+                    vaultId: U256::from(4),
+                }],
+                nonce: U256::from(0).into(),
+                secret: U256::from(0).into(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
+            },
+            tasks: vec![TaskV1 {
+                evaluable: EvaluableV3 {
+                    interpreter: *local_evm.interpreter.address(),
+                    store: *local_evm.store.address(),
+                    bytecode: Bytes::from_str("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f010000020200020110000001100000").unwrap(),
+                },
+                signedContext: vec![],
+            }],
+        }
+        .abi_encode()
+        .into();
+
+        // Nonce and secret are random, so we can't compare the whole calldata
+        assert_eq!(calldata[..164], expected_bytes[..164]);
+        assert_eq!(calldata[228..], expected_bytes[228..]);
+    }
+
+    #[tokio::test]
+    async fn test_get_add_order_calldata_invalid_rcp_url() {
+        let local_evm = LocalEvm::new().await;
+        let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
+        let dotrain = format!(
+            r#"
+raindex-version: {raindex_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+"#,
+            raindex_version = "1234"
+        );
+        let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap();
+        let err = result
+            .get_add_order_calldata(TransactionArgs {
+                rpc_url: "https://testtest.com".to_string(),
+                ..Default::default()
+            })
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                ReadableClientError::AbiDecodedErrorType(_)
+            ))
+        ));
     }
 }
