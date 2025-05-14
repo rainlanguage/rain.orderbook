@@ -74,7 +74,6 @@ export class TransactionManager {
         removeOrderInstance.execute();
         console.log('TransactionManager: Adding transaction to store');
         this.transactions.update(currentTransactions => [...currentTransactions, removeOrderInstance]); 
-        return removeOrderInstance;
     }
 
     /**

@@ -88,7 +88,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                 message: 'Transaction receipt received.' 
             });
             
-            await this.indexOrderRemoval(this.txHash);
+            this.indexOrderRemoval(this.txHash);
 		} catch (error) {
 			console.error('RemoveOrder: Failed to get transaction receipt', error);
 			this.updateState({
