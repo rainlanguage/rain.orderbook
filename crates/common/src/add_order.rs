@@ -1061,13 +1061,12 @@ _ _: 16 52;
             deployer: None,
             orderbook: None,
         };
-        let deployment = DeploymentCfg {
+        DeploymentCfg {
             document: default_document(),
             key: "".to_string(),
             scenario: Arc::new(scenario),
             order: Arc::new(order),
-        };
-        deployment
+        }
     }
 
     #[tokio::test]
