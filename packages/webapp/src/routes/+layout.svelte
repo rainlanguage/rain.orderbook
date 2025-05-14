@@ -21,7 +21,6 @@
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
 	import { settings as cachedSettings } from '$lib/stores/settings';
-	import { RemoveTransactionsProvider } from '@rainlanguage/ui-components';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 
 	const { stores, errorMessage } = $page.data;
@@ -59,7 +58,6 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
-	const transactionManager = new TransactionManager(queryClient);
 </script>
 
 {#if walletInitError}
@@ -70,28 +68,26 @@
 	</div>
 {/if}
 
-<TransactionProvider {transactionManager}>
-	<ToastProvider {toasts}>
-		<WalletProvider account={signerAddress}>
-			<QueryClientProvider client={queryClient}>
-				<LoadingWrapper>
-					{#if $page.url.pathname === '/'}
-						<Homepage {colorTheme} />
-					{:else if errorMessage}
-						<ErrorPage />
-					{:else}
-						<div
-							data-testid="layout-container"
-							class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-						>
-							<Sidebar {colorTheme} page={$page} />
-							<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-								<slot />
-							</main>
-						</div>
-					{/if}
-				</LoadingWrapper>
-			</QueryClientProvider>
-		</WalletProvider>
-	</ToastProvider>
-</TransactionProvider>
+<ToastProvider {toasts}>
+	<WalletProvider account={signerAddress}>
+		<QueryClientProvider client={queryClient}>
+			<LoadingWrapper>
+				{#if $page.url.pathname === '/'}
+					<Homepage {colorTheme} />
+				{:else if errorMessage}
+					<ErrorPage />
+				{:else}
+					<div
+						data-testid="layout-container"
+						class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+					>
+						<Sidebar {colorTheme} page={$page} />
+						<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+							<slot />
+						</main>
+					</div>
+				{/if}
+			</LoadingWrapper>
+		</QueryClientProvider>
+	</WalletProvider>
+</ToastProvider>

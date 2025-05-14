@@ -15,6 +15,7 @@ export function useTransactions() {
 	const getTransactions = manager.getTransactions();
 	
 	return {
+		manager,
 		getTransactions
 	};
 }

@@ -33,6 +33,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 	public state: RemoveOrderTransactionState;
 
 	constructor(args: RemoveOrderTransactionArgs, onSuccess: () => void, onError: () => void) {
+		console.log('RemoveOrder: Initializing with transaction hash', args.txHash);
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
@@ -44,6 +45,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
         };
         this.onSuccess = onSuccess;
         this.onError = onError;
+		console.log('RemoveOrder: Initialization complete');
 	}
 
 	public get message(): TransactionStatusMessage {
@@ -51,11 +53,14 @@ export class RemoveOrder implements RemoveOrderTransaction {
 	}
 
 	private updateState(partialState: Partial<RemoveOrderTransactionState>): void {
+		console.log('RemoveOrder: Updating state', partialState);
 		this.state = { ...this.state, ...partialState } as RemoveOrderTransactionState;
 	}
 
 	public async execute(): Promise<void> {
+		console.log('RemoveOrder: Starting execution for hash', this.txHash);
         const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
+		console.log('RemoveOrder: Generated explorer link', explorerLink);
 		this.updateState({ 
             status: TransactionStatusMessage.IDLE, 
             message: 'Starting order removal.', 
@@ -65,13 +70,16 @@ export class RemoveOrder implements RemoveOrderTransaction {
 	}
 
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
+		console.log('RemoveOrder: Waiting for transaction receipt', hash);
 		try {
 			this.updateState({ 
                 status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
                 message: `Waiting for transaction receipt (hash: ${hash})...` 
             });
             
+			console.log('RemoveOrder: Calling waitForTransactionReceipt');
 			await waitForTransactionReceipt(this.config, { hash });
+			console.log('RemoveOrder: Transaction receipt received');
 			
             this.updateState({ 
                 message: 'Transaction receipt received.' 
@@ -79,6 +87,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
             
             await this.indexOrderRemoval(this.txHash);
 		} catch (error) {
+			console.error('RemoveOrder: Failed to get transaction receipt', error);
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				message: 'Failed to get transaction receipt.'
@@ -88,18 +97,22 @@ export class RemoveOrder implements RemoveOrderTransaction {
 	}
 
 	private async indexOrderRemoval(txHash: Hex): Promise<void> {
+		console.log('RemoveOrder: Starting to index order removal', txHash);
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for order removal to be indexed...'
 		});
         
 		try {
+			console.log('RemoveOrder: Calling awaitSubgraphIndexing with URL', this.subgraphUrl);
 			const result = await awaitSubgraphIndexing(
 				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
 			);
+			console.log('RemoveOrder: Indexing result received', result);
 
             await match(result)
                 .with({ error: TransactionErrorMessage.TIMEOUT }, () => {
+                    console.error('RemoveOrder: Subgraph indexing timed out');
                     this.updateState({
                         status: TransactionStatusMessage.ERROR,
                         message: 'Subgraph indexing timed out.'
@@ -107,6 +120,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                     return this.onError();
                 })
                 .with({ value: P.not(P.nullish) }, ({ value }) => {
+                    console.log('RemoveOrder: Order removal indexed successfully', value);
                     this.updateState({
                         status: TransactionStatusMessage.SUCCESS,
                         hash: value.txHash as Hex,
@@ -115,6 +129,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                     return this.onSuccess();
                 })
                 .otherwise(() => {
+                    console.error('RemoveOrder: Unknown error during indexing');
                     this.updateState({
                         status: TransactionStatusMessage.ERROR,
                         message: 'Unknown error during indexing.'
@@ -122,6 +137,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                     return this.onError();
                 });
 		} catch (error) {
+			console.error('RemoveOrder: Failed to index order removal', error);
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,

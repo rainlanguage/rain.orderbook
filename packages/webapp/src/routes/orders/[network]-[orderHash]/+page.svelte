@@ -14,7 +14,7 @@
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
-
+	import { useTransactions } from '@rainlanguage/ui-components';
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -23,6 +23,7 @@
 	const rpcUrl = $settings.networks[network]?.rpc;
 	const chainId = $settings.networks[network]?.['chain-id'];
 	const { account } = useAccount();
+	const { manager } = useTransactions();
 
 	function onRemove(order: SgOrder) {
 		handleTransactionConfirmationModal({
@@ -31,9 +32,14 @@
 				order,
 				orderbookAddress,
 				chainId,
-				onConfirm: (hash: Hex) => {
-					console.log('hash', hash);
-
+				onConfirm: (txHash: Hex) => {
+					console.log('hash', txHash);
+					manager.createRemoveOrderTransaction({
+						orderHash,
+						chainId,
+						subgraphUrl,
+						txHash
+					});
 					// invalidateTanstackQueries(queryClient, [orderHash]);
 				}
 			}
