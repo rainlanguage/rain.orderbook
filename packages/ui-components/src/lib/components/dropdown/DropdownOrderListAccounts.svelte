@@ -1,8 +1,9 @@
 <script lang="ts">
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
-	import type { Writable, Readable } from 'svelte/store';
-	export let accounts: Readable<Record<string, string>> | undefined;
-	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
+	import type { AppStoresInterface } from '$lib/types/appStores';
+	export let accounts: AppStoresInterface['accounts'];
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
+
 	$: options = $accounts;
 </script>
 

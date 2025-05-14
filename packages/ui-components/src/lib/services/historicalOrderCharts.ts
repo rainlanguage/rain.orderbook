@@ -1,6 +1,6 @@
 import type { SgTrade } from '@rainlanguage/orderbook';
 import type { UTCTimestamp } from 'lightweight-charts';
-import { timestampSecondsToUTCTimestamp } from '../utils/time';
+import { timestampSecondsToUTCTimestamp } from '../services/time';
 import { sortBy } from 'lodash';
 import { formatUnits } from 'viem';
 

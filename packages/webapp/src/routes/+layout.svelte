@@ -14,6 +14,14 @@
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
 	import { WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
+	import { settings as cachedSettings } from '$lib/stores/settings';
+	import ErrorPage from '$lib/components/ErrorPage.svelte';
+
+	const { stores, errorMessage } = $page.data;
+
+	$: if (stores?.settings) {
+		cachedSettings.set(stores.settings);
+	}
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -59,6 +67,8 @@
 		<LoadingWrapper>
 			{#if $page.url.pathname === '/'}
 				<Homepage {colorTheme} />
+			{:else if errorMessage}
+				<ErrorPage />
 			{:else}
 				<div
 					data-testid="layout-container"
