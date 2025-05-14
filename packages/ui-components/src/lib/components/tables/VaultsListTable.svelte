@@ -10,7 +10,6 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { vaultBalanceDisplay } from '../../utils/vault';
 	import { bigintStringToHex } from '../../utils/hex';
-	import { type ConfigSource, type OrderbookConfigSource } from '@rainlanguage/orderbook';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import { QKEY_VAULTS } from '../../queries/keys';
 	import {
@@ -18,24 +17,22 @@
 		type MultiSubgraphArgs,
 		type SgVaultWithSubgraphName
 	} from '@rainlanguage/orderbook';
-	import { type Writable, type Readable } from 'svelte/store';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
-	export let activeOrderbook: Readable<OrderbookConfigSource | undefined>;
-	export let subgraphUrl: Readable<string | undefined>;
-	export let accounts: AppStoresInterface['accounts'] | undefined;
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
-	export let orderHash: Writable<string>;
-	export let activeSubgraphs: Writable<Record<string, string>>;
-	export let settings: Writable<ConfigSource | undefined>;
-	export let activeOrderStatus: Writable<boolean | undefined>;
-	export let hideZeroBalanceVaults: Writable<boolean>;
-	export let activeNetworkRef: Writable<string | undefined>;
-	export let activeOrderbookRef: Writable<string | undefined>;
-	export let activeAccounts: Readable<{
-		[k: string]: string;
-	}>;
+	export let activeOrderbook: AppStoresInterface['activeOrderbook'];
+	export let subgraphUrl: AppStoresInterface['subgraphUrl'];
+	export let accounts: AppStoresInterface['accounts'];
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
+	export let orderHash: AppStoresInterface['orderHash'];
+	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
+	export let settings: AppStoresInterface['settings'];
+	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
+	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
+	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
+	export let activeAccounts: AppStoresInterface['activeAccounts'];
+
 	export let handleDepositGenericModal: (() => void) | undefined = undefined;
 	export let handleDepositModal: ((vault: SgVault, refetch: () => void) => void) | undefined =
 		undefined;
@@ -100,7 +97,7 @@
 		{accounts}
 		{activeAccountsItems}
 		{showMyItemsOnly}
-		{activeOrderStatus}
+		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
 	/>

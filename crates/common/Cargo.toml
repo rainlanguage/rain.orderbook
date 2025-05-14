@@ -4,7 +4,6 @@ description = "Rain Orderbook CLI."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-author.workspace = true
 homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
