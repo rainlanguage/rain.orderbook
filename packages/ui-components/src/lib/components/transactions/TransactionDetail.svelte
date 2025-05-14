@@ -4,8 +4,10 @@
 	export let state: Writable<RemoveOrderTransactionState>;
 </script>
 
-<div class="rounded-md border border-gray-300 p-4 shadow-sm outline outline-1 outline-gray-200">
-	<p class="mb-2 p-2 outline outline-1 outline-gray-100">Status: {$state.status}</p>
-	<p class="mb-2 p-2 outline outline-1 outline-gray-100">Message: {$state.message}</p>
-	<p class="p-2 outline outline-1 outline-gray-100">Explorer Link: {$state.explorerLink}</p>
+<div class="w-full max-w-md rounded-md p-2 shadow-sm">
+	<p class="mb-2 break-words p-1">Status: {$state.status}</p>
+	<p class="mb-2 break-words p-1">Message: {$state.message}</p>
+	<p class="break-words p-1">
+		Explorer Link: {$state.explorerLink}
+	</p>
 </div>
