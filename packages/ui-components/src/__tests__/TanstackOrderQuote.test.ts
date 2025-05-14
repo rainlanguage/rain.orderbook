@@ -36,15 +36,17 @@ describe('TanstackOrderQuote component', () => {
 		});
 	});
 	it('displays order quote data when query is successful', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
-				error: undefined
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
+					error: undefined
+				}
+			]
+		});
 
 		const queryClient = new QueryClient();
 
@@ -69,39 +71,43 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('refreshes the quote when the refresh icon is clicked', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
-				error: undefined
-			},
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
-				error: undefined
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
+					error: undefined
+				},
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
+					error: undefined
+				}
+			]
+		});
 		// Setup mock for the second data load (after refresh)
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x5282713eceeccb5e', ratio: '0x577fe09a8775137c' },
-				error: undefined
-			},
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x5430775053da5e53', ratio: '0x5a01719c871bb83f' },
-				error: undefined
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x5282713eceeccb5e', ratio: '0x577fe09a8775137c' },
+					error: undefined
+				},
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x5430775053da5e53', ratio: '0x5a01719c871bb83f' },
+					error: undefined
+				}
+			]
+		});
 
 		// Mock the invalidateTanstackQueries function to ensure it works correctly
 		(invalidateTanstackQueries as Mock).mockImplementation((queryClient, queryKey) => {
@@ -152,15 +158,17 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('displays error message when query fails', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: false,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: undefined,
-				error: 'Network error'
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: false,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: undefined,
+					error: 'Network error'
+				}
+			]
+		});
 
 		const queryClient = new QueryClient();
 
@@ -182,15 +190,17 @@ describe('TanstackOrderQuote component', () => {
 	});
 
 	it('displays zero for price when io ratio is zero', async () => {
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x158323e942e36d8c', ratio: '0x0' },
-				error: undefined
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x0' },
+					error: undefined
+				}
+			]
+		});
 
 		const queryClient = new QueryClient();
 
@@ -217,22 +227,24 @@ describe('TanstackOrderQuote component', () => {
 
 	it('triggers a toast when the quote fails to refresh', async () => {
 		(invalidateTanstackQueries as Mock).mockRejectedValueOnce(new Error('Failed to refresh'));
-		(getOrderQuote as Mock).mockResolvedValueOnce([
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
-				error: undefined
-			},
-			{
-				success: true,
-				block_number: '0x123',
-				pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
-				data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
-				error: undefined
-			}
-		]);
+		(getOrderQuote as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x158323e942e36d8c', ratio: '0x5b16799fcb6114f7' },
+					error: undefined
+				},
+				{
+					success: true,
+					block_number: '0x123',
+					pair: { pairName: 'BTC/USDT', inputIndex: 0, outputIndex: 1 },
+					data: { maxOutput: '0x54fa82f5c7001dad', ratio: '0x53e0089714d06709' },
+					error: undefined
+				}
+			]
+		});
 		const queryClient = new QueryClient();
 
 		render(TanstackOrderQuote, {
