@@ -52,9 +52,8 @@ nix develop .#tauri-shell --command cargo tauri dev
 
 ### Optional: Direnv
 
-To use with [Direnv](https://direnv.net/), make sure you have it installed and run `direnv allow`.
+To use with [Direnv](https://direnv.net/), make sure you have it installed and run `direnv allow`. Here are the benefits of using Direnv:
 
-Benefits:
 - Automatically loads Nix dev shells, which allows you to run commands without having to prefix them with `nix develop`.
 - If your editor is configured to use direnv, it will have access to dependencies provided by the Nix dev shell.
 
