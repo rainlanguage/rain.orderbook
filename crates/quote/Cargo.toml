@@ -4,7 +4,6 @@ description = "Quote Rain Orderbook Orders"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-author.workspace = true
 homepage.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -28,21 +27,19 @@ anyhow = { workspace = true }
 reqwest = { workspace = true }
 clap = { workspace = true, features = ["env"]}
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
+wasm-bindgen-utils = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
 rain-interpreter-eval = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 httpmock = "0.7.0"
 
-[target.'cfg(target_family = "wasm")'.dev-dependencies]
-wasm-bindgen-test = "0.3"
-
 [dev-dependencies]
 rain_orderbook_test_fixtures = { workspace = true }
 rain_orderbook_common = { workspace = true }
+wasm-bindgen-test = "0.3"

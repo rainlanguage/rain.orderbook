@@ -18,9 +18,13 @@
 	import { transactions } from '$lib/stores/transactions';
 	import { settings as cachedSettings } from '$lib/stores/settings';
 	import { RemoveTransactionsProvider } from '@rainlanguage/ui-components';
+	import ErrorPage from '$lib/components/ErrorPage.svelte';
 
-	const { settings } = $page.data.stores;
-	cachedSettings.set(settings);
+	const { stores, errorMessage } = $page.data;
+
+	$: if (stores?.settings) {
+		cachedSettings.set(stores.settings);
+	}
 
 	$: console.log($transactions);
 
@@ -70,6 +74,8 @@
 				<LoadingWrapper>
 					{#if $page.url.pathname === '/'}
 						<Homepage {colorTheme} />
+					{:else if errorMessage}
+						<ErrorPage />
 					{:else}
 						<div
 							data-testid="layout-container"

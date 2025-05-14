@@ -30,8 +30,7 @@ impl Execute for CliOrderTradesListArgs {
 
         if self.pagination_args.csv {
             let csv_text = subgraph_args
-                .to_subgraph_client()
-                .await?
+                .to_subgraph_client()?
                 .order_trades_list_all(self.order_id.clone().into(), None, None)
                 .await?
                 .into_iter()
@@ -43,8 +42,7 @@ impl Execute for CliOrderTradesListArgs {
         } else {
             let table = build_table(
                 subgraph_args
-                    .to_subgraph_client()
-                    .await?
+                    .to_subgraph_client()?
                     .order_trades_list(
                         self.order_id.clone().into(),
                         self.pagination_args.clone().into(),

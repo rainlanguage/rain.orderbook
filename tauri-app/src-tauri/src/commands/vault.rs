@@ -20,8 +20,7 @@ pub async fn vaults_list_write_csv(
     subgraph_args: SubgraphArgs,
 ) -> CommandResult<()> {
     let vaults = subgraph_args
-        .to_subgraph_client()
-        .await?
+        .to_subgraph_client()?
         .vaults_list_all()
         .await?;
     let vaults_flattened: Vec<TokenVaultFlattened> =
@@ -42,8 +41,7 @@ pub async fn vault_balance_changes_list_write_csv(
     subgraph_args: SubgraphArgs,
 ) -> CommandResult<()> {
     let data = subgraph_args
-        .to_subgraph_client()
-        .await?
+        .to_subgraph_client()?
         .vault_balance_changes_list_all(id.into())
         .await?;
     let data_flattened: Vec<VaultBalanceChangeFlattened> =
