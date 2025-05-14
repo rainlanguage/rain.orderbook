@@ -1,14 +1,18 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
+use rain_orderbook_app_settings::deployer::DeployerCfg;
 use rain_orderbook_app_settings::{deployment::DeploymentCfg, scenario::ScenarioCfg};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::FlattenError, types::OrderFlattened,
 };
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::StrictYaml;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -158,6 +162,7 @@ pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) ->
 #[cfg(test)]
 mod tests {
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::yaml::YamlError;
     use rain_orderbook_common::{dotrain_order::DotrainOrderError, GH_COMMIT_SHA};
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::json;
@@ -277,8 +282,102 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // #[tokio::test]
     // async fn test_compose_from_scenario_ok()
 
-    // #[tokio::test]
-    // async fn test_compose_from_scenario_err()
+    #[tokio::test]
+    async fn test_compose_from_scenario_err() {
+        let server = MockServer::start();
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
+---
+#key1 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            rpc_url = server.url("/rpc"),
+        );
+
+        // Test scenario not found error
+        let err = compose_from_scenario(
+            dotrain.clone(),
+            None,
+            ScenarioCfg {
+                document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                key: "nonexistent".to_string(),
+                bindings: HashMap::new(),
+                runs: None,
+                blocks: None,
+                deployer: Arc::new(DeployerCfg::default()),
+            },
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::DotrainOrderError(DotrainOrderError::YamlError(YamlError::KeyNotFound(key)))
+            if key == "nonexistent"
+        ));
+
+        // Test compose error with invalid rainlang
+        let dotrain_invalid = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
+---
+#key1 !Test binding
+#calculate-io
+_ _: invalid syntax;
+#handle-io
+:;"#,
+            rpc_url = server.url("/rpc"),
+        );
+
+        let err = compose_from_scenario(
+            dotrain_invalid,
+            None,
+            ScenarioCfg {
+                document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                key: "polygon".to_string(),
+                bindings: HashMap::new(),
+                runs: None,
+                blocks: None,
+                deployer: Arc::new(DeployerCfg::default()),
+            },
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::DotrainOrderError(DotrainOrderError::ComposeError(_))
+        ));
+    }
 
     #[tokio::test]
     async fn test_validate_raindex_version_ok() {

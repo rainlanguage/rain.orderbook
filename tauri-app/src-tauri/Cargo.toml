@@ -65,3 +65,4 @@ rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev 
 rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
 strict-yaml-rust = "0.1.2"
 tempfile = "3.20.0"
+strict-yaml-rust = "0.1.2"
