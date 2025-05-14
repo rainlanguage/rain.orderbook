@@ -93,7 +93,7 @@ export {
 	formatTimestampSecondsAsLocal,
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
-} from './utils/time';
+} from './services/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';

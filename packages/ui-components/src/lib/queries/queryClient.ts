@@ -17,6 +17,6 @@ export const invalidateTanstackQueries = async (queryClient: QueryClient, queryK
 			exact: false
 		});
 	} catch {
-		throw new Error('Failed to refresh');
+		throw new Error('Failed to refresh data.');
 	}
 };

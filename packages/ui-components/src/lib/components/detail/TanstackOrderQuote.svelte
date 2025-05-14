@@ -54,7 +54,11 @@
 
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
 		queryKey: [id, QKEY_ORDER_QUOTE + id],
-		queryFn: () => getOrderQuote([order], rpcUrl),
+		queryFn: async () => {
+			const result = await getOrderQuote([order], rpcUrl);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
+		},
 		enabled: !!id && enabled
 	});
 

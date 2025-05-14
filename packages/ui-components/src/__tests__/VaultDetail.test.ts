@@ -56,7 +56,7 @@ const defaultProps: VaultDetailProps = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
-};
+} as unknown as VaultDetailProps;
 
 const mockMatchesAccount = vi.fn();
 
@@ -119,16 +119,7 @@ describe('VaultDetail', () => {
 		vi.mocked(getVault).mockResolvedValue(null);
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				onDeposit: vi.fn(),
-				onWithdraw: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
