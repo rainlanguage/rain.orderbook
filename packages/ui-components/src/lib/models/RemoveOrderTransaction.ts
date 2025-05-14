@@ -9,8 +9,9 @@ import {
 import type { Config } from '@wagmi/core';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { match, P } from 'ts-pattern';
+import { writable, type Writable, get } from 'svelte/store';
 
-type RemoveOrderTransactionState = 
+export type RemoveOrderTransactionState = 
     | { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
@@ -18,8 +19,8 @@ type RemoveOrderTransactionState =
     | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
 
 export type RemoveOrderTransaction = {
-	message: TransactionStatusMessage;
-	state: RemoveOrderTransactionState;
+	readonly message: TransactionStatusMessage;
+	readonly state: Writable<RemoveOrderTransactionState>;
 };
 
 export class RemoveOrder implements RemoveOrderTransaction {
@@ -30,7 +31,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
     private onSuccess: () => void;
     private onError: () => void;
 
-	public state: RemoveOrderTransactionState;
+	public readonly state: Writable<RemoveOrderTransactionState>;
 
 	constructor(args: RemoveOrderTransactionArgs, onSuccess: () => void, onError: () => void) {
 		console.log('RemoveOrder: Initializing with transaction hash', args.txHash);
@@ -38,23 +39,26 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
         this.txHash = args.txHash;
-        this.state = {
+        this.state = writable<RemoveOrderTransactionState>({
             status: TransactionStatusMessage.IDLE,
             message: TransactionStatusMessage.IDLE,
             explorerLink: ''
-        };
+        });
         this.onSuccess = onSuccess;
         this.onError = onError;
 		console.log('RemoveOrder: Initialization complete');
 	}
 
 	public get message(): TransactionStatusMessage {
-		return this.state.status;
+		return get(this.state).status;
 	}
 
 	private updateState(partialState: Partial<RemoveOrderTransactionState>): void {
 		console.log('RemoveOrder: Updating state', partialState);
-		this.state = { ...this.state, ...partialState } as RemoveOrderTransactionState;
+		this.state.update(currentState => ({
+            ...currentState,
+            ...partialState
+        } as RemoveOrderTransactionState));
 	}
 
 	public async execute(): Promise<void> {
@@ -63,7 +67,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		console.log('RemoveOrder: Generated explorer link', explorerLink);
 		this.updateState({ 
             status: TransactionStatusMessage.IDLE, 
-            message: 'Starting order removal.', 
+            message: 'Starting order removal.',
             explorerLink 
         });
 		await this.waitForTxReceipt(this.txHash);
