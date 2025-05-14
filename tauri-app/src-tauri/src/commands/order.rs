@@ -158,6 +158,7 @@ pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) ->
 #[cfg(test)]
 mod tests {
     use httpmock::MockServer;
+    use rain_orderbook_common::dotrain_order::DotrainOrderError;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::json;
     use tempfile::NamedTempFile;
@@ -274,14 +275,61 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // async fn test_order_remove_calldata_err()
 
     // #[tokio::test]
-    // async fn compose_from_scenario_ok()
+    // async fn test_compose_from_scenario_ok()
 
     // #[tokio::test]
-    // async fn compose_from_scenario_err()
+    // async fn test_compose_from_scenario_err()
 
     // #[tokio::test]
-    // async fn validate_raindex_version_ok()
+    // async fn test_validate_raindex_version_ok()
 
-    // #[tokio::test]
-    // async fn validate_raindex_version_err()
+    #[tokio::test]
+    async fn test_validate_raindex_version_err() {
+        let dotrain = r#"
+networks:
+    sepolia:
+        rpc: http://example.com
+        chain-id: 0
+deployers:
+    sepolia:
+        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#;
+
+        let err = validate_raindex_version(dotrain.to_string(), vec![])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::DotrainOrderError(DotrainOrderError::MissingRaindexVersion(_))
+        ));
+
+        let dotrain = r#"
+raindex-version: wrong-version
+networks:
+    sepolia:
+        rpc: http://example.com
+        chain-id: 0
+deployers:
+    sepolia:
+        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#;
+
+        let err = validate_raindex_version(dotrain.to_string(), vec![])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::DotrainOrderError(DotrainOrderError::RaindexVersionMismatch(_, _))
+        ));
+    }
 }
