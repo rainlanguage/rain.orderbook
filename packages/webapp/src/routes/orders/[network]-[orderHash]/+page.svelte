@@ -3,6 +3,7 @@
 		invalidateTanstackQueries,
 		OrderDetail,
 		PageHeader,
+		TransactionList,
 		useAccount
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
@@ -33,14 +34,12 @@
 				orderbookAddress,
 				chainId,
 				onConfirm: (txHash: Hex) => {
-					console.log('hash', txHash);
 					manager.createRemoveOrderTransaction({
 						orderHash,
 						chainId,
 						subgraphUrl,
 						txHash
 					});
-					// invalidateTanstackQueries(queryClient, [orderHash]);
 				}
 			}
 		});
@@ -79,6 +78,7 @@
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
+<TransactionList />
 
 <OrderDetail
 	{orderHash}
