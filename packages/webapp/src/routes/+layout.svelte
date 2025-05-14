@@ -5,7 +5,7 @@
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
-	import { defaultConfig } from '$lib/stores/wagmi';
+	import { defaultConfig, wagmiConfig } from '$lib/stores/wagmi';
 	import { injected, walletConnect } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
@@ -16,7 +16,9 @@
 		ToastProvider,
 		WalletProvider,
 		TransactionManager,
-		TransactionProvider
+		TransactionProvider,
+		useToasts,
+		getToastsContext
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { toasts } from '$lib/stores/toasts';
@@ -58,6 +60,8 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
+	const { addToast } = useToasts();
+	const manager = new TransactionManager(queryClient, addToast, $wagmiConfig);
 </script>
 
 {#if walletInitError}
@@ -68,26 +72,28 @@
 	</div>
 {/if}
 
-<ToastProvider {toasts}>
-	<WalletProvider account={signerAddress}>
-		<QueryClientProvider client={queryClient}>
-			<LoadingWrapper>
-				{#if $page.url.pathname === '/'}
-					<Homepage {colorTheme} />
-				{:else if errorMessage}
-					<ErrorPage />
-				{:else}
-					<div
-						data-testid="layout-container"
-						class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-					>
-						<Sidebar {colorTheme} page={$page} />
-						<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-							<slot />
-						</main>
-					</div>
-				{/if}
-			</LoadingWrapper>
-		</QueryClientProvider>
-	</WalletProvider>
-</ToastProvider>
+<TransactionProvider {manager}>
+	<ToastProvider {toasts}>
+		<WalletProvider account={signerAddress}>
+			<QueryClientProvider client={queryClient}>
+				<LoadingWrapper>
+					{#if $page.url.pathname === '/'}
+						<Homepage {colorTheme} />
+					{:else if errorMessage}
+						<ErrorPage />
+					{:else}
+						<div
+							data-testid="layout-container"
+							class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+						>
+							<Sidebar {colorTheme} page={$page} />
+							<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
+								<slot />
+							</main>
+						</div>
+					{/if}
+				</LoadingWrapper>
+			</QueryClientProvider>
+		</WalletProvider>
+	</ToastProvider>
+</TransactionProvider>
