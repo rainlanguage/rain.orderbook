@@ -368,14 +368,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Add Order', async functi
 			.forPost('/sg1')
 			.thenReply(200, JSON.stringify({ data: { addOrders: addOrders } }));
 
-		try {
-			const result: SgAddOrderWithOrder[] = await getTransactionAddOrders(
-				mockServer.url + '/sg1',
-				transaction1.id
-			);
-			assert.equal(result[0].order.id, mockAddOrder.order.id);
-		} catch (e) {
-			assert.fail('expected to resolve, but failed' + (e instanceof Error ? e.message : String(e)));
-		}
+		const result = await getTransactionAddOrders(mockServer.url + '/sg1', transaction1.id);
+		if (result.error) assert.fail('expected to resolve, but failed');
+		assert.equal(result.value[0].order.id, mockAddOrder.order.id);
 	});
 });

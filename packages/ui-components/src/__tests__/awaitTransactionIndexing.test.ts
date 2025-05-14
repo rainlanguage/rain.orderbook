@@ -38,7 +38,7 @@ describe('subgraphIndexing', () => {
 
 	it('should resolve with value when data is successfully fetched', async () => {
 		const mockData = { id: 'tx123' };
-		mockFetchData.mockResolvedValue(mockData);
+		mockFetchData.mockResolvedValue({ value: mockData });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -72,7 +72,7 @@ describe('subgraphIndexing', () => {
 			}
 		];
 
-		mockFetchData.mockResolvedValue(mockOrderData);
+		mockFetchData.mockResolvedValue({ value: mockOrderData });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -95,7 +95,7 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should retry fetching data until maxAttempts is reached', async () => {
-		mockFetchData.mockResolvedValue(null);
+		mockFetchData.mockResolvedValue({ value: null });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -120,7 +120,7 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should handle fetch errors gracefully', async () => {
-		mockFetchData.mockRejectedValue(new Error('Network error'));
+		mockFetchData.mockResolvedValue({ error: { msg: 'Network error' } });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -145,7 +145,9 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should resolve immediately when successful data is found', async () => {
-		mockFetchData.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'tx123' });
+		mockFetchData
+			.mockResolvedValueOnce({ value: null })
+			.mockResolvedValueOnce({ value: { id: 'tx123' } });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',

@@ -130,12 +130,14 @@ describe('OrderDetail', () => {
 		});
 
 		(getOrderByHash as Mock).mockResolvedValue({
-			order: mockOrder,
-			vaults: new Map([
-				['inputs', [mockOrder.inputs[0]]],
-				['outputs', [mockOrder.outputs[0]]],
-				['inputs_outputs', []]
-			])
+			value: {
+				order: mockOrder,
+				vaults: new Map([
+					['inputs', [mockOrder.inputs[0]]],
+					['outputs', [mockOrder.outputs[0]]],
+					['inputs_outputs', []]
+				])
+			}
 		});
 	});
 
@@ -149,7 +151,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('shows the correct empty message when the query returns no data', async () => {
-		(getOrderByHash as Mock).mockResolvedValue(null);
+		(getOrderByHash as Mock).mockResolvedValue({ value: null });
 
 		render(OrderDetail, {
 			props: defaultProps,
@@ -213,15 +215,17 @@ describe('OrderDetail', () => {
 	it('does not show remove button if order is not active', async () => {
 		// Modify the mock to return an inactive order
 		(getOrderByHash as Mock).mockResolvedValue({
-			order: {
-				...mockOrder,
-				active: false
-			},
-			vaults: new Map([
-				['inputs', []],
-				['outputs', []],
-				['inputs_outputs', []]
-			])
+			value: {
+				order: {
+					...mockOrder,
+					active: false
+				},
+				vaults: new Map([
+					['inputs', []],
+					['outputs', []],
+					['inputs_outputs', []]
+				])
+			}
 		});
 
 		render(OrderDetail, {

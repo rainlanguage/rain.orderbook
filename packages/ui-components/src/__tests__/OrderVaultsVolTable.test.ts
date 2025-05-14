@@ -8,7 +8,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 
 // Mock the getOrderVaultsVolume function
 vi.mock('@rainlanguage/orderbook', () => ({
-	getOrderVaultsVolume: vi.fn(() => Promise.resolve(mockVaultsVol))
+	getOrderVaultsVolume: vi.fn(() => Promise.resolve({ value: mockVaultsVol }))
 }));
 
 const mockVaultsVol: VaultVolume[] = [
