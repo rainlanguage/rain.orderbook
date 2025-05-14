@@ -58,8 +58,6 @@ Benefits:
 - Automatically loads Nix dev shells, which allows you to run commands without having to prefix them with `nix develop`.
 - If your editor is configured to use direnv, it will have access to dependencies provided by the Nix dev shell.
 
-The main Nix dev shell is configured in `.envrc` and the Tauri dev shell is configured in `tauri-app/.envrc` and gets activated when you `cd tauri-app`, assuming Direnv is installed and `direnv allow` has been run.
-
 ## Legal stuff
 
 Everything is under DecentraLicense 1.0 (DCL-1.0) which can be found in `LICENSES/`.

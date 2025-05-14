@@ -1,9 +1,8 @@
 {
     "recommendations": [
-        "rust-lang.rust-analyzer",
-        "mkhl.direnv",
         "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
         "jnoortheen.nix-ide",
-        "juanblanco.solidity"
+        "mkhl.direnv"
     ]
 }
