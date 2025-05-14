@@ -1148,6 +1148,63 @@ _ _: key1 key2;
     }
 
     #[tokio::test]
+    async fn test_compose_to_rainlang_invalid_dotrain() {
+        let add_order_args = AddOrderArgs {
+            dotrain: "invalid-dotrain".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deployer: Address::random(),
+            bindings: HashMap::from([
+                ("key1".to_string(), "10".to_string()),
+                ("key2".to_string(), "20".to_string()),
+            ]),
+        };
+        let err = add_order_args.compose_to_rainlang().unwrap_err();
+        assert!(matches!(err, AddOrderArgsError::ComposeError(_)));
+    }
+
+    #[tokio::test]
+    async fn test_compose_to_rainlang_missing_bindings() {
+        let dotrain = r#"
+networks:
+    test:
+        rpc: https://testtest.com
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    test:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    test:
+        bindings:
+            key1: 10
+            key2: 20
+        deployer: test
+---
+#key1 !Test binding
+#key2 !Test binding
+#calculate-io
+_ _: key1 key2;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+        let add_order_args = AddOrderArgs {
+            dotrain: dotrain.to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            deployer: Address::random(),
+            bindings: HashMap::new(),
+        };
+        let rainlang = add_order_args.compose_to_rainlang().unwrap();
+        assert_eq!(
+            rainlang,
+            "/* 0. calculate-io */ \n_ _: 10 20;\n\n/* 1. handle-io */ \n:;"
+        );
+    }
+
+    #[tokio::test]
     async fn test_add_order_call_try_into_write_contract_parameters() {
         let add_order_call = addOrder2Call {
             config: OrderConfigV3 {
