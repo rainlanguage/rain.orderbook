@@ -1,7 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import type { QueryClient } from '@tanstack/svelte-query';
 import { RemoveOrder, type RemoveOrderTransaction } from '../../models/RemoveOrderTransaction';
-import type { RemoveOrderTransactionArgs, TransactionErrorMessage } from '$lib/types/transaction';
+import type { TransactionArgs } from '$lib/types/transaction';
 import type { Config } from '@wagmi/core';
 import type { ToastProps } from '$lib/types/toast';
 
@@ -48,9 +48,9 @@ export class TransactionManager {
      * @param args - Arguments needed for the remove order transaction
      * @returns A new RemoveOrder transaction instance
      */
-    public createRemoveOrderTransaction(args: Omit<RemoveOrderTransactionArgs, 'config'>): RemoveOrder {
+    public createRemoveOrderTransaction(args: Omit<TransactionArgs, 'config'>): RemoveOrder {
         console.log('TransactionManager: Creating remove order transaction', args.orderHash);
-        const transactionArgs: RemoveOrderTransactionArgs = {
+        const transactionArgs: TransactionArgs = {
             ...args,
             config: this.wagmiConfig,
         };

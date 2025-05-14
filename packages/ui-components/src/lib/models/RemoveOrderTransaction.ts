@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
 import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
-import type { RemoveOrderTransactionArgs } from '$lib/types/transaction';
+import type { TransactionArgs } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	getRemoveOrderConfig
@@ -19,7 +19,6 @@ export type RemoveOrderTransactionState =
     | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
 
 export type RemoveOrderTransaction = {
-	readonly message: TransactionStatusMessage;
 	readonly state: Writable<RemoveOrderTransactionState>;
 };
 
@@ -33,7 +32,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 
 	public readonly state: Writable<RemoveOrderTransactionState>;
 
-	constructor(args: RemoveOrderTransactionArgs, onSuccess: () => void, onError: () => void) {
+	constructor(args: TransactionArgs, onSuccess: () => void, onError: () => void) {
 		console.log('RemoveOrder: Initializing with transaction hash', args.txHash);
 		this.config = args.config;
 		this.chainId = args.chainId;
@@ -41,7 +40,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
         this.txHash = args.txHash;
         this.state = writable<RemoveOrderTransactionState>({
             status: TransactionStatusMessage.IDLE,
-            message: TransactionStatusMessage.IDLE,
+            message: '',
             explorerLink: ''
         });
         this.onSuccess = onSuccess;
@@ -49,8 +48,8 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		console.log('RemoveOrder: Initialization complete');
 	}
 
-	public get message(): TransactionStatusMessage {
-		return get(this.state).status;
+	public get message(): string {
+		return get(this.state).message;
 	}
 
 	private updateState(partialState: Partial<RemoveOrderTransactionState>): void {
@@ -78,7 +77,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		try {
 			this.updateState({ 
                 status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
-                message: `Waiting for transaction receipt (hash: ${hash})...` 
+                message: `Waiting for transaction receipt...` 
             });
             
 			console.log('RemoveOrder: Calling waitForTransactionReceipt');
@@ -128,7 +127,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                     this.updateState({
                         status: TransactionStatusMessage.SUCCESS,
                         hash: value.txHash as Hex,
-                        message: value.successMessage || 'Order removal indexed successfully.'
+                        message: 'Order removal indexed successfully.'
                     });
                     return this.onSuccess();
                 })
