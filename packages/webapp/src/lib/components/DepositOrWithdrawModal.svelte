@@ -124,7 +124,6 @@
 	}
 
 	function handleClose() {
-		transactionStore.reset();
 		open = false;
 		currentStep = 1;
 		amount = 0n;

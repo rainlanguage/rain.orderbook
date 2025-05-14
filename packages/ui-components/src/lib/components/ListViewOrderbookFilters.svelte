@@ -8,19 +8,18 @@
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
-	import type { Readable, Writable } from 'svelte/store';
-	import type { ConfigSource } from '@rainlanguage/orderbook';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
+	import type { AppStoresInterface } from '$lib/types/appStores';
 
-	export let settings: Writable<ConfigSource | undefined>;
-	export let accounts: Readable<Record<string, string>> | undefined;
-	export let hideZeroBalanceVaults: Writable<boolean>;
-	export let activeAccountsItems: Writable<Record<string, string>> | undefined;
-	export let showMyItemsOnly: Writable<boolean>;
-	export let activeSubgraphs: Writable<Record<string, string>>;
-	export let activeOrderStatus: Writable<boolean | undefined>;
-	export let orderHash: Writable<string>;
+	export let settings: AppStoresInterface['settings'];
+	export let accounts: AppStoresInterface['accounts'];
+	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
+	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
+	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
+	export let orderHash: AppStoresInterface['orderHash'];
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -54,7 +53,7 @@
 		{#if isOrdersPage}
 			<InputOrderHash {orderHash} />
 			<div class="mt-4">
-				<CheckboxActiveOrders {activeOrderStatus} />
+				<CheckboxActiveOrders {showInactiveOrders} />
 			</div>
 		{/if}
 		{#if $accounts && Object.values($accounts).length > 0}

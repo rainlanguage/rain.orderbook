@@ -6,7 +6,7 @@
 		getVaultBalanceChanges,
 		type SgVaultBalanceChangeUnwrapped
 	} from '@rainlanguage/orderbook';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';

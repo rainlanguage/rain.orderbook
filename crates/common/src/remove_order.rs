@@ -57,12 +57,10 @@ impl RemoveOrderArgs {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
         let remove_order_call: removeOrder2Call = self.try_into()?;
-        let params = transaction_args
-            .try_into_write_contract_parameters(
-                remove_order_call,
-                transaction_args.orderbook_address,
-            )
-            .await?;
+        let params = transaction_args.try_into_write_contract_parameters(
+            remove_order_call,
+            transaction_args.orderbook_address,
+        )?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
@@ -148,8 +146,8 @@ mod tests {
         assert_eq!(calldata.len(), 836);
     }
 
-    #[tokio::test]
-    async fn test_try_into_remove_order_call() {
+    #[test]
+    fn test_try_into_remove_order_call() {
         let remove_order_call = removeOrder2Call {
             order: get_order().try_into().unwrap(),
             tasks: vec![],
@@ -167,7 +165,6 @@ mod tests {
 
         let params = args
             .try_into_write_contract_parameters(remove_order_call.clone(), args.orderbook_address)
-            .await
             .unwrap();
         assert_eq!(params.address, args.orderbook_address);
         assert_eq!(params.call, remove_order_call);
