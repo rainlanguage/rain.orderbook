@@ -3,7 +3,6 @@
 	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { RemoveOrder } from '@rainlanguage/ui-components';
-
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
 	import { TransactionStatusMessage } from '@rainlanguage/ui-components';
 
@@ -26,8 +25,6 @@
 		open = true;
 	}
 	handleTransaction();
-
-	$: console.log(transaction);
 </script>
 
 {#if transaction}

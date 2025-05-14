@@ -17,21 +17,22 @@ export type RemoveOrderTransaction = {
 		| FailedRemoveOrderTransactionState;
 };
 
-type RemoveOrderTransactionState = {
+interface RemoveOrderTransactionState {
 	status: TransactionStatusMessage;
 	network: string;
 	message: string;
 };
 
-type ConfirmedTransactionData = {
+interface ConfirmedTransactionData {
 	hash: Hex;
 	explorerLink: string;
 };
 
-type FailedRemoveOrderTransactionState = RemoveOrderTransactionState & {
+interface FailedRemoveOrderTransactionState extends RemoveOrderTransactionState {
 	errorDetails: TransactionErrorMessage;
 };
-type ConfirmedRemoveOrderTransactionState = RemoveOrderTransactionState & ConfirmedTransactionData;
+
+interface ConfirmedRemoveOrderTransactionState extends RemoveOrderTransactionState, ConfirmedTransactionData {}
 
 export class RemoveOrder implements RemoveOrderTransaction {
 	private config: Config;
@@ -45,7 +46,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		| ConfirmedRemoveOrderTransactionState
 		| FailedRemoveOrderTransactionState;
 
-	constructor(args: RemoveOrderTransactionArgs) {
+	constructor(args: RemoveOrderTransactionArgs, onWalletConfirmation: () => void, onSuccess: () => void, onError: () => void) {
 		this.config = args.config;
 		this.orderbookAddress = args.orderbookAddress;
 		this.removeOrderCalldata = args.removeOrderCalldata as Hex;
