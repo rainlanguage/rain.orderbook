@@ -191,11 +191,8 @@ mod tests {
         use rain_orderbook_bindings::IOrderBookV4::IO;
         use std::{collections::HashMap, str::FromStr};
 
-        #[tokio::test]
-        async fn test_get_add_order_calldata() {
-            let rpc_server = MockServer::start_async().await;
-
-            let dotrain = format!(
+        fn get_dotrain(rpc_url: &str) -> String {
+            format!(
                 r#"
 networks:
   mainnet:
@@ -259,9 +256,14 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#,
-                rpc_url = rpc_server.url("/rpc")
-            );
+"#
+            )
+        }
+
+        #[tokio::test]
+        async fn test_get_add_order_calldata() {
+            let rpc_server = MockServer::start_async().await;
+            let dotrain = get_dotrain(&rpc_server.url("/rpc"));
 
             rpc_server.mock(|when, then| {
                 when.path("/rpc").body_contains("0xf0cfdd37");
@@ -356,6 +358,55 @@ _ _: 0 0;
             // Nonce and secret are random, so we can't compare the whole calldata
             assert_eq!(calldata.0[..164], expected_calldata[..164]);
             assert_eq!(calldata.0[228..], expected_calldata[228..]);
+        }
+
+        #[tokio::test]
+        async fn test_get_add_order_calldata_invalid_deployment() {
+            let rpc_server = MockServer::start_async().await;
+            let dotrain = get_dotrain(&rpc_server.url("/rpc"));
+
+            let err = get_add_order_calldata(&dotrain, "invalid-deployment")
+                .await
+                .unwrap_err();
+            assert!(matches!(err, Error::UndefinedDeployment));
+        }
+
+        #[tokio::test]
+        async fn test_get_add_order_calldata_invalid_dotrain() {
+            let err = get_add_order_calldata(&"invalid-dotrain".to_string(), "deployment1")
+                .await
+                .unwrap_err();
+            assert!(matches!(err, Error::UndefinedDeployment));
+
+            let err = get_add_order_calldata(
+                &r#"
+deployments:
+  deployment1:
+    order: order1
+    scenario: scenario1
+---
+"#
+                .to_string(),
+                "deployment1",
+            )
+            .await
+            .unwrap_err();
+            println!("{:?}", err);
+            assert!(matches!(err, Error::ParseConfigSourceError(_)));
+        }
+
+        #[tokio::test]
+        async fn test_get_add_order_calldata_missing_rpc_data() {
+            let rpc_server = MockServer::start_async().await;
+            let dotrain = get_dotrain(&rpc_server.url("/rpc"));
+
+            let err = get_add_order_calldata(&dotrain, "deployment1")
+                .await
+                .unwrap_err();
+            assert!(matches!(
+                err,
+                Error::AddOrderArgsError(AddOrderArgsError::DISPairError(_))
+            ));
         }
     }
 }
