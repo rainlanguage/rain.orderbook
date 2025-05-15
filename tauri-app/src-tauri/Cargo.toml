@@ -41,7 +41,7 @@ futures = "0.3.17"
 tokio = { version = "1.28.0", features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = "0.0"
+wasm-bindgen-utils = "0.0.8"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
