@@ -112,7 +112,7 @@ mod tests {
 
         let orderbook_address = Address::random();
         let cli_args = CliTransactionArgs {
-            orderbook_address: orderbook_address.clone(),
+            orderbook_address,
             derivation_index: None,
             chain_id: None,
             rpc_url: "http://localhost:8545".to_string(),
