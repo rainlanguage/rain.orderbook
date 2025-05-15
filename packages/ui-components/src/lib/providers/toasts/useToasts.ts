@@ -1,21 +1,23 @@
 import { getToastsContext } from './context';
-import { get } from 'svelte/store';
 import type { ToastProps } from '$lib/types/toast';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Hook for managing toast notifications in the application.
  * Provides functionality to add, remove, and access toast notifications.
- *
- * @returns An object containing the toast store and methods to manipulate toasts
+ * 
+ * @returns {Object} An object containing:
+ *   - toasts: Writable store containing all active toast notifications
+ *   - addToast: Function to add a new toast notification
+ *   - removeToast: Function to remove a toast notification by index
  */
 export function useToasts() {
 	const toasts = getToastsContext();
 
 	/**
-	 * Removes a toast notification by its index
-	 *
-	 * @param index - The index of the toast to remove
+	 * Removes a toast notification by its index from the toasts store
+	 * 
+	 * @param {number} index - The index of the toast to remove
+	 * @returns {void}
 	 */
 	const removeToast = (index: number) => {
 		toasts.update((toasts) => {
@@ -27,15 +29,18 @@ export function useToasts() {
 	};
 
 	/**
-	 * Adds a new toast notification and automatically removes it after 3 seconds
-	 *
-	 * @param toast - The toast properties (message and type)
+	 * Adds a new toast notification to the toasts store
+	 * 
+	 * @param {ToastProps} toast - The toast configuration object containing:
+	 *   - message: The text to display in the toast
+	 *   - type: The type of toast (success, error, warning, info)
+	 *   - color: The color theme of the toast (green, red, yellow, blue)
+	 *   - links: Optional array of links to display in the toast
+	 * @returns {void}
 	 */
-	const addToast = (toast: Omit<ToastProps, 'id'>) => {
-		const newToast: ToastProps = { ...toast, id: uuidv4() };
-
+	const addToast = (toast: ToastProps) => {
 		toasts.update((toasts) => {
-			const updatedToasts = [...toasts, newToast];
+			const updatedToasts = [...toasts, toast];
 			return updatedToasts;
 		});
 	};

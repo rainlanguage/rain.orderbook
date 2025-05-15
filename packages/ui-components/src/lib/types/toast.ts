@@ -4,7 +4,6 @@ export interface ToastProps {
 	type: 'success' | 'error' | 'warning' | 'info';
 	color: 'green' | 'red' | 'yellow' | 'blue';
 	links: ToastLink[];
-	id: string
 }
 
 export type ToastLink = {

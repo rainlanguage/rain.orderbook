@@ -9,9 +9,9 @@
 </script>
 
 <div class="fixed right-4 top-4 z-[100]">
-	{#each $toasts as toast}
+	{#each $toasts as toast, i}
 		<div out:fade data-testid="toast">
-			<ToastDetail {toast} />
+			<ToastDetail {toast} {i} />
 		</div>
 	{/each}
 </div>
