@@ -11,6 +11,15 @@ import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { match, P } from 'ts-pattern';
 import { writable, type Writable, get } from 'svelte/store';
 
+/**
+ * Represents the possible states of a transaction
+ * @typedef {Object} TransactionState
+ * @property {TransactionStatusMessage} status - The current status of the transaction
+ * @property {string} message - A descriptive message about the current state
+ * @property {string} explorerLink - Link to view the transaction on a block explorer
+ * @property {Hex} [hash] - Optional transaction hash for successful transactions
+ * @property {TransactionErrorMessage} [errorDetails] - Optional error details for failed transactions
+ */
 export type TransactionState = 
     | { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
@@ -18,10 +27,20 @@ export type TransactionState =
     | { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
     | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
 
+/**
+ * Interface defining the structure of a transaction
+ * @interface Transaction
+ * @property {Writable<TransactionState>} state - A writable store containing the transaction state
+ */
 export type Transaction = {
 	readonly state: Writable<TransactionState>;
 };
 
+/**
+ * Manages the lifecycle of a blockchain transaction
+ * @class TransactionStore
+ * @implements {Transaction}
+ */
 export class TransactionStore implements Transaction {
 	private config: Config;
 	private chainId: number;
@@ -32,8 +51,14 @@ export class TransactionStore implements Transaction {
 
 	public readonly state: Writable<TransactionState>;
 
+	/**
+	 * Creates a new TransactionStore instance
+	 * @param {TransactionArgs} args - Configuration arguments for the transaction
+	 * @param {() => void} onSuccess - Callback function to execute on successful transaction
+	 * @param {() => void} onError - Callback function to execute on failed transaction
+	 * @param {() => Promise<void>} fetchFn - Function to fetch transaction data
+	 */
 	constructor(args: TransactionArgs, onSuccess: () => void, onError: () => void, fetchFn: () => Promise<void>) {
-		console.log('RemoveOrder: Initializing with transaction hash', args.txHash);
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
@@ -45,25 +70,34 @@ export class TransactionStore implements Transaction {
         });
         this.onSuccess = onSuccess;
         this.onError = onError;
-		console.log('RemoveOrder: Initialization complete');
 	}
 
+	/**
+	 * Gets the current message from the transaction state
+	 * @returns {string} The current transaction message
+	 */
 	public get message(): string {
 		return get(this.state).message;
 	}
 
+	/**
+	 * Updates the transaction state with new values
+	 * @param {Partial<TransactionState>} partialState - The new state values to merge
+	 * @private
+	 */
 	private updateState(partialState: Partial<TransactionState>): void {
-		console.log('RemoveOrder: Updating state', partialState);
 		this.state.update(currentState => ({
             ...currentState,
             ...partialState
         } as TransactionState));
 	}
 
+	/**
+	 * Executes the transaction and begins monitoring its status
+	 * @returns {Promise<void>}
+	 */
 	public async execute(): Promise<void> {
-		console.log('RemoveOrder: Starting execution for hash', this.txHash);
         const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
-		console.log('RemoveOrder: Generated explorer link', explorerLink);
 		this.updateState({ 
             status: TransactionStatusMessage.IDLE, 
             message: 'Starting order removal.',
@@ -72,17 +106,20 @@ export class TransactionStore implements Transaction {
 		await this.waitForTxReceipt(this.txHash);
 	}
 
+	/**
+	 * Waits for the transaction receipt to be confirmed on the blockchain
+	 * @param {Hex} hash - The transaction hash to monitor
+	 * @returns {Promise<void>}
+	 * @private
+	 */
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
-		console.log('RemoveOrder: Waiting for transaction receipt', hash);
 		try {
 			this.updateState({ 
                 status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
                 message: `Waiting for transaction receipt...` 
             });
             
-			console.log('RemoveOrder: Calling waitForTransactionReceipt');
 			await waitForTransactionReceipt(this.config, { hash });
-			console.log('RemoveOrder: Transaction receipt received');
 			
             this.updateState({ 
                 message: 'Transaction receipt received.' 
@@ -90,7 +127,6 @@ export class TransactionStore implements Transaction {
             
             this.indexTransaction(this.txHash);
 		} catch (error) {
-			console.error('RemoveOrder: Failed to get transaction receipt', error);
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				message: 'Failed to get transaction receipt.'
@@ -99,23 +135,25 @@ export class TransactionStore implements Transaction {
 		}
 	}
 
+	/**
+	 * Monitors the transaction indexing status in the subgraph
+	 * @param {Hex} txHash - The transaction hash to monitor
+	 * @returns {Promise<void>}
+	 * @private
+	 */
 	private async indexTransaction(txHash: Hex): Promise<void> {
-		console.log('RemoveOrder: Starting to index order removal', txHash);
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for order removal to be indexed...'
 		});
         
 		try {
-			console.log('RemoveOrder: Calling awaitSubgraphIndexing with URL', this.subgraphUrl);
 			const result = await awaitSubgraphIndexing(
 				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
 			);
-			console.log('RemoveOrder: Indexing result received', result);
 
             await match(result)
                 .with({ error: TransactionErrorMessage.TIMEOUT }, () => {
-                    console.error('RemoveOrder: Subgraph indexing timed out');
                     this.updateState({
                         status: TransactionStatusMessage.ERROR,
                         message: 'Subgraph indexing timed out.'
@@ -123,7 +161,6 @@ export class TransactionStore implements Transaction {
                     return this.onError();
                 })
                 .with({ value: P.not(P.nullish) }, ({ value }) => {
-                    console.log('RemoveOrder: Order removal indexed successfully', value);
                     this.updateState({
                         status: TransactionStatusMessage.SUCCESS,
                         hash: value.txHash as Hex,
@@ -132,7 +169,6 @@ export class TransactionStore implements Transaction {
                     return this.onSuccess();
                 })
                 .otherwise(() => {
-                    console.error('RemoveOrder: Unknown error during indexing');
                     this.updateState({
                         status: TransactionStatusMessage.ERROR,
                         message: 'Unknown error during indexing.'
@@ -140,7 +176,6 @@ export class TransactionStore implements Transaction {
                     return this.onError();
                 });
 		} catch (error) {
-			console.error('RemoveOrder: Failed to index order removal', error);
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,

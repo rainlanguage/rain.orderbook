@@ -81,6 +81,7 @@ export type InternalTransactionArgs = {
 	chainId: number;
 	subgraphUrl: string;
 	txHash: Hex;
+	config: Config;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
