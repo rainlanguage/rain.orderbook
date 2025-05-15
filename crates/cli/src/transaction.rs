@@ -79,3 +79,49 @@ impl From<CliGasFeeSpeed> for GasFeeSpeed {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::U256;
+
+    #[test]
+    fn test_from_cli_transaction_args() {
+        let cli_args = CliTransactionArgs {
+            orderbook_address: Address::ZERO,
+            derivation_index: Some(1),
+            chain_id: Some(1),
+            rpc_url: "http://localhost:8545".to_string(),
+            max_priority_fee_per_gas: Some(U256::from(100)),
+            max_fee_per_gas: Some(U256::from(1000)),
+            gas_fee_speed: Some(CliGasFeeSpeed::Fast),
+        };
+
+        let transaction_args: TransactionArgs = cli_args.into();
+
+        assert_eq!(transaction_args.orderbook_address, Address::ZERO);
+        assert_eq!(transaction_args.derivation_index, Some(1));
+        assert_eq!(transaction_args.chain_id, Some(1));
+        assert_eq!(transaction_args.rpc_url, "http://localhost:8545");
+        assert_eq!(
+            transaction_args.max_priority_fee_per_gas,
+            Some(U256::from(100))
+        );
+        assert_eq!(transaction_args.max_fee_per_gas, Some(U256::from(1000)));
+        assert_eq!(transaction_args.gas_fee_speed, Some(GasFeeSpeed::Fast));
+    }
+
+    #[test]
+    fn test_from_cli_gas_fee_speed() {
+        assert_eq!(GasFeeSpeed::from(CliGasFeeSpeed::Slow), GasFeeSpeed::Slow);
+        assert_eq!(
+            GasFeeSpeed::from(CliGasFeeSpeed::Medium),
+            GasFeeSpeed::Medium
+        );
+        assert_eq!(GasFeeSpeed::from(CliGasFeeSpeed::Fast), GasFeeSpeed::Fast);
+        assert_eq!(
+            GasFeeSpeed::from(CliGasFeeSpeed::Fastest),
+            GasFeeSpeed::Fastest
+        );
+    }
+}
