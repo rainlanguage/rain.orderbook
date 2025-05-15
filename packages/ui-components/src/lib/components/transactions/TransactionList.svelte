@@ -1,13 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { TransactionManager } from '../../providers/transactions/TransactionManager';
 	import TransactionDetail from './TransactionDetail.svelte';
+	import { useTransactions } from '../../providers/transactions/useTransactions';
+	const { manager } = useTransactions();
 
-	const transactionManager = getContext<TransactionManager>(
-		'rain:ui-components:transactionManager'
-	);
-
-	const transactionsStore = transactionManager.getTransactions();
+	const transactionsStore = manager.getTransactions();
 </script>
 
 {#if $transactionsStore.length > 0}
