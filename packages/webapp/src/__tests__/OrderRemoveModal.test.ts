@@ -32,12 +32,12 @@ describe('OrderRemoveModal', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
-	});
-
-	it('handles transaction correctly', async () => {
 		(getRemoveOrderCalldata as Mock).mockResolvedValue({
 			value: '0x123'
 		});
+	});
+
+	it('handles transaction correctly', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleRemoveOrderTransaction');
 		render(OrderRemoveModal, defaultProps);
 
