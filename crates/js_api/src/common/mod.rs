@@ -373,20 +373,19 @@ _ _: 0 0;
 
         #[tokio::test]
         async fn test_get_add_order_calldata_invalid_dotrain() {
-            let err = get_add_order_calldata(&"invalid-dotrain".to_string(), "deployment1")
+            let err = get_add_order_calldata("invalid-dotrain", "deployment1")
                 .await
                 .unwrap_err();
             assert!(matches!(err, Error::UndefinedDeployment));
 
             let err = get_add_order_calldata(
-                &r#"
+                r#"
 deployments:
   deployment1:
     order: order1
     scenario: scenario1
 ---
-"#
-                .to_string(),
+"#,
                 "deployment1",
             )
             .await
