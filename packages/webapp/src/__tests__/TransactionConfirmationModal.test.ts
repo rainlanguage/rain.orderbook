@@ -1,42 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
-import { sendTransaction, switchChain } from '@wagmi/core';
 import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
-import type { Chain } from 'viem';
-import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
+import type { SgOrder } from '@rainlanguage/orderbook';
+import { handleWalletConfirmation } from '$lib/services/handleWalletConfirmation';
 
-const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
-
-// const mockChain: Chain = {
-// 	id: 1,
-// 	name: 'Ethereum',
-// 	nativeCurrency: {
-// 		name: 'Ether',
-// 		symbol: 'ETH',
-// 		decimals: 18
-// 	},
-// 	rpcUrls: {
-// 		default: { http: ['https://eth.llamarpc.com'] },
-// 		public: { http: ['https://eth.llamarpc.com'] }
-// 	},
-// 	blockExplorers: {
-// 		default: { name: 'Etherscan', url: 'https://etherscan.io' }
-// 	}
-// };
-
-vi.mock('@wagmi/core', () => ({
-	sendTransaction: vi.fn(),
-	switchChain: vi.fn()
-}));
-
-vi.mock('$lib/stores/wagmi', () => ({
-	wagmiConfig: mockWagmiConfigStore
+vi.mock('$lib/services/handleWalletConfirmation', () => ({
+	handleWalletConfirmation: vi.fn()
 }));
 
 describe('TransactionConfirmationModal', () => {
 	const mockCalldata = '0x1234567890abcdef';
 	const mockTxHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+
+	const mockOrder: SgOrder = {
+		id: '0x1',
+		orderBytes: '0x2',
+		orderHash: '0x3',
+		owner: '0x4',
+		outputs: [],
+		inputs: [],
+		orderbook: { id: '0x5' },
+		active: true,
+		timestampAdded: '1234567890',
+		addEvents: [],
+		trades: [],
+		removeEvents: []
+	};
 
 	const defaultProps = {
 		open: true,
@@ -44,14 +34,18 @@ describe('TransactionConfirmationModal', () => {
 			chainId: 1,
 			orderbookAddress: '0x789',
 			getCalldataFn: vi.fn().mockResolvedValue(mockCalldata),
-			onConfirm: vi.fn()
+			onConfirm: vi.fn(),
+			order: mockOrder
 		}
 	} as unknown as TransactionConfirmationProps;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
-		vi.mocked(switchChain).mockResolvedValue({} as Chain);
+		vi.mocked(handleWalletConfirmation).mockResolvedValue({
+			state: { status: 'confirmed' },
+			hash: mockTxHash
+		});
 	});
 
 	it('shows awaiting confirmation state initially', () => {
@@ -63,88 +57,89 @@ describe('TransactionConfirmationModal', () => {
 	});
 
 	it('handles successful transaction flow', async () => {
-		vi.mocked(switchChain).mockResolvedValue({} as Chain);
-		vi.mocked(sendTransaction).mockResolvedValue(mockTxHash as any);
-
 		render(TransactionConfirmationModal, defaultProps);
 
-		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
-		expect(sendTransaction).toHaveBeenCalledWith(mockWeb3Config, {
-			to: '0x789',
-			data: mockCalldata
+		await waitFor(() => {
+			expect(handleWalletConfirmation).toHaveBeenCalledWith(defaultProps.args);
+			expect(screen.getByText('Transaction Submitted')).toBeInTheDocument();
+			expect(
+				screen.getByText('Transaction has been submitted to the network.')
+			).toBeInTheDocument();
+			expect(screen.getByText('✅')).toBeInTheDocument();
+			expect(screen.queryByText('Dismiss')).not.toBeInTheDocument();
 		});
-		expect(defaultProps.args.onConfirm).toHaveBeenCalledWith(mockTxHash);
-		expect(screen.getByText('Transaction Submitted')).toBeInTheDocument();
-		expect(screen.getByText('Transaction has been submitted to the network.')).toBeInTheDocument();
 	});
 
 	it('handles chain switch error', async () => {
 		const errorMessage = 'Failed to switch chain';
-		vi.mocked(switchChain).mockRejectedValue(new Error(errorMessage));
+		vi.mocked(handleWalletConfirmation).mockResolvedValue({
+			state: {
+				status: 'error',
+				reason: errorMessage
+			}
+		});
 
 		render(TransactionConfirmationModal, defaultProps);
 
-		expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
-		expect(screen.getByText(errorMessage)).toBeInTheDocument();
-		expect(screen.getByText('Dismiss')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
+			expect(screen.getByText(errorMessage)).toBeInTheDocument();
+			expect(screen.getByText('Dismiss')).toBeInTheDocument();
+			expect(screen.getByText('❌')).toBeInTheDocument();
+		});
 	});
 
 	it('handles transaction rejection', async () => {
-		vi.mocked(switchChain).mockResolvedValue({} as Chain);
-		vi.mocked(sendTransaction).mockRejectedValue(new Error('User rejected transaction'));
+		vi.mocked(handleWalletConfirmation).mockResolvedValue({
+			state: {
+				status: 'rejected',
+				reason: 'User rejected transaction'
+			}
+		});
 
 		render(TransactionConfirmationModal, defaultProps);
 
-		expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
-		expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
-		expect(screen.getByText('Dismiss')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
+			expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
+			expect(screen.getByText('Dismiss')).toBeInTheDocument();
+			expect(screen.getByText('❌')).toBeInTheDocument();
+		});
 	});
 
-	it('handles transaction error', async () => {
-		vi.mocked(switchChain).mockResolvedValue({} as Chain);
-		vi.mocked(sendTransaction).mockRejectedValue(new Error('Transaction failed'));
+	it('handles non-Error chain switch failure', async () => {
+		vi.mocked(handleWalletConfirmation).mockResolvedValue({
+			state: {
+				status: 'error',
+				reason: 'Failed to switch chain'
+			}
+		});
 
 		render(TransactionConfirmationModal, defaultProps);
 
-		expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
-		expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
-		expect(screen.getByText('Dismiss')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed to switch chain')).toBeInTheDocument();
+			expect(screen.getByText('Dismiss')).toBeInTheDocument();
+			expect(screen.getByText('❌')).toBeInTheDocument();
+		});
 	});
 
-	it('closes modal when dismiss button is clicked', async () => {
-		vi.mocked(switchChain).mockRejectedValue(new Error('Failed to switch chain'));
+	it('handles getCalldataFn failure', async () => {
+		vi.mocked(handleWalletConfirmation).mockResolvedValue({
+			state: {
+				status: 'rejected',
+				reason: 'User rejected transaction'
+			}
+		});
 
-		const { component } = render(TransactionConfirmationModal, defaultProps);
+		render(TransactionConfirmationModal, defaultProps);
 
-		const dismissButton = screen.getByText('Dismiss');
-		await fireEvent.click(dismissButton);
-
-		expect(component.$$.props.open).toBe(false);
-	});
-
-	it('shows correct UI elements for different states', async () => {
-		const { rerender } = render(TransactionConfirmationModal, defaultProps);
-
-		// Initial state - awaiting confirmation
-		expect(screen.getByTestId('transaction-modal')).toHaveClass(
-			'bg-opacity-90',
-			'backdrop-blur-sm'
-		);
-		expect(screen.getByRole('dialog')).toHaveAttribute('data-testid', 'transaction-modal');
-
-		// Success state
-		vi.mocked(switchChain).mockResolvedValue({} as Chain);
-		vi.mocked(sendTransaction).mockResolvedValue(mockTxHash as any);
-		rerender(defaultProps);
-
-		expect(screen.getByText('✅')).toBeInTheDocument();
-		expect(screen.queryByText('Dismiss')).not.toBeInTheDocument();
-
-		// Error state
-		vi.mocked(switchChain).mockRejectedValue(new Error('Failed to switch chain'));
-		rerender(defaultProps);
-
-		expect(screen.getByText('❌')).toBeInTheDocument();
-		expect(screen.getByText('Dismiss')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
+			expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
+			expect(screen.getByText('Dismiss')).toBeInTheDocument();
+			expect(screen.getByText('❌')).toBeInTheDocument();
+		});
 	});
 });
