@@ -23,7 +23,13 @@
 		addToast({
 			message: $transactionStore.message,
 			type: 'success',
-			color: 'green'
+			color: 'green',
+			links: [
+				{
+					link: $transactionStore.explorerLink,
+					label: 'View transaction on explorer'
+				}
+			]
 		});
 		invalidateTanstackQueries(queryClient, [queryKey]);
 	}
@@ -35,7 +41,13 @@
 		addToast({
 			message: $transactionStore.error,
 			type: 'error',
-			color: 'red'
+			color: 'red',
+			links: [
+				{
+					link: $transactionStore.explorerLink,
+					label: 'View transaction on explorer'
+				}
+			]
 		});
 	}
 </script>
