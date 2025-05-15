@@ -25,14 +25,15 @@ vi.mock('../lib/components/Sidebar.svelte', async () => {
 });
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-	const MockWalletProvider = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),
-		WalletProvider: MockWalletProvider
+		WalletProvider: MockComponent,
+		ToastProvider: MockComponent
 	};
 });
 
-vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
+vi.mock('../lib/components/TransactionProviderWrapper.svelte', async () => {
 	const MockTransactionProviderWrapper = (await import('../lib/__mocks__/MockComponent.svelte'))
 		.default;
 	return {
@@ -52,7 +53,6 @@ vi.mock('$env/static/public', () => ({
 vi.mock('@wagmi/connectors', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
-
 		injected: vi.fn().mockReturnValue('injected-connector'),
 		walletConnect: vi.fn().mockReturnValue('wallet-connect-connector')
 	};

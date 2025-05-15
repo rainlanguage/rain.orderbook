@@ -9,7 +9,6 @@ import type {
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
 
-
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
 export type DeploymentArgs = {
