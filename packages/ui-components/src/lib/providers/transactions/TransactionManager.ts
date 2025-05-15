@@ -37,6 +37,10 @@ export type RemoveTxArgs = Omit<TransactionArgs, 'config'> & {
  * Manages blockchain transactions with toast notifications and query invalidation.
  * Handles transaction lifecycle, status updates, and UI feedback.
  * Provides functionality for creating, tracking, and managing blockchain transactions.
+ * 
+ * @class TransactionManager
+ * @description A class that manages the lifecycle of blockchain transactions, including
+ * tracking their status, displaying notifications, and invalidating relevant queries.
  */
 export class TransactionManager {
     /** Writable store tracking all active transactions */
@@ -71,6 +75,13 @@ export class TransactionManager {
      * @param args.chainId - Chain ID where the transaction is being executed
      * @returns A new Transaction instance configured for order removal
      * @throws {Error} If required transaction parameters are missing
+     * @example
+     * const tx = await manager.createRemoveOrderTransaction({
+     *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+     *   txHash: '0x123...',
+     *   orderHash: '0x456...',
+     *   chainId: 1
+     * });
      */
     public async createRemoveOrderTransaction(args: InternalTransactionArgs): Promise<Transaction> {
         const errorMessage = 'Order removal failed.';
@@ -91,8 +102,7 @@ export class TransactionManager {
             errorMessage,
             successMessage,
             queryKey,
-            toastLinks,
-            fetchEntityFn: () => getTransactionRemoveOrders(args.subgraphUrl, args.txHash)
+            toastLinks
         });
     }
 
@@ -103,9 +113,9 @@ export class TransactionManager {
      * @param args.successMessage - Message to display on transaction success
      * @param args.queryKey - Key used for query invalidation
      * @param args.toastLinks - Array of links to display in toast notifications
-     * @param args.fetchEntityFn - Function to fetch transaction entity data
      * @returns A new Transaction instance that has been initialized and started
      * @throws {Error} If transaction creation fails
+     * @private
      */
     private createTransaction(args: TransactionArgs): Transaction {
         const createTransactionArgs: TransactionArgs & { config: Config } = {
@@ -126,7 +136,6 @@ export class TransactionManager {
             createTransactionArgs,
             onSuccess,
             onError,
-            args.fetchEntityFn
         );
 
         transactionInstance.execute();
@@ -138,6 +147,9 @@ export class TransactionManager {
      * Retrieves the store containing all active transactions
      * @returns A writable store containing all active Transaction instances
      * @throws {Error} If transaction store is not initialized
+     * @example
+     * const transactions = manager.getTransactions();
+     * $: console.log($transactions); // Log all active transactions
      */
     public getTransactions(): Writable<Transaction[]> {
         return this.transactions;
@@ -147,6 +159,8 @@ export class TransactionManager {
      * Removes all transactions from the store
      * Resets the transaction tracking state
      * @throws {Error} If transaction store is not initialized
+     * @example
+     * manager.clearTransactions(); // Clear all tracked transactions
      */
     public clearTransactions(): void {
         this.transactions.set([]);

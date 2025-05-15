@@ -19,7 +19,7 @@ export function getToastsContext(): Writable<ToastProps[]> {
 
 /**
  * Sets the toasts store in Svelte's context
- * 
+ *
  * @param {Writable<ToastProps[]>} toasts - The writable store containing all active toast notifications
  * @returns {void}
  */

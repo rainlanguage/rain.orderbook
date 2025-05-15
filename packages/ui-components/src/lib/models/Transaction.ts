@@ -20,12 +20,17 @@ import { writable, type Writable, get } from 'svelte/store';
  * @property {Hex} [hash] - Optional transaction hash for successful transactions
  * @property {TransactionErrorMessage} [errorDetails] - Optional error details for failed transactions
  */
-export type TransactionState = 
-    | { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
-    | { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
-    | { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
-    | { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
-    | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
+export type TransactionState =
+	| { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
+	| { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
+	| { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
+	| { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
+	| {
+			status: TransactionStatusMessage.ERROR;
+			message: string;
+			explorerLink: string;
+			errorDetails?: TransactionErrorMessage;
+	  };
 
 /**
  * Interface defining the structure of a transaction
@@ -45,31 +50,30 @@ export class TransactionStore implements Transaction {
 	private config: Config;
 	private chainId: number;
 	private subgraphUrl: string;
-    private txHash: Hex;
-    private onSuccess: () => void;
-    private onError: () => void;
+	private txHash: Hex;
+	private onSuccess: () => void;
+	private onError: () => void;
 
 	public readonly state: Writable<TransactionState>;
 
 	/**
 	 * Creates a new TransactionStore instance
-	 * @param {TransactionArgs} args - Configuration arguments for the transaction
+	 * @param {TransactionArgs & { config: Config }} args - Configuration arguments for the transaction
 	 * @param {() => void} onSuccess - Callback function to execute on successful transaction
 	 * @param {() => void} onError - Callback function to execute on failed transaction
-	 * @param {() => Promise<void>} fetchFn - Function to fetch transaction data
 	 */
-	constructor(args: TransactionArgs, onSuccess: () => void, onError: () => void, fetchFn: () => Promise<void>) {
+	constructor(args: TransactionArgs & { config: Config }, onSuccess: () => void, onError: () => void) {
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
-        this.txHash = args.txHash;
-        this.state = writable<TransactionState>({
-            status: TransactionStatusMessage.IDLE,
-            message: '',
-            explorerLink: ''
-        });
-        this.onSuccess = onSuccess;
-        this.onError = onError;
+		this.txHash = args.txHash;
+		this.state = writable<TransactionState>({
+			status: TransactionStatusMessage.IDLE,
+			message: '',
+			explorerLink: ''
+		});
+		this.onSuccess = onSuccess;
+		this.onError = onError;
 	}
 
 	/**
@@ -86,10 +90,13 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private updateState(partialState: Partial<TransactionState>): void {
-		this.state.update(currentState => ({
-            ...currentState,
-            ...partialState
-        } as TransactionState));
+		this.state.update(
+			(currentState) =>
+				({
+					...currentState,
+					...partialState
+				}) as TransactionState
+		);
 	}
 
 	/**
@@ -97,12 +104,12 @@ export class TransactionStore implements Transaction {
 	 * @returns {Promise<void>}
 	 */
 	public async execute(): Promise<void> {
-        const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
-		this.updateState({ 
-            status: TransactionStatusMessage.IDLE, 
-            message: 'Starting order removal.',
-            explorerLink 
-        });
+		const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
+		this.updateState({
+			status: TransactionStatusMessage.IDLE,
+			message: 'Starting order removal.',
+			explorerLink
+		});
 		await this.waitForTxReceipt(this.txHash);
 	}
 
@@ -114,19 +121,19 @@ export class TransactionStore implements Transaction {
 	 */
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
-			this.updateState({ 
-                status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
-                message: `Waiting for transaction receipt...` 
-            });
-            
+			this.updateState({
+				status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
+				message: `Waiting for transaction receipt...`
+			});
+
 			await waitForTransactionReceipt(this.config, { hash });
-			
-            this.updateState({ 
-                message: 'Transaction receipt received.' 
-            });
-            
-            this.indexTransaction(this.txHash);
-		} catch (error) {
+
+			this.updateState({
+				message: 'Transaction receipt received.'
+			});
+
+			this.indexTransaction(this.txHash);
+		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				message: 'Failed to get transaction receipt.'
@@ -146,36 +153,36 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for order removal to be indexed...'
 		});
-        
+
 		try {
 			const result = await awaitSubgraphIndexing(
 				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
 			);
 
-            await match(result)
-                .with({ error: TransactionErrorMessage.TIMEOUT }, () => {
-                    this.updateState({
-                        status: TransactionStatusMessage.ERROR,
-                        message: 'Subgraph indexing timed out.'
-                    });
-                    return this.onError();
-                })
-                .with({ value: P.not(P.nullish) }, ({ value }) => {
-                    this.updateState({
-                        status: TransactionStatusMessage.SUCCESS,
-                        hash: value.txHash as Hex,
-                        message: 'Order removal indexed successfully.'
-                    });
-                    return this.onSuccess();
-                })
-                .otherwise(() => {
-                    this.updateState({
-                        status: TransactionStatusMessage.ERROR,
-                        message: 'Unknown error during indexing.'
-                    });
-                    return this.onError();
-                });
-		} catch (error) {
+			await match(result)
+				.with({ error: TransactionErrorMessage.TIMEOUT }, () => {
+					this.updateState({
+						status: TransactionStatusMessage.ERROR,
+						message: 'Subgraph indexing timed out.'
+					});
+					return this.onError();
+				})
+				.with({ value: P.not(P.nullish) }, ({ value }) => {
+					this.updateState({
+						status: TransactionStatusMessage.SUCCESS,
+						hash: value.txHash as Hex,
+						message: 'Order removal indexed successfully.'
+					});
+					return this.onSuccess();
+				})
+				.otherwise(() => {
+					this.updateState({
+						status: TransactionStatusMessage.ERROR,
+						message: 'Unknown error during indexing.'
+					});
+					return this.onError();
+				});
+		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,

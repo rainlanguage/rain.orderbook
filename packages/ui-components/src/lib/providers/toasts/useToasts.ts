@@ -4,7 +4,7 @@ import type { ToastProps } from '$lib/types/toast';
 /**
  * Hook for managing toast notifications in the application.
  * Provides functionality to add, remove, and access toast notifications.
- * 
+ *
  * @returns {Object} An object containing:
  *   - toasts: Writable store containing all active toast notifications
  *   - addToast: Function to add a new toast notification
@@ -15,7 +15,7 @@ export function useToasts() {
 
 	/**
 	 * Removes a toast notification by its index from the toasts store
-	 * 
+	 *
 	 * @param {number} index - The index of the toast to remove
 	 * @returns {void}
 	 */
@@ -30,7 +30,7 @@ export function useToasts() {
 
 	/**
 	 * Adds a new toast notification to the toasts store
-	 * 
+	 *
 	 * @param {ToastProps} toast - The toast configuration object containing:
 	 *   - message: The text to display in the toast
 	 *   - type: The type of toast (success, error, warning, info)

@@ -9,4 +9,4 @@ export interface ToastProps {
 export type ToastLink = {
 	link: string;
 	label: string;
-}
+};

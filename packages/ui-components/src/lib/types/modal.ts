@@ -35,7 +35,7 @@ export type TransactionConfirmationProps = {
 		order: SgOrder;
 		// Function to generate calldata for the transaction
 		getCalldataFn: () => Promise<string>;
-	}
+	};
 };
 
 export type QuoteDebugModalHandler = (

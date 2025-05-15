@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
 	import { sendTransaction, switchChain } from '@wagmi/core';
