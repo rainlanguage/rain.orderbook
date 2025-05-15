@@ -1,18 +1,14 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
-use rain_orderbook_app_settings::deployer::DeployerCfg;
 use rain_orderbook_app_settings::{deployment::DeploymentCfg, scenario::ScenarioCfg};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
     types::FlattenError, types::OrderFlattened,
 };
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
-use strict_yaml_rust::StrictYaml;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -280,7 +276,7 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // async fn test_order_remove_calldata_err()
 
     // #[tokio::test]
-    // async fn test_compose_from_scenario_ok()
+    // async fn test_compose_from_scenario_ok() { }
 
     #[tokio::test]
     async fn test_compose_from_scenario_err() {
