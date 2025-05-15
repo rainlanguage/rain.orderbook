@@ -77,7 +77,7 @@ export {
 	type ExtendedApprovalCalldata,
 	type TransactionArgs
 } from './types/transaction';
-export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
+export type { DeploymentArgs, DepositOrWithdrawArgs } from './types/transaction';
 export type {
 	DepositOrWithdrawModalProps,
 	TransactionConfirmationProps,

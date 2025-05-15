@@ -6,7 +6,6 @@ import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/tr
 import type {
 	DeploymentTransactionArgs,
 	DepositOrWithdrawTransactionArgs,
-	RemoveOrderTransactionArgs,
 	TransactionState
 } from '$lib/types/transaction';
 import {
@@ -24,7 +23,6 @@ export type TransactionStore = {
 	reset: () => void;
 	handleDeploymentTransaction: (args: DeploymentTransactionArgs) => Promise<void>;
 	handleDepositOrWithdrawTransaction: (args: DepositOrWithdrawTransactionArgs) => Promise<void>;
-	handleRemoveOrderTransaction: (args: RemoveOrderTransactionArgs) => Promise<void>;
 	checkingWalletAllowance: (message?: string) => void;
 	awaitWalletConfirmation: (message?: string) => void;
 	awaitApprovalTx: (hash: string) => void;
@@ -304,47 +302,11 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleRemoveOrderTransaction = async ({
-		config,
-		orderbookAddress,
-		removeOrderCalldata,
-		chainId,
-		subgraphUrl
-	}: RemoveOrderTransactionArgs) => {
-		reset();
-
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
-
-		let hash: Hex;
-		try {
-			awaitWalletConfirmation('Please confirm order removal in your wallet...');
-			hash = await sendTransaction(config, {
-				to: orderbookAddress,
-				data: removeOrderCalldata as `0x${string}`
-			});
-		} catch {
-			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
-		}
-		try {
-			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			awaitTx(hash, TransactionStatusMessage.PENDING_REMOVE_ORDER, transactionExplorerLink);
-			await waitForTransactionReceipt(config, { hash });
-			return awaitRemoveOrderIndexing(subgraphUrl, hash);
-		} catch {
-			return transactionError(TransactionErrorMessage.REMOVE_ORDER_FAILED);
-		}
-	};
-
 	return {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
 		handleDepositOrWithdrawTransaction,
-		handleRemoveOrderTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,

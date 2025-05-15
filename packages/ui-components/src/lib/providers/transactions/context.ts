@@ -8,7 +8,7 @@ export const TRANSACTION_MANAGER_CONTEXT_KEY = 'rain:ui-components:transactionMa
 
 /**
  * Sets the TransactionManager instance in Svelte's context
- * 
+ *
  * @param {TransactionManager} manager - The TransactionManager instance to store in context
  * @returns {void}
  */
@@ -18,7 +18,7 @@ export function setTransactionManagerContext(manager: TransactionManager) {
 
 /**
  * Retrieves the TransactionManager instance from Svelte's context
- * 
+ *
  * @returns {TransactionManager} The TransactionManager instance
  * @throws {Error} If no TransactionManager is found in context
  */

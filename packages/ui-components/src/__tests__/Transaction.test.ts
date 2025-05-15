@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TransactionStore } from '../lib/models/Transaction';
-import { TransactionStatusMessage, TransactionErrorMessage, type TransactionArgs } from '../lib/types/transaction';
+import {
+	TransactionStatusMessage,
+	TransactionErrorMessage,
+	type TransactionArgs
+} from '../lib/types/transaction';
 import { waitForTransactionReceipt, type Config } from '@wagmi/core';
 import { awaitSubgraphIndexing } from '../lib/services/awaitTransactionIndexing';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
@@ -68,7 +72,8 @@ describe('TransactionStore', () => {
 	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/mock';
 	const mockTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 	const mockOrderHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-	const mockExplorerLink = 'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+	const mockExplorerLink =
+		'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 	const mockOnSuccess = vi.fn();
 	const mockOnError = vi.fn();
 
@@ -187,4 +192,4 @@ describe('TransactionStore', () => {
 
 		expect(transaction.message).toBe('Test message');
 	});
-}); 
+});

@@ -34,16 +34,6 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 		return Promise.resolve();
 	},
 
-	handleRemoveOrderTransaction: async () => {
-		mockTransactionWritable.update((state) => ({
-			...state,
-			status: TransactionStatusMessage.SUCCESS,
-			message: 'Order removed successfully',
-			hash: '0x789'
-		}));
-		return Promise.resolve();
-	},
-
 	checkingWalletAllowance: (message: string = '') =>
 		mockTransactionWritable.update((state) => ({
 			...state,
