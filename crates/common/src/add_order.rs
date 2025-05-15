@@ -7,6 +7,7 @@ use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
     ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
+    WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::transaction::{WriteTransaction, WriteTransactionStatus};
@@ -260,6 +261,18 @@ impl AddOrderArgs {
         })
     }
 
+    pub async fn get_add_order_call_parameters(
+        &self,
+        transaction_args: TransactionArgs,
+    ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
+        let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
+        let params = transaction_args.try_into_write_contract_parameters(
+            add_order_call,
+            transaction_args.orderbook_address,
+        )?;
+        Ok(params)
+    }
+
     #[cfg(not(target_family = "wasm"))]
     pub async fn execute<S: Fn(WriteTransactionStatus<addOrder2Call>)>(
         &self,
@@ -268,11 +281,7 @@ impl AddOrderArgs {
     ) -> Result<(), AddOrderArgsError> {
         let ledger_client = transaction_args.clone().try_into_ledger_client().await?;
 
-        let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
-        let params = transaction_args.try_into_write_contract_parameters(
-            add_order_call,
-            transaction_args.orderbook_address,
-        )?;
+        let params = self.get_add_order_call_parameters(transaction_args).await?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
@@ -1295,53 +1304,106 @@ _ _: key1 key2;
     }
 
     #[tokio::test]
-    async fn test_add_order_call_try_into_write_contract_parameters() {
+    async fn test_get_add_order_call_parameters() {
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+        let dotrain = format!(
+            r#"
+networks:
+    test:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    test:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    test:
+        deployer: test
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;"#,
+            rpc_url = local_evm.url(),
+        );
+        let add_order_args = AddOrderArgs {
+            dotrain: dotrain.to_string(),
+            inputs: vec![IO {
+                token: *local_evm.tokens[0].address(),
+                decimals: 18,
+                vaultId: U256::from(2),
+            }],
+            outputs: vec![IO {
+                token: *local_evm.tokens[1].address(),
+                decimals: 18,
+                vaultId: U256::from(4),
+            }],
+            deployer: *local_evm.deployer.address(),
+            bindings: HashMap::new(),
+        };
+
         let add_order_call = addOrder2Call {
             config: OrderConfigV3 {
                 evaluable: EvaluableV3 {
-                    interpreter: Address::from_str("0x1000000000000000000000000000000000000000")
-                        .unwrap(),
-                    store: Address::from_str("0x2000000000000000000000000000000000000000").unwrap(),
+                    interpreter: *local_evm.interpreter.address(),
+                    store: *local_evm.store.address(),
                     bytecode: Bytes::from_str(
-                        "0x3000000000000000000000000000000000000000000000000000000000000000",
+                        "0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000",
                     )
                     .unwrap(),
                 },
                 validInputs: vec![IO {
-                    token: Address::from_str("0x4000000000000000000000000000000000000000").unwrap(),
+                    token: *local_evm.tokens[0].address(),
                     decimals: 18,
-                    vaultId: U256::from(10),
+                    vaultId: U256::from(2),
                 }],
                 validOutputs: vec![IO {
-                    token: Address::from_str("0x5000000000000000000000000000000000000000").unwrap(),
+                    token: *local_evm.tokens[1].address(),
                     decimals: 18,
-                    vaultId: U256::from(20),
+                    vaultId: U256::from(4),
                 }],
                 nonce: alloy::primitives::private::rand::random::<U256>().into(),
                 secret: alloy::primitives::private::rand::random::<U256>().into(),
-                meta: Bytes::from_str("0x1234567890123456789012345678901234567890").unwrap(),
+                meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
-            tasks: vec![],
+            tasks: vec![
+                TaskV1 {
+                    evaluable: EvaluableV3 {
+                        interpreter: *local_evm.interpreter.address(),
+                        store: *local_evm.store.address(),
+                        bytecode: Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000701000000000000").unwrap(),
+                    },
+                    signedContext: vec![],
+                },
+            ],
         };
 
-        let res = TransactionArgs {
-            orderbook_address: Address::from_str("0x1200000000000000000000000000000000000000")
-                .unwrap(),
-            max_priority_fee_per_gas: Some(U256::from(100)),
-            max_fee_per_gas: Some(U256::from(200)),
-            ..Default::default()
-        }
-        .try_into_write_contract_parameters(
-            add_order_call.clone(),
-            Address::from_str("0x1500000000000000000000000000000000000000").unwrap(),
-        )
-        .unwrap();
+        let res = add_order_args
+            .get_add_order_call_parameters(TransactionArgs {
+                rpc_url: local_evm.url().to_string(),
+                orderbook_address: *local_evm.orderbook.address(),
+                max_priority_fee_per_gas: Some(U256::from(100)),
+                max_fee_per_gas: Some(U256::from(200)),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
 
-        assert_eq!(res.call, add_order_call);
+        assert_eq!(res.call.config.evaluable, add_order_call.config.evaluable);
         assert_eq!(
-            res.address,
-            Address::from_str("0x1500000000000000000000000000000000000000").unwrap()
+            res.call.config.validInputs,
+            add_order_call.config.validInputs
         );
+        assert_eq!(
+            res.call.config.validOutputs,
+            add_order_call.config.validOutputs
+        );
+        assert_eq!(res.call.config.meta, add_order_call.config.meta);
+        assert_eq!(res.call.tasks, add_order_call.tasks);
+        assert_eq!(res.address, *local_evm.orderbook.address());
         assert_eq!(res.max_priority_fee_per_gas, Some(U256::from(100)));
         assert_eq!(res.max_fee_per_gas, Some(U256::from(200)));
     }
@@ -1421,7 +1483,7 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_add_order_calldata_invalid_rcp_url() {
+    async fn test_get_add_order_calldata_invalid_rpc_url() {
         let local_evm = LocalEvm::new().await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
