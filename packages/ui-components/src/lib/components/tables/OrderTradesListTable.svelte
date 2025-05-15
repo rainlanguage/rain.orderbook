@@ -5,7 +5,7 @@
 	import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
