@@ -62,7 +62,11 @@ export class TransactionStore implements Transaction {
 	 * @param {() => void} onSuccess - Callback function to execute on successful transaction
 	 * @param {() => void} onError - Callback function to execute on failed transaction
 	 */
-	constructor(args: TransactionArgs & { config: Config }, onSuccess: () => void, onError: () => void) {
+	constructor(
+		args: TransactionArgs & { config: Config },
+		onSuccess: () => void,
+		onError: () => void
+	) {
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
