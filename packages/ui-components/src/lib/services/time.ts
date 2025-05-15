@@ -2,8 +2,10 @@ import dayjs from 'dayjs';
 import bigIntSupport from 'dayjs/plugin/bigIntSupport';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import type { UTCTimestamp } from 'lightweight-charts';
+import utc from 'dayjs/plugin/utc';
 dayjs.extend(bigIntSupport);
 dayjs.extend(localizedFormat);
+dayjs.extend(utc);
 
 export const TIME_DELTA_24_HOURS = 60 * 60 * 24;
 export const TIME_DELTA_48_HOURS = TIME_DELTA_24_HOURS * 2;
@@ -16,7 +18,9 @@ export function dateTimestamp(date: Date): number {
 }
 
 export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
-	return dayjs(timestampSeconds * BigInt('1000')).format('L LT');
+	return dayjs(timestampSeconds * BigInt('1000'))
+		.utc()
+		.format('L LT');
 }
 
 export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
@@ -50,7 +54,7 @@ if (import.meta.vitest) {
 	describe('Date and timestamp utilities', () => {
 		describe('formatTimestampSecondsAsLocal', () => {
 			it('converts timestamp to local format', () => {
-				const result = formatTimestampSecondsAsLocal(BigInt('1672531200')); // Jan 1, 2023 01:00 AM
+				const result = formatTimestampSecondsAsLocal(BigInt('1672531200')); // Jan 1, 2023 12:00 AM
 				expect(result).toBe('01/01/2023 12:00 AM');
 			});
 		});
