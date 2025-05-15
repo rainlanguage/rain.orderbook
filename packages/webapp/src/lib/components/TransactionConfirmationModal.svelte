@@ -94,7 +94,8 @@
 			</div>
 
 			{#if ui.showDismiss}
-				<Button on:click={() => (open = false)}>Dismiss</Button>
+				<Button on:click={() => (open = false)} aria-label="Close transaction modal">Dismiss</Button
+				>
 			{/if}
 		</div>
 	{/if}

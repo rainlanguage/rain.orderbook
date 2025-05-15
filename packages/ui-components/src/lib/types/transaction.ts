@@ -9,6 +9,9 @@ import type {
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
 
+
+export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
+
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
 	deploymentCalldata: DepositAndAddOrderCalldataResult;
@@ -92,8 +95,6 @@ export type TransactionState = {
 	network: string;
 	explorerLink: string;
 };
-
-export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
 export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
 

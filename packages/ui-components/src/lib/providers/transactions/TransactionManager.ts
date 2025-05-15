@@ -1,4 +1,4 @@
-import { writable, type Writable } from 'svelte/store';
+import { writable, type Readable, type Writable } from 'svelte/store';
 import type { QueryClient } from '@tanstack/svelte-query';
 import { TransactionStore, type Transaction } from '../../models/Transaction';
 import type { InternalTransactionArgs, TransactionArgs } from '$lib/types/transaction';
@@ -103,7 +103,7 @@ export class TransactionManager {
 	 * @throws {Error} If transaction creation fails
 	 * @private
 	 */
-	private createTransaction(args: TransactionArgs): Transaction {
+	private async createTransaction(args: TransactionArgs): Promise<Transaction> {
 		const createTransactionArgs: TransactionArgs & { config: Config } = {
 			...args,
 			config: this.wagmiConfig
@@ -130,7 +130,7 @@ export class TransactionManager {
 
 		const transactionInstance = new TransactionStore(createTransactionArgs, onSuccess, onError);
 
-		transactionInstance.execute();
+		await transactionInstance.execute();
 		this.transactions.update((currentTransactions) => [
 			...currentTransactions,
 			transactionInstance
@@ -146,7 +146,7 @@ export class TransactionManager {
 	 * const transactions = manager.getTransactions();
 	 * $: console.log($transactions); // Log all active transactions
 	 */
-	public getTransactions(): Writable<Transaction[]> {
+	public getTransactions(): Readable<Transaction[]> {
 		return this.transactions;
 	}
 
