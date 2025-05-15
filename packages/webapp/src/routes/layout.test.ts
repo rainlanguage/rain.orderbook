@@ -32,6 +32,14 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	};
 });
 
+vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
+	const MockTransactionProviderWrapper = (await import('../lib/__mocks__/MockComponent.svelte'))
+		.default;
+	return {
+		default: MockTransactionProviderWrapper
+	};
+});
+
 vi.mock('$lib/stores/wagmi', () => ({
 	defaultConfig: mockDefaultConfig,
 	signerAddress: { subscribe: vi.fn() }

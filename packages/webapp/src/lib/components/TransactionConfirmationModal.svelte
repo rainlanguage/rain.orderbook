@@ -6,7 +6,7 @@
 	import {
 		handleWalletConfirmation,
 		type WalletConfirmationState
-	} from '$lib/utils/handleWalletConfirmation';
+	} from '../services/handleWalletConfirmation';
 
 	export let open: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
