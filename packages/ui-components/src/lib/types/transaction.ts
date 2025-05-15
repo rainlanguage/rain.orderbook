@@ -29,14 +29,6 @@ export type DepositOrWithdrawArgs = {
 	account: Hex;
 };
 
-export type OrderRemoveArgs = {
-	order: SgOrder;
-	onRemove: () => void;
-	chainId: number;
-	orderbookAddress: Hex;
-	subgraphUrl: string;
-};
-
 export enum TransactionStatusMessage {
 	IDLE = 'Idle',
 	CHECKING_ALLOWANCE = 'Checking your allowance...',

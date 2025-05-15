@@ -1,15 +1,10 @@
 import type { SgOrder } from '@rainlanguage/orderbook';
-import type { DepositOrWithdrawArgs, OrderRemoveArgs, DeploymentArgs } from './transaction';
+import type { DepositOrWithdrawArgs, DeploymentArgs } from './transaction';
 import type { Hex } from 'viem';
 
 export type DepositOrWithdrawModalProps = {
 	open: boolean;
 	args: DepositOrWithdrawArgs;
-};
-
-export type OrderRemoveModalProps = {
-	open: boolean;
-	args: OrderRemoveArgs;
 };
 
 export type DeployModalProps = {
