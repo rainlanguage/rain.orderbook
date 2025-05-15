@@ -9,7 +9,7 @@ use rain_orderbook_common::{
 };
 use std::fs;
 use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 pub async fn orders_list_write_csv(
@@ -31,8 +31,8 @@ pub async fn orders_list_write_csv(
 }
 
 #[tauri::command]
-pub async fn order_add(
-    app_handle: AppHandle,
+pub async fn order_add<R: Runtime>(
+    app_handle: AppHandle<R>,
     dotrain: String,
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
@@ -41,11 +41,11 @@ pub async fn order_add(
     let add_order_args = AddOrderArgs::new_from_deployment(dotrain, deployment).await?;
     add_order_args
         .execute(transaction_args, |status| {
-            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
 
@@ -53,8 +53,8 @@ pub async fn order_add(
 }
 
 #[tauri::command]
-pub async fn order_remove(
-    app_handle: AppHandle,
+pub async fn order_remove<R: Runtime>(
+    app_handle: AppHandle<R>,
     id: String,
     transaction_args: TransactionArgs,
     subgraph_args: SubgraphArgs,
@@ -62,13 +62,13 @@ pub async fn order_remove(
     let order = subgraph_args
         .to_subgraph_client()
         .map_err(|e| {
-            toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
+            toast_error(&app_handle, String::from("Subgraph URL is invalid"));
             e
         })?
         .order_detail(&id.into())
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
@@ -76,11 +76,11 @@ pub async fn order_remove(
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Remove order".into());
     let _ = remove_order_args
         .execute(transaction_args.clone(), |status| {
-            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+            tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
         });
 
     Ok(())
@@ -98,7 +98,7 @@ pub async fn order_add_calldata(
         .get_add_order_calldata(transaction_args)
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
 
@@ -106,21 +106,21 @@ pub async fn order_add_calldata(
 }
 
 #[tauri::command]
-pub async fn order_remove_calldata(
-    app_handle: AppHandle,
+pub async fn order_remove_calldata<R: Runtime>(
+    app_handle: AppHandle<R>,
     id: String,
     subgraph_args: SubgraphArgs,
 ) -> CommandResult<Bytes> {
     let order = subgraph_args
         .to_subgraph_client()
         .map_err(|e| {
-            toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
+            toast_error(&app_handle, String::from("Subgraph URL is invalid"));
             e
         })?
         .order_detail(&id.into())
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
     let remove_order_args: RemoveOrderArgs = order.into();
@@ -128,7 +128,7 @@ pub async fn order_remove_calldata(
         .get_rm_order_calldata()
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
 
@@ -157,11 +157,15 @@ pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) ->
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::sync::{Arc, RwLock};
+
     use httpmock::MockServer;
-    use rain_orderbook_app_settings::yaml::YamlError;
+    use rain_orderbook_app_settings::{deployer::DeployerCfg, yaml::YamlError};
     use rain_orderbook_common::{dotrain_order::DotrainOrderError, GH_COMMIT_SHA};
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::json;
+    use strict_yaml_rust::StrictYaml;
     use tempfile::NamedTempFile;
 
     use crate::error::CommandError;
@@ -270,13 +274,60 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // async fn test_order_add_calldata_err()
 
     // #[tokio::test]
-    // async fn test_order_remove_calldata_ok()
+    // async fn test_order_remove_calldata_ok() {
+    //     let mock_app = tauri::test::mock_app();
+    //     let app_handle = mock_app.app_handle();
+    // }
 
     // #[tokio::test]
     // async fn test_order_remove_calldata_err()
 
-    // #[tokio::test]
-    // async fn test_compose_from_scenario_ok() { }
+    #[tokio::test]
+    async fn test_compose_from_scenario_ok() {
+        let server = MockServer::start();
+        let dotrain = format!(
+            r#"
+networks:
+    polygon:
+        rpc: {rpc_url}
+        chain-id: 137
+        network-id: 137
+        currency: MATIC
+deployers:
+    polygon:
+        address: 0x1234567890123456789012345678901234567890
+scenarios:
+    polygon:
+        deployer: polygon
+        bindings:
+            key1: 10
+---
+#key1 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            rpc_url = server.url("/rpc"),
+        );
+
+        let actual_rainlang = compose_from_scenario(
+            dotrain.clone(),
+            None,
+            ScenarioCfg {
+                document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                key: "polygon".to_string(),
+                bindings: HashMap::new(),
+                runs: None,
+                blocks: None,
+                deployer: Arc::new(DeployerCfg::default()),
+            },
+        )
+        .await
+        .unwrap();
+
+        let expected_rainlang = "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;";
+        assert_eq!(actual_rainlang, expected_rainlang);
+    }
 
     #[tokio::test]
     async fn test_compose_from_scenario_err() {

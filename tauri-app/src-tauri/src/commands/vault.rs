@@ -64,21 +64,21 @@ pub async fn vault_deposit(
         TransactionStatusNoticeRwLock::new("Approve ERC20 token transfer".into());
     let _ = deposit_args
         .execute_approve(transaction_args.clone(), |status| {
-            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+            tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
         });
 
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Deposit tokens into vault".into());
     let _ = deposit_args
         .execute_deposit(transaction_args.clone(), |status| {
-            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+            tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
         });
 
     Ok(())
@@ -94,7 +94,7 @@ pub async fn vault_deposit_approve_calldata<R: Runtime>(
         .get_approve_calldata(transaction_args)
         .await
         .map_err(|e| {
-            toast_error(app_handle.clone(), e.to_string());
+            toast_error(&app_handle, e.to_string());
             e
         })?;
     Ok(Bytes::from(calldata))
@@ -106,7 +106,7 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
     let calldata = deposit_args.get_deposit_calldata().await.map_err(|e| {
-        toast_error(app_handle.clone(), e.to_string());
+        toast_error(&app_handle, e.to_string());
         e
     })?;
     Ok(Bytes::from(calldata))
@@ -121,11 +121,11 @@ pub async fn vault_withdraw(
     let tx_status_notice = TransactionStatusNoticeRwLock::new("Withdraw tokens from vault".into());
     let _ = withdraw_args
         .execute(transaction_args.clone(), |status| {
-            tx_status_notice.update_status_and_emit(app_handle.clone(), status);
+            tx_status_notice.update_status_and_emit(&app_handle, status);
         })
         .await
         .map_err(|e| {
-            tx_status_notice.set_failed_status_and_emit(app_handle.clone(), e.to_string());
+            tx_status_notice.set_failed_status_and_emit(&app_handle, e.to_string());
         });
 
     Ok(())
@@ -137,7 +137,7 @@ pub async fn vault_withdraw_calldata<R: Runtime>(
     withdraw_args: WithdrawArgs,
 ) -> CommandResult<Bytes> {
     let calldata = withdraw_args.get_withdraw_calldata().await.map_err(|e| {
-        toast_error(app_handle.clone(), e.to_string());
+        toast_error(&app_handle, e.to_string());
         e
     })?;
 
