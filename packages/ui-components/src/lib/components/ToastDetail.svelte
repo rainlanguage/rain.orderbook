@@ -20,9 +20,9 @@
 >
 	<svelte:fragment slot="icon">
 		{#if toast.type === 'success'}
-			<CheckCircleSolid class="h-5 w-5" />
+			<CheckCircleSolid class="h-5 w-5" data-testid="success-icon" />
 		{:else if toast.type === 'error'}
-			<CloseCircleSolid class="h-5 w-5" />
+			<CloseCircleSolid class="h-5 w-5" data-testid="error-icon" />
 		{/if}
 	</svelte:fragment>
 	<p>{toast.message}</p>
