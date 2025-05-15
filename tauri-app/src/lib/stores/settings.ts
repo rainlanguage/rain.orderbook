@@ -238,8 +238,8 @@ export async function resetActiveNetworkRef() {
   }
 }
 
-export const activeOrderStatus = cachedWritableStore<boolean>(
-  'settings.activeOrderStatus',
+export const showInactiveOrders = cachedWritableStore<boolean>(
+  'settings.showInactiveOrders',
   true,
   (value) => JSON.stringify(value),
   (str) => {
