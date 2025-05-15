@@ -10493,7 +10493,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid 1.10.0",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
