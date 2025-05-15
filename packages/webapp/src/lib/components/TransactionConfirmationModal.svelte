@@ -1,52 +1,26 @@
 <script lang="ts">
-	import { wagmiConfig } from '$lib/stores/wagmi';
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
-	import { sendTransaction, switchChain } from '@wagmi/core';
 	import type { Hex } from 'viem';
 	import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 	import { match, P } from 'ts-pattern';
+	import {
+		handleWalletConfirmation,
+		type WalletConfirmationState
+	} from '$lib/utils/handleWalletConfirmation';
 
 	export let open: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
 
-	type WalletConfirmationState =
-		| { status: 'awaiting_confirmation' }
-		| { status: 'confirmed' }
-		| { status: 'rejected'; reason: string }
-		| { status: 'error'; reason: string };
-
 	let transactionHash: Hex | undefined;
-
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 
-	async function handleWalletConfirmation() {
-		try {
-			await switchChain($wagmiConfig, { chainId: args.chainId });
-		} catch (error) {
-			return (confirmationState = {
-				status: 'error',
-				reason: error instanceof Error ? error.message : 'Failed to switch chain'
-			});
-		}
-		try {
-			const calldata = await args.getCalldataFn();
-
-			transactionHash = await sendTransaction($wagmiConfig, {
-				to: args.orderbookAddress,
-				data: calldata as Hex
-			});
-
-			confirmationState = { status: 'confirmed' };
-			args.onConfirm(transactionHash);
-		} catch {
-			confirmationState = {
-				status: 'rejected',
-				reason: 'User rejected transaction'
-			};
-		}
+	async function init() {
+		const result = await handleWalletConfirmation(args);
+		confirmationState = result.state;
+		transactionHash = result.hash;
 	}
 
-	handleWalletConfirmation();
+	init();
 </script>
 
 <Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">

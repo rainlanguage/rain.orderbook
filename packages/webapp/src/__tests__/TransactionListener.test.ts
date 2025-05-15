@@ -51,14 +51,22 @@ describe('TransactionsListener.svelte', () => {
 
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.SUCCESS,
-			message: 'Transaction was super successful!'
+			message: 'Transaction was super successful!',
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
+
 		await waitFor(() => {
 			expect(mockAddToast).toHaveBeenCalledTimes(1);
 			expect(mockAddToast).toHaveBeenCalledWith({
 				message: 'Transaction was super successful!',
 				type: 'success',
-				color: 'green'
+				color: 'green',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 
 			expect(invalidateTanstackQueries as Mock).toHaveBeenCalledTimes(1);
@@ -72,7 +80,8 @@ describe('TransactionsListener.svelte', () => {
 		const errorMessage = 'Oh no, an error occurred!';
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.ERROR,
-			error: errorMessage
+			error: errorMessage,
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await waitFor(() => {
@@ -80,7 +89,13 @@ describe('TransactionsListener.svelte', () => {
 			expect(mockAddToast).toHaveBeenCalledWith({
 				message: errorMessage,
 				type: 'error',
-				color: 'red'
+				color: 'red',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 			expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
 		});
@@ -88,6 +103,12 @@ describe('TransactionsListener.svelte', () => {
 
 	it('should not call addToast or invalidateQueries for IDLE status', async () => {
 		render(TransactionsListener, { props: { queryKey: testQueryKey } });
+
+		mockTransactionStore.mockSetSubscribeValue({
+			status: TransactionStatusMessage.IDLE,
+			message: '',
+			explorerLink: ''
+		});
 
 		expect(mockAddToast).not.toHaveBeenCalled();
 		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
@@ -98,17 +119,20 @@ describe('TransactionsListener.svelte', () => {
 
 		await mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.SUCCESS,
-			message: 'Success 1'
+			message: 'Success 1',
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.ERROR,
-			error: 'Error 1'
+			error: 'Error 1',
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.SUCCESS,
-			message: 'Success 2'
+			message: 'Success 2',
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await waitFor(() => {
@@ -116,17 +140,35 @@ describe('TransactionsListener.svelte', () => {
 			expect(mockAddToast).toHaveBeenNthCalledWith(1, {
 				message: 'Success 1',
 				type: 'success',
-				color: 'green'
+				color: 'green',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 			expect(mockAddToast).toHaveBeenNthCalledWith(2, {
 				message: 'Error 1',
 				type: 'error',
-				color: 'red'
+				color: 'red',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 			expect(mockAddToast).toHaveBeenNthCalledWith(3, {
 				message: 'Success 2',
 				type: 'success',
-				color: 'green'
+				color: 'green',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 
 			expect(invalidateTanstackQueries as Mock).toHaveBeenCalledTimes(2);
@@ -144,7 +186,8 @@ describe('TransactionsListener.svelte', () => {
 
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.ERROR,
-			error: undefined
+			error: undefined,
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await waitFor(() => {
@@ -152,7 +195,13 @@ describe('TransactionsListener.svelte', () => {
 			expect(mockAddToast).toHaveBeenCalledWith({
 				message: undefined,
 				type: 'error',
-				color: 'red'
+				color: 'red',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 		});
 
@@ -160,7 +209,8 @@ describe('TransactionsListener.svelte', () => {
 
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatusMessage.ERROR,
-			error: ''
+			error: '',
+			explorerLink: 'https://etherscan.io/tx/0x123'
 		});
 
 		await waitFor(() => {
@@ -168,7 +218,13 @@ describe('TransactionsListener.svelte', () => {
 			expect(mockAddToast).toHaveBeenCalledWith({
 				message: '',
 				type: 'error',
-				color: 'red'
+				color: 'red',
+				links: [
+					{
+						link: 'https://etherscan.io/tx/0x123',
+						label: 'View transaction on explorer'
+					}
+				]
 			});
 		});
 		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
