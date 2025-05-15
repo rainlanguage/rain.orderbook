@@ -52,7 +52,8 @@ describe('TransactionManager', () => {
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 			orderHash:
 				'0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
-			chainId: 1
+			chainId: 1,
+			networkKey: 'ethereum'
 		};
 
 		beforeEach(() => {
@@ -77,7 +78,7 @@ describe('TransactionManager', () => {
 					queryKey: mockArgs.orderHash,
 					toastLinks: [
 						{
-							link: `/orders/${mockArgs.orderHash}`,
+							link: `/orders/${mockArgs.networkKey}-${mockArgs.orderHash}`,
 							label: 'View Order'
 						},
 						{
@@ -137,7 +138,8 @@ describe('TransactionManager', () => {
 					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 				orderHash:
 					'0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
-				chainId: 1
+				chainId: 1,
+				networkKey: 'ethereum'
 			});
 
 			onSuccess!();
@@ -167,7 +169,8 @@ describe('TransactionManager', () => {
 					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 				orderHash:
 					'0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
-				chainId: 1
+				chainId: 1,
+				networkKey: 'ethereum'
 			});
 
 			onError!();
@@ -194,7 +197,8 @@ describe('TransactionManager', () => {
 					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 				orderHash:
 					'0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890' as `0x${string}`,
-				chainId: 1
+				chainId: 1,
+				networkKey: 'ethereum'
 			});
 
 			manager.clearTransactions();

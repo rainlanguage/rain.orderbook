@@ -27,12 +27,12 @@ describe('TransactionList', () => {
 		mockTransactionsStore = writable<Transaction[]>([]);
 
 		mockTransactionManager = {
-			getTransactions: vi.fn().mockReturnValue(mockTransactionsStore)
+			transactions: vi.fn().mockReturnValue(mockTransactionsStore)
 		} as unknown as TransactionManager;
 
 		vi.mocked(useTransactions).mockReturnValue({
 			manager: mockTransactionManager,
-			getTransactions: mockTransactionsStore
+			transactions: mockTransactionsStore
 		});
 	});
 
@@ -118,7 +118,7 @@ describe('TransactionList', () => {
 
 	it('should get transactions from the manager', () => {
 		render(TransactionList);
-		expect(mockTransactionManager.getTransactions).toHaveBeenCalled();
+		expect(useTransactions).toHaveBeenCalled();
 	});
 
 	it('should render TransactionDetail for each transaction', () => {

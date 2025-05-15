@@ -37,7 +37,8 @@
 						subgraphUrl,
 						txHash,
 						orderHash,
-						chainId
+						chainId,
+						networkKey: network
 					});
 				},
 				getCalldataFn: () => getRemoveOrderCalldata(order)

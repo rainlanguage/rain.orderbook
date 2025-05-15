@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
-	import type { Hex } from 'viem';
 	import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 	import { match, P } from 'ts-pattern';
 	import {
@@ -11,16 +10,16 @@
 	export let open: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
 
-	let transactionHash: Hex | undefined;
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 
 	async function init() {
 		const result = await handleWalletConfirmation(args);
 		confirmationState = result.state;
-		transactionHash = result.hash;
 	}
 
-	init();
+	$: if (open) {
+		init();
+	}
 </script>
 
 <Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">

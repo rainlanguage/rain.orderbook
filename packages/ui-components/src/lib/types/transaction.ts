@@ -1,6 +1,5 @@
 import type { Hex } from 'viem';
 import type {
-	SgOrder,
 	SgVault,
 	WithdrawCalldataResult,
 	ApprovalCalldata,
@@ -44,8 +43,7 @@ export enum TransactionStatusMessage {
 }
 
 export enum TransactionErrorMessage {
-	BAD_CALLLDATA = 'Bad calldata.',
-	DEPLOY_FAILED = 'Lock transaction failed.',
+	BAD_CALLDATA = 'Bad calldata.',
 	TIMEOUT = 'The subgraph took too long to respond.',
 	APPROVAL_FAILED = 'Approval transaction failed.',
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
@@ -73,6 +71,7 @@ export type InternalTransactionArgs = {
 	chainId: number;
 	subgraphUrl: string;
 	txHash: Hex;
+	networkKey: string;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {

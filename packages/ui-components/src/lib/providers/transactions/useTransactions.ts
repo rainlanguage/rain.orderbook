@@ -12,10 +12,10 @@ import { getTransactionManagerContext } from './context';
 export function useTransactions() {
 	const manager = getTransactionManagerContext();
 
-	const getTransactions = manager.getTransactions();
+	const transactions = manager.getTransactions();
 
 	return {
 		manager,
-		getTransactions
+		transactions
 	};
 }

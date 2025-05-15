@@ -11,7 +11,6 @@ import type {
 import {
 	awaitSubgraphIndexing,
 	getNewOrderConfig,
-	getRemoveOrderConfig,
 	getTransactionConfig
 } from '$lib/services/awaitTransactionIndexing';
 
@@ -93,26 +92,6 @@ const transactionStore = () => {
 		}
 	};
 
-	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string) => {
-		update((state) => ({
-			...state,
-			status: TransactionStatusMessage.PENDING_SUBGRAPH,
-			message: 'Waiting for order removal to be indexed...'
-		}));
-
-		const result = await awaitSubgraphIndexing(
-			getRemoveOrderConfig(subgraphUrl, txHash, 'Order removed successfully')
-		);
-
-		if (result.error) {
-			return transactionError(TransactionErrorMessage.TIMEOUT);
-		}
-
-		if (result.value) {
-			return transactionSuccess(result.value.txHash, result.value.successMessage);
-		}
-	};
-
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({
 			...state,
@@ -164,8 +143,9 @@ const transactionStore = () => {
 		update((state) => ({
 			...state,
 			status: TransactionStatusMessage.ERROR,
-			error: error,
-			hash: hash || ''
+			error,
+			message: error,
+			hash: hash ?? ''
 		}));
 
 	const handleDeploymentTransaction = async ({
@@ -313,8 +293,7 @@ const transactionStore = () => {
 		transactionSuccess,
 		transactionError,
 		awaitTransactionIndexing,
-		awaitNewOrderIndexing,
-		awaitRemoveOrderIndexing
+		awaitNewOrderIndexing
 	};
 };
 

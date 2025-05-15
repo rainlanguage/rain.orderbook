@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import TransactionDetail from '../lib/components/transactions/TransactionDetail.svelte';
 import { writable } from 'svelte/store';

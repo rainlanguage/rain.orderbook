@@ -94,13 +94,10 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private updateState(partialState: Partial<TransactionState>): void {
-		this.state.update(
-			(currentState) =>
-				({
-					...currentState,
-					...partialState
-				}) as TransactionState
-		);
+		this.state.update((currentState) => ({
+			...currentState,
+			...partialState
+		}));
 	}
 
 	/**

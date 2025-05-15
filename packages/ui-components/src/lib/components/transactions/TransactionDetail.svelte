@@ -20,12 +20,14 @@
 	class="flex w-full flex-col gap-1 rounded-md border border-gray-200 p-1 shadow-sm dark:border-gray-800"
 >
 	<p class="break-words">{getStatusEmoji($state.status)} {$state.message}</p>
-	<p class="break-words">
-		<a
-			href={$state.explorerLink}
-			target="_blank"
-			rel="noopener noreferrer"
-			class="text-blue-500 hover:underline">View transaction on explorer</a
-		>
-	</p>
+	{#if $state.explorerLink}
+		<p class="break-words">
+			<a
+				href={$state.explorerLink}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-blue-500 hover:underline">View transaction on explorer</a
+			>
+		</p>
+	{/if}
 </div>

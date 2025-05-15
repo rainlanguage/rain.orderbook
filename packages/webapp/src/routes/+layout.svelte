@@ -65,7 +65,7 @@
 
 <!-- We need to only render the providers if the manager is initialized, which depends on wagmi being initialized. -->
 <!-- Providers in order of dependencies -->
-<!-- Consdier moving wagmiConfig into walletProvider -->
+<!-- Consider moving wagmiConfig into walletProvider -->
 <ToastProvider>
 	<WalletProvider account={signerAddress}>
 		<QueryClientProvider client={queryClient}>

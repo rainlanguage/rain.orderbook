@@ -144,6 +144,7 @@ describe('TransactionStore', () => {
 	});
 
 	it('should handle subgraph indexing timeout', async () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({ error: TransactionErrorMessage.TIMEOUT });
 
@@ -156,6 +157,7 @@ describe('TransactionStore', () => {
 	});
 
 	it('should handle subgraph indexing failure', async () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 		vi.mocked(awaitSubgraphIndexing).mockRejectedValue(new Error('Subgraph error'));
 
@@ -168,6 +170,7 @@ describe('TransactionStore', () => {
 	});
 
 	it('should handle unknown subgraph indexing error', async () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
 			value: {

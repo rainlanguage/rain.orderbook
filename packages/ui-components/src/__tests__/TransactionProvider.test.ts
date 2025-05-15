@@ -70,35 +70,6 @@ describe('TransactionProvider', () => {
 		expect(storeValue).toEqual([]);
 	});
 
-	it('should pass wagmiConfig to TransactionManager', () => {
-		const configStore = writable<Config>({
-			chains: [],
-			connectors: [],
-			storage: {
-				getItem: vi.fn(),
-				setItem: vi.fn(),
-				removeItem: vi.fn()
-			},
-			state: {
-				connections: new Map(),
-				status: 'disconnected'
-			},
-			setState: vi.fn(),
-			subscribe: vi.fn(),
-			getState: vi.fn(),
-			destroy: vi.fn()
-		} as unknown as Config);
-
-		render(TransactionProvider, {
-			addToast: mockAddToast,
-			wagmiConfig: configStore
-		});
-
-		const managerArg = vi.mocked(setTransactionManagerContext).mock
-			.calls[0][0] as TransactionManager;
-		expect(managerArg).toBeInstanceOf(TransactionManager);
-	});
-
 	it('should handle toast notifications', () => {
 		const toast: ToastProps = {
 			message: 'Test toast',

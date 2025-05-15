@@ -4,7 +4,6 @@ import { TransactionStore, type Transaction } from '../../models/Transaction';
 import type { InternalTransactionArgs, TransactionArgs } from '$lib/types/transaction';
 import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
-import { getTransactionRemoveOrders } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 
 /**
@@ -16,20 +15,6 @@ import { getExplorerLink } from '$lib/services/getExplorerLink';
  * @param toast.links - Optional array of links to display in the toast
  */
 export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
-
-/**
- * Arguments required for removing a transaction
- * @property errorMessage - Message to display on transaction failure
- * @property successMessage - Message to display on transaction success
- * @property queryKey - Key used for query invalidation
- * @property toastLinks - Array of links to display in toast notifications
- * @property fetchEntityFn - Function to fetch transaction entity data
- */
-export type RemoveTxArgs = Omit<TransactionArgs, 'config'> & {
-	errorMessage: string;
-	successMessage: string;
-	queryKey: string;
-};
 
 /**
  * Manages blockchain transactions with toast notifications and query invalidation.
@@ -85,10 +70,12 @@ export class TransactionManager {
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
 		const queryKey = args.orderHash;
+		const networkKey = args.networkKey;
+
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/orders/${args.orderHash}`,
+				link: `/orders/${networkKey}-${args.orderHash}`,
 				label: 'View Order'
 			},
 			{

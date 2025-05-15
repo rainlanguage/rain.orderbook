@@ -13,8 +13,11 @@ export type WalletConfirmationState =
 export async function handleWalletConfirmation(
 	args: TransactionConfirmationProps['args']
 ): Promise<{ state: WalletConfirmationState; hash?: Hex }> {
+	const config = get(wagmiConfig);
+	let calldata: string;
+	let transactionHash: Hex;
 	try {
-		await switchChain(get(wagmiConfig), { chainId: args.chainId });
+		await switchChain(config, { chainId: args.chainId });
 	} catch (error) {
 		return {
 			state: {
@@ -25,25 +28,33 @@ export async function handleWalletConfirmation(
 	}
 
 	try {
-		const calldata = await args.getCalldataFn();
-
-		const transactionHash = await sendTransaction(get(wagmiConfig), {
-			to: args.orderbookAddress,
-			data: calldata as Hex
-		});
-
-		args.onConfirm(transactionHash);
-
-		return {
-			state: { status: 'confirmed' },
-			hash: transactionHash
-		};
-	} catch {
+		calldata = await args.getCalldataFn();
+	} catch (error) {
 		return {
 			state: {
-				status: 'rejected',
-				reason: 'User rejected transaction'
+				status: 'error',
+				reason: error instanceof Error ? error.message : 'Failed to get calldata'
 			}
 		};
 	}
+
+	try {
+		transactionHash = await sendTransaction(config, {
+			to: args.orderbookAddress,
+			data: calldata as Hex
+		});
+	} catch (error) {
+		return {
+			state: {
+				status: 'rejected',
+				reason: error instanceof Error ? error.message : 'User rejected transaction'
+			}
+		};
+	}
+
+	args.onConfirm(transactionHash);
+	return {
+		state: { status: 'confirmed' },
+		hash: transactionHash
+	};
 }

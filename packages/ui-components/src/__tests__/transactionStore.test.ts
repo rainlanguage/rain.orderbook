@@ -106,9 +106,9 @@ describe('transactionStore', () => {
 	});
 
 	it('should update status to ERROR', () => {
-		transactionError(TransactionErrorMessage.DEPLOY_FAILED, 'mockHash');
+		transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED, 'mockHash');
 		expect(get(transactionStore).status).toBe(TransactionStatusMessage.ERROR);
-		expect(get(transactionStore).error).toBe(TransactionErrorMessage.DEPLOY_FAILED);
+		expect(get(transactionStore).error).toBe(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		expect(get(transactionStore).hash).toBe('mockHash');
 	});
 

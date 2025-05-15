@@ -46,12 +46,14 @@ describe('handleWalletConfirmation', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(switchChain).mockResolvedValue({} as any);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(sendTransaction).mockResolvedValue(mockTxHash as any);
-		mockCalldataFn.mockResolvedValue(mockCalldata);
 	});
 
 	it('handles successful transaction flow', async () => {
+		mockCalldataFn.mockResolvedValueOnce(mockCalldata);
 		const result = await handleWalletConfirmation(defaultArgs);
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
@@ -84,6 +86,7 @@ describe('handleWalletConfirmation', () => {
 	});
 
 	it('handles transaction rejection', async () => {
+		vi.mocked(mockCalldataFn).mockResolvedValueOnce(mockCalldata);
 		vi.mocked(sendTransaction).mockRejectedValue(new Error('User rejected transaction'));
 
 		const result = await handleWalletConfirmation(defaultArgs);
@@ -119,7 +122,7 @@ describe('handleWalletConfirmation', () => {
 	});
 
 	it('handles getCalldataFn failure', async () => {
-		vi.mocked(defaultArgs.getCalldataFn).mockRejectedValue(new Error('Failed to get calldata'));
+		vi.mocked(mockCalldataFn).mockRejectedValueOnce(new Error('Failed to get calldata'));
 
 		const result = await handleWalletConfirmation(defaultArgs);
 
@@ -128,8 +131,8 @@ describe('handleWalletConfirmation', () => {
 		expect(defaultArgs.onConfirm).not.toHaveBeenCalled();
 		expect(result).toEqual({
 			state: {
-				status: 'rejected',
-				reason: 'User rejected transaction'
+				status: 'error',
+				reason: 'Failed to get calldata'
 			}
 		});
 	});

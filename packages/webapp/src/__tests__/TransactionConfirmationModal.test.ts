@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, waitFor } from '@testing-library/svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 import type { SgOrder } from '@rainlanguage/orderbook';
@@ -128,16 +128,16 @@ describe('TransactionConfirmationModal', () => {
 	it('handles getCalldataFn failure', async () => {
 		vi.mocked(handleWalletConfirmation).mockResolvedValue({
 			state: {
-				status: 'rejected',
-				reason: 'User rejected transaction'
+				status: 'error',
+				reason: 'Failed to get calldata'
 			}
 		});
 
 		render(TransactionConfirmationModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
-			expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
+			expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
+			expect(screen.getByText('Failed to get calldata')).toBeInTheDocument();
 			expect(screen.getByText('Dismiss')).toBeInTheDocument();
 			expect(screen.getByText('❌')).toBeInTheDocument();
 		});
