@@ -11,18 +11,18 @@ import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { match, P } from 'ts-pattern';
 import { writable, type Writable, get } from 'svelte/store';
 
-export type RemoveOrderTransactionState = 
+export type TransactionState = 
     | { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
     | { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
     | { status: TransactionStatusMessage.ERROR; message: string; explorerLink: string; errorDetails?: TransactionErrorMessage };
 
-export type RemoveOrderTransaction = {
-	readonly state: Writable<RemoveOrderTransactionState>;
+export type Transaction = {
+	readonly state: Writable<TransactionState>;
 };
 
-export class RemoveOrder implements RemoveOrderTransaction {
+export class TransactionStore implements Transaction {
 	private config: Config;
 	private chainId: number;
 	private subgraphUrl: string;
@@ -30,15 +30,15 @@ export class RemoveOrder implements RemoveOrderTransaction {
     private onSuccess: () => void;
     private onError: () => void;
 
-	public readonly state: Writable<RemoveOrderTransactionState>;
+	public readonly state: Writable<TransactionState>;
 
-	constructor(args: TransactionArgs, onSuccess: () => void, onError: () => void) {
+	constructor(args: TransactionArgs, onSuccess: () => void, onError: () => void, fetchFn: () => Promise<void>) {
 		console.log('RemoveOrder: Initializing with transaction hash', args.txHash);
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
         this.txHash = args.txHash;
-        this.state = writable<RemoveOrderTransactionState>({
+        this.state = writable<TransactionState>({
             status: TransactionStatusMessage.IDLE,
             message: '',
             explorerLink: ''
@@ -52,12 +52,12 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		return get(this.state).message;
 	}
 
-	private updateState(partialState: Partial<RemoveOrderTransactionState>): void {
+	private updateState(partialState: Partial<TransactionState>): void {
 		console.log('RemoveOrder: Updating state', partialState);
 		this.state.update(currentState => ({
             ...currentState,
             ...partialState
-        } as RemoveOrderTransactionState));
+        } as TransactionState));
 	}
 
 	public async execute(): Promise<void> {
@@ -88,7 +88,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
                 message: 'Transaction receipt received.' 
             });
             
-            this.indexOrderRemoval(this.txHash);
+            this.indexTransaction(this.txHash);
 		} catch (error) {
 			console.error('RemoveOrder: Failed to get transaction receipt', error);
 			this.updateState({
@@ -99,7 +99,7 @@ export class RemoveOrder implements RemoveOrderTransaction {
 		}
 	}
 
-	private async indexOrderRemoval(txHash: Hex): Promise<void> {
+	private async indexTransaction(txHash: Hex): Promise<void> {
 		console.log('RemoveOrder: Starting to index order removal', txHash);
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,

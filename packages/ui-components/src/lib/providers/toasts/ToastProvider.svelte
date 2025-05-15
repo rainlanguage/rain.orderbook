@@ -4,8 +4,7 @@
 	import { writable, type Writable } from 'svelte/store';
 	import type { ToastProps } from '$lib/types/toast';
 	import { fade } from 'svelte/transition';
-	export let toasts: Writable<ToastProps[]> = writable([]);
-
+	const toasts: Writable<ToastProps[]> = writable([]);
 	setToastsContext(toasts);
 </script>
 

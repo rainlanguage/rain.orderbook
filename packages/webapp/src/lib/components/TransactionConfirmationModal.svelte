@@ -30,7 +30,7 @@
 			});
 		}
 		try {
-			const calldata = await getRemoveOrderCalldata(args.order);
+			const calldata = await args.getCalldataFn();
 
 			transactionHash = await sendTransaction($wagmiConfig, {
 				to: args.orderbookAddress,

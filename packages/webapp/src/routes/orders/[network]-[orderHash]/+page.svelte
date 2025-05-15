@@ -3,7 +3,6 @@
 		invalidateTanstackQueries,
 		OrderDetail,
 		PageHeader,
-		TransactionList,
 		useAccount
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
@@ -13,7 +12,7 @@
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import { getRemoveOrderCalldata, type SgOrder, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	const queryClient = useQueryClient();
@@ -35,12 +34,13 @@
 				chainId,
 				onConfirm: (txHash: Hex) => {
 					manager.createRemoveOrderTransaction({
-						orderHash,
-						chainId,
 						subgraphUrl,
-						txHash
+						txHash,
+						orderHash,
+						chainId
 					});
-				}
+				},
+				getCalldataFn: () => getRemoveOrderCalldata(order)
 			}
 		});
 	}
@@ -78,7 +78,6 @@
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
-<TransactionList />
 
 <OrderDetail
 	{orderHash}

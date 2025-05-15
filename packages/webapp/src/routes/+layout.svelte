@@ -5,23 +5,18 @@
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
 	import { supportedChainsList } from '$lib/chains';
-	import { defaultConfig, wagmiConfig } from '$lib/stores/wagmi';
+	import { defaultConfig } from '$lib/stores/wagmi';
 	import { injected, walletConnect } from '@wagmi/connectors';
 	import { type Chain } from '@wagmi/core/chains';
 	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import {
-		ToastProvider,
-		WalletProvider,
-		TransactionManager,
-		TransactionProvider
-	} from '@rainlanguage/ui-components';
+	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
-	import { toasts } from '$lib/stores/toasts';
 	import { settings as cachedSettings } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
+	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 
 	const { stores, errorMessage } = $page.data;
 
@@ -58,8 +53,6 @@
 	$: if (browser && window.navigator) {
 		initWallet();
 	}
-	const addToastFn = () => console.log('ADDING TOAST');
-	const manager = new TransactionManager(queryClient, addToastFn, $wagmiConfig);
 </script>
 
 {#if walletInitError}
@@ -70,10 +63,13 @@
 	</div>
 {/if}
 
-<TransactionProvider {manager}>
-	<ToastProvider {toasts}>
-		<WalletProvider account={signerAddress}>
-			<QueryClientProvider client={queryClient}>
+<!-- We need to only render the providers if the manager is initialized, which depends on wagmi being initialized. -->
+<!-- Providers in order of dependencies -->
+<!-- Consdier moving wagmiConfig into walletProvider -->
+<ToastProvider>
+	<WalletProvider account={signerAddress}>
+		<QueryClientProvider client={queryClient}>
+			<TransactionProviderWrapper>
 				<LoadingWrapper>
 					{#if $page.url.pathname === '/'}
 						<Homepage {colorTheme} />
@@ -91,7 +87,7 @@
 						</div>
 					{/if}
 				</LoadingWrapper>
-			</QueryClientProvider>
-		</WalletProvider>
-	</ToastProvider>
-</TransactionProvider>
+			</TransactionProviderWrapper>
+		</QueryClientProvider>
+	</WalletProvider>
+</ToastProvider>

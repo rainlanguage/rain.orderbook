@@ -2,7 +2,6 @@
 	import { getContext } from 'svelte';
 	import type { TransactionManager } from '../../providers/transactions/TransactionManager';
 	import TransactionDetail from './TransactionDetail.svelte';
-	import type { RemoveOrderTransaction } from '../../models/RemoveOrderTransaction';
 
 	const transactionManager = getContext<TransactionManager>(
 		'rain:ui-components:transactionManager'

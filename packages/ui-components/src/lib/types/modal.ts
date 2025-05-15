@@ -33,6 +33,8 @@ export type TransactionConfirmationProps = {
 		onConfirm: (hash: Hex) => void;
 		// Order to generate calldata for
 		order: SgOrder;
+		// Function to generate calldata for the transaction
+		getCalldataFn: () => Promise<string>;
 	}
 };
 

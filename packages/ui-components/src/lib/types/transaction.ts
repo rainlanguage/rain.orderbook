@@ -8,6 +8,7 @@ import type {
 	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
+import type { ToastLink } from './toast';
 
 export type DeploymentArgs = {
 	approvals: ExtendedApprovalCalldata[];
@@ -75,12 +76,20 @@ export type DepositOrWithdrawTransactionArgs = {
 	subgraphUrl: string;
 };
 
-export type TransactionArgs = {
+export type InternalTransactionArgs = {
 	orderHash: string;
-	config: Config;
 	chainId: number;
 	subgraphUrl: string;
 	txHash: Hex;
+};
+
+export type TransactionArgs = InternalTransactionArgs & {
+	errorMessage: string;
+	successMessage: string;
+	fetchEntityFn: () => Promise<void>;
+	queryKey: string;
+	toastLinks: ToastLink[];
+	config: Config;
 };
 
 export type TransactionState = {

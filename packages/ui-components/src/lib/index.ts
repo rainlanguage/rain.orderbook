@@ -75,7 +75,7 @@ export {
 	TransactionErrorMessage,
 	type TransactionState,
 	type ExtendedApprovalCalldata,
-	type BaseTransaction
+	type TransactionArgs
 } from './types/transaction';
 export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
 export type {
@@ -148,7 +148,7 @@ export { useTransactions } from './providers/transactions/useTransactions';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
-export { RemoveOrder } from './models/RemoveOrderTransaction';
+export { TransactionStore } from './models/Transaction';
 export { TransactionManager } from './providers/transactions/TransactionManager';
 
 // Mocks
