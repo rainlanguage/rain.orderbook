@@ -90,7 +90,7 @@ mod tests {
         let cli_args = CliTransactionArgs {
             orderbook_address: Address::ZERO,
             derivation_index: Some(1),
-            chain_id: Some(1),
+            chain_id: Some(2),
             rpc_url: "http://localhost:8545".to_string(),
             max_priority_fee_per_gas: Some(U256::from(100)),
             max_fee_per_gas: Some(U256::from(1000)),
@@ -101,7 +101,7 @@ mod tests {
 
         assert_eq!(transaction_args.orderbook_address, Address::ZERO);
         assert_eq!(transaction_args.derivation_index, Some(1));
-        assert_eq!(transaction_args.chain_id, Some(1));
+        assert_eq!(transaction_args.chain_id, Some(2));
         assert_eq!(transaction_args.rpc_url, "http://localhost:8545");
         assert_eq!(
             transaction_args.max_priority_fee_per_gas,
@@ -109,6 +109,27 @@ mod tests {
         );
         assert_eq!(transaction_args.max_fee_per_gas, Some(U256::from(1000)));
         assert_eq!(transaction_args.gas_fee_speed, Some(GasFeeSpeed::Fast));
+
+        let orderbook_address = Address::random();
+        let cli_args = CliTransactionArgs {
+            orderbook_address: orderbook_address.clone(),
+            derivation_index: None,
+            chain_id: None,
+            rpc_url: "http://localhost:8545".to_string(),
+            max_priority_fee_per_gas: None,
+            max_fee_per_gas: None,
+            gas_fee_speed: None,
+        };
+
+        let transaction_args: TransactionArgs = cli_args.into();
+
+        assert_eq!(transaction_args.orderbook_address, orderbook_address);
+        assert_eq!(transaction_args.derivation_index, None);
+        assert_eq!(transaction_args.chain_id, None);
+        assert_eq!(transaction_args.rpc_url, "http://localhost:8545");
+        assert_eq!(transaction_args.max_priority_fee_per_gas, None);
+        assert_eq!(transaction_args.max_fee_per_gas, None);
+        assert_eq!(transaction_args.gas_fee_speed, None);
     }
 
     #[test]
