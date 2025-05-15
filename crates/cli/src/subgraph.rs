@@ -130,14 +130,18 @@ mod tests {
 
     #[test]
     fn test_from_cli_filter_args_to_orders() {
+        let owners = vec!["0x123".to_string(), "0x456".to_string()];
         let cli_args = CliFilterArgs {
-            owners: vec!["0x123".to_string(), "0x456".to_string()],
+            owners: owners.clone(),
             active: Some(true),
             hide_zero_balance: Some(false),
             order_hash: Some("0x789".to_string()),
         };
         let filter_args: SgOrdersListFilterArgs = cli_args.into();
-        assert_eq!(filter_args.owners.len(), 2);
+        assert_eq!(
+            filter_args.owners,
+            owners.into_iter().map(SgBytes).collect::<Vec<_>>()
+        );
         assert_eq!(filter_args.active, Some(true));
         assert_eq!(filter_args.order_hash, Some(SgBytes("0x789".to_string())));
     }
