@@ -16,9 +16,11 @@
 	}
 </script>
 
-<div class="w-full max-w-md rounded-md p-2 shadow-sm">
-	<p class="mb-2 break-words p-1">{getStatusEmoji($state.status)} {$state.message}</p>
-	<p class="break-words p-1">
+<div
+	class="flex w-full flex-col gap-1 rounded-md border border-gray-200 p-1 shadow-sm dark:border-gray-800"
+>
+	<p class="break-words">{getStatusEmoji($state.status)} {$state.message}</p>
+	<p class="break-words">
 		<a
 			href={$state.explorerLink}
 			target="_blank"

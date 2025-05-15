@@ -31,26 +31,13 @@ export function useToasts() {
 	 *
 	 * @param toast - The toast properties (message and type)
 	 */
-	const addToast = (toast: ToastProps) => {
+	const addToast = (toast: Omit<ToastProps, 'id'>) => {
 		const newToast: ToastProps = { ...toast, id: uuidv4() };
 
-		let addedToastIndex = -1;
 		toasts.update((toasts) => {
 			const updatedToasts = [...toasts, newToast];
-			addedToastIndex = updatedToasts.length - 1;
 			return updatedToasts;
 		});
-		const toastId = newToast.id;
-
-		if (addedToastIndex > -1) {
-			setTimeout(() => {
-				const currentToasts = get(toasts);
-				const currentIndex = currentToasts.findIndex((t) => t.id === toastId);
-				if (currentIndex > -1) {
-					removeToast(currentIndex);
-				}
-			}, 3000);
-		}
 	};
 
 	return {

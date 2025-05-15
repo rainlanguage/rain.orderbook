@@ -3,7 +3,8 @@ export interface ToastProps {
 	message: string;
 	type: 'success' | 'error' | 'warning' | 'info';
 	color: 'green' | 'red' | 'yellow' | 'blue';
-	link: ToastLink[];
+	links: ToastLink[];
+	id: string
 }
 
 export type ToastLink = {

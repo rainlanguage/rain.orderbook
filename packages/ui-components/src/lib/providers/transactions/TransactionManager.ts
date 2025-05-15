@@ -14,16 +14,18 @@ import { getExplorerLink } from '$lib/services/getExplorerLink';
  * @param toast - The toast notification configuration object
  * @param toast.message - The message text to display in the toast
  * @param toast.type - The type of toast notification (success, error, or info)
- * @param toast.duration - The display duration in milliseconds
- * @param toast.details - Optional additional information or error details
+ * @param toast.color - The color theme of the toast
+ * @param toast.links - Optional array of links to display in the toast
  */
-export type AddToastFunction = (toast: ToastProps) => void;
+export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
 
 /**
  * Arguments required for removing a transaction
  * @property errorMessage - Message to display on transaction failure
  * @property successMessage - Message to display on transaction success
  * @property queryKey - Key used for query invalidation
+ * @property toastLinks - Array of links to display in toast notifications
+ * @property fetchEntityFn - Function to fetch transaction entity data
  */
 export type RemoveTxArgs = Omit<TransactionArgs, 'config'> & {
    errorMessage: string;
@@ -32,8 +34,9 @@ export type RemoveTxArgs = Omit<TransactionArgs, 'config'> & {
 };
 
 /**
- * Manages blockchain transactions with toast notifications and query invalidation
- * Handles transaction lifecycle, status updates, and UI feedback
+ * Manages blockchain transactions with toast notifications and query invalidation.
+ * Handles transaction lifecycle, status updates, and UI feedback.
+ * Provides functionality for creating, tracking, and managing blockchain transactions.
  */
 export class TransactionManager {
     /** Writable store tracking all active transactions */
@@ -50,14 +53,13 @@ export class TransactionManager {
      * @param queryClient - Query client for cache invalidation
      * @param addToast - Function to display toast notifications
      * @param wagmiConfig - Wagmi configuration for blockchain interactions
+     * @throws {Error} If required dependencies are not provided
      */
     constructor(queryClient: QueryClient, addToast: AddToastFunction, wagmiConfig: Config) {
-        console.log('TransactionManager: Initializing');
         this.queryClient = queryClient;
         this.addToast = addToast;
         this.wagmiConfig = wagmiConfig;
         this.transactions = writable<Transaction[]>([]);
-        console.log('TransactionManager: Initialized successfully');
     }
 
     /**
@@ -66,7 +68,9 @@ export class TransactionManager {
      * @param args.subgraphUrl - URL of the subgraph to query for transaction status
      * @param args.txHash - Hash of the transaction to track
      * @param args.orderHash - Hash of the order to be removed
+     * @param args.chainId - Chain ID where the transaction is being executed
      * @returns A new Transaction instance configured for order removal
+     * @throws {Error} If required transaction parameters are missing
      */
     public async createRemoveOrderTransaction(args: InternalTransactionArgs): Promise<Transaction> {
         const errorMessage = 'Order removal failed.';
@@ -95,23 +99,27 @@ export class TransactionManager {
     /**
      * Creates and executes a new transaction instance
      * @param args - Configuration for the transaction
+     * @param args.errorMessage - Message to display on transaction failure
+     * @param args.successMessage - Message to display on transaction success
+     * @param args.queryKey - Key used for query invalidation
+     * @param args.toastLinks - Array of links to display in toast notifications
+     * @param args.fetchEntityFn - Function to fetch transaction entity data
      * @returns A new Transaction instance that has been initialized and started
+     * @throws {Error} If transaction creation fails
      */
     private createTransaction(args: TransactionArgs): Transaction {
-        console.log('TransactionManager: Creating remove order transaction', args.orderHash);
-        const createTransactionArgs: TransactionArgs = {
+        const createTransactionArgs: TransactionArgs & { config: Config } = {
             ...args,
             config: this.wagmiConfig,
         };
 
         const onSuccess = () => {
-            console.log("✅ ON SUCCESS, toast and query invalidation");
-            this.addToast({ message: args.successMessage, type: 'success', color: 'green', link: args.toastLinks });
+            this.addToast({ message: args.successMessage, type: 'success', color: 'green', links: args.toastLinks });
             this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
         };
 
         const onError = () => {
-            this.addToast({ message: args.errorMessage, type: 'error', color: 'red', link: args.toastLinks });
+            this.addToast({ message: args.errorMessage, type: 'error', color: 'red', links: args.toastLinks });
         };
 
         const transactionInstance = new TransactionStore(
@@ -129,18 +137,18 @@ export class TransactionManager {
     /**
      * Retrieves the store containing all active transactions
      * @returns A writable store containing all active Transaction instances
+     * @throws {Error} If transaction store is not initialized
      */
     public getTransactions(): Writable<Transaction[]> {
-        console.log('TransactionManager: Getting transactions store');
         return this.transactions;
     }
 
     /**
      * Removes all transactions from the store
      * Resets the transaction tracking state
+     * @throws {Error} If transaction store is not initialized
      */
     public clearTransactions(): void {
-        console.log('TransactionManager: Clearing all transactions');
         this.transactions.set([]);
     }
 }

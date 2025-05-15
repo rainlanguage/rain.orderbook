@@ -89,7 +89,6 @@ export type TransactionArgs = InternalTransactionArgs & {
 	fetchEntityFn: () => Promise<void>;
 	queryKey: string;
 	toastLinks: ToastLink[];
-	config: Config;
 };
 
 export type TransactionState = {
