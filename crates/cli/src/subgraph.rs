@@ -93,11 +93,69 @@ impl From<CliFilterArgs> for SgOrdersListFilterArgs {
         }
     }
 }
+
 impl From<CliFilterArgs> for SgVaultsListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
         Self {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_cli_subgraph_args() {
+        let cli_args = CliSubgraphArgs {
+            subgraph_url: "https://example.com/subgraph".to_string(),
+        };
+        let subgraph_args: SubgraphArgs = cli_args.into();
+        assert_eq!(subgraph_args.url, "https://example.com/subgraph");
+    }
+
+    #[test]
+    fn test_from_cli_pagination_args() {
+        let cli_args = CliPaginationArgs {
+            page: 2,
+            page_size: 50,
+            csv: false,
+        };
+        let pagination_args: SgPaginationArgs = cli_args.into();
+        assert_eq!(pagination_args.page, 2);
+        assert_eq!(pagination_args.page_size, 50);
+    }
+
+    #[test]
+    fn test_from_cli_filter_args_to_orders() {
+        let cli_args = CliFilterArgs {
+            owners: vec!["0x123".to_string(), "0x456".to_string()],
+            active: Some(true),
+            hide_zero_balance: Some(false),
+            order_hash: Some("0x789".to_string()),
+        };
+        let filter_args: SgOrdersListFilterArgs = cli_args.into();
+        assert_eq!(filter_args.owners.len(), 2);
+        assert_eq!(filter_args.active, Some(true));
+        assert_eq!(filter_args.order_hash, Some(SgBytes("0x789".to_string())));
+    }
+
+    #[test]
+    fn test_from_cli_filter_args_to_vaults() {
+        let owners = vec!["0x123".to_string(), "0x456".to_string()];
+        let cli_args = CliFilterArgs {
+            owners: owners.clone(),
+            active: Some(true),
+            hide_zero_balance: Some(false),
+            order_hash: Some("0x789".to_string()),
+        };
+        let filter_args: SgVaultsListFilterArgs = cli_args.into();
+        assert_eq!(
+            filter_args.owners,
+            owners.into_iter().map(SgBytes).collect::<Vec<_>>()
+        );
+        assert_eq!(filter_args.hide_zero_balance, false);
     }
 }
