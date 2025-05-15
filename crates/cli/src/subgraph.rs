@@ -160,6 +160,6 @@ mod tests {
             filter_args.owners,
             owners.into_iter().map(SgBytes).collect::<Vec<_>>()
         );
-        assert_eq!(filter_args.hide_zero_balance, false);
+        assert!(!filter_args.hide_zero_balance);
     }
 }
