@@ -87,8 +87,8 @@ pub async fn order_remove<R: Runtime>(
 }
 
 #[tauri::command]
-pub async fn order_add_calldata(
-    app_handle: AppHandle,
+pub async fn order_add_calldata<R: Runtime>(
+    app_handle: AppHandle<R>,
     dotrain: String,
     deployment: DeploymentCfg,
     transaction_args: TransactionArgs,
@@ -158,7 +158,11 @@ pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) ->
 #[cfg(test)]
 mod tests {
     use alloy::hex::ToHex;
+    use alloy::primitives::U256;
+    use alloy::sol_types::SolCall;
     use httpmock::MockServer;
+    use rain_orderbook_bindings::IOrderBookV4::{addOrder2Call, IO};
+    use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};
@@ -268,7 +272,112 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // async fn test_order_remove_ok()
 
     // #[tokio::test]
-    // async fn test_order_add_calldata_ok()
+    // async fn test_order_remove_err()
+
+    #[tokio::test]
+    async fn test_order_add_calldata_ok() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let local_evm = LocalEvm::new_with_tokens(2).await;
+
+        let orderbook = &local_evm.orderbook;
+        let token1 = local_evm.tokens[0].clone();
+        let token2 = local_evm.tokens[1].clone();
+
+        let token1 = *token1.address();
+        let token2 = *token2.address();
+
+        let dotrain = format!(
+            r#"
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    some-key:
+        address: {deployer}
+tokens:
+    t1:
+        network: some-key
+        address: {token1}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+    t2:
+        network: some-key
+        address: {token2}
+        decimals: 18
+        label: Token1
+        symbol: token1
+orderbook:
+    some-key:
+        address: {orderbook}
+orders:
+    some-key:
+        inputs:
+            - token: t1
+              vault-id: 0x01
+        outputs:
+            - token: t2
+              vault-id: 0x02
+scenarios:
+    some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
+deployments:
+    some-key:
+        scenario: some-key
+        order: some-key
+---
+#key1 !Test binding
+#calculate-io
+_ _: 16 52;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = local_evm.url(),
+            orderbook = orderbook.address(),
+            deployer = local_evm.deployer.address(),
+        );
+
+        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
+        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+
+        let transaction_args = TransactionArgs {
+            orderbook_address: *orderbook.address(),
+            rpc_url: local_evm.url(),
+            ..Default::default()
+        };
+
+        let calldata = order_add_calldata(app_handle, dotrain, deployment, transaction_args)
+            .await
+            .unwrap();
+
+        let decoded = addOrder2Call::abi_decode(&calldata, true).unwrap();
+
+        assert_eq!(
+            decoded.config.validInputs,
+            vec![IO {
+                token: token1,
+                decimals: 18,
+                vaultId: U256::from(0x01),
+            }]
+        );
+        assert_eq!(
+            decoded.config.validOutputs,
+            vec![IO {
+                token: token2,
+                decimals: 18,
+                vaultId: U256::from(0x02),
+            }]
+        );
+    }
 
     // #[tokio::test]
     // async fn test_order_add_calldata_err()
