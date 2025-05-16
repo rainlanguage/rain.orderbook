@@ -24,11 +24,14 @@
 	}
 
 	async function handleTransaction() {
-		const removeOrderCalldata = await getRemoveOrderCalldata(args.order);
+		const res = await getRemoveOrderCalldata(args.order);
+		if (res.error) {
+			throw new Error(res.error.msg);
+		}
 		transactionStore.handleRemoveOrderTransaction({
 			config: $wagmiConfig,
 			...args,
-			removeOrderCalldata
+			removeOrderCalldata: res.value
 		});
 	}
 

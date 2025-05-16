@@ -59,11 +59,11 @@ orders:
 scenarios:
     scenario1:
         bindings:
-            key1: value1
+            key1: 10
         scenarios:
             scenario2:
                 bindings:
-                    key2: value2
+                    key2: 20
                 runs: 10
 deployments:
     deployment1:
@@ -155,10 +155,12 @@ charts:
                 margin-bottom: 50
                 inset: 60
 ---
-#calculate-io:
-_, _: 1 2;
-#handle-io:
+#key1 !Test binding
+#key2 !Test binding
+#calculate-io
+_ _: 0 0;
+#handle-io
 :;
-#handle-add-order:
+#handle-add-order
 :;
 "#;
