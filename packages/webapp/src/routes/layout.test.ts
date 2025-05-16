@@ -5,7 +5,6 @@ import Layout from './+layout.svelte';
 const { mockPageStore, initialPageState, mockWagmiConfigStore } = await vi.hoisted(() =>
 	import('$lib/__mocks__/stores')
 );
-
 const mockErcKit = vi.hoisted(() => ({
 	init: vi.fn().mockResolvedValue(undefined)
 }));
