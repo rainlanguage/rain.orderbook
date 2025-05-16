@@ -45,7 +45,7 @@ describe('handleWalletInitialization', () => {
 		expect(defaultConfig).toHaveBeenCalledWith({
 			appName: 'Rain Language',
 			connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
-			chains: supportedChainsList,
+			chains: [...supportedChainsList],
 			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
 		});
 		expect(mockErckit.init).toHaveBeenCalled();
