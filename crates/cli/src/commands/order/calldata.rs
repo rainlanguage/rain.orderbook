@@ -63,7 +63,9 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
+    use std::io::Write;
     use std::str::FromStr;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn verify_cli() {
@@ -109,10 +111,69 @@ mod tests {
         );
     }
 
+    async fn mock_orderbook_rpc_calls(rpc_server: &MockServer) {
+        // mock iInterpreter() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xf0cfdd37");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        1,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock iStore() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xc19423bc");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        2,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock iParser() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0x24376855");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        3,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock parse2() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xa3869e14");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        4,
+                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+    }
+
     #[tokio::test]
     async fn test_execute() {
         let rpc_server = MockServer::start_async().await;
-        let dotrain = format!(
+        let dotrain_content = format!(
             "
 raindex-version: {raindex_version}
 networks:
@@ -184,66 +245,89 @@ _ _: 0 0;
             raindex_version = "1234"
         );
 
-        let dotrain_path = "./test_dotrain1.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content).unwrap();
+        let dotrain_path = temp_dotrain_file.path();
 
-        // mock rpc response data
-        // mock iInterpreter() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xf0cfdd37");
-            then.body(
-                Response::new_success(
-                    1,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock iStore() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xc19423bc");
-            then.body(
-                Response::new_success(
-                    2,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock iParser() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x24376855");
-            then.body(
-                Response::new_success(
-                    3,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock parse2() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xa3869e14");
-            then.body(
-                Response::new_success(4, &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()))
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
+        mock_orderbook_rpc_calls(&rpc_server).await;
 
         let add_order_calldata = AddOrderCalldata {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path.to_path_buf(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
-        // should succeed without err
         add_order_calldata.execute().await.unwrap();
+    }
 
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
+    #[tokio::test]
+    async fn test_execute_non_existent_dotrain_file() {
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: PathBuf::from("./non_existent_test_dotrain.rain"),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(
+            result.is_err(),
+            "Expected an error due to non-existent .rain file"
+        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No such file or directory"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_non_existent_settings_file() {
+        let temp_dotrain_content = "
+networks:
+    some-network:
+        rpc: http://localhost:8545
+        chain-id: 1
+        network-id: 1
+        currency: ETH
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+orders:
+    some-order:
+        deployer: some-deployer
+        orderbook: 0x0000000000000000000000000000000000000000
+        inputs: []
+        outputs: []
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+:;";
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", temp_dotrain_content).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: Some(PathBuf::from("./non_existent_settings.yaml")),
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(
+            result.is_err(),
+            "Expected an error due to non-existent settings file"
+        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No such file or directory"));
     }
 }
