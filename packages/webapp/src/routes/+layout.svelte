@@ -9,16 +9,11 @@
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
 	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
-	import { settings as cachedSettings } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 
-	const { stores, errorMessage } = $page.data;
-
-	$: if (stores?.settings) {
-		cachedSettings.set(stores.settings);
-	}
+	const { errorMessage } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({

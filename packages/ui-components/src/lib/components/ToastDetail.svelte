@@ -26,16 +26,18 @@
 		{/if}
 	</svelte:fragment>
 	<p>{toast.message}</p>
-	<div class="flex flex-col">
-		{#each toast.links as { link, label }}
-			<a
-				href={link}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="text-blue-500 hover:underline"
-			>
-				{label}
-			</a>
-		{/each}
-	</div>
+	{#if toast.links}
+		<div class="flex flex-col">
+			{#each toast.links as { link, label }}
+				<a
+					href={link}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-blue-500 hover:underline"
+				>
+					{label}
+				</a>
+			{/each}
+		</div>
+	{/if}
 </Toast>

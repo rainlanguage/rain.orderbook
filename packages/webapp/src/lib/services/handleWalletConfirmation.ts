@@ -14,7 +14,6 @@ export async function handleWalletConfirmation(
 	args: TransactionConfirmationProps['args']
 ): Promise<{ state: WalletConfirmationState; hash?: Hex }> {
 	const config = get(wagmiConfig);
-	let calldata: string;
 	let transactionHash: Hex;
 	try {
 		await switchChain(config, { chainId: args.chainId });
@@ -36,7 +35,7 @@ export async function handleWalletConfirmation(
 			}
 		};
 	}
-	calldata = result.value;
+	const calldata: string = result.value;
 
 	try {
 		transactionHash = await sendTransaction(config, {
@@ -51,7 +50,6 @@ export async function handleWalletConfirmation(
 			}
 		};
 	}
-
 	args.onConfirm(transactionHash);
 	return {
 		state: { status: 'confirmed' },
