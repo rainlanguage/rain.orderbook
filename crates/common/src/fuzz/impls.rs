@@ -53,7 +53,7 @@ pub struct FuzzRunner {
 
 #[derive(Error, Debug)]
 pub enum FuzzRunnerError {
-    #[error("Scenario not found")]
+    #[error("Scenario not found: {0}")]
     ScenarioNotFound(String),
     #[error("Deployment not found")]
     DeploymentNotFound(String),

@@ -20,13 +20,13 @@ pub struct ChartData {
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, FuzzResultFlat>")
     )]
-    scenarios_data: HashMap<String, FuzzResultFlat>,
+    pub scenarios_data: HashMap<String, FuzzResultFlat>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
         tsify(type = "Record<string, ChartCfg>")
     )]
-    charts: HashMap<String, ChartCfg>,
+    pub charts: HashMap<String, ChartCfg>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ChartData);
