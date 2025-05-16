@@ -1,6 +1,5 @@
 import { defaultConfig } from '$lib/stores/wagmi';
 import { injected, walletConnect } from '@wagmi/connectors';
-import { type Chain } from '@wagmi/core/chains';
 import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 import { supportedChainsList } from '$lib/chains';
 
@@ -9,7 +8,7 @@ export const initWallet = async (): Promise<string | null> => {
 		const erckit = defaultConfig({
 			appName: 'Rain Language',
 			connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
-			chains: supportedChainsList as unknown as Chain[],
+			chains: [...supportedChainsList],
 			projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
 		});
 		await erckit.init();
