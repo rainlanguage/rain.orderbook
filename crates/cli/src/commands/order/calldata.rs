@@ -63,6 +63,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
     use std::io::Write;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
@@ -329,5 +330,113 @@ deployments:
             .unwrap_err()
             .to_string()
             .contains("No such file or directory"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_empty_dotrain_file() {
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "").unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert_eq!(err.to_string(), YamlError::EmptyFile.to_string());
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_yaml_dotrain_file() {
+        let invalid_yaml_content = "
+test: test
+---
+    :;";
+
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", invalid_yaml_content).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("some-deployment".to_string()),
+                location: "deployments".to_string()
+            }
+            .to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_rainlang_script() {
+        let rpc_server = MockServer::start_async().await;
+        mock_orderbook_rpc_calls(&rpc_server).await;
+
+        let dotrain_content_invalid_script = format!(
+            "
+raindex-version: 1234
+networks:
+  some-network:
+    rpc: {}
+    chain-id: 1
+subgraphs:
+  some-subgraph: https://www.some-subgraph.com
+orderbooks:
+  some-orderbook:
+    address: 0x0000000000000000000000000000000000000000
+    network: some-network
+    subgraph: some-subgraph
+deployers:
+  some-deployer:
+    network: some-network
+    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+scenarios:
+  some-scenario:
+    network: some-network
+    deployer: some-deployer
+orders:
+  some-order:
+    deployer: some-deployer
+    orderbook: some-orderbook
+    inputs:
+      - token: token1
+    outputs:
+      - token: token1
+deployments:
+  some-deployment:
+    scenario: some-scenario
+    order: some-order
+tokens:
+  token1:
+    network: some-network
+    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+---
+",
+            rpc_server.url("/rpc").as_str()
+        );
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content_invalid_script).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(result.is_err());
     }
 }
