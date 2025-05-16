@@ -439,4 +439,91 @@ tokens:
         let result = add_order_calldata.execute().await;
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn test_execute_no_rpc_response() {
+        let dotrain_content = "
+raindex-version: 1234
+networks:
+    some-network:
+        rpc: http://localhost:12345/nonexistent_rpc
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: T2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+        bindings:
+            key: 10
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vault-id: 1
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#key !Test binding key
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;";
+
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content).unwrap();
+        let dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Execution reverted with unknown error"));
+    }
 }
