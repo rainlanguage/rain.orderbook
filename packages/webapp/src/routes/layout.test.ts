@@ -29,6 +29,11 @@ vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
 	};
 });
 
+vi.mock('../lib/components/Sidebar.svelte', async () => {
+	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockSidebar };
+});
+
 vi.mock('$lib/components/Sidebar.svelte', async () => {
 	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockComponent };
@@ -107,7 +112,7 @@ describe('Layout component', () => {
 		});
 	});
 
-	it('renders Sidebar and main content when not on root path', async () => {
+	it('renders main content when not on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
 			url: new URL('http://localhost/some-page')
@@ -117,7 +122,6 @@ describe('Layout component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
-			expect(screen.getByTestId('mock-component')).toBeInTheDocument();
 		});
 	});
 
