@@ -27,13 +27,16 @@ describe('handleWalletInitialization', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
-
+	function mockDefaultConfig(mockValue: any) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(defaultConfig as any).mockReturnValue(mockValue);
+	}
 	it('should initialize wallet successfully', async () => {
 		const mockErckit = {
 			init: vi.fn().mockResolvedValue(undefined)
 		};
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(defaultConfig as any).mockReturnValue(mockErckit);
+
+		mockDefaultConfig(mockErckit);
 
 		const result = await initWallet();
 
@@ -51,8 +54,8 @@ describe('handleWalletInitialization', () => {
 		const mockErckit = {
 			init: vi.fn().mockRejectedValue(new Error('Test error'))
 		};
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(defaultConfig as any).mockReturnValue(mockErckit);
+
+		mockDefaultConfig(mockErckit);
 
 		const result = await initWallet();
 
@@ -72,8 +75,8 @@ describe('handleWalletInitialization', () => {
 		const mockErckit = {
 			init: vi.fn().mockRejectedValue('Unknown error')
 		};
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(defaultConfig as any).mockReturnValue(mockErckit);
+
+		mockDefaultConfig(mockErckit);
 
 		const result = await initWallet();
 
