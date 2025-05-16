@@ -38,17 +38,13 @@
 	let enabled = true;
 
 	const queryClient = useQueryClient();
-	const { addToast } = useToasts();
+	const { errToast } = useToasts();
 
 	const refreshQuotes = async () => {
 		try {
 			await invalidateTanstackQueries(queryClient, [id, QKEY_ORDER_QUOTE + id]);
 		} catch {
-			addToast({
-				message: 'Failed to refresh',
-				type: 'error',
-				color: 'red'
-			});
+			errToast('Failed to refresh');
 		}
 	};
 

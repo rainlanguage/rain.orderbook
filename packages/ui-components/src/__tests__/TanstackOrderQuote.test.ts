@@ -23,7 +23,7 @@ vi.mock('$lib/queries/queryClient', async (importOriginal) => ({
 	invalidateTanstackQueries: vi.fn()
 }));
 
-const mockAddToast = vi.fn();
+const mockErrToast = vi.fn();
 
 describe('TanstackOrderQuote component', () => {
 	beforeEach(() => {
@@ -31,7 +31,7 @@ describe('TanstackOrderQuote component', () => {
 		vi.resetAllMocks();
 		(useToasts as Mock).mockReturnValue({
 			toasts: writable([]),
-			addToast: mockAddToast,
+			errToast: mockErrToast,
 			removeToast: vi.fn()
 		});
 	});
@@ -262,11 +262,7 @@ describe('TanstackOrderQuote component', () => {
 		fireEvent.click(refreshButton);
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Failed to refresh',
-				type: 'error',
-				color: 'red'
-			});
+			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
 		});
 	});
 });

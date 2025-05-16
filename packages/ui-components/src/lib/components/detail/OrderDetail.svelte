@@ -64,7 +64,7 @@
 
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
-	const { addToast } = useToasts();
+	const { errToast } = useToasts();
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
@@ -86,7 +86,7 @@
 		try {
 			await invalidateTanstackQueries(queryClient, [orderHash]);
 		} catch {
-			addToast({ message: 'Failed to refresh', type: 'error', color: 'red' });
+			errToast('Failed to refresh');
 		}
 	};
 

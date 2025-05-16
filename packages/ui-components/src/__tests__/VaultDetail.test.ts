@@ -39,7 +39,7 @@ vi.mock('$lib/providers/toasts/useToasts', () => ({
 	useToasts: vi.fn()
 }));
 
-const mockAddToast = vi.fn();
+const mockErrToast = vi.fn();
 
 const mockSettings = readable({
 	subgraphs: {
@@ -75,7 +75,7 @@ describe('VaultDetail', () => {
 		});
 
 		(useToasts as Mock).mockReturnValue({
-			addToast: mockAddToast,
+			errToast: mockErrToast,
 			toasts: writable([]),
 			removeToast: vi.fn()
 		});
@@ -209,11 +209,7 @@ describe('VaultDetail', () => {
 		await waitFor(async () => {
 			const refreshButton = await screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Failed to refresh',
-				type: 'error',
-				color: 'red'
-			});
+			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
 		});
 	});
 });

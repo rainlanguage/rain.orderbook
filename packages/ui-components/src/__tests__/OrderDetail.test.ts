@@ -25,7 +25,7 @@ vi.mock('$lib/queries/queryClient', () => ({
 	invalidateTanstackQueries: vi.fn()
 }));
 
-const mockAddToast = vi.fn();
+const mockErrToast = vi.fn();
 
 vi.mock('$lib/providers/toasts/useToasts', () => ({
 	useToasts: vi.fn()
@@ -147,7 +147,7 @@ describe('OrderDetail', () => {
 
 		(useToasts as Mock).mockReturnValue({
 			toasts: writable([]),
-			addToast: mockAddToast,
+			errToast: mockErrToast,
 			removeToast: vi.fn()
 		});
 	});
@@ -275,11 +275,7 @@ describe('OrderDetail', () => {
 		});
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Failed to refresh',
-				type: 'error',
-				color: 'red'
-			});
+			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
 		});
 	});
 

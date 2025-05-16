@@ -40,6 +40,28 @@ describe('useToasts', () => {
 		expect(result.toasts).toBe(toastsStore);
 		expect(typeof result.addToast).toBe('function');
 		expect(typeof result.removeToast).toBe('function');
+		expect(typeof result.errToast).toBe('function');
+	});
+
+	describe('errToast', () => {
+		it('should add an error toast with the correct properties', () => {
+			const { errToast } = useToasts();
+			const errorMessage = 'Test error message';
+
+			errToast(errorMessage);
+
+			expect(getStoreValue()).toEqual([
+				{
+					message: errorMessage,
+					type: 'error',
+					color: 'red',
+					id: 'mocked-uuid'
+				}
+			]);
+
+			vi.advanceTimersByTime(3000);
+			expect(getStoreValue()).toEqual([]);
+		});
 	});
 
 	describe('addToast', () => {

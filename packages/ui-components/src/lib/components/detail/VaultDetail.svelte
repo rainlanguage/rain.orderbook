@@ -43,7 +43,7 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
-	const { addToast } = useToasts();
+	const { errToast } = useToasts();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
@@ -70,11 +70,7 @@
 		try {
 			await invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
 		} catch {
-			addToast({
-				message: 'Failed to refresh',
-				type: 'error',
-				color: 'red'
-			});
+			errToast('Failed to refresh');
 		}
 	};
 </script>
