@@ -265,8 +265,9 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
         ));
     }
 
+    // NOTE: unimplemented due to order_add depending on Ledger
     // #[tokio::test]
-    // async fn test_order_add_ok()
+    // async fn test_order_add_ok() { }
 
     #[tokio::test]
     async fn test_order_add_err() {
@@ -374,11 +375,8 @@ _ _: 0 0;
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
         let orderbook = &local_evm.orderbook;
-        let token1 = local_evm.tokens[0].clone();
-        let token2 = local_evm.tokens[1].clone();
-
-        let token1 = *token1.address();
-        let token2 = *token2.address();
+        let token1 = *local_evm.tokens[0].address();
+        let token2 = *local_evm.tokens[1].address();
 
         let dotrain = format!(
             r#"
