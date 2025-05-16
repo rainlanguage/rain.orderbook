@@ -271,10 +271,31 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // async fn test_order_add_err()
 
     // #[tokio::test]
-    // async fn test_order_remove_ok()
+    // async fn test_order_remove_ok() { }
 
-    // #[tokio::test]
-    // async fn test_order_remove_err()
+    #[tokio::test]
+    async fn test_order_remove_err() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let subgraph_args = SubgraphArgs {
+            url: "invalid-url".to_string(),
+        };
+
+        let err = order_remove(
+            app_handle,
+            "0x123".to_string(),
+            TransactionArgs::default(),
+            subgraph_args,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::URLParseError(url::ParseError::RelativeUrlWithoutBase)
+        ));
+    }
 
     #[tokio::test]
     async fn test_order_add_calldata_ok() {
