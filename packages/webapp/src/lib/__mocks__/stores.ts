@@ -8,7 +8,8 @@ export const initialPageState = {
 		stores: { settings: {} },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
-		strategyDetail: {}
+		strategyDetail: {},
+		errorMessage: ''
 	},
 	url: new URL('http://localhost:3000/deploy'),
 	params: {},

@@ -1,17 +1,14 @@
 use crate::schema;
 use serde::{Deserialize, Serialize};
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgIdQueryVariables<'a> {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub id: &'a cynic::Id,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgOrdersListFilterArgs {
     pub owners: Vec<SgBytes>,
@@ -21,8 +18,7 @@ pub struct SgOrdersListFilterArgs {
     pub order_hash: Option<SgBytes>,
 }
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgPaginationQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -30,9 +26,8 @@ pub struct SgPaginationQueryVariables {
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::InputObject, Debug, Clone)]
+#[derive(cynic::InputObject, Debug, Clone, Tsify)]
 #[cynic(graphql_type = "Order_filter")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SgOrdersListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
     pub owner_in: Vec<SgBytes>,
@@ -42,8 +37,7 @@ pub struct SgOrdersListQueryFilters {
     pub order_hash: Option<SgBytes>,
 }
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgOrdersListQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -54,8 +48,7 @@ pub struct SgOrdersListQueryVariables {
     pub filters: Option<SgOrdersListQueryFilters>,
 }
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgPaginationWithIdQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -64,8 +57,7 @@ pub struct SgPaginationWithIdQueryVariables {
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgPaginationWithTimestampQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -78,8 +70,7 @@ pub struct SgPaginationWithTimestampQueryVariables {
     pub timestamp_lte: Option<SgBigInt>,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "Orderbook")]
 pub struct SgOrderbook {
     pub id: SgBytes,
@@ -88,8 +79,7 @@ pub struct SgOrderbook {
 #[cfg_attr(target_family = "wasm", tsify::declare)]
 pub type SgRainMetaV1 = SgBytes;
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Order")]
 pub struct SgOrder {
@@ -108,17 +98,16 @@ pub struct SgOrder {
     pub trades: Vec<SgOrderStructPartialTrade>,
     pub remove_events: Vec<SgRemoveOrder>,
 }
+impl_wasm_traits!(SgOrder);
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgOrderWithSubgraphName {
     pub order: SgOrder,
     pub subgraph_name: String,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
 pub struct SgTradeStructPartialOrder {
@@ -126,8 +115,7 @@ pub struct SgTradeStructPartialOrder {
     pub order_hash: SgBytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "Order")]
 #[serde(rename_all = "camelCase")]
 pub struct SgOrderAsIO {
@@ -136,17 +124,15 @@ pub struct SgOrderAsIO {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
 }
 
-#[derive(cynic::InputObject, Debug, Clone)]
+#[derive(cynic::InputObject, Debug, Clone, Tsify)]
 #[cynic(graphql_type = "Vault_filter")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SgVaultsListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
     pub owner_in: Vec<SgBytes>,
@@ -155,8 +141,7 @@ pub struct SgVaultsListQueryFilters {
     pub balance_gt: Option<SgBigInt>,
 }
 
-#[derive(cynic::QueryVariables, Debug, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgVaultsListQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -167,8 +152,7 @@ pub struct SgVaultsListQueryVariables {
     pub filters: Option<SgVaultsListQueryFilters>,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Vault")]
 pub struct SgVault {
@@ -186,17 +170,16 @@ pub struct SgVault {
     pub orders_as_input: Vec<SgOrderAsIO>,
     pub balance_changes: Vec<SgVaultBalanceChangeType>,
 }
+impl_wasm_traits!(SgVault);
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Debug, Serialize, Deserialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultWithSubgraphName {
     pub vault: SgVault,
     pub subgraph_name: String,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "Vault")]
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultBalanceChangeVault {
@@ -205,10 +188,9 @@ pub struct SgVaultBalanceChangeVault {
     pub token: SgErc20,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "VaultBalanceChange")]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SgVaultBalanceChangeUnwrapped {
     #[serde(rename = "__typename")]
     pub __typename: String,
@@ -221,8 +203,7 @@ pub struct SgVaultBalanceChangeUnwrapped {
     pub orderbook: SgOrderbook,
 }
 
-#[derive(cynic::InlineFragments, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::InlineFragments, Debug, Clone, Serialize, Tsify)]
 #[serde(tag = "__typename", content = "data")]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "VaultBalanceChange")]
@@ -235,8 +216,7 @@ pub enum SgVaultBalanceChangeType {
     Unknown,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Deposit")]
 pub struct SgDeposit {
@@ -252,8 +232,7 @@ pub struct SgDeposit {
     pub orderbook: SgOrderbook,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Withdrawal")]
 pub struct SgWithdrawal {
@@ -269,8 +248,7 @@ pub struct SgWithdrawal {
     pub orderbook: SgOrderbook,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "TradeVaultBalanceChange")]
 pub struct SgTradeVaultBalanceChange {
@@ -286,8 +264,7 @@ pub struct SgTradeVaultBalanceChange {
     pub orderbook: SgOrderbook,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "ClearBounty")]
 pub struct SgClearBounty {
@@ -304,16 +281,14 @@ pub struct SgClearBounty {
     pub sender: SgBytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "TradeEvent")]
 pub struct SgTradeEvent {
     pub transaction: SgTransaction,
     pub sender: SgBytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Trade")]
 pub struct SgTrade {
@@ -326,15 +301,13 @@ pub struct SgTrade {
     pub orderbook: SgOrderbook,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "Trade")]
 pub struct SgOrderStructPartialTrade {
     pub id: SgBytes,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, PartialEq, Eq, Hash, Tsify)]
 #[cynic(graphql_type = "ERC20")]
 pub struct SgErc20 {
     pub id: SgBytes,
@@ -347,8 +320,7 @@ pub struct SgErc20 {
     pub decimals: Option<SgBigInt>,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Transaction")]
 pub struct SgTransaction {
@@ -358,42 +330,39 @@ pub struct SgTransaction {
     pub timestamp: SgBigInt,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "AddOrder")]
 pub struct SgAddOrder {
     pub transaction: SgTransaction,
 }
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+impl_wasm_traits!(SgAddOrder);
+
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "RemoveOrder")]
 pub struct SgRemoveOrder {
     pub transaction: SgTransaction,
 }
+impl_wasm_traits!(SgRemoveOrder);
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "AddOrder")]
 pub struct SgAddOrderWithOrder {
     pub transaction: SgTransaction,
     pub order: SgOrder,
 }
 
-#[derive(cynic::QueryFragment, Debug, Serialize, Clone)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "RemoveOrder")]
 pub struct SgRemoveOrderWithOrder {
     pub transaction: SgTransaction,
     pub order: SgOrder,
 }
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
 #[cynic(graphql_type = "BigInt")]
 pub struct SgBigInt(pub String);
 
-#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(cynic::Scalar, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
 #[cynic(graphql_type = "Bytes")]
 pub struct SgBytes(pub String);
 
@@ -689,9 +658,6 @@ pub enum SgVaultOrderBy {
 mod impls {
     use super::*;
 
-    impl_wasm_traits!(SgOrder);
-    impl_wasm_traits!(SgVault);
-    impl_wasm_traits!(SgAddOrder);
     impl_wasm_traits!(SgOrderAsIO);
     impl_wasm_traits!(SgVaultBalanceChangeVault);
     impl_wasm_traits!(SgVaultBalanceChangeType);
