@@ -82,4 +82,50 @@ mod tests {
         let res = output(&None, SupportedOutputEncoding::Hex, data);
         assert!(res.is_ok());
     }
+
+    #[test]
+    fn test_output_to_file_binary_empty() {
+        let temp_file = NamedTempFile::new().unwrap();
+        let output_path = Some(temp_file.path().to_path_buf());
+        let data = b"";
+
+        let res = output(&output_path, SupportedOutputEncoding::Binary, data);
+        assert!(res.is_ok());
+
+        let mut file_content = Vec::new();
+        fs::File::open(temp_file.path())
+            .unwrap()
+            .read_to_end(&mut file_content)
+            .unwrap();
+        assert_eq!(file_content, data);
+    }
+
+    #[test]
+    fn test_output_to_file_hex_empty() {
+        let temp_file = NamedTempFile::new().unwrap();
+        let output_path = Some(temp_file.path().to_path_buf());
+        let data = b"";
+        let expected_hex = alloy::primitives::hex::encode_prefixed(data);
+
+        let res = output(&output_path, SupportedOutputEncoding::Hex, data);
+        assert!(res.is_ok());
+
+        let file_content_str = fs::read_to_string(temp_file.path()).unwrap();
+        assert_eq!(file_content_str, expected_hex);
+        assert_eq!(file_content_str, "0x");
+    }
+
+    #[test]
+    fn test_output_to_stdout_binary_empty() {
+        let data = b"";
+        let res = output(&None, SupportedOutputEncoding::Binary, data);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_output_to_stdout_hex_empty() {
+        let data = b"";
+        let res = output(&None, SupportedOutputEncoding::Hex, data);
+        assert!(res.is_ok());
+    }
 }
