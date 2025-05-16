@@ -270,8 +270,44 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // #[tokio::test]
     // async fn test_order_add_err()
 
-    // #[tokio::test]
-    // async fn test_order_remove_ok() { }
+    #[tokio::test]
+    async fn test_order_remove_ok() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let subgraph_server = MockServer::start();
+
+        subgraph_server.mock(|when, then| {
+            when.path("/sg");
+            then.status(200)
+                .body_from_file("../../test-resources/example-subgraph-order-res1.json");
+        });
+
+        let subgraph_args = SubgraphArgs {
+            url: subgraph_server.url("/sg"),
+        };
+
+        let rpc_server = MockServer::start();
+
+        rpc_server.mock(|when, then| {
+            when.path("/rpc");
+            then.status(200);
+        });
+
+        let transaction_args = TransactionArgs {
+            rpc_url: rpc_server.url("/rpc"),
+            ..Default::default()
+        };
+
+        order_remove(
+            app_handle,
+            "0x123".to_string(),
+            transaction_args,
+            subgraph_args,
+        )
+        .await
+        .unwrap();
+    }
 
     #[tokio::test]
     async fn test_order_remove_err() {
