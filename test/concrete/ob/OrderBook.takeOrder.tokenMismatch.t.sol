@@ -4,14 +4,15 @@ pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
-    OrderV3,
-    IO,
-    TakeOrderConfigV3,
-    TakeOrdersConfigV3,
-    EvaluableV3,
+    OrderV4,
+    IOV2,
+    TakeOrderConfigV4,
+    TakeOrdersConfigV4,
+    EvaluableV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/IOrderBookV4.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
+import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookTakeOrderTokenMismatchTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -24,13 +25,13 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
     /// Test a mismatch in the input tokens.
     /// forge-config: default.fuzz.runs = 10
     function testTokenMismatchInputs(
-        OrderV3 memory a,
+        OrderV4 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        OrderV3 memory b,
+        OrderV4 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex,
-        uint256 maxTakerInput,
+        uint256 maxTakerInput18,
         uint256 maxIORatio
     ) external {
         vm.assume(a.validInputs.length > 0);
@@ -41,7 +42,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         aOutputIOIndex = bound(aOutputIOIndex, 0, a.validOutputs.length - 1);
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
-        maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
+        maxTakerInput18 = bound(maxTakerInput18, 1, uint256(int256(type(int224).max)));
+        maxIORatio = bound(maxIORatio, 0, uint256(int256(type(int224).max)));
 
         vm.assume(a.validInputs[aInputIOIndex].token != a.validOutputs[aOutputIOIndex].token);
 
@@ -50,26 +52,32 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up outputs so we don't trigger that code path.
         b.validOutputs[bOutputIOIndex].token = a.validOutputs[aOutputIOIndex].token;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            Float.wrap(0),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio, 18),
+            orders,
+            ""
+        );
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
     }
 
     /// Test a mismatch in the output tokens.
     /// forge-config: default.fuzz.runs = 10
     function testTokenDecimalMismatchOutputs(
-        OrderV3 memory a,
+        OrderV4 memory a,
         uint256 aInputIOIndex,
         uint256 aOutputIOIndex,
-        OrderV3 memory b,
+        OrderV4 memory b,
         uint256 bInputIOIndex,
         uint256 bOutputIOIndex,
-        uint256 maxTakerInput,
-        uint256 maxIORatio
+        uint256 maxTakerInput18,
+        uint256 maxIORatio18
     ) external {
         vm.assume(a.validInputs.length > 0);
         aInputIOIndex = bound(aInputIOIndex, 0, a.validInputs.length - 1);
@@ -79,7 +87,8 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         aOutputIOIndex = bound(aOutputIOIndex, 0, a.validOutputs.length - 1);
         vm.assume(b.validOutputs.length > 0);
         bOutputIOIndex = bound(bOutputIOIndex, 0, b.validOutputs.length - 1);
-        maxTakerInput = bound(maxTakerInput, 1, type(uint256).max);
+        maxTakerInput18 = bound(maxTakerInput18, 1, uint256(int256(type(int224).max)));
+        maxIORatio18 = bound(maxIORatio18, 0, uint256(int256(type(int224).max)));
 
         vm.assume(a.validOutputs[aOutputIOIndex].token != a.validInputs[aInputIOIndex].token);
 
@@ -88,12 +97,18 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         // Line up inputs so we don't trigger that code path.
         b.validInputs[bInputIOIndex].token = a.validInputs[aInputIOIndex].token;
 
-        TakeOrderConfigV3[] memory orders = new TakeOrderConfigV3[](2);
-        orders[0] = TakeOrderConfigV3(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
-        orders[1] = TakeOrderConfigV3(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV3 memory config = TakeOrdersConfigV3(0, maxTakerInput, maxIORatio, orders, "");
+        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
+        orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
+        orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
+        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
+            Float.wrap(0),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio18, 18),
+            orders,
+            ""
+        );
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (uint256 totalTakerInput, uint256 totalTakerOutput) = iOrderbook.takeOrders2(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
     }
 }

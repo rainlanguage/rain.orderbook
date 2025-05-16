@@ -3,16 +3,16 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook, EvaluableV3, TaskV1, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
+import {OrderBook, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
-import {GenericPoolOrderBookV4ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV4ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV4ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV4ArbOrderTaker.sol";
-import {GenericPoolOrderBookV4FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV4FlashBorrower.sol";
-import {OrderBookV4ArbConfigV2} from "src/abstract/OrderBookV4ArbCommon.sol";
+import {GenericPoolOrderBookV5ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV5ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV5ArbOrderTaker.sol";
+import {GenericPoolOrderBookV5FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV5FlashBorrower.sol";
+import {OrderBookV5ArbConfig} from "src/abstract/OrderBookV5ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
-import {IInterpreterStoreV2} from "rain.interpreter.interface/interface/IInterpreterStoreV2.sol";
-import {IInterpreterV3} from "rain.interpreter.interface/interface/IInterpreterV3.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 
 bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -97,22 +97,22 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
             // Order takers.
-            new GenericPoolOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV2(
+            new GenericPoolOrderBookV5ArbOrderTaker(
+                OrderBookV5ArbConfig(
                     address(raindex),
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""
                 )
             );
 
-            new RouteProcessorOrderBookV4ArbOrderTaker(
-                OrderBookV4ArbConfigV2(
+            new RouteProcessorOrderBookV5ArbOrderTaker(
+                OrderBookV5ArbConfig(
                     address(raindex),
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     abi.encode(routeProcessor)
@@ -120,11 +120,11 @@ contract Deploy is Script {
             );
 
             // Flash borrowers.
-            new GenericPoolOrderBookV4FlashBorrower(
-                OrderBookV4ArbConfigV2(
+            new GenericPoolOrderBookV5FlashBorrower(
+                OrderBookV5ArbConfig(
                     raindex,
-                    TaskV1({
-                        evaluable: EvaluableV3(IInterpreterV3(address(0)), IInterpreterStoreV2(address(0)), hex""),
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
                     }),
                     ""
