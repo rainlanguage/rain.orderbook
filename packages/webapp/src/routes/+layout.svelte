@@ -4,11 +4,6 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import { colorTheme } from '$lib/darkMode';
 	import { browser } from '$app/environment';
-	import { supportedChainsList } from '$lib/chains';
-	import { defaultConfig } from '$lib/stores/wagmi';
-	import { injected, walletConnect } from '@wagmi/connectors';
-	import { type Chain } from '@wagmi/core/chains';
-	import { PUBLIC_WALLETCONNECT_PROJECT_ID } from '$env/static/public';
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
@@ -17,6 +12,7 @@
 	import { settings as cachedSettings } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
+	import { initWallet } from '$lib/services/handleWalletInitialization';
 
 	const { stores, errorMessage } = $page.data;
 
@@ -35,23 +31,10 @@
 
 	let walletInitError: string | null = null;
 
-	const initWallet = async () => {
-		try {
-			const erckit = defaultConfig({
-				appName: 'Rain Language',
-				connectors: [injected(), walletConnect({ projectId: PUBLIC_WALLETCONNECT_PROJECT_ID })],
-				chains: supportedChainsList as unknown as Chain[],
-				projectId: PUBLIC_WALLETCONNECT_PROJECT_ID
-			});
-			await erckit.init();
-			walletInitError = null;
-		} catch (error) {
-			walletInitError = `Failed to initialize wallet connection: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or check console.`;
-		}
-	};
-
 	$: if (browser && window.navigator) {
-		initWallet();
+		initWallet().then((error) => {
+			walletInitError = error;
+		});
 	}
 </script>
 

@@ -2,15 +2,14 @@ import { render, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
-const { mockPageStore, initialPageState, mockWagmiConfigStore } = await vi.hoisted(
-	() => import('$lib/__mocks__/stores')
-);
-const mockErcKit = vi.hoisted(() => ({
-	init: vi.fn().mockResolvedValue(undefined)
-}));
-
-const mockDefaultConfig = vi.hoisted(() => vi.fn().mockReturnValue(mockErcKit));
+const { mockPageStore, initialPageState } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
 const mockEnv = vi.hoisted(() => ({ browser: true }));
+
+const mockInitWallet = vi.hoisted(() => vi.fn());
+
+vi.mock('$lib/services/handleWalletInitialization', () => ({
+	initWallet: mockInitWallet
+}));
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -43,8 +42,6 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 });
 
 vi.mock('$lib/stores/wagmi', () => ({
-	wagmiConfig: mockWagmiConfigStore,
-	defaultConfig: mockDefaultConfig,
 	signerAddress: { subscribe: vi.fn() }
 }));
 
@@ -74,26 +71,9 @@ vi.mock('@tanstack/svelte-query', async (importOriginal) => {
 describe('Layout component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockDefaultConfig.mockReturnValue(mockErcKit);
+		vi.resetAllMocks();
 		mockEnv.browser = true;
-	});
-
-	it.skip('initializes wallet when in browser environment', async () => {
-		const originalNavigator = global.navigator;
-
-		Object.defineProperty(global, 'navigator', {
-			value: {},
-			writable: true
-		});
-		mockPageStore.mockSetSubscribeValue(initialPageState);
-
-		render(Layout);
-
-		expect(mockErcKit.init).toHaveBeenCalled();
-		Object.defineProperty(global, 'navigator', {
-			value: originalNavigator,
-			writable: true
-		});
+		mockInitWallet.mockResolvedValue(null);
 	});
 
 	it('displays an error message if wallet initialization fails', async () => {
@@ -103,13 +83,13 @@ describe('Layout component', () => {
 			writable: true
 		});
 
-		mockErcKit.init.mockRejectedValue(new Error('Initialization failed'));
+		mockInitWallet.mockResolvedValue('Failed to initialize wallet connection: Test error. Please try again or check console.');
 		mockPageStore.mockSetSubscribeValue(initialPageState);
 
 		render(Layout);
 
 		const errorMessage = await screen.findByText(
-			'Failed to initialize wallet connection: Initialization failed. Please try again or check console.'
+			'Failed to initialize wallet connection: Test error. Please try again or check console.'
 		);
 		expect(errorMessage).toBeInTheDocument();
 
@@ -149,7 +129,7 @@ describe('Layout component', () => {
 		const originalNavigator = global.navigator;
 		mockEnv.browser = false;
 		render(Layout);
-		expect(mockErcKit.init).not.toHaveBeenCalled();
+		expect(mockInitWallet).not.toHaveBeenCalled();
 		Object.defineProperty(global, 'navigator', {
 			value: originalNavigator,
 			writable: true
