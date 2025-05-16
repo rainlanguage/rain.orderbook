@@ -65,7 +65,9 @@ describe('Layout component', () => {
 			writable: true
 		});
 
-		mockInitWallet.mockResolvedValue('Failed to initialize wallet connection: Test error. Please try again or check console.');
+		mockInitWallet.mockResolvedValue(
+			'Failed to initialize wallet connection: Test error. Please try again or check console.'
+		);
 		mockPageStore.mockSetSubscribeValue(initialPageState);
 
 		render(Layout);
