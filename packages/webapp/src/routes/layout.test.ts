@@ -2,8 +2,8 @@ import { render, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
-const { mockPageStore, initialPageState, mockSignerAddressStore } = await vi.hoisted(() =>
-	import('$lib/__mocks__/stores')
+const { mockPageStore, initialPageState, mockSignerAddressStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
 );
 
 const mockEnv = vi.hoisted(() => ({ browser: true }));
@@ -39,7 +39,7 @@ vi.mock('$lib/components/Sidebar.svelte', async () => {
 	return { default: MockComponent };
 });
 
-vi.mock('@rainlanguage/ui-components',  async(importOriginal) => {
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),

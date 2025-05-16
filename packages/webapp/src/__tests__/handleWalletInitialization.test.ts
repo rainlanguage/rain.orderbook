@@ -27,7 +27,7 @@ describe('handleWalletInitialization', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
-	
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function mockDefaultConfig(mockValue: any) {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
