@@ -288,7 +288,7 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
 
         let calldata = order_remove_calldata(
             app_handle,
-            "0xce594506aded89c9911e6d25d335737c1593d5fcba0d5085f640ad33608900d4".to_string(),
+            "0x8505ec2e04a958dd8fae1df9df1675d84ec2a29f994cea49351f97fed3f455f7".to_string(),
             SubgraphArgs {
                 url: server.url("/sg"),
             },
@@ -301,8 +301,35 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
         assert_eq!(calldata.encode_hex::<String>(), expected.to_string());
     }
 
-    // #[tokio::test]
-    // async fn test_order_remove_calldata_err()
+    #[tokio::test]
+    async fn test_order_remove_calldata_err() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/sg");
+            then.status(500).body("Internal Server Error");
+        });
+
+        let err = order_remove_calldata(
+            app_handle,
+            "0xce594506aded89c9911e6d25d335737c1593d5fcba0d5085f640ad33608900d4".to_string(),
+            SubgraphArgs {
+                url: server.url("/sg"),
+            },
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::OrderbookSubgraphClientError(
+                OrderbookSubgraphClientError::CynicClientError(_)
+            )
+        ));
+    }
 
     #[tokio::test]
     async fn test_compose_from_scenario_ok() {
