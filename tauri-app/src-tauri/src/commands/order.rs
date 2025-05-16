@@ -164,6 +164,7 @@ mod tests {
     use httpmock::MockServer;
     use rain_orderbook_bindings::IOrderBookV4::{addOrder2Call, IO};
     use rain_orderbook_common::add_order::AddOrderArgsError;
+    use rain_orderbook_common::transaction::TransactionArgsError;
     use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
     use std::collections::HashMap;
@@ -267,8 +268,40 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
     // #[tokio::test]
     // async fn test_order_add_ok()
 
-    // #[tokio::test]
-    // async fn test_order_add_err()
+    #[tokio::test]
+    async fn test_order_add_err() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let dotrain = r#"
+networks:
+    sepolia:
+        rpc: http://example.com
+        chain-id: 0
+deployers:
+    sepolia:
+        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#
+        .to_string();
+
+        let deployment = DeploymentCfg::default();
+        let transaction_args = TransactionArgs::default();
+
+        let err = order_add(app_handle, dotrain, deployment, transaction_args)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::AddOrderArgsError(AddOrderArgsError::TransactionArgs(
+                TransactionArgsError::ChainIdNone
+            ))
+        ));
+    }
 
     #[tokio::test]
     async fn test_order_remove_ok() {
