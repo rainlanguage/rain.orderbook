@@ -33,7 +33,7 @@ describe('TransactionConfirmationModal', () => {
 		args: {
 			chainId: 1,
 			orderbookAddress: '0x789',
-			getCalldataFn: vi.fn().mockResolvedValue(mockCalldata),
+			getCalldataFn: vi.fn().mockResolvedValue({ value: mockCalldata }),
 			onConfirm: vi.fn(),
 			order: mockOrder
 		}

@@ -27,16 +27,16 @@ export async function handleWalletConfirmation(
 		};
 	}
 
-	try {
-		calldata = await args.getCalldataFn();
-	} catch (error) {
+	const result = await args.getCalldataFn();
+	if (result.error) {
 		return {
 			state: {
 				status: 'error',
-				reason: error instanceof Error ? error.message : 'Failed to get calldata'
+				reason: result.error.msg
 			}
 		};
 	}
+	calldata = result.value;
 
 	try {
 		transactionHash = await sendTransaction(config, {

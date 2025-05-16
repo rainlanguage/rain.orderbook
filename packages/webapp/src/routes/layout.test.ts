@@ -2,8 +2,8 @@ import { render, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
-const { mockPageStore, initialPageState, mockWagmiConfigStore } = await vi.hoisted(() =>
-	import('$lib/__mocks__/stores')
+const { mockPageStore, initialPageState, mockWagmiConfigStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
 );
 const mockErcKit = vi.hoisted(() => ({
 	init: vi.fn().mockResolvedValue(undefined)
@@ -23,7 +23,7 @@ vi.mock('$app/environment', () => mockEnv);
 
 vi.mock('../lib/components/TransactionProviderWrapper.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { 
+	return {
 		default: MockComponent
 	};
 });
