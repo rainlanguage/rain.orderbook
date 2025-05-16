@@ -160,8 +160,10 @@ mod tests {
     use alloy::hex::ToHex;
     use alloy::primitives::U256;
     use alloy::sol_types::SolCall;
+    use dotrain::error::ComposeError;
     use httpmock::MockServer;
     use rain_orderbook_bindings::IOrderBookV4::{addOrder2Call, IO};
+    use rain_orderbook_common::add_order::AddOrderArgsError;
     use rain_orderbook_test_fixtures::LocalEvm;
     use serde_json::json;
     use std::collections::HashMap;
@@ -379,8 +381,34 @@ _ _: 16 52;
         );
     }
 
-    // #[tokio::test]
-    // async fn test_order_add_calldata_err()
+    #[tokio::test]
+    async fn test_order_add_calldata_err() {
+        let mock_app = tauri::test::mock_app();
+        let app_handle = mock_app.app_handle();
+
+        let server = MockServer::start();
+
+        server.mock(|when, then| {
+            when.path("/rpc");
+            then.status(500).body("Internal Server Error");
+        });
+
+        let dotrain = "invalid-dotrain".to_string();
+        let deployment = DeploymentCfg::default();
+        let transaction_args = TransactionArgs::default();
+
+        let err = order_add_calldata(app_handle, dotrain, deployment.clone(), transaction_args)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            CommandError::AddOrderArgsError(AddOrderArgsError::ComposeError(ComposeError::Problems(problems)))
+            if problems.len() == 2
+                && problems[0].msg == "cannot find front matter splitter"
+                && problems[1].msg == "unexpected token"
+        ));
+    }
 
     #[tokio::test]
     async fn test_order_remove_calldata_ok() {
