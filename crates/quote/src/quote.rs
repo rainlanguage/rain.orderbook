@@ -111,6 +111,7 @@ impl_wasm_traits!(BatchQuoteTarget);
 
 impl BatchQuoteTarget {
     /// Quotes the targets in batch on the given rpc url
+    #[inline]
     pub async fn do_quote(
         &self,
         rpc_url: &str,
@@ -306,7 +307,8 @@ impl BatchQuoteSpec {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::keccak256;
+    use alloy::hex;
+    use alloy::primitives::{address, keccak256};
     use alloy::primitives::{hex::encode_prefixed, U256};
     use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
@@ -967,7 +969,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_batch_quote_target_do_quote() {
+    async fn test_batch_quote_target_do_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, _, _) = get_test_data(true);
@@ -1013,5 +1015,76 @@ mod tests {
             }
         );
         assert!(iter_result.next().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_batch_quote_target_do_quote_err() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, order, _, _) = get_test_data(true);
+        let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
+            quote_config: Quote {
+                order,
+                ..Default::default()
+            },
+            orderbook,
+        }]);
+
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/error-rpc");
+            then.status(500).json_body("internal server error");
+        });
+
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/reverted-rpc");
+
+            let response_data = vec![MulticallResult {
+                success: false,
+                // 0x734bc71c is the selector for TokenSelfTrade
+                returnData: hex!("734bc71c").to_vec().into(),
+            }]
+            .abi_encode();
+
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, encode_prefixed(response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        let err = quote_targets
+            .do_quote(
+                rpc_server.url("/error-rpc").as_str(),
+                Some(1),
+                Some(U256::from(1000000)),
+                Some(address!("aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd")),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
+                AbiDecodedErrorType::Unknown(data)
+            )) if data.is_empty()
+        ));
+
+        let results = quote_targets
+            .do_quote(rpc_server.url("/reverted-rpc").as_str(), None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(results.len(), 1);
+
+        let err = results.into_iter().next().unwrap().unwrap_err();
+
+        assert!(matches!(
+            err,
+            FailedQuote::RevertError(AbiDecodedErrorType::Known { name, .. })
+            if name == "TokenSelfTrade"
+        ));
     }
 }
