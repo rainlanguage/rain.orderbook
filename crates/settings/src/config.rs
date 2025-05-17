@@ -127,34 +127,29 @@ impl TryFrom<ConfigSource> for Config {
         let networks = item
             .networks
             .into_iter()
-            .map(|(name, network)| {
-                Ok((
-                    name.clone(),
-                    Arc::new(network.try_into_network(name.clone())?),
-                ))
-            })
-            .collect::<Result<HashMap<String, Arc<NetworkCfg>>, ParseConfigSourceError>>()?;
+            .map(|(name, network)| (name.clone(), Arc::new(network.into_network(name.clone()))))
+            .collect::<HashMap<String, Arc<NetworkCfg>>>();
 
         let subgraphs = item
             .subgraphs
             .into_iter()
             .map(|(name, subgraph)| {
-                Ok((
+                (
                     name.clone(),
                     Arc::new(SubgraphCfg {
                         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
                         key: name.clone(),
                         url: subgraph.clone(),
                     }),
-                ))
+                )
             })
-            .collect::<Result<HashMap<String, Arc<SubgraphCfg>>, ParseConfigSourceError>>()?;
+            .collect::<HashMap<String, Arc<SubgraphCfg>>>();
 
         let metaboards = item
             .metaboards
             .into_iter()
-            .map(|(name, metaboard)| Ok((name, Arc::new(metaboard))))
-            .collect::<Result<HashMap<String, Arc<Url>>, ParseConfigSourceError>>()?;
+            .map(|(name, metaboard)| (name, Arc::new(metaboard)))
+            .collect::<HashMap<String, Arc<Url>>>();
 
         let orderbooks = item
             .orderbooks

@@ -287,11 +287,8 @@ impl ParseNetworkConfigSourceError {
 }
 
 impl NetworkConfigSource {
-    pub fn try_into_network(
-        self,
-        key: String,
-    ) -> Result<NetworkCfg, ParseNetworkConfigSourceError> {
-        Ok(NetworkCfg {
+    pub fn into_network(self, key: String) -> NetworkCfg {
+        NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key,
             rpc: self.rpc,
@@ -299,7 +296,7 @@ impl NetworkConfigSource {
             label: self.label,
             network_id: self.network_id,
             currency: self.currency,
-        })
+        }
     }
 }
 
@@ -311,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_try_from_network_string_success() {
-        let network_string = NetworkConfigSource {
+        let network_src = NetworkConfigSource {
             rpc: Url::parse("http://127.0.0.1:8545").unwrap(),
             chain_id: 1,
             network_id: Some(1),
@@ -319,9 +316,7 @@ mod tests {
             currency: Some("ETH".into()),
         };
 
-        let result = network_string.try_into_network("local".into());
-        assert!(result.is_ok());
-        let network = result.unwrap();
+        let network = network_src.into_network("local".into());
 
         assert_eq!(network.rpc, Url::parse("http://127.0.0.1:8545").unwrap());
         assert_eq!(network.chain_id, 1);
