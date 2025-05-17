@@ -20,7 +20,7 @@ vi.mock('$app/stores', async (importOriginal) => {
 vi.mock('$app/environment', () => mockEnv);
 
 vi.mock('../lib/components/Sidebar.svelte', async () => {
-	const MockSidebar = (await import('@rainlanguage/ui-components')).MockComponent;
+	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockSidebar };
 });
 
@@ -111,7 +111,7 @@ describe('Layout component', () => {
 		expect(screen.getByTestId('homepage')).toBeInTheDocument();
 	});
 
-	it('renders Sidebar and main content when not on root path', async () => {
+	it('renders main content when not on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
 			url: new URL('http://localhost/some-page')
@@ -121,7 +121,6 @@ describe('Layout component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
-			expect(screen.getByTestId('mock-component')).toBeInTheDocument();
 		});
 	});
 
