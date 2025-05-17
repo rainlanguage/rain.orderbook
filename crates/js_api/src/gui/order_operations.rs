@@ -357,7 +357,7 @@ impl DotrainOrderGui {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
         let calldata = AddOrderArgs::new_from_deployment(
-            self.dotrain_order.dotrain().to_string(),
+            self.dotrain_order.dotrain()?,
             deployment.deployment.as_ref().clone(),
         )
         .await?

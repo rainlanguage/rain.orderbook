@@ -92,11 +92,14 @@ impl Execute for Words {
             None => None,
         };
 
-        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain, settings.map(|v| vec![v]))
+            .await?;
 
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
-            let deployer = order.orderbook_yaml().get_deployer(deployer_key)?;
+            let deployer = dotrain_order.orderbook_yaml().get_deployer(deployer_key)?;
 
             // get metaboard subgraph url
             let metaboard_url = self
@@ -104,7 +107,7 @@ impl Execute for Words {
                 .as_ref()
                 .map(|v| v.to_string())
                 .or_else(|| {
-                    order
+                    dotrain_order
                         .orderbook_yaml()
                         .get_metaboard(&deployer.network.key)
                         .ok()
@@ -122,22 +125,30 @@ impl Execute for Words {
         } else if let Some(scenario) = &self.source.scenario {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
-                let network_name = &order
+                let network_name = &dotrain_order
                     .dotrain_yaml()
                     .get_scenario(scenario)?
                     .deployer
                     .network
                     .key
                     .clone();
-                order.orderbook_yaml().add_metaboard(network_name, v)?;
+                dotrain_order
+                    .orderbook_yaml()
+                    .add_metaboard(network_name, v)?;
             }
             if self.deployer_only {
-                match order.get_deployer_words_for_scenario(scenario).await?.words {
+                match dotrain_order
+                    .get_deployer_words_for_scenario(scenario)
+                    .await?
+                    .words
+                {
                     WordsResult::Success(v) => v.words,
                     WordsResult::Error(e) => Err(anyhow!(e))?,
                 }
             } else if self.pragma_only {
-                let result = order.get_pragma_words_for_scenario(scenario).await?;
+                let result = dotrain_order
+                    .get_pragma_words_for_scenario(scenario)
+                    .await?;
                 let mut words = vec![];
                 for p in result {
                     match p.words {
@@ -147,7 +158,7 @@ impl Execute for Words {
                 }
                 words
             } else {
-                let result = order.get_all_words_for_scenario(scenario).await?;
+                let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
                 let mut words = vec![];
                 match result.deployer_words.words {
                     WordsResult::Success(v) => words.extend(v.words),
@@ -162,15 +173,17 @@ impl Execute for Words {
                 words
             }
         } else if let Some(deployment) = &self.source.deployment {
-            let deployment = order.dotrain_yaml().get_deployment(deployment)?;
+            let deployment = dotrain_order.dotrain_yaml().get_deployment(deployment)?;
             let scenario = &deployment.scenario.key;
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_key = deployment.scenario.deployer.network.key.clone();
-                order.orderbook_yaml().add_metaboard(&network_key, v)?;
+                dotrain_order
+                    .orderbook_yaml()
+                    .add_metaboard(&network_key, v)?;
             }
-            let result = order.get_all_words_for_scenario(scenario).await?;
+            let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
             match result.deployer_words.words {
                 WordsResult::Success(v) => words.extend(v.words),
