@@ -6419,6 +6419,7 @@ dependencies = [
  "dotrain-lsp",
  "futures",
  "httpmock",
+ "lazy_static",
  "once_cell",
  "proptest",
  "rain-error-decoding",

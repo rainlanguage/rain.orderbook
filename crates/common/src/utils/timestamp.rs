@@ -2,6 +2,16 @@ use chrono::{DateTime, Local};
 use std::num::ParseIntError;
 use thiserror::Error;
 
+lazy_static::lazy_static! {
+    static ref TZ_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+}
+
+pub fn with_tz<R, F: FnOnce() -> R>(tz: &str, f: F) -> R {
+    let _tz_lock = TZ_LOCK.lock().unwrap();
+    std::env::set_var("TZ", tz);
+    f()
+}
+
 #[derive(Error, Debug, PartialEq)]
 pub enum FormatTimestampDisplayError {
     #[error("Timestamp is invalid {0}")]
@@ -91,39 +101,37 @@ mod tests {
     #[test]
     fn test_format_bigint_timestamp_display_ok() {
         // Required to make local timezone deterministic
-        // NOTE: Setting TZ affects global state.
-        std::env::set_var("TZ", "CET");
+        with_tz("CET", || {
+            let timestamp = "1746537612".to_string();
+            let result = format_bigint_timestamp_display(timestamp.clone());
+            assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
 
-        let timestamp = "1746537612".to_string();
-        let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
-
-        let timestamp_i64 = timestamp.parse::<i64>().unwrap();
-        let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
+            let timestamp_i64 = timestamp.parse::<i64>().unwrap();
+            let result = format_timestamp_display(timestamp_i64);
+            assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
+        });
 
         // Required to make local timezone deterministic
-        // NOTE: Setting TZ affects global state.
-        std::env::set_var("TZ", "EST");
+        with_tz("EST", || {
+            let timestamp = "970676358".to_string();
+            let result = format_bigint_timestamp_display(timestamp.clone());
+            assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
 
-        let timestamp = "970676358".to_string();
-        let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
+            let timestamp_i64 = timestamp.parse::<i64>().unwrap();
+            let result = format_timestamp_display(timestamp_i64);
+            assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
 
-        let timestamp_i64 = timestamp.parse::<i64>().unwrap();
-        let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
+            // Test earliest valid timestamp (close to Unix epoch minimum)
+            // January 1, 1970 (plus some seconds to be safe)
+            let earliest_valid = "86400".to_string(); // 1 day after epoch
+            let result = format_bigint_timestamp_display(earliest_valid.clone());
+            assert!(result.is_ok());
 
-        // Test earliest valid timestamp (close to Unix epoch minimum)
-        // January 1, 1970 (plus some seconds to be safe)
-        let earliest_valid = "86400".to_string(); // 1 day after epoch
-        let result = format_bigint_timestamp_display(earliest_valid.clone());
-        assert!(result.is_ok());
-
-        // Test latest reasonably valid timestamp
-        // December 31, 2099 (arbitrary future date that should be valid)
-        let future_valid = "4102444800".to_string();
-        let result = format_bigint_timestamp_display(future_valid.clone());
-        assert!(result.is_ok());
+            // Test latest reasonably valid timestamp
+            // December 31, 2099 (arbitrary future date that should be valid)
+            let future_valid = "4102444800".to_string();
+            let result = format_bigint_timestamp_display(future_valid.clone());
+            assert!(result.is_ok());
+        });
     }
 }
