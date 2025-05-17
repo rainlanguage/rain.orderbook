@@ -75,6 +75,7 @@ mod tests {
     use alloy::primitives::hex::encode_prefixed;
     use alloy::sol_types::SolValue;
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use alloy_ethers_typecast::{
         request_shim::{AlloyTransactionRequest, TransactionRequestShim},
         rpc::{eip2718::TypedTransaction, BlockNumber, Request, Response},
@@ -83,7 +84,7 @@ mod tests {
     use serde_json::{from_str, Value};
 
     #[tokio::test]
-    async fn test_batch_quote() {
+    async fn test_batch_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let multicall = Address::from_hex(MULTICALL3_ADDRESS).unwrap();
@@ -180,5 +181,50 @@ mod tests {
             Result::Err(FailedQuote::RevertErrorDecodeFailed(_))
         );
         assert!(iter_result.next().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_batch_quote_err() {
+        let rpc_server = MockServer::start_async().await;
+        let quote_targets = vec![QuoteTarget::default()];
+
+        let err = batch_quote(&quote_targets, "this should break", None, None, None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(msg))
+            if msg == "relative URL without a base"
+        ));
+
+        rpc_server.mock(|when, then| {
+            when.path("/rpc");
+            then.status(500).json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_error(1, -32000, "Internal error", None)
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        let err = batch_quote(
+            &quote_targets,
+            rpc_server.url("/rpc").as_str(),
+            None,
+            None,
+            None,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
+                AbiDecodedErrorType::Unknown(bytestring)
+            )) if bytestring.is_empty()
+        ));
     }
 }
