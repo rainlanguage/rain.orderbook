@@ -313,6 +313,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use httpmock::{Method::POST, MockServer};
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
+    use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{from_str, json, Value};
 
     // helper fn to build some test data
@@ -467,7 +468,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_quote_spec_from_subgraph() {
+    async fn test_get_quote_spec_from_subgraph_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -501,6 +502,46 @@ mod tests {
         };
 
         assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn test_get_quote_spec_from_subgraph_err() {
+        let (orderbook, _, order_id_u256, _) = get_test_data(false);
+
+        let quote_target_specifier = QuoteSpec {
+            order_hash: order_id_u256,
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: vec![],
+            orderbook,
+        };
+
+        let err = quote_target_specifier
+            .get_quote_target_from_subgraph("this will break")
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::UrlParseError(url::ParseError::RelativeUrlWithoutBase)
+        ));
+
+        let rpc_server = MockServer::start_async().await;
+
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/404");
+            then.status(404);
+        });
+
+        let err = quote_target_specifier
+            .get_quote_target_from_subgraph(rpc_server.url("/404").as_str())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::SubgraphClientError(OrderbookSubgraphClientError::CynicClientError(_))
+        ));
     }
 
     #[tokio::test]
