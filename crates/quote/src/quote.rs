@@ -964,7 +964,7 @@ mod tests {
         assert!(matches!(
             err,
             FailedQuote::CorruptReturnData(msg)
-            if msg == "buffer overrun while deserializing".to_string()
+            if msg == *"buffer overrun while deserializing"
         ));
     }
 
