@@ -545,7 +545,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_batch_quote_spec_from_subgraph() {
+    async fn test_get_batch_quote_spec_from_subgraph_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -579,6 +579,56 @@ mod tests {
         })];
 
         assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn test_get_batch_quote_spec_from_subgraph_err() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, order, order_id_u256, _) = get_test_data(true);
+
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/sg");
+
+            let invalid_order_json = json!({
+                "id": encode_prefixed(B256::random()),
+                "orderBytes": encode_prefixed(order.abi_encode()),
+                "orderHash": encode_prefixed(B256::random()),
+                "owner": encode_prefixed(order.owner),
+                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "active": true,
+                "addEvents": [],
+                "meta": null,
+                "timestampAdded": "0",
+                "trades": [],
+                "removeEvents": []
+            });
+
+            then.json_body_obj(&json!({
+                "data": {
+                    "orders": [invalid_order_json]
+                }
+            }));
+        });
+
+        let batch_quote_targets_specifiers = BatchQuoteSpec(vec![QuoteSpec {
+            order_hash: order_id_u256,
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: vec![],
+            orderbook,
+        }]);
+
+        let err = batch_quote_targets_specifiers
+            .get_batch_quote_target_from_subgraph(rpc_server.url("/sg").as_str())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::SubgraphClientError(OrderbookSubgraphClientError::CynicClientError(cynic_err))
+            if cynic_err.to_string().contains("error decoding response body")
+        ));
     }
 
     #[tokio::test]
