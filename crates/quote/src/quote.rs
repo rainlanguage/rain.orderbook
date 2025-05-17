@@ -824,7 +824,7 @@ mod tests {
                 signed_context: vec![],
                 orderbook,
             },
-            // should be None in final result
+            // should be Err in final result
             QuoteSpec::default(),
             QuoteSpec::default(),
         ]);
@@ -875,7 +875,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_target_do_quote() {
+    async fn test_quote_target_do_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, order, _, _) = get_test_data(false);
@@ -919,6 +919,51 @@ mod tests {
                 ratio: U256::from(2),
             }
         );
+    }
+
+    #[tokio::test]
+    async fn test_quote_target_do_quote_err() {
+        let rpc_server = MockServer::start_async().await;
+
+        let (orderbook, order, _, _) = get_test_data(false);
+        let quote_target = QuoteTarget {
+            quote_config: Quote {
+                order,
+                ..Default::default()
+            },
+            orderbook,
+        };
+
+        let response_data = vec![MulticallResult {
+            success: true,
+            returnData: "corrupt data".into(),
+        }]
+        .abi_encode();
+
+        // mock rpc with call data and response data
+        rpc_server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, encode_prefixed(response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        let err = quote_target
+            .do_quote(rpc_server.url("/rpc").as_str(), None, None, None)
+            .await
+            .unwrap()
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            FailedQuote::CorruptReturnData(msg)
+            if msg == "buffer overrun while deserializing".to_string()
+        ));
     }
 
     #[tokio::test]
