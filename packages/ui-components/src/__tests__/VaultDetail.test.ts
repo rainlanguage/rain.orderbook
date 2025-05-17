@@ -11,6 +11,8 @@ import { getVault, type SgOrderAsIO, type SgVault } from '@rainlanguage/orderboo
 type VaultDetailProps = ComponentProps<VaultDetail>;
 import { useAccount } from '../lib/providers/wallet/useAccount';
 import { QKEY_VAULT } from '$lib/queries/keys';
+import { useToasts } from '../lib/providers/toasts/useToasts';
+import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 
 vi.mock('../lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
@@ -28,6 +30,16 @@ vi.mock('$lib/services/modal', () => ({
 	handleDepositModal: vi.fn(),
 	handleWithdrawModal: vi.fn()
 }));
+
+vi.mock('$lib/queries/queryClient', () => ({
+	invalidateTanstackQueries: vi.fn()
+}));
+
+vi.mock('$lib/providers/toasts/useToasts', () => ({
+	useToasts: vi.fn()
+}));
+
+const mockErrToast = vi.fn();
 
 const mockSettings = readable({
 	subgraphs: {
@@ -60,6 +72,12 @@ describe('VaultDetail', () => {
 
 		(useAccount as Mock).mockReturnValue({
 			matchesAccount: mockMatchesAccount
+		});
+
+		(useToasts as Mock).mockReturnValue({
+			errToast: mockErrToast,
+			toasts: writable([]),
+			removeToast: vi.fn()
 		});
 
 		mockData = {
@@ -162,7 +180,26 @@ describe('VaultDetail', () => {
 		mockData.ordersAsInput = [{ id: '1', owner: '0x123' }] as unknown as SgOrderAsIO[];
 		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
 
-		const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+		render(VaultDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(async () => {
+			const refreshButton = await screen.getByTestId('top-refresh');
+			await userEvent.click(refreshButton);
+			expect(invalidateTanstackQueries).toHaveBeenCalledWith(queryClient, [
+				'100',
+				QKEY_VAULT + '100'
+			]);
+		});
+	});
+
+	it('failed query invalidation triggers a toast', async () => {
+		mockData.ordersAsInput = [{ id: '1', owner: '0x123' }] as unknown as SgOrderAsIO[];
+		mockData.ordersAsOutput = [{ id: '2', owner: '0x123' }] as unknown as SgOrderAsIO[];
+
+		(invalidateTanstackQueries as Mock).mockRejectedValue(new Error('Failed to refresh'));
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -172,11 +209,7 @@ describe('VaultDetail', () => {
 		await waitFor(async () => {
 			const refreshButton = await screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
-			expect(invalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['100', QKEY_VAULT + '100'],
-				refetchType: 'all',
-				exact: false
-			});
+			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
 		});
 	});
 });

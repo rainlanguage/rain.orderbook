@@ -10,6 +10,8 @@ import {
 import { QueryClient, useQueryClient } from '@tanstack/svelte-query';
 
 const mockAddToast = vi.fn();
+const mockErrToast = vi.fn();
+const testQueryKey = 'test-query-key';
 
 const { mockTransactionStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
@@ -27,8 +29,6 @@ vi.mock('@tanstack/svelte-query', () => ({
 }));
 
 describe('TransactionsListener.svelte', () => {
-	const testQueryKey = 'test-query-key';
-
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockTransactionStore.reset?.();
@@ -38,7 +38,8 @@ describe('TransactionsListener.svelte', () => {
 		vi.mocked(useToasts).mockReturnValue({
 			toasts: writable([]),
 			addToast: mockAddToast,
-			removeToast: vi.fn()
+			removeToast: vi.fn(),
+			errToast: mockErrToast
 		});
 	});
 
@@ -76,14 +77,10 @@ describe('TransactionsListener.svelte', () => {
 		});
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledTimes(1);
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: errorMessage,
-				type: 'error',
-				color: 'red'
-			});
-			expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
+			expect(mockErrToast).toHaveBeenCalledTimes(1);
+			expect(mockErrToast).toHaveBeenCalledWith(errorMessage);
 		});
+		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
 	});
 
 	it('should not call addToast or invalidateQueries for IDLE status', async () => {
@@ -112,22 +109,20 @@ describe('TransactionsListener.svelte', () => {
 		});
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledTimes(3);
+			expect(mockErrToast).toHaveBeenCalledTimes(1);
+			expect(mockAddToast).toHaveBeenCalledTimes(2);
 			expect(mockAddToast).toHaveBeenNthCalledWith(1, {
 				message: 'Success 1',
 				type: 'success',
 				color: 'green'
 			});
 			expect(mockAddToast).toHaveBeenNthCalledWith(2, {
-				message: 'Error 1',
-				type: 'error',
-				color: 'red'
-			});
-			expect(mockAddToast).toHaveBeenNthCalledWith(3, {
 				message: 'Success 2',
 				type: 'success',
 				color: 'green'
 			});
+
+			expect(mockErrToast).toHaveBeenNthCalledWith(1, 'Error 1');
 
 			expect(invalidateTanstackQueries as Mock).toHaveBeenCalledTimes(2);
 			expect(invalidateTanstackQueries).toHaveBeenNthCalledWith(1, { name: 'test' }, [
@@ -148,28 +143,20 @@ describe('TransactionsListener.svelte', () => {
 		});
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledTimes(1);
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: undefined,
-				type: 'error',
-				color: 'red'
-			});
+			expect(mockErrToast).toHaveBeenCalledTimes(1);
+			expect(mockErrToast).toHaveBeenCalledWith(undefined);
 		});
 
 		mockAddToast.mockClear();
 
 		mockTransactionStore.mockSetSubscribeValue({
 			status: TransactionStatus.ERROR,
-			error: ''
+			error: 'Error!'
 		});
 
 		await waitFor(() => {
-			expect(mockAddToast).toHaveBeenCalledTimes(1);
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: '',
-				type: 'error',
-				color: 'red'
-			});
+			expect(mockErrToast).toHaveBeenCalledTimes(2);
+			expect(mockErrToast).toHaveBeenCalledWith('Error!');
 		});
 		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
 	});
