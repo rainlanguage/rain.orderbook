@@ -1,98 +1,27 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
-import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
-import type {
-	ApprovalCalldata,
-	DepositCalldataResult,
-	RemoveOrderCalldata,
-	SgVault,
-	WithdrawCalldataResult
-} from '@rainlanguage/orderbook';
-
 import { getExplorerLink } from '../services/getExplorerLink';
-import type { DeploymentArgs } from '$lib/types/transaction';
+import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
+import type {
+	DeploymentTransactionArgs,
+	DepositOrWithdrawTransactionArgs,
+	TransactionState
+} from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	getNewOrderConfig,
-	getRemoveOrderConfig,
 	getTransactionConfig
 } from '$lib/services/awaitTransactionIndexing';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
 
-export enum TransactionStatus {
-	IDLE = 'Idle',
-	CHECKING_ALLOWANCE = 'Checking your allowance...',
-	PENDING_WALLET = 'Waiting for wallet confirmation...',
-	PENDING_APPROVAL = 'Approving token spend...',
-	PENDING_DEPLOYMENT = 'Deploying your order...',
-	PENDING_WITHDRAWAL = 'Withdrawing tokens...',
-	PENDING_DEPOSIT = 'Depositing tokens...',
-	PENDING_REMOVE_ORDER = 'Removing order...',
-	PENDING_SUBGRAPH = 'Awaiting subgraph...',
-	SUCCESS = 'Success! Transaction confirmed',
-	ERROR = 'Something went wrong'
-}
-
-export enum TransactionErrorMessage {
-	BAD_CALLLDATA = 'Bad calldata.',
-	DEPLOY_FAILED = 'Lock transaction failed.',
-	TIMEOUT = 'The subgraph took too long to respond.',
-	APPROVAL_FAILED = 'Approval transaction failed.',
-	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
-	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
-	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
-	DEPOSIT_FAILED = 'Failed to deposit tokens.',
-	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
-	REMOVE_ORDER_FAILED = 'Failed to remove order.'
-}
-
-export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
-
-export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
-export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
-	config: Config;
-};
-
-export type DepositOrWithdrawTransactionArgs = {
-	config: Config;
-	approvalCalldata?: ApprovalCalldata;
-	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
-	action: 'deposit' | 'withdraw';
-	chainId: number;
-	vault: SgVault;
-	subgraphUrl: string;
-};
-
-export type RemoveOrderTransactionArgs = {
-	config: Config;
-	orderbookAddress: Hex;
-	removeOrderCalldata: RemoveOrderCalldata;
-	chainId: number;
-	subgraphUrl: string;
-};
-
-export type TransactionState = {
-	status: TransactionStatus;
-	error: string;
-	hash: string;
-	data: null;
-	functionName: string;
-	message: string;
-	newOrderHash: string;
-	network: string;
-	explorerLink: string;
-};
-
 export type TransactionStore = {
 	subscribe: (run: (value: TransactionState) => void) => () => void;
 	reset: () => void;
 	handleDeploymentTransaction: (args: DeploymentTransactionArgs) => Promise<void>;
 	handleDepositOrWithdrawTransaction: (args: DepositOrWithdrawTransactionArgs) => Promise<void>;
-	handleRemoveOrderTransaction: (args: RemoveOrderTransactionArgs) => Promise<void>;
 	checkingWalletAllowance: (message?: string) => void;
 	awaitWalletConfirmation: (message?: string) => void;
 	awaitApprovalTx: (hash: string) => void;
@@ -101,7 +30,7 @@ export type TransactionStore = {
 };
 
 export const initialState: TransactionState = {
-	status: TransactionStatus.IDLE,
+	status: TransactionStatusMessage.IDLE,
 	error: '',
 	hash: '',
 	data: null,
@@ -123,7 +52,7 @@ const transactionStore = () => {
 	) => {
 		update((state) => ({
 			...state,
-			status: TransactionStatus.PENDING_SUBGRAPH,
+			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for transaction to be indexed...'
 		}));
 
@@ -143,7 +72,7 @@ const transactionStore = () => {
 	const awaitNewOrderIndexing = async (subgraphUrl: string, txHash: string, network?: string) => {
 		update((state) => ({
 			...state,
-			status: TransactionStatus.PENDING_SUBGRAPH,
+			status: TransactionStatusMessage.PENDING_SUBGRAPH,
 			message: 'Waiting for new order to be indexed...'
 		}));
 
@@ -163,48 +92,28 @@ const transactionStore = () => {
 		}
 	};
 
-	const awaitRemoveOrderIndexing = async (subgraphUrl: string, txHash: string) => {
-		update((state) => ({
-			...state,
-			status: TransactionStatus.PENDING_SUBGRAPH,
-			message: 'Waiting for order removal to be indexed...'
-		}));
-
-		const result = await awaitSubgraphIndexing(
-			getRemoveOrderConfig(subgraphUrl, txHash, 'Order removed successfully')
-		);
-
-		if (result.error) {
-			return transactionError(TransactionErrorMessage.TIMEOUT);
-		}
-
-		if (result.value) {
-			return transactionSuccess(result.value.txHash, result.value.successMessage);
-		}
-	};
-
 	const checkingWalletAllowance = (message?: string) =>
 		update((state) => ({
 			...state,
-			status: TransactionStatus.CHECKING_ALLOWANCE,
+			status: TransactionStatusMessage.CHECKING_ALLOWANCE,
 			message: message || ''
 		}));
 	const awaitWalletConfirmation = (message?: string) =>
 		update((state) => ({
 			...state,
-			status: TransactionStatus.PENDING_WALLET,
+			status: TransactionStatusMessage.PENDING_WALLET,
 			message: message || ''
 		}));
 	const awaitApprovalTx = (hash: string, symbol: string | undefined) =>
 		update((state) => ({
 			...state,
 			hash: hash,
-			status: TransactionStatus.PENDING_APPROVAL,
+			status: TransactionStatusMessage.PENDING_APPROVAL,
 			message: `Approving ${symbol || 'token'} spend...`
 		}));
 	const awaitTx = (
 		hash: string,
-		status: TransactionStatus,
+		status: TransactionStatusMessage,
 		explorerLink?: string,
 		message?: string
 	) =>
@@ -223,7 +132,7 @@ const transactionStore = () => {
 	) => {
 		update((state) => ({
 			...state,
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			hash: hash,
 			message: message || '',
 			newOrderHash: newOrderHash || '',
@@ -233,9 +142,10 @@ const transactionStore = () => {
 	const transactionError = (error: TransactionErrorMessage, hash?: string) =>
 		update((state) => ({
 			...state,
-			status: TransactionStatus.ERROR,
-			error: error,
-			hash: hash || ''
+			status: TransactionStatusMessage.ERROR,
+			error,
+			message: error,
+			hash: hash ?? ''
 		}));
 
 	const handleDeploymentTransaction = async ({
@@ -286,7 +196,7 @@ const transactionStore = () => {
 		}
 		try {
 			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			awaitTx(hash, TransactionStatus.PENDING_DEPLOYMENT, transactionExplorerLink);
+			awaitTx(hash, TransactionStatusMessage.PENDING_DEPLOYMENT, transactionExplorerLink);
 			await waitForTransactionReceipt(config, { hash });
 			if (subgraphUrl) {
 				return awaitNewOrderIndexing(subgraphUrl, hash, network);
@@ -353,8 +263,8 @@ const transactionStore = () => {
 			awaitTx(
 				hash,
 				action === 'deposit'
-					? TransactionStatus.PENDING_DEPOSIT
-					: TransactionStatus.PENDING_WITHDRAWAL,
+					? TransactionStatusMessage.PENDING_DEPOSIT
+					: TransactionStatusMessage.PENDING_WITHDRAWAL,
 				transactionExplorerLink
 			);
 			await waitForTransactionReceipt(config, { hash });
@@ -372,55 +282,18 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleRemoveOrderTransaction = async ({
-		config,
-		orderbookAddress,
-		removeOrderCalldata,
-		chainId,
-		subgraphUrl
-	}: RemoveOrderTransactionArgs) => {
-		reset();
-
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
-
-		let hash: Hex;
-		try {
-			awaitWalletConfirmation('Please confirm order removal in your wallet...');
-			hash = await sendTransaction(config, {
-				to: orderbookAddress,
-				data: removeOrderCalldata as `0x${string}`
-			});
-		} catch {
-			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
-		}
-		try {
-			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			awaitTx(hash, TransactionStatus.PENDING_REMOVE_ORDER, transactionExplorerLink);
-			await waitForTransactionReceipt(config, { hash });
-			return awaitRemoveOrderIndexing(subgraphUrl, hash);
-		} catch {
-			return transactionError(TransactionErrorMessage.REMOVE_ORDER_FAILED);
-		}
-	};
-
 	return {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
 		handleDepositOrWithdrawTransaction,
-		handleRemoveOrderTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,
 		transactionSuccess,
 		transactionError,
 		awaitTransactionIndexing,
-		awaitNewOrderIndexing,
-		awaitRemoveOrderIndexing
+		awaitNewOrderIndexing
 	};
 };
 

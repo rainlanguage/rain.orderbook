@@ -2,13 +2,16 @@ import { render, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
-const { mockPageStore, initialPageState } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
+const { mockPageStore, initialPageState, mockSignerAddressStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
 
-const mockErcKit = vi.hoisted(() => ({
-	init: vi.fn().mockResolvedValue(undefined)
-}));
-const mockDefaultConfig = vi.hoisted(() => vi.fn().mockReturnValue(mockErcKit));
 const mockEnv = vi.hoisted(() => ({ browser: true }));
+const mockInitWallet = vi.hoisted(() => vi.fn());
+
+vi.mock('$lib/services/handleWalletInitialization', () => ({
+	initWallet: mockInitWallet
+}));
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -19,22 +22,35 @@ vi.mock('$app/stores', async (importOriginal) => {
 
 vi.mock('$app/environment', () => mockEnv);
 
+vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		default: MockComponent
+	};
+});
+
 vi.mock('../lib/components/Sidebar.svelte', async () => {
-	const MockSidebar = (await import('@rainlanguage/ui-components')).MockComponent;
+	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockSidebar };
 });
 
+vi.mock('$lib/components/Sidebar.svelte', async () => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockComponent };
+});
+
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-	const MockWalletProvider = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),
-		WalletProvider: MockWalletProvider
+		cachedWritableStore: vi.fn(),
+		WalletProvider: MockComponent,
+		ToastProvider: MockComponent
 	};
 });
 
 vi.mock('$lib/stores/wagmi', () => ({
-	defaultConfig: mockDefaultConfig,
-	signerAddress: { subscribe: vi.fn() }
+	signerAddress: mockSignerAddressStore
 }));
 
 vi.mock('$env/static/public', () => ({
@@ -44,9 +60,19 @@ vi.mock('$env/static/public', () => ({
 vi.mock('@wagmi/connectors', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
-
 		injected: vi.fn().mockReturnValue('injected-connector'),
 		walletConnect: vi.fn().mockReturnValue('wallet-connect-connector')
+	};
+});
+
+vi.mock('@tanstack/svelte-query', async (importOriginal) => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		...(await importOriginal()),
+		QueryClientProvider: MockComponent,
+		QueryClient: vi.fn().mockImplementation(() => ({
+			name: 'test'
+		}))
 	};
 });
 
@@ -54,49 +80,22 @@ describe('Layout component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
-		mockDefaultConfig.mockReturnValue(mockErcKit);
 		mockEnv.browser = true;
-	});
-
-	it('initializes wallet when in browser environment', async () => {
-		const originalNavigator = global.navigator;
-
-		Object.defineProperty(global, 'navigator', {
-			value: {},
-			writable: true
-		});
-		mockPageStore.mockSetSubscribeValue(initialPageState);
-
-		render(Layout);
-
-		expect(mockErcKit.init).toHaveBeenCalled();
-		Object.defineProperty(global, 'navigator', {
-			value: originalNavigator,
-			writable: true
-		});
+		mockInitWallet.mockResolvedValue(null);
 	});
 
 	it('displays an error message if wallet initialization fails', async () => {
-		const originalNavigator = global.navigator;
-		Object.defineProperty(global, 'navigator', {
-			value: {},
-			writable: true
-		});
-
-		mockErcKit.init.mockRejectedValue(new Error('Initialization failed'));
+		mockInitWallet.mockResolvedValue(
+			'Failed to initialize wallet connection: Test error. Please try again or check console.'
+		);
 		mockPageStore.mockSetSubscribeValue(initialPageState);
 
 		render(Layout);
 
 		const errorMessage = await screen.findByText(
-			'Failed to initialize wallet connection: Initialization failed. Please try again or check console.'
+			'Failed to initialize wallet connection: Test error. Please try again or check console.'
 		);
 		expect(errorMessage).toBeInTheDocument();
-
-		Object.defineProperty(global, 'navigator', {
-			value: originalNavigator,
-			writable: true
-		});
 	});
 
 	it('renders Homepage when on root path', async () => {
@@ -107,11 +106,13 @@ describe('Layout component', () => {
 
 		const { container } = render(Layout);
 
-		expect(container.querySelector('main')).not.toBeInTheDocument();
-		expect(screen.getByTestId('homepage')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(container.querySelector('main')).not.toBeInTheDocument();
+			expect(screen.getByTestId('homepage')).toBeInTheDocument();
+		});
 	});
 
-	it('renders Sidebar and main content when not on root path', async () => {
+	it('renders main content when not on root path', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
 			url: new URL('http://localhost/some-page')
@@ -121,7 +122,6 @@ describe('Layout component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
-			expect(screen.getByTestId('mock-component')).toBeInTheDocument();
 		});
 	});
 
@@ -129,14 +129,14 @@ describe('Layout component', () => {
 		const originalNavigator = global.navigator;
 		mockEnv.browser = false;
 		render(Layout);
-		expect(mockErcKit.init).not.toHaveBeenCalled();
+		expect(mockInitWallet).not.toHaveBeenCalled();
 		Object.defineProperty(global, 'navigator', {
 			value: originalNavigator,
 			writable: true
 		});
 	});
 
-	it('displays an error page if the page.error is set', async () => {
+	it('displays an error page if page.error is set', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
 			data: {
@@ -146,7 +146,9 @@ describe('Layout component', () => {
 		});
 		render(Layout);
 
-		expect(screen.getByText('Test error')).toBeInTheDocument();
-		expect(screen.getByTestId('error-page')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Test error')).toBeInTheDocument();
+			expect(screen.getByTestId('error-page')).toBeInTheDocument();
+		});
 	});
 });

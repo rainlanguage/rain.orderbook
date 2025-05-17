@@ -21,7 +21,8 @@
 		IconExternalLink,
 		logoDark,
 		logoLight,
-		WalletConnect
+		WalletConnect,
+		TransactionList
 	} from '@rainlanguage/ui-components';
 
 	import { onMount } from 'svelte';
@@ -140,6 +141,9 @@
 			</SidebarGroup>
 			<SidebarGroup border class="flex justify-start" ulClass="list-none">
 				<ButtonDarkMode {colorTheme} />
+			</SidebarGroup>
+			<SidebarGroup border class="flex justify-start" ulClass="list-none">
+				<TransactionList />
 			</SidebarGroup>
 		</SidebarWrapper>
 	</Sidebar>
