@@ -785,7 +785,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_batch_spec_do_quote() {
+    async fn test_quote_batch_spec_do_quote_err() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(true);
@@ -829,6 +829,23 @@ mod tests {
             QuoteSpec::default(),
         ]);
 
+        let err = batch_quote_targets_specifiers
+            .do_quote(
+                rpc_server.url("/sg").as_str(),
+                "bad rpc url",
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(url_err))
+            if url_err.to_string().contains("relative URL without a base")
+        ));
+
         let result = batch_quote_targets_specifiers
             .do_quote(
                 rpc_server.url("/sg").as_str(),
@@ -839,8 +856,8 @@ mod tests {
             )
             .await
             .unwrap();
-        let mut iter_result = result.into_iter();
 
+        let mut iter_result = result.into_iter();
         assert_eq!(
             iter_result.next().unwrap().unwrap(),
             OrderQuoteValue {
@@ -849,7 +866,7 @@ mod tests {
             }
         );
 
-        // specifiers that were not present on subgraph were not quoted and are None
+        // specifiers that were not present on subgraph were not quoted and are Err
         assert!(iter_result.next().unwrap().is_err());
         assert!(iter_result.next().unwrap().is_err());
 
