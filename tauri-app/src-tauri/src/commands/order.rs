@@ -176,51 +176,55 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use rain_orderbook_app_settings::{deployer::DeployerCfg, yaml::YamlError};
-    use rain_orderbook_common::{dotrain_order::DotrainOrderError, GH_COMMIT_SHA};
+    use rain_orderbook_common::{
+        dotrain_order::DotrainOrderError, utils::timestamp::with_tz, GH_COMMIT_SHA,
+    };
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 
     #[tokio::test]
     async fn test_orders_list_write_csv_ok() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let csv_path = temp_file.path().to_path_buf();
+        with_tz("GST", || async {
+            let temp_file = NamedTempFile::new().unwrap();
+            let csv_path = temp_file.path().to_path_buf();
 
-        let server = MockServer::start();
+            let server = MockServer::start();
 
-        server.mock(|when, then| {
-            when.path("/sg").body_contains("\"skip\":0");
-            then.status(200)
-                .body_from_file("../../test-resources/example-subgraph-orders-res1.json");
-        });
+            server.mock(|when, then| {
+                when.path("/sg").body_contains("\"skip\":0");
+                then.status(200)
+                    .body_from_file("../../test-resources/example-subgraph-orders-res1.json");
+            });
 
-        server.mock(|when, then| {
-            when.path("/sg");
-            then.status(200).json_body_obj(&json!({
-                "data": {
-                    "orders": []
-                }
-            }));
-        });
+            server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": []
+                    }
+                }));
+            });
 
-        // Call the function
-        orders_list_write_csv(
-            csv_path.clone(),
-            SubgraphArgs {
-                url: server.url("/sg"),
-            },
-        )
-        .await
-        .unwrap();
+            // Call the function
+            orders_list_write_csv(
+                csv_path.clone(),
+                SubgraphArgs {
+                    url: server.url("/sg"),
+                },
+            )
+            .await
+            .unwrap();
 
-        // Verify the CSV file was created and contains expected content
-        let actual_csv_content = std::fs::read_to_string(csv_path).unwrap();
+            // Verify the CSV file was created and contains expected content
+            let actual_csv_content = std::fs::read_to_string(csv_path).unwrap();
 
-        let expected_csv_content = r#"
+            let expected_csv_content = r#"
 id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,transaction,valid_inputs_vaults,valid_outputs_vaults,valid_inputs_token_symbols_display,valid_outputs_token_symbols_display,trades
 0xce594506aded89c9911e6d25d335737c1593d5fcba0d5085f640ad33608900d4,1746708958,2025-05-08 04:55:58 PM,0x627a12ce1f6d42c9305e03e83fe044e8c3c1a32c,true,bd8849759749b4d8506bc851acef0e19f34eabee,8d96ea3ef24d7123882c51ce4325b89bc0d63f9e,0xb4633e1c36ba079749df9f6c3be740f44622ed34fc7457d1dbe1a77b9608f4d7,"90191762620663887453907314496784028792739187795829076274284824685275793811138, 90191762620663887453907314496784028792739187795829076274284824685275793811138","90191762620663887453907314496784028792739187795829076274284824685275793811138, 90191762620663887453907314496784028792739187795829076274284824685275793811138","NST, BO","NST, BO","0x02656cc86909041942571c0c5c153151eb3f366ea2efd9cd5aeaca7fa5442db3, 0x17acda643769e9d2246c01438b8c380c7cebedceca80015642ab005387f48053, 0x17b14cd0c1f001d944b2be134dc70647821a5eaa9b2187c473d78c3afd7e3e34, 0x1db3570a53156b8c001a7d48a461045be0194761d3a87a0126f3677e900c7eb4, 0x1dc167c6d972e160bc5feddba5283bddc99fffb3e9148b26eaa700511b4a6b8d, 0x2369af92982660a4b77adf1246388feaf75007a25e601ca9bc891deafa4d127c, 0x30b68db2fcaa9ec3883dc0566e056f18241dcf946e7b4c6e1d1551991c2b7cb8, 0x3a6e46d564a65af7c5cd752a6b08b26cb1a466af14c2b767d0d4deeea9b40f4c, 0x45ba490ee63d1503332be96fa5b718cfbfe16337db9f73bff56f7bf506b1c479, 0x4ac5b430259aac08a305dab67c7b8be2e75fe9138a64dfbc3fce25698d6fdfee, 0x51afee427fe2c5096dfd1b9d9d344945c856b57c174a719aa2a53d43fd287a93, 0x55f29d5f6a6f49ac51347a5a6ed7b29db89a84493cbd5eaedafd5c0238031e48, 0x7eab8cf4d3ed74e3d94c2ff366525fa0210920153ff5e927485fa108f4142512, 0x8494208aba85005d816a1bfb94114045b636b6ba113c7d3fa4984d706f46e339, 0x88eaf330f2824a48f3fa7b62f60474d59a93d3168dd141c0d0a3a39fe45cf3af, 0x9a280ea919af7f0ff89d75d32c9fb2d292ef86cb79a9531f242c98ae79926b70, 0x9caeb42f2d2c3acd71959de8662283e008e079592bd6d3a79e92e344e0c51c90, 0xa22ce8b517ef1919b89f4f0ee7957e22a85ad28e03c13ef21a6c76766d104a48, 0xa379a39c24d2e43f98ff3b6b2fee1a05f336c08c4c4b3b01da25587c7199f680, 0xac4b1b6ac7e8c4f8b5abb19dd6af9d566d06ad60493665caa5c282c2a4a10a63, 0xad4eaa40b1c6549fe04fd41659f053b246ce5436522869e522987327ded5c75c, 0xae5d3346a4a1ff1f22cd4443c6a192313295f196970f9b862f4477f57b3c05ca, 0xb746bfbccfffc6b5d43d76a2b9ce3dfaeaf7efe4f79cdcd72433e04f6350ac1d, 0xbd0607e22a3309ae71efb8da38a0c861797d04ce8075ace1a927d8979af033c5, 0xcb84ade9980389fadca6133d56e5adcba44aef3384a1fe6644c4f4b63db29b88, 0xd1799349765b1687d3b49783186c114e16bfac2ff58f9ce663d88426c87f216f, 0xd48bca326a458acaa0729de5cdf8b1c6930a1b4143142cadec3109b87139a3a3, 0xf579b721ae550d20530bb8faa03d1593dd5e0b19a441f1ce5a366901610c53b5, 0xf992bd388c39b5bf0d1e3dacdbaa65222a9fcd9b3d3dc5c0839a891b3b203c4b, 0xfe57129001733375f42b8b4d37f6311ef739bf4357926ccf954e99075bfaaa32"
 0xf549990803031db59083d12ae3e51ceab96e09987e33b5e42b10804c7b36179c,1746707888,2025-05-08 04:38:08 PM,0x627a12ce1f6d42c9305e03e83fe044e8c3c1a32c,true,bd8849759749b4d8506bc851acef0e19f34eabee,8d96ea3ef24d7123882c51ce4325b89bc0d63f9e,0x980adbf12c92443e1118d57b3922cd3338b545d4af4be8ac5cab00a66ab17cfb,"57232934479656398024826646079073261177566950623391670149778471144032687355733, 57232934479656398024826646079073261177566950623391670149778471144032687355733","57232934479656398024826646079073261177566950623391670149778471144032687355733, 57232934479656398024826646079073261177566950623391670149778471144032687355733","NST, Boop","NST, Boop",0xe0924f238d9a451c0ed12d61128dbe924a7c7d627ab6be997bce0d9e2521bfa6
 "#.trim_start();
 
-        assert_eq!(actual_csv_content, expected_csv_content);
+            assert_eq!(actual_csv_content, expected_csv_content);
+        }).await;
     }
 
     #[tokio::test]
