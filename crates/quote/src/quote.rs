@@ -311,7 +311,9 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use alloy_ethers_typecast::multicall::IMulticall3::Result as MulticallResult;
     use alloy_ethers_typecast::rpc::Response;
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use httpmock::{Method::POST, MockServer};
+    use rain_error_decoding::AbiDecodedErrorType;
     use rain_orderbook_bindings::IOrderBookV4::{quoteCall, Quote, IO};
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{from_str, json, Value};
@@ -632,7 +634,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_quote_spec_do_quote() {
+    async fn test_quote_spec_do_quote_ok() {
         let rpc_server = MockServer::start_async().await;
 
         let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
@@ -689,6 +691,97 @@ mod tests {
                 ratio: U256::from(2),
             }
         );
+    }
+
+    #[tokio::test]
+    async fn test_quote_spec_do_quote_err() {
+        let server = MockServer::start_async().await;
+
+        let (orderbook, _, order_id_u256, retrun_sg_data) = get_test_data(false);
+
+        let response_data = vec![MulticallResult {
+            success: true,
+            returnData: quoteCall::abi_encode_returns(&(true, U256::from(1), U256::from(2))).into(),
+        }]
+        .abi_encode();
+
+        server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, encode_prefixed(response_data).as_str())
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        server.mock(|when, then| {
+            when.method(POST).path("/bad-rpc");
+            then.json_body_obj(
+                &from_str::<Value>(
+                    &Response::new_success(1, "not good data")
+                        .to_json_string()
+                        .unwrap(),
+                )
+                .unwrap(),
+            );
+        });
+
+        server.mock(|when, then| {
+            when.method(POST).path("/sg");
+            then.json_body_obj(&retrun_sg_data);
+        });
+
+        server.mock(|when, then| {
+            when.method(POST).path("/bad-sg");
+            then.json_body_obj(&json!({ "data": null }));
+        });
+
+        let quote_target_specifier = QuoteSpec {
+            order_hash: order_id_u256,
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: vec![],
+            orderbook,
+        };
+
+        let err = quote_target_specifier
+            .do_quote(
+                server.url("/sg").as_str(),
+                server.url("/bad-rpc").as_str(),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
+                AbiDecodedErrorType::Unknown(data)
+            )) if data.is_empty()
+        ));
+
+        let err = quote_target_specifier
+            .do_quote(
+                server.url("/bad-sg").as_str(),
+                server.url("/rpc").as_str(),
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::SubgraphClientError(OrderbookSubgraphClientError::CynicClientError(
+                cynic_err,
+            )) if cynic_err.to_string().contains("error decoding response body")
+        ));
     }
 
     #[tokio::test]
