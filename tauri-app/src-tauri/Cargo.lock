@@ -8323,6 +8323,7 @@ dependencies = [
  "dotrain",
  "dotrain-lsp",
  "futures",
+ "lazy_static",
  "once_cell",
  "proptest",
  "rain-error-decoding",
