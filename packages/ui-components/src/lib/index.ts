@@ -85,6 +85,7 @@ export type {
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { ToastProps } from './types/toast';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -132,11 +133,13 @@ export { default as logoDark } from './assets/logo-dark.svg';
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
+export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
+export { useToasts } from './providers/toasts/useToasts';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
