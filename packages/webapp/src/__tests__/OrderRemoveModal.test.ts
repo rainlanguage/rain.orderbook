@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { render } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
+import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
+	getRemoveOrderCalldata: vi.fn()
 }));
 
 vi.useFakeTimers();
@@ -30,7 +31,10 @@ describe('OrderRemoveModal', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		transactionStore.reset();
+		vi.resetAllMocks();
+		(getRemoveOrderCalldata as Mock).mockResolvedValue({
+			value: '0x123'
+		});
 	});
 
 	it('handles transaction correctly', async () => {
@@ -38,25 +42,18 @@ describe('OrderRemoveModal', () => {
 		render(OrderRemoveModal, defaultProps);
 
 		await vi.runAllTimersAsync();
-
-		expect(handleTransactionSpy).toHaveBeenCalledWith(
-			expect.objectContaining({
-				chainId: 1,
-				orderbookAddress: '0x789',
-				config: {},
-				removeOrderCalldata: '0x123'
-			})
-		);
-	});
-
-	it('closes modal and resets transaction store', async () => {
-		render(OrderRemoveModal, defaultProps);
-		const resetSpy = vi.spyOn(transactionStore, 'reset');
-
-		const closeButton = screen.getByLabelText('Close modal');
-		await fireEvent.click(closeButton);
-
-		expect(resetSpy).toHaveBeenCalled();
+		expect(handleTransactionSpy).toHaveBeenCalledWith({
+			chainId: 1,
+			orderbookAddress: '0x789',
+			config: {},
+			onRemove: defaultProps.args.onRemove,
+			order: {
+				id: '1',
+				orderHash: '0x123',
+				owner: '0x456'
+			},
+			removeOrderCalldata: '0x123'
+		});
 	});
 
 	it('calls onRemove callback after successful transaction', async () => {

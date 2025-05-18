@@ -4,7 +4,7 @@ import { expect } from '../lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
 import type { SgVaultBalanceChangeType } from '@rainlanguage/orderbook';
-import { formatTimestampSecondsAsLocal } from '../lib/utils/time';
+import { formatTimestampSecondsAsLocal } from '../lib/services/time';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getVaultBalanceChanges: vi.fn()
