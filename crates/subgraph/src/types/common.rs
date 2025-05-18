@@ -17,6 +17,7 @@ pub struct SgOrdersListFilterArgs {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub order_hash: Option<SgBytes>,
 }
+impl_wasm_traits!(SgOrdersListFilterArgs);
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgPaginationQueryVariables {
@@ -106,6 +107,7 @@ pub struct SgOrderWithSubgraphName {
     pub order: SgOrder,
     pub subgraph_name: String,
 }
+impl_wasm_traits!(SgOrderWithSubgraphName);
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "Order")]
@@ -130,6 +132,7 @@ pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
 }
+impl_wasm_traits!(SgVaultsListFilterArgs);
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
 #[cynic(graphql_type = "Vault_filter")]
@@ -350,6 +353,7 @@ pub struct SgAddOrderWithOrder {
     pub transaction: SgTransaction,
     pub order: SgOrder,
 }
+impl_wasm_traits!(SgAddOrderWithOrder);
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
 #[cynic(graphql_type = "RemoveOrder")]
@@ -670,10 +674,7 @@ mod impls {
     impl_wasm_traits!(SgTransaction);
     impl_wasm_traits!(SgBigInt);
     impl_wasm_traits!(SgBytes);
-    impl_wasm_traits!(SgOrdersListFilterArgs);
-    impl_wasm_traits!(SgVaultsListFilterArgs);
     impl_wasm_traits!(SgTrade);
     impl_wasm_traits!(SgTradeStructPartialOrder);
     impl_wasm_traits!(SgTradeEvent);
-    impl_wasm_traits!(SgAddOrderWithOrder);
 }
