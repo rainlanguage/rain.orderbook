@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::FlattenError;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OrderTakeFlattened {
     pub id: String,
     pub timestamp: SgBigInt,
@@ -69,3 +69,311 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
 }
 
 impl TryIntoCsv<OrderTakeFlattened> for Vec<OrderTakeFlattened> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rain_orderbook_subgraph_client::types::common::{
+        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
+        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
+    };
+
+    // Helper to build a default, valid SgTrade instance
+    fn mock_sg_trade_default() -> SgTrade {
+        SgTrade {
+            id: SgBytes("trade001".to_string()),
+            timestamp: SgBigInt("1678886400".to_string()),
+            trade_event: SgTradeEvent {
+                transaction: SgTransaction {
+                    id: SgBytes("tx001".to_string()),
+                    from: SgBytes("0xfromAddress".to_string()),
+                    block_number: SgBigInt("1000".to_string()),
+                    timestamp: SgBigInt("1678886300".to_string()),
+                },
+                sender: SgBytes("0xsenderAddress".to_string()),
+            },
+            order: SgTradeStructPartialOrder {
+                id: SgBytes("orderPartial001".to_string()),
+                order_hash: SgBytes("orderHash001".to_string()),
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: SgBytes("inputVBC001".to_string()),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("1000000000000000000".to_string()),
+                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
+                old_vault_balance: SgBigInt("6000000000000000000".to_string()),
+                vault: SgVaultBalanceChangeVault {
+                    id: SgBytes("inputVault001".to_string()),
+                    vault_id: SgBigInt("101".to_string()),
+                    token: SgErc20 {
+                        id: SgBytes("inputTokenId001".to_string()),
+                        address: SgBytes("0xinputTokenAddress".to_string()),
+                        name: Some("Input Token".to_string()),
+                        symbol: Some("INPUT_TKN".to_string()),
+                        decimals: Some(SgBigInt("18".to_string())),
+                    },
+                },
+                timestamp: SgBigInt("1678886400".to_string()),
+                transaction: SgTransaction {
+                    id: SgBytes("txVBCInput001".to_string()),
+                    from: SgBytes("0xfromAddressVBCIn".to_string()),
+                    block_number: SgBigInt("1000".to_string()),
+                    timestamp: SgBigInt("1678886400".to_string()),
+                },
+                orderbook: SgOrderbook {
+                    id: SgBytes("orderbookVBCIn001".to_string()),
+                },
+            },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: SgBytes("outputVBC001".to_string()),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("200000000".to_string()),
+                new_vault_balance: SgBigInt("300000000".to_string()),
+                old_vault_balance: SgBigInt("100000000".to_string()),
+                vault: SgVaultBalanceChangeVault {
+                    id: SgBytes("outputVault001".to_string()),
+                    vault_id: SgBigInt("202".to_string()),
+                    token: SgErc20 {
+                        id: SgBytes("outputTokenId001".to_string()),
+                        address: SgBytes("0xoutputTokenAddress".to_string()),
+                        name: Some("Output Token".to_string()),
+                        symbol: Some("OUTPUT_TKN".to_string()),
+                        decimals: Some(SgBigInt("8".to_string())),
+                    },
+                },
+                timestamp: SgBigInt("1678886400".to_string()),
+                transaction: SgTransaction {
+                    id: SgBytes("txVBCOutput001".to_string()),
+                    from: SgBytes("0xfromAddressVBCOut".to_string()),
+                    block_number: SgBigInt("1000".to_string()),
+                    timestamp: SgBigInt("1678886400".to_string()),
+                },
+                orderbook: SgOrderbook {
+                    id: SgBytes("orderbookVBCOut001".to_string()),
+                },
+            },
+            orderbook: SgOrderbook {
+                id: SgBytes("mainOrderbook001".to_string()),
+            },
+        }
+    }
+
+    #[test]
+    fn test_valid_sgtrade_all_fields() {
+        let trade_data = mock_sg_trade_default();
+        let result = OrderTakeFlattened::try_from(trade_data.clone());
+        assert!(result.is_ok());
+        let flattened = result.unwrap();
+
+        assert_eq!(flattened.id, trade_data.id.0);
+        assert_eq!(flattened.timestamp, trade_data.timestamp);
+        assert_eq!(
+            flattened.timestamp_display,
+            format_bigint_timestamp_display(trade_data.timestamp.clone().0).unwrap()
+        );
+
+        assert_eq!(flattened.transaction, trade_data.trade_event.transaction.id);
+        assert_eq!(flattened.sender, trade_data.trade_event.sender);
+        assert_eq!(flattened.order_id, trade_data.order.order_hash);
+
+        assert_eq!(
+            flattened.input,
+            trade_data.input_vault_balance_change.amount
+        );
+        assert_eq!(flattened.input_display, "1.000000000000000000");
+        assert_eq!(
+            flattened.input_token_id,
+            trade_data.input_vault_balance_change.vault.token.id
+        );
+        assert_eq!(
+            flattened.input_token_symbol,
+            trade_data.input_vault_balance_change.vault.token.symbol
+        );
+
+        assert_eq!(
+            flattened.output,
+            trade_data.output_vault_balance_change.amount
+        );
+        assert_eq!(flattened.output_display, "2.00000000");
+        assert_eq!(
+            flattened.output_token_id,
+            trade_data.output_vault_balance_change.vault.token.address
+        );
+        assert_eq!(
+            flattened.output_token_symbol,
+            trade_data.output_vault_balance_change.vault.token.symbol
+        );
+    }
+
+    #[test]
+    fn test_optional_decimals_symbol_none() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.vault.token.decimals = None;
+        trade_data.input_vault_balance_change.vault.token.symbol = None;
+        trade_data.output_vault_balance_change.vault.token.decimals = None;
+        trade_data.output_vault_balance_change.vault.token.symbol = None;
+
+        let result = OrderTakeFlattened::try_from(trade_data.clone());
+        assert!(result.is_ok());
+        let flattened = result.unwrap();
+
+        assert_eq!(flattened.input_display, "1000000000000000000.0");
+        assert_eq!(flattened.input_token_symbol, None);
+        assert_eq!(flattened.output_display, "200000000.0");
+        assert_eq!(flattened.output_token_symbol, None);
+    }
+
+    #[test]
+    fn test_zero_amounts() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.amount = SgBigInt("0".to_string());
+        trade_data.output_vault_balance_change.amount = SgBigInt("0".to_string());
+
+        let result = OrderTakeFlattened::try_from(trade_data.clone());
+        assert!(result.is_ok());
+        let flattened = result.unwrap();
+
+        assert_eq!(flattened.input_display, "0.000000000000000000");
+        assert_eq!(flattened.output_display, "0.00000000");
+    }
+
+    #[test]
+    fn test_empty_strings_for_ids_symbols() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.id = SgBytes("".to_string());
+        trade_data.trade_event.transaction.id = SgBytes("".to_string());
+        trade_data.trade_event.sender = SgBytes("".to_string());
+        trade_data.order.order_hash = SgBytes("".to_string());
+        trade_data.input_vault_balance_change.vault.token.id = SgBytes("".to_string());
+        trade_data.input_vault_balance_change.vault.token.symbol = Some("".to_string());
+        trade_data.output_vault_balance_change.vault.token.address = SgBytes("".to_string());
+        trade_data.output_vault_balance_change.vault.token.symbol = Some("".to_string());
+
+        let result = OrderTakeFlattened::try_from(trade_data.clone());
+        assert!(result.is_ok());
+        let flattened = result.unwrap();
+
+        assert_eq!(flattened.id, "");
+        assert_eq!(flattened.transaction, SgBytes("".to_string()));
+        assert_eq!(flattened.sender, SgBytes("".to_string()));
+        assert_eq!(flattened.order_id, SgBytes("".to_string()));
+        assert_eq!(flattened.input_token_id, SgBytes("".to_string()));
+        assert_eq!(flattened.input_token_symbol, Some("".to_string()));
+        assert_eq!(flattened.output_token_id, SgBytes("".to_string()));
+        assert_eq!(flattened.output_token_symbol, Some("".to_string()));
+    }
+
+    #[test]
+    fn test_unparseable_input_amount() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseSignedError(_))),
+            "Expected ParseSignedError for unparseable input amount, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unparseable_output_amount() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.output_vault_balance_change.amount = SgBigInt("not_a_number".to_string());
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseSignedError(_))),
+            "Expected ParseSignedError for unparseable output amount, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unparseable_input_decimals() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("not_a_u8".to_string()));
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for unparseable input decimals, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_input_decimals_out_of_range_positive() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("256".to_string())); // u8 max is 255
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for input decimals out of range (256), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_input_decimals_out_of_range_negative() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("-1".to_string()));
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for input decimals out of range (-1), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_unparseable_output_decimals() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.output_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("not_a_u8".to_string()));
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for unparseable output decimals, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_output_decimals_out_of_range_positive() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.output_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("256".to_string()));
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for output decimals out of range (256), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_output_decimals_out_of_range_negative() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.output_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("-1".to_string()));
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::ParseIntError(_))),
+            "Expected ParseIntError for output decimals out of range (-1), got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_invalid_timestamp_for_display() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.timestamp = SgBigInt("not_a_timestamp".to_string());
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(
+            matches!(result, Err(FlattenError::FormatTimestampDisplayError(_))),
+            "Expected FormatTimestampDisplayError for invalid timestamp for display format, got {:?}",
+            result
+        );
+    }
+}
