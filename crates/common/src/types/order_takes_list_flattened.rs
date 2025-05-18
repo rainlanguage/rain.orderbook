@@ -376,4 +376,62 @@ mod tests {
             result
         );
     }
+
+    #[test]
+    fn test_amount_i256_boundaries() {
+        let mut trade_data_max_input = mock_sg_trade_default();
+        trade_data_max_input.input_vault_balance_change.amount = SgBigInt(I256::MAX.to_string());
+        let mut trade_data_min_output = mock_sg_trade_default();
+        trade_data_min_output.output_vault_balance_change.amount = SgBigInt(I256::MIN.to_string());
+
+        let result_max = OrderTakeFlattened::try_from(trade_data_max_input.clone());
+        assert!(result_max.is_ok());
+        let flattened_max = result_max.unwrap();
+        let input_decimals = trade_data_max_input
+            .input_vault_balance_change
+            .vault
+            .token
+            .decimals
+            .clone()
+            .unwrap_or(SgBigInt("0".into()))
+            .0
+            .parse::<u8>()
+            .unwrap();
+        assert_eq!(
+            flattened_max.input_display,
+            format_units(I256::MAX, input_decimals).unwrap()
+        );
+
+        let result_min = OrderTakeFlattened::try_from(trade_data_min_output.clone());
+        assert!(result_min.is_ok());
+        let flattened_min = result_min.unwrap();
+        let output_decimals = trade_data_min_output
+            .output_vault_balance_change
+            .vault
+            .token
+            .decimals
+            .clone()
+            .unwrap_or(SgBigInt("0".into()))
+            .0
+            .parse::<u8>()
+            .unwrap();
+        assert_eq!(
+            flattened_min.output_display,
+            format_units(I256::MIN, output_decimals).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_negative_amounts_formatting() {
+        let mut trade_data = mock_sg_trade_default();
+        trade_data.input_vault_balance_change.amount = SgBigInt("-1234567890123456789".to_string());
+        trade_data.output_vault_balance_change.amount = SgBigInt("-98765432".to_string());
+
+        let result = OrderTakeFlattened::try_from(trade_data);
+        assert!(result.is_ok());
+        let flattened = result.unwrap();
+
+        assert_eq!(flattened.input_display, "-1.234567890123456789");
+        assert_eq!(flattened.output_display, "-0.98765432");
+    }
 }
