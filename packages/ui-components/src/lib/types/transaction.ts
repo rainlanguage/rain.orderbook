@@ -1,9 +1,8 @@
 import type { Hex } from 'viem';
 import type {
 	SgVault,
-	WithdrawCalldataResult,
 	ApprovalCalldata,
-	DepositCalldataResult,
+	VaultCalldataResult,
 	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
@@ -57,8 +56,8 @@ export enum TransactionStoreErrorMessage {
 
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
-	approvalCalldata?: ApprovalCalldata;
-	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
+	approvalCalldata?: VaultCalldataResult;
+	transactionCalldata: VaultCalldataResult;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	vault: SgVault;
