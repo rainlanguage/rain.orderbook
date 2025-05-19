@@ -9,7 +9,6 @@
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
 	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
-	import { toasts } from '$lib/stores/toasts';
 	import { settings as cachedSettings } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
@@ -46,7 +45,7 @@
 	</div>
 {/if}
 
-<ToastProvider {toasts}>
+<ToastProvider>
 	<WalletProvider account={signerAddress}>
 		<QueryClientProvider client={queryClient}>
 			<LoadingWrapper>
