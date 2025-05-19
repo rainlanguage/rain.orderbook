@@ -3,12 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterAll, type Mock } from 'vites
 import { TransactionStatusMessage, TransactionErrorMessage } from '../lib/types/transaction';
 import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import {
-	getTransaction,
-	type DepositCalldataResult,
-	type SgVault,
-	type WithdrawCalldataResult
-} from '@rainlanguage/orderbook';
+import { getTransaction, type SgVault, type VaultCalldataResult } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import {
@@ -299,9 +294,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 			id: '0xorderbook1' as `0x${string}`
 		}
 	} as SgVault;
-	const mockTransactionCalldata = '0xtransactioncalldata' as unknown as
-		| DepositCalldataResult
-		| WithdrawCalldataResult;
+	const mockTransactionCalldata = '0xtransactioncalldata' as VaultCalldataResult;
 
 	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
 
