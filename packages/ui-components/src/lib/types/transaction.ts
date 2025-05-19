@@ -35,6 +35,7 @@ export enum TransactionName {
 
 export enum TransactionStatusMessage {
 	IDLE = 'Idle',
+	STARTING = 'Starting transaction...',
 	CHECKING_ALLOWANCE = 'Checking your allowance...',
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
