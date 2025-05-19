@@ -34,6 +34,7 @@
 	let breakPoint: number = 1024;
 	let width: number;
 	$: sideBarHidden = width < breakPoint;
+
 	onMount(() => {
 		sideBarHidden = width < breakPoint;
 	});
@@ -46,7 +47,7 @@
 </script>
 
 <svelte:window bind:innerWidth={width} />
-<div>
+<div class="h-screen overflow-hidden">
 	{#if sideBarHidden}
 		<Button
 			on:click={() => (sideBarHidden = false)}
@@ -58,8 +59,9 @@
 		</Button>
 	{/if}
 	<Sidebar
+		scrol
 		activeUrl={page.url.pathname}
-		asideClass="w-64 z-10 fixed"
+		asideClass="w-64 z-10 fixed h-screen"
 		bind:hidden={sideBarHidden}
 		data-testid="sidebar"
 	>
@@ -70,7 +72,7 @@
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
-		<SidebarWrapper divClass="overflow-y-auto py-11 px-3 bg-gray-100 dark:bg-gray-800 min-h-screen">
+		<SidebarWrapper divClass="overflow-y-auto h-full pt-11 pb-4 px-3 bg-gray-100 dark:bg-gray-800">
 			<SidebarGroup ulClass="list-none">
 				<SidebarBrand
 					site={{

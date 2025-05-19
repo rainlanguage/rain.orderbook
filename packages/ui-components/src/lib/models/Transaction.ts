@@ -63,15 +63,21 @@ export class TransactionStore implements Transaction {
 		onSuccess: () => void,
 		onError: () => void
 	) {
+		console.log('[TransactionStore] Initializing with args:', {
+			name: args.name,
+			chainId: args.chainId,
+			txHash: args.txHash
+		});
+
 		this.config = args.config;
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
 		this.name = args.name;
 		this.state = writable<TransactionStoreState>({
+			name: this.name,
 			status: TransactionStatusMessage.IDLE,
-			explorerLink: '',
-			name: this.name
+			explorerLink: ''
 		});
 		this.onSuccess = onSuccess;
 		this.onError = onError;
@@ -83,10 +89,15 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private updateState(partialState: Partial<TransactionStoreState>): void {
-		this.state.update((currentState) => ({
-			...currentState,
-			...partialState
-		}));
+		console.log('[TransactionStore] Updating state:', partialState);
+		this.state.update((currentState) => {
+			const newState = {
+				...currentState,
+				...partialState
+			};
+			console.log('[TransactionStore] New state:', newState);
+			return newState;
+		});
 	}
 
 	/**
@@ -94,7 +105,10 @@ export class TransactionStore implements Transaction {
 	 * @returns {Promise<void>}
 	 */
 	public async execute(): Promise<void> {
+		console.log('[TransactionStore] Executing transaction:', this.txHash);
 		const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
+		console.log('[TransactionStore] Generated explorer link:', explorerLink);
+
 		this.updateState({
 			explorerLink,
 			status: TransactionStatusMessage.PENDING_RECEIPT
@@ -109,10 +123,13 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
+		console.log('[TransactionStore] Waiting for transaction receipt:', hash);
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
+			console.log('[TransactionStore] Transaction receipt received');
 			await this.indexTransaction(this.txHash);
-		} catch {
+		} catch (error) {
+			console.error('[TransactionStore] Error waiting for receipt:', error);
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				errorDetails: TransactionStoreErrorMessage.RECEIPT_FAILED
@@ -128,16 +145,43 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private async indexTransaction(txHash: Hex): Promise<void> {
+		console.log('[TransactionStore] Starting transaction indexing:', {
+			txHash,
+			subgraphUrl: this.subgraphUrl,
+			name: this.name
+		});
+
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
-		const result = await awaitSubgraphIndexing(
-			getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
-		);
+		const config = getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully');
+		console.log('[TransactionStore] Using config for indexing:', {
+			subgraphUrl: config.subgraphUrl,
+			txHash: config.txHash,
+			successMessage: config.successMessage,
+			maxAttempts: config.maxAttempts,
+			interval: config.interval
+		});
+
+		const result = await awaitSubgraphIndexing(config);
+		console.log('[TransactionStore] Subgraph indexing result:', {
+			hasValue: !!result.value,
+			hasError: !!result.error,
+			error: result.error,
+			value: result.value
+				? {
+						txHash: result.value.txHash,
+						successMessage: result.value.successMessage,
+						orderHash: result.value.orderHash,
+						network: result.value.network
+					}
+				: undefined
+		});
 
 		await match(result)
 			.with({ error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR }, () => {
+				console.error('[TransactionStore] Subgraph timeout error - max attempts reached');
 				this.updateState({
 					status: TransactionStatusMessage.ERROR,
 					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
@@ -145,12 +189,17 @@ export class TransactionStore implements Transaction {
 				return this.onError();
 			})
 			.with({ value: P.not(P.nullish) }, () => {
+				console.log(
+					'[TransactionStore] Transaction completed successfully with value:',
+					result.value
+				);
 				this.updateState({
 					status: TransactionStatusMessage.SUCCESS
 				});
 				return this.onSuccess();
 			})
 			.otherwise(() => {
+				console.error('[TransactionStore] Subgraph indexing failed - no value or error returned');
 				this.updateState({
 					status: TransactionStatusMessage.ERROR,
 					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED

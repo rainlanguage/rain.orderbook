@@ -42,11 +42,11 @@ export async function handleWalletConfirmation(
 			to: args.orderbookAddress,
 			data: calldata as Hex
 		});
-	} catch (error) {
+	} catch {
 		return {
 			state: {
 				status: 'rejected',
-				reason: error instanceof Error ? error.message : 'User rejected transaction'
+				reason: 'User rejected transaction'
 			}
 		};
 	}

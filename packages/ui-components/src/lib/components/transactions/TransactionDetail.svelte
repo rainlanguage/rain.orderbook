@@ -3,6 +3,7 @@
 	import { TransactionStatusMessage } from '$lib/types/transaction';
 	import { type Readable } from 'svelte/store';
 	import { match } from 'ts-pattern';
+
 	export let state: Readable<TransactionStoreState>;
 
 	function getStatusEmoji(status: TransactionStatusMessage): string {
@@ -15,22 +16,22 @@
 	}
 </script>
 
-<div
-	class="flex w-full flex-col gap-1 rounded-md border border-gray-200 p-1 shadow-sm dark:border-gray-800"
->
+<div class="flex w-full flex-col gap-1 rounded-md bg-gray-300 p-2 dark:bg-gray-700">
 	<p class="break-words font-semibold">{$state.name}</p>
-	<p class="break-words">{getStatusEmoji($state.status)} {$state.status}</p>
-	{#if $state.errorDetails}
-		<p class="break-words">{$state.errorDetails}</p>
-	{/if}
-	{#if $state.explorerLink}
-		<p class="break-words">
-			<a
-				href={$state.explorerLink}
-				target="_blank"
-				rel="noopener noreferrer"
-				class="text-blue-500 hover:underline">View transaction on explorer</a
-			>
-		</p>
-	{/if}
+	<div class="flex flex-col gap-1 text-sm">
+		<p class="break-words">{getStatusEmoji($state.status)} {$state.status}</p>
+		{#if $state.errorDetails}
+			<p class="break-words">{$state.errorDetails}</p>
+		{/if}
+		{#if $state.explorerLink}
+			<p class="break-words">
+				<a
+					href={$state.explorerLink}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-blue-500 hover:underline">View on explorer</a
+				>
+			</p>
+		{/if}
+	</div>
 </div>

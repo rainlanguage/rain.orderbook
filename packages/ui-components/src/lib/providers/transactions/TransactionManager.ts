@@ -134,11 +134,11 @@ export class TransactionManager {
 
 		const transactionInstance = new TransactionStore(createTransactionArgs, onSuccess, onError);
 
-		await transactionInstance.execute();
 		this.transactions.update((currentTransactions) => [
 			...currentTransactions,
 			transactionInstance
 		]);
+		await transactionInstance.execute();
 		return transactionInstance;
 	}
 

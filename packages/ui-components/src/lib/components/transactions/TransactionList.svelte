@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TransactionDetail from './TransactionDetail.svelte';
-	import { useTransactions } from '../../providers/transactions/useTransactions';
+	import { useTransactions } from '$lib/providers/transactions/useTransactions';
 	const { transactions } = useTransactions();
 </script>
 

@@ -143,12 +143,6 @@ export const awaitSubgraphIndexing = async <T>(options: {
 					});
 
 					return;
-				} else if (data.error) {
-					clearInterval(checkInterval);
-					resolve({
-						error: TransactionStoreErrorMessage.SUBGRAPH_FAILED
-					});
-					return;
 				}
 			} catch {
 				// Continue with the next attempt
