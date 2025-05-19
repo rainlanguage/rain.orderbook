@@ -4,7 +4,7 @@ import { TransactionStatusMessage } from '../lib/types/transaction';
 import { TransactionErrorMessage } from '../lib/stores/transactionStore';
 import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, type SgVault, type VaultCalldataResult, type DepositCalldataResult } from '@rainlanguage/orderbook';
+import { getTransaction, type SgVault, type DepositCalldataResult } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import {

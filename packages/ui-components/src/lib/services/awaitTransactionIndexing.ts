@@ -3,7 +3,6 @@
  * @description Utilities for waiting for transactions to be indexed by a subgraph
  */
 
-import { TransactionErrorMessage } from '$lib/stores/transactionStore';
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type {
 	SgAddOrderWithOrder,
