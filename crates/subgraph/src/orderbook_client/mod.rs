@@ -17,7 +17,6 @@ use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
-use std::num::ParseIntError;
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
 
@@ -45,8 +44,6 @@ pub enum OrderbookSubgraphClientError {
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     PerformanceError(#[from] crate::performance::PerformanceError),
-    #[error(transparent)]
-    ParseIntError(#[from] ParseIntError),
     #[cfg(target_family = "wasm")]
     #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),

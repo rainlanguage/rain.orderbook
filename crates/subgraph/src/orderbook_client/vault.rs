@@ -604,9 +604,14 @@ mod tests {
         let expected_changes = vec![default_sg_vault_balance_change_unwrapped()];
 
         sg_server.mock(|when, then| {
-            when.method(POST).path("/");
+            when.method(POST).path("/").body_contains("\"skip\":0");
             then.status(200)
                 .json_body(json!({"data": {"vaultBalanceChanges": expected_changes}}));
+        });
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("\"skip\":200");
+            then.status(200)
+                .json_body(json!({"data": {"vaultBalanceChanges": []}}));
         });
 
         let result = client
@@ -614,35 +619,10 @@ mod tests {
             .await;
         assert!(result.is_ok(), "Result was: {:?}", result.err());
         let changes = result.unwrap();
-        assert_eq!(changes.len(), 10);
+        assert_eq!(changes.len(), expected_changes.len());
         for (actual, expected) in changes.iter().zip(expected_changes.iter()) {
             assert_sg_vault_balance_change_unwrapped_eq(actual, expected);
         }
-    }
-
-    #[tokio::test]
-    async fn test_vault_balance_changes_list_pagination() {
-        let sg_server = MockServer::start_async().await;
-        let client = setup_client(&sg_server);
-        let vault_id_str = "0xVaultForBalanceChanges";
-        let vault_id = Id::new(vault_id_str);
-        let pagination_args = SgPaginationArgs {
-            page: 2,
-            page_size: 5,
-        };
-        let expected_changes = vec![default_sg_vault_balance_change_unwrapped()];
-
-        sg_server.mock(|when, then| {
-            when.method(POST).path("/");
-            then.status(200)
-                .json_body(json!({"data": {"vaultBalanceChanges": expected_changes}}));
-        });
-
-        let result = client
-            .vault_balance_changes_list(vault_id.clone(), pagination_args)
-            .await;
-        assert!(result.is_ok(), "Result was: {:?}", result.err());
-        assert_eq!(result.unwrap().len(), 5);
     }
 
     #[tokio::test]
