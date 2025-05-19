@@ -7,25 +7,37 @@ pub enum SupportedOutputEncoding {
     Hex,
 }
 
+// Helper function to handle encoding and writing data
+fn write_encoded_data(
+    writer: &mut impl Write,
+    encoding: SupportedOutputEncoding,
+    data: &[u8],
+) -> anyhow::Result<()> {
+    let hex_encoded_owned: String;
+    let bytes_to_write: &[u8] = match encoding {
+        SupportedOutputEncoding::Binary => data,
+        SupportedOutputEncoding::Hex => {
+            hex_encoded_owned = alloy::primitives::hex::encode_prefixed(data);
+            hex_encoded_owned.as_bytes()
+        }
+    };
+    writer.write_all(bytes_to_write)?;
+    writer.flush()?;
+    Ok(())
+}
+
 pub fn output(
     output_path: &Option<PathBuf>,
     output_encoding: SupportedOutputEncoding,
     bytes: &[u8],
 ) -> anyhow::Result<()> {
-    let hex_encoded: String;
-    let encoded_bytes: &[u8] = match output_encoding {
-        SupportedOutputEncoding::Binary => bytes,
-        SupportedOutputEncoding::Hex => {
-            hex_encoded = alloy::primitives::hex::encode_prefixed(bytes);
-            hex_encoded.as_bytes()
-        }
-    };
-    if let Some(output_path) = output_path {
-        std::fs::write(output_path, encoded_bytes)?
+    if let Some(path) = output_path {
+        let mut file = std::fs::File::create(path)?;
+        write_encoded_data(&mut file, output_encoding, bytes)
     } else {
-        std::io::stdout().write_all(encoded_bytes)?
+        let mut stdout_handle = std::io::stdout();
+        write_encoded_data(&mut stdout_handle, output_encoding, bytes)
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -67,20 +79,32 @@ mod tests {
     }
 
     #[test]
-    fn test_output_to_stdout_binary() {
+    fn test_write_to_buffer_binary() {
         let data = b"hello world";
-        // For stdout, we can't easily capture and assert the output in a simple unit test.
-        // We will just check if the function runs without error.
-        let res = output(&None, SupportedOutputEncoding::Binary, data);
-        assert!(res.is_ok());
+        let mut buffer: Vec<u8> = Vec::new();
+
+        let res = write_encoded_data(&mut buffer, SupportedOutputEncoding::Binary, data);
+        assert!(res.is_ok(), "write_encoded_data failed: {:?}", res.err());
+
+        assert_eq!(buffer, data, "Buffer content does not match expected data");
     }
 
     #[test]
-    fn test_output_to_stdout_hex() {
+    fn test_write_to_buffer_hex() {
         let data = b"hello world";
-        // Similar to the binary stdout test, we check for successful execution.
-        let res = output(&None, SupportedOutputEncoding::Hex, data);
-        assert!(res.is_ok());
+        let expected_hex = alloy::primitives::hex::encode_prefixed(data);
+        let mut buffer: Vec<u8> = Vec::new();
+
+        let res = write_encoded_data(&mut buffer, SupportedOutputEncoding::Hex, data);
+        assert!(res.is_ok(), "write_encoded_data failed: {:?}", res.err());
+
+        let captured_output_str =
+            String::from_utf8(buffer).expect("Captured output is not valid UTF-8");
+
+        assert_eq!(
+            captured_output_str, expected_hex,
+            "Captured buffer hex output does not match expected hex string"
+        );
     }
 
     #[test]
@@ -112,20 +136,40 @@ mod tests {
 
         let file_content_str = fs::read_to_string(temp_file.path()).unwrap();
         assert_eq!(file_content_str, expected_hex);
-        assert_eq!(file_content_str, "0x");
     }
 
     #[test]
-    fn test_output_to_stdout_binary_empty() {
+    fn test_write_to_buffer_binary_empty() {
         let data = b"";
-        let res = output(&None, SupportedOutputEncoding::Binary, data);
-        assert!(res.is_ok());
+        let mut buffer: Vec<u8> = Vec::new();
+        let res = write_encoded_data(&mut buffer, SupportedOutputEncoding::Binary, data);
+        assert!(
+            res.is_ok(),
+            "write_encoded_data failed for empty binary: {:?}",
+            res.err()
+        );
+        assert!(
+            buffer.is_empty(),
+            "Buffer should be empty for binary empty case"
+        );
     }
 
     #[test]
-    fn test_output_to_stdout_hex_empty() {
+    fn test_write_to_buffer_hex_empty() {
         let data = b"";
-        let res = output(&None, SupportedOutputEncoding::Hex, data);
-        assert!(res.is_ok());
+        let expected_hex = alloy::primitives::hex::encode_prefixed(data); // Should be "0x"
+        let mut buffer: Vec<u8> = Vec::new();
+        let res = write_encoded_data(&mut buffer, SupportedOutputEncoding::Hex, data);
+        assert!(
+            res.is_ok(),
+            "write_encoded_data failed for empty hex: {:?}",
+            res.err()
+        );
+        let captured_output_str =
+            String::from_utf8(buffer).expect("Captured output is not valid UTF-8");
+        assert_eq!(
+            captured_output_str, expected_hex,
+            "Buffer content for empty hex data should be '0x'"
+        );
     }
 }
