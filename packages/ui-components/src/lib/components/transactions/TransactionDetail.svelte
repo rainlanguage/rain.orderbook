@@ -7,7 +7,6 @@
 
 	function getStatusEmoji(status: TransactionStatusMessage): string {
 		return match(status)
-			.with(TransactionStatusMessage.IDLE, () => '⏳')
 			.with(TransactionStatusMessage.PENDING_RECEIPT, () => '🔄')
 			.with(TransactionStatusMessage.PENDING_SUBGRAPH, () => '📊')
 			.with(TransactionStatusMessage.SUCCESS, () => '✅')

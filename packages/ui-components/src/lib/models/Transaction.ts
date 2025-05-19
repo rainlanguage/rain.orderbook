@@ -50,7 +50,6 @@ export class TransactionStore implements Transaction {
 	private onSuccess: () => void;
 	private onError: () => void;
 
-
 	public readonly state: Writable<TransactionState>;
 
 	/**
@@ -108,7 +107,7 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			this.updateState({
-				status: TransactionStatusMessage.PENDING_RECEIPT,
+				status: TransactionStatusMessage.PENDING_RECEIPT
 			});
 			await waitForTransactionReceipt(this.config, { hash });
 			this.indexTransaction(this.txHash);
@@ -129,7 +128,7 @@ export class TransactionStore implements Transaction {
 	 */
 	private async indexTransaction(txHash: Hex): Promise<void> {
 		this.updateState({
-			status: TransactionStatusMessage.PENDING_SUBGRAPH,
+			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
 		try {
@@ -147,7 +146,7 @@ export class TransactionStore implements Transaction {
 				})
 				.with({ value: P.not(P.nullish) }, () => {
 					this.updateState({
-						status: TransactionStatusMessage.SUCCESS,
+						status: TransactionStatusMessage.SUCCESS
 					});
 					return this.onSuccess();
 				})
@@ -161,7 +160,7 @@ export class TransactionStore implements Transaction {
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,
+				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED
 			});
 			return this.onError();
 		}

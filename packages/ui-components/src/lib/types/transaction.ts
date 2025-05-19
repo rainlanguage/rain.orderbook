@@ -43,7 +43,6 @@ export enum TransactionStatusMessage {
 	PENDING_DEPLOYMENT = 'Deploying your order...',
 	PENDING_WITHDRAWAL = 'Withdrawing tokens...',
 	PENDING_DEPOSIT = 'Depositing tokens...',
-	PENDING_REMOVE_ORDER = 'Removing order...',
 	PENDING_SUBGRAPH = 'Awaiting subgraph...',
 	SUCCESS = 'Transaction confirmed',
 	ERROR = 'Something went wrong'
