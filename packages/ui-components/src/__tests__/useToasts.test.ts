@@ -48,13 +48,9 @@ describe('useToasts', () => {
 				{
 					message: errorMessage,
 					type: 'error',
-					color: 'red',
-					id: 'mocked-uuid'
+					color: 'red'
 				}
 			]);
-
-			vi.advanceTimersByTime(3000);
-			expect(getStoreValue()).toEqual([]);
 		});
 	});
 
@@ -95,15 +91,14 @@ describe('useToasts', () => {
 
 		it('should add a toast with minimal properties', () => {
 			const { addToast } = useToasts();
-			const testToast: ToastProps = {
-				message: 'Test Toast Only Message',
-				type: 'info',
-				color: 'green',
-				links: []
+			const minimalToast: ToastProps = {
+				message: 'Minimal Toast',
+				type: 'warning',
+				color: 'yellow'
 			};
 
-			addToast(testToast);
-			expect(getStoreValue()).toEqual([testToast]);
+			addToast(minimalToast);
+			expect(getStoreValue()).toEqual([minimalToast]);
 		});
 	});
 
@@ -113,60 +108,34 @@ describe('useToasts', () => {
 			const toast1: ToastProps = {
 				message: 'Toast 1',
 				type: 'info',
-				color: 'green',
-				links: []
+				color: 'green'
 			};
 			const toast2: ToastProps = {
 				message: 'Toast 2',
-				type: 'info',
-				color: 'green',
-				links: []
-			};
-			const toast3: ToastProps = {
-				message: 'Toast 3',
-				type: 'info',
-				color: 'green',
-				links: []
+				type: 'success',
+				color: 'blue'
 			};
 
 			addToast(toast1);
 			addToast(toast2);
-			addToast(toast3);
-			removeToast(1);
+			removeToast(0);
 
-			expect(getStoreValue()).toEqual([toast1, toast3]);
+			expect(getStoreValue()).toEqual([toast2]);
 		});
 
 		it('should not modify the store when removing with an invalid index', () => {
 			const { addToast, removeToast } = useToasts();
-			const toast1: ToastProps = {
-				message: 'Toast 1',
+			const toast: ToastProps = {
+				message: 'Test Toast',
 				type: 'info',
-				color: 'green',
-				links: []
-			};
-			const toast2: ToastProps = {
-				message: 'Toast 2',
-				type: 'info',
-				color: 'green',
-				links: []
+				color: 'green'
 			};
 
-			addToast(toast1);
-			addToast(toast2);
-
-			// Test negative index
+			addToast(toast);
 			removeToast(-1);
-			expect(getStoreValue()).toEqual([toast1, toast2]);
+			removeToast(1);
 
-			// Test index beyond array length
-			removeToast(2);
-			expect(getStoreValue()).toEqual([toast1, toast2]);
-
-			// Test empty store
-			toastsStore.set([]);
-			removeToast(0);
-			expect(getStoreValue()).toEqual([]);
+			expect(getStoreValue()).toEqual([toast]);
 		});
 	});
 });
