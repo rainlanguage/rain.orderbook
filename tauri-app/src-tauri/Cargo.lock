@@ -10488,6 +10488,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_yaml",
+ "strict-yaml-rust",
  "tauri",
  "tauri-build",
  "tauri-cli",
