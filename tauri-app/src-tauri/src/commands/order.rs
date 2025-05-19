@@ -17,8 +17,7 @@ pub async fn orders_list_write_csv(
     subgraph_args: SubgraphArgs,
 ) -> CommandResult<()> {
     let orders = subgraph_args
-        .to_subgraph_client()
-        .await?
+        .to_subgraph_client()?
         .orders_list_all()
         .await?;
     let orders_flattened: Vec<OrderFlattened> = orders
@@ -62,7 +61,6 @@ pub async fn order_remove(
 ) -> CommandResult<()> {
     let order = subgraph_args
         .to_subgraph_client()
-        .await
         .map_err(|e| {
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
@@ -115,7 +113,6 @@ pub async fn order_remove_calldata(
 ) -> CommandResult<Bytes> {
     let order = subgraph_args
         .to_subgraph_client()
-        .await
         .map_err(|e| {
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e

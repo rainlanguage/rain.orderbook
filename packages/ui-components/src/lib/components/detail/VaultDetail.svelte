@@ -14,7 +14,7 @@
 	import type { Readable } from 'svelte/store';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
-	import type { AppStoresInterface } from '../../types/appStores';
+	import type { AppStoresInterface } from '$lib/types/appStores';
 	import Refresh from '../icon/Refresh.svelte';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -26,7 +26,7 @@
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
 	export let activeNetworkRef: AppStoresInterface['activeNetworkRef'];
 	export let activeOrderbookRef: AppStoresInterface['activeOrderbookRef'];
-	export let settings;
+	export let settings: AppStoresInterface['settings'];
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault
@@ -46,8 +46,10 @@
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
-		queryFn: () => {
-			return getVault(subgraphUrl || '', id);
+		queryFn: async () => {
+			const result = await getVault(subgraphUrl || '', id);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});

@@ -10,12 +10,17 @@
 	export let codeMirrorDisabled = true;
 	export let codeMirrorStyles = {};
 
-	$: extendedOrder = order ? extendOrder(order) : undefined;
+	let result;
+	let extendedOrder;
+
+	$: result = order ? extendOrder(order) : undefined;
+	$: extendedOrder = result && !result.error ? result.value : undefined;
+	$: extendOrderError = result && result.error ? result.error : undefined;
 </script>
 
 {#if rainlangText || extendedOrder?.rainlang}
 	<CodeMirror
-		value={rainlangText || extendedOrder.rainlang}
+		value={rainlangText || extendedOrder?.rainlang}
 		extensions={[RainlangLR]}
 		theme={codeMirrorTheme}
 		readonly={codeMirrorDisabled}
@@ -28,6 +33,10 @@
 			...codeMirrorStyles
 		}}
 	/>
+{:else if extendOrderError}
+	<div class="w-full tracking-tight text-red-600 dark:text-red-400" data-testid="rainlang-error">
+		{extendOrderError.readableMsg}
+	</div>
 {:else if !extendedOrder?.rainlang && !rainlangText}
 	<div
 		class="w-full tracking-tight text-gray-900 dark:text-white"

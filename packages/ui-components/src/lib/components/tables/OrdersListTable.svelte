@@ -8,7 +8,7 @@
 		type SgOrderWithSubgraphName
 	} from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
@@ -32,7 +32,7 @@
 	export let settings: AppStoresInterface['settings'];
 	export let accounts: AppStoresInterface['accounts'] | undefined;
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
-	export let activeOrderStatus: AppStoresInterface['activeOrderStatus'];
+	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
@@ -61,19 +61,21 @@
 			$settings,
 			multiSubgraphArgs,
 			owners,
-			$activeOrderStatus,
+			$showInactiveOrders,
 			$orderHash
 		],
-		queryFn: ({ pageParam }) => {
-			return getOrders(
+		queryFn: async ({ pageParam }) => {
+			const result = await getOrders(
 				multiSubgraphArgs,
 				{
 					owners,
-					active: $activeOrderStatus,
+					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
@@ -92,7 +94,7 @@
 	{accounts}
 	{activeAccountsItems}
 	{showMyItemsOnly}
-	{activeOrderStatus}
+	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
 />

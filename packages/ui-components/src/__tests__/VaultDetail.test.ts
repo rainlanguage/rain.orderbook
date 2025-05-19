@@ -44,7 +44,7 @@ const defaultProps: VaultDetailProps = {
 	lightweightChartsTheme: readable(darkChartTheme),
 	onDeposit: vi.fn(),
 	onWithdraw: vi.fn()
-};
+} as unknown as VaultDetailProps;
 
 const mockMatchesAccount = vi.fn();
 
@@ -82,7 +82,7 @@ describe('VaultDetail', () => {
 			}
 		} as unknown as SgVault;
 
-		(getVault as Mock).mockResolvedValue(mockData);
+		(getVault as Mock).mockResolvedValue({ value: mockData });
 	});
 
 	it('calls the vault detail query fn with the correct vault id', async () => {
@@ -98,19 +98,10 @@ describe('VaultDetail', () => {
 
 	it('shows the correct empty message when the query returns no data', async () => {
 		const { getVault } = await import('@rainlanguage/orderbook');
-		vi.mocked(getVault).mockResolvedValue(null);
+		(getVault as Mock).mockResolvedValue({ value: null });
 
 		render(VaultDetail, {
-			props: {
-				id: '100',
-				network: 'mainnet',
-				activeNetworkRef: writable('mainnet'),
-				activeOrderbookRef: writable('0x00'),
-				settings: mockSettings,
-				lightweightChartsTheme: readable(darkChartTheme),
-				onDeposit: vi.fn(),
-				onWithdraw: vi.fn()
-			},
+			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
