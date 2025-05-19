@@ -70,9 +70,11 @@ impl Execute for ListOrderFrontmatterKeys {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use clap::CommandFactory;
     use std::str::FromStr;
+    use tempfile::NamedTempFile;
+
+    use super::*;
 
     #[test]
     fn verify_cli() {
@@ -200,7 +202,8 @@ _ _: 0 0;
     async fn test_execute_deployment_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_execute_deployment_key.rain";
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path();
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {
@@ -211,16 +214,14 @@ _ _: 0 0;
         };
         // should succeed without err
         keys.execute().await.unwrap();
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
     async fn test_execute_scenario_key() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_execute_scenario_key.rain";
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let dotrain_path = dotrain_file.path();
         std::fs::write(dotrain_path, dotrain).unwrap();
 
         let keys = ListOrderFrontmatterKeys {
@@ -231,8 +232,61 @@ _ _: 0 0;
         };
         // should succeed without err
         keys.execute().await.unwrap();
+    }
 
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
+    #[tokio::test]
+    async fn test_execute_nonexistent_file() {
+        let keys = ListOrderFrontmatterKeys {
+            dotrain_file: "nonexistent.rain".into(),
+            settings_file: None,
+            key_type: KeyType::Deployment,
+            encoding: SupportedOutputEncoding::Binary,
+        };
+
+        let err = keys.execute().await.unwrap_err();
+        assert!(err.to_string().contains("No such file or directory"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_dotrain_content() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path();
+        std::fs::write(path, "invalid: yaml: content: [").unwrap();
+
+        let keys = ListOrderFrontmatterKeys {
+            dotrain_file: path.into(),
+            settings_file: None,
+            key_type: KeyType::Deployment,
+            encoding: SupportedOutputEncoding::Binary,
+        };
+
+        let err = keys.execute().await.unwrap_err();
+        // NOTE: this should probably result in a different error message
+        assert!(err.to_string().contains("YAML file is empty"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_settings_file() {
+        let dotrain_file = NamedTempFile::new().unwrap();
+        let settings_file = NamedTempFile::new().unwrap();
+
+        let dotrain = get_test_dotrain("some-orderbook");
+        let dotrain_path = dotrain_file.path();
+        let settings_path = settings_file.path();
+
+        std::fs::write(dotrain_path, dotrain).unwrap();
+        std::fs::write(settings_path, "invalid: yaml: content: [").unwrap();
+
+        let keys = ListOrderFrontmatterKeys {
+            dotrain_file: dotrain_path.into(),
+            settings_file: Some(settings_path.into()),
+            key_type: KeyType::Deployment,
+            encoding: SupportedOutputEncoding::Binary,
+        };
+
+        let err = keys.execute().await.unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("mapping values are not allowed in this context"));
     }
 }
