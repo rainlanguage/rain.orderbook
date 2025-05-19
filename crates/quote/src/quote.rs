@@ -473,7 +473,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_order_hash() {
+    fn test_quote_target_get_order_hash() {
         let (orderbook, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
             quote_config: Quote {
@@ -501,13 +501,55 @@ mod tests {
     }
 
     #[test]
-    fn test_quote_spec_get_id() {}
+    fn test_quote_spec_get_id() {
+        let quote_spec = QuoteSpec {
+            order_hash: U256::from(0_u16),
+            input_io_index: 0,
+            output_io_index: 0,
+            signed_context: Vec::new(),
+            orderbook: Address::ZERO,
+        };
+        let actual = quote_spec.get_id().encode_hex::<String>();
+        let expected =
+            "a86d54e9aab41ae5e520ff0062ff1b4cbd0b2192bb01080a058bb170d84e6457".to_string();
+        assert_eq!(actual, expected);
+    }
 
-    // #[test]
-    // fn test_validate_ok() {}
+    #[test]
+    fn test_validate_ok() {
+        let (orderbook, order, _, _) = get_test_data(false);
+        let quote_target = QuoteTarget {
+            quote_config: Quote {
+                order,
+                ..Default::default()
+            },
+            orderbook,
+        };
+        assert!(quote_target.validate().is_ok());
+    }
 
-    // #[test]
-    // fn test_validate_err() {}
+    #[test]
+    fn test_validate_err() {
+        let quote_target = QuoteTarget {
+            quote_config: Quote {
+                order: OrderV3::default(),
+                outputIOIndex: U256::from(1_u16),
+                ..Default::default()
+            },
+            orderbook: Address::ZERO,
+        };
+        assert!(quote_target.validate().is_err());
+
+        let quote_target = QuoteTarget {
+            quote_config: Quote {
+                order: OrderV3::default(),
+                inputIOIndex: U256::from(1_u16),
+                ..Default::default()
+            },
+            orderbook: Address::ZERO,
+        };
+        assert!(quote_target.validate().is_err());
+    }
 
     #[tokio::test]
     async fn test_get_quote_spec_from_subgraph_ok() {
