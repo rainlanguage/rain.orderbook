@@ -6,7 +6,6 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
-author = "Rain Open Source Software Ltd"
 version = "0.0.0-alpha.0"
 homepage = "https://github.com/rainprotocol/rain.orderbook"
 
@@ -53,7 +52,8 @@ test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
-wasm-bindgen-utils = "0.0.7"
+wasm-bindgen-utils = "0.0.8"
+tempfile = "3.20.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"

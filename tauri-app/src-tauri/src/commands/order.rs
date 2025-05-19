@@ -17,8 +17,7 @@ pub async fn orders_list_write_csv(
     subgraph_args: SubgraphArgs,
 ) -> CommandResult<()> {
     let orders = subgraph_args
-        .to_subgraph_client()
-        .await?
+        .to_subgraph_client()?
         .orders_list_all()
         .await?;
     let orders_flattened: Vec<OrderFlattened> = orders
@@ -62,7 +61,6 @@ pub async fn order_remove(
 ) -> CommandResult<()> {
     let order = subgraph_args
         .to_subgraph_client()
-        .await
         .map_err(|e| {
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
@@ -115,7 +113,6 @@ pub async fn order_remove_calldata(
 ) -> CommandResult<Bytes> {
     let order = subgraph_args
         .to_subgraph_client()
-        .await
         .map_err(|e| {
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
@@ -144,12 +141,16 @@ pub async fn compose_from_scenario(
     settings: Option<Vec<String>>,
     scenario: ScenarioCfg,
 ) -> CommandResult<String> {
-    let order = DotrainOrder::new(dotrain.clone(), settings).await?;
-    Ok(order.compose_scenario_to_rainlang(scenario.key).await?)
+    let mut dotrain_order = DotrainOrder::new();
+    dotrain_order.initialize(dotrain, settings).await?;
+    Ok(dotrain_order
+        .compose_scenario_to_rainlang(scenario.key)
+        .await?)
 }
 
 #[tauri::command]
 pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
-    let order = DotrainOrder::new(dotrain.clone(), Some(settings)).await?;
-    Ok(order.validate_raindex_version().await?)
+    let mut dotrain_order = DotrainOrder::new();
+    dotrain_order.initialize(dotrain, Some(settings)).await?;
+    Ok(dotrain_order.validate_raindex_version().await?)
 }

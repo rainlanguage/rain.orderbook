@@ -2,6 +2,7 @@ pub use rain_interpreter_eval::trace::*;
 use rain_orderbook_app_settings::chart::ChartCfg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
 
@@ -39,3 +40,40 @@ pub struct FuzzResultFlat {
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(FuzzResultFlat);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentsDebugDataMap {
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(type = "Record<string, DeploymentDebugData>")
+    )]
+    pub data_map: HashMap<String, DeploymentDebugData>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeploymentsDebugDataMap);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentDebugData {
+    pub pairs_data: Vec<DeploymentDebugPairData>,
+    pub block_number: u64,
+    pub chain_id: u64,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeploymentDebugData);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct DeploymentDebugPairData {
+    pub order: String,
+    pub scenario: String,
+    pub pair: String,
+    pub result: Option<FuzzResultFlat>,
+    pub error: Option<String>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(DeploymentDebugPairData);

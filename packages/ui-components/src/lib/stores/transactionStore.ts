@@ -4,10 +4,9 @@ import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import type {
 	ApprovalCalldata,
-	DepositCalldataResult,
 	RemoveOrderCalldata,
 	SgVault,
-	WithdrawCalldataResult
+	VaultCalldataResult
 } from '@rainlanguage/orderbook';
 
 import { getExplorerLink } from '../services/getExplorerLink';
@@ -59,8 +58,8 @@ export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
 
 export type DepositOrWithdrawTransactionArgs = {
 	config: Config;
-	approvalCalldata?: ApprovalCalldata;
-	transactionCalldata: DepositCalldataResult | WithdrawCalldataResult;
+	approvalCalldata?: VaultCalldataResult;
+	transactionCalldata: VaultCalldataResult;
 	action: 'deposit' | 'withdraw';
 	chainId: number;
 	vault: SgVault;
@@ -247,6 +246,7 @@ const transactionStore = () => {
 		subgraphUrl,
 		network
 	}: DeploymentTransactionArgs) => {
+		reset();
 		try {
 			await switchChain(config, { chainId });
 		} catch {
@@ -310,6 +310,8 @@ const transactionStore = () => {
 		vault,
 		subgraphUrl
 	}: DepositOrWithdrawTransactionArgs) => {
+		reset();
+
 		try {
 			await switchChain(config, { chainId });
 		} catch {
@@ -376,6 +378,8 @@ const transactionStore = () => {
 		chainId,
 		subgraphUrl
 	}: RemoveOrderTransactionArgs) => {
+		reset();
+
 		try {
 			await switchChain(config, { chainId });
 		} catch {

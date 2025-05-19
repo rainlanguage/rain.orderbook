@@ -19,3 +19,18 @@ pub async fn get_address_from_ledger(
 
     Ok(ledger_address)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_address_from_ledger_err() {
+        // NOTE: the error is different depending on whether a ledger is connected or not
+        let _ = get_address_from_ledger(None, 1, "this is a bad a url".to_string())
+            .await
+            .unwrap_err();
+    }
+
+    // NOTE: we can't mock a ledger connection, so we can't test the ok case
+}
