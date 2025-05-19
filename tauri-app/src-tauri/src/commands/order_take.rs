@@ -29,94 +29,91 @@ pub async fn order_trades_list_write_csv(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::CommandError;
-
     use super::*;
+    use crate::error::CommandError;
     use httpmock::MockServer;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
+    use tempfile::NamedTempFile;
 
-    fn get_single_trade_json() -> Value {
-        json!({
-          "id": "trade1",
-          "tradeEvent": {
-            "transaction": {
-              "id": "tx1",
-              "from": "from1",
-              "blockNumber": "0",
-              "timestamp": "0"
-            },
-            "sender": "sender1"
-          },
-          "outputVaultBalanceChange": {
-            "id": "ovbc1",
-            "__typename": "TradeVaultBalanceChange",
-            "amount": "-2",
-            "newVaultBalance": "0",
-            "oldVaultBalance": "0",
-            "vault": {
-              "id": "vault1",
-              "vaultId": "1",
-              "token": {
-                "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
-                "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
-                "name": "Staked FLR",
-                "symbol": "sFLR",
-                "decimals": "18"
-              }
-            },
-            "timestamp": "1700000000",
-            "transaction": {
-              "id": "tx1",
-              "from": "from1",
-              "blockNumber": "0",
-              "timestamp": "1700000000"
-            },
-            "orderbook": {
-              "id": "ob1"
-            }
-          },
-          "order": {
-            "id": "order1",
-            "orderHash": "hash1"
-          },
-          "inputVaultBalanceChange": {
-            "id": "ivbc1",
-            "__typename": "TradeVaultBalanceChange",
-            "amount": "1",
-            "newVaultBalance": "0",
-            "oldVaultBalance": "0",
-            "vault": {
-              "id": "vault1",
-              "vaultId": "1",
-              "token": {
-                "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
-                "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
-                "name": "Wrapped Flare",
-                "symbol": "WFLR",
-                "decimals": "18"
-              }
-            },
-            "timestamp": "1700000000",
-            "transaction": {
-              "id": "tx1",
-              "from": "from1",
-              "blockNumber": "0",
-              "timestamp": "1700000000"
-            },
-            "orderbook": {
-              "id": "ob1"
-            }
-          },
-          "timestamp": "0",
-          "orderbook": {
-            "id": "ob1"
-          }
-        })
-    }
     fn get_trades_json() -> Value {
         json!([
-            get_single_trade_json(),
+          {
+            "id": "trade1",
+            "tradeEvent": {
+              "transaction": {
+                "id": "tx1",
+                "from": "from1",
+                "blockNumber": "0",
+                "timestamp": "0"
+              },
+              "sender": "sender1"
+            },
+            "outputVaultBalanceChange": {
+              "id": "ovbc1",
+              "__typename": "TradeVaultBalanceChange",
+              "amount": "-2",
+              "newVaultBalance": "0",
+              "oldVaultBalance": "0",
+              "vault": {
+                "id": "vault1",
+                "vaultId": "1",
+                "token": {
+                  "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                  "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                  "name": "Staked FLR",
+                  "symbol": "sFLR",
+                  "decimals": "18"
+                }
+              },
+              "timestamp": "1700000000",
+              "transaction": {
+                "id": "tx1",
+                "from": "from1",
+                "blockNumber": "0",
+                "timestamp": "1700000000"
+              },
+              "orderbook": {
+                "id": "ob1"
+              }
+            },
+            "order": {
+              "id": "order1",
+              "orderHash": "hash1"
+            },
+            "inputVaultBalanceChange": {
+              "id": "ivbc1",
+              "__typename": "TradeVaultBalanceChange",
+              "amount": "1",
+              "newVaultBalance": "0",
+              "oldVaultBalance": "0",
+              "vault": {
+                "id": "vault1",
+                "vaultId": "1",
+                "token": {
+                  "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                  "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                  "name": "Wrapped Flare",
+                  "symbol": "WFLR",
+                  "decimals": "18"
+                }
+              },
+              "timestamp": "1700000000",
+              "transaction": {
+                "id": "tx1",
+                "from": "from1",
+                "blockNumber": "0",
+                "timestamp": "1700000000"
+              },
+              "orderbook": {
+                "id": "ob1"
+              }
+            },
+            "timestamp": "0",
+            "orderbook": {
+              "id": "ob1"
+            }
+          },
           {
             "id": "trade2",
             "tradeEvent": {
@@ -218,7 +215,8 @@ mod tests {
             }));
         });
 
-        let path = PathBuf::from("./test.csv");
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path().to_path_buf();
         let result = order_trades_list_write_csv(
             path.clone(),
             "order1".to_string(),
@@ -238,7 +236,7 @@ trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.00000000000000000
         let csv_text = fs::read_to_string(path.clone()).unwrap();
         assert_eq!(csv_text, expected);
 
-        fs::remove_file(path).unwrap();
+        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 
     #[tokio::test]
@@ -255,7 +253,8 @@ trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.00000000000000000
             }));
         });
 
-        let path = PathBuf::from("test.csv");
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path().to_path_buf();
         let result = order_trades_list_write_csv(
             path.clone(),
             "order1".to_string(),
@@ -268,7 +267,7 @@ trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.00000000000000000
         .await;
         assert!(result.is_ok());
 
-        fs::remove_file(path).unwrap();
+        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 
     #[tokio::test]
@@ -281,7 +280,8 @@ trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.00000000000000000
             then.status(200).json_body_obj(&json!({}));
         });
 
-        let path = PathBuf::from("test.csv");
+        let temp_file = NamedTempFile::new().unwrap();
+        let path = temp_file.path().to_path_buf();
         let err = order_trades_list_write_csv(
             path.clone(),
             "order1".to_string(),
@@ -299,5 +299,7 @@ trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.00000000000000000
                 OrderbookSubgraphClientError::CynicClientError(_)
             )
         ));
+
+        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 }
