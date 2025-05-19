@@ -161,13 +161,13 @@ mod tests {
         assert_eq!(config.scenarios.len(), 1);
         let scenario1 = config.scenarios.get("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
-        assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
+        assert_eq!(scenario1.bindings.get("key1").unwrap(), "10");
         assert!(scenario1.runs.is_none());
         assert!(scenario1.blocks.is_none());
         let scenario1_scenarios = scenario1.scenarios.as_ref().unwrap();
         let scenario1_scenario2 = scenario1_scenarios.get("scenario2").unwrap();
         assert_eq!(scenario1_scenario2.bindings.len(), 1);
-        assert_eq!(scenario1_scenario2.bindings.get("key2").unwrap(), "value2");
+        assert_eq!(scenario1_scenario2.bindings.get("key2").unwrap(), "20");
         assert_eq!(scenario1_scenario2.runs.unwrap(), 10);
         assert!(scenario1_scenario2.blocks.is_none());
     }
