@@ -62,7 +62,7 @@ impl SgTrade {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
@@ -71,7 +71,7 @@ mod test {
     use alloy::primitives::Address;
 
     #[test]
-    fn test_token_get_decimals() {
+    fn test_token_get_decimals_ok() {
         // known decimals
         let token = SgErc20 {
             id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
@@ -93,6 +93,39 @@ mod test {
         };
         let result = token.get_decimals().unwrap();
         assert_eq!(result, 18);
+    }
+
+    #[test]
+    fn test_token_get_decimals_err() {
+        let token = SgErc20 {
+            id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt("".to_string())),
+        };
+        let err = token.get_decimals().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
+
+        let token = SgErc20 {
+            id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt("not a number".to_string())),
+        };
+        let err = token.get_decimals().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
+
+        let token = SgErc20 {
+            id: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            address: SgBytes(Address::from_slice(&[0x11u8; 20]).to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt("-1".to_string())),
+        };
+        let err = token.get_decimals().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
     }
 
     #[test]
