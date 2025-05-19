@@ -308,6 +308,7 @@ impl BatchQuoteSpec {
 mod tests {
     use super::*;
     use alloy::hex;
+    use alloy::hex::ToHex;
     use alloy::primitives::{address, keccak256};
     use alloy::primitives::{hex::encode_prefixed, U256};
     use alloy::sol_types::{SolCall, SolValue};
@@ -470,6 +471,31 @@ mod tests {
         };
         (orderbook, order, order_hash_u256, retrun_sg_data)
     }
+
+    #[test]
+    fn test_get_order_hash() {
+        let (orderbook, order, _, _) = get_test_data(false);
+        let quote_target = QuoteTarget {
+            quote_config: Quote {
+                order,
+                ..Default::default()
+            },
+            orderbook,
+        };
+        let actual = quote_target.get_order_hash().encode_hex::<String>();
+        let expected =
+            "8a3fbb9caf53f18f1f78d90c48dbe4612bcd93285ed0fc033009b4a96ea2aaed".to_string();
+        assert_eq!(actual, expected);
+    }
+
+    // #[test]
+    // fn test_get_id() {}
+
+    // #[test]
+    // fn test_validate_ok() {}
+
+    // #[test]
+    // fn test_validate_err() {}
 
     #[tokio::test]
     async fn test_get_quote_spec_from_subgraph_ok() {
