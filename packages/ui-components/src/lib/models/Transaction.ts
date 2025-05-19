@@ -95,6 +95,10 @@ export class TransactionStore implements Transaction {
 	 */
 	public async execute(): Promise<void> {
 		const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
+		this.updateState({
+			explorerLink,
+			status: TransactionStatusMessage.PENDING_RECEIPT
+		});
 		await this.waitForTxReceipt(this.txHash);
 	}
 
@@ -106,9 +110,6 @@ export class TransactionStore implements Transaction {
 	 */
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
-			this.updateState({
-				status: TransactionStatusMessage.PENDING_RECEIPT
-			});
 			await waitForTransactionReceipt(this.config, { hash });
 			this.indexTransaction(this.txHash);
 		} catch {
