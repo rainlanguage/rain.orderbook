@@ -65,7 +65,7 @@ pub async fn order_remove(
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
         })?
-        .order_detail(id.into())
+        .order_detail(&id.into())
         .await
         .map_err(|e| {
             toast_error(app_handle.clone(), e.to_string());
@@ -117,7 +117,7 @@ pub async fn order_remove_calldata(
             toast_error(app_handle.clone(), String::from("Subgraph URL is invalid"));
             e
         })?
-        .order_detail(id.into())
+        .order_detail(&id.into())
         .await
         .map_err(|e| {
             toast_error(app_handle.clone(), e.to_string());
