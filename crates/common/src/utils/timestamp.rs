@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::DateTime;
 use std::num::ParseIntError;
 use thiserror::Error;
 
@@ -24,8 +24,8 @@ pub fn format_timestamp_display(timestamp: i64) -> Result<String, FormatTimestam
         .ok_or(FormatTimestampDisplayError::InvalidTimestamp(timestamp))?;
 
     let timestamp_display = timestamp_naive
-        .with_timezone(&Local)
-        .format("%Y-%m-%d %I:%M:%S %p")
+        .with_timezone(&chrono::Utc)
+        .format("%Y-%m-%d %H:%M:%S UTC")
         .to_string();
 
     Ok(timestamp_display)
@@ -90,29 +90,21 @@ mod tests {
 
     #[test]
     fn test_format_bigint_timestamp_display_ok() {
-        // Required to make local timezone deterministic
-        // NOTE: Setting TZ affects global state.
-        std::env::set_var("TZ", "CET");
-
         let timestamp = "1746537612".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
+        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string())); // Adjusted expected output
 
         let timestamp_i64 = timestamp.parse::<i64>().unwrap();
         let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2025-05-06 03:20:12 PM".to_string()));
-
-        // Required to make local timezone deterministic
-        // NOTE: Setting TZ affects global state.
-        std::env::set_var("TZ", "EST");
+        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string())); // Adjusted expected output
 
         let timestamp = "970676358".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
+        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string())); // Adjusted expected output
 
         let timestamp_i64 = timestamp.parse::<i64>().unwrap();
         let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2000-10-04 06:19:18 PM".to_string()));
+        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string())); // Adjusted expected output
 
         // Test earliest valid timestamp (close to Unix epoch minimum)
         // January 1, 1970 (plus some seconds to be safe)

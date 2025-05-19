@@ -230,8 +230,8 @@ mod tests {
         assert!(result.is_ok());
 
         let expected = "id,timestamp,timestamp_display,transaction,sender,order_id,input,input_display,input_token_id,input_token_symbol,output,output_display,output_token_id,output_token_symbol
-trade1,0,1970-01-01 02:00:00 AM,tx1,sender1,hash1,1,0.000000000000000001,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-2,-0.000000000000000002,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
-trade2,1700086400,2023-11-16 01:13:20 AM,tx2,sender2,hash2,2,0.000000000000000002,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-5,-0.000000000000000005,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
+trade1,0,1970-01-01 00:00:00 UTC,tx1,sender1,hash1,1,0.000000000000000001,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-2,-0.000000000000000002,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
+trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,2,0.000000000000000002,0x1d80c49bbbcd1c0911346656b529df9e5c2f783d,WFLR,-5,-0.000000000000000005,0x12e605bc104e93b45e1ad99f9e555f659051c2bb,sFLR
 ";
         let csv_text = fs::read_to_string(path.clone()).unwrap();
         assert_eq!(csv_text, expected);
