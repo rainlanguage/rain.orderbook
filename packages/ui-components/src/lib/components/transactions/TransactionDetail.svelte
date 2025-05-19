@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { TransactionState } from '$lib/models/Transaction';
 	import { TransactionStatusMessage } from '$lib/types/transaction';
-	import { type Writable } from 'svelte/store';
+	import { type Readable } from 'svelte/store';
 	import { match } from 'ts-pattern';
-	export let state: Writable<TransactionState>;
+	export let state: Readable<TransactionState>;
 
 	function getStatusEmoji(status: TransactionStatusMessage): string {
 		return match(status)

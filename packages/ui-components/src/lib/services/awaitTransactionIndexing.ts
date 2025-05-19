@@ -15,9 +15,6 @@ import {
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook';
 import { TransactionErrorMessage } from '$lib/types/transaction';
-/**
- * Error message when subgraph indexing times out
- */
 
 /**
  * Result of a subgraph indexing operation
@@ -145,6 +142,12 @@ export const awaitSubgraphIndexing = async <T>(options: {
 						}
 					});
 
+					return;
+				} else if (data.error) {
+					clearInterval(checkInterval);
+					resolve({
+						error: TransactionErrorMessage.SUBGRAPH_FAILED
+					});
 					return;
 				}
 			} catch {

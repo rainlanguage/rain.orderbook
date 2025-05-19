@@ -109,7 +109,6 @@ describe('TransactionStore', () => {
 	it('should initialize with IDLE status', () => {
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.IDLE);
-		expect(state.message).toBe('');
 		expect(state.explorerLink).toBe('');
 	});
 
@@ -127,7 +126,6 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(state.message).toBe('Order removal indexed successfully.');
 		expect(state.explorerLink).toBe(mockExplorerLink);
 		expect(mockOnSuccess).toHaveBeenCalled();
 	});
@@ -139,20 +137,20 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.message).toBe('Failed to get transaction receipt.');
+		expect(state.errorDetails).toBe(TransactionErrorMessage.RECEIPT_FAILED);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
 	it('should handle subgraph indexing timeout', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({ error: TransactionErrorMessage.TIMEOUT });
+		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({ error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR });
 
 		await transaction.execute();
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.message).toBe('Subgraph indexing timed out.');
+		expect(state.errorDetails).toBe(TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
@@ -165,7 +163,7 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.message).toBe('Failed to index order removal.');
+		expect(state.errorDetails).toBe(TransactionErrorMessage.SUBGRAPH_FAILED);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
@@ -183,16 +181,6 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(state.message).toBe('Order removal indexed successfully.');
 		expect(mockOnSuccess).toHaveBeenCalled();
-	});
-
-	it('should get current message', () => {
-		transaction.state.update((state) => ({
-			...state,
-			message: 'Test message'
-		}));
-
-		expect(transaction.message).toBe('Test message');
 	});
 });

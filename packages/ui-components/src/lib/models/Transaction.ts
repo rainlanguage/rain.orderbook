@@ -132,7 +132,7 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
-		try {
+
 			const result = await awaitSubgraphIndexing(
 				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
 			);
@@ -158,12 +158,6 @@ export class TransactionStore implements Transaction {
 					});
 					return this.onError();
 				});
-		} catch {
-			this.updateState({
-				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED
-			});
-			return this.onError();
-		}
+
 	}
 }

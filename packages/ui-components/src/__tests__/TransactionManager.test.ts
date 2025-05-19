@@ -4,7 +4,7 @@ import { TransactionStore } from '../lib/models/Transaction';
 import type { QueryClient } from '@tanstack/svelte-query';
 import type { Config } from '@wagmi/core';
 import type { ToastProps } from '../lib/types/toast';
-import type { InternalTransactionArgs } from '../lib/types/transaction';
+import { TransactionName, type InternalTransactionArgs } from '../lib/types/transaction';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 vi.mock('../lib/models/Transaction', () => ({
@@ -73,6 +73,7 @@ describe('TransactionManager', () => {
 			expect(TransactionStore).toHaveBeenCalledWith(
 				{
 					...mockArgs,
+					name: TransactionName.REMOVAL,
 					errorMessage: 'Order removal failed.',
 					successMessage: 'Order removed successfully.',
 					queryKey: mockArgs.orderHash,

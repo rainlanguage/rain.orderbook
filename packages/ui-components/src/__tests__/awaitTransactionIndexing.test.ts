@@ -14,8 +14,8 @@ import {
 	getNewOrderConfig,
 	getRemoveOrderConfig,
 	getTransactionConfig,
-	TIMEOUT_ERROR
 } from '$lib/services/awaitTransactionIndexing';
+import { TransactionErrorMessage } from '$lib/types/transaction';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
@@ -115,7 +115,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TIMEOUT_ERROR);
+		expect(result.error).toBe(TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 		expect(mockFetchData).toHaveBeenCalledTimes(5);
 	});
 
@@ -140,8 +140,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TIMEOUT_ERROR);
-		expect(mockFetchData).toHaveBeenCalledTimes(3);
+		expect(result.error).toBe(TransactionErrorMessage.SUBGRAPH_FAILED);
 	});
 
 	it('should resolve immediately when successful data is found', async () => {
