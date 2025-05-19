@@ -6,7 +6,7 @@
 	import TanstackOrderQuote from './TanstackOrderQuote.svelte';
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
@@ -66,8 +66,10 @@
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
-		queryFn: () => {
-			return getOrderByHash(subgraphUrl, orderHash);
+		queryFn: async () => {
+			const result = await getOrderByHash(subgraphUrl, orderHash);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});

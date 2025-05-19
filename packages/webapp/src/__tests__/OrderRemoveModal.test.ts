@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render } from '@testing-library/svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import type { OrderRemoveModalProps } from '@rainlanguage/ui-components';
+import { getRemoveOrderCalldata } from '@rainlanguage/orderbook';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getRemoveOrderCalldata: vi.fn().mockResolvedValue('0x123')
+	getRemoveOrderCalldata: vi.fn()
 }));
 
 vi.useFakeTimers();
@@ -31,6 +32,9 @@ describe('OrderRemoveModal', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
+		(getRemoveOrderCalldata as Mock).mockResolvedValue({
+			value: '0x123'
+		});
 	});
 
 	it('handles transaction correctly', async () => {
@@ -42,13 +46,13 @@ describe('OrderRemoveModal', () => {
 			chainId: 1,
 			orderbookAddress: '0x789',
 			config: {},
-			onRemove: expect.any(Function),
+			onRemove: defaultProps.args.onRemove,
 			order: {
 				id: '1',
 				orderHash: '0x123',
 				owner: '0x456'
 			},
-			removeOrderCalldata: undefined
+			removeOrderCalldata: '0x123'
 		});
 	});
 

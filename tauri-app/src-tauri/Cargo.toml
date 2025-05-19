@@ -22,7 +22,15 @@ rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645eb
 rain-metadata = { path = "../../lib/rain.interpreter/lib/rain.metadata/crates/cli" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-tauri = { version = "1.5", features = [ "os-all", "window-start-dragging", "fs-write-file", "fs-read-file", "dialog-open", "dialog-save", "shell-open"] }
+tauri = { version = "1.5", features = [
+    "os-all",
+    "window-start-dragging",
+    "fs-write-file",
+    "fs-read-file",
+    "dialog-open",
+    "dialog-save",
+    "shell-open",
+] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
 rain_orderbook_quote = { path = "../../crates/quote" }
@@ -41,7 +49,7 @@ futures = "0.3.17"
 tokio = { version = "1.28.0", features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = "0.0"
+wasm-bindgen-utils = "0.0.8"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
@@ -52,3 +60,6 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-cli = "1.5"
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
+rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
+strict-yaml-rust = "0.1.2"
