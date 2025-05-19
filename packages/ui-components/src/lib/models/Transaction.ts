@@ -1,6 +1,6 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
-import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
+import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
@@ -9,7 +9,7 @@ import {
 import type { Config } from '@wagmi/core';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { match, P } from 'ts-pattern';
-import { writable, type Writable, get } from 'svelte/store';
+import { writable, type Writable } from 'svelte/store';
 
 /**
  * Represents the possible states of a transaction
@@ -18,13 +18,13 @@ import { writable, type Writable, get } from 'svelte/store';
  * @property {TransactionStatusMessage} status - The current status of the transaction
  * @property {string} explorerLink - Link to view the transaction on a block explorer
  * @property {Hex} [hash] - Optional transaction hash for successful transactions
- * @property {TransactionErrorMessage} [errorDetails] - Optional error details for failed transactions
+ * @property {TransactionStoreErrorMessage} [errorDetails] - Optional error details for failed transactions
  */
 export type TransactionState = {
 	name: TransactionName;
 	status: TransactionStatusMessage;
 	explorerLink: string;
-	errorDetails?: TransactionErrorMessage;
+	errorDetails?: TransactionStoreErrorMessage;
 };
 
 /**
@@ -115,7 +115,7 @@ export class TransactionStore implements Transaction {
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionErrorMessage.RECEIPT_FAILED
+				errorDetails: TransactionStoreErrorMessage.RECEIPT_FAILED
 			});
 			return this.onError();
 		}
@@ -132,32 +132,30 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
+		const result = await awaitSubgraphIndexing(
+			getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
+		);
 
-			const result = await awaitSubgraphIndexing(
-				getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully')
-			);
-
-			await match(result)
-				.with({ error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR }, () => {
-					this.updateState({
-						status: TransactionStatusMessage.ERROR,
-						errorDetails: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR
-					});
-					return this.onError();
-				})
-				.with({ value: P.not(P.nullish) }, () => {
-					this.updateState({
-						status: TransactionStatusMessage.SUCCESS
-					});
-					return this.onSuccess();
-				})
-				.otherwise(() => {
-					this.updateState({
-						status: TransactionStatusMessage.ERROR,
-						errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED
-					});
-					return this.onError();
+		await match(result)
+			.with({ error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR }, () => {
+				this.updateState({
+					status: TransactionStatusMessage.ERROR,
+					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 				});
-
+				return this.onError();
+			})
+			.with({ value: P.not(P.nullish) }, () => {
+				this.updateState({
+					status: TransactionStatusMessage.SUCCESS
+				});
+				return this.onSuccess();
+			})
+			.otherwise(() => {
+				this.updateState({
+					status: TransactionStatusMessage.ERROR,
+					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+				});
+				return this.onError();
+			});
 	}
 }

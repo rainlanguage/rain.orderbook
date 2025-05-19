@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TransactionStore } from '../lib/models/Transaction';
 import {
 	TransactionStatusMessage,
-	TransactionErrorMessage,
+	TransactionStoreErrorMessage,
 	type TransactionArgs
 } from '../lib/types/transaction';
 import { waitForTransactionReceipt, type Config } from '@wagmi/core';
@@ -11,6 +11,7 @@ import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
+import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
@@ -137,34 +138,41 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionErrorMessage.RECEIPT_FAILED);
+		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.RECEIPT_FAILED);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
 	it('should handle subgraph indexing timeout', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({ error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR });
+		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
+			error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+		});
 
 		await transaction.execute();
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
+		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
 	it('should handle subgraph indexing failure', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockRejectedValue(new Error('Subgraph error'));
+		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
+			error: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
 
 		await transaction.execute();
 
 		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionErrorMessage.SUBGRAPH_FAILED);
-		expect(mockOnError).toHaveBeenCalled();
+
+		await waitFor(() => {
+			expect(state.status).toBe(TransactionStatusMessage.ERROR);
+			expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
+			expect(mockOnError).toHaveBeenCalled();
+		});
 	});
 
 	it('should handle unknown subgraph indexing error', async () => {

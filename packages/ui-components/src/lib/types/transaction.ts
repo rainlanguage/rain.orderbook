@@ -48,8 +48,7 @@ export enum TransactionStatusMessage {
 	ERROR = 'Something went wrong'
 }
 
-export enum TransactionErrorMessage {
-	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
+export enum TransactionStoreErrorMessage {
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
 	SUBGRAPH_TIMEOUT_ERROR = 'The subgraph took too long to respond. Your transaction may still be processing.',
 	SUBGRAPH_FAILED = 'Failed to index transaction.',

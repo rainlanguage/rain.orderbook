@@ -13,9 +13,9 @@ import {
 	awaitSubgraphIndexing,
 	getNewOrderConfig,
 	getRemoveOrderConfig,
-	getTransactionConfig,
+	getTransactionConfig
 } from '$lib/services/awaitTransactionIndexing';
-import { TransactionErrorMessage } from '$lib/types/transaction';
+import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
@@ -115,12 +115,12 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
+		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 		expect(mockFetchData).toHaveBeenCalledTimes(5);
 	});
 
 	it('should handle fetch errors gracefully', async () => {
-		mockFetchData.mockResolvedValue({ error: { msg: 'Network error' } });
+		mockFetchData.mockResolvedValue({ error: 'error' });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -140,7 +140,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TransactionErrorMessage.SUBGRAPH_FAILED);
+		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
 	});
 
 	it('should resolve immediately when successful data is found', async () => {

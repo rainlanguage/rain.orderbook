@@ -1,16 +1,16 @@
 import { get } from 'svelte/store';
 import { describe, it, expect, vi, beforeEach, afterAll, type Mock } from 'vitest';
-import { TransactionStatusMessage, TransactionErrorMessage } from '../lib/types/transaction';
+import { TransactionStatusMessage } from '../lib/types/transaction';
+import { TransactionErrorMessage } from '../lib/stores/transactionStore';
 import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, type SgVault, type VaultCalldataResult } from '@rainlanguage/orderbook';
+import { getTransaction, type SgVault, type VaultCalldataResult, type DepositCalldataResult } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import {
 	awaitSubgraphIndexing,
 	getTransactionConfig,
-	getNewOrderConfig,
-	TIMEOUT_ERROR
+	getNewOrderConfig
 } from '../lib/services/awaitTransactionIndexing';
 
 vi.mock('@wagmi/core', () => ({
@@ -182,7 +182,7 @@ describe('transactionStore', () => {
 		const mockSuccessMessage = 'Success message';
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
-			error: TIMEOUT_ERROR
+			error: TransactionErrorMessage.TIMEOUT
 		});
 
 		(getTransactionConfig as Mock).mockReturnValue({
@@ -236,7 +236,7 @@ describe('transactionStore', () => {
 		const mockNetwork = 'flare';
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
-			error: TIMEOUT_ERROR
+			error: TransactionErrorMessage.TIMEOUT
 		});
 
 		(getNewOrderConfig as Mock).mockReturnValue({
@@ -294,7 +294,9 @@ describe('handleDepositOrWithdrawTransaction', () => {
 			id: '0xorderbook1' as `0x${string}`
 		}
 	} as SgVault;
-	const mockTransactionCalldata = '0xtransactioncalldata' as VaultCalldataResult;
+	const mockTransactionCalldata: DepositCalldataResult = {
+		Calldatas: ['0xtransactioncalldata']
+	};
 
 	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
 
@@ -365,7 +367,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
-			error: TIMEOUT_ERROR
+			error: TransactionErrorMessage.TIMEOUT
 		});
 
 		await handleDepositOrWithdrawTransaction({
@@ -467,7 +469,7 @@ describe('handleDeploymentTransaction', () => {
 		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
-			error: TIMEOUT_ERROR
+			error: TransactionErrorMessage.TIMEOUT
 		});
 
 		await handleDeploymentTransaction({

@@ -3,6 +3,8 @@
  * @description Utilities for waiting for transactions to be indexed by a subgraph
  */
 
+import { TransactionErrorMessage } from '$lib/stores/transactionStore';
+import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type {
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
@@ -14,7 +16,6 @@ import {
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook';
-import { TransactionErrorMessage } from '$lib/types/transaction';
 
 /**
  * Result of a subgraph indexing operation
@@ -146,7 +147,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 				} else if (data.error) {
 					clearInterval(checkInterval);
 					resolve({
-						error: TransactionErrorMessage.SUBGRAPH_FAILED
+						error: TransactionStoreErrorMessage.SUBGRAPH_FAILED
 					});
 					return;
 				}
@@ -157,7 +158,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			if (attempts >= maxAttempts) {
 				clearInterval(checkInterval);
 				resolve({
-					error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+					error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 				});
 				return;
 			}

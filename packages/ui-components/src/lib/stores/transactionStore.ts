@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import { getExplorerLink } from '../services/getExplorerLink';
-import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
+import { TransactionStatusMessage } from '$lib/types/transaction';
 import type {
 	DeploymentTransactionArgs,
 	DepositOrWithdrawTransactionArgs,
@@ -16,6 +16,20 @@ import {
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
+
+export enum TransactionErrorMessage {
+	BAD_CALLLDATA = 'Bad calldata.',
+	DEPLOY_FAILED = 'Lock transaction failed.',
+	TIMEOUT = 'The subgraph took too long to respond.',
+	APPROVAL_FAILED = 'Approval transaction failed.',
+	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
+	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
+	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
+	DEPOSIT_FAILED = 'Failed to deposit tokens.',
+	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
+	REMOVE_ORDER_FAILED = 'Failed to remove order.'
+}
 
 export type TransactionStore = {
 	subscribe: (run: (value: TransactionState) => void) => () => void;

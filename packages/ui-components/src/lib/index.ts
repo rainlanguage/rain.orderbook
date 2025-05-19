@@ -72,7 +72,7 @@ export type { AppStoresInterface } from './types/appStores.ts';
 export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
 	TransactionStatusMessage,
-	TransactionErrorMessage,
+	TransactionStoreErrorMessage,
 	type TransactionState,
 	type ExtendedApprovalCalldata,
 	type TransactionArgs
