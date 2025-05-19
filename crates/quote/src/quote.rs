@@ -488,8 +488,20 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    // #[test]
-    // fn test_get_id() {}
+    #[test]
+    fn test_quote_target_get_id() {
+        let quote_target = QuoteTarget {
+            quote_config: Default::default(),
+            orderbook: Address::ZERO,
+        };
+        let actual = quote_target.get_id().encode_hex::<String>();
+        let expected =
+            "3c220b0ff68b48f69ef802b5d39e6942218a1b843a1845ade53d1e2412135b63".to_string();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_quote_spec_get_id() {}
 
     // #[test]
     // fn test_validate_ok() {}
