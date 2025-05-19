@@ -140,7 +140,7 @@ const transactionStore = () => {
 		}
 
 		if (result.value) {
-			return transactionSuccess(result.value.txHash, result.value.successMessage);
+			return transactionSuccess(result.value.txHash, successMessage);
 		}
 	};
 
@@ -154,7 +154,7 @@ const transactionStore = () => {
 		const result = await awaitSubgraphIndexing({
 			subgraphUrl,
 			txHash,
-			successMessage: '',
+			successMessage: 'New order indexed successfully',
 			network,
 			fetchEntityFn: getTransactionAddOrders,
 			isSuccess: (data: SgAddOrderWithOrder[]) => data?.length > 0

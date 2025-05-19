@@ -114,50 +114,40 @@ export const awaitSubgraphIndexing = async <T>(options: {
 		isSuccess
 	} = options;
 
-	return new Promise((resolve) => {
-		let attempts = 0;
+	const checkIndexing = async (attempt: number): Promise<IndexingResult<T>> => {
+		try {
+			const data = await fetchEntityFn(subgraphUrl, txHash);
 
-		const checkInterval = setInterval(async () => {
-			attempts++;
-			try {
-				const data = await fetchEntityFn(subgraphUrl, txHash);
-
-				if (data.value && isSuccess(data.value)) {
-					clearInterval(checkInterval);
-
-					let orderHash;
-					// Extract orderHash from order data if it exists in the expected format
-					if (
-						Array.isArray(data.value) &&
-						data.value.length > 0 &&
-						data.value[0]?.order?.orderHash
-					) {
-						orderHash = data.value[0].order.orderHash;
-					}
-
-					resolve({
-						value: {
-							txHash,
-							successMessage,
-							orderHash,
-							network,
-							data: data.value
-						}
-					});
-
-					return;
+			if (data.value && isSuccess(data.value)) {
+				let orderHash;
+				// Extract orderHash from order data if it exists in the expected format
+				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
+					orderHash = data.value[0].order.orderHash;
 				}
-			} catch {
-				// Continue with the next attempt
-			}
 
-			if (attempts >= maxAttempts) {
-				clearInterval(checkInterval);
-				resolve({
-					error: TIMEOUT_ERROR
-				});
-				return;
+				return {
+					value: {
+						txHash,
+						successMessage,
+						orderHash,
+						network,
+						data: data.value
+					}
+				};
 			}
-		}, interval);
-	});
+		} catch {
+			// Continue with the next attempt
+		}
+
+		if (attempt >= maxAttempts) {
+			return {
+				error: TIMEOUT_ERROR
+			};
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, interval));
+		return checkIndexing(attempt + 1);
+	};
+
+	return checkIndexing(1);
 };
