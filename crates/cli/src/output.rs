@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn test_write_to_buffer_hex_empty() {
         let data = b"";
-        let expected_hex = alloy::primitives::hex::encode_prefixed(data); // Should be "0x"
+        let expected_hex = alloy::primitives::hex::encode_prefixed(data);
         let mut buffer: Vec<u8> = Vec::new();
         let res = write_encoded_data(&mut buffer, SupportedOutputEncoding::Hex, data);
         assert!(
@@ -171,5 +171,43 @@ mod tests {
             captured_output_str, expected_hex,
             "Buffer content for empty hex data should be '0x'"
         );
+    }
+
+    #[test]
+    fn test_output_to_file_invalid_path() {
+        let output_path = Some(PathBuf::from("/non_existent_directory/test_file.txt"));
+        let data = b"hello world";
+
+        let res = output(&output_path, SupportedOutputEncoding::Binary, data);
+        assert!(
+            res.is_err(),
+            "Expected an error for invalid path, but got Ok"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_output_to_file_permission_denied() {
+        use std::fs::Permissions;
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = tempfile::Builder::new()
+            .prefix("readonly_dir")
+            .tempdir()
+            .unwrap();
+        let dir_path = temp_dir.path();
+
+        let mut perms = fs::metadata(dir_path).unwrap().permissions();
+        perms.set_readonly(true);
+        fs::set_permissions(dir_path, Permissions::from_mode(0o555)).unwrap();
+
+        let file_path = dir_path.join("test_file.txt");
+        let output_path = Some(file_path);
+        let data = b"hello world";
+
+        let res = output(&output_path, SupportedOutputEncoding::Binary, data);
+        assert!(res.is_err(), "Expected a permission error, but got Ok");
+
+        fs::set_permissions(dir_path, Permissions::from_mode(0o755)).unwrap();
     }
 }
