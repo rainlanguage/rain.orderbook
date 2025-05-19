@@ -47,8 +47,10 @@
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
-		queryFn: () => {
-			return getVault(subgraphUrl || '', id);
+		queryFn: async () => {
+			const result = await getVault(subgraphUrl || '', id);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});

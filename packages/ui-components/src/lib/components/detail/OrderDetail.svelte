@@ -68,8 +68,10 @@
 
 	$: orderDetailQuery = createQuery<OrderWithSortedVaults>({
 		queryKey: [orderHash, QKEY_ORDER + orderHash],
-		queryFn: () => {
-			return getOrderByHash(subgraphUrl, orderHash);
+		queryFn: async () => {
+			const result = await getOrderByHash(subgraphUrl, orderHash);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});
