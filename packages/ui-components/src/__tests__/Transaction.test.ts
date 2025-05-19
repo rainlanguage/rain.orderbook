@@ -11,6 +11,7 @@ import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
+import { TransactionName } from '../lib/types/transaction';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
@@ -88,7 +89,6 @@ describe('TransactionStore', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.resetAllMocks();
 		transaction = new TransactionStore(
 			{
 				config: mockConfig,
@@ -96,10 +96,12 @@ describe('TransactionStore', () => {
 				subgraphUrl: mockSubgraphUrl,
 				txHash: mockTxHash,
 				orderHash: mockOrderHash,
+				name: TransactionName.REMOVAL,
 				errorMessage: 'Transaction failed',
 				successMessage: 'Transaction successful',
 				queryKey: 'removeOrder',
-				toastLinks: mockToastLinks
+				toastLinks: mockToastLinks,
+				networkKey: 'ethereum'
 			} as unknown as TransactionArgs & { config: Config },
 			mockOnSuccess,
 			mockOnError

@@ -179,32 +179,31 @@ export class TransactionStore implements Transaction {
 				: undefined
 		});
 
-		await match(result)
-			.with({ error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR }, () => {
-				console.error('[TransactionStore] Subgraph timeout error - max attempts reached');
-				this.updateState({
-					status: TransactionStatusMessage.ERROR,
-					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
-				});
-				return this.onError();
-			})
-			.with({ value: P.not(P.nullish) }, () => {
-				console.log(
-					'[TransactionStore] Transaction completed successfully with value:',
-					result.value
-				);
-				this.updateState({
-					status: TransactionStatusMessage.SUCCESS
-				});
-				return this.onSuccess();
-			})
-			.otherwise(() => {
-				console.error('[TransactionStore] Subgraph indexing failed - no value or error returned');
-				this.updateState({
-					status: TransactionStatusMessage.ERROR,
-					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
-				});
-				return this.onError();
+		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
+			console.error('[TransactionStore] Subgraph timeout error - max attempts reached');
+			this.updateState({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 			});
+			return this.onError();
+		}
+
+		if (result.value) {
+			console.log(
+				'[TransactionStore] Transaction completed successfully with value:',
+				result.value
+			);
+			this.updateState({
+				status: TransactionStatusMessage.SUCCESS
+			});
+			return this.onSuccess();
+		}
+
+		console.error('[TransactionStore] Subgraph indexing failed - no value or error returned');
+		this.updateState({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		return this.onError();
 	}
 }

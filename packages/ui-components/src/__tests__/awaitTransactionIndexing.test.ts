@@ -140,7 +140,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
+		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 	});
 
 	it('should resolve immediately when successful data is found', async () => {

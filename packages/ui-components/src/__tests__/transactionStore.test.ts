@@ -4,7 +4,12 @@ import { TransactionStatusMessage } from '../lib/types/transaction';
 import { TransactionErrorMessage } from '../lib/stores/transactionStore';
 import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, type SgVault, type DepositCalldataResult } from '@rainlanguage/orderbook';
+import {
+	getTransaction,
+	type SgVault,
+	type DepositCalldataResult,
+	type VaultCalldataResult
+} from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import {
@@ -294,9 +299,8 @@ describe('handleDepositOrWithdrawTransaction', () => {
 			id: '0xorderbook1' as `0x${string}`
 		}
 	} as SgVault;
-	const mockTransactionCalldata: DepositCalldataResult = {
-		Calldatas: ['0xtransactioncalldata']
-	};
+
+	const mockTransactionCalldata: VaultCalldataResult = '0xTransactionCalldata';
 
 	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
 

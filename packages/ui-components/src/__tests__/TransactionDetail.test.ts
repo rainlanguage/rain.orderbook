@@ -38,7 +38,7 @@ describe('TransactionDetail', () => {
 
 		render(TransactionDetail, { state });
 
-		const link = screen.getByRole('link', { name: 'View transaction on explorer' });
+		const link = screen.getByRole('link', { name: 'View transaction explorer' });
 		expect(link).toBeInTheDocument();
 		expect(link).toHaveAttribute('href', explorerLink);
 		expect(link).toHaveAttribute('target', '_blank');
