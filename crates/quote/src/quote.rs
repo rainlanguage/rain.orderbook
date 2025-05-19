@@ -111,7 +111,6 @@ impl_wasm_traits!(BatchQuoteTarget);
 
 impl BatchQuoteTarget {
     /// Quotes the targets in batch on the given rpc url
-    #[inline]
     pub async fn do_quote(
         &self,
         rpc_url: &str,
