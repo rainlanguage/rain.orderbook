@@ -27,7 +27,7 @@ mod performance;
 mod transaction;
 mod vault;
 
-const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
+pub const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
 
 #[derive(Error, Debug)]
 pub enum OrderbookSubgraphClientError {
@@ -66,8 +66,8 @@ pub struct OrderbookSubgraphClient {
 }
 
 impl CynicClient for OrderbookSubgraphClient {
-    fn get_base_url(&self) -> Url {
-        self.url.clone()
+    fn get_base_url(&self) -> &Url {
+        &self.url
     }
 }
 impl PaginationClient for OrderbookSubgraphClient {}

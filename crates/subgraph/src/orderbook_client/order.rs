@@ -2,9 +2,9 @@ use super::*;
 
 impl OrderbookSubgraphClient {
     /// Fetch single order
-    pub async fn order_detail(&self, id: Id) -> Result<SgOrder, OrderbookSubgraphClientError> {
+    pub async fn order_detail(&self, id: &Id) -> Result<SgOrder, OrderbookSubgraphClientError> {
         let data = self
-            .query::<SgOrderDetailByIdQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
+            .query::<SgOrderDetailByIdQuery, SgIdQueryVariables>(SgIdQueryVariables { id })
             .await?;
         let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
 
@@ -16,6 +16,9 @@ impl OrderbookSubgraphClient {
         &self,
         id_list: Vec<SgBytes>,
     ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+        if id_list.is_empty() {
+            return Ok(vec![]);
+        }
         let data = self
             .query::<SgBatchOrderDetailQuery, SgBatchOrderDetailQueryVariables>(
                 SgBatchOrderDetailQueryVariables {
@@ -82,10 +85,9 @@ impl OrderbookSubgraphClient {
                 .await?;
             if page_data.is_empty() {
                 break;
-            } else {
-                all_pages_merged.extend(page_data);
-                page += 1
             }
+            all_pages_merged.extend(page_data);
+            page += 1
         }
         Ok(all_pages_merged)
     }
@@ -282,7 +284,7 @@ mod tests {
                 .json_body(json!({"data": {"order": expected_order}}));
         });
 
-        let result = client.order_detail(order_id).await;
+        let result = client.order_detail(&order_id).await;
         assert!(result.is_ok());
         let order = result.unwrap();
         assert_sg_order_eq(&order, &expected_order);
@@ -300,7 +302,7 @@ mod tests {
             then.status(200).json_body(json!({"data": {"order": null}}));
         });
 
-        let result = client.order_detail(order_id).await;
+        let result = client.order_detail(&order_id).await;
         assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
     }
 
@@ -315,7 +317,7 @@ mod tests {
             then.status(500);
         });
 
-        let result = client.order_detail(order_id).await;
+        let result = client.order_detail(&order_id).await;
         assert!(matches!(
             result,
             Err(OrderbookSubgraphClientError::CynicClientError(_))
@@ -326,7 +328,7 @@ mod tests {
     async fn test_batch_order_detail_all_found() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let id_list_str = vec!["id1".to_string(), "id2".to_string()];
+        let id_list_str = ["id1".to_string(), "id2".to_string()];
         let id_list_sgbytes: Vec<SgBytes> =
             id_list_str.iter().map(|s| SgBytes(s.clone())).collect();
         let expected_orders = vec![default_sg_order(), default_sg_order()];
@@ -350,7 +352,7 @@ mod tests {
     async fn test_batch_order_detail_some_found() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let id_list_str = vec!["id1".to_string(), "nonexistent".to_string()];
+        let id_list_str = ["id1".to_string(), "nonexistent".to_string()];
         let id_list_sgbytes: Vec<SgBytes> =
             id_list_str.iter().map(|s| SgBytes(s.clone())).collect();
         let expected_orders = vec![default_sg_order()]; // Only the found one
@@ -374,7 +376,7 @@ mod tests {
     async fn test_batch_order_detail_none_found() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let id_list_str = vec!["non1".to_string(), "non2".to_string()];
+        let id_list_str = ["non1".to_string(), "non2".to_string()];
         let id_list_sgbytes: Vec<SgBytes> =
             id_list_str.iter().map(|s| SgBytes(s.clone())).collect();
 
@@ -408,7 +410,7 @@ mod tests {
     async fn test_batch_order_detail_network_error() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let id_list_str = vec!["id1".to_string()];
+        let id_list_str = ["id1".to_string()];
         let id_list_sgbytes: Vec<SgBytes> =
             id_list_str.iter().map(|s| SgBytes(s.clone())).collect();
 

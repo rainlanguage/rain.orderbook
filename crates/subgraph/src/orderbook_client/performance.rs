@@ -21,7 +21,7 @@ impl OrderbookSubgraphClient {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<OrderPerformance, OrderbookSubgraphClientError> {
-        let order = self.order_detail(order_id.clone()).await?;
+        let order = self.order_detail(&order_id).await?;
         let trades = self
             .order_trades_list_all(order_id, start_timestamp, end_timestamp)
             .await?;
@@ -49,8 +49,6 @@ mod tests {
     use httpmock::prelude::*;
     use reqwest::Url;
     use serde_json::json;
-
-    const ALL_PAGES_QUERY_PAGE_SIZE: i32 = 200;
 
     fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();

@@ -68,10 +68,9 @@ impl OrderbookSubgraphClient {
                 .await?;
             if page_data.is_empty() {
                 break;
-            } else {
-                all_pages_merged.extend(page_data);
-                page += 1
             }
+            all_pages_merged.extend(page_data);
+            page += 1
         }
         Ok(all_pages_merged)
     }
@@ -316,7 +315,7 @@ mod tests {
         let order_id = Id::new("0xorder_page2");
         let page_size = 10;
         let pagination_args = SgPaginationArgs { page: 2, page_size };
-        let expected_skip = (2 - 1) * page_size;
+        let expected_skip = page_size;
         let expected_trades = vec![default_sg_trade()];
 
         sg_server.mock(|when, then| {
