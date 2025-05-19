@@ -2,7 +2,7 @@
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_ORDER_APY } from '../../queries/keys';
-	import { getOrderPerformance, type OrderPerformance } from '@rainlanguage/orderbook';
+	import { getOrderPerformance } from '@rainlanguage/orderbook';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import ApyTimeFilters from '../charts/APYTimeFilters.svelte';
 	import { bigintStringToPercentage } from '$lib/utils/number';
@@ -19,14 +19,9 @@
 	$: orderPerformance = createInfiniteQuery({
 		queryKey: [id, QKEY_ORDER_APY + id],
 		queryFn: async () => {
-			return [
-				(await getOrderPerformance(
-					subgraphUrl || '',
-					id,
-					queryStartTime,
-					queryEndTime
-				)) as OrderPerformance
-			];
+			const result = await getOrderPerformance(subgraphUrl || '', id, queryStartTime, queryEndTime);
+			if (result.error) throw new Error(result.error.msg);
+			return [result.value];
 		},
 		initialPageParam: 0,
 		getNextPageParam: () => undefined,
