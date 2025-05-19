@@ -73,7 +73,6 @@ export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/order
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
-	type TransactionState,
 	type ExtendedApprovalCalldata,
 	type TransactionArgs
 } from './types/transaction';

@@ -3,9 +3,8 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import TransactionList from '../lib/components/transactions/TransactionList.svelte';
 import { TransactionManager } from '../lib/providers/transactions/TransactionManager';
 import { writable } from 'svelte/store';
-import type { Transaction } from '../lib/models/Transaction';
-import type { TransactionState } from '../lib/types/transaction';
-import { TransactionStatusMessage } from '../lib/types/transaction';
+import type { Transaction, TransactionStoreState } from '../lib/models/Transaction';
+import { TransactionStatusMessage, TransactionName } from '../lib/types/transaction';
 import { useTransactions } from '../lib/providers/transactions/useTransactions';
 
 vi.mock('$lib/components/transaction/TransactionDetail.svelte', async () => {
@@ -44,29 +43,17 @@ describe('TransactionList', () => {
 	it('should render a list of transactions when transactions exist', () => {
 		const mockTransactions = [
 			{
-				state: writable<TransactionState>({
+				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.IDLE,
-					error: '',
-					hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-					data: null,
-					functionName: 'removeOrder',
-					message: 'Starting order removal',
-					newOrderHash: '',
-					network: 'ethereum',
+					name: TransactionName.REMOVAL,
 					explorerLink:
 						'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 				})
 			},
 			{
-				state: writable<TransactionState>({
+				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.SUCCESS,
-					error: '',
-					hash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-					data: null,
-					functionName: 'removeOrder',
-					message: 'Order removed successfully',
-					newOrderHash: '',
-					network: 'ethereum',
+					name: TransactionName.REMOVAL,
 					explorerLink:
 						'https://etherscan.io/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
 				})
@@ -89,15 +76,9 @@ describe('TransactionList', () => {
 
 		mockTransactionsStore.set([
 			{
-				state: writable<TransactionState>({
+				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.IDLE,
-					error: '',
-					hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-					data: null,
-					functionName: 'removeOrder',
-					message: 'Starting order removal',
-					newOrderHash: '',
-					network: 'ethereum',
+					name: TransactionName.REMOVAL,
 					explorerLink:
 						'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 				})

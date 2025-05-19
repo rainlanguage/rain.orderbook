@@ -11,7 +11,6 @@ import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
-import { waitFor } from '@testing-library/svelte';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
@@ -89,6 +88,7 @@ describe('TransactionStore', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.resetAllMocks();
 		transaction = new TransactionStore(
 			{
 				config: mockConfig,
@@ -168,11 +168,9 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 
-		await waitFor(() => {
-			expect(state.status).toBe(TransactionStatusMessage.ERROR);
-			expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
-			expect(mockOnError).toHaveBeenCalled();
-		});
+		expect(state.status).toBe(TransactionStatusMessage.ERROR);
+		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
+		expect(mockOnError).toHaveBeenCalled();
 	});
 
 	it('should handle unknown subgraph indexing error', async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import TransactionDetail from '../lib/components/transactions/TransactionDetail.svelte';
 import { writable } from 'svelte/store';
-import type { TransactionState } from '$lib/models/Transaction';
+import type { TransactionStoreState } from '$lib/models/Transaction';
 import { TransactionName, TransactionStatusMessage } from '$lib/types/transaction';
 
 describe('TransactionDetail', () => {
@@ -15,7 +15,7 @@ describe('TransactionDetail', () => {
 		] as const;
 
 		states.forEach(({ status, emoji }) => {
-			const state = writable<TransactionState>({
+			const state = writable<TransactionStoreState>({
 				name: TransactionName.REMOVAL,
 				status,
 				explorerLink:
@@ -30,7 +30,7 @@ describe('TransactionDetail', () => {
 	it('should render the explorer link', () => {
 		const explorerLink =
 			'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
-		const state = writable<TransactionState>({
+		const state = writable<TransactionStoreState>({
 			name: TransactionName.REMOVAL,
 			status: TransactionStatusMessage.PENDING_RECEIPT,
 			explorerLink
@@ -46,7 +46,7 @@ describe('TransactionDetail', () => {
 	});
 
 	it('should update when the state changes', async () => {
-		const state = writable<TransactionState>({
+		const state = writable<TransactionStoreState>({
 			name: TransactionName.REMOVAL,
 			status: TransactionStatusMessage.PENDING_RECEIPT,
 			explorerLink:
@@ -56,7 +56,7 @@ describe('TransactionDetail', () => {
 		render(TransactionDetail, { state });
 
 		expect(screen.getByText(TransactionName.REMOVAL)).toBeInTheDocument();
-		expect(screen.getByText('🔄 ' + TransactionStatusMessage.PENDING_RECEIPT)).toBeInTheDocument();
+		expect(screen.getByText(`🔄 ${TransactionStatusMessage.PENDING_RECEIPT}`)).toBeInTheDocument();
 
 		state.update((current) => ({
 			...current,
@@ -66,7 +66,7 @@ describe('TransactionDetail', () => {
 		await waitFor(() => {
 			expect(screen.getByText(TransactionName.REMOVAL)).toBeInTheDocument();
 			expect(
-				screen.getByText('📊 ' + TransactionStatusMessage.PENDING_SUBGRAPH)
+				screen.getByText(`📊 ${TransactionStatusMessage.PENDING_SUBGRAPH}`)
 			).toBeInTheDocument();
 		});
 
@@ -77,12 +77,12 @@ describe('TransactionDetail', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText(TransactionName.REMOVAL)).toBeInTheDocument();
-			expect(screen.getByText('✅ ' + TransactionStatusMessage.SUCCESS)).toBeInTheDocument();
+			expect(screen.getByText(`✅ ${TransactionStatusMessage.SUCCESS}`)).toBeInTheDocument();
 		});
 	});
 
 	it('should handle unknown status with a question mark emoji', () => {
-		const state = writable<TransactionState>({
+		const state = writable<TransactionStoreState>({
 			status: TransactionStatusMessage.ERROR,
 			name: TransactionName.REMOVAL,
 			explorerLink:
@@ -92,6 +92,6 @@ describe('TransactionDetail', () => {
 		render(TransactionDetail, { state });
 
 		expect(screen.getByText(TransactionName.REMOVAL)).toBeInTheDocument();
-		expect(screen.getByText('❌ ' + TransactionStatusMessage.ERROR)).toBeInTheDocument();
+		expect(screen.getByText(`❌ ${TransactionStatusMessage.ERROR}`)).toBeInTheDocument();
 	});
 });

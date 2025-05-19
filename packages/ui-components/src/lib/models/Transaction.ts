@@ -13,14 +13,14 @@ import { writable, type Writable } from 'svelte/store';
 
 /**
  * Represents the possible states of a transaction
- * @typedef {Object} TransactionState
+ * @typedef {Object} TransactionStoreState
  * @property {TransactionName} name - The name of the transaction
  * @property {TransactionStatusMessage} status - The current status of the transaction
  * @property {string} explorerLink - Link to view the transaction on a block explorer
  * @property {Hex} [hash] - Optional transaction hash for successful transactions
  * @property {TransactionStoreErrorMessage} [errorDetails] - Optional error details for failed transactions
  */
-export type TransactionState = {
+export type TransactionStoreState = {
 	name: TransactionName;
 	status: TransactionStatusMessage;
 	explorerLink: string;
@@ -30,10 +30,10 @@ export type TransactionState = {
 /**
  * Interface defining the structure of a transaction
  * @interface Transaction
- * @property {Writable<TransactionState>} state - A writable store containing the transaction state
+ * @property {Writable<TransactionStoreState>} state - A writable store containing the transaction state
  */
 export type Transaction = {
-	readonly state: Writable<TransactionState>;
+	readonly state: Writable<TransactionStoreState>;
 };
 
 /**
@@ -50,7 +50,7 @@ export class TransactionStore implements Transaction {
 	private onSuccess: () => void;
 	private onError: () => void;
 
-	public readonly state: Writable<TransactionState>;
+	public readonly state: Writable<TransactionStoreState>;
 
 	/**
 	 * Creates a new TransactionStore instance
@@ -68,7 +68,7 @@ export class TransactionStore implements Transaction {
 		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
 		this.name = args.name;
-		this.state = writable<TransactionState>({
+		this.state = writable<TransactionStoreState>({
 			status: TransactionStatusMessage.IDLE,
 			explorerLink: '',
 			name: this.name
@@ -79,10 +79,10 @@ export class TransactionStore implements Transaction {
 
 	/**
 	 * Updates the transaction state with new values
-	 * @param {Partial<TransactionState>} partialState - The new state values to merge with current state
+	 * @param {Partial<TransactionStoreState>} partialState - The new state values to merge with current state
 	 * @private
 	 */
-	private updateState(partialState: Partial<TransactionState>): void {
+	private updateState(partialState: Partial<TransactionStoreState>): void {
 		this.state.update((currentState) => ({
 			...currentState,
 			...partialState
@@ -111,7 +111,7 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			this.indexTransaction(this.txHash);
+			await this.indexTransaction(this.txHash);
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,

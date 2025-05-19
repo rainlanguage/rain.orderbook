@@ -2,9 +2,10 @@ import { writable } from 'svelte/store';
 import {
 	initialState,
 	TransactionErrorMessage,
+	type TransactionState,
 	type TransactionStore
 } from '../stores/transactionStore';
-import { TransactionStatusMessage, type TransactionState } from '../types/transaction';
+import { TransactionStatusMessage } from '../types/transaction';
 
 const mockTransactionWritable = writable<TransactionState>(initialState);
 

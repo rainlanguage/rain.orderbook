@@ -5,8 +5,7 @@ import { getExplorerLink } from '../services/getExplorerLink';
 import { TransactionStatusMessage } from '$lib/types/transaction';
 import type {
 	DeploymentTransactionArgs,
-	DepositOrWithdrawTransactionArgs,
-	TransactionState
+	DepositOrWithdrawTransactionArgs
 } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
@@ -16,6 +15,18 @@ import {
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
+
+export type TransactionState = {
+	status: TransactionStatusMessage;
+	error: string;
+	hash: string;
+	data: null;
+	functionName: string;
+	message: string;
+	newOrderHash: string;
+	network: string;
+	explorerLink: string;
+};
 
 export enum TransactionErrorMessage {
 	BAD_CALLLDATA = 'Bad calldata.',

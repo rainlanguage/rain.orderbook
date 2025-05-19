@@ -80,18 +80,6 @@ export type TransactionArgs = InternalTransactionArgs & {
 	toastLinks: ToastLink[];
 };
 
-export type TransactionState = {
-	status: TransactionStatusMessage;
-	error: string;
-	hash: string;
-	data: null;
-	functionName: string;
-	message: string;
-	newOrderHash: string;
-	network: string;
-	explorerLink: string;
-};
-
 export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {
 	config: Config;
 };
