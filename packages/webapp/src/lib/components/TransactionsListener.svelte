@@ -6,7 +6,7 @@
 		invalidateTanstackQueries
 	} from '@rainlanguage/ui-components';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	const { addToast } = useToasts();
+	const { addToast, errToast } = useToasts();
 	const queryClient = useQueryClient();
 
 	/**
@@ -38,17 +38,7 @@
 	 * Listens for transaction errors and shows an error toast.
 	 */
 	$: if ($transactionStore.status === TransactionStatusMessage.ERROR) {
-		addToast({
-			message: $transactionStore.error,
-			type: 'error',
-			color: 'red',
-			links: [
-				{
-					link: $transactionStore.explorerLink,
-					label: 'View transaction on explorer'
-				}
-			]
-		});
+		errToast($transactionStore.error);
 	}
 </script>
 
