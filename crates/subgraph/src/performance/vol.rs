@@ -2,8 +2,8 @@ use crate::{
     performance::PerformanceError,
     types::common::{SgErc20, SgTrade},
 };
-use alloy::primitives::{ruint::ParseError, U256};
-use rain_orderbook_math::BigUintMath;
+use alloy::primitives::U256;
+use rain_orderbook_math::{BigUintMath, MathError};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, str::FromStr};
 #[cfg(target_family = "wasm")]
@@ -40,7 +40,7 @@ mod impls {
 }
 
 /// Get the vaults volume from array of trades of an order
-pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError> {
+pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, PerformanceError> {
     let mut vaults_vol: Vec<VaultVolume> = vec![];
     for trade in trades {
         if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
@@ -49,18 +49,47 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
         }) {
             if trade.input_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
+
+                vault_vol.vol_details.total_out = vault_vol
+                    .vol_details
+                    .total_out
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+
+                vault_vol.vol_details.total_vol = vault_vol
+                    .vol_details
+                    .total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
+
+                vault_vol.vol_details.total_in = vault_vol
+                    .vol_details
+                    .total_in
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+
+                vault_vol.vol_details.total_vol = vault_vol
+                    .vol_details
+                    .total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             }
+
             vault_vol.vol_details.net_vol =
                 if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
+                    vault_vol
+                        .vol_details
+                        .total_in
+                        .checked_sub(vault_vol.vol_details.total_out)
+                        .ok_or(PerformanceError::MathError(MathError::Overflow))?
                 } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
+                    vault_vol
+                        .vol_details
+                        .total_out
+                        .checked_sub(vault_vol.vol_details.total_in)
+                        .ok_or(PerformanceError::MathError(MathError::Overflow))?
                 };
         } else {
             let mut total_in = U256::ZERO;
@@ -68,12 +97,20 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
             let mut total_vol = U256::ZERO;
             if trade.input_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
-                total_out += amount;
-                total_vol += amount;
+                total_out = total_out
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+                total_vol = total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             } else {
                 let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
-                total_in += amount;
-                total_vol += amount;
+                total_in = total_in
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+                total_vol = total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             }
             vaults_vol.push(VaultVolume {
                 id: trade.input_vault_balance_change.vault.vault_id.0.clone(),
@@ -83,9 +120,13 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
                     total_out,
                     total_vol,
                     net_vol: if total_in >= total_out {
-                        total_in - total_out
+                        total_in
+                            .checked_sub(total_out)
+                            .ok_or(PerformanceError::MathError(MathError::Overflow))?
                     } else {
-                        total_out - total_in
+                        total_out
+                            .checked_sub(total_in)
+                            .ok_or(PerformanceError::MathError(MathError::Overflow))?
                     },
                 },
             })
@@ -96,18 +137,44 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
         }) {
             if trade.output_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
+
+                vault_vol.vol_details.total_out = vault_vol
+                    .vol_details
+                    .total_out
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+
+                vault_vol.vol_details.total_vol = vault_vol
+                    .vol_details
+                    .total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
+                vault_vol.vol_details.total_in = vault_vol
+                    .vol_details
+                    .total_in
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+                vault_vol.vol_details.total_vol = vault_vol
+                    .vol_details
+                    .total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             }
             vault_vol.vol_details.net_vol =
                 if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
+                    vault_vol
+                        .vol_details
+                        .total_in
+                        .checked_sub(vault_vol.vol_details.total_out)
+                        .ok_or(PerformanceError::MathError(MathError::Overflow))?
                 } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
+                    vault_vol
+                        .vol_details
+                        .total_out
+                        .checked_sub(vault_vol.vol_details.total_in)
+                        .ok_or(PerformanceError::MathError(MathError::Overflow))?
                 };
         } else {
             let mut total_in = U256::ZERO;
@@ -115,12 +182,20 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
             let mut total_vol = U256::ZERO;
             if trade.output_vault_balance_change.amount.0.starts_with('-') {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
-                total_out += amount;
-                total_vol += amount;
+                total_out = total_out
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+                total_vol = total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             } else {
                 let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
-                total_in += amount;
-                total_vol += amount;
+                total_in = total_in
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
+                total_vol = total_vol
+                    .checked_add(amount)
+                    .ok_or(PerformanceError::MathError(MathError::Overflow))?;
             }
             vaults_vol.push(VaultVolume {
                 id: trade.output_vault_balance_change.vault.vault_id.0.clone(),
@@ -130,9 +205,13 @@ pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError
                     total_out,
                     total_vol,
                     net_vol: if total_in >= total_out {
-                        total_in - total_out
+                        total_in
+                            .checked_sub(total_out)
+                            .ok_or(PerformanceError::MathError(MathError::Overflow))?
                     } else {
-                        total_out - total_in
+                        total_out
+                            .checked_sub(total_in)
+                            .ok_or(PerformanceError::MathError(MathError::Overflow))?
                     },
                 },
             })
@@ -167,7 +246,7 @@ impl VaultVolume {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
@@ -393,7 +472,159 @@ mod test {
     }
 
     #[test]
-    fn test_to_18_decimals() {
+    fn test_vaults_vol_overflow() {
+        let bytes = SgBytes("".to_string());
+        let bigint = SgBigInt("".to_string());
+        let token1_address = Address::random();
+        let token2_address = Address::random();
+        let vault_id1 = B256::random();
+        let vault_id2 = B256::random();
+
+        let token1 = SgErc20 {
+            id: SgBytes(token1_address.to_string()),
+            address: SgBytes(token1_address.to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        let token2 = SgErc20 {
+            id: SgBytes(token2_address.to_string()),
+            address: SgBytes(token2_address.to_string()),
+            name: Some("Token2".to_string()),
+            symbol: Some("Token2".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        // Test overflow on addition
+        let trade1 = SgTrade {
+            id: bytes.clone(),
+            order: SgTradeStructPartialOrder {
+                id: bytes.clone(),
+                order_hash: bytes.clone(),
+            },
+            trade_event: SgTradeEvent {
+                sender: bytes.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+            },
+            timestamp: bigint.clone(),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("-1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token1.clone(),
+                    vault_id: SgBigInt(vault_id1.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt(U256::MAX.to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token2.clone(),
+                    vault_id: SgBigInt(vault_id2.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+        };
+
+        let trade2 = SgTrade {
+            id: bytes.clone(),
+            order: SgTradeStructPartialOrder {
+                id: bytes.clone(),
+                order_hash: bytes.clone(),
+            },
+            trade_event: SgTradeEvent {
+                sender: bytes.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+            },
+            timestamp: bigint.clone(),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token2.clone(),
+                    vault_id: SgBigInt(vault_id2.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token1.clone(),
+                    vault_id: SgBigInt(vault_id1.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+        };
+
+        // Test overflow on addition
+        let err = get_vaults_vol(&[trade1, trade2]).unwrap_err();
+        assert!(matches!(
+            err,
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
+
+    #[test]
+    fn test_to_18_decimals_ok() {
         let token_address = Address::random();
         let token = SgErc20 {
             id: SgBytes(token_address.to_string()),
@@ -426,5 +657,30 @@ mod test {
         };
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_to_18_decimals_err() {
+        let token_address = Address::random();
+        let token = SgErc20 {
+            id: SgBytes(token_address.to_string()),
+            address: SgBytes(token_address.to_string()),
+            name: Some("Token".to_string()),
+            symbol: Some("Token".to_string()),
+            decimals: Some(SgBigInt("bad int".to_string())),
+        };
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::from(20_500_000),
+                total_out: U256::from(30_000_000),
+                total_vol: U256::from(50_500_000),
+                net_vol: U256::from(9_500_000),
+            },
+        };
+
+        let err = vault_vol.scale_18().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
     }
 }
