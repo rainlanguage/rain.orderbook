@@ -59,7 +59,6 @@
 		</Button>
 	{/if}
 	<Sidebar
-		scrol
 		activeUrl={page.url.pathname}
 		asideClass="w-64 z-10 fixed h-screen"
 		bind:hidden={sideBarHidden}

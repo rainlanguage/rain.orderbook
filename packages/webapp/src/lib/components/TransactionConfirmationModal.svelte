@@ -17,7 +17,7 @@
 		confirmationState = result.state;
 	}
 
-	$: if (open) {
+	$: if (open && args) {
 		init();
 	}
 </script>
