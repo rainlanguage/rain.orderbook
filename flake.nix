@@ -284,7 +284,7 @@
             packages.ob-tauri-before-release
             packages.tauri-rs-test
           ];
-          shellHook = rainix.devShells.${system}.tauri-shell.shellHook + '' unset DEVELOPER_DIR SDKROOT '';
+          shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
           nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
