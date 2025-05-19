@@ -68,7 +68,10 @@ mod tests {
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
-    use alloy::primitives::Address;
+    use alloy::primitives::{
+        ruint::{BaseConvertError, ParseError},
+        Address,
+    };
 
     #[test]
     fn test_token_get_decimals_ok() {
@@ -129,12 +132,45 @@ mod tests {
     }
 
     #[test]
-    fn test_scale_18_io() {
+    fn test_scale_18_io_ok() {
         let (input, output) = get_trade().scale_18_io().unwrap();
         let expected_input = U256::from_str("3000000000000000000").unwrap();
         let expected_output = U256::from_str("6000000000000000000").unwrap();
         assert_eq!(input, expected_input);
         assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_scale_18_io_err() {
+        let mut trade = get_trade();
+        trade.output_vault_balance_change.amount = SgBigInt("bad int".to_string());
+        let err = trade.scale_18_io().unwrap_err();
+        assert!(matches!(
+            err,
+            PerformanceError::ParseUnsignedError(ParseError::BaseConvertError(
+                BaseConvertError::InvalidDigit(_, _)
+            ))
+        ));
+
+        let mut trade = get_trade();
+        trade.input_vault_balance_change.amount = SgBigInt("-1.1".to_string());
+        let err = trade.scale_18_io().unwrap_err();
+        assert!(matches!(
+            err,
+            PerformanceError::ParseUnsignedError(ParseError::InvalidDigit('.'))
+        ));
+
+        let mut trade = get_trade();
+        trade.input_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("bad int".to_string()));
+        let err = trade.scale_18_io().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
+
+        let mut trade = get_trade();
+        trade.output_vault_balance_change.vault.token.decimals =
+            Some(SgBigInt("bad int".to_string()));
+        let err = trade.scale_18_io().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
     }
 
     #[test]
