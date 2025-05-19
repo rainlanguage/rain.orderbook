@@ -30,32 +30,31 @@ export type DepositOrWithdrawArgs = {
 	account: Hex;
 };
 
+export enum TransactionName {
+	REMOVAL = 'Order Removal'
+}
+
 export enum TransactionStatusMessage {
 	IDLE = 'Idle',
 	CHECKING_ALLOWANCE = 'Checking your allowance...',
 	PENDING_WALLET = 'Waiting for wallet confirmation...',
 	PENDING_APPROVAL = 'Approving token spend...',
+	PENDING_RECEIPT = 'Waiting for transaction receipt...',
 	PENDING_DEPLOYMENT = 'Deploying your order...',
 	PENDING_WITHDRAWAL = 'Withdrawing tokens...',
 	PENDING_DEPOSIT = 'Depositing tokens...',
 	PENDING_REMOVE_ORDER = 'Removing order...',
 	PENDING_SUBGRAPH = 'Awaiting subgraph...',
-	SUCCESS = 'Success! Transaction confirmed',
+	SUCCESS = 'Transaction confirmed',
 	ERROR = 'Something went wrong'
 }
 
 export enum TransactionErrorMessage {
-	BAD_CALLDATA = 'Bad calldata.',
-	TIMEOUT = 'The subgraph took too long to respond.',
-	APPROVAL_FAILED = 'Approval transaction failed.',
-	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
-	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
 	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
-	DEPOSIT_FAILED = 'Failed to deposit tokens.',
-	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
-	REMOVE_ORDER_FAILED = 'Failed to remove order.',
-	SUBGRAPH_FAILED = 'Failed to index order removal.'
+	SUBGRAPH_TIMEOUT_ERROR = 'The subgraph took too long to respond. Your transaction may still be processing.',
+	SUBGRAPH_FAILED = 'Failed to index transaction.',
+	RECEIPT_FAILED = 'Failed to get transaction receipt.'
 }
 
 export type DepositOrWithdrawTransactionArgs = {
@@ -77,6 +76,7 @@ export type InternalTransactionArgs = {
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
+	name: TransactionName;
 	errorMessage: string;
 	successMessage: string;
 	queryKey: string;
@@ -95,8 +95,6 @@ export type TransactionState = {
 	explorerLink: string;
 };
 
-export type DeploymentArgsWithoutAccount = Omit<DeploymentArgs, 'account'>;
-
-export type DeploymentTransactionArgs = DeploymentArgsWithoutAccount & {
+export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {
 	config: Config;
 };

@@ -29,11 +29,6 @@ vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
 	};
 });
 
-vi.mock('../lib/components/Sidebar.svelte', async () => {
-	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: MockSidebar };
-});
-
 vi.mock('$lib/components/Sidebar.svelte', async () => {
 	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return { default: MockComponent };

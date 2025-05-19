@@ -14,12 +14,10 @@ import {
 	getTransactionAddOrders,
 	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook';
-
+import { TransactionErrorMessage } from '$lib/types/transaction';
 /**
  * Error message when subgraph indexing times out
  */
-export const TIMEOUT_ERROR =
-	'The subgraph took too long to respond. Your transaction may still be processing.';
 
 /**
  * Result of a subgraph indexing operation
@@ -128,7 +126,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 					clearInterval(checkInterval);
 
 					let orderHash;
-					// Extract orderHash from order data if it exists in the expected format
+
 					if (
 						Array.isArray(data.value) &&
 						data.value.length > 0 &&
@@ -156,7 +154,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			if (attempts >= maxAttempts) {
 				clearInterval(checkInterval);
 				resolve({
-					error: TIMEOUT_ERROR
+					error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 				});
 				return;
 			}

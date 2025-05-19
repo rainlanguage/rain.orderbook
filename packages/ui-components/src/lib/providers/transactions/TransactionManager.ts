@@ -1,10 +1,11 @@
 import { writable, type Readable, type Writable } from 'svelte/store';
 import type { QueryClient } from '@tanstack/svelte-query';
-import { TransactionStore, type Transaction } from '../../models/Transaction';
+import { TransactionStore, type Transaction } from '$lib/models/Transaction';
 import type { InternalTransactionArgs, TransactionArgs } from '$lib/types/transaction';
 import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
+import { TransactionName } from '$lib/types/transaction';
 
 /**
  * Function type for adding toast notifications to the UI
@@ -67,6 +68,7 @@ export class TransactionManager {
 	 * });
 	 */
 	public async createRemoveOrderTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
 		const queryKey = args.orderHash;
@@ -85,6 +87,7 @@ export class TransactionManager {
 		];
 		return this.createTransaction({
 			...args,
+			name,
 			errorMessage,
 			successMessage,
 			queryKey,
@@ -95,6 +98,7 @@ export class TransactionManager {
 	/**
 	 * Creates and executes a new transaction instance
 	 * @param args - Configuration for the transaction
+	 * @param args.pendingMessage - Message to display on pending transaction
 	 * @param args.errorMessage - Message to display on transaction failure
 	 * @param args.successMessage - Message to display on transaction success
 	 * @param args.queryKey - Key used for query invalidation

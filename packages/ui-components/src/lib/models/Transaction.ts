@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
 import { TransactionStatusMessage, TransactionErrorMessage } from '$lib/types/transaction';
-import type { TransactionArgs } from '$lib/types/transaction';
+import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	getRemoveOrderConfig
@@ -14,23 +14,18 @@ import { writable, type Writable, get } from 'svelte/store';
 /**
  * Represents the possible states of a transaction
  * @typedef {Object} TransactionState
+ * @property {TransactionName} name - The name of the transaction
  * @property {TransactionStatusMessage} status - The current status of the transaction
- * @property {string} message - A descriptive message about the current state
  * @property {string} explorerLink - Link to view the transaction on a block explorer
  * @property {Hex} [hash] - Optional transaction hash for successful transactions
  * @property {TransactionErrorMessage} [errorDetails] - Optional error details for failed transactions
  */
-export type TransactionState =
-	| { status: TransactionStatusMessage.IDLE; message: string; explorerLink: string }
-	| { status: TransactionStatusMessage.PENDING_REMOVE_ORDER; message: string; explorerLink: string }
-	| { status: TransactionStatusMessage.PENDING_SUBGRAPH; message: string; explorerLink: string }
-	| { status: TransactionStatusMessage.SUCCESS; message: string; explorerLink: string; hash?: Hex }
-	| {
-			status: TransactionStatusMessage.ERROR;
-			message: string;
-			explorerLink: string;
-			errorDetails?: TransactionErrorMessage;
-	  };
+export type TransactionState = {
+	name: TransactionName;
+	status: TransactionStatusMessage;
+	explorerLink: string;
+	errorDetails?: TransactionErrorMessage;
+};
 
 /**
  * Interface defining the structure of a transaction
@@ -42,17 +37,19 @@ export type Transaction = {
 };
 
 /**
- * Manages the lifecycle of a blockchain transaction
+ * Manages the lifecycle of a transaction including receipt confirmation and subgraph indexing
  * @class TransactionStore
  * @implements {Transaction}
  */
 export class TransactionStore implements Transaction {
+	private name: TransactionName;
 	private config: Config;
 	private chainId: number;
 	private subgraphUrl: string;
 	private txHash: Hex;
 	private onSuccess: () => void;
 	private onError: () => void;
+
 
 	public readonly state: Writable<TransactionState>;
 
@@ -71,26 +68,19 @@ export class TransactionStore implements Transaction {
 		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
+		this.name = args.name;
 		this.state = writable<TransactionState>({
 			status: TransactionStatusMessage.IDLE,
-			message: '',
-			explorerLink: ''
+			explorerLink: '',
+			name: this.name
 		});
 		this.onSuccess = onSuccess;
 		this.onError = onError;
 	}
 
 	/**
-	 * Gets the current message from the transaction state
-	 * @returns {string} The current transaction message
-	 */
-	public get message(): string {
-		return get(this.state).message;
-	}
-
-	/**
 	 * Updates the transaction state with new values
-	 * @param {Partial<TransactionState>} partialState - The new state values to merge
+	 * @param {Partial<TransactionState>} partialState - The new state values to merge with current state
 	 * @private
 	 */
 	private updateState(partialState: Partial<TransactionState>): void {
@@ -106,11 +96,6 @@ export class TransactionStore implements Transaction {
 	 */
 	public async execute(): Promise<void> {
 		const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
-		this.updateState({
-			status: TransactionStatusMessage.IDLE,
-			message: 'Starting order removal.',
-			explorerLink
-		});
 		await this.waitForTxReceipt(this.txHash);
 	}
 
@@ -123,21 +108,14 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			this.updateState({
-				status: TransactionStatusMessage.PENDING_REMOVE_ORDER,
-				message: `Waiting for transaction receipt...`
+				status: TransactionStatusMessage.PENDING_RECEIPT,
 			});
-
 			await waitForTransactionReceipt(this.config, { hash });
-
-			this.updateState({
-				message: 'Transaction receipt received.'
-			});
-
 			this.indexTransaction(this.txHash);
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
-				message: 'Failed to get transaction receipt.'
+				errorDetails: TransactionErrorMessage.RECEIPT_FAILED
 			});
 			return this.onError();
 		}
@@ -152,7 +130,6 @@ export class TransactionStore implements Transaction {
 	private async indexTransaction(txHash: Hex): Promise<void> {
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH,
-			message: 'Waiting for order removal to be indexed...'
 		});
 
 		try {
@@ -161,25 +138,23 @@ export class TransactionStore implements Transaction {
 			);
 
 			await match(result)
-				.with({ error: TransactionErrorMessage.TIMEOUT }, () => {
+				.with({ error: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR }, () => {
 					this.updateState({
 						status: TransactionStatusMessage.ERROR,
-						message: 'Subgraph indexing timed out.'
+						errorDetails: TransactionErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 					});
 					return this.onError();
 				})
-				.with({ value: P.not(P.nullish) }, ({ value }) => {
+				.with({ value: P.not(P.nullish) }, () => {
 					this.updateState({
 						status: TransactionStatusMessage.SUCCESS,
-						hash: value.txHash as Hex,
-						message: 'Order removal indexed successfully.'
 					});
 					return this.onSuccess();
 				})
 				.otherwise(() => {
 					this.updateState({
 						status: TransactionStatusMessage.ERROR,
-						message: 'Unknown error during indexing.'
+						errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED
 					});
 					return this.onError();
 				});
@@ -187,7 +162,6 @@ export class TransactionStore implements Transaction {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
 				errorDetails: TransactionErrorMessage.SUBGRAPH_FAILED,
-				message: 'Failed to index order removal.'
 			});
 			return this.onError();
 		}
