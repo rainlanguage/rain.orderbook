@@ -17,9 +17,9 @@ const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await
 );
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getVaultDepositCalldata: vi.fn().mockResolvedValue({ to: '0x123', data: '0x456' }),
-	getVaultApprovalCalldata: vi.fn().mockResolvedValue({ to: '0x789', data: '0xabc' }),
-	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ to: '0xdef', data: '0xghi' })
+	getVaultDepositCalldata: vi.fn().mockResolvedValue({ value: '0x456' }),
+	getVaultApprovalCalldata: vi.fn().mockResolvedValue({ value: '0xabc' }),
+	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ value: '0xghi' })
 }));
 
 vi.mock('../lib/stores/wagmi', () => ({
@@ -109,8 +109,8 @@ describe('DepositOrWithdrawModal', () => {
 			vault: mockVault,
 			config: mockWeb3Config,
 			subgraphUrl: undefined,
-			approvalCalldata: { to: '0x789', data: '0xabc' },
-			transactionCalldata: { to: '0x123', data: '0x456' }
+			approvalCalldata: '0xabc',
+			transactionCalldata: '0x456'
 		});
 	});
 
@@ -137,7 +137,7 @@ describe('DepositOrWithdrawModal', () => {
 
 		expect(handleTransactionSpy).toHaveBeenCalledWith({
 			config: mockWeb3Config,
-			transactionCalldata: { to: '0xdef', data: '0xghi' },
+			transactionCalldata: '0xghi',
 			action: 'withdraw',
 			chainId: 1,
 			vault: mockVault,
@@ -270,7 +270,9 @@ describe('DepositOrWithdrawModal', () => {
 
 	it('handles deposit without approval when approval fails', async () => {
 		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
-		vi.mocked(getVaultApprovalCalldata).mockRejectedValueOnce(new Error('Approval not needed'));
+		(getVaultApprovalCalldata as Mock).mockResolvedValueOnce({
+			error: { msg: 'Approval not needed' }
+		});
 
 		render(DepositOrWithdrawModal, defaultProps);
 
@@ -292,7 +294,7 @@ describe('DepositOrWithdrawModal', () => {
 			config: mockWeb3Config,
 			subgraphUrl: undefined,
 			approvalCalldata: undefined,
-			transactionCalldata: { to: '0x123', data: '0x456' }
+			transactionCalldata: '0x456'
 		});
 	});
 
