@@ -64,8 +64,8 @@
 			$showInactiveOrders,
 			$orderHash
 		],
-		queryFn: ({ pageParam }) => {
-			return getOrders(
+		queryFn: async ({ pageParam }) => {
+			const result = await getOrders(
 				multiSubgraphArgs,
 				{
 					owners,
@@ -74,6 +74,8 @@
 				},
 				{ page: pageParam + 1, pageSize: DEFAULT_PAGE_SIZE }
 			);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		initialPageParam: 0,
 		getNextPageParam(lastPage, _allPages, lastPageParam) {
