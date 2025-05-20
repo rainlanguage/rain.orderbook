@@ -104,3 +104,338 @@ impl MultiOrderbookSubgraphClient {
         Ok(all_vaults)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs};
+    use httpmock::prelude::*;
+    use reqwest::Url;
+    use serde_json::json;
+
+    fn sample_sg_order(id_suffix: &str, timestamp: &str) -> SgOrder {
+        SgOrder {
+            id: SgBytes(format!("0xorder_id_{}", id_suffix)),
+            order_bytes: SgBytes("0x00".to_string()),
+            order_hash: SgBytes(format!("0xhash_{}", id_suffix)),
+            owner: SgBytes("0xdefault_owner".to_string()),
+            outputs: vec![],
+            inputs: vec![],
+            orderbook: SgOrderbook {
+                id: SgBytes("0xdefault_orderbook_id".to_string()),
+            },
+            active: true,
+            timestamp_added: SgBigInt(timestamp.to_string()),
+            meta: None,
+            add_events: vec![],
+            trades: vec![],
+            remove_events: vec![],
+        }
+    }
+
+    fn default_filter_args() -> SgOrdersListFilterArgs {
+        SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+        }
+    }
+
+    fn default_pagination_args() -> SgPaginationArgs {
+        SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_no_subgraphs() {
+        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_one_subgraph_returns_orders() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "subgraph_alpha";
+
+        let order1_s1 = sample_sg_order("s1_1", "100");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order1_s1]}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg1_url,
+            name: sg1_name.to_string(),
+        }]);
+
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), 1);
+        assert_eq!(orders[0].order.id, order1_s1.id);
+        assert_eq!(orders[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_multiple_subgraphs_merge_and_sort() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_two";
+
+        let order_a_s1 = sample_sg_order("s1_A", "100");
+        let order_b_s2 = sample_sg_order("s2_B", "200");
+        let order_c_s2 = sample_sg_order("s2_C", "50");
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order_b_s2, order_c_s2]}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+
+        assert_eq!(orders.len(), 3);
+        assert_eq!(orders[0].order.id, order_b_s2.id);
+        assert_eq!(orders[0].subgraph_name, sg2_name);
+        assert_eq!(orders[1].order.id, order_a_s1.id);
+        assert_eq!(orders[1].subgraph_name, sg1_name);
+        assert_eq!(orders[2].order.id, order_c_s2.id);
+        assert_eq!(orders[2].subgraph_name, sg2_name);
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_multiple_subgraphs_some_empty() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_two_empty";
+
+        let order_a_s1 = sample_sg_order("s1_A", "100");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body(json!({"data": {"orders": []}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), 1);
+        assert_eq!(orders[0].order.id, order_a_s1.id);
+        assert_eq!(orders[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_one_subgraph_errors_others_succeed() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one_ok";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_two_error";
+
+        let order_a_s1 = sample_sg_order("s1_A", "100");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), 1);
+        assert_eq!(orders[0].order.id, order_a_s1.id);
+        assert_eq!(orders[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_all_subgraphs_error() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one_err";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_two_err";
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_invalid_timestamp_string_sorts_as_zero() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one";
+
+        let order_a = sample_sg_order("A", "100");
+        let order_b = sample_sg_order("B", "invalid_timestamp");
+        let order_c = sample_sg_order("C", "50");
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": [order_a, order_b, order_c]}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg1_url,
+            name: sg1_name.to_string(),
+        }]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), 3);
+        assert_eq!(orders[0].order.id, order_a.id);
+        assert_eq!(orders[1].order.id, order_c.id);
+        assert_eq!(orders[2].order.id, order_b.id);
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_sorts_various_timestamps_correctly() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_one";
+
+        let order_a = sample_sg_order("A", "0");
+        let order_b = sample_sg_order("B", "9999999999999");
+        let order_c = sample_sg_order("C", "1");
+        let order_d = sample_sg_order("D", "-10");
+        let order_e = sample_sg_order("E", "another_invalid");
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body(
+                json!({"data": {"orders": [order_a, order_b, order_c, order_d, order_e]}}),
+            );
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg1_url,
+            name: sg1_name.to_string(),
+        }]);
+        let result = client
+            .orders_list(default_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), 5);
+
+        assert_eq!(orders[0].order.id, order_b.id);
+        assert_eq!(orders[1].order.id, order_c.id);
+
+        let ids_for_ts_zero: Vec<&SgBytes> = orders
+            .iter()
+            .filter(|o| o.order.timestamp_added.0.parse::<i64>().unwrap_or(0) == 0)
+            .map(|o| &o.order.id)
+            .collect();
+        assert!(ids_for_ts_zero.contains(&&order_a.id));
+        assert!(ids_for_ts_zero.contains(&&order_e.id));
+        assert_eq!(orders[4].order.id, order_d.id);
+
+        let order_ids_sorted: Vec<SgBytes> = orders.into_iter().map(|o| o.order.id).collect();
+        assert_eq!(order_ids_sorted[0], order_b.id);
+        assert_eq!(order_ids_sorted[1], order_c.id);
+
+        assert!(
+            (order_ids_sorted[2] == order_a.id && order_ids_sorted[3] == order_e.id)
+                || (order_ids_sorted[2] == order_e.id && order_ids_sorted[3] == order_a.id)
+        );
+        assert_eq!(order_ids_sorted[4], order_d.id);
+    }
+}
