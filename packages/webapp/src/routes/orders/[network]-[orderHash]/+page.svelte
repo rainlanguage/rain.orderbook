@@ -7,18 +7,22 @@
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
+	import {
+		handleDepositModal,
+		handleWithdrawModal,
+		handleOrderRemoveModal
+	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
-	const { settings } = $page.data.stores;
+	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
-	const rpcUrl = $settings.networks[network]?.rpc;
-	const chainId = $settings.networks[network]?.['chain-id'];
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 
 	function onRemove(order: SgOrder) {
@@ -36,35 +40,36 @@
 		});
 	}
 
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		const network = $page.params.network;
-		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-
-		handleDepositOrWithdrawModal({
+	function onDeposit(vault: SgVault) {
+		handleDepositModal({
 			open: true,
 			args: {
 				vault,
 				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
+					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
 				},
-				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
 				account: $account as Hex
 			}
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
-	}
-
 	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+		handleWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
+				},
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				account: $account as Hex
+			}
+		});
 	}
 </script>
 

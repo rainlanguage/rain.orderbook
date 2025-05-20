@@ -2,7 +2,7 @@
 	import { invalidateTanstackQueries, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
+	import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
@@ -16,15 +16,14 @@
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { account } = useAccount();
 
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		handleDepositOrWithdrawModal({
+	function onDeposit(vault: SgVault) {
+		handleDepositModal({
 			open: true,
 			args: {
 				vault,
 				onDepositOrWithdraw: () => {
 					invalidateTanstackQueries(queryClient, [$page.params.id]);
 				},
-				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl,
@@ -33,12 +32,20 @@
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
-	}
-
 	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+		handleWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				onDepositOrWithdraw: () => {
+					invalidateTanstackQueries(queryClient, [$page.params.id]);
+				},
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				account: $account as Hex
+			}
+		});
 	}
 </script>
 
