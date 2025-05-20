@@ -10,6 +10,9 @@ vi.mock('$lib/services/modal', () => ({
 }));
 
 describe('handleVaultAction', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
 	const mockVault = {
 		id: 'test-vault',
 		token: {
