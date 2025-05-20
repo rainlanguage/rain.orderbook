@@ -54,8 +54,8 @@ fn update_volume_details(
     vol_details: &mut VolumeDetails,
     amount: &str,
 ) -> Result<(), PerformanceError> {
-    if amount.starts_with('-') {
-        let amount = U256::from_str(&amount[1..])?;
+    if let Some(stripped) = amount.strip_prefix('-') {
+        let amount = U256::from_str(stripped)?;
         vol_details.total_out = safe_add(vol_details.total_out, amount)?;
         vol_details.total_vol = safe_add(vol_details.total_vol, amount)?;
     } else {
@@ -75,8 +75,8 @@ fn update_volume_details(
 
 /// Helper function to create new volume details from an amount
 fn create_volume_details(amount: &str) -> Result<VolumeDetails, PerformanceError> {
-    if amount.starts_with('-') {
-        let amount = U256::from_str(&amount[1..])?;
+    if let Some(stripped) = amount.strip_prefix('-') {
+        let amount = U256::from_str(stripped)?;
         Ok(VolumeDetails {
             total_in: U256::ZERO,
             total_out: amount,
