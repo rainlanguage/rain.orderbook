@@ -174,9 +174,12 @@ describe('WithdrawModal', () => {
 	});
 
 	it('shows loading state while checking calldata', async () => {
+		vi.mocked(getVaultWithdrawCalldata).mockImplementationOnce(
+			() => new Promise((resolve) => setTimeout(() => resolve({ value: '0xghi', error: undefined }), 100))
+		);
+
 		render(WithdrawModal, defaultProps);
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
@@ -187,7 +190,10 @@ describe('WithdrawModal', () => {
 		const withdrawButton = screen.getByTestId('withdraw-button');
 		await fireEvent.click(withdrawButton);
 
-		expect(screen.getByText('Checking...')).toBeInTheDocument();
+		await waitFor(() => {
+			const button = screen.getByTestId('withdraw-button');
+			expect(button).toHaveTextContent('Checking...');
+		});
 	});
 
 	it('handles failed calldata fetch', async () => {
@@ -195,7 +201,6 @@ describe('WithdrawModal', () => {
 
 		render(WithdrawModal, defaultProps);
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
