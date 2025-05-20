@@ -1,8 +1,8 @@
 import type { ChartData, DeploymentsDebugDataMap } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 
-export const makeChartData = async (dotrain: string): Promise<ChartData> =>
-  invoke('make_charts', { dotrain });
+export const makeChartData = async (dotrain: string, settings?: string): Promise<ChartData> =>
+  invoke('make_charts', { dotrain, settings });
 
 export const makeDeploymentsDebugDataMap = async (
   dotrain: string,
