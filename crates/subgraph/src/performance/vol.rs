@@ -75,32 +75,23 @@ fn update_volume_details(
 
 /// Helper function to create new volume details from an amount
 fn create_volume_details(amount: &str) -> Result<VolumeDetails, PerformanceError> {
-    let mut total_in = U256::ZERO;
-    let mut total_out = U256::ZERO;
-    let mut total_vol = U256::ZERO;
-
     if amount.starts_with('-') {
         let amount = U256::from_str(&amount[1..])?;
-        total_out = safe_add(total_out, amount)?;
-        total_vol = safe_add(total_vol, amount)?;
+        Ok(VolumeDetails {
+            total_in: U256::ZERO,
+            total_out: amount,
+            total_vol: amount,
+            net_vol: amount,
+        })
     } else {
         let amount = U256::from_str(amount)?;
-        total_in = safe_add(total_in, amount)?;
-        total_vol = safe_add(total_vol, amount)?;
+        Ok(VolumeDetails {
+            total_in: amount,
+            total_out: U256::ZERO,
+            total_vol: amount,
+            net_vol: amount,
+        })
     }
-
-    let net_vol = if total_in >= total_out {
-        safe_sub(total_in, total_out)?
-    } else {
-        safe_sub(total_out, total_in)?
-    };
-
-    Ok(VolumeDetails {
-        total_in,
-        total_out,
-        total_vol,
-        net_vol,
-    })
 }
 
 /// Helper function to process a vault balance change
@@ -179,6 +170,36 @@ mod tests {
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
     use alloy::primitives::{Address, B256};
+
+    #[test]
+    fn test_safe_add() {
+        // Happy path
+        assert_eq!(
+            safe_add(U256::from(5), U256::from(3)).unwrap(),
+            U256::from(8)
+        );
+
+        // Overflow case
+        assert!(matches!(
+            safe_add(U256::MAX, U256::from(1)).unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
+
+    #[test]
+    fn test_safe_sub() {
+        // Happy path
+        assert_eq!(
+            safe_sub(U256::from(5), U256::from(3)).unwrap(),
+            U256::from(2)
+        );
+
+        // Underflow case
+        assert!(matches!(
+            safe_sub(U256::from(1), U256::from(2)).unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
 
     #[test]
     fn test_is_net_vol_negative() {
@@ -649,6 +670,10 @@ mod tests {
         assert_eq!(vol_details.total_out, U256::from(15));
         assert_eq!(vol_details.total_vol, U256::from(15));
         assert_eq!(vol_details.net_vol, U256::from(15));
+
+        // Test invalid amount
+        let err = create_volume_details("bad int").unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseUnsignedError(_)));
     }
 
     #[test]
@@ -673,5 +698,33 @@ mod tests {
         assert_eq!(vaults_vol.len(), 1);
         assert_eq!(vaults_vol[0].vol_details.total_in, U256::from(20));
         assert_eq!(vaults_vol[0].vol_details.total_out, U256::from(10));
+    }
+
+    #[test]
+    fn test_process_vault_balance_change_overflow() {
+        let mut vaults_vol = Vec::new();
+        let token = SgErc20 {
+            id: SgBytes("token1".to_string()),
+            address: SgBytes("token1".to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        // First add a value that's max - 1
+        let max_minus_one = U256::MAX - U256::from(1);
+        process_vault_balance_change(
+            &mut vaults_vol,
+            "vault1",
+            &token,
+            &max_minus_one.to_string(),
+        )
+        .unwrap();
+
+        // Now try to add 2, which should overflow
+        assert!(matches!(
+            process_vault_balance_change(&mut vaults_vol, "vault1", &token, "2").unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
     }
 }
