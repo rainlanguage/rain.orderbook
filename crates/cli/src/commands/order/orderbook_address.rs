@@ -238,7 +238,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_execute_non_existing_file() {
         let orderbook_adress = OrderbookAddress {
-            dotrain_file: PathBuf::from_str("non-existing-file.rain").unwrap().into(),
+            dotrain_file: PathBuf::from_str("non-existing-file.rain").unwrap(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
