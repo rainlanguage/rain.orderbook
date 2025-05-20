@@ -157,7 +157,7 @@ impl QuoteSpec {
         let url = Url::from_str(subgraph_url)?;
         let sg_client = OrderbookSubgraphClient::new(url);
         let order_detail = sg_client
-            .order_detail(Id::new(encode_prefixed(self.get_id())))
+            .order_detail(&Id::new(encode_prefixed(self.get_id())))
             .await?;
 
         Ok(QuoteTarget {
