@@ -5,9 +5,9 @@ use rain_orderbook_common::fuzz::*;
 use tauri::State;
 
 #[tauri::command]
-pub async fn make_charts(dotrain: String) -> CommandResult<ChartData> {
+pub async fn make_charts(dotrain: String, settings: Option<String>) -> CommandResult<ChartData> {
     let runner = FuzzRunner::new(None);
-    let mut context = FuzzRunnerContext::new(&dotrain, None, None)?;
+    let mut context = FuzzRunnerContext::new(&dotrain, settings, None)?;
     Ok(runner.make_chart_data(&mut context).await?)
 }
 
@@ -27,10 +27,13 @@ pub async fn make_deployment_debug(
 mod tests {
     use super::*;
     use crate::error::CommandError;
-    use alloy::primitives::{Address, U256};
-    use rain_orderbook_app_settings::plot_source::{
-        DotOptionsCfg, HexBinOptionsCfg, HexBinTransformCfg, MarkCfg, TransformCfg,
-        TransformOutputsCfg,
+    use alloy::primitives::U256;
+    use rain_orderbook_app_settings::{
+        plot_source::{
+            DotOptionsCfg, HexBinOptionsCfg, HexBinTransformCfg, MarkCfg, TransformCfg,
+            TransformOutputsCfg,
+        },
+        yaml::YamlError,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::str::FromStr;
@@ -204,7 +207,7 @@ deployers:
         );
 
         let dotrain = format!("{}\n{}\n---\n{}", dotrain_prefix, HAPPY_CHART, RAINLANG);
-        let res = make_charts(dotrain, settings).await.unwrap();
+        let res = make_charts(dotrain, Some(settings)).await.unwrap();
 
         assert_eq!(res.scenarios_data.len(), 1);
         let scenario_data = res.scenarios_data.get("flare").unwrap();
@@ -332,11 +335,17 @@ charts:
 "#,
             RAINLANG
         );
-        let err = make_charts(dotrain, settings).await.unwrap_err();
+        let err = make_charts(dotrain, Some(settings)).await.unwrap_err();
 
-        assert_eq!(
-            err.to_string(),
-            FuzzRunnerError::ScenarioNotFound("missing".to_string()).to_string()
+        assert!(
+            matches!(
+                err,
+                CommandError::FuzzRunnerError(FuzzRunnerError::YamlError(YamlError::KeyNotFound(
+                    _
+                )))
+            ),
+            "Expected KeyNotFound error, got {:?}",
+            err
         );
     }
 
@@ -361,7 +370,7 @@ charts:
         );
 
         let dotrain = format!("{}\n{}\n---\n{}", dotrain_prefix, HAPPY_CHART, RAINLANG);
-        let err = make_charts(dotrain, settings).await.unwrap_err();
+        let err = make_charts(dotrain, Some(settings)).await.unwrap_err();
 
         assert!(matches!(
             err,
