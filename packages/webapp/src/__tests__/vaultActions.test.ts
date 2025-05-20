@@ -67,7 +67,7 @@ describe('handleVaultAction', () => {
 
 	it('invalidates queries when onDepositOrWithdraw is called', () => {
 		handleVaultAction(mockParams);
-
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const callArgs = (handleDepositOrWithdrawModal as any).mock.calls[0][0];
 		const onDepositOrWithdraw = callArgs.args.onDepositOrWithdraw;
 
