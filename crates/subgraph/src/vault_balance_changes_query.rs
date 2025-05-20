@@ -158,10 +158,34 @@ mod tests {
             "Old balance mismatch"
         );
         assert_eq!(actual.vault.id, expected.vault.id, "Vault ref ID mismatch");
+        assert_eq!(
+            actual.vault.vault_id, expected.vault.vault_id,
+            "Vault ID mismatch"
+        );
+        assert_eq!(
+            actual.vault.token.id, expected.vault.token.id,
+            "Token ID mismatch"
+        );
         assert_eq!(actual.timestamp, expected.timestamp, "Timestamp mismatch");
         assert_eq!(
             actual.transaction.id, expected.transaction.id,
             "Transaction ID mismatch"
+        );
+        assert_eq!(
+            actual.transaction.from, expected.transaction.from,
+            "Transaction sender mismatch"
+        );
+        assert_eq!(
+            actual.transaction.block_number, expected.transaction.block_number,
+            "Block number mismatch"
+        );
+        assert_eq!(
+            actual.transaction.timestamp, expected.transaction.timestamp,
+            "Transaction timestamp mismatch"
+        );
+        assert_eq!(
+            actual.orderbook.id, expected.orderbook.id,
+            "Orderbook ID mismatch"
         );
     }
 
