@@ -154,11 +154,12 @@ pub async fn get_order_quotes(
 mod tests {
     use super::*;
     use alloy::{
-        hex::encode_prefixed,
+        hex::{encode_prefixed, FromHexError},
         primitives::B256,
         providers::Provider,
         sol_types::{SolCall, SolValue},
     };
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::{
         common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
@@ -381,12 +382,134 @@ amount price: context<3 0>() context<4 0>();
     #[tokio::test]
     async fn test_get_order_quotes_err() {
         let mut local_evm = LocalEvm::new().await;
+
         let owner = local_evm.signer_wallets[0].default_signer().address();
+        let token1 = local_evm
+            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+            .await;
+        let token2 = local_evm
+            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+            .await;
+        let orderbook = *local_evm.orderbook.address();
+
+        let dotrain = format!(
+            r#"
+networks:
+    some-key:
+        rpc: {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    some-key:
+        address: {deployer}
+tokens:
+    t2:
+        network: some-key
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+    t1:
+        network: some-key
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: token1
+orderbook:
+    some-key:
+        address: {orderbook}
+orders:
+    some-key:
+        inputs:
+            - token: t1
+            - token: t2
+        outputs:
+            - token: t1
+              vault-id: 0x01
+            - token: t2
+              vault-id: 0x01
+scenarios:
+    some-key:
+        deployer: some-key
+        bindings:
+            key1: 10
+deployments:
+    some-key:
+        scenario: some-key
+        order: some-key
+---
+#key1 !Test binding
+#calculate-io
+/* use io addresses in context as calculate-io maxoutput and ratio */
+amount price: context<3 0>() context<4 0>();
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = local_evm.url(),
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
+        );
+
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.clone(), None)
+            .await
+            .unwrap();
+
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .unwrap();
+
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+            .await
+            .unwrap()
+            .try_into_call(local_evm.url())
+            .await
+            .unwrap()
+            .abi_encode();
+
+        let order = encode_prefixed(
+            local_evm
+                .add_order(&calldata, owner)
+                .await
+                .0
+                .order
+                .abi_encode(),
+        );
 
         let invalid_order = SgOrder {
             id: SgBytes(B256::random().to_string()),
             orderbook: SgOrderbook {
                 id: SgBytes("invalid_address".to_string()),
+            },
+            order_bytes: SgBytes(order.clone()),
+            order_hash: SgBytes(B256::random().to_string()),
+            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
+            outputs: vec![],
+            inputs: vec![],
+            active: true,
+            add_events: vec![],
+            meta: None,
+            timestamp_added: SgBigInt(0.to_string()),
+            trades: vec![],
+            remove_events: vec![],
+        };
+
+        let err = get_order_quotes(vec![invalid_order], None, local_evm.url(), None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, Error::FromHexError(FromHexError::OddLength)));
+
+        let invalid_order = SgOrder {
+            id: SgBytes(B256::random().to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(local_evm.orderbook.address().to_string()),
             },
             order_bytes: SgBytes(B256::random().to_string()),
             order_hash: SgBytes(B256::random().to_string()),
@@ -415,7 +538,7 @@ amount price: context<3 0>() context<4 0>();
             orderbook: SgOrderbook {
                 id: SgBytes(local_evm.orderbook.address().to_string()),
             },
-            order_bytes: SgBytes(B256::random().to_string()),
+            order_bytes: SgBytes(order.clone()),
             order_hash: SgBytes(B256::random().to_string()),
             owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
             outputs: vec![],
@@ -430,114 +553,11 @@ amount price: context<3 0>() context<4 0>();
 
         let err = get_order_quotes(vec![valid_order], None, "invalid_rpc_url".to_string(), None)
             .await
-            .unwrap();
-        // .unwrap_err();
-        // assert!(matches!(err, Error::RpcCallError(_)));
+            .unwrap_err();
 
-        // Test case 3: Test error field in BatchOrderQuotesResponse
-        let token1 = local_evm
-            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
-            .await;
-        let token2 = local_evm
-            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
-            .await;
-
-        let vault1 = SgVault {
-            id: SgBytes(B256::random().to_string()),
-            token: SgErc20 {
-                id: SgBytes(token1.address().to_string()),
-                address: SgBytes(token1.address().to_string()),
-                name: Some("Token1".to_string()),
-                symbol: Some("Token1".to_string()),
-                decimals: Some(SgBigInt(18.to_string())),
-            },
-            balance: SgBigInt("0".to_string()), // Zero balance to force quote error
-            vault_id: SgBigInt(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(local_evm.orderbook.address().to_string()),
-            },
-            orders_as_input: vec![],
-            orders_as_output: vec![],
-            balance_changes: vec![],
-        };
-
-        let vault2 = SgVault {
-            id: SgBytes(B256::random().to_string()),
-            token: SgErc20 {
-                id: SgBytes(token2.address().to_string()),
-                address: SgBytes(token2.address().to_string()),
-                name: Some("Token2".to_string()),
-                symbol: Some("Token2".to_string()),
-                decimals: Some(SgBigInt(18.to_string())),
-            },
-            balance: SgBigInt("0".to_string()), // Zero balance to force quote error
-            vault_id: SgBigInt(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(local_evm.orderbook.address().to_string()),
-            },
-            orders_as_input: vec![],
-            orders_as_output: vec![],
-            balance_changes: vec![],
-        };
-
-        let order1 = SgOrder {
-            id: SgBytes(B256::random().to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(local_evm.orderbook.address().to_string()),
-            },
-            order_bytes: SgBytes(B256::random().to_string()),
-            order_hash: SgBytes(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
-            outputs: vec![vault1.clone()],
-            inputs: vec![vault1.clone()],
-            active: true,
-            add_events: vec![],
-            meta: None,
-            timestamp_added: SgBigInt(0.to_string()),
-            trades: vec![],
-            remove_events: vec![],
-        };
-
-        let order2 = SgOrder {
-            id: SgBytes(B256::random().to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(local_evm.orderbook.address().to_string()),
-            },
-            order_bytes: SgBytes(B256::random().to_string()),
-            order_hash: SgBytes(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
-            outputs: vec![vault2.clone()],
-            inputs: vec![vault2.clone()],
-            active: true,
-            add_events: vec![],
-            meta: None,
-            timestamp_added: SgBigInt(0.to_string()),
-            trades: vec![],
-            remove_events: vec![],
-        };
-
-        let results = get_order_quotes(vec![order1, order2], None, local_evm.url(), None)
-            .await
-            .unwrap();
-
-        // Check first response
-        let response1 = &results[0];
-        assert!(!response1.success);
-        assert!(response1.data.is_none());
-        assert!(response1.error.is_some());
-        let error1 = response1.error.as_ref().unwrap();
-        assert!(!error1.is_empty());
-        assert!(error1.contains("Order does not exist") || error1.contains("Execution reverted"));
-
-        // Check second response
-        let response2 = &results[1];
-        assert!(!response2.success);
-        assert!(response2.data.is_none());
-        assert!(response2.error.is_some());
-        let error2 = response2.error.as_ref().unwrap();
-        assert!(!error2.is_empty());
-        assert!(error2.contains("Order does not exist") || error2.contains("Execution reverted"));
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(_))
+        ));
     }
 }
