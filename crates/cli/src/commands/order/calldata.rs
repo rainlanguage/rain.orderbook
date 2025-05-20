@@ -68,7 +68,10 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
+    use std::io::Write;
     use std::str::FromStr;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn verify_cli() {
@@ -114,10 +117,69 @@ mod tests {
         );
     }
 
+    async fn mock_orderbook_rpc_calls(rpc_server: &MockServer) {
+        // mock iInterpreter() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xf0cfdd37");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        1,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock iStore() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xc19423bc");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        2,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock iParser() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0x24376855");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        3,
+                        &B256::left_padding_from(Address::random().as_slice()).to_string(),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+        // mock parse2() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc").body_contains("0xa3869e14");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    Response::new_success(
+                        4,
+                        &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()),
+                    )
+                    .to_json_string()
+                    .unwrap(),
+                );
+        });
+    }
+
     #[tokio::test]
     async fn test_execute() {
         let rpc_server = MockServer::start_async().await;
-        let dotrain = format!(
+        let dotrain_content = format!(
             "
 raindex-version: {raindex_version}
 networks:
@@ -189,66 +251,284 @@ _ _: 0 0;
             raindex_version = "1234"
         );
 
-        let dotrain_path = "./test_dotrain1.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content).unwrap();
+        let dotrain_path = temp_dotrain_file.path();
 
-        // mock rpc response data
-        // mock iInterpreter() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xf0cfdd37");
-            then.body(
-                Response::new_success(
-                    1,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock iStore() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xc19423bc");
-            then.body(
-                Response::new_success(
-                    2,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock iParser() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x24376855");
-            then.body(
-                Response::new_success(
-                    3,
-                    &B256::left_padding_from(Address::random().as_slice()).to_string(),
-                )
-                .to_json_string()
-                .unwrap(),
-            );
-        });
-        // mock parse2() call
-        rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xa3869e14");
-            then.body(
-                Response::new_success(4, &encode_prefixed(Bytes::from(vec![1, 2]).abi_encode()))
-                    .to_json_string()
-                    .unwrap(),
-            );
-        });
+        mock_orderbook_rpc_calls(&rpc_server).await;
 
         let add_order_calldata = AddOrderCalldata {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_path.to_path_buf(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
-        // should succeed without err
         add_order_calldata.execute().await.unwrap();
+    }
 
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
+    #[tokio::test]
+    async fn test_execute_non_existent_dotrain_file() {
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: PathBuf::from("./non_existent_test_dotrain.rain"),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(
+            result.is_err(),
+            "Expected an error due to non-existent .rain file"
+        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No such file or directory"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_non_existent_settings_file() {
+        let temp_dotrain_content = "
+networks:
+    some-network:
+        rpc: http://localhost:8545
+        chain-id: 1
+        network-id: 1
+        currency: ETH
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+orders:
+    some-order:
+        deployer: some-deployer
+        orderbook: 0x0000000000000000000000000000000000000000
+        inputs: []
+        outputs: []
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+:;";
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", temp_dotrain_content).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: Some(PathBuf::from("./non_existent_settings.yaml")),
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(
+            result.is_err(),
+            "Expected an error due to non-existent settings file"
+        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No such file or directory"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_empty_dotrain_file() {
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "").unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert_eq!(err.to_string(), YamlError::EmptyFile.to_string());
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_yaml_dotrain_file() {
+        let invalid_yaml_content = "
+test: test
+---
+    :;";
+
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", invalid_yaml_content).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("some-deployment".to_string()),
+                location: "deployments".to_string()
+            }
+            .to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_execute_invalid_rainlang_script() {
+        let rpc_server = MockServer::start_async().await;
+        mock_orderbook_rpc_calls(&rpc_server).await;
+
+        let dotrain_content_invalid_script = format!(
+            "
+raindex-version: 1234
+networks:
+  some-network:
+    rpc: {}
+    chain-id: 1
+subgraphs:
+  some-subgraph: https://www.some-subgraph.com
+orderbooks:
+  some-orderbook:
+    address: 0x0000000000000000000000000000000000000000
+    network: some-network
+    subgraph: some-subgraph
+deployers:
+  some-deployer:
+    network: some-network
+    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+scenarios:
+  some-scenario:
+    network: some-network
+    deployer: some-deployer
+orders:
+  some-order:
+    deployer: some-deployer
+    orderbook: some-orderbook
+    inputs:
+      - token: token1
+    outputs:
+      - token: token1
+deployments:
+  some-deployment:
+    scenario: some-scenario
+    order: some-order
+tokens:
+  token1:
+    network: some-network
+    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+---
+",
+            rpc_server.url("/rpc").as_str()
+        );
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content_invalid_script).unwrap();
+        let temp_dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: temp_dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let result = add_order_calldata.execute().await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_no_rpc_response() {
+        let dotrain_content = "
+raindex-version: 1234
+networks:
+    some-network:
+        rpc: http://localhost:12345/nonexistent_rpc
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: T1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: T2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        network: some-network
+        deployer: some-deployer
+        bindings:
+            key: 10
+
+orders:
+    some-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vault-id: 1
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    some-deployment:
+        scenario: some-scenario
+        order: some-order
+---
+#key !Test binding key
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;";
+
+        let mut temp_dotrain_file = NamedTempFile::new().unwrap();
+        write!(temp_dotrain_file, "{}", dotrain_content).unwrap();
+        let dotrain_path = temp_dotrain_file.path();
+
+        let add_order_calldata = AddOrderCalldata {
+            dotrain_file: dotrain_path.to_path_buf(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+
+        let err = add_order_calldata.execute().await.unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Execution reverted with unknown error"));
     }
 }
