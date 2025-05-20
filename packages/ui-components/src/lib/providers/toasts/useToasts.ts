@@ -1,21 +1,23 @@
 import { getToastsContext } from './context';
-import { get } from 'svelte/store';
 import type { ToastProps } from '$lib/types/toast';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Hook for managing toast notifications in the application.
  * Provides functionality to add, remove, and access toast notifications.
  *
- * @returns An object containing the toast store and methods to manipulate toasts
+ * @returns {Object} An object containing:
+ *   - toasts: Writable store containing all active toast notifications
+ *   - addToast: Function to add a new toast notification
+ *   - removeToast: Function to remove a toast notification by index
  */
 export function useToasts() {
 	const toasts = getToastsContext();
 
 	/**
-	 * Removes a toast notification by its index
+	 * Removes a toast notification by its index from the toasts store
 	 *
-	 * @param index - The index of the toast to remove
+	 * @param {number} index - The index of the toast to remove
+	 * @returns {void}
 	 */
 	const removeToast = (index: number) => {
 		toasts.update((toasts) => {
@@ -27,35 +29,39 @@ export function useToasts() {
 	};
 
 	/**
-	 * Adds a new toast notification and automatically removes it after 3 seconds
+	 * Adds a new toast notification to the toasts store
 	 *
-	 * @param toast - The toast properties (message and type)
+	 * @param {ToastProps} toast - The toast configuration object containing:
+	 *   - message: The text to display in the toast
+	 *   - type: The type of toast (success, error, warning, info)
+	 *   - color: The color theme of the toast (green, red, yellow, blue)
+	 *   - links: Optional array of links to display in the toast
+	 * @returns {void}
 	 */
 	const addToast = (toast: ToastProps) => {
-		const newToast: ToastProps = { ...toast, id: uuidv4() };
-
-		let addedToastIndex = -1;
 		toasts.update((toasts) => {
-			const updatedToasts = [...toasts, newToast];
-			addedToastIndex = updatedToasts.length - 1;
+			const updatedToasts = [...toasts, toast];
 			return updatedToasts;
 		});
-		const toastId = newToast.id;
+	};
 
-		if (addedToastIndex > -1) {
-			setTimeout(() => {
-				const currentToasts = get(toasts);
-				const currentIndex = currentToasts.findIndex((t) => t.id === toastId);
-				if (currentIndex > -1) {
-					removeToast(currentIndex);
-				}
-			}, 3000);
-		}
+	/**
+	 * Adds a standardized error toast notification
+	 *
+	 * @param message - The error message to display
+	 */
+	const errToast = (message: string) => {
+		addToast({
+			message,
+			type: 'error',
+			color: 'red'
+		});
 	};
 
 	return {
 		toasts,
 		addToast,
-		removeToast
+		removeToast,
+		errToast
 	};
 }
