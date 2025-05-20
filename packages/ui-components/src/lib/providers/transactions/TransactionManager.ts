@@ -71,14 +71,42 @@ export class TransactionManager {
 		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
-		const queryKey = args.orderHash;
+		const queryKey = args.queryKey;
 		const networkKey = args.networkKey;
 
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/orders/${networkKey}-${args.orderHash}`,
+				link: `/orders/${networkKey}-${args.queryKey}`,
 				label: 'View Order'
+			},
+			{
+				link: explorerLink,
+				label: 'View transaction'
+			}
+		];
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks
+		});
+	}
+
+	public async createWithdrawTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const name = TransactionName.WITHDRAWAL;
+		const errorMessage = 'Withdrawal failed.';
+		const successMessage = 'Withdrawal successful.';
+		const queryKey = args.queryKey;
+		const networkKey = args.networkKey;
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: `/vaults/${networkKey}-${args.queryKey}`,
+				label: 'View vault'
 			},
 			{
 				link: explorerLink,

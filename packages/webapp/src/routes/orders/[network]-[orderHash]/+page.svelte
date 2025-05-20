@@ -13,10 +13,14 @@
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { getRemoveOrderCalldata, type SgOrder, type SgVault } from '@rainlanguage/orderbook';
+	import {
+		getRemoveOrderCalldata,
+		getVaultWithdrawCalldata,
+		type SgOrder,
+		type SgVault
+	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
-	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
@@ -25,21 +29,22 @@
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
+	const queryClient = useQueryClient();
 
 	function onRemove(order: SgOrder) {
 		handleTransactionConfirmationModal({
 			open: true,
 			args: {
-				order,
+				entity: order,
 				orderbookAddress,
 				chainId,
 				onConfirm: (txHash: Hex) => {
 					manager.createRemoveOrderTransaction({
 						subgraphUrl,
 						txHash,
-						orderHash,
 						chainId,
-						networkKey: network
+						networkKey: network,
+						queryKey: orderHash
 					});
 				},
 				getCalldataFn: () => getRemoveOrderCalldata(order)
@@ -47,29 +52,54 @@
 		});
 	}
 
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		const modalHandler = action === 'deposit' ? handleDepositModal : handleWithdrawModal;
-		modalHandler({
+	function onDeposit(vault: SgVault) {
+		handleDepositModal({
 			open: true,
 			args: {
 				vault,
-				onSuccess: () => {
-					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
+				onDeposit: () => {
+					invalidateTanstackQueries(queryClient, [orderHash]);
 				},
 				chainId,
 				rpcUrl,
 				subgraphUrl,
+				// Casting to Hex since the buttons cannot appear if account is null
 				account: $account as Hex
 			}
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
-	}
-
 	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+		handleWithdrawModal({
+			open: true,
+			args: {
+				vault,
+				chainId,
+				rpcUrl,
+				subgraphUrl,
+				account: $account as Hex
+			},
+			onSubmit: (amount: bigint) => {
+				handleTransactionConfirmationModal({
+					open: true,
+					args: {
+						entity: vault,
+						orderbookAddress,
+						chainId,
+						onConfirm: (txHash: Hex) => {
+							manager.createWithdrawTransaction({
+								subgraphUrl,
+								txHash,
+								chainId,
+								networkKey: network,
+								queryKey: vault.id
+							});
+						},
+						getCalldataFn: () => getVaultWithdrawCalldata(vault, amount.toString())
+					}
+				});
+			}
+		});
 	}
 </script>
 
