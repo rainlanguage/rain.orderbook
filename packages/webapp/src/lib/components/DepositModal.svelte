@@ -31,6 +31,10 @@
 		throw new Error(`Chain with id ${chainId} not found`);
 	}
 
+	/**
+	 * Modal component for depositing tokens into a vault.
+	 * This component should only be used for deposit actions.
+	 */
 	export let open: boolean;
 	export let args: VaultActionArgs;
 
@@ -104,8 +108,8 @@
 					depositCalldataResult.value,
 					!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
 				);
+				currentStep = 2;
 			}
-			currentStep = 2;
 		} catch {
 			errorMessage = 'Failed to get calldata.';
 		} finally {

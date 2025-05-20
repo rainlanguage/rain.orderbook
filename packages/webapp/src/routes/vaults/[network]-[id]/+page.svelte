@@ -11,9 +11,9 @@
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { account } = useAccount();
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {

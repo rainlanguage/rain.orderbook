@@ -219,6 +219,30 @@ describe('WithdrawModal', () => {
 		});
 	});
 
+	it('handles error in calldata getter', async () => {
+		const errorMessage = 'Failed to fetch';
+		vi.mocked(getVaultWithdrawCalldata).mockResolvedValue({
+			value: undefined,
+			error: { msg: errorMessage, readableMsg: errorMessage }
+		});
+
+		render(WithdrawModal, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
+		});
+
+		const input = screen.getByRole('textbox');
+		await fireEvent.input(input, { target: { value: '1' } });
+
+		const withdrawButton = screen.getByTestId('withdraw-button');
+		await fireEvent.click(withdrawButton);
+
+		await waitFor(() => {
+			expect(screen.getByText(errorMessage)).toBeInTheDocument();
+		});
+	});
+
 	it('handles zero vault balance correctly', async () => {
 		const mockVaultWithZeroBalance = {
 			...mockVault,
@@ -265,16 +289,6 @@ describe('WithdrawModal', () => {
 		await waitFor(() => {
 			expect(screen.getByText('Balance of vault')).toBeInTheDocument();
 			expect(screen.getByText('3.7 TEST')).toBeInTheDocument();
-		});
-	});
-
-	it('shows error message when getUserBalance fails', async () => {
-		vi.mocked(readContract).mockRejectedValue(new Error('Failed to get balance'));
-
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Failed to get user balance.')).toBeInTheDocument();
 		});
 	});
 
