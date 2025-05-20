@@ -6396,6 +6396,7 @@ dependencies = [
  "rain_orderbook_common",
  "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
+ "rain_orderbook_test_fixtures",
  "reqwest 0.12.5",
  "rust-bigint",
  "serde",
