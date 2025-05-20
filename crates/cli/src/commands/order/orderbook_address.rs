@@ -237,6 +237,18 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_non_existing_file() {
+        let orderbook_adress = OrderbookAddress {
+            dotrain_file: PathBuf::from_str("non-existing-file.rain").unwrap().into(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+        // should return err
+        orderbook_adress.execute().await.unwrap_err();
+    }
+
+    #[tokio::test]
+    async fn test_execute_empty_dotrain() {
         let dotrain_file = NamedTempFile::new().unwrap();
 
         let orderbook_adress = OrderbookAddress {
