@@ -18,7 +18,8 @@ describe('ToastDetail', () => {
 		vi.mocked(useToasts).mockReturnValue({
 			removeToast: mockRemoveToast,
 			toasts: writable([]),
-			addToast: vi.fn()
+			addToast: vi.fn(),
+			errToast: vi.fn()
 		});
 	});
 

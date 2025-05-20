@@ -45,9 +45,23 @@ export function useToasts() {
 		});
 	};
 
+	/**
+	 * Adds a standardized error toast notification
+	 *
+	 * @param message - The error message to display
+	 */
+	const errToast = (message: string) => {
+		addToast({
+			message,
+			type: 'error',
+			color: 'red'
+		});
+	};
+
 	return {
 		toasts,
 		addToast,
-		removeToast
+		removeToast,
+		errToast
 	};
 }
