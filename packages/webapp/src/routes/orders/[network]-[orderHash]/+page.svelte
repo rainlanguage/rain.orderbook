@@ -18,7 +18,7 @@
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
-	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
+	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
@@ -40,12 +40,13 @@
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleDepositModal({
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		const modalHandler = action === 'deposit' ? handleDepositModal : handleWithdrawModal;
+		modalHandler({
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: () => {
+				onSuccess: () => {
 					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
 				},
 				chainId,
@@ -56,20 +57,12 @@
 		});
 	}
 
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
 	function onWithdraw(vault: SgVault) {
-		handleWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
-				},
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				account: $account as Hex
-			}
-		});
+		handleVaultAction(vault, 'withdraw');
 	}
 </script>
 

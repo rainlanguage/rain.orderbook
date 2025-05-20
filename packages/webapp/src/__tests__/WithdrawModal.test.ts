@@ -175,7 +175,10 @@ describe('WithdrawModal', () => {
 
 	it('shows loading state while checking calldata', async () => {
 		vi.mocked(getVaultWithdrawCalldata).mockImplementationOnce(
-			() => new Promise((resolve) => setTimeout(() => resolve({ value: '0xghi', error: undefined }), 100))
+			() =>
+				new Promise((resolve) =>
+					setTimeout(() => resolve({ value: '0xghi', error: undefined }), 100)
+				)
 		);
 
 		render(WithdrawModal, defaultProps);
@@ -313,4 +316,4 @@ describe('WithdrawModal', () => {
 			expect(screen.queryByTestId('withdraw-button')).not.toBeInTheDocument();
 		});
 	});
-}); 
+});

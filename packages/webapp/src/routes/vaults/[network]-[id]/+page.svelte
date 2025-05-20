@@ -11,17 +11,18 @@
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { account } = useAccount();
 
-	function onDeposit(vault: SgVault) {
-		handleDepositModal({
+	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+		const modalHandler = action === 'deposit' ? handleDepositModal : handleWithdrawModal;
+		modalHandler({
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: () => {
+				onSuccess: () => {
 					invalidateTanstackQueries(queryClient, [$page.params.id]);
 				},
 				chainId,
@@ -32,20 +33,12 @@
 		});
 	}
 
+	function onDeposit(vault: SgVault) {
+		handleVaultAction(vault, 'deposit');
+	}
+
 	function onWithdraw(vault: SgVault) {
-		handleWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [$page.params.id]);
-				},
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				account: $account as Hex
-			}
-		});
+		handleVaultAction(vault, 'withdraw');
 	}
 </script>
 

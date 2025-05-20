@@ -3,7 +3,7 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type VaultActionArgs
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
@@ -32,7 +32,7 @@
 	}
 
 	export let open: boolean;
-	export let args: Omit<DepositOrWithdrawArgs, 'action'>;
+	export let args: VaultActionArgs;
 
 	const { vault, chainId, rpcUrl, subgraphUrl, account } = args;
 

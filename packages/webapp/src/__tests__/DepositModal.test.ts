@@ -4,7 +4,7 @@ import DepositModal from '$lib/components/DepositModal.svelte';
 import { transactionStore } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultApprovalCalldata, type SgVault } from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata } from '@rainlanguage/orderbook';
 import { getVaultDepositCalldata } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
@@ -305,4 +305,4 @@ describe('DepositModal', () => {
 			expect(screen.queryByTestId('deposit-button')).not.toBeInTheDocument();
 		});
 	});
-}); 
+});

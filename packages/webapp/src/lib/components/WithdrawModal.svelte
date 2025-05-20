@@ -3,7 +3,7 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type VaultActionArgs
 	} from '@rainlanguage/ui-components';
 	import { getVaultWithdrawCalldata, type VaultCalldataResult } from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
@@ -28,9 +28,9 @@
 	}
 
 	export let open: boolean;
-	export let args: Omit<DepositOrWithdrawArgs, 'action'>;
+	export let args: VaultActionArgs;
 
-	const { vault, chainId, rpcUrl, subgraphUrl, account } = args;
+	const { vault, chainId, subgraphUrl, account } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
