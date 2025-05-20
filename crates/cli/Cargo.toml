@@ -38,3 +38,5 @@ tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time
 httpmock = "0.7.0"
 serde_json = { workspace = true }
 rain-metadata = { workspace = true }
+tempfile.workspace = true
+rain_orderbook_test_fixtures = { workspace = true }

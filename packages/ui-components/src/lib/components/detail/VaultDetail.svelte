@@ -20,7 +20,7 @@
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
 	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
-
+	import { useToasts } from '$lib/providers/toasts/useToasts';
 	export let id: string;
 	export let network: string;
 	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
@@ -43,11 +43,14 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
+	const { errToast } = useToasts();
 
 	$: vaultDetailQuery = createQuery<SgVault>({
 		queryKey: [id, QKEY_VAULT + id],
-		queryFn: () => {
-			return getVault(subgraphUrl || '', id);
+		queryFn: async () => {
+			const result = await getVault(subgraphUrl || '', id);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});
@@ -64,6 +67,14 @@
 	onDestroy(() => {
 		clearInterval(interval);
 	});
+
+	const handleRefresh = async () => {
+		try {
+			await invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
+		} catch {
+			errToast('Failed to refresh');
+		}
+	};
 </script>
 
 <TanstackPageContentDetail query={vaultDetailQuery} emptyMessage="Vault not found">
@@ -98,7 +109,7 @@
 
 			<Refresh
 				testId="top-refresh"
-				on:click={() => invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id])}
+				on:click={handleRefresh}
 				spin={$vaultDetailQuery.isLoading || $vaultDetailQuery.isFetching}
 			/>
 		</div>

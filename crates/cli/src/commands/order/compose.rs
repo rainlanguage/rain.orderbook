@@ -42,14 +42,17 @@ impl Execute for Compose {
             None => None,
         };
 
-        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain, settings.map(|v| vec![v]))
+            .await?;
 
         let rainlang = if self.post {
-            order
+            dotrain_order
                 .compose_scenario_to_post_task_rainlang(self.scenario.clone())
                 .await?
         } else {
-            order
+            dotrain_order
                 .compose_scenario_to_rainlang(self.scenario.clone())
                 .await?
         };
