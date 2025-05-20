@@ -74,13 +74,14 @@ _ _: 0 0;
 	it('should compose deployment to rainlang', async () => {
 		const dotrainOrder = await DotrainOrder.create(dotrain);
 		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
+		if (!result.value) assert.fail('expected to resolve, but failed');
 		const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
 /* 1. handle-io */ 
 :;`;
 
-		assert.equal(result, expected);
+		assert.equal(result.value, expected);
 	});
 
 	it('should compose scenario to rainlang with config', async () => {
@@ -94,12 +95,13 @@ scenarios:
 `;
 		const dotrainOrder = await DotrainOrder.create(dotrain, [config]);
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
+		if (!result.value) assert.fail('expected to resolve, but failed');
 		const expected = `/* 0. calculate-io */ 
 _ _: 0 0;
 
 /* 1. handle-io */ 
 :;`;
 
-		assert.equal(result, expected);
+		assert.equal(result.value, expected);
 	});
 });
