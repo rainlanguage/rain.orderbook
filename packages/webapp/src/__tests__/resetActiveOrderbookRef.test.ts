@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resetActiveOrderbookRef } from '../lib/services/resetActiveOrderbookRef';
 import { writable } from 'svelte/store';
 import type { OrderbookConfigSource } from '@rainlanguage/orderbook';
-import type { AppStoresInterface } from '@rainlanguage/ui-components';
+import { type AppStoresInterface } from '@rainlanguage/ui-components';
 
 const createMockOrderbookConfigSource = (
 	address: string,
@@ -43,5 +43,15 @@ describe('resetActiveOrderbookRef', () => {
 		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookConfigSource>>(undefined);
 		resetActiveOrderbookRef(mockActiveOrderbookRef, mockActiveNetworkOrderbooksStore);
 		expect(mockActiveOrderbookRef.set).toHaveBeenCalledWith(undefined);
+	});
+
+	it('should throw error if activeNetworkOrderbooksStore value is null', () => {
+		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookConfigSource> | null>(
+			null
+		) as AppStoresInterface['activeNetworkOrderbooks'];
+		expect(() =>
+			resetActiveOrderbookRef(mockActiveOrderbookRef, mockActiveNetworkOrderbooksStore)
+		).toThrow('Error resetting active orderbook');
+		expect(mockActiveOrderbookRef.set).not.toHaveBeenCalled();
 	});
 });

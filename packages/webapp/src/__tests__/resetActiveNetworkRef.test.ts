@@ -47,4 +47,21 @@ describe('resetActiveNetworkRef', () => {
 		await resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);
 		expect(mockActiveNetworkRef.set).toHaveBeenCalledWith(undefined);
 	});
+
+	it('should set activeNetworkRef to undefined if settings store value is null', async () => {
+		mockSettingsStore = writable<ConfigSource | null | undefined>(
+			null
+		) as AppStoresInterface['settings'];
+		await resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);
+		expect(mockActiveNetworkRef.set).toHaveBeenCalledWith(undefined);
+	});
+
+	it('should throw error if networks is null in settings', () => {
+		const settingsWithNullNetworks = { networks: null } as unknown as ConfigSource;
+		mockSettingsStore = writable<ConfigSource | undefined>(settingsWithNullNetworks);
+		expect(() => resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore)).toThrow(
+			'Error resetting active network'
+		);
+		expect(mockActiveNetworkRef.set).not.toHaveBeenCalled();
+	});
 });

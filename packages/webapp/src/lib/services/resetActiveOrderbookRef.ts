@@ -13,11 +13,18 @@ export function resetActiveOrderbookRef(
 	activeOrderbookRef: AppStoresInterface['activeOrderbookRef'],
 	activeNetworkOrderbooksStore: AppStoresInterface['activeNetworkOrderbooks']
 ) {
-	const $activeNetworkOrderbooks = get(activeNetworkOrderbooksStore);
+	try {
+		const $activeNetworkOrderbooks = get(activeNetworkOrderbooksStore);
 
-	if ($activeNetworkOrderbooks && Object.keys($activeNetworkOrderbooks).length > 0) {
-		activeOrderbookRef.set(Object.keys($activeNetworkOrderbooks)[0]);
-	} else {
-		activeOrderbookRef.set(undefined);
+		if (
+			$activeNetworkOrderbooks !== undefined &&
+			Object.keys($activeNetworkOrderbooks).length > 0
+		) {
+			activeOrderbookRef.set(Object.keys($activeNetworkOrderbooks)[0]);
+		} else {
+			activeOrderbookRef.set(undefined);
+		}
+	} catch {
+		throw new Error('Error resetting active orderbook');
 	}
 }

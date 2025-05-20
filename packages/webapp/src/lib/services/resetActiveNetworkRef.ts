@@ -9,16 +9,20 @@ import type { AppStoresInterface } from '@rainlanguage/ui-components';
  * @param activeNetworkRef - The store reference for the active network
  * @param settingsStore - The store containing network settings
  */
-export async function resetActiveNetworkRef(
+export function resetActiveNetworkRef(
 	activeNetworkRef: AppStoresInterface['activeNetworkRef'],
 	settingsStore: AppStoresInterface['settings']
 ) {
-	const $settings = get(settingsStore);
-	const networks = $settings?.networks;
+	try {
+		const $settings = get(settingsStore);
+		const networks = $settings?.networks;
 
-	if (networks !== undefined && Object.keys(networks).length > 0) {
-		activeNetworkRef.set(Object.keys(networks)[0]);
-	} else {
-		activeNetworkRef.set(undefined);
+		if (networks !== undefined && Object.keys(networks).length > 0) {
+			activeNetworkRef.set(Object.keys(networks)[0]);
+		} else {
+			activeNetworkRef.set(undefined);
+		}
+	} catch {
+		throw new Error('Error resetting active network');
 	}
 }

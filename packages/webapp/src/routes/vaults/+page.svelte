@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable, useToasts } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
 	import { activeSubgraphs } from '$lib/stores/settings';
 	import { resetActiveNetworkRef } from '$lib/services/resetActiveNetworkRef';
 	import { resetActiveOrderbookRef } from '$lib/services/resetActiveOrderbookRef';
+
+	const { errToast } = useToasts();
 
 	const {
 		activeOrderbook,
@@ -22,8 +24,16 @@
 
 	onMount(async () => {
 		if (!$activeOrderbook) {
-			await resetActiveNetworkRef(activeNetworkRef, settings);
-			resetActiveOrderbookRef(activeOrderbookRef, activeNetworkOrderbooks);
+			try {
+				resetActiveNetworkRef(activeNetworkRef, settings);
+			} catch (error) {
+				errToast((error as Error).message);
+			}
+			try {
+				resetActiveOrderbookRef(activeOrderbookRef, activeNetworkOrderbooks);
+			} catch (error) {
+				errToast((error as Error).message);
+			}
 		}
 	});
 </script>
