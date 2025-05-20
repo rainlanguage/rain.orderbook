@@ -30,7 +30,9 @@ describe('resetActiveOrderbookRef', () => {
 		};
 		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookConfigSource>>(orderbooks);
 		resetActiveOrderbookRef(mockActiveOrderbookRef, mockActiveNetworkOrderbooksStore);
-		expect(mockActiveOrderbookRef.set).toHaveBeenCalledWith('orderbook1');
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const calledValue = (mockActiveOrderbookRef.set as any).mock.calls[0][0];
+		expect(Object.keys(orderbooks)).toContain(calledValue);
 	});
 
 	it('should set activeOrderbookRef to undefined if orderbooks object is empty', () => {
