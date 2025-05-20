@@ -424,7 +424,7 @@ mod tests {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
-                new_vault_balance: new_vault_balance,
+                new_vault_balance,
                 amount: SgBigInt("7000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
                 vault: SgVaultBalanceChangeVault {
