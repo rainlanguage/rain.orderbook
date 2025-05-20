@@ -4,7 +4,23 @@
  */
 
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
-import type { WasmEncodedResult } from '@rainlanguage/orderbook';
+import type {
+	getTransactionRemoveOrders,
+	getTransaction,
+	getTransactionAddOrders,
+	WasmEncodedResult
+} from '@rainlanguage/orderbook';
+
+export type AwaitSubgraphConfig = {
+	subgraphUrl: string;
+	txHash: string;
+	successMessage: string;
+	fetchEntityFn:
+		| typeof getTransaction
+		| typeof getTransactionRemoveOrders
+		| typeof getTransactionAddOrders;
+	isSuccess: (data: any) => boolean;
+};
 
 /**
  * Result of a subgraph indexing operation
@@ -116,6 +132,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			if (data.value && isSuccess(data.value)) {
 				let orderHash;
 				// Extract orderHash from order data if it exists in the expected format
+				// This only applies to addOrder transactions
 				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
 					orderHash = data.value[0].order.orderHash;
 				}

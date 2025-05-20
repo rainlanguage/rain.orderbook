@@ -7,16 +7,13 @@ import type {
 	DeploymentTransactionArgs,
 	DepositOrWithdrawTransactionArgs
 } from '$lib/types/transaction';
-import {
-	awaitSubgraphIndexing
-} from '$lib/services/awaitTransactionIndexing';
+import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import {
 	getTransaction,
 	getTransactionAddOrders,
 	type SgAddOrderWithOrder,
 	type SgTransaction
 } from '@rainlanguage/orderbook';
-
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');

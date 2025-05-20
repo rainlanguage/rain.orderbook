@@ -7,9 +7,7 @@ import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } 
 import { getTransaction, type SgVault, type VaultCalldataResult } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
-import {
-	awaitSubgraphIndexing
-} from '../lib/services/awaitTransactionIndexing';
+import { awaitSubgraphIndexing } from '../lib/services/awaitTransactionIndexing';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn(),

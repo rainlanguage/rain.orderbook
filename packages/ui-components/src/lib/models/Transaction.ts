@@ -4,7 +4,7 @@ import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/typ
 import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
-	getRemoveOrderConfig
+	type AwaitSubgraphConfig
 } from '$lib/services/awaitTransactionIndexing';
 import type { Config } from '@wagmi/core';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
@@ -48,7 +48,7 @@ export class TransactionStore implements Transaction {
 	private txHash: Hex;
 	private onSuccess: () => void;
 	private onError: () => void;
-
+	private awaitSubgraphConfig: AwaitSubgraphConfig;
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
@@ -72,6 +72,7 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.IDLE,
 			explorerLink: ''
 		});
+		this.awaitSubgraphConfig = args.awaitSubgraphConfig;
 		this.onSuccess = onSuccess;
 		this.onError = onError;
 	}
@@ -132,8 +133,7 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
-		const config = getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully');
-		const result = await awaitSubgraphIndexing(config);
+		const result = await awaitSubgraphIndexing(this.awaitSubgraphConfig);
 
 		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
 			this.updateState({

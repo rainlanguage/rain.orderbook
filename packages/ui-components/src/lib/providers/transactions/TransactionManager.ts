@@ -6,6 +6,13 @@ import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { TransactionName } from '$lib/types/transaction';
+import {
+	getTransaction,
+	getTransactionRemoveOrders,
+	type SgRemoveOrderWithOrder,
+	type SgTransaction,
+	type WasmEncodedResult
+} from '@rainlanguage/orderbook';
 
 /**
  * Function type for adding toast notifications to the UI
@@ -91,7 +98,14 @@ export class TransactionManager {
 			errorMessage,
 			successMessage,
 			queryKey,
-			toastLinks
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransactionRemoveOrders,
+				isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
+			}
 		});
 	}
 
@@ -119,7 +133,14 @@ export class TransactionManager {
 			errorMessage,
 			successMessage,
 			queryKey,
-			toastLinks
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransaction,
+				isSuccess: (data: SgTransaction) => !!data
+			}
 		});
 	}
 

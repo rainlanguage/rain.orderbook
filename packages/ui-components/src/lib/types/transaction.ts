@@ -3,7 +3,10 @@ import type {
 	SgVault,
 	ApprovalCalldata,
 	VaultCalldataResult,
-	DepositAndAddOrderCalldataResult
+	DepositAndAddOrderCalldataResult,
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
@@ -72,6 +75,13 @@ export type InternalTransactionArgs = {
 	txHash: Hex;
 	networkKey: string;
 	queryKey: string;
+	awaitSubgraphConfig: {
+		subgraphUrl: string;
+		txHash: Hex;
+		successMessage: string;
+		fetchEntityFn: typeof getTransaction | typeof getTransactionRemoveOrders;
+		isSuccess: (data: any) => boolean;
+	};
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
