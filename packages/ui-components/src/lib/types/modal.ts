@@ -1,10 +1,10 @@
 import type { SgOrder, WasmEncodedResult } from '@rainlanguage/orderbook';
-import type { DepositOrWithdrawArgs, DeploymentArgs } from './transaction';
+import type { DeploymentArgs, VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
-export type DepositOrWithdrawModalProps = {
+export type VaultActionModalProps = {
 	open: boolean;
-	args: DepositOrWithdrawArgs;
+	args: VaultActionArgs;
 };
 
 export type DeployModalProps = {

@@ -8,7 +8,8 @@
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import {
-		handleDepositOrWithdrawModal,
+		handleDepositModal,
+		handleWithdrawModal,
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
@@ -19,9 +20,9 @@
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
-	const rpcUrl = $settings.networks[network]?.rpc;
-	const chainId = $settings.networks[network]?.['chain-id'];
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 
@@ -47,23 +48,17 @@
 	}
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		const network = $page.params.network;
-		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-
-		handleDepositOrWithdrawModal({
+		const modalHandler = action === 'deposit' ? handleDepositModal : handleWithdrawModal;
+		modalHandler({
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
+				onSuccess: () => {
+					invalidateTanstackQueries(queryClient, [$page.params.orderHash]);
 				},
-				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
 				account: $account as Hex
 			}
 		});

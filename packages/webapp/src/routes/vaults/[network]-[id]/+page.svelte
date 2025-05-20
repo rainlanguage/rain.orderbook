@@ -2,7 +2,7 @@
 	import { invalidateTanstackQueries, PageHeader, useAccount } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import { handleDepositOrWithdrawModal } from '$lib/services/modal';
+	import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
@@ -11,20 +11,20 @@
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { account } = useAccount();
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		handleDepositOrWithdrawModal({
+		const modalHandler = action === 'deposit' ? handleDepositModal : handleWithdrawModal;
+		modalHandler({
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: () => {
+				onSuccess: () => {
 					invalidateTanstackQueries(queryClient, [$page.params.id]);
 				},
-				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl,
