@@ -349,7 +349,7 @@ mod tests {
         assert_eq!(sorted2[1].timestamp.0, "100");
         assert_eq!(sorted2[2].timestamp.0, "50");
         let ts_zero_slice = &sorted2[3..5];
-        if ts_zero_slice[0].transaction.id.0.contains("d") {
+        if ts_zero_slice[0].transaction.id.0.contains('d') {
             assert_eq!(ts_zero_slice[0].timestamp.0, "not-a-number");
             assert_eq!(ts_zero_slice[1].timestamp.0, "0");
         } else {
