@@ -108,7 +108,9 @@ impl MultiOrderbookSubgraphClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs};
+    use crate::types::common::{
+        SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+    };
     use httpmock::prelude::*;
     use reqwest::Url;
     use serde_json::json;
@@ -437,5 +439,262 @@ mod tests {
                 || (order_ids_sorted[2] == order_e.id && order_ids_sorted[3] == order_a.id)
         );
         assert_eq!(order_ids_sorted[4], order_d.id);
+    }
+
+    fn sample_sg_erc20(id_suffix: &str) -> SgErc20 {
+        SgErc20 {
+            id: SgBytes(format!("0xtoken_id_{}", id_suffix)),
+            address: SgBytes(format!("0xtoken_address_{}", id_suffix)),
+            name: Some(format!("Token {}", id_suffix)),
+            symbol: Some(format!("TKN{}", id_suffix)),
+            decimals: Some(SgBigInt("18".to_string())),
+        }
+    }
+
+    fn sample_sg_orderbook(id_suffix: &str) -> SgOrderbook {
+        SgOrderbook {
+            id: SgBytes(format!("0xorderbook_id_{}", id_suffix)),
+        }
+    }
+
+    fn sample_sg_vault(id_suffix: &str) -> SgVault {
+        SgVault {
+            id: SgBytes(format!("0xvault_id_{}", id_suffix)),
+            owner: SgBytes(format!("0xowner_vault_{}", id_suffix)),
+            vault_id: SgBigInt(format!(
+                "{}",
+                id_suffix
+                    .chars()
+                    .filter_map(|c| c.to_digit(10))
+                    .fold(0, |acc, digit| acc * 10 + digit)
+                    + 1000
+            )),
+            balance: SgBigInt("1000000000000000000".to_string()),
+            token: sample_sg_erc20(id_suffix),
+            orderbook: sample_sg_orderbook(id_suffix),
+            orders_as_output: vec![],
+            orders_as_input: vec![],
+            balance_changes: vec![],
+        }
+    }
+
+    fn default_vault_filter_args() -> SgVaultsListFilterArgs {
+        SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_no_subgraphs() {
+        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_one_subgraph_returns_vaults() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "subgraph_gamma";
+
+        let vault1_s1 = sample_sg_vault("s1_v1");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": [vault1_s1]}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg1_url,
+            name: sg1_name.to_string(),
+        }]);
+
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults[0].vault.id, vault1_s1.id);
+        assert_eq!(vaults[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_multiple_subgraphs_merge() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_v_one";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_v_two";
+
+        let vault_a_s1 = sample_sg_vault("s1_VA");
+        let vault_b_s2 = sample_sg_vault("s2_VB");
+        let vault_c_s2 = sample_sg_vault("s2_VC");
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": [vault_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": [vault_b_s2, vault_c_s2]}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let vaults_with_names = result.unwrap();
+
+        assert_eq!(vaults_with_names.len(), 3);
+
+        let mut expected_vault_ids_with_names = std::collections::HashSet::new();
+        expected_vault_ids_with_names.insert((vault_a_s1.id.clone(), sg1_name.to_string()));
+        expected_vault_ids_with_names.insert((vault_b_s2.id.clone(), sg2_name.to_string()));
+        expected_vault_ids_with_names.insert((vault_c_s2.id.clone(), sg2_name.to_string()));
+
+        let actual_vault_ids_with_names: std::collections::HashSet<_> = vaults_with_names
+            .into_iter()
+            .map(|v| (v.vault.id, v.subgraph_name))
+            .collect();
+
+        assert_eq!(actual_vault_ids_with_names, expected_vault_ids_with_names);
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_multiple_subgraphs_some_empty() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_v_one";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_v_two_empty";
+
+        let vault_a_s1 = sample_sg_vault("s1_VA");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": [vault_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body(json!({"data": {"vaults": []}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults[0].vault.id, vault_a_s1.id);
+        assert_eq!(vaults[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_one_subgraph_errors_others_succeed() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_v_one_ok";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_v_two_error";
+
+        let vault_a_s1 = sample_sg_vault("s1_VA");
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": [vault_a_s1]}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), 1);
+        assert_eq!(vaults[0].vault.id, vault_a_s1.id);
+        assert_eq!(vaults[0].subgraph_name, sg1_name);
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_all_subgraphs_error() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let sg1_name = "sg_v_one_err";
+
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+        let sg2_name = "sg_v_two_err";
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: sg1_name.to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: sg2_name.to_string(),
+            },
+        ]);
+        let result = client
+            .vaults_list(default_vault_filter_args(), default_pagination_args())
+            .await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
     }
 }
