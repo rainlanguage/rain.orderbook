@@ -10,13 +10,13 @@
 	import {
 		getRemoveOrderCalldata,
 		getVaultApprovalCalldata,
+		getVaultDepositCalldata,
 		getVaultWithdrawCalldata,
 		type SgOrder,
 		type SgVault
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
-	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -27,6 +27,33 @@
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
+
+	async function handleDeposit(vault: SgVault, amount: bigint) {
+		const calldata = await getVaultDepositCalldata(vault, amount.toString());
+		if (calldata.error) {
+			return errToast(calldata.error.msg);
+		} else if (calldata.value) {
+			handleTransactionConfirmationModal({
+				open: true,
+				args: {
+					entity: vault,
+					orderbookAddress,
+					chainId,
+					onConfirm: (txHash: Hex) => {
+						manager.createDepositTransaction({
+							subgraphUrl,
+							txHash,
+							chainId,
+							networkKey: network,
+							queryKey: vault.id,
+							entity: vault
+						});
+					},
+					calldata: calldata.value
+				}
+			});
+		}
+	}
 
 	async function onRemove(order: SgOrder) {
 		let calldata: string;
@@ -71,26 +98,29 @@
 				account: $account as Hex
 			},
 			onSubmit: async (amount: bigint) => {
-				const transaction = await handleVaultDeposit(
-					rpcUrl,
-					subgraphUrl,
-					network,
-					chainId,
-					vault,
-					amount,
-					manager,
-					errToast
-				);
-
-				if (transaction) {
+				const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+				if (approvalResult.error) {
+					handleDeposit(vault, amount);
+				} else if (approvalResult.value) {
 					handleTransactionConfirmationModal({
 						open: true,
 						args: {
 							entity: vault,
 							orderbookAddress,
 							chainId,
-							onConfirm: transaction.onConfirm,
-							calldata: transaction.calldata
+							onConfirm: (txHash: Hex) => {
+								manager.createApprovalTransaction({
+									subgraphUrl,
+									txHash,
+									chainId,
+									networkKey: network,
+									queryKey: vault.id,
+									entity: vault
+								});
+								// Immediately invoke deposit after approval
+								handleDeposit(vault, amount);
+							},
+							calldata: approvalResult.value
 						}
 					});
 				}
