@@ -12,12 +12,12 @@
 		handleWithdrawModal,
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
 	import {
 		getRemoveOrderCalldata,
 		getVaultWithdrawCalldata,
 		type SgOrder,
-		type SgVault
+		type SgVault,
+		type VaultCalldataResult
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
@@ -29,7 +29,6 @@
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
-	const queryClient = useQueryClient();
 
 	function onRemove(order: SgOrder) {
 		handleTransactionConfirmationModal({
@@ -57,14 +56,30 @@
 			open: true,
 			args: {
 				vault,
-				onDeposit: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				},
 				chainId,
 				rpcUrl,
 				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
 				account: $account as Hex
+			},
+			onSubmit: (amount: bigint) => {
+				handleTransactionConfirmationModal({
+					open: true,
+					args: {
+						entity: vault,
+						orderbookAddress,
+						chainId,
+						onConfirm: (txHash: Hex) => {
+							manager.createWithdrawTransaction({
+								subgraphUrl,
+								txHash,
+								chainId,
+								networkKey: network,
+								queryKey: vault.id
+							});
+						},
+						getCalldataFn
+					}
+				});
 			}
 		});
 	}
