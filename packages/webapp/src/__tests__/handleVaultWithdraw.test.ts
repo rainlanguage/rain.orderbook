@@ -5,6 +5,7 @@ import {
 } from '../lib/services/handleVaultWithdraw';
 import type { SgVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
+import type { TransactionManager } from '@rainlanguage/ui-components';
 
 // Mocks
 const mockHandleWithdrawModal = vi.fn();
@@ -37,7 +38,7 @@ const mockFullDeps: VaultWithdrawHandlerDependencies = {
 	handleWithdrawModal: mockHandleWithdrawModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
-	manager: mockManager as any
+	manager: mockManager as TransactionManager
 };
 
 // Mock getVaultWithdrawCalldata

@@ -6,6 +6,7 @@ import {
 import type { SgVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import { waitFor } from '@testing-library/svelte';
+import type { TransactionManager } from '@rainlanguage/ui-components';
 
 // Mocks
 const mockHandleDepositModal = vi.fn();
@@ -43,7 +44,7 @@ const mockFullDeps: VaultDepositHandlerDependencies = {
 	handleDepositModal: mockHandleDepositModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
-	manager: mockManager as any
+	manager: mockManager as TransactionManager
 };
 
 // Mock orderbook functions
@@ -190,7 +191,6 @@ describe('handleVaultDeposit', () => {
 				});
 			});
 
-			// Simulate deposit confirmation
 			const onDepositConfirmCall =
 				mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
 			onDepositConfirmCall(mockTxHashDeposit);

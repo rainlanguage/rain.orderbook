@@ -1,17 +1,10 @@
 <script lang="ts">
 	import {
-		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
 		type VaultActionArgs
 	} from '@rainlanguage/ui-components';
-	import {
-		getVaultDepositCalldata,
-		getVaultApprovalCalldata,
-		type VaultCalldataResult
-	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
-	import TransactionModal from './TransactionModal.svelte';
 	import { appKitModal, connected, wagmiConfig } from '$lib/stores/wagmi';
 	import { readContract, switchChain } from '@wagmi/core';
 	import { erc20Abi, formatUnits, type Hex } from 'viem';
@@ -33,7 +26,7 @@
 
 	export let open: boolean;
 	export let args: VaultActionArgs;
-	export let onSubmit: (amount: bigint) => void = () => {};
+	export let onSubmit: (amount: bigint) => void;
 
 	const { vault, chainId, account } = args;
 
@@ -65,11 +58,7 @@
 	};
 
 	async function handleContinue() {
-		if (typeof onSubmit === 'function') {
-			onSubmit(amount);
-		} else {
-			console.error('onSubmit is not a function', onSubmit);
-		}
+		onSubmit(amount);
 		handleClose();
 	}
 

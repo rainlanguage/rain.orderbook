@@ -7,13 +7,7 @@
 		handleWithdrawModal,
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
-	import {
-		getRemoveOrderCalldata,
-		getVaultApprovalCalldata,
-		getVaultDepositCalldata,
-		type SgOrder,
-		type SgVault
-	} from '@rainlanguage/orderbook';
+	import { getRemoveOrderCalldata, type SgOrder, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
