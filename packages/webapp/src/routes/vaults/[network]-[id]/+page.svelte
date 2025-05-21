@@ -14,7 +14,12 @@
 		handleWithdrawModal
 	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { getVaultWithdrawCalldata, type SgVault } from '@rainlanguage/orderbook';
+	import {
+		getVaultApprovalCalldata,
+		getVaultDepositCalldata,
+		getVaultWithdrawCalldata,
+		type SgVault
+	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
 
@@ -30,19 +35,71 @@
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
+	async function handleDeposit(vault: SgVault, amount: bigint) {
+		const calldata = await getVaultDepositCalldata(vault, amount.toString());
+		if (calldata.error) {
+			return errToast(calldata.error.msg);
+		} else if (calldata.value) {
+			handleTransactionConfirmationModal({
+				open: true,
+				args: {
+					entity: vault,
+					toAddress: orderbookAddress as Hex,
+					chainId,
+					onConfirm: (txHash: Hex) => {
+						manager.createDepositTransaction({
+							subgraphUrl,
+							txHash,
+							chainId,
+							networkKey: network,
+							queryKey: vault.id,
+							entity: vault
+						});
+					},
+					calldata: calldata.value
+				}
+			});
+		}
+	}
+
 	function onDeposit(vault: SgVault) {
 		handleDepositModal({
 			open: true,
 			args: {
 				vault,
-				onDeposit: () => {
-					invalidateTanstackQueries(queryClient, [$page.params.id]);
-				},
 				chainId,
 				rpcUrl,
 				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
 				account: $account as Hex
+			},
+			onSubmit: async (amount: bigint) => {
+				const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+				if (approvalResult.error) {
+					// If getting approval calldata fails, immediately invoke deposit
+					handleDeposit(vault, amount);
+				} else if (approvalResult.value) {
+					handleTransactionConfirmationModal({
+						open: true,
+						args: {
+							entity: vault,
+							toAddress: vault.token.address as Hex,
+							chainId,
+							onConfirm: (txHash: Hex) => {
+								manager.createApprovalTransaction({
+									subgraphUrl,
+									txHash,
+									chainId,
+									networkKey: network,
+									queryKey: vault.id,
+									entity: vault
+								});
+								// Immediately invoke deposit after approval
+								handleDeposit(vault, amount);
+							},
+							calldata: approvalResult.value
+						}
+					});
+				}
 			}
 		});
 	}
