@@ -46,7 +46,6 @@ export type Transaction = {
 export class TransactionStore implements Transaction {
 	private name: TransactionName;
 	private config: Config;
-	private chainId: number;
 	private subgraphUrl: string;
 	private txHash: Hex;
 	private links: {
@@ -74,7 +73,6 @@ export class TransactionStore implements Transaction {
 		this.txHash = args.txHash;
 		this.name = args.name;
 		this.links = args.toastLinks;
-		this.chainId = args.chainId;
 		this.state = writable<TransactionStoreState>({
 			name: this.name,
 			status: TransactionStatusMessage.IDLE,
