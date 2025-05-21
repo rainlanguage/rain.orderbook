@@ -7,7 +7,10 @@ import {
 	TransactionName
 } from '../lib/types/transaction';
 import { waitForTransactionReceipt, type Config } from '@wagmi/core';
-import { awaitSubgraphIndexing } from '../lib/services/awaitTransactionIndexing';
+import {
+	awaitSubgraphIndexing,
+	type AwaitSubgraphConfig
+} from '../lib/services/awaitTransactionIndexing';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
@@ -80,6 +83,14 @@ describe('TransactionStore', () => {
 
 	let transaction: TransactionStore;
 
+	const mockAwaitSubgraphConfig: AwaitSubgraphConfig = {
+		subgraphUrl: mockSubgraphUrl,
+		txHash: mockTxHash,
+		successMessage: 'Transaction successful',
+		fetchEntityFn: vi.fn(),
+		isSuccess: vi.fn()
+	};
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		transaction = new TransactionStore(
@@ -94,7 +105,8 @@ describe('TransactionStore', () => {
 				successMessage: 'Transaction successful',
 				queryKey: 'removeOrder',
 				toastLinks: mockToastLinks,
-				networkKey: 'ethereum'
+				networkKey: 'ethereum',
+				awaitSubgraphConfig: mockAwaitSubgraphConfig
 			} as TransactionArgs & { config: Config },
 			mockOnSuccess,
 			mockOnError

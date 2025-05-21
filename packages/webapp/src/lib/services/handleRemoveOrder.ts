@@ -28,14 +28,14 @@ export async function handleRemoveOrder(
 		deps.handleTransactionConfirmationModal({
 			open: true,
 			args: {
-				order: order,
+				entity: order,
 				orderbookAddress: deps.orderbookAddress,
 				chainId: deps.chainId,
 				onConfirm: (txHash: Hex) => {
 					deps.manager.createRemoveOrderTransaction({
 						subgraphUrl: deps.subgraphUrl,
 						txHash,
-						orderHash: deps.orderHash,
+						queryKey: deps.orderHash,
 						chainId: deps.chainId,
 						networkKey: deps.network
 					});
