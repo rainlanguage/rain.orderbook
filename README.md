@@ -98,3 +98,4 @@ im adding new stuff:
 - update rust code to better stuff
 - some extra stuff maybe
 - deploy to supported chains
+- some other chnages will come this month
