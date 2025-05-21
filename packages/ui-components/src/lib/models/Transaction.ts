@@ -7,44 +7,50 @@ import {
 	type AwaitSubgraphConfig
 } from '$lib/services/awaitTransactionIndexing';
 import type { Config } from '@wagmi/core';
-import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { writable, type Writable } from 'svelte/store';
 
 /**
- * Represents the possible states of a transaction
+ * Represents the state of a transaction.
  * @typedef {Object} TransactionStoreState
- * @property {string} name - The name of the transaction
- * @property {TransactionStatusMessage} status - The current status of the transaction
- * @property {string} explorerLink - Link to view the transaction on a block explorer
- * @property {Hex} [hash] - Optional transaction hash for successful transactions
- * @property {TransactionStoreErrorMessage} [errorDetails] - Optional error details for failed transactions
+ * @property {TransactionName} name - The user-friendly name of the transaction (e.g., "Order Removal").
+ * @property {TransactionStatusMessage} status - The current status of the transaction (e.g., PENDING_RECEIPT, SUCCESS, ERROR).
+ * @property {TransactionStoreErrorMessage} [errorDetails] - Optional error message if the transaction failed.
+ * @property {Array<{link: string, label: string}>} links - An array of relevant links for the transaction (e.g., explorer link, link to the affected entity).
  */
 export type TransactionStoreState = {
 	name: string;
 	status: TransactionStatusMessage;
-	explorerLink: string;
 	errorDetails?: TransactionStoreErrorMessage;
+	links: {
+		link: string;
+		label: string;
+	}[];
 };
 
 /**
- * Interface defining the structure of a transaction
+ * Interface defining the structure of a transaction object.
  * @interface Transaction
- * @property {Writable<TransactionStoreState>} state - A writable store containing the transaction state
+ * @property {Writable<TransactionStoreState>} state - A writable store holding the current state of the transaction.
  */
 export type Transaction = {
 	readonly state: Writable<TransactionStoreState>;
 };
 
 /**
- * Manages the lifecycle of a transaction including receipt confirmation and subgraph indexing
+ * Manages the lifecycle of an individual transaction, including waiting for
+ * blockchain confirmation (receipt) and subgraph indexing.
+ * It exposes its state as a Svelte writable store.
  * @class TransactionStore
  * @implements {Transaction}
  */
 export class TransactionStore implements Transaction {
 	private name: string;
 	private config: Config;
-	private chainId: number;
 	private txHash: Hex;
+	private links: {
+		link: string;
+		label: string;
+	}[];
 	private onSuccess: () => void;
 	private onError: () => void;
 	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
@@ -52,10 +58,10 @@ export class TransactionStore implements Transaction {
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
-	 * Creates a new TransactionStore instance
-	 * @param {TransactionArgs & { config: Config }} args - Configuration arguments for the transaction
-	 * @param {() => void} onSuccess - Callback function to execute on successful transaction
-	 * @param {() => void} onError - Callback function to execute on failed transaction
+	 * Creates a new TransactionStore instance.
+	 * @param {TransactionArgs & { config: Config }} args - Configuration arguments for the transaction, including the wagmi `Config`.
+	 * @param {() => void} onSuccess - Callback invoked when the transaction successfully completes (including indexing).
+	 * @param {() => void} onError - Callback invoked if the transaction fails at any stage.
 	 */
 	constructor(
 		args: TransactionArgs & { config: Config },
@@ -63,13 +69,13 @@ export class TransactionStore implements Transaction {
 		onError: () => void
 	) {
 		this.config = args.config;
-		this.chainId = args.chainId;
 		this.txHash = args.txHash;
 		this.name = args.name;
+		this.links = args.toastLinks;
 		this.state = writable<TransactionStoreState>({
 			name: this.name,
 			status: TransactionStatusMessage.IDLE,
-			explorerLink: ''
+			links: this.links
 		});
 		this.awaitSubgraphConfig = args.awaitSubgraphConfig;
 		this.onSuccess = onSuccess;
@@ -77,8 +83,8 @@ export class TransactionStore implements Transaction {
 	}
 
 	/**
-	 * Updates the transaction state with new values
-	 * @param {Partial<TransactionStoreState>} partialState - The new state values to merge with current state
+	 * Updates the internal Svelte store with new state values.
+	 * @param {Partial<TransactionStoreState>} partialState - An object containing the state properties to update.
 	 * @private
 	 */
 	private updateState(partialState: Partial<TransactionStoreState>): void {
@@ -93,10 +99,7 @@ export class TransactionStore implements Transaction {
 	 * @returns {Promise<void>}
 	 */
 	public async execute(): Promise<void> {
-		const explorerLink = await getExplorerLink(this.txHash, this.chainId, 'tx');
-
 		this.updateState({
-			explorerLink,
 			status: TransactionStatusMessage.PENDING_RECEIPT
 		});
 		await this.waitForTxReceipt(this.txHash);

@@ -38,7 +38,7 @@ const mockFullDeps: VaultWithdrawHandlerDependencies = {
 	handleWithdrawModal: mockHandleWithdrawModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
-	manager: mockManager as TransactionManager
+	manager: mockManager as unknown as TransactionManager
 };
 
 // Mock getVaultWithdrawCalldata

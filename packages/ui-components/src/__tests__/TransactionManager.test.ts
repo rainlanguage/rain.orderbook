@@ -15,6 +15,7 @@ import {
 	type SgOrder
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
+import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
 	TransactionStore: vi.fn()

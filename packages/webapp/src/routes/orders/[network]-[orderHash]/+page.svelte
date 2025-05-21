@@ -7,9 +7,10 @@
 		handleWithdrawModal,
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
-	import { getRemoveOrderCalldata, type SgOrder, type SgVault } from '@rainlanguage/orderbook';
+	import { type SgOrder, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
@@ -24,35 +25,16 @@
 	const { errToast } = useToasts();
 
 	async function onRemove(order: SgOrder) {
-		let calldata: string;
-		try {
-			const calldataResult = await getRemoveOrderCalldata(order);
-			if (calldataResult.error) {
-				return errToast(calldataResult.error.msg);
-			}
-			calldata = calldataResult.value;
-			handleTransactionConfirmationModal({
-				open: true,
-				args: {
-					chainId,
-					entity: order,
-					toAddress: orderbookAddress as Hex,
-					onConfirm: (txHash: Hex) => {
-						manager.createRemoveOrderTransaction({
-							subgraphUrl,
-							txHash,
-							queryKey: orderHash,
-							chainId,
-							networkKey: network,
-							entity: order
-						});
-					},
-					calldata
-				}
-			});
-		} catch {
-			return errToast('Failed to get calldata for order removal.');
-		}
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
+		});
 	}
 
 	async function onDeposit(vault: SgVault) {
