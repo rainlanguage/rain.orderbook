@@ -20,23 +20,17 @@ const mockOrder = {
 	id: '0xorderid'
 } as SgOrder;
 
-const mockDepsBase: Omit<
-	HandleRemoveOrderDependencies,
-	'handleTransactionConfirmationModal' | 'errToast' | 'manager'
-> = {
+const mockDeps: HandleRemoveOrderDependencies = {
 	network: 'ethereum',
 	orderbookAddress: '0xorderbook' as Hex,
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
-	orderHash: '0xorderhashfromparams'
-};
-
-const mockFullDeps: HandleRemoveOrderDependencies = {
-	...mockDepsBase,
+	orderHash: '0xorderhashfromparams',
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
 	manager: mockManager as unknown as TransactionManager
 };
+
 
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 	const original = await importOriginal<typeof import('@rainlanguage/orderbook')>();
@@ -58,7 +52,7 @@ describe('handleRemoveOrder', () => {
 			value: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockFullDeps);
+		await handleRemoveOrder(mockOrder, mockDeps);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Calldata error');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
@@ -67,7 +61,7 @@ describe('handleRemoveOrder', () => {
 	it('should show error toast if getRemoveOrderCalldata throws', async () => {
 		vi.mocked(getRemoveOrderCalldata).mockRejectedValue(new Error('Fetch failed'));
 
-		await handleRemoveOrder(mockOrder, mockFullDeps);
+		await handleRemoveOrder(mockOrder, mockDeps);
 
 		expect(mockErrToast).toHaveBeenCalledWith('Failed to get calldata for order removal.');
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
@@ -80,14 +74,14 @@ describe('handleRemoveOrder', () => {
 			error: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockFullDeps);
+		await handleRemoveOrder(mockOrder, mockDeps);
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
 			args: {
 				order: mockOrder,
-				orderbookAddress: mockFullDeps.orderbookAddress,
-				chainId: mockFullDeps.chainId,
+				orderbookAddress: mockDeps.orderbookAddress,
+				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
 			}
@@ -103,17 +97,17 @@ describe('handleRemoveOrder', () => {
 			error: undefined
 		});
 
-		await handleRemoveOrder(mockOrder, mockFullDeps);
+		await handleRemoveOrder(mockOrder, mockDeps);
 
 		const onConfirmCall = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateRemoveOrderTransaction).toHaveBeenCalledWith({
-			subgraphUrl: mockFullDeps.subgraphUrl,
+			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
-			orderHash: mockFullDeps.orderHash,
-			chainId: mockFullDeps.chainId,
-			networkKey: mockFullDeps.network
+			orderHash: mockDeps.orderHash,
+			chainId: mockDeps.chainId,
+			networkKey: mockDeps.network
 		});
 	});
 });
