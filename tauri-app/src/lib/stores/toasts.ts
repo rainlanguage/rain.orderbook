@@ -54,6 +54,14 @@ function useToastsStore() {
       ...payload,
     });
   }
+  function failure(text: string, payload: ToastPayload | object = {}) {
+    // we warn on failure
+    add({
+      message_type: ToastMessageType.Warning,
+      text,
+      ...payload,
+    });
+  }
 
   return {
     subscribe: toasts.subscribe,
