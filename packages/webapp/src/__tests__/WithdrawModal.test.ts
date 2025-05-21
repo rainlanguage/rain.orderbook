@@ -75,7 +75,9 @@ describe('WithdrawModal', () => {
 		});
 
 		const inputAmount = '1';
-		const expectedAmountBigInt = BigInt(parseFloat(inputAmount) * 10 ** Number(mockVault.token.decimals));
+		const expectedAmountBigInt = BigInt(
+			parseFloat(inputAmount) * 10 ** Number(mockVault.token.decimals)
+		);
 
 		const amountInput = screen.getByRole('textbox');
 		await fireEvent.input(amountInput, { target: { value: inputAmount } });

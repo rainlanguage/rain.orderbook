@@ -13,7 +13,7 @@
 		handleWithdrawModal
 	} from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { getVaultWithdrawCalldata, type SgVault } from '@rainlanguage/orderbook';
+	import { type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
 	import { useToasts } from '@rainlanguage/ui-components';

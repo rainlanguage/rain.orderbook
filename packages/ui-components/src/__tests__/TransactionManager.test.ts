@@ -12,6 +12,7 @@ import {
 	type SgRemoveOrderWithOrder,
 	type SgTransaction
 } from '@rainlanguage/orderbook';
+import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
 	TransactionStore: vi.fn()
@@ -75,7 +76,9 @@ describe('TransactionManager', () => {
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & { awaitSubgraphConfig: any } = {
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
 			...mockArgs,
 			subgraphUrl: 'https://api.example.com',
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
@@ -204,7 +207,9 @@ describe('TransactionManager', () => {
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & { awaitSubgraphConfig: any } = {
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
 			...mockArgs,
 			subgraphUrl: 'https://api.example.com',
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,

@@ -1,4 +1,4 @@
-import type { SgOrder, SgVault, WasmEncodedResult } from '@rainlanguage/orderbook';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 import type { DeploymentArgs, VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
