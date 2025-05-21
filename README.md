@@ -79,3 +79,5 @@ nix develop -c rainix-sol-legal
 Contributions are welcome **under the same license** as above.
 
 Contributors agree and warrant that their contributions are compliant.
+
+some changes to readme
