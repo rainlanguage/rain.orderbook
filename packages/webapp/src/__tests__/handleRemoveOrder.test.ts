@@ -31,7 +31,6 @@ const mockDeps: HandleRemoveOrderDependencies = {
 	manager: mockManager as unknown as TransactionManager
 };
 
-
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 	const original = await importOriginal<typeof import('@rainlanguage/orderbook')>();
 	return {
