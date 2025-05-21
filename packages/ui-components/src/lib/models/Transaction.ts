@@ -13,14 +13,14 @@ import { writable, type Writable } from 'svelte/store';
 /**
  * Represents the possible states of a transaction
  * @typedef {Object} TransactionStoreState
- * @property {TransactionName} name - The name of the transaction
+ * @property {string} name - The name of the transaction
  * @property {TransactionStatusMessage} status - The current status of the transaction
  * @property {string} explorerLink - Link to view the transaction on a block explorer
  * @property {Hex} [hash] - Optional transaction hash for successful transactions
  * @property {TransactionStoreErrorMessage} [errorDetails] - Optional error details for failed transactions
  */
 export type TransactionStoreState = {
-	name: TransactionName;
+	name: string;
 	status: TransactionStatusMessage;
 	explorerLink: string;
 	errorDetails?: TransactionStoreErrorMessage;

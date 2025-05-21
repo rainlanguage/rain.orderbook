@@ -3,6 +3,7 @@ import { handleWalletConfirmation } from '../lib/services/handleWalletConfirmati
 import { sendTransaction, switchChain } from '@wagmi/core';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 import type { SgOrder } from '@rainlanguage/orderbook';
+import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -34,12 +35,12 @@ describe('handleWalletConfirmation', () => {
 		removeEvents: []
 	};
 
-	const defaultArgs = {
+	const defaultArgs: TransactionConfirmationProps['args'] = {
 		chainId: 1,
 		orderbookAddress: '0x789' as `0x${string}`,
 		calldata: mockCalldata,
 		onConfirm: vi.fn(),
-		order: mockOrder
+		entity: mockOrder
 	};
 
 	beforeEach(() => {

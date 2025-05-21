@@ -11,12 +11,12 @@
 		getRemoveOrderCalldata,
 		getVaultApprovalCalldata,
 		getVaultDepositCalldata,
-		getVaultWithdrawCalldata,
 		type SgOrder,
 		type SgVault
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -131,46 +131,17 @@
 	}
 
 	async function onWithdraw(vault: SgVault) {
-		handleWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				account: $account as Hex
-			},
-			onSubmit: async (amount: bigint) => {
-				let calldata: string;
-				try {
-					const calldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
-					if (calldataResult.error) {
-						return errToast(calldataResult.error.msg);
-					}
-					calldata = calldataResult.value;
-					handleTransactionConfirmationModal({
-						open: true,
-						args: {
-							entity: vault,
-							toAddress: orderbookAddress as Hex,
-							chainId,
-							onConfirm: (txHash: Hex) => {
-								manager.createWithdrawTransaction({
-									subgraphUrl,
-									txHash,
-									chainId,
-									networkKey: network,
-									queryKey: vault.id,
-									entity: vault
-								});
-							},
-							calldata
-						}
-					});
-				} catch {
-					return errToast('Failed to get calldata for vault withdrawal.');
-				}
-			}
+		await handleVaultWithdraw(vault, {
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
+			subgraphUrl,
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 </script>
