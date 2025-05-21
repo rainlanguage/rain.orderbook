@@ -22,7 +22,7 @@ pub fn get_order_hash(order: &OrderV3) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(order.abi_encode())))
 }
 
-/// Get takeOrders2() calldata
+/// Get takeOrders2() calldata that gonna be used in wasm bindings
 #[wasm_export(
     js_name = "getTakeOrders2Calldata",
     unchecked_return_type = "TakeOrdersCalldata"
