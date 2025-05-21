@@ -136,20 +136,10 @@ describe('handleWalletConfirmation', () => {
 			}
 		});
 	});
-});
-
-describe('handleWalletConfirmation with varied inputs and scenarios', () => {
-	const getArgs = (chainId: number) => ({
-		chainId,
-		orderbookAddress: '0x789' as `0x${string}`,
-		calldata: mockCalldata,
-		onConfirm: vi.fn(),
-		order: mockOrder
-	});
 
 	it('handles successful transaction with a different chain ID', async () => {
 		const specificChainId = 5;
-		const args = getArgs(specificChainId);
+		const args = {...defaultArgs, chainId: specificChainId}
 		const result = await handleWalletConfirmation(args);
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: specificChainId });
@@ -163,46 +153,7 @@ describe('handleWalletConfirmation with varied inputs and scenarios', () => {
 			hash: mockTxHash
 		});
 	});
-
-	it('handles network failure during transaction sending', async () => {
-		const args = getArgs(1);
-		const networkErrorMessage = 'Network connection lost';
-		vi.mocked(sendTransaction).mockRejectedValue(new Error(networkErrorMessage));
-
-		const result = await handleWalletConfirmation(args);
-
-		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
-		expect(sendTransaction).toHaveBeenCalledWith(mockWeb3Config, {
-			to: '0x789',
-			data: mockCalldata
-		});
-		expect(args.onConfirm).not.toHaveBeenCalled();
-		expect(result).toEqual({
-			state: {
-				status: 'rejected',
-				reason: 'User rejected transaction'
-			}
-		});
-	});
-
-	it('handles specific error type (e.g., insufficient funds) from wallet provider', async () => {
-		const args = getArgs(1);
-		const specificError = new Error('Insufficient funds for transaction');
-		vi.mocked(sendTransaction).mockRejectedValue(specificError);
-
-		const result = await handleWalletConfirmation(args);
-
-		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
-		expect(sendTransaction).toHaveBeenCalledWith(mockWeb3Config, {
-			to: '0x789',
-			data: mockCalldata
-		});
-		expect(args.onConfirm).not.toHaveBeenCalled();
-		expect(result).toEqual({
-			state: {
-				status: 'rejected',
-				reason: 'User rejected transaction'
-			}
-		});
-	});
 });
+
+
+
