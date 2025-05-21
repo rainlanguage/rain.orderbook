@@ -34,11 +34,10 @@ describe('handleWalletConfirmation', () => {
 		removeEvents: []
 	};
 
-	const mockCalldataFn = vi.fn();
 	const defaultArgs = {
 		chainId: 1,
 		orderbookAddress: '0x789' as `0x${string}`,
-		getCalldataFn: mockCalldataFn,
+		calldata: mockCalldata,
 		onConfirm: vi.fn(),
 		order: mockOrder
 	};
@@ -53,7 +52,6 @@ describe('handleWalletConfirmation', () => {
 	});
 
 	it('handles successful transaction flow', async () => {
-		mockCalldataFn.mockResolvedValueOnce({ value: mockCalldata });
 		const result = await handleWalletConfirmation(defaultArgs);
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
@@ -86,7 +84,6 @@ describe('handleWalletConfirmation', () => {
 	});
 
 	it('handles transaction rejection', async () => {
-		vi.mocked(mockCalldataFn).mockResolvedValueOnce({ value: mockCalldata });
 		vi.mocked(sendTransaction).mockRejectedValue(new Error('User rejected transaction'));
 
 		const result = await handleWalletConfirmation(defaultArgs);
@@ -121,18 +118,21 @@ describe('handleWalletConfirmation', () => {
 		});
 	});
 
-	it('handles getCalldataFn failure', async () => {
-		vi.mocked(mockCalldataFn).mockResolvedValueOnce({ error: { msg: 'Failed to get calldata' } });
+	it('handles transaction failure', async () => {
+		vi.mocked(sendTransaction).mockRejectedValue(new Error('Transaction failed'));
 
 		const result = await handleWalletConfirmation(defaultArgs);
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
-		expect(sendTransaction).not.toHaveBeenCalled();
+		expect(sendTransaction).toHaveBeenCalledWith(mockWeb3Config, {
+			to: '0x789',
+			data: mockCalldata
+		});
 		expect(defaultArgs.onConfirm).not.toHaveBeenCalled();
 		expect(result).toEqual({
 			state: {
-				status: 'error',
-				reason: 'Failed to get calldata'
+				status: 'rejected',
+				reason: 'User rejected transaction'
 			}
 		});
 	});

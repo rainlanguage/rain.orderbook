@@ -3,7 +3,8 @@
 		invalidateTanstackQueries,
 		OrderDetail,
 		PageHeader,
-		useAccount
+		useAccount,
+		useToasts
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
@@ -29,26 +30,37 @@
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleTransactionConfirmationModal({
-			open: true,
-			args: {
-				entity: order,
-				orderbookAddress,
-				chainId,
-				onConfirm: (txHash: Hex) => {
-					manager.createRemoveOrderTransaction({
-						subgraphUrl,
-						txHash,
-						chainId,
-						networkKey: network,
-						queryKey: orderHash
-					});
-				},
-				getCalldataFn: () => getRemoveOrderCalldata(order)
+	async function onRemove(order: SgOrder) {
+		let calldata: string;
+		try {
+			const calldataResult = await getRemoveOrderCalldata(order);
+			if (calldataResult.error) {
+				return errToast(calldataResult.error.msg);
 			}
-		});
+			calldata = calldataResult.value;
+			handleTransactionConfirmationModal({
+				open: true,
+				args: {
+					chainId,
+					entity: order,
+					orderbookAddress,
+					onConfirm: (txHash: Hex) => {
+						manager.createRemoveOrderTransaction({
+							subgraphUrl,
+							txHash,
+							queryKey: orderHash,
+							chainId,
+							networkKey: network
+						});
+					},
+					calldata
+				}
+			});
+		} catch {
+			return errToast('Failed to get calldata for order removal.');
+		}
 	}
 
 	function onDeposit(vault: SgVault) {
@@ -84,7 +96,7 @@
 		});
 	}
 
-	function onWithdraw(vault: SgVault) {
+	async function onWithdraw(vault: SgVault) {
 		handleWithdrawModal({
 			open: true,
 			args: {
@@ -94,25 +106,35 @@
 				subgraphUrl,
 				account: $account as Hex
 			},
-			onSubmit: (amount: bigint) => {
-				handleTransactionConfirmationModal({
-					open: true,
-					args: {
-						entity: vault,
-						orderbookAddress,
-						chainId,
-						onConfirm: (txHash: Hex) => {
-							manager.createWithdrawTransaction({
-								subgraphUrl,
-								txHash,
-								chainId,
-								networkKey: network,
-								queryKey: vault.id
-							});
-						},
-						getCalldataFn: () => getVaultWithdrawCalldata(vault, amount.toString())
+			onSubmit: async (amount: bigint) => {
+				let calldata: string;
+				try {
+					const calldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
+					if (calldataResult.error) {
+						return errToast(calldataResult.error.msg);
 					}
-				});
+					calldata = calldataResult.value;
+					handleTransactionConfirmationModal({
+						open: true,
+						args: {
+							entity: vault,
+							orderbookAddress,
+							chainId,
+							onConfirm: (txHash: Hex) => {
+								manager.createWithdrawTransaction({
+									subgraphUrl,
+									txHash,
+									chainId,
+									networkKey: network,
+									queryKey: vault.id
+								});
+							},
+							calldata
+						}
+					});
+				} catch {
+					return errToast('Failed to get calldata for vault withdrawal.');
+				}
 			}
 		});
 	}

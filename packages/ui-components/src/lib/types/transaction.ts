@@ -77,6 +77,7 @@ export type InternalTransactionArgs = {
 
 export type TransactionArgs = InternalTransactionArgs & {
 	name: TransactionName;
+	// Used for toast notifications upon final completion/failure
 	errorMessage: string;
 	successMessage: string;
 	queryKey: string;

@@ -29,8 +29,8 @@ export type TransactionConfirmationProps = {
 		onConfirm: (hash: Hex) => void;
 		// Entity to generate calldata for
 		entity: SgOrder | SgVault;
-		// Function to generate calldata for the transaction
-		getCalldataFn: () => Promise<WasmEncodedResult<string>>;
+		// Calldata for the transaction
+		calldata: string;
 	};
 };
 
