@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount,
-		useToasts
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import {
@@ -15,13 +9,15 @@
 	} from '$lib/services/modal';
 	import {
 		getRemoveOrderCalldata,
+		getVaultApprovalCalldata,
 		getVaultWithdrawCalldata,
 		type SgOrder,
-		type SgVault,
-		type VaultCalldataResult
+		type SgVault
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
+
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
@@ -52,7 +48,8 @@
 							txHash,
 							queryKey: orderHash,
 							chainId,
-							networkKey: network
+							networkKey: network,
+							entity: order
 						});
 					},
 					calldata
@@ -73,25 +70,30 @@
 				subgraphUrl,
 				account: $account as Hex
 			},
-			onSubmit: (amount: bigint) => {
-				handleTransactionConfirmationModal({
-					open: true,
-					args: {
-						entity: vault,
-						orderbookAddress,
-						chainId,
-						onConfirm: (txHash: Hex) => {
-							manager.createWithdrawTransaction({
-								subgraphUrl,
-								txHash,
-								chainId,
-								networkKey: network,
-								queryKey: vault.id
-							});
-						},
-						getCalldataFn
-					}
-				});
+			onSubmit: async (amount: bigint) => {
+				const transaction = await handleVaultDeposit(
+					rpcUrl,
+					subgraphUrl,
+					network,
+					chainId,
+					vault,
+					amount,
+					manager,
+					errToast
+				);
+
+				if (transaction) {
+					handleTransactionConfirmationModal({
+						open: true,
+						args: {
+							entity: vault,
+							orderbookAddress,
+							chainId,
+							onConfirm: transaction.onConfirm,
+							calldata: transaction.calldata
+						}
+					});
+				}
 			}
 		});
 	}
@@ -126,7 +128,8 @@
 									txHash,
 									chainId,
 									networkKey: network,
-									queryKey: vault.id
+									queryKey: vault.id,
+									entity: vault
 								});
 							},
 							calldata

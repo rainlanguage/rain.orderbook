@@ -14,7 +14,7 @@ export const handleDeployModal = (props: DeployModalProps) => {
 	new DeployModal({ target: document.body, props });
 };
 
-export const handleDepositModal = (props: Omit<VaultActionModalProps, 'onSubmit'>) => {
+export const handleDepositModal = (props: VaultActionModalProps) => {
 	new DepositModal({ target: document.body, props });
 };
 

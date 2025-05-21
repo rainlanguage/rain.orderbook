@@ -33,8 +33,9 @@
 
 	export let open: boolean;
 	export let args: VaultActionArgs;
+	export let onSubmit: (amount: bigint) => void = () => {};
 
-	const { vault, chainId, rpcUrl, account } = args;
+	const { vault, chainId, account } = args;
 
 	let amount: bigint = 0n;
 	let userBalance: bigint = 0n;
@@ -64,32 +65,12 @@
 	};
 
 	async function handleContinue() {
-		isCheckingCalldata = true;
-		try {
-			const approvalCalldataResult = await getVaultApprovalCalldata(
-				rpcUrl,
-				vault,
-				amount.toString()
-			);
-			if (approvalCalldataResult.error) {
-				errorMessage = approvalCalldataResult.error.msg;
-			}
-
-			const depositCalldataResult = await getVaultDepositCalldata(vault, amount.toString());
-			if (depositCalldataResult.error) {
-				errorMessage = depositCalldataResult.error.msg;
-			} else {
-				onSubmit(
-					depositCalldataResult.value,
-					!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
-				);
-				handleClose();
-			}
-		} catch {
-			errorMessage = 'Failed to get calldata.';
-		} finally {
-			isCheckingCalldata = false;
+		if (typeof onSubmit === 'function') {
+			onSubmit(amount);
+		} else {
+			console.error('onSubmit is not a function', onSubmit);
 		}
+		handleClose();
 	}
 
 	function handleClose() {
@@ -98,7 +79,6 @@
 	}
 
 	$: validation = validateAmount(amount, userBalance);
-
 	$: maxValue = userBalance;
 </script>
 

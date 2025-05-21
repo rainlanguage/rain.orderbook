@@ -10,7 +10,8 @@ import {
 	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction
+	type SgTransaction,
+	type SgVault
 } from '@rainlanguage/orderbook';
 
 /**
@@ -145,6 +146,89 @@ export class TransactionManager {
 				label: 'View transaction'
 			}
 		];
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransaction,
+				isSuccess: (data) => !!data
+			}
+		});
+	}
+
+	public async createApprovalTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const tokenSymbol = (args.entity as SgVault).token.symbol;
+		const name = `Approving ${tokenSymbol} spend`;
+		const errorMessage = 'Approval failed.';
+		const successMessage = 'Approval successful.';
+		const queryKey = args.queryKey;
+		const networkKey = args.networkKey;
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: `/vaults/${networkKey}-${args.queryKey}`,
+				label: 'View Vault'
+			},
+			{
+				link: explorerLink,
+				label: 'View transaction'
+			}
+		];
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks
+		});
+	}
+
+	/**
+	 * Creates and initializes a new transaction for depositing funds into a vault
+	 * @param args - Configuration for the deposit transaction
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
+	 * @param args.txHash - Hash of the transaction to track
+	 * @param args.orderHash - Hash of the order to be removed
+	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @returns A new Transaction instance configured for deposit
+	 * @throws {Error} If required transaction parameters are missing
+	 * @example
+	 * const tx = await manager.createDepositTransaction({
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   txHash: '0x123...',
+	 *   orderHash: '0x456...',
+	 *   chainId: 1
+	 * });
+	 */
+	public async createDepositTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const name = TransactionName.DEPOSIT;
+		const errorMessage = 'Deposit failed.';
+		const successMessage = 'Deposit successful.';
+		const queryKey = args.queryKey;
+		const networkKey = args.networkKey;
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: `/vaults/${networkKey}-${args.queryKey}`,
+				label: 'View Vault'
+			},
+			{
+				link: explorerLink,
+				label: 'View transaction'
+			}
+		];
+
 		return this.createTransaction({
 			...args,
 			name,

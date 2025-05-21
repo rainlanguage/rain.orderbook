@@ -3,7 +3,8 @@ import type {
 	SgVault,
 	ApprovalCalldata,
 	VaultCalldataResult,
-	DepositAndAddOrderCalldataResult
+	DepositAndAddOrderCalldataResult,
+	SgOrder
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
@@ -32,7 +33,9 @@ export type VaultActionArgs = {
 
 export enum TransactionName {
 	REMOVAL = 'Order Removal',
-	WITHDRAWAL = 'Vault Withdrawal'
+	WITHDRAWAL = 'Vault Withdrawal',
+	APPROVAL = 'Token Approval',
+	DEPOSIT = 'Vault Deposit'
 }
 
 export enum TransactionStatusMessage {
@@ -73,16 +76,18 @@ export type InternalTransactionArgs = {
 	txHash: Hex;
 	networkKey: string;
 	queryKey: string;
+	entity: SgVault | SgOrder;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
-	name: TransactionName;
+	name: string;
 	// Used for toast notifications upon final completion/failure
 	errorMessage: string;
 	successMessage: string;
 	queryKey: string;
 	toastLinks: ToastLink[];
-	awaitSubgraphConfig: AwaitSubgraphConfig;
+	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
+	awaitSubgraphConfig?: AwaitSubgraphConfig;
 };
 
 export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {

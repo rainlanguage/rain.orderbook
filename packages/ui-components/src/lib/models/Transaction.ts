@@ -41,13 +41,14 @@ export type Transaction = {
  * @implements {Transaction}
  */
 export class TransactionStore implements Transaction {
-	private name: TransactionName;
+	private name: string;
 	private config: Config;
 	private chainId: number;
 	private txHash: Hex;
 	private onSuccess: () => void;
 	private onError: () => void;
-	private awaitSubgraphConfig: AwaitSubgraphConfig;
+	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
+	private awaitSubgraphConfig?: AwaitSubgraphConfig;
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
@@ -110,7 +111,14 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			await this.indexTransaction(this.txHash);
+			if (this.awaitSubgraphConfig) {
+				await this.indexTransaction();
+			} else {
+				this.updateState({
+					status: TransactionStatusMessage.SUCCESS
+				});
+				return this.onSuccess();
+			}
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
@@ -126,6 +134,8 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private async indexTransaction(): Promise<void> {
+		if (!this.awaitSubgraphConfig) return;
+
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
