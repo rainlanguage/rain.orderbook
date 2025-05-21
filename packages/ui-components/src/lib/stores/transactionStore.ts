@@ -3,9 +3,7 @@ import type { Hex } from 'viem';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import { getExplorerLink } from '../services/getExplorerLink';
 import { TransactionStatusMessage } from '$lib/types/transaction';
-import type {
-	DeploymentTransactionArgs
-} from '$lib/types/transaction';
+import type { DeploymentTransactionArgs } from '$lib/types/transaction';
 import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import {
 	getTransaction,
@@ -37,7 +35,7 @@ export enum TransactionErrorMessage {
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.'
 }
 
 export type TransactionStore = {
@@ -245,7 +243,6 @@ const transactionStore = () => {
 		}
 	};
 
-	
 	return {
 		subscribe,
 		reset,
