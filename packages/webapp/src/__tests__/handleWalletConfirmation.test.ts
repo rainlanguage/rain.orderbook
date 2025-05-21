@@ -204,20 +204,16 @@ describe('handleWalletConfirmation with varied inputs and scenarios', () => {
 			data: mockCalldata
 		});
 		expect(args.onConfirm).not.toHaveBeenCalled();
-		// The current implementation catches all errors from sendTransaction as 'rejected'
-		// If specific network error handling is desired, the main function needs adjustment.
 		expect(result).toEqual({
 			state: {
 				status: 'rejected',
-				reason: 'User rejected transaction' // This is because any error in sendTransaction leads to this
+				reason: 'User rejected transaction'
 			}
 		});
 	});
 
 	it('handles specific error type (e.g., insufficient funds) from wallet provider', async () => {
 		const args = getArgs(1);
-		// Simulate a specific error. Note: The actual error objects might differ by provider.
-		// For this test, we'll use a generic error with a message.
 		const specificError = new Error('Insufficient funds for transaction');
 		vi.mocked(sendTransaction).mockRejectedValue(specificError);
 
@@ -229,7 +225,6 @@ describe('handleWalletConfirmation with varied inputs and scenarios', () => {
 			data: mockCalldata
 		});
 		expect(args.onConfirm).not.toHaveBeenCalled();
-		// As with network errors, the current implementation has a general catch-all.
 		expect(result).toEqual({
 			state: {
 				status: 'rejected',
