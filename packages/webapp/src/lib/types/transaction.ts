@@ -1,8 +1,8 @@
 export enum TransactionName {
-    REMOVAL = 'Order Removal',
-    WITHDRAWAL = 'Vault Withdrawal',
-    APPROVAL = 'Token Approval',
-    DEPOSIT = 'Vault Deposit'
+	REMOVAL = 'Order Removal',
+	WITHDRAWAL = 'Vault Withdrawal',
+	APPROVAL = 'Token Approval',
+	DEPOSIT = 'Vault Deposit'
 }
 
 /**
@@ -11,7 +11,7 @@ export enum TransactionName {
  * @returns A formatted approval message string
  */
 export function getApprovalMessage(tokenSymbol: string): string {
-    return `Approving ${tokenSymbol} spend`;
+	return `Approving ${tokenSymbol} spend`;
 }
 
 /**
@@ -20,5 +20,5 @@ export function getApprovalMessage(tokenSymbol: string): string {
  * @returns A formatted deposit message string
  */
 export function getDepositMessage(tokenSymbol: string): string {
-    return `Depositing ${tokenSymbol} to vault`;
-} 
+	return `Depositing ${tokenSymbol} to vault`;
+}

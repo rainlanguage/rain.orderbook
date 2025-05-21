@@ -45,14 +45,13 @@ describe('TransactionManager', () => {
 		id: 'mockVaultEntityId'
 	} as unknown as SgVault;
 
-
 	const mockBaseArgs: InternalTransactionArgs = {
 		subgraphUrl: 'https://api.example.com',
 		txHash: '0xcallbacktxhash' as `0x${string}`,
 		chainId: 1,
 		networkKey: 'ethereum',
 		queryKey: '0xcallbackkey',
-		entity: mockSgOrderEntity 
+		entity: mockSgOrderEntity
 	};
 
 	beforeEach(() => {
@@ -445,9 +444,7 @@ describe('TransactionManager', () => {
 		};
 
 		beforeEach(() => {
-			vi.mocked(getExplorerLink).mockResolvedValue(
-				'https://explorer.example.com/tx/0xapprovehash'
-			);
+			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xapprovehash');
 		});
 
 		it('should create a transaction with correct parameters', async () => {
@@ -501,9 +498,7 @@ describe('TransactionManager', () => {
 		};
 
 		beforeEach(() => {
-			vi.mocked(getExplorerLink).mockResolvedValue(
-				'https://explorer.example.com/tx/0xdeposithash'
-			);
+			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xdeposithash');
 		});
 
 		it('should create a transaction with correct parameters including formatted amount', async () => {
@@ -512,7 +507,10 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			const expectedReadableAmount = formatUnits(mockArgs.amount, Number(mockEntity.token.decimals));
+			const expectedReadableAmount = formatUnits(
+				mockArgs.amount,
+				Number(mockEntity.token.decimals)
+			);
 
 			await manager.createDepositTransaction(mockArgs);
 

@@ -239,9 +239,14 @@ export class TransactionManager {
 	 *   amount: 1000n
 	 * });
 	 */
-	public async createDepositTransaction(args: InternalTransactionArgs & { amount: bigint }): Promise<Transaction> {
+	public async createDepositTransaction(
+		args: InternalTransactionArgs & { amount: bigint }
+	): Promise<Transaction> {
 		const tokenSymbol = (args.entity as SgVault).token.symbol;
-		const readableAmount = formatUnits(args.amount, Number((args.entity as SgVault).token.decimals));
+		const readableAmount = formatUnits(
+			args.amount,
+			Number((args.entity as SgVault).token.decimals)
+		);
 		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';

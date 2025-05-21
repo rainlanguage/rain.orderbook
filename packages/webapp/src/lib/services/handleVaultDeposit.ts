@@ -5,10 +5,7 @@ import type {
 	VaultActionModalProps,
 	TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
-import {
-	getVaultApprovalCalldata,
-	getVaultDepositCalldata
-} from '@rainlanguage/orderbook';
+import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
 
 export interface VaultDepositHandlerDependencies {
 	handleDepositModal: (props: VaultActionModalProps) => void;
@@ -69,11 +66,7 @@ export async function handleVaultDeposit(
 			account: deps.account
 		},
 		onSubmit: async (amount: bigint) => {
-			const approvalResult = await getVaultApprovalCalldata(
-				deps.rpcUrl,
-				vault,
-				amount.toString()
-			);
+			const approvalResult = await getVaultApprovalCalldata(deps.rpcUrl, vault, amount.toString());
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
 				await executeDeposit(vault, amount, deps);
@@ -102,4 +95,4 @@ export async function handleVaultDeposit(
 			}
 		}
 	});
-} 
+}

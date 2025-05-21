@@ -28,10 +28,7 @@ const mockVault = {
 
 const mockDepsBase: Omit<
 	VaultDepositHandlerDependencies,
-	| 'handleDepositModal'
-	| 'handleTransactionConfirmationModal'
-	| 'errToast'
-	| 'manager'
+	'handleDepositModal' | 'handleTransactionConfirmationModal' | 'errToast' | 'manager'
 > = {
 	network: 'ethereum',
 	orderbookAddress: '0xorderbook' as Hex,
@@ -90,7 +87,6 @@ describe('handleVaultDeposit', () => {
 		const mockTxHashDeposit = '0xtxhashdeposit' as Hex;
 
 		beforeEach(async () => {
-
 			await handleVaultDeposit(mockVault, mockFullDeps);
 		});
 
@@ -180,17 +176,17 @@ describe('handleVaultDeposit', () => {
 			});
 
 			expect(getVaultDepositCalldata).toHaveBeenCalledWith(mockVault, mockAmount.toString());
-            await waitFor(() => {
-			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
-			expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {
-				open: true,
-				args: {
-					entity: mockVault,
-					toAddress: mockFullDeps.orderbookAddress,
-					chainId: mockFullDeps.chainId,
-					onConfirm: expect.any(Function),
-					calldata: mockDepositCalldata
-				}
+			await waitFor(() => {
+				expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
+				expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {
+					open: true,
+					args: {
+						entity: mockVault,
+						toAddress: mockFullDeps.orderbookAddress,
+						chainId: mockFullDeps.chainId,
+						onConfirm: expect.any(Function),
+						calldata: mockDepositCalldata
+					}
 				});
 			});
 
@@ -228,7 +224,11 @@ describe('handleVaultDeposit', () => {
 			await onApprovalConfirmCall(mockTxHashApproval);
 
 			expect(mockErrToast).toHaveBeenCalledWith('Deposit error after approval');
-			expect(mockHandleTransactionConfirmationModal.mock.calls.filter(call => call[0].args.calldata === mockDepositCalldata).length).toBe(0);
+			expect(
+				mockHandleTransactionConfirmationModal.mock.calls.filter(
+					(call) => call[0].args.calldata === mockDepositCalldata
+				).length
+			).toBe(0);
 		});
 	});
-}); 
+});
