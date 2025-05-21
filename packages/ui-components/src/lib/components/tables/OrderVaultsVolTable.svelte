@@ -20,7 +20,16 @@
 
 	$: vaultsVol = createInfiniteQuery<VaultVolume[]>({
 		queryKey: [id, QKEY_VAULTS_VOL_LIST + id],
-		queryFn: () => getOrderVaultsVolume(subgraphUrl || '', id, queryStartTime, queryEndTime),
+		queryFn: async () => {
+			const result = await getOrderVaultsVolume(
+				subgraphUrl || '',
+				id,
+				queryStartTime,
+				queryEndTime
+			);
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
+		},
 		initialPageParam: 0,
 		getNextPageParam: () => undefined,
 		enabled: !!subgraphUrl

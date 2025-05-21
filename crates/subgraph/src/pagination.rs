@@ -2,17 +2,14 @@ use crate::{cynic_client::CynicClientError, utils::slice_list};
 use serde::{Deserialize, Serialize};
 use std::num::TryFromIntError;
 use thiserror::Error;
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Clone, Serialize, Deserialize, Debug, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SgPaginationArgs {
     pub page: u16,
     pub page_size: u16,
 }
-#[cfg(target_family = "wasm")]
 impl_wasm_traits!(SgPaginationArgs);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
