@@ -34,7 +34,7 @@ impl MultiOrderbookSubgraphClient {
         &self,
         filter_args: SgOrdersListFilterArgs,
         pagination_args: SgPaginationArgs,
-    ) -> Result<Vec<SgOrderWithSubgraphName>, OrderbookSubgraphClientError> {
+    ) -> Vec<SgOrderWithSubgraphName> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
@@ -67,14 +67,14 @@ impl MultiOrderbookSubgraphClient {
             b_timestamp.cmp(&a_timestamp)
         });
 
-        Ok(all_orders)
+        all_orders
     }
 
     pub async fn vaults_list(
         &self,
         filter_args: SgVaultsListFilterArgs,
         pagination_args: SgPaginationArgs,
-    ) -> Result<Vec<SgVaultWithSubgraphName>, OrderbookSubgraphClientError> {
+    ) -> Vec<SgVaultWithSubgraphName> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
@@ -101,7 +101,7 @@ impl MultiOrderbookSubgraphClient {
             .flatten()
             .collect();
 
-        Ok(all_vaults)
+        all_vaults
     }
 }
 
@@ -156,8 +156,7 @@ mod tests {
         let result = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(result.is_empty());
     }
 
     #[tokio::test]
@@ -178,11 +177,9 @@ mod tests {
             name: sg1_name.to_string(),
         }]);
 
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
         assert_eq!(orders.len(), 1);
         assert_eq!(orders[0].order.id, order1_s1.id);
         assert_eq!(orders[0].subgraph_name, sg1_name);
@@ -224,11 +221,9 @@ mod tests {
             },
         ]);
 
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
 
         assert_eq!(orders.len(), 3);
         assert_eq!(orders[0].order.id, order_b_s2.id);
@@ -270,11 +265,9 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
         assert_eq!(orders.len(), 1);
         assert_eq!(orders[0].order.id, order_a_s1.id);
         assert_eq!(orders[0].subgraph_name, sg1_name);
@@ -311,11 +304,9 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
         assert_eq!(orders.len(), 1);
         assert_eq!(orders[0].order.id, order_a_s1.id);
         assert_eq!(orders[0].subgraph_name, sg1_name);
@@ -350,11 +341,10 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(orders.is_empty());
     }
 
     #[tokio::test]
@@ -377,11 +367,9 @@ mod tests {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
         assert_eq!(orders.len(), 3);
         assert_eq!(orders[0].order.id, order_a.id);
         assert_eq!(orders[1].order.id, order_c.id);
@@ -411,11 +399,9 @@ mod tests {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
-        let result = client
+        let orders = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let orders = result.unwrap();
         assert_eq!(orders.len(), 5);
 
         assert_eq!(orders[0].order.id, order_b.id);
@@ -491,8 +477,7 @@ mod tests {
         let result = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(result.is_empty());
     }
 
     #[tokio::test]
@@ -513,11 +498,9 @@ mod tests {
             name: sg1_name.to_string(),
         }]);
 
-        let result = client
+        let vaults = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let vaults = result.unwrap();
         assert_eq!(vaults.len(), 1);
         assert_eq!(vaults[0].vault.id, vault1_s1.id);
         assert_eq!(vaults[0].subgraph_name, sg1_name);
@@ -559,11 +542,9 @@ mod tests {
             },
         ]);
 
-        let result = client
+        let vaults_with_names = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let vaults_with_names = result.unwrap();
 
         assert_eq!(vaults_with_names.len(), 3);
 
@@ -611,11 +592,9 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let vaults = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let vaults = result.unwrap();
         assert_eq!(vaults.len(), 1);
         assert_eq!(vaults[0].vault.id, vault_a_s1.id);
         assert_eq!(vaults[0].subgraph_name, sg1_name);
@@ -652,11 +631,9 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let vaults = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        let vaults = result.unwrap();
         assert_eq!(vaults.len(), 1);
         assert_eq!(vaults[0].vault.id, vault_a_s1.id);
         assert_eq!(vaults[0].subgraph_name, sg1_name);
@@ -691,10 +668,9 @@ mod tests {
                 name: sg2_name.to_string(),
             },
         ]);
-        let result = client
+        let vaults = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(vaults.is_empty());
     }
 }
