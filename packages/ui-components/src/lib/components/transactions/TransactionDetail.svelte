@@ -23,15 +23,22 @@
 		{#if $state.errorDetails}
 			<p class="break-words">{$state.errorDetails}</p>
 		{/if}
-		{#if $state.explorerLink}
-			<p class="break-words">
-				<a
-					href={$state.explorerLink}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-blue-500 hover:underline">View on explorer</a
-				>
-			</p>
+		{#if $state.links.length > 0}
+			<div class="flex flex-col gap-1">
+				{#each $state.links as link}
+					<p class="break-words">
+						<a
+							href={link.link}
+							data-testid={`transaction-detail-link-${link.label}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-blue-500 hover:underline"
+						>
+							{link.label}
+						</a>
+					</p>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </div>

@@ -46,16 +46,24 @@ describe('TransactionList', () => {
 				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.IDLE,
 					name: TransactionName.REMOVAL,
-					explorerLink:
-						'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+					links: [
+						{
+							label: 'View on Explorer',
+							link: 'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+						}
+					]
 				})
 			},
 			{
 				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.SUCCESS,
 					name: TransactionName.REMOVAL,
-					explorerLink:
-						'https://etherscan.io/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+					links: [
+						{
+							label: 'View on Explorer',
+							link: 'https://etherscan.io/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+						}
+					]
 				})
 			}
 		] as unknown as Transaction[];
@@ -79,8 +87,12 @@ describe('TransactionList', () => {
 				state: writable<TransactionStoreState>({
 					status: TransactionStatusMessage.IDLE,
 					name: TransactionName.REMOVAL,
-					explorerLink:
-						'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+					links: [
+						{
+							label: 'View on Explorer',
+							link: 'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+						}
+					]
 				})
 			}
 		] as unknown as Transaction[]);
