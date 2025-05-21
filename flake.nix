@@ -293,6 +293,10 @@
               nodejs_20
               jq
               yg
+              doctl
+              yarn
+              envsubst
+              docker-compose
           ];
         };
 
