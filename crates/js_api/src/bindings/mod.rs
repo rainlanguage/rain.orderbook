@@ -37,7 +37,7 @@ pub fn get_take_orders2_calldata(
     Ok(TakeOrdersCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
-/// calculates keccak256 of the given bytes
+/// calculates keccak256 of the given bytes of data
 #[wasm_export(js_name = "keccak256", unchecked_return_type = "string")]
 pub fn keccak256(bytes: &[u8]) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(bytes)))
