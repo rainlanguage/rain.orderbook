@@ -290,9 +290,6 @@
               jq
               yq
               doctl
-              yarn
-              envsubst
-              docker-compose
           ];
         };
 

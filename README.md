@@ -90,3 +90,11 @@ some other new changes again
 
 im trying to add more changes here again, but lets just annouce them shortly here:
 more changes to come!
+
+
+im adding new stuff:
+- update to v5
+- update i9r to v4
+- update rust code to better stuff
+- some extra stuff maybe
+- deploy to supported chains
