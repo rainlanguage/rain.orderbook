@@ -139,7 +139,7 @@ describe('handleWalletConfirmation', () => {
 
 	it('handles successful transaction with a different chain ID', async () => {
 		const specificChainId = 5;
-		const args = {...defaultArgs, chainId: specificChainId}
+		const args = { ...defaultArgs, chainId: specificChainId };
 		const result = await handleWalletConfirmation(args);
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: specificChainId });
@@ -154,6 +154,3 @@ describe('handleWalletConfirmation', () => {
 		});
 	});
 });
-
-
-
