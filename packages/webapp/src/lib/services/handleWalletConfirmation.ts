@@ -27,7 +27,7 @@ export async function handleWalletConfirmation(
 	}
 	try {
 		transactionHash = await sendTransaction(config, {
-			to: args.orderbookAddress,
+			to: args.toAddress,
 			data: args.calldata as Hex
 		});
 	} catch {

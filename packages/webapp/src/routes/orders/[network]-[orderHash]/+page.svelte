@@ -37,7 +37,7 @@
 				open: true,
 				args: {
 					entity: vault,
-					orderbookAddress,
+					toAddress: orderbookAddress as Hex,
 					chainId,
 					onConfirm: (txHash: Hex) => {
 						manager.createDepositTransaction({
@@ -68,7 +68,7 @@
 				args: {
 					chainId,
 					entity: order,
-					orderbookAddress,
+					toAddress: orderbookAddress as Hex,
 					onConfirm: (txHash: Hex) => {
 						manager.createRemoveOrderTransaction({
 							subgraphUrl,
@@ -100,13 +100,14 @@
 			onSubmit: async (amount: bigint) => {
 				const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
 				if (approvalResult.error) {
+					// If getting approval calldata fails, immediately invoke deposit
 					handleDeposit(vault, amount);
 				} else if (approvalResult.value) {
 					handleTransactionConfirmationModal({
 						open: true,
 						args: {
 							entity: vault,
-							orderbookAddress,
+							toAddress: vault.token.address as Hex,
 							chainId,
 							onConfirm: (txHash: Hex) => {
 								manager.createApprovalTransaction({
@@ -150,7 +151,7 @@
 						open: true,
 						args: {
 							entity: vault,
-							orderbookAddress,
+							toAddress: orderbookAddress as Hex,
 							chainId,
 							onConfirm: (txHash: Hex) => {
 								manager.createWithdrawTransaction({

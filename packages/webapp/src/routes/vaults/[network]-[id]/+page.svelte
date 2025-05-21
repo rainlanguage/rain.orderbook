@@ -3,6 +3,7 @@
 		invalidateTanstackQueries,
 		PageHeader,
 		useAccount,
+		useToasts,
 		useTransactions
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
@@ -27,6 +28,8 @@
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
+	const { errToast } = useToasts();
+
 	function onDeposit(vault: SgVault) {
 		handleDepositModal({
 			open: true,
@@ -44,7 +47,7 @@
 		});
 	}
 
-	function onWithdraw(vault: SgVault) {
+	async function onWithdraw(vault: SgVault) {
 		handleWithdrawModal({
 			open: true,
 			args: {
@@ -54,25 +57,36 @@
 				subgraphUrl,
 				account: $account as Hex
 			},
-			onSubmit: (amount: bigint) => {
-				handleTransactionConfirmationModal({
-					open: true,
-					args: {
-						entity: vault,
-						orderbookAddress,
-						chainId,
-						onConfirm: (txHash: Hex) => {
-							manager.createWithdrawTransaction({
-								subgraphUrl,
-								txHash,
-								chainId,
-								networkKey: network,
-								queryKey: vault.id
-							});
-						},
-						getCalldataFn: () => getVaultWithdrawCalldata(vault, amount.toString())
+			onSubmit: async (amount: bigint) => {
+				let calldata: string;
+				try {
+					const calldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
+					if (calldataResult.error) {
+						return errToast(calldataResult.error.msg);
 					}
-				});
+					calldata = calldataResult.value;
+					handleTransactionConfirmationModal({
+						open: true,
+						args: {
+							entity: vault,
+							toAddress: orderbookAddress as Hex,
+							chainId,
+							onConfirm: (txHash: Hex) => {
+								manager.createWithdrawTransaction({
+									subgraphUrl,
+									txHash,
+									chainId,
+									networkKey: network,
+									queryKey: vault.id,
+									entity: vault
+								});
+							},
+							calldata
+						}
+					});
+				} catch {
+					return errToast('Failed to get calldata for vault withdrawal.');
+				}
 			}
 		});
 	}
