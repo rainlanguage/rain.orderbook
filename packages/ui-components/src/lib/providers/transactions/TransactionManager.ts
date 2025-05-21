@@ -9,6 +9,7 @@ import { TransactionName } from '$lib/types/transaction';
 import {
 	getTransaction,
 	getTransactionRemoveOrders,
+	type GetTransactionRemoveOrdersResult,
 	type SgRemoveOrderWithOrder,
 	type SgTransaction
 } from '@rainlanguage/orderbook';
@@ -103,7 +104,9 @@ export class TransactionManager {
 				txHash: args.txHash,
 				successMessage,
 				fetchEntityFn: getTransactionRemoveOrders,
-				isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
+				isSuccess: (data: SgRemoveOrderWithOrder[] | SgTransaction) => {
+					return Array.isArray(data) ? data.length > 0 : false;
+				}
 			}
 		});
 	}
@@ -138,7 +141,7 @@ export class TransactionManager {
 				txHash: args.txHash,
 				successMessage,
 				fetchEntityFn: getTransaction,
-				isSuccess: (data: SgTransaction) => !!data
+				isSuccess: (data) => !!data
 			}
 		});
 	}
