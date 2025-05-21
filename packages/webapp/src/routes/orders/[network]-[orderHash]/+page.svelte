@@ -13,10 +13,11 @@
 		handleWithdrawModal,
 		handleTransactionConfirmationModal
 	} from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
-	import { getRemoveOrderCalldata, type SgOrder, type SgVault } from '@rainlanguage/orderbook';
+	import { type SgOrder, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 
 	const { orderHash, network } = $page.params;
@@ -31,37 +32,23 @@
 	const { errToast } = useToasts();
 
 	async function onRemove(order: SgOrder) {
-		let calldata: string;
-		try {
-			const calldataResult = await getRemoveOrderCalldata(order);
-			if (calldataResult.error) {
-				return errToast(calldataResult.error.msg);
-			}
-			calldata = calldataResult.value;
-			handleTransactionConfirmationModal({
-				open: true,
-				args: {
-					chainId,
-					entity: order,
-					orderbookAddress,
-					onConfirm: (txHash: Hex) => {
-						manager.createRemoveOrderTransaction({
-							subgraphUrl,
-							txHash,
-							queryKey: orderHash,
-							chainId,
-							networkKey: network
-						});
-					},
-					calldata
-				}
-			});
-		} catch {
-			return errToast('Failed to get calldata for order removal.');
-		}
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
+		});
 	}
 
 	function onDeposit(vault: SgVault) {
+		const network = $page.params.network;
+		const orderHash = $page.params.orderHash;
+		const subgraphUrl = $settings?.subgraphs?.[network] || '';
+		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 		handleDepositModal({
 			open: true,
 			args: {

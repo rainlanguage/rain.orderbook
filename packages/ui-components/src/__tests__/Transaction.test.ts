@@ -3,15 +3,14 @@ import { TransactionStore } from '../lib/models/Transaction';
 import {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
-	type TransactionArgs
+	type TransactionArgs,
+	TransactionName
 } from '../lib/types/transaction';
 import { waitForTransactionReceipt, type Config } from '@wagmi/core';
 import { awaitSubgraphIndexing } from '../lib/services/awaitTransactionIndexing';
-import { getExplorerLink } from '../lib/services/getExplorerLink';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
-import { TransactionName } from '../lib/types/transaction';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
@@ -23,10 +22,6 @@ vi.mock('../lib/services/awaitTransactionIndexing', () => ({
 		query: 'mock query',
 		variables: { txHash: '0x123' }
 	}))
-}));
-
-vi.mock('../lib/services/getExplorerLink', () => ({
-	getExplorerLink: vi.fn()
 }));
 
 describe('TransactionStore', () => {
@@ -67,20 +62,18 @@ describe('TransactionStore', () => {
 		destroy: vi.fn(),
 		getClient: vi.fn(),
 		_internal: {}
-	};
+	} as unknown as Config;
 
 	const mockChainId = 1;
 	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/mock';
 	const mockTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 	const mockOrderHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
-	const mockExplorerLink =
-		'https://etherscan.io/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 	const mockOnSuccess = vi.fn();
 	const mockOnError = vi.fn();
 
 	const mockToastLinks: ToastLink[] = [
 		{
-			link: mockExplorerLink,
+			link: 'https://etherscan.io/tx/test-tx',
 			label: 'View on Explorer'
 		}
 	];
@@ -102,20 +95,19 @@ describe('TransactionStore', () => {
 				queryKey: 'removeOrder',
 				toastLinks: mockToastLinks,
 				networkKey: 'ethereum'
-			} as unknown as TransactionArgs & { config: Config },
+			} as TransactionArgs & { config: Config },
 			mockOnSuccess,
 			mockOnError
 		);
-		vi.mocked(getExplorerLink).mockResolvedValue(mockExplorerLink);
 	});
 
-	it('should initialize with IDLE status', () => {
+	it('should initialize with IDLE status and correct links', () => {
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.IDLE);
-		expect(state.explorerLink).toBe('');
+		expect(state.links).toEqual(mockToastLinks);
 	});
 
-	it('should update state when execute is called', async () => {
+	it('should update state when execute is called and keep links', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
@@ -129,7 +121,7 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(state.explorerLink).toBe(mockExplorerLink);
+		expect(state.links).toEqual(mockToastLinks);
 		expect(mockOnSuccess).toHaveBeenCalled();
 	});
 
@@ -141,6 +133,7 @@ describe('TransactionStore', () => {
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.RECEIPT_FAILED);
+		expect(state.links).toEqual(mockToastLinks);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
@@ -156,15 +149,14 @@ describe('TransactionStore', () => {
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
+		expect(state.links).toEqual(mockToastLinks);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
-	it('should handle subgraph indexing failure', async () => {
+	it('should handle subgraph indexing failure when value is missing', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
-			error: TransactionStoreErrorMessage.SUBGRAPH_FAILED
-		});
+		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({});
 
 		await transaction.execute();
 
@@ -172,10 +164,11 @@ describe('TransactionStore', () => {
 
 		expect(state.status).toBe(TransactionStatusMessage.ERROR);
 		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
+		expect(state.links).toEqual(mockToastLinks);
 		expect(mockOnError).toHaveBeenCalled();
 	});
 
-	it('should handle unknown subgraph indexing error', async () => {
+	it('should call onSuccess when execute and indexing are successful', async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
@@ -189,6 +182,7 @@ describe('TransactionStore', () => {
 
 		const state = get(transaction.state);
 		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
+		expect(state.links).toEqual(mockToastLinks);
 		expect(mockOnSuccess).toHaveBeenCalled();
 	});
 });
