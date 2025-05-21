@@ -70,7 +70,6 @@ export class TransactionStore implements Transaction {
 		onError: () => void
 	) {
 		this.config = args.config;
-		this.chainId = args.chainId;
 		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
 		this.name = args.name;
