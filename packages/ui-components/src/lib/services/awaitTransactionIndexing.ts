@@ -8,7 +8,9 @@ import type {
 	getTransactionRemoveOrders,
 	getTransaction,
 	getTransactionAddOrders,
-	WasmEncodedResult
+	WasmEncodedResult,
+	GetTransactionRemoveOrdersResult,
+	SgTransaction
 } from '@rainlanguage/orderbook';
 
 export type AwaitSubgraphConfig = {
@@ -19,7 +21,7 @@ export type AwaitSubgraphConfig = {
 		| typeof getTransaction
 		| typeof getTransactionRemoveOrders
 		| typeof getTransactionAddOrders;
-	isSuccess: (data: any) => boolean;
+	isSuccess: (data: SgTransaction | GetTransactionRemoveOrdersResult) => boolean;
 };
 
 /**

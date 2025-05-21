@@ -44,7 +44,6 @@ export class TransactionStore implements Transaction {
 	private name: TransactionName;
 	private config: Config;
 	private chainId: number;
-	private subgraphUrl: string;
 	private txHash: Hex;
 	private onSuccess: () => void;
 	private onError: () => void;
@@ -64,7 +63,6 @@ export class TransactionStore implements Transaction {
 	) {
 		this.config = args.config;
 		this.chainId = args.chainId;
-		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
 		this.name = args.name;
 		this.state = writable<TransactionStoreState>({
@@ -124,11 +122,10 @@ export class TransactionStore implements Transaction {
 
 	/**
 	 * Monitors the transaction indexing status in the subgraph
-	 * @param {Hex} txHash - The transaction hash to monitor
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	private async indexTransaction(txHash: Hex): Promise<void> {
+	private async indexTransaction(): Promise<void> {
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});

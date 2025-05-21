@@ -10,8 +10,7 @@ import {
 	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction,
-	type WasmEncodedResult
+	type SgTransaction
 } from '@rainlanguage/orderbook';
 
 /**
