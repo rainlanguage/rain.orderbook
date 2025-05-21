@@ -28,33 +28,6 @@
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
-	async function handleDeposit(vault: SgVault, amount: bigint) {
-		const calldata = await getVaultDepositCalldata(vault, amount.toString());
-		if (calldata.error) {
-			return errToast(calldata.error.msg);
-		} else if (calldata.value) {
-			handleTransactionConfirmationModal({
-				open: true,
-				args: {
-					entity: vault,
-					toAddress: orderbookAddress as Hex,
-					chainId,
-					onConfirm: (txHash: Hex) => {
-						manager.createDepositTransaction({
-							subgraphUrl,
-							txHash,
-							chainId,
-							networkKey: network,
-							queryKey: vault.id,
-							entity: vault
-						});
-					},
-					calldata: calldata.value
-				}
-			});
-		}
-	}
-
 	async function onRemove(order: SgOrder) {
 		let calldata: string;
 		try {
@@ -84,6 +57,33 @@
 			});
 		} catch {
 			return errToast('Failed to get calldata for order removal.');
+		}
+	}
+
+	async function handleDeposit(vault: SgVault, amount: bigint) {
+		const calldata = await getVaultDepositCalldata(vault, amount.toString());
+		if (calldata.error) {
+			return errToast(calldata.error.msg);
+		} else if (calldata.value) {
+			handleTransactionConfirmationModal({
+				open: true,
+				args: {
+					entity: vault,
+					toAddress: orderbookAddress as Hex,
+					chainId,
+					onConfirm: (txHash: Hex) => {
+						manager.createDepositTransaction({
+							subgraphUrl,
+							txHash,
+							chainId,
+							networkKey: network,
+							queryKey: vault.id,
+							entity: vault
+						});
+					},
+					calldata: calldata.value
+				}
+			});
 		}
 	}
 
