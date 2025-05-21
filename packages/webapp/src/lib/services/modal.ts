@@ -3,7 +3,7 @@ import DepositModal from '$lib/components/DepositModal.svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import {
-	DisclaimerModal,	
+	DisclaimerModal,
 	type TransactionConfirmationProps,
 	type DisclaimerModalProps,
 	type DeployModalProps,

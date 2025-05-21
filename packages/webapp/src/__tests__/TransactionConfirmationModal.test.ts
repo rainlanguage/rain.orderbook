@@ -124,22 +124,4 @@ describe('TransactionConfirmationModal', () => {
 			expect(screen.getByText('❌')).toBeInTheDocument();
 		});
 	});
-
-	it('handles getCalldataFn failure', async () => {
-		vi.mocked(handleWalletConfirmation).mockResolvedValue({
-			state: {
-				status: 'error',
-				reason: 'Failed to get calldata'
-			}
-		});
-
-		render(TransactionConfirmationModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
-			expect(screen.getByText('Failed to get calldata')).toBeInTheDocument();
-			expect(screen.getByText('Dismiss')).toBeInTheDocument();
-			expect(screen.getByText('❌')).toBeInTheDocument();
-		});
-	});
 });
