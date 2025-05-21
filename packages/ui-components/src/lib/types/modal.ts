@@ -1,4 +1,4 @@
-import type { SgOrder, WasmEncodedResult } from '@rainlanguage/orderbook';
+import type { SgOrder } from '@rainlanguage/orderbook';
 import type { DepositOrWithdrawArgs, DeploymentArgs } from './transaction';
 import type { Hex } from 'viem';
 
@@ -28,8 +28,8 @@ export type TransactionConfirmationProps = {
 		onConfirm: (hash: Hex) => void;
 		// Order to generate calldata for
 		order: SgOrder;
-		// Function to generate calldata for the transaction
-		getCalldataFn: () => Promise<WasmEncodedResult<string>>;
+		// Calldata for the transaction
+		calldata: string;
 	};
 };
 

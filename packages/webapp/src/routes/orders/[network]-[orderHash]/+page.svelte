@@ -3,7 +3,8 @@
 		invalidateTanstackQueries,
 		OrderDetail,
 		PageHeader,
-		useAccount
+		useAccount,
+		useToasts
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
@@ -24,26 +25,37 @@
 	const chainId = $settings.networks[network]?.['chain-id'];
 	const { account } = useAccount();
 	const { manager } = useTransactions();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleTransactionConfirmationModal({
-			open: true,
-			args: {
-				order,
-				orderbookAddress,
-				chainId,
-				onConfirm: (txHash: Hex) => {
-					manager.createRemoveOrderTransaction({
-						subgraphUrl,
-						txHash,
-						orderHash,
-						chainId,
-						networkKey: network
-					});
-				},
-				getCalldataFn: () => getRemoveOrderCalldata(order)
+	async function onRemove(order: SgOrder) {
+		let calldata;
+		try {
+			const calldataResult = await getRemoveOrderCalldata(order);
+			if (calldataResult.error) {
+				return errToast(calldataResult.error.msg);
 			}
-		});
+			calldata = calldataResult.value;
+			handleTransactionConfirmationModal({
+				open: true,
+				args: {
+					order,
+					orderbookAddress,
+					chainId,
+					onConfirm: (txHash: Hex) => {
+						manager.createRemoveOrderTransaction({
+							subgraphUrl,
+							txHash,
+							orderHash,
+							chainId,
+							networkKey: network
+						});
+					},
+					calldata
+				}
+			});
+		} catch {
+			return errToast('Failed to get calldata for order removal.');
+		}
 	}
 
 	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {

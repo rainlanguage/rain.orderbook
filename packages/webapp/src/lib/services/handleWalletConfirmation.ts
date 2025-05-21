@@ -25,22 +25,10 @@ export async function handleWalletConfirmation(
 			}
 		};
 	}
-
-	const result = await args.getCalldataFn();
-	if (result.error) {
-		return {
-			state: {
-				status: 'error',
-				reason: result.error.msg
-			}
-		};
-	}
-	const calldata: string = result.value;
-
 	try {
 		transactionHash = await sendTransaction(config, {
 			to: args.orderbookAddress,
-			data: calldata as Hex
+			data: args.calldata as Hex
 		});
 	} catch {
 		return {
