@@ -406,6 +406,6 @@ mod tests {
         let mut sg_order = mock_sg_order_default();
         sg_order.active = false;
         let order_flattened = OrderFlattened::try_from(sg_order).unwrap();
-        assert_eq!(order_flattened.order_active, false);
+        assert!(!order_flattened.order_active);
     }
 }

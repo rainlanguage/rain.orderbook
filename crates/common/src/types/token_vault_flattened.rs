@@ -55,6 +55,7 @@ mod tests {
         SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgVault, SgVaultBalanceChangeType,
     };
 
+    #[allow(clippy::too_many_arguments)]
     fn create_sg_vault(
         id: &str,
         owner: &str,
@@ -358,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_max_allowed_decimals_for_format_units() {
-        let balance_str = "1".repeat(1) + &"0".repeat(77);
+        let balance_str = "1".to_string() + &"0".repeat(77);
         let sg_vault = create_sg_vault(
             "vault_test_012",
             "0xOwnerAddress12",
