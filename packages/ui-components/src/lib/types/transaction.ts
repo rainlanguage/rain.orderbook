@@ -73,7 +73,6 @@ export type InternalTransactionArgs = {
 	txHash: Hex;
 	networkKey: string;
 	queryKey: string;
-	awaitSubgraphConfig: AwaitSubgraphConfig;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
@@ -82,6 +81,7 @@ export type TransactionArgs = InternalTransactionArgs & {
 	successMessage: string;
 	queryKey: string;
 	toastLinks: ToastLink[];
+	awaitSubgraphConfig: AwaitSubgraphConfig;
 };
 
 export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {
