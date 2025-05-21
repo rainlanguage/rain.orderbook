@@ -9,7 +9,6 @@ import { TransactionName } from '$lib/types/transaction';
 import {
 	getTransaction,
 	getTransactionRemoveOrders,
-	type GetTransactionRemoveOrdersResult,
 	type SgRemoveOrderWithOrder,
 	type SgTransaction
 } from '@rainlanguage/orderbook';
@@ -111,6 +110,23 @@ export class TransactionManager {
 		});
 	}
 
+	/**
+	 * Creates and initializes a new transaction for withdrawing funds from a vault
+	 * @param args - Configuration for the withdrawal transaction
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
+	 * @param args.txHash - Hash of the transaction to track
+	 * @param args.orderHash - Hash of the order to be removed
+	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @returns A new Transaction instance configured for withdrawal
+	 * @throws {Error} If required transaction parameters are missing
+	 * @example
+	 * const tx = await manager.createWithdrawTransaction({
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   txHash: '0x123...',
+	 *   orderHash: '0x456...',
+	 *   chainId: 1
+	 * });
+	 */
 	public async createWithdrawTransaction(args: InternalTransactionArgs): Promise<Transaction> {
 		const name = TransactionName.WITHDRAWAL;
 		const errorMessage = 'Withdrawal failed.';
