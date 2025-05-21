@@ -110,7 +110,7 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			await this.indexTransaction(this.txHash);
+			await this.indexTransaction();
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,

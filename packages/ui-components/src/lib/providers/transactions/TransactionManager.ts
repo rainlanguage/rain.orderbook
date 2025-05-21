@@ -63,6 +63,8 @@ export class TransactionManager {
 	 * @param args.txHash - Hash of the transaction to track
 	 * @param args.orderHash - Hash of the order to be removed
 	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @param args.queryKey - Key for query invalidation and UI links, often the order hash.
+	 * @param args.networkKey - Network identifier for UI links.
 	 * @returns A new Transaction instance configured for order removal
 	 * @throws {Error} If required transaction parameters are missing
 	 * @example
@@ -115,8 +117,10 @@ export class TransactionManager {
 	 * @param args - Configuration for the withdrawal transaction
 	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
 	 * @param args.txHash - Hash of the transaction to track
-	 * @param args.orderHash - Hash of the order to be removed
+	 * @param args.orderHash - Identifier related to the transaction (e.g. vault ID or context-specific ID if applicable).
 	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @param args.queryKey - Identifier for the vault, used for cache invalidation and UI links.
+	 * @param args.networkKey - Network identifier for UI links.
 	 * @returns A new Transaction instance configured for withdrawal
 	 * @throws {Error} If required transaction parameters are missing
 	 * @example

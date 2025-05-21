@@ -16,6 +16,8 @@
 	import { getVaultWithdrawCalldata, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
+	import { useToasts } from '@rainlanguage/ui-components';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
@@ -27,6 +29,8 @@
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
+	const { errToast } = useToasts();
+
 	function onDeposit(vault: SgVault) {
 		handleDepositModal({
 			open: true,
@@ -43,37 +47,18 @@
 			}
 		});
 	}
-
-	function onWithdraw(vault: SgVault) {
-		handleWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				account: $account as Hex
-			},
-			onSubmit: (amount: bigint) => {
-				handleTransactionConfirmationModal({
-					open: true,
-					args: {
-						entity: vault,
-						orderbookAddress,
-						chainId,
-						onConfirm: (txHash: Hex) => {
-							manager.createWithdrawTransaction({
-								subgraphUrl,
-								txHash,
-								chainId,
-								networkKey: network,
-								queryKey: vault.id
-							});
-						},
-						getCalldataFn: () => getVaultWithdrawCalldata(vault, amount.toString())
-					}
-				});
-			}
+	async function onWithdraw(vault: SgVault) {
+		await handleVaultWithdraw(vault, {
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
+			subgraphUrl,
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 </script>
