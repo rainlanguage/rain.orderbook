@@ -24,7 +24,7 @@ export type TransactionConfirmationProps = {
 		// Chain ID for switching chains
 		chainId: number;
 		// Address to send the transaction to
-		orderbookAddress: Hex;
+		toAddress: Hex;
 		// Function to call when the transaction is confirmed in wallet
 		onConfirm: (hash: Hex) => void;
 		// Entity to generate calldata for

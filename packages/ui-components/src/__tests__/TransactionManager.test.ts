@@ -10,8 +10,10 @@ import {
 	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction
+	type SgTransaction,
+	type SgVault
 } from '@rainlanguage/orderbook';
+import { formatUnits } from 'viem';
 
 vi.mock('../lib/models/Transaction', () => ({
 	TransactionStore: vi.fn()
@@ -64,14 +66,7 @@ describe('TransactionManager', () => {
 			chainId: 1,
 			networkKey: 'ethereum',
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-			awaitSubgraphConfig: {
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-				successMessage: 'Order removed successfully.',
-				fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
-				isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
-			}
+			entity: {} as any,
 		};
 
 		beforeEach(() => {
@@ -102,7 +97,7 @@ describe('TransactionManager', () => {
 						},
 						{
 							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-							label: 'View transaction'
+							label: 'View on explorer'
 						}
 					],
 					config: mockWagmiConfig,
@@ -110,7 +105,7 @@ describe('TransactionManager', () => {
 						subgraphUrl: mockArgs.subgraphUrl,
 						txHash: mockArgs.txHash,
 						successMessage: 'Order removed successfully.',
-						fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
+						fetchEntityFn: getTransactionRemoveOrders,
 						isSuccess: expect.any(Function)
 					}
 				},
@@ -156,14 +151,7 @@ describe('TransactionManager', () => {
 			chainId: 1,
 			networkKey: 'ethereum',
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-			awaitSubgraphConfig: {
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-				successMessage: 'Withdrawal successful.',
-				fetchEntityFn: getTransaction as typeof getTransaction,
-				isSuccess: (data: SgTransaction) => !!data
-			}
+			entity: {} as any,
 		};
 
 		beforeEach(() => {
@@ -194,7 +182,7 @@ describe('TransactionManager', () => {
 						},
 						{
 							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-							label: 'View transaction'
+							label: 'View on explorer'
 						}
 					],
 					config: mockWagmiConfig,
@@ -202,7 +190,7 @@ describe('TransactionManager', () => {
 						subgraphUrl: mockArgs.subgraphUrl,
 						txHash: mockArgs.txHash,
 						successMessage: 'Withdrawal successful.',
-						fetchEntityFn: getTransaction as typeof getTransaction,
+						fetchEntityFn: getTransaction,
 						isSuccess: expect.any(Function)
 					}
 				},
@@ -300,14 +288,7 @@ describe('TransactionManager', () => {
 				chainId: 1,
 				networkKey: 'ethereum',
 				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-				awaitSubgraphConfig: {
-					subgraphUrl: 'https://api.example.com',
-					txHash:
-						'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-					successMessage: 'Order removed successfully.',
-					fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
-					isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
-				}
+				entity: {} as any,
 			});
 
 			onSuccess!();
@@ -338,14 +319,7 @@ describe('TransactionManager', () => {
 				chainId: 1,
 				networkKey: 'ethereum',
 				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-				awaitSubgraphConfig: {
-					subgraphUrl: 'https://api.example.com',
-					txHash:
-						'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-					successMessage: 'Order removed successfully.',
-					fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
-					isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
-				}
+				entity: {} as any,
 			});
 
 			onError!();
@@ -373,14 +347,7 @@ describe('TransactionManager', () => {
 				chainId: 1,
 				networkKey: 'ethereum',
 				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-				awaitSubgraphConfig: {
-					subgraphUrl: 'https://api.example.com',
-					txHash:
-						'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-					successMessage: 'Order removed successfully.',
-					fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
-					isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
-				}
+				entity: {} as any,
 			});
 
 			manager.clearTransactions();
@@ -392,6 +359,198 @@ describe('TransactionManager', () => {
 				storeValue = value;
 			});
 			expect(storeValue).toEqual([]);
+		});
+	});
+
+	describe('createApprovalTransaction', () => {
+		const mockEntity = {
+			token: {
+				symbol: 'TEST',
+				decimals: '18'
+			}
+		} as SgVault;
+		const mockArgs: InternalTransactionArgs = {
+			subgraphUrl: 'https://api.example.com',
+			txHash: '0xapprovehash' as `0x${string}`,
+			chainId: 1,
+			networkKey: 'ethereum',
+			queryKey: '0xvaultid',
+			entity: mockEntity
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue(
+				'https://explorer.example.com/tx/0xapprovehash'
+			);
+		});
+
+		it('should create a transaction with correct parameters', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createApprovalTransaction(mockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: 'Approving TEST spend',
+					errorMessage: 'Approval failed.',
+					successMessage: 'Approval successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							label: 'View vault'
+						},
+						{
+							link: 'https://explorer.example.com/tx/0xapprovehash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+	});
+
+	describe('createDepositTransaction', () => {
+		const mockEntity = {
+			token: {
+				symbol: 'TEST',
+				decimals: '18'
+			}
+		} as SgVault;
+		const mockArgs: InternalTransactionArgs & { amount: bigint } = {
+			subgraphUrl: 'https://api.example.com',
+			txHash: '0xdeposithash' as `0x${string}`,
+			chainId: 1,
+			networkKey: 'ethereum',
+			queryKey: '0xvaultid',
+			entity: mockEntity,
+			amount: 1000000000000000000n
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue(
+				'https://explorer.example.com/tx/0xdeposithash'
+			);
+		});
+
+		it('should create a transaction with correct parameters including formatted amount', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			const expectedReadableAmount = formatUnits(mockArgs.amount, Number(mockEntity.token.decimals));
+
+			await manager.createDepositTransaction(mockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: `Depositing ${expectedReadableAmount} ${mockEntity.token.symbol}`,
+					errorMessage: 'Deposit failed.',
+					successMessage: 'Deposit successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							label: 'View vault'
+						},
+						{
+							link: 'https://explorer.example.com/tx/0xdeposithash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig,
+					awaitSubgraphConfig: {
+						subgraphUrl: mockArgs.subgraphUrl,
+						txHash: mockArgs.txHash,
+						successMessage: 'Deposit successful.',
+						fetchEntityFn: getTransaction,
+						isSuccess: expect.any(Function)
+					}
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should execute the transaction after creation', async () => {
+			const mockExecute = vi.fn();
+			const mockTransaction = { execute: mockExecute };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			expect(mockExecute).toHaveBeenCalled();
+		});
+
+		it('should add transaction to store', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			const transactions = manager.getTransactions();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let storeValue: any[] = [];
+			transactions.subscribe((value) => {
+				storeValue = value;
+			});
+			expect(storeValue).toContain(mockTransaction);
+		});
+
+		it('should handle successful transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createDepositTransaction(mockArgs);
+
+			onSuccess!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Deposit successful.',
+				type: 'success',
+				color: 'green',
+				links: expect.any(Array)
+			});
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: ['0xvaultid']
+			});
+		});
+
+		it('should handle failed transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createDepositTransaction(mockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Deposit failed.',
+				type: 'error',
+				color: 'red',
+				links: expect.any(Array)
+			});
 		});
 	});
 });

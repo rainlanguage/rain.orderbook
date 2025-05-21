@@ -78,7 +78,8 @@
 							chainId,
 							networkKey: network,
 							queryKey: vault.id,
-							entity: vault
+							entity: vault,
+							amount
 						});
 					},
 					calldata: calldata.value
