@@ -235,8 +235,6 @@ trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,2,0.0000000000000000
 ";
         let csv_text = fs::read_to_string(path.clone()).unwrap();
         assert_eq!(csv_text, expected);
-
-        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 
     #[tokio::test]
@@ -266,8 +264,6 @@ trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,2,0.0000000000000000
         )
         .await;
         assert!(result.is_ok());
-
-        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 
     #[tokio::test]
@@ -299,7 +295,5 @@ trade2,1700086400,2023-11-15 22:13:20 UTC,tx2,sender2,hash2,2,0.0000000000000000
                 OrderbookSubgraphClientError::CynicClientError(_)
             )
         ));
-
-        // fs::remove_file(path).unwrap(); // Removed, tempfile handles cleanup
     }
 }

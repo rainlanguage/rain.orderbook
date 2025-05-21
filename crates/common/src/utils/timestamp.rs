@@ -92,19 +92,19 @@ mod tests {
     fn test_format_bigint_timestamp_display_ok() {
         let timestamp = "1746537612".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string())); // Adjusted expected output
+        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string()));
 
         let timestamp_i64 = timestamp.parse::<i64>().unwrap();
         let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string())); // Adjusted expected output
+        assert_eq!(result, Ok("2025-05-06 13:20:12 UTC".to_string()));
 
         let timestamp = "970676358".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone());
-        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string())); // Adjusted expected output
+        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string()));
 
         let timestamp_i64 = timestamp.parse::<i64>().unwrap();
         let result = format_timestamp_display(timestamp_i64);
-        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string())); // Adjusted expected output
+        assert_eq!(result, Ok("2000-10-04 16:19:18 UTC".to_string()));
 
         // Test earliest valid timestamp (close to Unix epoch minimum)
         // January 1, 1970 (plus some seconds to be safe)
