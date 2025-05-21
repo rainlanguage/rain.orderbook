@@ -56,7 +56,6 @@ describe('TransactionStore', () => {
 		},
 		state: {
 			connections: new Map(),
-			chainId: 1,
 			status: 'connected',
 			current: undefined
 		},

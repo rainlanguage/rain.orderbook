@@ -26,9 +26,9 @@ const mockDeps: HandleRemoveOrderDependencies = {
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	orderHash: '0xorderhashfromparams',
+	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
 	manager: mockManager as unknown as TransactionManager,
-	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal
 };
 
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {

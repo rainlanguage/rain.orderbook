@@ -46,7 +46,6 @@ export type Transaction = {
 export class TransactionStore implements Transaction {
 	private name: TransactionName;
 	private config: Config;
-	private chainId: number;
 	private txHash: Hex;
 	private links: {
 		link: string;
@@ -69,11 +68,9 @@ export class TransactionStore implements Transaction {
 		onError: () => void
 	) {
 		this.config = args.config;
-		this.chainId = args.chainId;
 		this.txHash = args.txHash;
 		this.name = args.name;
 		this.links = args.toastLinks;
-		this.chainId = args.chainId;
 		this.state = writable<TransactionStoreState>({
 			name: this.name,
 			status: TransactionStatusMessage.IDLE,
