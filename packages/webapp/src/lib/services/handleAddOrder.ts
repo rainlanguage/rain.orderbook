@@ -28,10 +28,7 @@ export const handleAddOrder = async(deps: HandleAddOrderDependencies) => {
                             deps.manager.createApprovalTransaction({
                                 ...deps.args,
                                 txHash: hash,
-                                networkKey: network,
                                 queryKey: '',
-                                entity: null,
-                                subgraphUrl: ''
                             });
                         },
                     }
