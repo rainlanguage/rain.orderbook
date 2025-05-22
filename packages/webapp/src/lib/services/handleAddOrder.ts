@@ -29,11 +29,14 @@ export const handleAddOrder = async(deps: HandleAddOrderDependencies) => {
                                 ...deps.args,
                                 txHash: hash,
                                 queryKey: '',
+								networkKey: deps.network
                             });
                         },
                     }
                 });
-            }
+            },
+			
+
 
 
 

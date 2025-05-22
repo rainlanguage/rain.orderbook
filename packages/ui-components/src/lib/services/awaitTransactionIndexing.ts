@@ -132,18 +132,18 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			const data = await fetchEntityFn(subgraphUrl, txHash);
 
 			if (data.value && isSuccess(data.value)) {
-				let orderHash;
+				let newOrderHash;
 				// Extract orderHash from order data if it exists in the expected format
 				// This only applies to addOrder transactions
 				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
-					orderHash = data.value[0].order.orderHash;
+					newOrderHash = data.value[0].order.orderHash;
 				}
 
 				return {
 					value: {
 						txHash,
 						successMessage,
-						orderHash,
+						orderHash: newOrderHash,
 						network,
 						data: data.value
 					}

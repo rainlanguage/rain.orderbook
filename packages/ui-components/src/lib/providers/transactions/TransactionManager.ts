@@ -12,7 +12,8 @@ import {
 	type SgRemoveOrderWithOrder,
 	type SgTransaction,
 	type SgVault,
-	type SgOrder
+	type SgOrder,
+	getTransactionAddOrders
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 
@@ -288,6 +289,63 @@ export class TransactionManager {
 			}
 		});
 	}
+
+	/**
+	 * Creates and initializes a new transaction for deploying a strategy.
+	 * @param args - Configuration for the deployment transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.networkKey - Network identifier string.
+	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
+	 * @returns A new Transaction instance configured for deposit.
+	 * @example
+	 * const tx = await manager.createAddOrderTransaction({
+	 *   txHash: '0xdef...',
+	 *   chainId: 1,
+	 *   networkKey: 'mainnet',
+	 *   queryKey: '0x789...', // Vault ID
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 * });
+	 */
+	
+
+
+	public async createAddOrderTransaction(args: InternalTransactionArgs & { subgraphUrl: string }): Promise<Transaction> {
+		const { queryKey, txHash, chainId, subgraphUrl } = args;
+		const name = 'Deploying strategy';
+		const errorMessage = 'Deployment failed.';
+		const successMessage = 'Strategy deployed successfully.';
+
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl,
+				txHash,
+				successMessage,
+				fetchEntityFn: getTransactionAddOrders,
+				isSuccess: (data: SgAddOrderWithOrder[]) => {
+					return Array.isArray(data) ? data.length > 0 : false;
+				}
+			}
+		});
+	}
+
+
+		
 
 	/**
 	 * Creates, initializes, and executes a new transaction instance.
