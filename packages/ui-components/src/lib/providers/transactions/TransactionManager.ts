@@ -178,7 +178,8 @@ export class TransactionManager {
 	 * @param args.chainId - Chain ID where the transaction is being executed.
 	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault or context for which approval is made (used for query invalidation and UI links).
-	 * @param args.entity - The `SgVault` entity (to derive token symbol) associated with this transaction.
+	 * @param args.tokenSymbol - The symbol of the token being approved.
+	 * @param args.entity - The `SgVault` entity associated with this transaction. (Optional, used for approvals to pre-existing vaults).
 	 * @returns A new Transaction instance configured for token approval.
 	 * @example
 	 * const tx = await manager.createApprovalTransaction({
@@ -190,26 +191,31 @@ export class TransactionManager {
 	 * });
 	 */
 	public async createApprovalTransaction(
-		args: InternalTransactionArgs & { entity: SgVault }
+		args: InternalTransactionArgs & { entity?: SgVault }
 	): Promise<Transaction> {
-		const tokenSymbol = args.entity.token.symbol;
-		const name = `Approving ${tokenSymbol} spend`;
+		const { entity, queryKey, networkKey } = args;
+		const tokenSymbol = entity?.token.symbol || '';
+		const name = `Approving ${tokenSymbol || 'token'} spend`;
 		const errorMessage = 'Approval failed.';
 		const successMessage = 'Approval successful.';
-		const queryKey = args.queryKey;
-		const networkKey = args.networkKey;
 
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
-		const toastLinks: ToastLink[] = [
-			{
-				link: `/vaults/${networkKey}-${args.queryKey}`,
-				label: 'View vault'
-			},
+		let toastLinks: ToastLink[] = [
 			{
 				link: explorerLink,
 				label: 'View on explorer'
 			}
 		];
+
+		if (entity) {
+			toastLinks = [
+				{
+					link: `/vaults/${networkKey}-${args.queryKey}`,
+					label: 'View vault'
+				},
+				...toastLinks
+			];
+		}
 
 		return this.createTransaction({
 			...args,
