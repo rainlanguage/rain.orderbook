@@ -41,7 +41,7 @@ pub fn format_timestamp_display_local(
     let timestamp_naive = get_datetime_from_timestamp(timestamp)?;
     Ok(timestamp_naive
         .with_timezone(&chrono::Local)
-        .format("%Y-%m-%d %I:%M:%S %p UTC%:::z")
+        .format("%Y-%m-%d %H:%M:%S UTC%:::z")
         .to_string())
 }
 
@@ -180,11 +180,11 @@ mod tests {
 
         let timestamp = "1746537612".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone(), true);
-        assert_eq!(result, Ok("2025-05-06 09:20:12 AM UTC-04".to_string()));
+        assert_eq!(result, Ok("2025-05-06 09:20:12 UTC-04".to_string()));
 
         let timestamp = "970676358".to_string();
         let result = format_bigint_timestamp_display(timestamp.clone(), true);
-        assert_eq!(result, Ok("2000-10-04 12:19:18 PM UTC-04".to_string()));
+        assert_eq!(result, Ok("2000-10-04 12:19:18 UTC-04".to_string()));
 
         let earliest_valid = "86400".to_string();
         let result = format_bigint_timestamp_display(earliest_valid.clone(), true);
