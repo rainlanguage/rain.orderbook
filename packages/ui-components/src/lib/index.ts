@@ -73,7 +73,6 @@ export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/order
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
-	type ExtendedApprovalCalldata,
 	type TransactionArgs
 } from './types/transaction';
 export type { DeploymentArgs, VaultActionArgs } from './types/transaction';
@@ -119,7 +118,6 @@ export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
-export { default as transactionStore } from './stores/transactionStore';
 export {
 	cachedWritableStore,
 	cachedWritableIntOptional,
