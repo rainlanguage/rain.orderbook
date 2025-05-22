@@ -21,15 +21,15 @@ export type DisclaimerModalProps = {
 export type TransactionConfirmationProps = {
 	open: boolean;
 	args: {
-		// Chain ID for switching chains
+		// Chain ID for switching chains.
 		chainId: number;
-		// Address to send the transaction to
+		// Address to send the transaction to.
 		toAddress: Hex;
-		// Function to call when the transaction is confirmed in wallet
+		// Function to call when the transaction is confirmed in wallet.
 		onConfirm: (hash: Hex) => void;
-		// Entity to generate calldata for
-		entity: SgOrder | SgVault;
-		// Calldata for the transaction
+		// Entity to generate calldata for (optional, not used for approval transactions when adding orders).
+		entity?: SgOrder | SgVault;
+		// Calldata for the transaction.
 		calldata: string;
 	};
 };

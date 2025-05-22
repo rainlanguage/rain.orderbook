@@ -1,96 +1,58 @@
-import type { DeploymentTransactionArgs } from "@rainlanguage/orderbook";
-import type { DeploymentArgs, TransactionConfirmationProps, TransactionManager } from "@rainlanguage/ui-components";
-import type { Hex } from "viem";
-import { sendTransaction } from "viem/actions";
-import { handleTransactionConfirmationModal } from "./modal";
+import type { DeploymentTransactionArgs } from '@rainlanguage/orderbook';
+import type { TransactionConfirmationProps, TransactionManager } from '@rainlanguage/ui-components';
+import { QKEY_ORDERS } from '@rainlanguage/ui-components';
+import type { Hex } from 'viem';
 
-type HandleAddOrderDependencies = {
-    args: DeploymentTransactionArgs;
-    handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
+
+export type HandleAddOrderDependencies = {
+	args: DeploymentTransactionArgs;
+	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	network: string;
 	orderbookAddress: Hex;
 	subgraphUrl: string;
 	chainId: number;
-}
+};
 
-export const handleAddOrder = async(deps: HandleAddOrderDependencies) => {
-    const { approvals, deploymentCalldata, chainId } = deps.args;
-    		for (const approval of approvals) {
-                await handleTransactionConfirmationModal({
-                    open: true,
-                    args: {
-                        toAddress: approval.token as Hex,
-                        chainId,
-                        calldata: approval.calldata as `0x${string}`,
-                        onConfirm: (hash: Hex) => {
-                            deps.manager.createApprovalTransaction({
-                                ...deps.args,
-                                txHash: hash,
-                                queryKey: '',
-								networkKey: deps.network
-                            });
-                        },
-                    }
-                });
-            },
-			
+export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
+	const { approvals, deploymentCalldata, chainId, orderbookAddress } = deps.args;
+	for (const approval of approvals) {
+		const confirmationArgs: TransactionConfirmationProps = {
+			open: true,
+			args: {
+				toAddress: approval.token as Hex,
+				chainId,
+				calldata: approval.calldata as `0x${string}`,
+				onConfirm: (hash: Hex) => {
+					deps.manager.createApprovalTransaction({
+						...deps.args,
+						txHash: hash,
+						queryKey: QKEY_ORDERS,
+						networkKey: deps.network
+					});
+				}
+			}
+		};
+		await deps.handleTransactionConfirmationModal(confirmationArgs);
+	}
 
-
-
-
-
-    
-
-}
-
-const handleDeploymentTransaction = async (deps: HandleAddOrderDependencies) => {
-		for (const approval of approvals) {
-			let approvalHash: Hex;
-			try {
-				awaitWalletConfirmation(
-					`Please approve ${approval.symbol || approval.token} spend in your wallet...`
-				);
-				approvalHash = await sendTransaction(config, {
-					to: approval.token as `0x${string}`,
-					data: approval.calldata as `0x${string}`
+	const addOrderArgs: TransactionConfirmationProps = {
+		open: true,
+		args: {
+			toAddress: orderbookAddress as Hex,
+			chainId,
+			calldata: deploymentCalldata as `0x${string}`,
+			onConfirm: (hash: Hex) => {
+				deps.manager.createAddOrderTransaction({
+					...deps.args,
+					txHash: hash,
+					queryKey: QKEY_ORDERS,
+					networkKey: deps.network,
+					subgraphUrl: deps.subgraphUrl
 				});
-			} catch {
-				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
 			}
-			try {
-				awaitApprovalTx(approvalHash, approval.symbol);
-				await waitForTransactionReceipt(config, { hash: approvalHash });
-			} catch {
-				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
-			}
-		}
-
-		let hash: Hex;
-		try {
-			awaitWalletConfirmation('Please confirm deployment in your wallet...');
-			hash = await sendTransaction(config, {
-				to: orderbookAddress as `0x${string}`,
-				data: deploymentCalldata as `0x${string}`
-			});
-		} catch {
-			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
-		}
-		try {
-			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			awaitTx(hash, TransactionStatusMessage.PENDING_DEPLOYMENT, transactionExplorerLink);
-			await waitForTransactionReceipt(config, { hash });
-			if (subgraphUrl) {
-				return awaitNewOrderIndexing(subgraphUrl, hash, network);
-			}
-			return transactionSuccess(
-				hash,
-				'Deployment successful. Check the Orders page for your new order.',
-				'',
-				network
-			);
-		} catch {
-			return transactionError(TransactionErrorMessage.DEPLOYMENT_FAILED);
 		}
 	};
+	await deps.handleTransactionConfirmationModal(addOrderArgs);
+};

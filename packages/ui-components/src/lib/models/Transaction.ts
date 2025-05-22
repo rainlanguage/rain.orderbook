@@ -51,7 +51,7 @@ export class TransactionStore implements Transaction {
 		link: string;
 		label: string;
 	}[];
-	private onSuccess: () => void;
+	private onSuccess: (newOrderHash?: string) => void;
 	private onError: () => void;
 	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
 	private awaitSubgraphConfig?: AwaitSubgraphConfig;
@@ -154,10 +154,12 @@ export class TransactionStore implements Transaction {
 		}
 
 		if (result.value) {
+			
 			this.updateState({
 				status: TransactionStatusMessage.SUCCESS
 			});
-			return this.onSuccess();
+			const newOrderHash = result.value.orderHash;
+			return this.onSuccess(newOrderHash);
 		}
 
 		this.updateState({

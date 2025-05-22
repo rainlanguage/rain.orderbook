@@ -301,15 +301,13 @@ export class TransactionManager {
 	 * @returns A new Transaction instance configured for deposit.
 	 * @example
 	 * const tx = await manager.createAddOrderTransaction({
-	 *   txHash: '0xdef...',
+	 *   txHash: '0xdeploytxhash',
 	 *   chainId: 1,
 	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
 	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
 	 * });
 	 */
-	
-
 
 	public async createAddOrderTransaction(args: InternalTransactionArgs & { subgraphUrl: string }): Promise<Transaction> {
 		const { queryKey, txHash, chainId, subgraphUrl } = args;
@@ -337,15 +335,12 @@ export class TransactionManager {
 				txHash,
 				successMessage,
 				fetchEntityFn: getTransactionAddOrders,
-				isSuccess: (data: SgAddOrderWithOrder[]) => {
+				isSuccess: (data) => {
 					return Array.isArray(data) ? data.length > 0 : false;
 				}
 			}
 		});
 	}
-
-
-		
 
 	/**
 	 * Creates, initializes, and executes a new transaction instance.
@@ -365,14 +360,27 @@ export class TransactionManager {
 			config: this.wagmiConfig
 		};
 
-		const onSuccess = () => {
+		let toastLinks = args.toastLinks;
+		
+		const onSuccess = (newOrderHash?: string) => {
+			if (newOrderHash) {
+				toastLinks = [
+					...toastLinks,
+					{
+						link: `/orders/${args.networkKey}-${newOrderHash}`,
+						label: 'View order'
+					}
+				];
+			}
 			this.addToast({
 				message: args.successMessage,
 				type: 'success',
 				color: 'green',
-				links: args.toastLinks
+				links: toastLinks
 			});
-			this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
+			if (args.queryKey) {
+				this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
+			}
 		};
 
 		const onError = () => {
@@ -380,7 +388,7 @@ export class TransactionManager {
 				message: args.errorMessage,
 				type: 'error',
 				color: 'red',
-				links: args.toastLinks
+				links: toastLinks
 			});
 		};
 
