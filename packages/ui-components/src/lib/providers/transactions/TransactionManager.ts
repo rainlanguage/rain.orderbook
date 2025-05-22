@@ -59,9 +59,9 @@ export class TransactionManager {
 	 * @param args - Configuration for the remove order transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.networkKey - Network identifier string (e.g., 'mainnet', 'arbitrum').
 	 * @param args.queryKey - The hash of the order to be removed (used for query invalidation and UI links).
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.entity - The `SgOrder` entity associated with this transaction.
 	 * @returns A new Transaction instance configured for order removal.
 	 * @example
@@ -74,12 +74,15 @@ export class TransactionManager {
 	 *   entity: sgOrderInstance
 	 * });
 	 */
-	public async createRemoveOrderTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+	public async createRemoveOrderTransaction(
+		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder }
+	): Promise<Transaction> {
 		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
 		const queryKey = args.queryKey;
 		const networkKey = args.networkKey;
+		const subgraphUrl = args.subgraphUrl;
 
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
 		const toastLinks: ToastLink[] = [
@@ -100,7 +103,7 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl: args.subgraphUrl,
+				subgraphUrl: subgraphUrl,
 				txHash: args.txHash,
 				successMessage,
 				fetchEntityFn: getTransactionRemoveOrders,
@@ -116,9 +119,9 @@ export class TransactionManager {
 	 * @param args - Configuration for the withdrawal transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.entity - The `SgVault` entity associated with this transaction.
 	 * @returns A new Transaction instance configured for withdrawal.
 	 * @example
@@ -131,7 +134,9 @@ export class TransactionManager {
 	 *   entity: sgVaultInstance
 	 * });
 	 */
-	public async createWithdrawTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+	public async createWithdrawTransaction(
+		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault }
+	): Promise<Transaction> {
 		const name = TransactionName.WITHDRAWAL;
 		const errorMessage = 'Withdrawal failed.';
 		const successMessage = 'Withdrawal successful.';
@@ -171,7 +176,6 @@ export class TransactionManager {
 	 * @param args - Configuration for the approval transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.subgraphUrl - URL of the subgraph (required by `InternalTransactionArgs`, though not always used for subgraph polling in approvals).
 	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault or context for which approval is made (used for query invalidation and UI links).
 	 * @param args.entity - The `SgVault` entity (to derive token symbol) associated with this transaction.
@@ -180,14 +184,15 @@ export class TransactionManager {
 	 * const tx = await manager.createApprovalTransaction({
 	 *   txHash: '0xabc...',
 	 *   chainId: 1,
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
 	 *   networkKey: 'mainnet',
 	 *   queryKey: '0x789...', // Vault ID
 	 *   entity: sgVaultInstance
 	 * });
 	 */
-	public async createApprovalTransaction(args: InternalTransactionArgs): Promise<Transaction> {
-		const tokenSymbol = (args.entity as SgVault).token.symbol;
+	public async createApprovalTransaction(
+		args: InternalTransactionArgs & { entity: SgVault }
+	): Promise<Transaction> {
+		const tokenSymbol = args.entity.token.symbol;
 		const name = `Approving ${tokenSymbol} spend`;
 		const errorMessage = 'Approval failed.';
 		const successMessage = 'Approval successful.';
@@ -213,7 +218,6 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks
-			// No awaitSubgraphConfig for approvals typically
 		});
 	}
 
@@ -222,11 +226,11 @@ export class TransactionManager {
 	 * @param args - Configuration for the deposit transaction.
 	 * @param args.txHash - Hash of the transaction to track.
 	 * @param args.chainId - Chain ID where the transaction is being executed.
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @param args.networkKey - Network identifier string.
 	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
 	 * @param args.entity - The `SgVault` entity associated with this transaction.
 	 * @param args.amount - The amount of tokens being deposited.
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
 	 * @returns A new Transaction instance configured for deposit.
 	 * @example
 	 * const tx = await manager.createDepositTransaction({
@@ -240,13 +244,10 @@ export class TransactionManager {
 	 * });
 	 */
 	public async createDepositTransaction(
-		args: InternalTransactionArgs & { amount: bigint }
+		args: InternalTransactionArgs & { amount: bigint; entity: SgVault; subgraphUrl: string }
 	): Promise<Transaction> {
-		const tokenSymbol = (args.entity as SgVault).token.symbol;
-		const readableAmount = formatUnits(
-			args.amount,
-			Number((args.entity as SgVault).token.decimals)
-		);
+		const tokenSymbol = args.entity.token.symbol;
+		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
 		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
 		const errorMessage = 'Deposit failed.';
 		const successMessage = 'Deposit successful.';

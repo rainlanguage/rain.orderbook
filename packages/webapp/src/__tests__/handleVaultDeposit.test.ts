@@ -168,7 +168,6 @@ describe('handleVaultDeposit', () => {
 			onApprovalConfirmCall(mockTxHashApproval);
 
 			expect(mockCreateApprovalTransaction).toHaveBeenCalledWith({
-				subgraphUrl: mockFullDeps.subgraphUrl,
 				txHash: mockTxHashApproval,
 				chainId: mockFullDeps.chainId,
 				networkKey: mockFullDeps.network,

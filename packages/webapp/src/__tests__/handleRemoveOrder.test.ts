@@ -11,6 +11,7 @@ import type { TransactionManager } from '@rainlanguage/ui-components';
 const mockHandleTransactionConfirmationModal = vi.fn();
 const mockErrToast = vi.fn();
 const mockCreateRemoveOrderTransaction = vi.fn();
+``;
 
 const mockManager = {
 	createRemoveOrderTransaction: mockCreateRemoveOrderTransaction
@@ -79,7 +80,7 @@ describe('handleRemoveOrder', () => {
 			open: true,
 			args: {
 				entity: mockOrder,
-				orderbookAddress: mockDeps.orderbookAddress,
+				toAddress: mockDeps.orderbookAddress,
 				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
@@ -106,7 +107,8 @@ describe('handleRemoveOrder', () => {
 			txHash: mockTxHash,
 			queryKey: mockDeps.orderHash,
 			chainId: mockDeps.chainId,
-			networkKey: mockDeps.network
+			networkKey: mockDeps.network,
+			entity: mockOrder
 		});
 	});
 });
