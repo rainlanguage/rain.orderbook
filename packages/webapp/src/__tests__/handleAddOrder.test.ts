@@ -22,7 +22,7 @@ const mockGetDeploymentTransactionArgs = vi.fn();
 const mockGetNetworkKey = vi.fn();
 const mockGui = {
 	getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs,
-	getNetworkKey: mockGetNetworkKey,
+	getNetworkKey: mockGetNetworkKey
 } as unknown as DotrainOrderGui;
 
 const MOCKED_NETWORK_KEY = 'testNetwork';
@@ -57,7 +57,7 @@ describe('handleAddOrder', () => {
 		manager: mockManager,
 		gui: mockGui,
 		account: MOCKED_ACCOUNT,
-		subgraphUrl: 'https://test.subgraph.com',
+		subgraphUrl: 'https://test.subgraph.com'
 	};
 
 	it('should handle an order with no approvals', async () => {
@@ -312,9 +312,7 @@ describe('handleAddOrder', () => {
 
 		await handleAddOrder(commonTestDeps);
 
-		expect(mockErrToast).toHaveBeenCalledWith(
-			'Could not deploy: Error getting network key'
-		);
+		expect(mockErrToast).toHaveBeenCalledWith('Could not deploy: Error getting network key');
 		expect(mockGetDeploymentTransactionArgs).not.toHaveBeenCalled();
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
@@ -327,9 +325,7 @@ describe('handleAddOrder', () => {
 
 		await handleAddOrder(depsWithNullAccount);
 
-		expect(mockErrToast).toHaveBeenCalledWith(
-			'Could not deploy: No wallet address found'
-		);
+		expect(mockErrToast).toHaveBeenCalledWith('Could not deploy: No wallet address found');
 		expect(mockGetDeploymentTransactionArgs).not.toHaveBeenCalled();
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
@@ -347,9 +343,7 @@ describe('handleAddOrder', () => {
 
 		await handleAddOrder(commonTestDeps);
 
-		expect(mockErrToast).toHaveBeenCalledWith(
-			`Could not deploy: ${customErrorMsg}`
-		);
+		expect(mockErrToast).toHaveBeenCalledWith(`Could not deploy: ${customErrorMsg}`);
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
 		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
