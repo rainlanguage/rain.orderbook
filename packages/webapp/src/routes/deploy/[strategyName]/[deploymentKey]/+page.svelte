@@ -6,8 +6,7 @@
 		GuiProvider,
 		useAccount,
 		useToasts,
-		useTransactions,
-		type DeploymentArgs
+		useTransactions
 	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
@@ -16,6 +15,7 @@
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
+
 	const { settings } = $page.data.stores;
 	const { dotrain, deployment, strategyDetail } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
@@ -45,16 +45,17 @@
 		}
 	});
 
-	const onDeploy = (deploymentArgs: DeploymentArgs) => {
+	const onDeploy = (gui: DotrainOrderGui, subgraphUrl?: string) => {
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {
 				handleAddOrder({
-					args: deploymentArgs,
 					handleTransactionConfirmationModal,
 					errToast,
 					manager,
-					account
+					gui,
+					subgraphUrl,
+					account: $account
 				});
 			}
 		});

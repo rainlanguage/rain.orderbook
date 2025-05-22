@@ -309,7 +309,9 @@ export class TransactionManager {
 	 * });
 	 */
 
-	public async createAddOrderTransaction(args: InternalTransactionArgs & { subgraphUrl: string }): Promise<Transaction> {
+	public async createAddOrderTransaction(
+		args: InternalTransactionArgs & { subgraphUrl: string }
+	): Promise<Transaction> {
 		const { queryKey, txHash, chainId, subgraphUrl } = args;
 		const name = 'Deploying strategy';
 		const errorMessage = 'Deployment failed.';
@@ -361,7 +363,7 @@ export class TransactionManager {
 		};
 
 		let toastLinks = args.toastLinks;
-		
+
 		const onSuccess = (newOrderHash?: string) => {
 			if (newOrderHash) {
 				toastLinks = [

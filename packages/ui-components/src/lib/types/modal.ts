@@ -1,16 +1,11 @@
 import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
-import type { DeploymentArgs, VaultActionArgs } from './transaction';
+import type { VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
 export type VaultActionModalProps = {
 	open: boolean;
 	args: VaultActionArgs;
 	onSubmit: (amount: bigint) => void;
-};
-
-export type DeployModalProps = {
-	open: boolean;
-	args: DeploymentArgs;
 };
 
 export type DisclaimerModalProps = {

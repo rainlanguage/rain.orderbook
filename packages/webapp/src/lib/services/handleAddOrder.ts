@@ -1,22 +1,47 @@
-import type { DeploymentTransactionArgs } from '@rainlanguage/orderbook';
+import type { DotrainOrderGui } from '@rainlanguage/orderbook';
 import type { TransactionConfirmationProps, TransactionManager } from '@rainlanguage/ui-components';
 import { QKEY_ORDERS } from '@rainlanguage/ui-components';
 import type { Hex } from 'viem';
 
+export enum AddOrderErrors {
+	ADD_ORDER_FAILED = 'Failed to add order',
+	MISSING_GUI = 'Order GUI is required',
+	MISSING_CONFIG = 'Wagmi config is required',
+	NO_ACCOUNT_CONNECTED = 'No wallet address found',
+	ERROR_GETTING_ARGS = 'Error getting deployment transaction args',
+	ERROR_GETTING_NETWORK_KEY = 'Error getting network key'
+}
 
 export type HandleAddOrderDependencies = {
-	args: DeploymentTransactionArgs;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	network: string;
-	orderbookAddress: Hex;
-	subgraphUrl: string;
-	chainId: number;
+	gui: DotrainOrderGui;
+	account: Hex | null;
+	subgraphUrl?: string;
 };
 
 export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
-	const { approvals, deploymentCalldata, chainId, orderbookAddress } = deps.args;
+	const { gui, account, errToast } = deps;
+
+	const networkKeyResult = gui.getNetworkKey();
+	if (networkKeyResult.error) {
+		return errToast('Could not deploy: ' + AddOrderErrors.ERROR_GETTING_NETWORK_KEY);
+	}
+	const network = networkKeyResult.value;
+
+	if (!account) {
+		return errToast('Could not deploy: ' + AddOrderErrors.NO_ACCOUNT_CONNECTED);
+	}
+
+	const result = await gui.getDeploymentTransactionArgs(account);
+
+	if (result.error) {
+		return errToast('Could not deploy: ' + result.error.msg);
+	}
+
+	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
+
 	for (const approval of approvals) {
 		const confirmationArgs: TransactionConfirmationProps = {
 			open: true,
@@ -26,10 +51,10 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 				calldata: approval.calldata as `0x${string}`,
 				onConfirm: (hash: Hex) => {
 					deps.manager.createApprovalTransaction({
-						...deps.args,
+						chainId,
 						txHash: hash,
 						queryKey: QKEY_ORDERS,
-						networkKey: deps.network
+						networkKey: network
 					});
 				}
 			}
@@ -45,11 +70,11 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 			calldata: deploymentCalldata as `0x${string}`,
 			onConfirm: (hash: Hex) => {
 				deps.manager.createAddOrderTransaction({
-					...deps.args,
+					chainId,
 					txHash: hash,
 					queryKey: QKEY_ORDERS,
-					networkKey: deps.network,
-					subgraphUrl: deps.subgraphUrl
+					networkKey: network,
+					subgraphUrl: deps.subgraphUrl || ''
 				});
 			}
 		}

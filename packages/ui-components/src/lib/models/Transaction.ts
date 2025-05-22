@@ -154,7 +154,6 @@ export class TransactionStore implements Transaction {
 		}
 
 		if (result.value) {
-			
 			this.updateState({
 				status: TransactionStatusMessage.SUCCESS
 			});

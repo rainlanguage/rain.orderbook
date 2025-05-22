@@ -8,7 +8,7 @@ import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
-export type DeploymentArgs = DeploymentTransactionArgs & { subgraphUrl: string, network?: string };
+export type DeploymentArgs = DeploymentTransactionArgs & { subgraphUrl: string; network: string };
 
 export type VaultActionArgs = {
 	vault: SgVault;
