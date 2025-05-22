@@ -456,7 +456,7 @@ describe('TransactionManager', () => {
 			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xapprovehash');
 		});
 
-		it('should create a transaction with correct parameters', async () => {
+		it('should create a transaction with correct parameters when entity is provided', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -477,6 +477,35 @@ describe('TransactionManager', () => {
 							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
 							label: 'View vault'
 						},
+						{
+							link: 'https://explorer.example.com/tx/0xapprovehash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should create a transaction with correct parameters when entity is not provided', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			// entity is deliberately omitted here
+			await manager.createApprovalTransaction({ ...mockArgs });
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: 'Approving token spend',
+					errorMessage: 'Approval failed.',
+					successMessage: 'Approval successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
 						{
 							link: 'https://explorer.example.com/tx/0xapprovehash',
 							label: 'View on explorer'
