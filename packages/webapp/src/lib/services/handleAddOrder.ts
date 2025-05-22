@@ -11,15 +11,16 @@ type HandleAddOrderDependencies = {
 	manager: TransactionManager;
 	network: string;
 	orderbookAddress: Hex;
+	subgraphUrl: string;
+	chainId: number;
 }
 
 export const handleAddOrder = async(deps: HandleAddOrderDependencies) => {
-    const { approvals, deploymentCalldata, chainId, network, subgraphUrl } = deps.args;
+    const { approvals, deploymentCalldata, chainId } = deps.args;
     		for (const approval of approvals) {
                 await handleTransactionConfirmationModal({
                     open: true,
                     args: {
-                        emtity: null
                         toAddress: approval.token as Hex,
                         chainId,
                         calldata: approval.calldata as `0x${string}`,
