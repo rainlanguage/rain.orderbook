@@ -90,7 +90,9 @@ describe('TransactionManager', () => {
 			entity: mockSgOrderEntity
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & { awaitSubgraphConfig: any } = {
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
 			...removeOrderMockArgs,
 			awaitSubgraphConfig: {
 				subgraphUrl: removeOrderMockArgs.subgraphUrl,
@@ -211,7 +213,9 @@ describe('TransactionManager', () => {
 			entity: mockSgVaultEntity // Added entity
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & { awaitSubgraphConfig: any } = {
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
 			...withdrawMockArgs, // Spreads withdrawMockArgs including entity
 			awaitSubgraphConfig: {
 				subgraphUrl: withdrawMockArgs.subgraphUrl,

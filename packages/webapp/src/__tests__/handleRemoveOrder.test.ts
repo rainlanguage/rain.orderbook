@@ -28,7 +28,7 @@ const mockDeps: HandleRemoveOrderDependencies = {
 	orderHash: '0xorderhashfromparams',
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
-	manager: mockManager as unknown as TransactionManager,
+	manager: mockManager as unknown as TransactionManager
 };
 
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {

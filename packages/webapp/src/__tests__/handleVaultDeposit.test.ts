@@ -44,7 +44,7 @@ const mockFullDeps: VaultDepositHandlerDependencies = {
 	handleDepositModal: mockHandleDepositModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
-	manager: mockManager as TransactionManager
+	manager: mockManager as unknown as TransactionManager
 };
 
 // Mock orderbook functions

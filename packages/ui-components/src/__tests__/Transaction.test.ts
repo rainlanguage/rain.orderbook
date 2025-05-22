@@ -14,6 +14,8 @@ import {
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
+import { mockOrder } from '../lib/__fixtures__/orderDetail';
+import type { SgVault } from '@rainlanguage/orderbook';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
@@ -66,6 +68,26 @@ describe('TransactionStore', () => {
 		_internal: {}
 	} as unknown as Config;
 
+	const mockVault: SgVault = {
+		id: 'vault1',
+		vaultId: 'vault1',
+		token: {
+			id: 'token1',
+			address: '0xTokenAddress1',
+			name: 'Token1',
+			symbol: 'TKN1',
+			decimals: '18'
+		},
+		owner: '0xOwnerAddress',
+		ordersAsInput: [],
+		ordersAsOutput: [],
+		balanceChanges: [],
+		balance: '1000000000000000000',
+		orderbook: {
+			id: '0x00'
+		}
+	};
+
 	const mockChainId = 1;
 	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/mock';
 	const mockTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
@@ -105,7 +127,8 @@ describe('TransactionStore', () => {
 				queryKey: 'removeOrder',
 				toastLinks: mockToastLinks,
 				networkKey: 'ethereum',
-				awaitSubgraphConfig: mockAwaitSubgraphConfig
+				awaitSubgraphConfig: mockAwaitSubgraphConfig,
+				entity: mockVault
 			} as TransactionArgs & { config: Config },
 			mockOnSuccess,
 			mockOnError

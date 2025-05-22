@@ -46,7 +46,7 @@ beforeEach(() => {
 describe('handleWalletConfirmation', () => {
 	const defaultArgs = {
 		chainId: 1,
-		orderbookAddress: '0x789' as `0x${string}`,
+		toAddress: '0x789' as `0x${string}`,
 		calldata: mockCalldata,
 		onConfirm: vi.fn(),
 		entity: mockOrder
@@ -57,7 +57,7 @@ describe('handleWalletConfirmation', () => {
 
 		expect(switchChain).toHaveBeenCalledWith(mockWeb3Config, { chainId: 1 });
 		expect(sendTransaction).toHaveBeenCalledWith(mockWeb3Config, {
-			to: '0x789',
+			to: defaultArgs.toAddress,
 			data: mockCalldata
 		});
 		expect(defaultArgs.onConfirm).toHaveBeenCalledWith(mockTxHash);
