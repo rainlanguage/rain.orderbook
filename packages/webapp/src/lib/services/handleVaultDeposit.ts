@@ -79,7 +79,6 @@ export async function handleVaultDeposit(
 						chainId: deps.chainId,
 						onConfirm: (txHash: Hex) => {
 							deps.manager.createApprovalTransaction({
-								subgraphUrl: deps.subgraphUrl,
 								txHash,
 								chainId: deps.chainId,
 								networkKey: deps.network,

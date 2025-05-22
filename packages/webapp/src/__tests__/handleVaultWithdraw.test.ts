@@ -144,7 +144,8 @@ describe('handleVaultWithdraw', () => {
 			txHash: mockTxHash,
 			chainId: mockFullDeps.chainId,
 			networkKey: mockFullDeps.network,
-			queryKey: mockVault.id
+			queryKey: mockVault.id,
+			entity: mockVault
 		});
 	});
 });

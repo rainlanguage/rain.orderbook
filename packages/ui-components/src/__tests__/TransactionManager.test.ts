@@ -47,12 +47,10 @@ describe('TransactionManager', () => {
 	} as unknown as SgVault;
 
 	const mockBaseArgs: InternalTransactionArgs = {
-		subgraphUrl: 'https://api.example.com',
 		txHash: '0xcallbacktxhash' as `0x${string}`,
 		chainId: 1,
 		networkKey: 'ethereum',
-		queryKey: '0xcallbackkey',
-		entity: mockSgOrderEntity
+		queryKey: '0xcallbackkey'
 	};
 
 	beforeEach(() => {
@@ -81,14 +79,16 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createRemoveOrderTransaction', () => {
-		const removeOrderMockArgs: InternalTransactionArgs = {
-			subgraphUrl: 'https://api.example.com',
-			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-			entity: mockSgOrderEntity
-		};
+		const removeOrderMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder } =
+			{
+				subgraphUrl: 'https://api.example.com',
+				txHash:
+					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+				chainId: 1,
+				networkKey: 'ethereum',
+				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+				entity: mockSgOrderEntity
+			};
 
 		const fullMockArgsForExpectation: InternalTransactionArgs & {
 			awaitSubgraphConfig: AwaitSubgraphConfig;
@@ -204,7 +204,7 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createWithdrawTransaction', () => {
-		const withdrawMockArgs: InternalTransactionArgs = {
+		const withdrawMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
 			subgraphUrl: 'https://api.example.com',
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 			chainId: 1,
@@ -316,7 +316,7 @@ describe('TransactionManager', () => {
 				return mockTransaction as unknown as TransactionStore;
 			});
 
-			const testSpecificArgs: InternalTransactionArgs = {
+			const testSpecificArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
 				...withdrawMockArgs, // Use base withdraw args
 				queryKey: '0xvaultid' // Override queryKey for this specific test
 			};
@@ -368,7 +368,9 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xsuccesskey'
+				queryKey: '0xsuccesskey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			onSuccess!();
@@ -394,7 +396,9 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xfailkey'
+				queryKey: '0xfailkey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			onError!();
@@ -417,7 +421,9 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xclearkey'
+				queryKey: '0xclearkey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			manager.clearTransactions();
@@ -440,12 +446,10 @@ describe('TransactionManager', () => {
 			}
 		} as SgVault;
 		const mockArgs: InternalTransactionArgs = {
-			subgraphUrl: 'https://api.example.com',
 			txHash: '0xapprovehash' as `0x${string}`,
 			chainId: 1,
 			networkKey: 'ethereum',
-			queryKey: '0xvaultid',
-			entity: mockEntity
+			queryKey: '0xvaultid'
 		};
 
 		beforeEach(() => {
@@ -458,11 +462,12 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createApprovalTransaction(mockArgs);
+			await manager.createApprovalTransaction({ ...mockArgs, entity: mockEntity });
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				{
 					...mockArgs,
+					entity: mockEntity,
 					name: 'Approving TEST spend',
 					errorMessage: 'Approval failed.',
 					successMessage: 'Approval successful.',
@@ -492,7 +497,11 @@ describe('TransactionManager', () => {
 				decimals: '18'
 			}
 		} as SgVault;
-		const mockArgs: InternalTransactionArgs & { amount: bigint } = {
+		const mockArgs: InternalTransactionArgs & {
+			amount: bigint;
+			entity: SgVault;
+			subgraphUrl: string;
+		} = {
 			subgraphUrl: 'https://api.example.com',
 			txHash: '0xdeposithash' as `0x${string}`,
 			chainId: 1,

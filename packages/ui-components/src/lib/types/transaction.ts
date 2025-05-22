@@ -72,11 +72,9 @@ export type DepositOrWithdrawTransactionArgs = {
 
 export type InternalTransactionArgs = {
 	chainId: number;
-	subgraphUrl: string;
 	txHash: Hex;
 	networkKey: string;
 	queryKey: string;
-	entity: SgVault | SgOrder;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {
