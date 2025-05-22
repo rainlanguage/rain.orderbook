@@ -35,7 +35,7 @@ impl TryFrom<SgOrder> for OrderFlattened {
         Ok(Self {
             id: val.id.0,
             timestamp: val.timestamp_added.clone(),
-            timestamp_display: format_bigint_timestamp_display(val.timestamp_added.0)?,
+            timestamp_display: format_bigint_timestamp_display(val.timestamp_added.0, true)?,
             owner: val.owner,
             order_active: val.active,
             interpreter: SgBytes(encode(order.evaluable.interpreter.0)),

@@ -52,7 +52,7 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
         Ok(Self {
             id: val.id.0,
             timestamp: timestamp.clone(),
-            timestamp_display: format_bigint_timestamp_display(timestamp.0)?,
+            timestamp_display: format_bigint_timestamp_display(timestamp.0, true)?,
             transaction: val.trade_event.transaction.id,
             sender: val.trade_event.sender,
             order_id: val.order.order_hash,
