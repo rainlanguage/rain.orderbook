@@ -84,22 +84,24 @@ describe('Full Deployment Tests', () => {
 	beforeAll(async () => {
 		const registry = await fetchRegistry();
 		fixedLimitStrategy = await fetchStrategy(registry['fixed-limit']);
+		assert(fixedLimitStrategy, 'Fixed limit strategy not found');
 		auctionStrategy = await fetchStrategy(registry['auction-dca']);
+		assert(auctionStrategy, 'Auction strategy not found');
 		dynamicSpreadStrategy = await fetchStrategy(registry['dynamic-spread']);
+		assert(dynamicSpreadStrategy, 'Dynamic spread strategy not found');
 	});
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		vi.clearAllMocks();
-		vi.mocked(mockPageStore).mockSetSubscribeValue({});
 		vi.mocked(useAccount).mockReturnValue({
 			account: readable('0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'),
 			matchesAccount: vi.fn()
 		});
+		mockConnectedStore.mockSetSubscribeValue(true);
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 	});
 
 	it('Fixed limit strategy', async () => {
-		vi.mocked(handleDeploy).mockImplementationOnce = vi.fn();
-		mockConnectedStore.mockSetSubscribeValue(true);
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: mockSettingsStore },
@@ -203,7 +205,6 @@ describe('Full Deployment Tests', () => {
 	});
 
 	it('Auction strategy', async () => {
-		mockConnectedStore.mockSetSubscribeValue(true);
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: mockSettingsStore },
@@ -337,12 +338,9 @@ describe('Full Deployment Tests', () => {
 		expect(callArgs.chainId).toEqual(args?.chainId);
 		expect(callArgs.subgraphUrl).toEqual(undefined);
 		expect(callArgs.network).toEqual('flare');
-
-		vi.clearAllMocks();
 	});
 
 	it('Dynamic spread strategy', async () => {
-		mockConnectedStore.mockSetSubscribeValue(true);
 		mockPageStore.mockSetSubscribeValue({
 			data: {
 				stores: { settings: mockSettingsStore },
