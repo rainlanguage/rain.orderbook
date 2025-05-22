@@ -160,7 +160,7 @@ pub fn get_vaults_apy(
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::{
         performance::vol::VolumeDetails,
@@ -172,9 +172,10 @@ mod test {
     use alloy::primitives::{Address, B256};
 
     #[test]
-    fn test_get_vaults_apy() {
-        let trades = get_trades();
-        let [token1, token2] = get_tokens();
+    fn test_get_vaults_apy_ok() {
+        let tokens = get_tokens(SgBigInt(18.to_string()));
+        let trades = get_trades(tokens.clone(), SgBigInt("5000000000000000000".to_string()));
+        let [token1, token2] = tokens;
         let [vault1, vault2] = get_vault_ids();
         let vault_vol1 = VaultVolume {
             id: vault1.to_string(),
@@ -230,13 +231,77 @@ mod test {
         assert_eq!(result, expected);
     }
 
+    #[test]
+    fn test_get_vaults_apy_err() {
+        let tokens = get_tokens(SgBigInt("bad".to_string()));
+        let trades = get_trades(tokens.clone(), SgBigInt("2000000000000000000".to_string()));
+        let [token1, token2] = tokens;
+        let [vault1, vault2] = get_vault_ids();
+        let vault_vol1 = VaultVolume {
+            id: vault1.to_string(),
+            token: token1.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("1000000000000000000").unwrap(),
+            },
+        };
+        let vault_vol2 = VaultVolume {
+            id: vault2.to_string(),
+            token: token2.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("2000000000000000000").unwrap(),
+            },
+        };
+
+        let err = get_vaults_apy(&trades, &[vault_vol1, vault_vol2], Some(1), Some(10000001))
+            .unwrap_err();
+
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
+
+        let tokens = get_tokens(SgBigInt("18".to_string()));
+        let trades = get_trades(tokens.clone(), SgBigInt("bad".to_string()));
+        let [token1, token2] = tokens;
+        let [vault1, vault2] = get_vault_ids();
+        let vault_vol1 = VaultVolume {
+            id: vault1.to_string(),
+            token: token1.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("1000000000000000000").unwrap(),
+            },
+        };
+        let vault_vol2 = VaultVolume {
+            id: vault2.to_string(),
+            token: token2.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::ZERO,
+                total_out: U256::ZERO,
+                total_vol: U256::ZERO,
+                net_vol: U256::from_str("2000000000000000000").unwrap(),
+            },
+        };
+
+        let err = get_vaults_apy(&trades, &[vault_vol1, vault_vol2], Some(1), Some(10000001))
+            .unwrap_err();
+
+        assert!(matches!(err, PerformanceError::ParseUnsignedError(_)));
+    }
+
     fn get_vault_ids() -> [B256; 2] {
         [
             B256::from_slice(&[0x11u8; 32]),
             B256::from_slice(&[0x22u8; 32]),
         ]
     }
-    fn get_tokens() -> [SgErc20; 2] {
+
+    fn get_tokens(decimals: SgBigInt) -> [SgErc20; 2] {
         let token1_address = Address::from_slice(&[0x11u8; 20]);
         let token2_address = Address::from_slice(&[0x22u8; 20]);
         let token1 = SgErc20 {
@@ -244,23 +309,23 @@ mod test {
             address: SgBytes(token1_address.to_string()),
             name: Some("Token1".to_string()),
             symbol: Some("Token1".to_string()),
-            decimals: Some(SgBigInt(18.to_string())),
+            decimals: Some(decimals.clone()),
         };
         let token2 = SgErc20 {
             id: SgBytes(token2_address.to_string()),
             address: SgBytes(token2_address.to_string()),
             name: Some("Token2".to_string()),
             symbol: Some("Token2".to_string()),
-            decimals: Some(SgBigInt(18.to_string())),
+            decimals: Some(decimals),
         };
         [token1, token2]
     }
 
-    fn get_trades() -> Vec<SgTrade> {
+    fn get_trades(tokens: [SgErc20; 2], new_vault_balance: SgBigInt) -> Vec<SgTrade> {
         let bytes = SgBytes("".to_string());
         let bigint = SgBigInt("".to_string());
         let [vault_id1, vault_id2] = get_vault_ids();
-        let [token1, token2] = get_tokens();
+        let [token1, token2] = tokens;
         let trade1 = SgTrade {
             id: bytes.clone(),
             order: SgTradeStructPartialOrder {
@@ -340,7 +405,7 @@ mod test {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
                 amount: SgBigInt("-2000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
+                new_vault_balance: new_vault_balance.clone(),
                 old_vault_balance: bigint.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
@@ -359,8 +424,8 @@ mod test {
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
                 __typename: "TradeVaultBalanceChange".to_string(),
+                new_vault_balance,
                 amount: SgBigInt("7000000000000000000".to_string()),
-                new_vault_balance: SgBigInt("5000000000000000000".to_string()),
                 old_vault_balance: bigint.clone(),
                 vault: SgVaultBalanceChangeVault {
                     id: bytes.clone(),
