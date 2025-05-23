@@ -19,6 +19,8 @@ export type DisclaimerModalProps = {
 
 export type TransactionConfirmationProps = {
 	open: boolean;
+	// A title for the modal
+	modalTitle: string;
 	args: {
 		// Chain ID for switching chains
 		chainId: number;

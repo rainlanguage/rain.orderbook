@@ -27,6 +27,7 @@ export async function handleRemoveOrder(
 		calldata = calldataResult.value;
 		deps.handleTransactionConfirmationModal({
 			open: true,
+			modalTitle: 'Removing order',
 			args: {
 				order: order,
 				orderbookAddress: deps.orderbookAddress,

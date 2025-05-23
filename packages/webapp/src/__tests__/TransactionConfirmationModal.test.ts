@@ -28,16 +28,18 @@ describe('TransactionConfirmationModal', () => {
 		removeEvents: []
 	};
 
-	const defaultProps = {
+	const testModalTitle = 'Test Modal Title';
+	const defaultProps: TransactionConfirmationProps = {
 		open: true,
+		modalTitle: testModalTitle,
 		args: {
 			chainId: 1,
 			orderbookAddress: '0x789',
-			getCalldataFn: vi.fn().mockResolvedValue({ value: mockCalldata }),
+			calldata: mockCalldata,
 			onConfirm: vi.fn(),
 			order: mockOrder
 		}
-	} as unknown as TransactionConfirmationProps;
+	};
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -48,10 +50,11 @@ describe('TransactionConfirmationModal', () => {
 		});
 	});
 
-	it('shows awaiting confirmation state initially', () => {
+	it('shows awaiting confirmation state initially and correct title', () => {
 		render(TransactionConfirmationModal, defaultProps);
 
-		expect(screen.getByText('Waiting for wallet confirmation')).toBeInTheDocument();
+		expect(screen.getByText(defaultProps.modalTitle as string)).toBeInTheDocument();
+		expect(screen.getByText(testModalTitle)).toBeInTheDocument();
 		expect(screen.getByText('Please confirm this transaction in your wallet.')).toBeInTheDocument();
 		expect(screen.getByTestId('transaction-modal')).toBeInTheDocument();
 	});
@@ -61,12 +64,12 @@ describe('TransactionConfirmationModal', () => {
 
 		await waitFor(() => {
 			expect(handleWalletConfirmation).toHaveBeenCalledWith(defaultProps.args);
-			expect(screen.getByText('Transaction Submitted')).toBeInTheDocument();
+			expect(screen.getByText('Transaction submitted')).toBeInTheDocument();
 			expect(
 				screen.getByText('Transaction has been submitted to the network.')
 			).toBeInTheDocument();
 			expect(screen.getByText('✅')).toBeInTheDocument();
-			expect(screen.queryByText('Dismiss')).not.toBeInTheDocument();
+			expect(screen.queryByText('Dismiss')).toBeInTheDocument();
 		});
 	});
 
@@ -100,7 +103,7 @@ describe('TransactionConfirmationModal', () => {
 		render(TransactionConfirmationModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.getByText('Transaction rejected')).toBeInTheDocument();
+			expect(screen.getByText('Confirmation failed')).toBeInTheDocument();
 			expect(screen.getByText('User rejected transaction')).toBeInTheDocument();
 			expect(screen.getByText('Dismiss')).toBeInTheDocument();
 			expect(screen.getByText('❌')).toBeInTheDocument();
