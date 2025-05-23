@@ -10,7 +10,6 @@
 	export let open: boolean = false;
 	export let modalTitle: string;
 	export let args: TransactionConfirmationProps['args'];
-
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 
 	async function init() {
