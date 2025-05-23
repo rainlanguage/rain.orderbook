@@ -32,7 +32,7 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
 
         Ok(Self {
             timestamp: val.timestamp.clone(),
-            timestamp_display: format_bigint_timestamp_display(val.timestamp.0, true)?,
+            timestamp_display: format_bigint_timestamp_display(val.timestamp.0)?,
             from: val.transaction.from,
             amount: val.amount,
             amount_display_signed,
