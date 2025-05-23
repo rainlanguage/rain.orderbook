@@ -25,4 +25,4 @@ export function getDeploymentsNetworks(
     else return networks;
   }
   return undefined;
-} 
+}
