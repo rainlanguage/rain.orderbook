@@ -151,8 +151,8 @@
     try {
       if (!deployment) throw Error('Select a deployment to add order');
       await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
-    } catch (e: any) {
-      toasts.error(e.message || 'Ledger execution failed');
+    } catch (e: unknown) {
+      toasts.error((e as Error).message || 'Ledger execution failed');
     }
     isSubmitting = false;
   }

@@ -15,6 +15,7 @@ export async function executeLedgerOrder(
   dotrainText: string,
   deployment: DeploymentCfg | undefined,
   orderAddFn: (dotrain: string, deployment: DeploymentCfg) => Promise<void>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reportErrorToSentryFn: (error: any, level?: SentrySeverityLevel) => void,
 ): Promise<void> {
   if (!deployment) throw Error('Select a deployment to add order');

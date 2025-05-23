@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeLedgerOrder } from '../services/executeLedgerOrder';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
-import type { SentrySeverityLevel } from '../services/sentry';
+
 
 // Mocks
 const mockOrderAddFn = vi.fn();
