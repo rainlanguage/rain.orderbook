@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { executeWalletConnectOrder } from '../services/executeWalletConnectOrder';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
-import type { SentrySeverityLevel } from '../services/sentry';
 
 // Mocks
 const mockOrderAddCalldataFn = vi.fn();
