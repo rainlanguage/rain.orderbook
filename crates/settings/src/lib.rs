@@ -20,7 +20,7 @@ pub mod scenario;
 pub mod sentry;
 pub mod subgraph;
 pub mod token;
-pub mod unit_test;
+pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
 pub mod yaml;
 
 pub(crate) use chart::*;
