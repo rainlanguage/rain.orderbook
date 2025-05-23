@@ -39,6 +39,7 @@
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import * as chains from 'viem/chains';
+  import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -81,7 +82,11 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    [$settingsText],
+    mergedConfig?.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -174,34 +179,6 @@
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
-  }
-
-  async function generateRainlangStrings(
-    dotrainText: string,
-    scenarios?: Record<string, ScenarioCfg>,
-  ): Promise<Map<ScenarioCfg, string> | undefined> {
-    try {
-      if (isEmpty(scenarios)) return;
-      composedRainlangForScenarios = new Map();
-      for (const scenario of Object.values(scenarios)) {
-        try {
-          const composedRainlang = await orderAddComposeRainlang(
-            dotrainText,
-            [$settingsText],
-            scenario,
-          );
-          composedRainlangForScenarios.set(scenario, composedRainlang);
-        } catch (e) {
-          composedRainlangForScenarios.set(
-            scenario,
-            e?.toString() || 'Error composing rainlang for scenario',
-          );
-        }
-      }
-      return composedRainlangForScenarios;
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
   }
 
   const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
