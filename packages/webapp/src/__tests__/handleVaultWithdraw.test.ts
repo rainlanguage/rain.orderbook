@@ -18,23 +18,20 @@ const mockManager = {
 };
 
 const mockVault = {
-	id: '0xvaultid'
+	id: '0xvaultid',
+	token: {
+		symbol: 'TEST'
+	}
 } as SgVault;
 
-const mockDepsBase: Omit<
-	VaultWithdrawHandlerDependencies,
-	'handleWithdrawModal' | 'handleTransactionConfirmationModal' | 'errToast' | 'manager'
-> = {
+const mockDeps: VaultWithdrawHandlerDependencies = {
+	vault: mockVault,
 	network: 'ethereum',
 	toAddress: '0xorderbook' as Hex,
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	account: '0xaccount' as Hex,
-	rpcUrl: 'https://rpc.example.com'
-};
-
-const mockFullDeps: VaultWithdrawHandlerDependencies = {
-	...mockDepsBase,
+	rpcUrl: 'https://rpc.example.com',
 	handleWithdrawModal: mockHandleWithdrawModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
@@ -57,15 +54,15 @@ describe('handleVaultWithdraw', () => {
 	});
 
 	it('should call handleWithdrawModal with correct arguments', async () => {
-		await handleVaultWithdraw(mockVault, mockFullDeps);
+		await handleVaultWithdraw(mockDeps);
 		expect(mockHandleWithdrawModal).toHaveBeenCalledWith({
 			open: true,
 			args: {
 				vault: mockVault,
-				chainId: mockFullDeps.chainId,
-				rpcUrl: mockFullDeps.rpcUrl,
-				subgraphUrl: mockFullDeps.subgraphUrl,
-				account: mockFullDeps.account
+				chainId: mockDeps.chainId,
+				rpcUrl: mockDeps.rpcUrl,
+				subgraphUrl: mockDeps.subgraphUrl,
+				account: mockDeps.account
 			},
 			onSubmit: expect.any(Function)
 		});
@@ -77,7 +74,7 @@ describe('handleVaultWithdraw', () => {
 			value: undefined
 		});
 
-		await handleVaultWithdraw(mockVault, mockFullDeps);
+		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
 		await onSubmitCall(100n);
@@ -89,7 +86,7 @@ describe('handleVaultWithdraw', () => {
 	it('should show error toast if getVaultWithdrawCalldata throws', async () => {
 		vi.mocked(getVaultWithdrawCalldata).mockRejectedValue(new Error('Fetch failed'));
 
-		await handleVaultWithdraw(mockVault, mockFullDeps);
+		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
 		await onSubmitCall(100n);
@@ -105,17 +102,18 @@ describe('handleVaultWithdraw', () => {
 			error: undefined
 		});
 
-		await handleVaultWithdraw(mockVault, mockFullDeps);
+		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
 		await onSubmitCall(100n);
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
+			modalTitle: 'Withdrawing 100 TEST...',
 			args: {
 				entity: mockVault,
-				toAddress: mockFullDeps.toAddress,
-				chainId: mockFullDeps.chainId,
+				toAddress: mockDeps.toAddress,
+				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
 			}
@@ -131,7 +129,7 @@ describe('handleVaultWithdraw', () => {
 			error: undefined
 		});
 
-		await handleVaultWithdraw(mockVault, mockFullDeps);
+		await handleVaultWithdraw(mockDeps);
 
 		const onSubmitCall = mockHandleWithdrawModal.mock.calls[0][0].onSubmit;
 		await onSubmitCall(100n);
@@ -140,12 +138,11 @@ describe('handleVaultWithdraw', () => {
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateWithdrawTransaction).toHaveBeenCalledWith({
-			subgraphUrl: mockFullDeps.subgraphUrl,
+			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
-			chainId: mockFullDeps.chainId,
-			networkKey: mockFullDeps.network,
-			queryKey: mockVault.id,
-			entity: mockVault
+			chainId: mockDeps.chainId,
+			networkKey: mockDeps.network,
+			queryKey: mockVault.id
 		});
 	});
 });

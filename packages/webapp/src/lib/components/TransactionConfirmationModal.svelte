@@ -8,6 +8,7 @@
 	} from '../services/handleWalletConfirmation';
 
 	export let open: boolean = false;
+	export let modalTitle: string;
 	export let args: TransactionConfirmationProps['args'];
 
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
@@ -26,19 +27,19 @@
 	{@const ui = match(confirmationState)
 		.with({ status: 'awaiting_confirmation' }, () => ({
 			iconType: 'spinner',
-			title: 'Waiting for wallet confirmation',
+			title: modalTitle,
 			description: 'Please confirm this transaction in your wallet.',
 			showDismiss: true
 		}))
 		.with({ status: 'confirmed' }, () => ({
 			iconType: 'success',
-			title: 'Transaction Submitted',
+			title: 'Transaction submitted',
 			description: 'Transaction has been submitted to the network.',
-			showDismiss: false
+			showDismiss: true
 		}))
 		.with({ status: 'rejected' }, (state) => ({
 			iconType: 'error',
-			title: 'Transaction rejected',
+			title: 'Confirmation failed',
 			description: state.reason,
 			showDismiss: true
 		}))
