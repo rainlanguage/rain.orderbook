@@ -1,4 +1,3 @@
-
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 import { isEmpty } from 'lodash';
 import type { SentrySeverityLevel } from './sentry';
