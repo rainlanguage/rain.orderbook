@@ -5,7 +5,6 @@ import {
 	DisclaimerModal,
 	type TransactionConfirmationProps,
 	type DisclaimerModalProps,
-	type DeployModalProps,
 	type VaultActionModalProps
 } from '@rainlanguage/ui-components';
 

@@ -38,7 +38,6 @@ vi.mock('$lib/stores/wagmi', () => ({
 }));
 
 vi.mock('$lib/services/modal', () => ({
-	handleDeployModal: vi.fn(),
 	handleDisclaimerModal: vi.fn()
 }));
 

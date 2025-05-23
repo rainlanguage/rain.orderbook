@@ -45,6 +45,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 	for (const approval of approvals) {
 		const confirmationArgs: TransactionConfirmationProps = {
 			open: true,
+			modalTitle: 'Approving token spend',
 			args: {
 				toAddress: approval.token as Hex,
 				chainId,
@@ -64,6 +65,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 
 	const addOrderArgs: TransactionConfirmationProps = {
 		open: true,
+		modalTitle: 'Deploying your strategy',
 		args: {
 			toAddress: orderbookAddress as Hex,
 			chainId,

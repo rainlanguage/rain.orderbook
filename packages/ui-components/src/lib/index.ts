@@ -81,7 +81,6 @@ export type {
 	TransactionConfirmationProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
-	DeployModalProps,
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
