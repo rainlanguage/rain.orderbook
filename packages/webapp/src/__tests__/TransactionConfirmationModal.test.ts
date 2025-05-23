@@ -34,7 +34,7 @@ describe('TransactionConfirmationModal', () => {
 		modalTitle: testModalTitle,
 		args: {
 			chainId: 1,
-			orderbookAddress: '0x789',
+			toAddress: '0x789',
 			calldata: mockCalldata,
 			onConfirm: vi.fn(),
 			entity: mockOrder
