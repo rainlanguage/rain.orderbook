@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { getDeploymentsNetworks } from '../utils/getDeploymentNetworks';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 
-
 vi.mock('viem/chains', () => ({
   mainnet: { id: 1, name: 'Ethereum' },
   polygon: { id: 137, name: 'Polygon' },
@@ -92,4 +91,4 @@ describe('getDeploymentsNetworks', () => {
   it('should return undefined if all deployments result in no valid network entries (e.g., only if Object.keys(networks).length is 0)', () => {
     expect(getDeploymentsNetworks({})).toBeUndefined();
   });
-}); 
+});
