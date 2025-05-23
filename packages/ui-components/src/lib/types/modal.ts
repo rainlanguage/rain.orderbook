@@ -1,14 +1,11 @@
-import type { SgOrder } from '@rainlanguage/orderbook';
-import type { DepositOrWithdrawArgs, OrderRemoveArgs, DeploymentArgs } from './transaction';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+import type { DeploymentArgs, VaultActionArgs } from './transaction';
+import type { Hex } from 'viem';
 
-export type DepositOrWithdrawModalProps = {
+export type VaultActionModalProps = {
 	open: boolean;
-	args: DepositOrWithdrawArgs;
-};
-
-export type OrderRemoveModalProps = {
-	open: boolean;
-	args: OrderRemoveArgs;
+	args: VaultActionArgs;
+	onSubmit: (amount: bigint) => void;
 };
 
 export type DeployModalProps = {
@@ -20,6 +17,25 @@ export type DisclaimerModalProps = {
 	open: boolean;
 	onAccept: () => void;
 };
+
+export type TransactionConfirmationProps = {
+	open: boolean;
+	// A title for the modal
+	modalTitle: string;
+	args: {
+		// Chain ID for switching chains
+		chainId: number;
+		// Address to send the transaction to
+		orderbookAddress: Hex;
+		// Function to call when the transaction is confirmed in wallet
+		onConfirm: (hash: Hex) => void;
+		// Entity to generate calldata for
+		entity: SgOrder | SgVault;
+		// Calldata for the transaction
+		calldata: string;
+	};
+};
+
 export type QuoteDebugModalHandler = (
 	order: SgOrder,
 	rpcUrl: string,

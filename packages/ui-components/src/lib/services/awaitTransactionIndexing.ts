@@ -3,23 +3,26 @@
  * @description Utilities for waiting for transactions to be indexed by a subgraph
  */
 
+import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 import type {
-	SgAddOrderWithOrder,
-	SgRemoveOrderWithOrder,
-	SgTransaction,
-	WasmEncodedResult
-} from '@rainlanguage/orderbook';
-import {
+	getTransactionRemoveOrders,
 	getTransaction,
 	getTransactionAddOrders,
-	getTransactionRemoveOrders
+	WasmEncodedResult,
+	SgTransaction,
+	SgRemoveOrderWithOrder
 } from '@rainlanguage/orderbook';
 
-/**
- * Error message when subgraph indexing times out
- */
-export const TIMEOUT_ERROR =
-	'The subgraph took too long to respond. Your transaction may still be processing.';
+export type AwaitSubgraphConfig = {
+	subgraphUrl: string;
+	txHash: string;
+	successMessage: string;
+	fetchEntityFn:
+		| typeof getTransaction
+		| typeof getTransactionRemoveOrders
+		| typeof getTransactionAddOrders;
+	isSuccess: (data: SgTransaction | SgRemoveOrderWithOrder[]) => boolean;
+};
 
 /**
  * Result of a subgraph indexing operation
@@ -63,6 +66,14 @@ export type IndexingResult<T> = {
  *
  * @template T The type of data returned by the subgraph
  * @param options Configuration options for the indexing operation
+ * @param options.subgraphUrl URL of the subgraph to query
+ * @param options.txHash Transaction hash to check for indexing
+ * @param options.successMessage Message to display on successful indexing
+ * @param options.maxAttempts Maximum number of attempts before timing out (default: 10)
+ * @param options.interval Interval between attempts in milliseconds (default: 1000)
+ * @param options.network Optional network identifier
+ * @param options.fetchEntityFn Function to fetch data from the subgraph
+ * @param options.isSuccess Function to determine if the fetched data indicates success
  * @returns Promise resolving to an IndexingResult
  */
 export const awaitSubgraphIndexing = async <T>(options: {
@@ -95,7 +106,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 	 * @param subgraphUrl URL of the subgraph
 	 * @param txHash Transaction hash to query
 	 */
-	fetchData: (
+	fetchEntityFn: (
 		subgraphUrl: string,
 		txHash: string
 	) => Promise<WasmEncodedResult<T | null | undefined>>;
@@ -112,180 +123,45 @@ export const awaitSubgraphIndexing = async <T>(options: {
 		maxAttempts = 10,
 		interval = 1000,
 		network,
-		fetchData,
+		fetchEntityFn,
 		isSuccess
 	} = options;
 
-	return new Promise((resolve) => {
-		let attempts = 0;
+	const checkIndexing = async (attempt: number): Promise<IndexingResult<T>> => {
+		try {
+			const data = await fetchEntityFn(subgraphUrl, txHash);
 
-		const checkInterval = setInterval(async () => {
-			attempts++;
-			try {
-				const data = await fetchData(subgraphUrl, txHash);
-
-				if (data.value && isSuccess(data.value)) {
-					clearInterval(checkInterval);
-
-					let orderHash;
-					// Extract orderHash from order data if it exists in the expected format
-					if (
-						Array.isArray(data.value) &&
-						data.value.length > 0 &&
-						data.value[0]?.order?.orderHash
-					) {
-						orderHash = data.value[0].order.orderHash;
-					}
-
-					resolve({
-						value: {
-							txHash,
-							successMessage,
-							orderHash,
-							network,
-							data: data.value
-						}
-					});
-
-					return;
+			if (data.value && isSuccess(data.value)) {
+				let orderHash;
+				// Extract orderHash from order data if it exists in the expected format
+				// This only applies to addOrder transactions
+				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
+					orderHash = data.value[0].order.orderHash;
 				}
-			} catch {
-				// Continue with the next attempt
-			}
 
-			if (attempts >= maxAttempts) {
-				clearInterval(checkInterval);
-				resolve({
-					error: TIMEOUT_ERROR
-				});
-				return;
+				return {
+					value: {
+						txHash,
+						successMessage,
+						orderHash,
+						network,
+						data: data.value
+					}
+				};
 			}
-		}, interval);
-	});
+		} catch {
+			// Continue with the next attempt
+		}
+
+		if (attempt >= maxAttempts) {
+			return {
+				error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			};
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, interval));
+		return checkIndexing(attempt + 1);
+	};
+
+	return checkIndexing(1);
 };
-
-/**
- * Configuration for transaction indexing
- * @template T The type of data returned by the subgraph
- */
-export interface TransactionConfig<T> {
-	/**
-	 * URL of the subgraph to query
-	 */
-	subgraphUrl: string;
-	/**
-	 * Transaction hash to check for indexing
-	 */
-	txHash: string;
-	/**
-	 * Message to display on successful indexing
-	 */
-	successMessage: string;
-	/**
-	 * Optional network key
-	 */
-	network?: string;
-	/**
-	 * Maximum number of attempts before timing out
-	 */
-	maxAttempts?: number;
-	/**
-	 * Interval between attempts in milliseconds
-	 */
-	interval?: number;
-	/**
-	 * Function to fetch data from the subgraph
-	 */
-	fetchData: (subgraphUrl: string, txHash: string) => Promise<WasmEncodedResult<T>>;
-	/**
-	 * Function to determine if the fetched data indicates success
-	 */
-	isSuccess: (data: T) => boolean;
-}
-
-/**
- * Creates a configuration for checking general transaction indexing
- *
- * @param subgraphUrl URL of the subgraph to query
- * @param txHash Transaction hash to check for indexing
- * @param successMessage Message to display on successful indexing
- * @param network Optional network key
- * @param maxAttempts Maximum number of attempts before timing out
- * @param interval Interval between attempts in milliseconds
- * @returns Configuration for transaction indexing
- */
-export const getTransactionConfig = (
-	subgraphUrl: string,
-	txHash: string,
-	successMessage: string,
-	network?: string,
-	maxAttempts?: number,
-	interval?: number
-): TransactionConfig<SgTransaction> => ({
-	subgraphUrl,
-	txHash,
-	successMessage,
-	network,
-	maxAttempts,
-	interval,
-	fetchData: getTransaction,
-	isSuccess: (tx: SgTransaction) => !!tx
-});
-
-/**
- * Creates a configuration for checking new order indexing
- *
- * @param subgraphUrl URL of the subgraph to query
- * @param txHash Transaction hash to check for indexing
- * @param successMessage Message to display on successful indexing
- * @param network Optional network key
- * @param maxAttempts Maximum number of attempts before timing out
- * @param interval Interval between attempts in milliseconds
- * @returns Configuration for new order indexing
- */
-export const getNewOrderConfig = (
-	subgraphUrl: string,
-	txHash: string,
-	successMessage: string,
-	network?: string,
-	maxAttempts?: number,
-	interval?: number
-): TransactionConfig<SgAddOrderWithOrder[]> => ({
-	subgraphUrl,
-	txHash,
-	successMessage,
-	network,
-	maxAttempts,
-	interval,
-	fetchData: getTransactionAddOrders,
-	isSuccess: (addOrders: SgAddOrderWithOrder[]) => addOrders?.length > 0
-});
-
-/**
- * Creates a configuration for checking order removal indexing
- *
- * @param subgraphUrl URL of the subgraph to query
- * @param txHash Transaction hash to check for indexing
- * @param successMessage Message to display on successful indexing
- * @param network Optional network key
- * @param maxAttempts Maximum number of attempts before timing out
- * @param interval Interval between attempts in milliseconds
- * @returns Configuration for order removal indexing
- */
-export const getRemoveOrderConfig = (
-	subgraphUrl: string,
-	txHash: string,
-	successMessage: string,
-	network?: string,
-	maxAttempts?: number,
-	interval?: number
-): TransactionConfig<SgRemoveOrderWithOrder[]> => ({
-	subgraphUrl,
-	txHash,
-	successMessage,
-	network,
-	maxAttempts,
-	interval,
-	fetchData: getTransactionRemoveOrders,
-	isSuccess: (removeOrders: SgRemoveOrderWithOrder[]) => removeOrders?.length > 0
-});

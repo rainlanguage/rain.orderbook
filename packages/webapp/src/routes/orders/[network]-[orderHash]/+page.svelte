@@ -3,53 +3,59 @@
 		invalidateTanstackQueries,
 		OrderDetail,
 		PageHeader,
-		useAccount
+		useAccount,
+		useToasts
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
-	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import {
+		handleDepositModal,
+		handleWithdrawModal,
+		handleTransactionConfirmationModal
+	} from '$lib/services/modal';
+	import { type SgOrder, type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
+	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
+	import { useQueryClient } from '@tanstack/svelte-query';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 
-	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
-	const rpcUrl = $settings.networks[network]?.rpc;
-	const chainId = $settings.networks[network]?.['chain-id'];
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
+	const { manager } = useTransactions();
+	const queryClient = useQueryClient();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleOrderRemoveModal({
-			open: true,
-			args: {
-				order,
-				chainId,
-				orderbookAddress,
-				subgraphUrl,
-				onRemove: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				}
-			}
+	async function onRemove(order: SgOrder) {
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
 		});
 	}
 
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
+	function onDeposit(vault: SgVault) {
 		const network = $page.params.network;
 		const orderHash = $page.params.orderHash;
 		const subgraphUrl = $settings?.subgraphs?.[network] || '';
 		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-
-		handleDepositOrWithdrawModal({
+		handleDepositModal({
 			open: true,
 			args: {
 				vault,
-				onDepositOrWithdraw: () => {
+				onDeposit: () => {
 					invalidateTanstackQueries(queryClient, [orderHash]);
 				},
-				action,
 				chainId,
 				rpcUrl,
 				subgraphUrl,
@@ -59,12 +65,20 @@
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
-	}
-
-	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+	async function onWithdraw(vault: SgVault) {
+		await handleVaultWithdraw({
+			vault,
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
+			subgraphUrl,
+			chainId,
+			account: $account as Hex,
+			rpcUrl
+		});
 	}
 </script>
 
