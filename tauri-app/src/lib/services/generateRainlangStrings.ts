@@ -23,7 +23,7 @@ export async function generateRainlangStrings(
 
     const composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
-    for (const scenario of Object.values(scenarios!)) {
+    for (const scenario of Object.values(scenarios)) {
       try {
         const composedRainlang = await orderAddComposeRainlang(
           dotrainText,
@@ -34,7 +34,7 @@ export async function generateRainlangStrings(
       } catch (e) {
         composedRainlangForScenarios.set(
           scenario,
-          e?.toString() || 'Error composing rainlang for scenario',
+          e?.toString() || `Error composing rainlang for scenario: ${scenario.key}`,
         );
       }
     }
