@@ -21,6 +21,10 @@
 	$: if (open && args) {
 		init();
 	}
+
+	$: if (!open) {
+		confirmationState = { status: 'awaiting_confirmation' };
+	}
 </script>
 
 <Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
