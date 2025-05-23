@@ -22,7 +22,7 @@ interface EthersTransactionResponse {
  */
 export async function executeWalletConnectOrder(
   dotrainText: string,
-  deployment: DeploymentCfg | undefined,
+  deployment: DeploymentCfg,
   orderAddCalldataFn: (dotrain: string, deployment: DeploymentCfg) => Promise<Uint8Array>,
   ethersExecuteFn: (calldata: Uint8Array, toAddress: string) => Promise<EthersTransactionResponse>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +32,6 @@ export async function executeWalletConnectOrder(
   successToastFn: (message: string) => void,
   errorToastFn: (message: string) => void,
 ): Promise<void> {
-  if (!deployment) throw Error('Select a deployment to add order');
   if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
     throw Error('No orderbook associated with scenario');
 

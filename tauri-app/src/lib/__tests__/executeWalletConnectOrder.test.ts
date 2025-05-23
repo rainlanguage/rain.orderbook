@@ -24,21 +24,6 @@ describe('executeWalletConnectOrder', () => {
     vi.clearAllMocks();
   });
 
-  it('should throw error if deployment is undefined', async () => {
-    await expect(
-      executeWalletConnectOrder(
-        mockDotrainText,
-        undefined,
-        mockOrderAddCalldataFn,
-        mockEthersExecuteFn,
-        mockReportErrorToSentryFn,
-        mockFormatEthersTransactionErrorFn,
-        mockSuccessToastFn,
-        mockErrorToastFn,
-      ),
-    ).rejects.toThrow('Select a deployment to add order');
-  });
-
   it('should throw error if orderbook address is missing', async () => {
     const depWithoutAddr: DeploymentCfg = {
       order: { orderbook: {} }, // no address
