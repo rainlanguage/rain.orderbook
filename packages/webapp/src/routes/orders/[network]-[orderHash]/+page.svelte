@@ -66,7 +66,8 @@
 	}
 
 	async function onWithdraw(vault: SgVault) {
-		await handleVaultWithdraw(vault, {
+		await handleVaultWithdraw({
+			vault,
 			handleWithdrawModal,
 			handleTransactionConfirmationModal,
 			errToast,
