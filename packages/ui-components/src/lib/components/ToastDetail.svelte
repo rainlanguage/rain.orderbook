@@ -25,7 +25,10 @@
 			<CloseCircleSolid class="h-5 w-5" data-testid="error-icon" />
 		{/if}
 	</svelte:fragment>
-	<p>{toast.message}</p>
+	<p class="font-semibold">{toast.message}</p>
+	{#if toast.detail}
+		<p>{toast.detail}</p>
+	{/if}
 	{#if toast.links}
 		<div class="flex flex-col">
 			{#each toast.links as { link, label }}

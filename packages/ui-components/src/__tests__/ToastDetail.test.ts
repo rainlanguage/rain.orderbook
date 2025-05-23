@@ -107,4 +107,16 @@ describe('ToastDetail', () => {
 
 		expect(mockRemoveToast).toHaveBeenCalledWith(1);
 	});
+
+	it('should render detail when provided', () => {
+		const toast: ToastProps = {
+			color: 'red',
+			message: 'Error message',
+			type: 'error',
+			detail: 'Details about what caused the error'
+		};
+
+		render(ToastDetail, { toast, i: 0 });
+		expect(screen.getByText('Details about what caused the error')).toBeInTheDocument();
+	});
 });
