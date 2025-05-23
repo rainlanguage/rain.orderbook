@@ -30,6 +30,7 @@ tauri = { version = "1.5", features = [
     "dialog-open",
     "dialog-save",
     "shell-open",
+    "test",
 ] }
 serde_json = "1.0"
 rain_orderbook_common = { path = "../../crates/common" }
@@ -61,5 +62,6 @@ tauri-cli = "1.5"
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
-rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
+rain-interpreter-eval = { path = "../../lib/rain.interpreter/crates/eval" }
 strict-yaml-rust = "0.1.2"
+tempfile = "3.20.0"
