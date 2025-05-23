@@ -1,11 +1,11 @@
 import { writable } from 'svelte/store';
 import {
-	TransactionStatus,
 	initialState,
 	TransactionErrorMessage,
 	type TransactionState,
 	type TransactionStore
 } from '../stores/transactionStore';
+import { TransactionStatusMessage } from '../types/transaction';
 
 const mockTransactionWritable = writable<TransactionState>(initialState);
 
@@ -18,29 +18,9 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 	handleDeploymentTransaction: async () => {
 		mockTransactionWritable.update((state) => ({
 			...state,
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: 'Strategy deployed successfully!',
 			hash: '0x123'
-		}));
-		return Promise.resolve();
-	},
-
-	handleDepositOrWithdrawTransaction: async () => {
-		mockTransactionWritable.update((state) => ({
-			...state,
-			status: TransactionStatus.SUCCESS,
-			message: 'Transaction successful!',
-			hash: '0x456'
-		}));
-		return Promise.resolve();
-	},
-
-	handleRemoveOrderTransaction: async () => {
-		mockTransactionWritable.update((state) => ({
-			...state,
-			status: TransactionStatus.SUCCESS,
-			message: 'Order removed successfully',
-			hash: '0x789'
 		}));
 		return Promise.resolve();
 	},
@@ -48,14 +28,14 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 	checkingWalletAllowance: (message: string = '') =>
 		mockTransactionWritable.update((state) => ({
 			...state,
-			status: TransactionStatus.CHECKING_ALLOWANCE,
+			status: TransactionStatusMessage.CHECKING_ALLOWANCE,
 			message
 		})),
 
 	awaitWalletConfirmation: (message: string = '') =>
 		mockTransactionWritable.update((state) => ({
 			...state,
-			status: TransactionStatus.PENDING_WALLET,
+			status: TransactionStatusMessage.PENDING_WALLET,
 			message
 		})),
 
@@ -63,7 +43,7 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 		mockTransactionWritable.update((state) => ({
 			...state,
 			hash,
-			status: TransactionStatus.PENDING_APPROVAL,
+			status: TransactionStatusMessage.PENDING_APPROVAL,
 			message: 'Approving token spend...'
 		})),
 
@@ -75,7 +55,7 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 	) =>
 		mockTransactionWritable.update((state) => ({
 			...state,
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			hash,
 			message,
 			newOrderHash,
@@ -85,7 +65,7 @@ export const mockTransactionStore: Partial<TransactionStore> & {
 	transactionError: (error: TransactionErrorMessage, hash: string = '') =>
 		mockTransactionWritable.update((state) => ({
 			...state,
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error,
 			hash
 		})),
