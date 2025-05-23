@@ -15,7 +15,7 @@ crate-type = ["rlib", "cdylib"]
 rain_orderbook_bindings = { workspace = true }
 rain_orderbook_subgraph_client = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
-alloy = { workspace = true, features = ["dyn-abi", "rand"] }
+alloy = { workspace = true, features = [ "dyn-abi", "rand" ] }
 alloy-ethers-typecast = { workspace = true }
 url = { workspace = true }
 serde = { workspace = true }
@@ -40,20 +40,14 @@ chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
 rain-interpreter-eval = { workspace = true }
+wasm-bindgen-utils = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
 proptest = { workspace = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = { workspace = true }
-tokio = { workspace = true, features = [
-    "sync",
-    "macros",
-    "io-util",
-    "rt",
-    "time",
-] }
+tokio = { workspace = true, features = ["sync", "macros", "io-util", "rt", "time"] }
 
 [dev-dependencies]
 httpmock = "0.7.0"

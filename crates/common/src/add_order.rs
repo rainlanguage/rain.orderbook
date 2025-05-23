@@ -937,13 +937,13 @@ deployers:
 tokens:
     t1:
         network: some-key
-        address: {token1}
+        address: {token2}
         decimals: 18
         label: Token2
         symbol: Token2
     t2:
         network: some-key
-        address: {token2}
+        address: {token1}
         decimals: 18
         label: Token1
         symbol: token1
