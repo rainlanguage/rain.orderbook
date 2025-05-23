@@ -38,7 +38,8 @@
 	}
 
 	async function onDeposit(vault: SgVault) {
-		await handleVaultDeposit(vault, {
+		await handleVaultDeposit({
+			vault,
 			handleDepositModal,
 			handleTransactionConfirmationModal,
 			errToast,

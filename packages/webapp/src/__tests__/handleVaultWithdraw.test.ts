@@ -138,6 +138,7 @@ describe('handleVaultWithdraw', () => {
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateWithdrawTransaction).toHaveBeenCalledWith({
+			entity: mockVault,
 			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
 			chainId: mockDeps.chainId,
