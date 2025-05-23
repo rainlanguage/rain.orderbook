@@ -1,13 +1,14 @@
 import type { SgVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
-import type { TransactionManager } from '@rainlanguage/ui-components';
 import type {
+	TransactionManager,
 	VaultActionModalProps,
 	TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
 import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
 
 export interface VaultDepositHandlerDependencies {
+	vault: SgVault;
 	handleDepositModal: (props: VaultActionModalProps) => void;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
@@ -20,27 +21,37 @@ export interface VaultDepositHandlerDependencies {
 	rpcUrl: string;
 }
 
-async function executeDeposit(
-	vault: SgVault,
-	amount: bigint,
-	deps: VaultDepositHandlerDependencies
-) {
+export type DepositArgs = VaultDepositHandlerDependencies & { amount: bigint };
+
+async function executeDeposit(args: DepositArgs) {
+	const {
+		amount,
+		vault,
+		handleTransactionConfirmationModal,
+		errToast,
+		manager,
+		network,
+		orderbookAddress,
+		subgraphUrl,
+		chainId
+	} = args;
 	const calldataResult = await getVaultDepositCalldata(vault, amount.toString());
 	if (calldataResult.error) {
-		return deps.errToast(calldataResult.error.msg);
+		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {
-		deps.handleTransactionConfirmationModal({
+		handleTransactionConfirmationModal({
 			open: true,
+			modalTitle: `Depositing ${amount} ${vault.token.symbol}`,
 			args: {
 				entity: vault,
-				toAddress: deps.orderbookAddress,
-				chainId: deps.chainId,
+				toAddress: orderbookAddress,
+				chainId: chainId,
 				onConfirm: (txHash: Hex) => {
-					deps.manager.createDepositTransaction({
-						subgraphUrl: deps.subgraphUrl,
+					manager.createDepositTransaction({
+						subgraphUrl,
 						txHash,
-						chainId: deps.chainId,
-						networkKey: deps.network,
+						chainId,
+						networkKey: network,
 						queryKey: vault.id,
 						entity: vault,
 						amount
@@ -52,41 +63,52 @@ async function executeDeposit(
 	}
 }
 
-export async function handleVaultDeposit(
-	vault: SgVault,
-	deps: VaultDepositHandlerDependencies
-): Promise<void> {
-	deps.handleDepositModal({
+export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies): Promise<void> {
+	const {
+		vault,
+		handleDepositModal,
+		handleTransactionConfirmationModal,
+		manager,
+		network,
+		subgraphUrl,
+		chainId,
+		account,
+		rpcUrl
+	} = deps;
+
+	handleDepositModal({
 		open: true,
 		args: {
 			vault,
-			chainId: deps.chainId,
-			rpcUrl: deps.rpcUrl,
-			subgraphUrl: deps.subgraphUrl,
-			account: deps.account
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account
 		},
 		onSubmit: async (amount: bigint) => {
-			const approvalResult = await getVaultApprovalCalldata(deps.rpcUrl, vault, amount.toString());
+			const depositArgs = { ...deps, amount };
+			const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
-				await executeDeposit(vault, amount, deps);
+				await executeDeposit(depositArgs);
 			} else if (approvalResult.value) {
-				deps.handleTransactionConfirmationModal({
+				handleTransactionConfirmationModal({
 					open: true,
+					modalTitle: `Approving ${vault.token.symbol || 'token'} spend`,
 					args: {
 						entity: vault,
 						toAddress: vault.token.address as Hex,
-						chainId: deps.chainId,
+						chainId: chainId,
 						onConfirm: (txHash: Hex) => {
-							deps.manager.createApprovalTransaction({
+							manager.createApprovalTransaction({
 								txHash,
-								chainId: deps.chainId,
-								networkKey: deps.network,
+								chainId: chainId,
+								networkKey: network,
 								queryKey: vault.id,
 								entity: vault
 							});
 							// Immediately invoke deposit after approval
-							executeDeposit(vault, amount, deps);
+							executeDeposit(depositArgs);
 						},
 						calldata: approvalResult.value
 					}

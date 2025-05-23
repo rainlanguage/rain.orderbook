@@ -8,6 +8,7 @@ import type {
 import { getVaultWithdrawCalldata } from '@rainlanguage/orderbook';
 
 export interface VaultWithdrawHandlerDependencies {
+	vault: SgVault;
 	handleWithdrawModal: (props: VaultActionModalProps) => void;
 	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
@@ -20,48 +21,59 @@ export interface VaultWithdrawHandlerDependencies {
 	rpcUrl: string;
 }
 
-export async function handleVaultWithdraw(
-	vault: SgVault,
-	deps: VaultWithdrawHandlerDependencies
-): Promise<void> {
-	deps.handleWithdrawModal({
+export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies): Promise<void> {
+	const {
+		vault,
+		handleWithdrawModal,
+		handleTransactionConfirmationModal,
+		errToast,
+		manager,
+		network,
+		toAddress,
+		subgraphUrl,
+		chainId,
+		account,
+		rpcUrl
+	} = deps;
+	handleWithdrawModal({
 		open: true,
 		args: {
 			vault,
-			chainId: deps.chainId,
-			rpcUrl: deps.rpcUrl,
-			subgraphUrl: deps.subgraphUrl,
-			account: deps.account
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account
 		},
 		onSubmit: async (amount: bigint) => {
 			let calldata: string;
 			try {
 				const calldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
 				if (calldataResult.error) {
-					return deps.errToast(calldataResult.error.msg);
+					return errToast(calldataResult.error.msg);
 				}
 				calldata = calldataResult.value;
-				deps.handleTransactionConfirmationModal({
+				handleTransactionConfirmationModal({
 					open: true,
+					modalTitle: `Withdrawing ${amount} ${vault.token.symbol}...`,
 					args: {
 						entity: vault,
-						toAddress: deps.toAddress,
-						chainId: deps.chainId,
+						toAddress,
+						chainId,
 						onConfirm: (txHash: Hex) => {
-							deps.manager.createWithdrawTransaction({
-								subgraphUrl: deps.subgraphUrl,
+							manager.createWithdrawTransaction({
+								entity: vault,
+								subgraphUrl,
 								txHash,
-								chainId: deps.chainId,
-								networkKey: deps.network,
-								queryKey: vault.id,
-								entity: vault
+								chainId,
+								networkKey: network,
+								queryKey: vault.id
 							});
 						},
 						calldata
 					}
 				});
 			} catch {
-				return deps.errToast('Failed to get calldata for vault withdrawal.');
+				return errToast('Failed to get calldata for vault withdrawal.');
 			}
 		}
 	});

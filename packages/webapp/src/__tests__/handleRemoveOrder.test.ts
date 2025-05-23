@@ -78,6 +78,7 @@ describe('handleRemoveOrder', () => {
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
+			modalTitle: 'Removing order',
 			args: {
 				entity: mockOrder,
 				toAddress: mockDeps.orderbookAddress,
@@ -110,5 +111,22 @@ describe('handleRemoveOrder', () => {
 			networkKey: mockDeps.network,
 			entity: mockOrder
 		});
+	});
+
+	it('should call handleTransactionConfirmationModal with correct modalTitle when removing an order', async () => {
+		const mockCalldata = '0xmockcalldata';
+		const mockOrderHash = '0xmockOrderHash';
+		vi.mocked(getRemoveOrderCalldata).mockResolvedValue({ value: mockCalldata, error: undefined });
+
+		mockDeps.orderHash = mockOrderHash;
+
+		await handleRemoveOrder(mockOrder, mockDeps);
+
+		expect(mockDeps.handleTransactionConfirmationModal).toHaveBeenCalledOnce();
+		expect(mockDeps.handleTransactionConfirmationModal).toHaveBeenCalledWith(
+			expect.objectContaining({
+				modalTitle: 'Removing order'
+			})
+		);
 	});
 });

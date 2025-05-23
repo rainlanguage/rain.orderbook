@@ -38,7 +38,8 @@
 	}
 
 	async function onDeposit(vault: SgVault) {
-		await handleVaultDeposit(vault, {
+		await handleVaultDeposit({
+			vault,
 			handleDepositModal,
 			handleTransactionConfirmationModal,
 			errToast,
@@ -53,7 +54,8 @@
 	}
 
 	async function onWithdraw(vault: SgVault) {
-		await handleVaultWithdraw(vault, {
+		await handleVaultWithdraw({
+			vault,
 			handleWithdrawModal,
 			handleTransactionConfirmationModal,
 			errToast,

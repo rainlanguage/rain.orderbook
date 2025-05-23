@@ -23,24 +23,19 @@ const mockManager = {
 const mockVault = {
 	id: '0xvaultid',
 	token: {
-		address: '0xtokenaddress'
+		address: '0xtokenaddress',
+		symbol: 'TEST'
 	}
 } as SgVault;
 
-const mockDepsBase: Omit<
-	VaultDepositHandlerDependencies,
-	'handleDepositModal' | 'handleTransactionConfirmationModal' | 'errToast' | 'manager'
-> = {
+const mockDeps: VaultDepositHandlerDependencies = {
+	vault: mockVault,
 	network: 'ethereum',
 	orderbookAddress: '0xorderbook' as Hex,
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	account: '0xaccount' as Hex,
-	rpcUrl: 'https://rpc.example.com'
-};
-
-const mockFullDeps: VaultDepositHandlerDependencies = {
-	...mockDepsBase,
+	rpcUrl: 'https://rpc.example.com',
 	handleDepositModal: mockHandleDepositModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
@@ -66,15 +61,15 @@ describe('handleVaultDeposit', () => {
 	});
 
 	it('should call handleDepositModal with correct arguments', async () => {
-		await handleVaultDeposit(mockVault, mockFullDeps);
+		await handleVaultDeposit(mockDeps);
 		expect(mockHandleDepositModal).toHaveBeenCalledWith({
 			open: true,
 			args: {
 				vault: mockVault,
-				chainId: mockFullDeps.chainId,
-				rpcUrl: mockFullDeps.rpcUrl,
-				subgraphUrl: mockFullDeps.subgraphUrl,
-				account: mockFullDeps.account
+				chainId: mockDeps.chainId,
+				rpcUrl: mockDeps.rpcUrl,
+				subgraphUrl: mockDeps.subgraphUrl,
+				account: mockDeps.account
 			},
 			onSubmit: expect.any(Function)
 		});
@@ -88,7 +83,7 @@ describe('handleVaultDeposit', () => {
 		const mockTxHashDeposit = '0xtxhashdeposit' as Hex;
 
 		beforeEach(async () => {
-			await handleVaultDeposit(mockVault, mockFullDeps);
+			await handleVaultDeposit(mockDeps);
 		});
 
 		it('should execute deposit directly if getVaultApprovalCalldata returns error', async () => {
@@ -105,7 +100,7 @@ describe('handleVaultDeposit', () => {
 			await onSubmitCall(mockAmount);
 
 			expect(getVaultApprovalCalldata).toHaveBeenCalledWith(
-				mockFullDeps.rpcUrl,
+				mockDeps.rpcUrl,
 				mockVault,
 				mockAmount.toString()
 			);
@@ -114,6 +109,7 @@ describe('handleVaultDeposit', () => {
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 				open: true,
+				modalTitle: 'Depositing 100 TEST',
 				args: expect.objectContaining({ calldata: mockDepositCalldata })
 			});
 		});
@@ -153,10 +149,11 @@ describe('handleVaultDeposit', () => {
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(1, {
 				open: true,
+				modalTitle: 'Approving TEST spend',
 				args: {
 					entity: mockVault,
 					toAddress: mockVault.token.address as Hex,
-					chainId: mockFullDeps.chainId,
+					chainId: mockDeps.chainId,
 					onConfirm: expect.any(Function),
 					calldata: mockApprovalCalldata
 				}
@@ -169,8 +166,8 @@ describe('handleVaultDeposit', () => {
 
 			expect(mockCreateApprovalTransaction).toHaveBeenCalledWith({
 				txHash: mockTxHashApproval,
-				chainId: mockFullDeps.chainId,
-				networkKey: mockFullDeps.network,
+				chainId: mockDeps.chainId,
+				networkKey: mockDeps.network,
 				queryKey: mockVault.id,
 				entity: mockVault
 			});
@@ -180,10 +177,11 @@ describe('handleVaultDeposit', () => {
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {
 					open: true,
+					modalTitle: 'Depositing 100 TEST',
 					args: {
 						entity: mockVault,
-						toAddress: mockFullDeps.orderbookAddress,
-						chainId: mockFullDeps.chainId,
+						toAddress: mockDeps.orderbookAddress,
+						chainId: mockDeps.chainId,
 						onConfirm: expect.any(Function),
 						calldata: mockDepositCalldata
 					}
@@ -195,10 +193,10 @@ describe('handleVaultDeposit', () => {
 			onDepositConfirmCall(mockTxHashDeposit);
 
 			expect(mockCreateDepositTransaction).toHaveBeenCalledWith({
-				subgraphUrl: mockFullDeps.subgraphUrl,
+				subgraphUrl: mockDeps.subgraphUrl,
 				txHash: mockTxHashDeposit,
-				chainId: mockFullDeps.chainId,
-				networkKey: mockFullDeps.network,
+				chainId: mockDeps.chainId,
+				networkKey: mockDeps.network,
 				queryKey: mockVault.id,
 				entity: mockVault,
 				amount: mockAmount
