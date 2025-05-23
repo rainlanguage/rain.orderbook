@@ -1,3 +1,4 @@
+
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 import { isEmpty } from 'lodash';
 import type { SentrySeverityLevel } from './sentry';
@@ -13,12 +14,11 @@ import type { SentrySeverityLevel } from './sentry';
  */
 export async function executeLedgerOrder(
   dotrainText: string,
-  deployment: DeploymentCfg | undefined,
+  deployment: DeploymentCfg,
   orderAddFn: (dotrain: string, deployment: DeploymentCfg) => Promise<void>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reportErrorToSentryFn: (error: any, level?: SentrySeverityLevel) => void,
 ): Promise<void> {
-  if (!deployment) throw Error('Select a deployment to add order');
   if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
     throw Error('No orderbook associated with scenario');
 

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeLedgerOrder } from '../services/executeLedgerOrder';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 
-
 // Mocks
 const mockOrderAddFn = vi.fn();
 const mockReportErrorToSentryFn = vi.fn();
@@ -18,14 +17,6 @@ const mockDeployment: DeploymentCfg = {
 describe('executeLedgerOrder', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should throw error if deployment is undefined', async () => {
-    await expect(
-      executeLedgerOrder(mockDotrainText, undefined, mockOrderAddFn, mockReportErrorToSentryFn),
-    ).rejects.toThrow('Select a deployment to add order');
-    expect(mockOrderAddFn).not.toHaveBeenCalled();
-    expect(mockReportErrorToSentryFn).not.toHaveBeenCalled();
   });
 
   it('should throw error if orderbook address is missing', async () => {
