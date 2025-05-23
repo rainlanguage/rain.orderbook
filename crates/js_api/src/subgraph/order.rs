@@ -39,7 +39,7 @@ pub async fn get_orders(
 ) -> Result<GetOrdersResult, SubgraphError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     Ok(GetOrdersResult(
-        client.orders_list(filter_args, pagination_args).await?,
+        client.orders_list(filter_args, pagination_args).await,
     ))
 }
 
