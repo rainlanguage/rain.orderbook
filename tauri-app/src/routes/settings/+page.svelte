@@ -1,17 +1,18 @@
 <script lang="ts">
   import { Alert, Spinner } from 'flowbite-svelte';
-  import { hasRequiredSettings, settingsText, settings, settingsFile } from '$lib/stores/settings';
+  import { settingsText, settings, settingsFile, hasRequiredSettings } from '$lib/stores/settings';
   import { PageHeader } from '@rainlanguage/ui-components';
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { parseConfigSource } from '$lib/services/config';
-  import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
   import { onMount } from 'svelte';
   import { CheckOutline, CloseOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
+  import { applySettings, type ApplySettingsResult } from '$lib/services/applySettings';
+  import { get } from 'svelte/store';
 
-  let settingsStatus: 'idle' | 'checking' | 'success' | 'error' = 'idle';
+  let settingsStatus: ApplySettingsResult['settingsStatus'] = 'checking';
   let errorMessage: string | undefined = undefined;
   let height = 500;
 
@@ -22,27 +23,31 @@
   onMount(() => {
     updateHeight();
     window.addEventListener('resize', updateHeight);
+    if (get(settingsFile).text) {
+      handleApply(get(settingsFile).text);
+    } else {
+      settingsStatus = 'success';
+      errorMessage = undefined;
+    }
     return () => window.removeEventListener('resize', updateHeight);
   });
 
-  async function apply(settingsContent: string): Promise<void> {
+  async function handleApply(settingsContent: string): Promise<void> {
     settingsStatus = 'checking';
-    try {
-      settingsText.set(settingsContent);
-      settings.set(await parseConfigSource(settingsContent));
-      settingsStatus = 'success';
-    } catch (error) {
-      errorMessage = error as string;
-      reportErrorToSentry(error, SentrySeverityLevel.Info);
-      settingsStatus = 'error';
+    errorMessage = undefined;
+
+    const result = await applySettings(settingsContent, settings, settingsText, parseConfigSource);
+
+    settingsStatus = result.settingsStatus;
+    if (result.errorMessage) {
+      errorMessage = result.errorMessage;
     }
   }
 
-  const { debouncedFn: debouncedApply } = useDebouncedFn(apply, 1000);
-  $: {
-    debouncedApply($settingsFile.text);
-    errorMessage = undefined;
-    settingsStatus = 'checking';
+  const { debouncedFn: debouncedHandleApply } = useDebouncedFn(handleApply, 1000);
+
+  $: if ($settingsFile.text !== undefined && typeof $settingsFile.text === 'string') {
+    debouncedHandleApply($settingsFile.text);
   }
 </script>
 
@@ -56,17 +61,17 @@
       href="https://docs.rainlang.xyz/raindex/getting-started">getting started guide</a
     >
   </Alert>
-
-  {#await hasRequiredSettings}
-    <!-- -->
-  {:then val}
-    {#if !val}
-      <Alert color="red" class="my-8 text-lg">
-        Please fill in all the settings to use the Orderbook.
-      </Alert>
-    {/if}
-  {/await}
 </div>
+
+{#await hasRequiredSettings}
+  <!-- -->
+{:then val}
+  {#if !val}
+    <Alert color="red" class="my-8 text-lg">
+      Please fill in all the settings to use the Orderbook.
+    </Alert>
+  {/if}
+{/await}
 
 <FileTextarea textFile={settingsFile}>
   <svelte:fragment slot="alert">
