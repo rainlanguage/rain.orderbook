@@ -384,7 +384,7 @@ mod tests {
         .await;
         assert!(res.is_ok());
 
-        let expected_content = "timestamp,timestamp_display,from,amount,amount_display_signed,change_type_display,balance\n1734054063,2024-12-13 04:41:03 AM,0x7177b9d00bb5dbcaaf069cc63190902763783b09,5000000000000000000,5.000000000000000000,Deposit,5000000000000000000\n";
+        let expected_content = "timestamp,timestamp_display,from,amount,amount_display_signed,change_type_display,balance\n1734054063,2024-12-13 01:41:03 UTC,0x7177b9d00bb5dbcaaf069cc63190902763783b09,5000000000000000000,5.000000000000000000,Deposit,5000000000000000000\n";
         let content = fs::read_to_string(path).unwrap();
         assert_eq!(content, expected_content);
     }
