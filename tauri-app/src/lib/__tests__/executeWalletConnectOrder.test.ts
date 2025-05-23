@@ -75,7 +75,7 @@ describe('executeWalletConnectOrder', () => {
     expect(mockOrderAddCalldataFn).toHaveBeenCalledWith(mockDotrainText, mockDeployment);
     expect(mockEthersExecuteFn).toHaveBeenCalledWith(
       mockCalldata,
-      mockDeployment.order.orderbook!.address,
+      mockDeployment.order.orderbook?.address,
     );
     expect(mockSuccessToastFn).toHaveBeenCalledWith('Transaction sent successfully!');
     expect(mockTxResponse.wait).toHaveBeenCalledWith(1);

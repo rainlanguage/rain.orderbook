@@ -38,7 +38,7 @@ export async function executeWalletConnectOrder(
 
   try {
     const calldata = await orderAddCalldataFn(dotrainText, deployment);
-    const tx = await ethersExecuteFn(calldata, deployment.order.orderbook.address!);
+    const tx = await ethersExecuteFn(calldata, deployment.order.orderbook.address);
     successToastFn('Transaction sent successfully!');
     await tx.wait(1);
   } catch (e) {
