@@ -27,7 +27,7 @@
 	}
 </script>
 
-<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
+<Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" {open} data-testid="transaction-modal">
 	{@const ui = match(confirmationState)
 		.with({ status: 'awaiting_confirmation' }, () => ({
 			iconType: 'spinner',
@@ -75,11 +75,11 @@
 					)}
 			>
 				{#if ui.iconType === 'spinner'}
-					<Spinner color="blue" size={10} />
+					<Spinner color="blue" aria-label="Pending confirmation" size={10} />
 				{:else if ui.iconType === 'success'}
-					<h1 class="text-lg md:text-2xl">✅</h1>
+					<h1 class="text-lg md:text-2xl" aria-label="Success">✅</h1>
 				{:else if ui.iconType === 'error'}
-					<h1 class="text-lg md:text-2xl">❌</h1>
+					<h1 class="text-lg md:text-2xl" aria-label="Error">❌</h1>
 				{/if}
 			</div>
 
