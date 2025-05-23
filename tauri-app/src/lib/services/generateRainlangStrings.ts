@@ -31,7 +31,7 @@ export async function generateRainlangStrings(
           scenario,
         );
         composedRainlangForScenarios.set(scenario, composedRainlang);
-      } catch (e: any) {
+      } catch (e) {
         composedRainlangForScenarios.set(
           scenario,
           e?.toString() || 'Error composing rainlang for scenario',

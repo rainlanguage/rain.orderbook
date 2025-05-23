@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData, DeploymentCfg } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -15,12 +15,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import {
-    orderAdd,
-    orderAddCalldata,
-    orderAddComposeRainlang,
-    validateRaindexVersion,
-  } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, validateRaindexVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
@@ -49,8 +44,6 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-
-  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
