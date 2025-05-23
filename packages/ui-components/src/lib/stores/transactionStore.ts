@@ -2,21 +2,22 @@ import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import type { Config } from '@wagmi/core';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
-import type {
-	ApprovalCalldata,
-	RemoveOrderCalldata,
-	SgVault,
-	VaultCalldataResult
+import {
+	getTransaction,
+	getTransactionAddOrders,
+	getTransactionRemoveOrders,
+	type ApprovalCalldata,
+	type RemoveOrderCalldata,
+	type SgAddOrderWithOrder,
+	type SgRemoveOrderWithOrder,
+	type SgTransaction,
+	type SgVault,
+	type VaultCalldataResult
 } from '@rainlanguage/orderbook';
 
 import { getExplorerLink } from '../services/getExplorerLink';
 import type { DeploymentArgs } from '$lib/types/transaction';
-import {
-	awaitSubgraphIndexing,
-	getNewOrderConfig,
-	getRemoveOrderConfig,
-	getTransactionConfig
-} from '$lib/services/awaitTransactionIndexing';
+import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -126,16 +127,20 @@ const transactionStore = () => {
 			message: 'Waiting for transaction to be indexed...'
 		}));
 
-		const result = await awaitSubgraphIndexing(
-			getTransactionConfig(subgraphUrl, txHash, successMessage)
-		);
+		const result = await awaitSubgraphIndexing({
+			subgraphUrl,
+			txHash,
+			successMessage,
+			fetchEntityFn: getTransaction,
+			isSuccess: (data: SgTransaction) => !!data
+		});
 
 		if (result.error) {
 			return transactionError(TransactionErrorMessage.TIMEOUT);
 		}
 
 		if (result.value) {
-			return transactionSuccess(result.value.txHash, result.value.successMessage);
+			return transactionSuccess(result.value.txHash, successMessage);
 		}
 	};
 
@@ -146,7 +151,14 @@ const transactionStore = () => {
 			message: 'Waiting for new order to be indexed...'
 		}));
 
-		const result = await awaitSubgraphIndexing(getNewOrderConfig(subgraphUrl, txHash, '', network));
+		const result = await awaitSubgraphIndexing({
+			subgraphUrl,
+			txHash,
+			successMessage: 'New order indexed successfully',
+			network,
+			fetchEntityFn: getTransactionAddOrders,
+			isSuccess: (data: SgAddOrderWithOrder[]) => data?.length > 0
+		});
 
 		if (result.error) {
 			return transactionError(TransactionErrorMessage.TIMEOUT);
@@ -169,9 +181,13 @@ const transactionStore = () => {
 			message: 'Waiting for order removal to be indexed...'
 		}));
 
-		const result = await awaitSubgraphIndexing(
-			getRemoveOrderConfig(subgraphUrl, txHash, 'Order removed successfully')
-		);
+		const result = await awaitSubgraphIndexing({
+			subgraphUrl,
+			txHash,
+			successMessage: 'Order removed successfully',
+			fetchEntityFn: getTransactionRemoveOrders,
+			isSuccess: (data: SgRemoveOrderWithOrder[]) => data?.length > 0
+		});
 
 		if (result.error) {
 			return transactionError(TransactionErrorMessage.TIMEOUT);
