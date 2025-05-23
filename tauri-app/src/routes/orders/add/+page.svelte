@@ -39,6 +39,7 @@
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import * as chains from 'viem/chains';
+  import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -158,20 +159,23 @@
     }
     isSubmitting = false;
   }
-  async function executeWalletconnect() {
+
+  async function handleExecuteWalletConnect() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
-      toasts.success('Transaction sent successfully!');
-      await tx.wait(1);
-    } catch (e) {
-      reportErrorToSentry(e);
-      toasts.error(formatEthersTransactionError(e));
+      await executeWalletConnectOrder(
+        $globalDotrainFile.text,
+        deployment,
+        async (dotrain, deploy) => (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
+        ethersExecute,
+        reportErrorToSentry,
+        formatEthersTransactionError,
+        toasts.success,
+        toasts.error,
+      );
+    } catch {
+      // error already reported by service or toast shown
     }
     isSubmitting = false;
   }
@@ -322,6 +326,6 @@
   title="Add Order"
   execButtonLabel="Add Order"
   {executeLedger}
-  {executeWalletconnect}
+  executeWalletconnect={handleExecuteWalletConnect}
   bind:isSubmitting
 />
