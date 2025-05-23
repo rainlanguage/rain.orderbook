@@ -39,6 +39,7 @@
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import * as chains from 'viem/chains';
+  import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -145,19 +146,17 @@
     isCharting = false;
   }
 
-  async function executeLedger() {
+  async function handleExecuteLedger() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      await orderAdd($globalDotrainFile.text, deployment);
-    } catch (e) {
-      reportErrorToSentry(e);
+      await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
+    } catch (e: any) {
+      toasts.error(e.message || 'Ledger execution failed');
     }
     isSubmitting = false;
   }
+
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
@@ -321,7 +320,7 @@
   overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
-  {executeLedger}
+  executeLedger={handleExecuteLedger}
   {executeWalletconnect}
   bind:isSubmitting
 />
