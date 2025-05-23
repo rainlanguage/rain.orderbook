@@ -3,12 +3,11 @@
 		transactionStore,
 		InputTokenAmount,
 		WalletConnect,
-		type DepositOrWithdrawArgs
+		type VaultActionArgs
 	} from '@rainlanguage/ui-components';
 	import {
 		getVaultDepositCalldata,
 		getVaultApprovalCalldata,
-		getVaultWithdrawCalldata,
 		type VaultCalldataResult
 	} from '@rainlanguage/orderbook';
 	import { Modal, Button } from 'flowbite-svelte';
@@ -32,10 +31,14 @@
 		throw new Error(`Chain with id ${chainId} not found`);
 	}
 
+	/**
+	 * Modal component for depositing tokens into a vault.
+	 * This component should only be used for deposit actions.
+	 */
 	export let open: boolean;
-	export let args: DepositOrWithdrawArgs;
+	export let args: VaultActionArgs;
 
-	const { action, vault, chainId, rpcUrl, subgraphUrl, account } = args;
+	const { vault, chainId, rpcUrl, subgraphUrl, account } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -78,7 +81,7 @@
 			config: $wagmiConfig,
 			transactionCalldata,
 			approvalCalldata,
-			action,
+			action: 'deposit',
 			chainId,
 			vault,
 			subgraphUrl
@@ -88,34 +91,25 @@
 	async function handleContinue() {
 		isCheckingCalldata = true;
 		try {
-			if (action === 'deposit') {
-				const approvalCalldataResult = await getVaultApprovalCalldata(
-					rpcUrl,
-					vault,
-					amount.toString()
-				);
-				if (approvalCalldataResult.error) {
-					errorMessage = approvalCalldataResult.error.msg;
-				}
-
-				const depositCalldataResult = await getVaultDepositCalldata(vault, amount.toString());
-				if (depositCalldataResult.error) {
-					errorMessage = depositCalldataResult.error.msg;
-				} else {
-					handleTransaction(
-						depositCalldataResult.value,
-						!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
-					);
-				}
-			} else if (action === 'withdraw') {
-				const withdrawCalldataResult = await getVaultWithdrawCalldata(vault, amount.toString());
-				if (withdrawCalldataResult.error) {
-					errorMessage = withdrawCalldataResult.error.msg;
-				} else {
-					handleTransaction(withdrawCalldataResult.value);
-				}
+			const approvalCalldataResult = await getVaultApprovalCalldata(
+				rpcUrl,
+				vault,
+				amount.toString()
+			);
+			if (approvalCalldataResult.error) {
+				errorMessage = approvalCalldataResult.error.msg;
 			}
-			currentStep = 2;
+
+			const depositCalldataResult = await getVaultDepositCalldata(vault, amount.toString());
+			if (depositCalldataResult.error) {
+				errorMessage = depositCalldataResult.error.msg;
+			} else {
+				handleTransaction(
+					depositCalldataResult.value,
+					!approvalCalldataResult.error ? approvalCalldataResult.value : undefined
+				);
+				currentStep = 2;
+			}
 		} catch {
 			errorMessage = 'Failed to get calldata.';
 		} finally {
@@ -129,20 +123,15 @@
 		amount = 0n;
 	}
 
-	$: validation = validateAmount(
-		amount,
-		action === 'deposit' ? userBalance : BigInt(vault.balance)
-	);
+	$: validation = validateAmount(amount, userBalance);
 
-	$: maxValue = action === 'deposit' ? userBalance : BigInt(vault.balance);
+	$: maxValue = userBalance;
 </script>
 
 {#if currentStep === 1}
 	<Modal bind:open autoclose={false} size="md">
 		<div class="space-y-4">
-			<h3 class="text-xl font-medium" data-testid="modal-title">
-				{action === 'deposit' ? 'Deposit' : 'Withdraw'}
-			</h3>
+			<h3 class="text-xl font-medium" data-testid="modal-title">Deposit</h3>
 
 			<div class="h-10">
 				{#if account}
@@ -187,14 +176,14 @@
 						<div class="flex flex-col gap-2">
 							<Button
 								color="blue"
-								data-testid="deposit-withdraw-button"
+								data-testid="deposit-button"
 								on:click={handleContinue}
 								disabled={!validation.isValid || isCheckingCalldata}
 							>
 								{#if isCheckingCalldata}
 									Checking...
 								{:else}
-									{action === 'deposit' ? 'Deposit' : 'Withdraw'}
+									Deposit
 								{/if}
 							</Button>
 						</div>
