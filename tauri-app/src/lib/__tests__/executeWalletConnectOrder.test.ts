@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeWalletConnectOrder } from '../services/executeWalletConnectOrder';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 
