@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { PageHeader, VaultsListTable } from '@rainlanguage/ui-components';
+	import { PageHeader, VaultsListTable, useToasts } from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { hideZeroBalanceVaults, showMyItemsOnly, orderHash } from '$lib/stores/settings';
 	import { activeSubgraphs } from '$lib/stores/settings';
+	import { resetActiveNetworkRef } from '$lib/services/resetActiveNetworkRef';
+	import { resetActiveOrderbookRef } from '$lib/services/resetActiveOrderbookRef';
+
+	const { errToast } = useToasts();
 
 	const {
 		activeOrderbook,
@@ -18,30 +22,18 @@
 		activeNetworkOrderbooks
 	} = $page.data.stores;
 
-	export async function resetActiveNetworkRef() {
-		const $networks = $settings?.networks;
-
-		if ($networks !== undefined && Object.keys($networks).length > 0) {
-			activeNetworkRef.set(Object.keys($networks)[0]);
-		} else {
-			activeNetworkRef.set(undefined);
-		}
-	}
-
-	export function resetActiveOrderbookRef() {
-		const $activeNetworkOrderbookRefs = Object.keys($activeNetworkOrderbooks);
-
-		if ($activeNetworkOrderbookRefs.length > 0) {
-			activeOrderbookRef.set($activeNetworkOrderbookRefs[0]);
-		} else {
-			activeOrderbookRef.set(undefined);
-		}
-	}
-
 	onMount(async () => {
 		if (!$activeOrderbook) {
-			await resetActiveNetworkRef();
-			resetActiveOrderbookRef();
+			try {
+				resetActiveNetworkRef(activeNetworkRef, settings);
+			} catch (error) {
+				errToast((error as Error).message);
+			}
+			try {
+				resetActiveOrderbookRef(activeOrderbookRef, activeNetworkOrderbooks);
+			} catch (error) {
+				errToast((error as Error).message);
+			}
 		}
 	});
 </script>
