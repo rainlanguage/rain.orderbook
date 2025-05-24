@@ -79,3 +79,26 @@ nix develop -c rainix-sol-legal
 Contributions are welcome **under the same license** as above.
 
 Contributors agree and warrant that their contributions are compliant.
+
+some changes to readme
+
+some new changes
+
+some other new changes
+
+some other new changes again
+
+im trying to add more changes here again, but lets just annouce them shortly here:
+more changes to come!
+
+
+im adding new stuff:
+- update to v5
+- update i9r to v4
+- update rust code to better stuff
+- some extra stuff maybe
+- deploy to supported chains
+- some other chnages will come this month
+- 
+
+new stuff

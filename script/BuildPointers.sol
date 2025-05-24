@@ -31,6 +31,7 @@ contract BuildPointers is Script {
         );
     }
 
+    // run this script to generate pointers for smart contracts
     function run() external {
         buildOrderBookSubParserPointers();
     }

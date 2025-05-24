@@ -279,10 +279,6 @@
             packages.ob-ui-components-prelude
             packages.ob-tauri-unit-test
             packages.ob-tauri-before-build-ci
-            packages.ob-tauri-before-build
-            packages.ob-tauri-before-bundle
-            packages.ob-tauri-before-release
-            packages.tauri-rs-test
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
@@ -291,6 +287,9 @@
         devShells.webapp-shell = pkgs.mkShell {
           packages = with pkgs; [
               nodejs_20
+              jq
+              yq
+              doctl
           ];
         };
 
