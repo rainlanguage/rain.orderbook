@@ -16,13 +16,13 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub struct TakeOrdersCalldata(#[tsify(type = "string")] Bytes);
 impl_wasm_traits!(TakeOrdersCalldata);
 
-/// Get the order hash of an order
+/// Get the order hash of an order that will be used  to fetch an order from onchain or subgraph
 #[wasm_export(js_name = "getOrderHash", unchecked_return_type = "string")]
 pub fn get_order_hash(order: &OrderV3) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(order.abi_encode())))
 }
 
-/// Get takeOrders2() calldata
+/// Get takeOrders2() calldata that gonna be used in wasm bindings
 #[wasm_export(
     js_name = "getTakeOrders2Calldata",
     unchecked_return_type = "TakeOrdersCalldata"
@@ -37,7 +37,7 @@ pub fn get_take_orders2_calldata(
     Ok(TakeOrdersCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
-/// calculates keccak256 of the given bytes
+/// calculates keccak256 of the given bytes of data
 #[wasm_export(js_name = "keccak256", unchecked_return_type = "string")]
 pub fn keccak256(bytes: &[u8]) -> Result<String, Error> {
     Ok(encode_prefixed(main_keccak256(bytes)))
