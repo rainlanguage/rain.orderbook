@@ -7,9 +7,10 @@
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
+	import { handleOrderRemoveModal } from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+	import { handleVaultAction } from '$lib/services/vaultActions';
 	import type { Hex } from 'viem';
 
 	const queryClient = useQueryClient();
@@ -36,35 +37,30 @@
 		});
 	}
 
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		const network = $page.params.network;
-		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-
-		handleDepositOrWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				},
-				action,
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
-				account: $account as Hex
-			}
+	function onDeposit(vault: SgVault) {
+		handleVaultAction({
+			vault,
+			action: 'deposit',
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account: $account as Hex,
+			queryClient,
+			vaultId: orderHash
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
-	}
-
 	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+		handleVaultAction({
+			vault,
+			action: 'withdraw',
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account: $account as Hex,
+			queryClient,
+			vaultId: orderHash
+		});
 	}
 </script>
 
