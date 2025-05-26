@@ -3,7 +3,7 @@ use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::WriteTransactionStatus;
 use chrono::Utc;
 use std::sync::RwLock;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Runtime};
 use uuid::Uuid;
 
 impl<T: SolCall + Clone> From<WriteTransactionStatus<T>> for TransactionStatus {
@@ -32,16 +32,20 @@ impl TransactionStatusNoticeRwLock {
         Self(RwLock::new(notice))
     }
 
-    pub fn update_status_and_emit<T: SolCall + Clone>(
+    pub fn update_status_and_emit<T: SolCall + Clone, R: Runtime>(
         &self,
-        app_handle: AppHandle,
+        app_handle: &AppHandle<R>,
         status: WriteTransactionStatus<T>,
     ) {
         self.update_status(status);
         self.emit(app_handle);
     }
 
-    pub fn set_failed_status_and_emit(&self, app_handle: AppHandle, message: String) {
+    pub fn set_failed_status_and_emit<R: Runtime>(
+        &self,
+        app_handle: &AppHandle<R>,
+        message: String,
+    ) {
         self.set_failed_status(message);
         self.emit(app_handle);
     }
@@ -56,7 +60,7 @@ impl TransactionStatusNoticeRwLock {
         notice.status = TransactionStatus::Failed(message);
     }
 
-    fn emit(&self, app_handle: AppHandle) {
+    fn emit<R: Runtime>(&self, app_handle: &AppHandle<R>) {
         app_handle
             .emit_all("transaction_status_notice", self.0.read().unwrap().clone())
             .unwrap();
