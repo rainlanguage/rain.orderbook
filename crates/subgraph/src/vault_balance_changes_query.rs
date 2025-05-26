@@ -17,8 +17,8 @@ impl VaultBalanceChangesListPageQueryClient {
 }
 
 impl CynicClient for VaultBalanceChangesListPageQueryClient {
-    fn get_base_url(&self) -> Url {
-        self.url.clone()
+    fn get_base_url(&self) -> &Url {
+        &self.url
     }
 }
 

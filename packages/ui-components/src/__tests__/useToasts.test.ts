@@ -38,15 +38,45 @@ describe('useToasts', () => {
 	});
 
 	describe('errToast', () => {
-		it('should add an error toast with the correct properties', () => {
+		it('should add an error toast with the given message', () => {
 			const { errToast } = useToasts();
-			const errorMessage = 'Test error message';
-
-			errToast(errorMessage);
+			const message = 'Test error message';
+			errToast(message);
 
 			expect(getStoreValue()).toEqual([
 				{
-					message: errorMessage,
+					message,
+					type: 'error',
+					color: 'red'
+				}
+			]);
+		});
+
+		it('should add an error toast with the given message and detail', () => {
+			const { errToast } = useToasts();
+			const message = 'Test error message with detail';
+			const detail = 'This is some extra detail.';
+			errToast(message, detail);
+
+			expect(getStoreValue()).toEqual([
+				{
+					message,
+					detail,
+					type: 'error',
+					color: 'red'
+				}
+			]);
+		});
+
+		it('should add an error toast with the given message and undefined detail', () => {
+			const { errToast } = useToasts();
+			const message = 'Test error message with undefined detail';
+			errToast(message, undefined);
+
+			expect(getStoreValue()).toEqual([
+				{
+					message,
+					detail: undefined,
 					type: 'error',
 					color: 'red'
 				}
