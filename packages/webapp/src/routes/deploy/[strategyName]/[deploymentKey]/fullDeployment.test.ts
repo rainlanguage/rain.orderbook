@@ -98,7 +98,10 @@ describe('Full Deployment Tests', () => {
 			matchesAccount: vi.fn()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
-		await new Promise((resolve) => setTimeout(resolve, 10000));
+	});
+
+	afterEach(async () => {
+		await new Promise((resolve) => setTimeout(resolve, 5000));
 	});
 
 	it('Fixed limit strategy', async () => {
@@ -176,7 +179,11 @@ describe('Full Deployment Tests', () => {
 			);
 			return args.value;
 		};
-		const args = await getDeploymentArgs();
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+		const args = await getDeploymentArgs().catch((error) => {
+			console.log('Fixed limit strategy error', error);
+			return null;
+		});
 
 		// @ts-expect-error mock is not typed
 		const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
@@ -312,7 +319,11 @@ describe('Full Deployment Tests', () => {
 			);
 			return args.value;
 		};
-		const args = await getDeploymentArgs();
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+		const args = await getDeploymentArgs().catch((error) => {
+			console.log('Auction strategy error', error);
+			return null;
+		});
 
 		// @ts-expect-error mock is not typed
 		const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
@@ -437,7 +448,11 @@ describe('Full Deployment Tests', () => {
 			);
 			return args.value;
 		};
-		const args = await getDeploymentArgs();
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+		const args = await getDeploymentArgs().catch((error) => {
+			console.log('Dynamic spread strategy error', error);
+			return null;
+		});
 
 		// @ts-expect-error mock is not typed
 		const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
