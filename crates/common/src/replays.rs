@@ -1,5 +1,6 @@
 use alloy::primitives::B256;
 use rain_interpreter_eval::{
+    error::ForkCallError,
     fork::{Forker, NewForkedEvm},
     trace::RainEvalResult,
 };
@@ -15,7 +16,7 @@ pub struct TradeReplayer {
 #[derive(Debug, thiserror::Error)]
 pub enum TradeReplayerError {
     #[error("Forker error: {0}")]
-    ForkerError(#[from] rain_interpreter_eval::error::ForkCallError),
+    ForkerError(#[from] ForkCallError),
 }
 
 impl TradeReplayer {
@@ -55,7 +56,7 @@ mod tests {
     use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_trade_replayer() {
+    async fn test_trade_replayer_ok() {
         let mut local_evm = LocalEvm::new().await;
 
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
@@ -141,8 +142,15 @@ amount price: 2 1;
         );
 
         // add order
-        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("polygon").unwrap();
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.clone(), None)
+            .await
+            .unwrap();
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("polygon")
+            .unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
@@ -218,5 +226,35 @@ amount price: 2 1;
 
         assert_eq!(res.traces[1].stack, expected_stack);
         assert_eq!(res.traces.len(), 2);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_trade_replayer_err() {
+        let err = TradeReplayer::new(NewTradeReplayer {
+            fork_url: "https://example.com".try_into().unwrap(),
+        })
+        .await;
+
+        assert!(matches!(
+            err,
+            Err(TradeReplayerError::ForkerError(ForkCallError::Eyre(_)))
+        ));
+
+        let local_evm = LocalEvm::new().await;
+
+        let mut replayer = TradeReplayer::new(NewTradeReplayer {
+            fork_url: local_evm.url().as_str().try_into().unwrap(),
+        })
+        .await
+        .unwrap();
+
+        let res = replayer.replay_tx(B256::ZERO).await;
+
+        assert!(matches!(
+            res,
+            Err(TradeReplayerError::ForkerError(
+                ForkCallError::ReplayTransactionError(_)
+            ))
+        ));
     }
 }
