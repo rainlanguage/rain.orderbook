@@ -46,7 +46,7 @@ pub async fn get_vaults(
 ) -> Result<GetVaultsResult, SubgraphError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     Ok(GetVaultsResult(
-        client.vaults_list(filter_args, pagination_args).await?,
+        client.vaults_list(filter_args, pagination_args).await,
     ))
 }
 
