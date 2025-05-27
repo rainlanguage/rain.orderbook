@@ -7,6 +7,7 @@ import type {
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
+import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
 
