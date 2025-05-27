@@ -200,7 +200,7 @@ mod tests {
     fn test_get_base_url() {
         let url = Url::parse("http://localhost:8000/subgraphs/name/test").unwrap();
         let client = VaultBalanceChangesListPageQueryClient::new(url.clone());
-        assert_eq!(client.get_base_url(), url);
+        assert_eq!(client.get_base_url(), &url);
     }
 
     #[tokio::test]
