@@ -3,9 +3,10 @@
   import { InfoCircleOutline } from 'flowbite-svelte-icons';
 
   export let error: unknown;
+  console.log('error', error);
 </script>
 
-{#if error && typeof error == 'string' && error.startsWith('Raindex version')}
+{#if error && typeof error == 'string' && error.startsWith('Spec version')}
   <Alert color="red">
     <InfoCircleOutline slot="icon" class="h-5 w-5" />
     <div class="flex flex-col">

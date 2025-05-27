@@ -19,7 +19,7 @@
     orderAdd,
     orderAddCalldata,
     orderAddComposeRainlang,
-    validateRaindexVersion,
+    validateSpecVersion,
   } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
@@ -35,7 +35,7 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
-  import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import SpecVersionValidator from '$lib/components/SpecVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
@@ -204,10 +204,12 @@
     }
   }
 
-  const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
-    useDebouncedFn(validateRaindexVersion, 500);
+  const { debouncedFn: debounceValidateSpecVersion, error: specVersionError } = useDebouncedFn(
+    validateSpecVersion,
+    500,
+  );
 
-  $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
+  $: debounceValidateSpecVersion($globalDotrainFile.text, [$settingsText]);
 
   $: deploymentNetworks = getDeploymentsNetworks(deployments);
 </script>
@@ -216,7 +218,7 @@
 
 <FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">
-    <RaindexVersionValidator error={$raindexVersionError} />
+    <SpecVersionValidator error={$specVersionError} />
   </svelte:fragment>
 
   <svelte:fragment slot="textarea">
@@ -252,7 +254,7 @@
         class="min-w-fit"
         color="green"
         loading={isSubmitting}
-        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef) || !!$raindexVersionError}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef) || !!$specVersionError}
         on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
       >
     </div>
