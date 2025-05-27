@@ -1,9 +1,10 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
-import DepositOrWithdrawModal from '$lib/components/DepositOrWithdrawModal.svelte';
 import OrderRemoveModal from '$lib/components/OrderRemoveModal.svelte';
+import DepositModal from '$lib/components/DepositModal.svelte';
+import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import {
 	DisclaimerModal,
-	type DepositOrWithdrawModalProps,
+	type VaultActionModalProps,
 	type OrderRemoveModalProps,
 	type DisclaimerModalProps,
 	type DeployModalProps
@@ -13,8 +14,12 @@ export const handleDeployModal = (props: DeployModalProps) => {
 	new DeployModal({ target: document.body, props });
 };
 
-export const handleDepositOrWithdrawModal = (props: DepositOrWithdrawModalProps) => {
-	new DepositOrWithdrawModal({ target: document.body, props });
+export const handleDepositModal = (props: VaultActionModalProps) => {
+	new DepositModal({ target: document.body, props });
+};
+
+export const handleWithdrawModal = (props: VaultActionModalProps) => {
+	new WithdrawModal({ target: document.body, props });
 };
 
 export const handleOrderRemoveModal = (props: OrderRemoveModalProps) => {

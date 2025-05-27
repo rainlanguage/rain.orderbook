@@ -10,16 +10,16 @@
 	import { handleOrderRemoveModal } from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
-	import { handleVaultAction } from '$lib/services/vaultActions';
 	import type { Hex } from 'viem';
+	import { handleVaultAction } from '$lib/services/handleVaultAction';
 
 	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
-	const rpcUrl = $settings.networks[network]?.rpc;
-	const chainId = $settings.networks[network]?.['chain-id'];
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 
 	function onRemove(order: SgOrder) {
@@ -41,12 +41,12 @@
 		handleVaultAction({
 			vault,
 			action: 'deposit',
+			queryClient,
+			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
-			account: $account as Hex,
-			queryClient,
-			vaultId: orderHash
+			account: $account as Hex
 		});
 	}
 
@@ -54,12 +54,12 @@
 		handleVaultAction({
 			vault,
 			action: 'withdraw',
+			queryClient,
+			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
-			account: $account as Hex,
-			queryClient,
-			vaultId: orderHash
+			account: $account as Hex
 		});
 	}
 </script>
