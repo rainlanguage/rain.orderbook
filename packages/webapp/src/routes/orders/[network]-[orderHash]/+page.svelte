@@ -9,7 +9,7 @@
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
-	import { handleVaultAction } from '$lib/services/handleVaultAction';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -36,11 +36,8 @@
 	}
 
 	function onDeposit(vault: SgVault) {
-		handleVaultAction({
+		handleVaultDeposit({
 			vault,
-			action: 'deposit',
-			queryClient,
-			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,

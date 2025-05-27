@@ -13,7 +13,7 @@
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
-	import { handleVaultAction } from '$lib/services/handleVaultAction';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
@@ -27,18 +27,14 @@
 	const { errToast } = useToasts();
 
 	function onDeposit(vault: SgVault) {
-		handleVaultAction({
+		handleVaultDeposit({
 			vault,
-			action: 'deposit',
-			queryClient,
-			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
 			account: $account as Hex
 		});
 	}
-
 	async function onWithdraw(vault: SgVault) {
 		await handleVaultWithdraw({
 			vault,
