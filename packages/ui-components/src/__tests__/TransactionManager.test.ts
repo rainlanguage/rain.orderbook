@@ -22,8 +22,7 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 }));
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	getTransactionRemoveOrders: vi.fn(),
-
+	getTransactionRemoveOrders: vi.fn()
 }));
 
 describe('TransactionManager', () => {

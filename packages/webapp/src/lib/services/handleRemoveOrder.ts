@@ -36,7 +36,7 @@ export async function handleRemoveOrder(
 					deps.manager.createRemoveOrderTransaction({
 						subgraphUrl: deps.subgraphUrl,
 						txHash,
-						orderHash: deps.orderHash,
+						queryKey: deps.orderHash,
 						chainId: deps.chainId,
 						networkKey: deps.network
 					});

@@ -9,7 +9,7 @@ import { TransactionName } from '$lib/types/transaction';
 import {
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction,
+	type SgTransaction
 } from '@rainlanguage/orderbook';
 
 /**

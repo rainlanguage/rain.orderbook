@@ -105,7 +105,7 @@ describe('handleRemoveOrder', () => {
 		expect(mockCreateRemoveOrderTransaction).toHaveBeenCalledWith({
 			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
-			orderHash: mockDeps.orderHash,
+			queryKey: mockDeps.orderHash,
 			chainId: mockDeps.chainId,
 			networkKey: mockDeps.network
 		});
