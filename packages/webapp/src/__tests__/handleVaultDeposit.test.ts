@@ -42,7 +42,6 @@ describe('handleVaultDeposit', () => {
 			open: true,
 			args: {
 				vault: mockVault,
-				onSuccess: expect.any(Function),
 				chainId: mockChainId,
 				rpcUrl: mockRpcUrl,
 				subgraphUrl: mockSubgraphUrl,
