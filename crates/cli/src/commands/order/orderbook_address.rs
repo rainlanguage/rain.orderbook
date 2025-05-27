@@ -116,6 +116,8 @@ mod tests {
     fn get_test_dotrain(orderbook_key: &str) -> String {
         format!(
             "
+spec-version: 1
+
 networks:
     some-network:
         rpc: https://some-url.com

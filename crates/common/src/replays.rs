@@ -84,6 +84,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}

@@ -97,6 +97,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}
@@ -222,6 +223,7 @@ amount price: 16 52;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}
@@ -350,6 +352,7 @@ _: 1;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}

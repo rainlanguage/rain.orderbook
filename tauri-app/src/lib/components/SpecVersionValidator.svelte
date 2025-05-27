@@ -3,7 +3,6 @@
   import { InfoCircleOutline } from 'flowbite-svelte-icons';
 
   export let error: unknown;
-  console.log('error', error);
 </script>
 
 {#if error && typeof error == 'string' && error.startsWith('Spec version')}

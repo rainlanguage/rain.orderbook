@@ -381,6 +381,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}
@@ -563,6 +564,7 @@ _ _: 16 52;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}
@@ -610,6 +612,7 @@ _ _: 0 0;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}
@@ -658,6 +661,7 @@ _ _: 0 0;
         // Test compose error with invalid rainlang
         let dotrain_invalid = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}

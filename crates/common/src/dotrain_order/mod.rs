@@ -607,6 +607,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+    use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
 
     sol!(
@@ -624,6 +625,7 @@ mod tests {
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}
@@ -669,6 +671,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}
@@ -718,6 +721,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}
@@ -767,6 +771,7 @@ _ _: 1 2;"#
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
   polygon:
     rpc: {rpc_url}
@@ -816,6 +821,7 @@ networks:
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     sepolia:
         rpc: {rpc_url}
@@ -859,6 +865,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -909,6 +916,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -964,6 +972,7 @@ _ _: 0 0;
         let deployer = Address::random();
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1019,6 +1028,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1094,6 +1104,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1317,6 +1328,37 @@ _ _: 0 0;
     }
 
     #[tokio::test]
+    async fn test_validate_missing_spec_version() {
+        let dotrain = "
+                networks:
+                    sepolia:
+                        rpc: http://example.com
+                        chain-id: 0
+                deployers:
+                    sepolia:
+                        address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
+                ---
+                #calculate-io
+                _ _: 0 0;
+                #handle-io
+                :;";
+
+        let mut dotrain_order = DotrainOrder::new();
+        let err = dotrain_order
+            .initialize(dotrain.to_string(), None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            DotrainOrderError::YamlError(YamlError::Field {
+                kind: FieldErrorKind::Missing(ref key),
+                location
+            }) if key == "spec-version" && location == "root"
+        ));
+    }
+
+    #[tokio::test]
     async fn test_validate_spec_version_unhappy() {
         let dotrain = "
                 spec-version: 2
@@ -1334,13 +1376,13 @@ _ _: 0 0;
                 :;";
 
         let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
+        let err = dotrain_order
             .initialize(dotrain.to_string(), None)
             .await
-            .unwrap();
+            .unwrap_err();
 
         assert!(matches!(
-            dotrain_order.validate_spec_version().await.unwrap_err(),
+            err,
             DotrainOrderError::SpecVersionMismatch(
                 ref expected,
                 ref got
@@ -1353,6 +1395,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     polygon:
         rpc: {rpc_url}

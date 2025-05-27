@@ -43,6 +43,7 @@ mod tests {
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     sepolia:
         rpc: {rpc_url}
@@ -115,6 +116,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -236,6 +238,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
+    spec-version: 1
     networks:
         sepolia:
             rpc: {rpc_url}

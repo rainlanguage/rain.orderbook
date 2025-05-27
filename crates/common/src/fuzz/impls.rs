@@ -682,11 +682,82 @@ mod tests {
         primitives::utils::parse_ether,
         providers::{ext::AnvilApi, Provider},
     };
+    use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_test_fixtures::LocalEvm;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_fuzz_runner_missing_spec_version() {
+        let dotrain = r#"
+deployers:
+    some-key:
+        address: 0x1111111111111111111111111111111111111111
+networks:
+    some-key:
+        rpc: https://example.com
+        chain-id: 123
+scenarios:
+    some-key:
+        runs: 50
+        bindings:
+            bound: 3
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: bound,
+b: fuzzed;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+        let err = FuzzRunnerContext::new(dotrain, None, None).unwrap_err();
+        assert!(matches!(
+            err,
+            FuzzRunnerError::YamlError(YamlError::Field {
+                kind: FieldErrorKind::Missing(ref key),
+                location,
+            }) if key == "spec-version" && location == "root"
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_fuzz_runner_invalid_spec_version() {
+        let dotrain = r#"
+spec-version: 2
+deployers:
+    some-key:
+        address: 0x1111111111111111111111111111111111111111
+networks:
+    some-key:
+        rpc: https://example.com
+        chain-id: 123
+scenarios:
+    some-key:
+        runs: 50
+        bindings:
+            bound: 3
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: bound,
+b: fuzzed;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+        let err = FuzzRunnerContext::new(dotrain, None, None).unwrap_err();
+        assert!(matches!(
+            err,
+            FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
+                if expected == "1" && actual == "2"
+        ));
+    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_context_new_happy() {
         let dotrain = r#"
+spec-version: 1
 deployers:
     some-key:
         address: 0x1111111111111111111111111111111111111111
@@ -732,6 +803,7 @@ b: fuzzed;
 #handle-add-order
 :;"#;
         let bad_settings = r#"
+spec-version: 1
 bad-networks-key:
     some-key:
         rpc: https://example.com
@@ -748,6 +820,7 @@ bad-networks-key:
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -799,6 +872,7 @@ b: fuzzed;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -847,6 +921,7 @@ _: block-number();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -914,6 +989,7 @@ d: 4;
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -959,6 +1035,7 @@ _: context<4 4>();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -994,6 +1071,7 @@ _: context<50 50>();
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     some-key:
         address: {deployer}
@@ -1070,6 +1148,7 @@ _: context<1 0>();
 
         let dotrain = format!(
             r#"
+spec-version: 1
 deployers:
     flare:
         address: {deployer}

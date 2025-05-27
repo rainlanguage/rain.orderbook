@@ -72,6 +72,7 @@ deployments:
     fn get_settings(rpc: &str, orderbook: &str, deployer: &str) -> String {
         format!(
             r#"
+spec-version: 1
 networks:
   flare:
     rpc: {rpc}

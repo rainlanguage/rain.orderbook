@@ -41,6 +41,7 @@ mod tests {
     fn get_dotrain_prefix(subparser: &str, token1: &str, token2: &str) -> String {
         format!(
             r#"
+spec-version: 1
 tokens:
   token1:
     network: "flare"

@@ -181,7 +181,7 @@ mod tests {
         let rpc_server = MockServer::start_async().await;
         let dotrain_content = format!(
             "
-raindex-version: {raindex_version}
+spec-version: 1
 networks:
     some-network:
         rpc: {}
@@ -247,8 +247,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            rpc_server.url("/rpc").as_str(),
-            raindex_version = "1234"
+            rpc_server.url("/rpc").as_str()
         );
 
         let mut temp_dotrain_file = NamedTempFile::new().unwrap();
@@ -357,6 +356,7 @@ deployments:
     #[tokio::test]
     async fn test_execute_invalid_yaml_dotrain_file() {
         let invalid_yaml_content = "
+spec-version: 1
 test: test
 ---
     :;";
@@ -390,7 +390,7 @@ test: test
 
         let dotrain_content_invalid_script = format!(
             "
-raindex-version: 1234
+spec-version: 1
 networks:
   some-network:
     rpc: {}
@@ -448,7 +448,7 @@ tokens:
     #[tokio::test]
     async fn test_execute_no_rpc_response() {
         let dotrain_content = "
-raindex-version: 1234
+spec-version: 1
 networks:
     some-network:
         rpc: http://localhost:12345/nonexistent_rpc

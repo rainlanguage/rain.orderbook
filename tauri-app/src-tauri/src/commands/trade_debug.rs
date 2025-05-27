@@ -59,6 +59,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}

@@ -136,6 +136,7 @@ gui:
 `;
 
 const dotrain = `
+spec-version: 1
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -212,6 +213,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
+spec-version: 1
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -281,6 +283,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
+spec-version: 1
 networks:
     some-network:
         rpc: http://localhost:8085/rpc-url
@@ -335,6 +338,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
+spec-version: 1
 gui:
   name: Test
   description: Fixed limit order strategy
@@ -949,7 +953,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiXEcUgwVdm4pEFCRcpQsaWpIVFcO7WdIuAhGFl5gYonYGXjeRAbQti0qbr2LOc_5z-XD1h_saGzIlLZ_ZwNcnYHdA9a67PuOKEVaehO0zi8IMy1TKzq7MODoDaC_kdWdHYhXHysXhlAyYfEZkTdc1Hs6F6mVNlyHMrThGZcqhaG2HdEmdqVoE_mITAKmNdncbit5e2CAE2wpu34l2HXBYY0rtOherVk1uf212Tvsz15f_HfvnsNdPzxmoKtOVY0ZUVGzZzzPA9MqyAI9rUMZYSPbOzRccRE1VM33c7hIz-PqpG8CPvXpz68xKNOcpV3i5NNvcNVRoQ9ICXlD0PC1A_3nQ2PVQIAAA==';
+			'H4sIAAAAAAAA_7WOz0rDQBDGs1UqiAcRr4Lg1TWbDYmx1JMUqoiILCjeYrptaja7S7KJVB_Co1dfoPgEXr35POJNxFnbSK_OZb6Zb_78kPMTa5ANLw2-GcvBWI4Q9IizOu_Wsah4Czpt66iMS8-xsQw5IHthY4T-jixB9ghZfKxZWcBS5RxLbu5UkW1BLzVGd1xXqCQWqSpNJyJR4BY6wVUhHuxDZBWyr3usvwlyuCBQG62Azb4Ztj1kSVmTjjarf2Z97H5Md96709en4OXzqkUP3p4TtPGHlc5YqVVz53zfR7MqDMNdkBfn9b2-ZiN9RMjJ_llUVvJ0yGOWYWUmnvAvWZ33c3l7zHuH67CjTMoLPOBaqEnOpfkCsiQxOFUCAAA=';
 		let dotrain3: string;
 		let gui = new DotrainOrderGui();
 		beforeAll(async () => {

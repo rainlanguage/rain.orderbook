@@ -833,6 +833,7 @@ _ _: 0 key1;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}
@@ -925,6 +926,7 @@ _ _: 16 52;
 
         let dotrain = format!(
             r#"
+spec-version: 1
 networks:
     some-key:
         rpc: {rpc_url}

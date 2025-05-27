@@ -470,6 +470,7 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     pub const YAML: &str = r#"
+spec-version: 1
 gui:
   name: Fixed limit
   description: Fixed limit order strategy
@@ -948,6 +949,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     test: test
 ---
@@ -975,6 +977,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     name: Test name
 ---
@@ -1002,6 +1005,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     name: Test name
     description: Test description
@@ -1059,6 +1063,7 @@ _ _: 0 0;
         assert_eq!(deployment_detail.short_description, None);
 
         let yaml = r#"
+spec-version: 1
 test: test
 ---
 #calculate-io
@@ -1074,6 +1079,7 @@ _ _: 0 0;
         assert_eq!(details.len(), 0);
 
         let yaml = r#"
+spec-version: 1
 gui:
     test: test
 ---
@@ -1101,6 +1107,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     deployments: test
 ---
@@ -1131,6 +1138,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     deployments:
         - test
@@ -1162,6 +1170,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     deployments:
         test: test
@@ -1190,6 +1199,7 @@ _ _: 0 0;
         );
 
         let yaml = r#"
+spec-version: 1
 gui:
     deployments:
         test:
