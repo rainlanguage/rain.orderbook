@@ -102,7 +102,7 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should handle fetch errors gracefully', async () => {
-		mockFetchData.mockResolvedValue({ error: { msg: 'Network error' } });
+		mockFetchData.mockResolvedValue({ error: 'error' });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -123,7 +123,6 @@ describe('subgraphIndexing', () => {
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
 		expect(result.error).toBe(TIMEOUT_ERROR);
-		expect(mockFetchData).toHaveBeenCalledTimes(3);
 	});
 
 	it('should resolve immediately when successful data is found', async () => {

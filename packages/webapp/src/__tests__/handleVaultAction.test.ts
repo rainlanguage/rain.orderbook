@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest';
-import { handleVaultAction } from './handleVaultAction';
+import { handleVaultAction } from '../lib/services/handleVaultAction';
 import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
 import { invalidateTanstackQueries } from '@rainlanguage/ui-components';
 import type { SgVault } from '@rainlanguage/orderbook';
@@ -98,7 +98,6 @@ describe('handleVaultAction', () => {
       account: mockAccount
     });
 
-    // Get the onSuccess function from the call to handleDepositModal
     const SgVaultOnSuccess = (handleDepositModal as MockedFunction<typeof handleDepositModal>).mock.calls[0][0].args.onSuccess;
     SgVaultOnSuccess();
 
