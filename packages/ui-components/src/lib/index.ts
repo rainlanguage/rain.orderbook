@@ -81,7 +81,8 @@ export type {
 	VaultActionModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
-	DisclaimerModalProps
+	DisclaimerModalProps,
+	TransactionConfirmationProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';

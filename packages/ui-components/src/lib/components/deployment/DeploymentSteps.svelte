@@ -24,7 +24,6 @@
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { type DeploymentArgs } from '$lib/types/transaction';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { useRegistry } from '$lib/providers/registry/useRegistry';

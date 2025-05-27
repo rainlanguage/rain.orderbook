@@ -9,7 +9,6 @@ import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { useAccount } from '$lib/providers/wallet/useAccount';
-import { handleDeployment } from '../lib/components/deployment/handleDeployment';
 import { mockConfigSource } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
 
@@ -21,10 +20,6 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
-}));
-
-vi.mock('../lib/components/deployment/handleDeployment', () => ({
-	handleDeployment: vi.fn()
 }));
 
 type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -129,42 +124,6 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-		});
-	});
-
-	it('correctly derives subgraphUrl from settings and networkKey', async () => {
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockReturnValue({
-			value: {
-				approvals: [],
-				deploymentCalldata: '0x1',
-				orderbookAddress: '0x1',
-				chainId: 1
-			}
-		});
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
-
-		mockConnectedStore.mockSetSubscribeValue(true);
-
-		const user = userEvent.setup();
-
-		render(DeploymentSteps, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-
-		const deployButton = screen.getByText('Deploy Strategy');
-		await user.click(deployButton);
-
-		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalledWith(
-				mockGui,
-				'0x123',
-				mockConfigSource.subgraphs?.mainnet
-			);
 		});
 	});
 
@@ -407,41 +366,7 @@ describe('DeploymentSteps', () => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
 		});
 	});
-	it('shows loading state when checking deployment', async () => {
-		// Setup fake timers
-		vi.useFakeTimers();
-
-		// Mock with a delayed response (using setTimeout)
-		vi.mocked(handleDeployment).mockImplementation(() => {
-			return new Promise<DeploymentArgs>((resolve) => {
-				setTimeout(() => resolve({} as DeploymentArgs), 1000);
-			});
-		});
-
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-
-		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-		render(DeploymentSteps, { props: defaultProps });
-
-		const deployButton = screen.getByText('Deploy Strategy');
-		await user.click(deployButton);
-
-		// Check loading state
-		expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
-		expect(screen.getByTestId('deploy-button')).toBeDisabled();
-
-		// Fast-forward time to resolve the promise
-		await vi.runAllTimersAsync();
-
-		// Check final state
-		expect(screen.queryByText('Checking deployment...')).not.toBeInTheDocument();
-		expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		expect(screen.getByTestId('deploy-button')).not.toBeDisabled();
-
-		// Restore real timers
-		vi.useRealTimers();
-	});
-	it('passes correct arguments to handleDeployment', async () => {
+	it('passes correct arguments to onDeploy prop', async () => {
 		vi.mocked(useAccount).mockReturnValue({
 			account: readable('0xTestAccount'),
 			matchesAccount: vi.fn()
@@ -460,13 +385,13 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalledTimes(1);
+			expect(mockOnDeploy).toHaveBeenCalledTimes(1);
 
-			const [guiArg, accountArg, subgraphUrlArg] = vi.mocked(handleDeployment).mock.calls[0];
+			const [guiArg, subgraphUrlArg] = mockOnDeploy.mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
-			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
+			const expectedSubgraphUrl = mockConfigSource.subgraphs?.flare;
+			expect(subgraphUrlArg).toBe(expectedSubgraphUrl);
 		});
 	});
 });
