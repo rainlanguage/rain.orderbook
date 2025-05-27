@@ -25,10 +25,7 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 }));
 
 vi.mock('../lib/services/awaitTransactionIndexing', () => ({
-	awaitSubgraphIndexing: vi.fn(),
-	getTransactionConfig: vi.fn(),
-	getNewOrderConfig: vi.fn(),
-	TIMEOUT_ERROR: 'The subgraph took too long to respond. Please check the transaction link.'
+	awaitSubgraphIndexing: vi.fn()
 }));
 
 describe('transactionStore', () => {

@@ -24,6 +24,10 @@
 		throw new Error(`Chain with id ${chainId} not found`);
 	}
 
+	/**
+	 * Modal component for withdrawing tokens from a vault.
+	 * This component should only be used for withdraw actions.
+	 */
 	export let open: boolean;
 	export let args: VaultActionArgs;
 	export let onSubmit: (amount: bigint) => void;
@@ -50,8 +54,8 @@
 				functionName: 'balanceOf',
 				args: [account as Hex]
 			});
-		} catch {
-			errorMessage = 'Failed to get user balance.';
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : 'Failed to get user balance.';
 			return;
 		}
 		return userBalance;

@@ -1,24 +1,15 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount,
-		useToasts
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import {
-		handleDepositModal,
-		handleWithdrawModal,
-		handleTransactionConfirmationModal
-	} from '$lib/services/modal';
-	import { type SgOrder, type SgVault } from '@rainlanguage/orderbook';
+	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
+	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
+	import { handleVaultAction } from '$lib/services/handleVaultAction';
 
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
@@ -45,23 +36,15 @@
 	}
 
 	function onDeposit(vault: SgVault) {
-		const network = $page.params.network;
-		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-		handleDepositModal({
-			open: true,
-			args: {
-				vault,
-				onDeposit: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				},
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
-				account: $account as Hex
-			}
+		handleVaultAction({
+			vault,
+			action: 'deposit',
+			queryClient,
+			queryKey: $page.params.id,
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account: $account as Hex
 		});
 	}
 

@@ -1,54 +1,47 @@
 <script lang="ts">
 	import {
-		invalidateTanstackQueries,
 		PageHeader,
 		useAccount,
-		useTransactions
+		useTransactions,
+		VaultDetail,
+		useToasts
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
-	import { VaultDetail } from '@rainlanguage/ui-components';
-	import {
-		handleDepositModal,
-		handleTransactionConfirmationModal,
-		handleWithdrawModal
-	} from '$lib/services/modal';
+	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
-	import { useToasts } from '@rainlanguage/ui-components';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
+	import { handleVaultAction } from '$lib/services/handleVaultAction';
 
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
-
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
 	function onDeposit(vault: SgVault) {
-		handleDepositModal({
-			open: true,
-			args: {
-				vault,
-				onDeposit: () => {
-					invalidateTanstackQueries(queryClient, [$page.params.id]);
-				},
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
-				account: $account as Hex
-			}
+		handleVaultAction({
+			vault,
+			action: 'deposit',
+			queryClient,
+			queryKey: $page.params.id,
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account: $account as Hex
 		});
 	}
+
 	async function onWithdraw(vault: SgVault) {
-		await handleVaultWithdraw(vault, {
+		await handleVaultWithdraw({
+			vault,
 			handleWithdrawModal,
 			handleTransactionConfirmationModal,
 			errToast,

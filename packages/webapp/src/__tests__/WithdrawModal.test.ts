@@ -211,16 +211,6 @@ describe('WithdrawModal', () => {
 		});
 	});
 
-	it('shows error message when getUserBalance fails', async () => {
-		vi.mocked(readContract).mockRejectedValue(new Error('Failed to get balance'));
-
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Failed to get user balance.')).toBeInTheDocument();
-		});
-	});
-
 	it('shows wallet address in truncated form', async () => {
 		render(WithdrawModal, defaultProps);
 

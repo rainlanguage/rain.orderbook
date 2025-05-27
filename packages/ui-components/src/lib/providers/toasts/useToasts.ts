@@ -49,10 +49,12 @@ export function useToasts() {
 	 * Adds a standardized error toast notification
 	 *
 	 * @param message - The error message to display
+	 * @param detail - The detail of the error
 	 */
-	const errToast = (message: string) => {
+	const errToast = (message: string, detail?: string) => {
 		addToast({
 			message,
+			detail,
 			type: 'error',
 			color: 'red'
 		});
