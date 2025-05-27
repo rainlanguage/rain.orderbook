@@ -64,3 +64,4 @@ rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
 rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
 strict-yaml-rust = "0.1.2"
+tempfile = "3.20.0"

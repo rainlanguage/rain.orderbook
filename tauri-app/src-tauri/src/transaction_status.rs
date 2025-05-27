@@ -32,9 +32,9 @@ impl TransactionStatusNoticeRwLock {
         Self(RwLock::new(notice))
     }
 
-    pub fn update_status_and_emit<R: Runtime, T: SolCall + Clone>(
+    pub fn update_status_and_emit<T: SolCall + Clone, R: Runtime>(
         &self,
-        app_handle: AppHandle<R>,
+        app_handle: &AppHandle<R>,
         status: WriteTransactionStatus<T>,
     ) {
         self.update_status(status);
@@ -43,7 +43,7 @@ impl TransactionStatusNoticeRwLock {
 
     pub fn set_failed_status_and_emit<R: Runtime>(
         &self,
-        app_handle: AppHandle<R>,
+        app_handle: &AppHandle<R>,
         message: String,
     ) {
         self.set_failed_status(message);
@@ -60,7 +60,7 @@ impl TransactionStatusNoticeRwLock {
         notice.status = TransactionStatus::Failed(message);
     }
 
-    fn emit<R: Runtime>(&self, app_handle: AppHandle<R>) {
+    fn emit<R: Runtime>(&self, app_handle: &AppHandle<R>) {
         app_handle
             .emit_all("transaction_status_notice", self.0.read().unwrap().clone())
             .unwrap();
@@ -90,7 +90,7 @@ mod tests {
         let notice = TransactionStatusNoticeRwLock::new("test".to_string());
 
         notice.update_status_and_emit(
-            app.handle(),
+            &app.handle(),
             WriteTransactionStatus::PendingPrepare(Box::new(WriteContractParameters {
                 call: deposit2Call {
                     token: Address::ZERO,
@@ -118,7 +118,7 @@ mod tests {
         let app = tauri::test::mock_app();
         let notice = TransactionStatusNoticeRwLock::new("test".to_string());
 
-        notice.set_failed_status_and_emit(app.handle(), "failed".to_string());
+        notice.set_failed_status_and_emit(&app.handle(), "failed".to_string());
         assert_eq!(
             notice.0.read().unwrap().status,
             TransactionStatus::Failed("failed".to_string())
