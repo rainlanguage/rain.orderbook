@@ -6,9 +6,11 @@ import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { TransactionName } from '$lib/types/transaction';
-import type { SgRemoveOrderWithOrder } from '@rainlanguage/orderbook';
-import type { SgTransaction } from '@rainlanguage/orderbook';
-import { getTransactionRemoveOrders } from '@rainlanguage/orderbook';
+import {
+	getTransactionRemoveOrders,
+	type SgRemoveOrderWithOrder,
+	type SgTransaction,
+} from '@rainlanguage/orderbook';
 
 /**
  * Function type for adding toast notifications to the UI
@@ -53,7 +55,7 @@ export class TransactionManager {
 		this.transactions = writable<Transaction[]>([]);
 	}
 
-/**
+	/**
 	 * Creates and initializes a new transaction for removing an order from the orderbook
 	 * @param args - Configuration for the remove order transaction
 	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
