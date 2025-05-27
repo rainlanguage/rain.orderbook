@@ -37,7 +37,7 @@ describe('TransactionConfirmationModal', () => {
 			orderbookAddress: '0x789',
 			calldata: mockCalldata,
 			onConfirm: vi.fn(),
-			order: mockOrder
+			entity: mockOrder
 		}
 	};
 

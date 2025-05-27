@@ -1,20 +1,20 @@
 import DeployModal from '$lib/components/DeployModal.svelte';
-import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import DepositModal from '$lib/components/DepositModal.svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
+import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import {
 	DisclaimerModal,
-	type VaultActionModalProps,
+	type TransactionConfirmationProps,
 	type DisclaimerModalProps,
 	type DeployModalProps,
-	type TransactionConfirmationProps
+	type VaultActionModalProps
 } from '@rainlanguage/ui-components';
 
 export const handleDeployModal = (props: DeployModalProps) => {
 	new DeployModal({ target: document.body, props });
 };
 
-export const handleDepositModal = (props: VaultActionModalProps) => {
+export const handleDepositModal = (props: Omit<VaultActionModalProps, 'onSubmit'>) => {
 	new DepositModal({ target: document.body, props });
 };
 
