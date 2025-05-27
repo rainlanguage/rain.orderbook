@@ -6,7 +6,7 @@
 	import type { SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
-	import { handleVaultAction } from '$lib/services/vaultActions';
+	import { handleVaultAction } from '$lib/services/handleVaultAction';
 
 	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
@@ -20,12 +20,12 @@
 		handleVaultAction({
 			vault,
 			action: 'deposit',
+			queryClient,
+			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
-			account: $account as Hex,
-			queryClient,
-			vaultId: $page.params.id
+			account: $account as Hex
 		});
 	}
 
@@ -33,12 +33,12 @@
 		handleVaultAction({
 			vault,
 			action: 'withdraw',
+			queryClient,
+			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
-			account: $account as Hex,
-			queryClient,
-			vaultId: $page.params.id
+			account: $account as Hex
 		});
 	}
 </script>

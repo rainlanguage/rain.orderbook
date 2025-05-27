@@ -20,10 +20,9 @@ export type DeploymentArgs = {
 	network: string;
 };
 
-export type DepositOrWithdrawArgs = {
+export type VaultActionArgs = {
 	vault: SgVault;
-	onDepositOrWithdraw: () => void;
-	action: 'deposit' | 'withdraw';
+	onSuccess: () => void;
 	chainId: number;
 	rpcUrl: string;
 	subgraphUrl: string;
