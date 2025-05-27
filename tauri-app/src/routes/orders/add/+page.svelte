@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -15,12 +15,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import {
-    orderAdd,
-    orderAddCalldata,
-    orderAddComposeRainlang,
-    validateRaindexVersion,
-  } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, validateRaindexVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
@@ -38,6 +33,7 @@
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
 
   let isSubmitting = false;
@@ -48,8 +44,6 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-
-  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
@@ -81,7 +75,11 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    [$settingsText],
+    mergedConfig?.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -174,34 +172,6 @@
       toasts.error(formatEthersTransactionError(e));
     }
     isSubmitting = false;
-  }
-
-  async function generateRainlangStrings(
-    dotrainText: string,
-    scenarios?: Record<string, ScenarioCfg>,
-  ): Promise<Map<ScenarioCfg, string> | undefined> {
-    try {
-      if (isEmpty(scenarios)) return;
-      composedRainlangForScenarios = new Map();
-      for (const scenario of Object.values(scenarios)) {
-        try {
-          const composedRainlang = await orderAddComposeRainlang(
-            dotrainText,
-            [$settingsText],
-            scenario,
-          );
-          composedRainlangForScenarios.set(scenario, composedRainlang);
-        } catch (e) {
-          composedRainlangForScenarios.set(
-            scenario,
-            e?.toString() || 'Error composing rainlang for scenario',
-          );
-        }
-      }
-      return composedRainlangForScenarios;
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
   }
 
   const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
