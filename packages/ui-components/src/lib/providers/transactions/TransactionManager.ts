@@ -6,6 +6,9 @@ import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { TransactionName } from '$lib/types/transaction';
+import type { SgRemoveOrderWithOrder } from '@rainlanguage/orderbook';
+import type { SgTransaction } from '@rainlanguage/orderbook';
+import { getTransactionRemoveOrders } from '@rainlanguage/orderbook';
 
 /**
  * Function type for adding toast notifications to the UI
@@ -50,13 +53,15 @@ export class TransactionManager {
 		this.transactions = writable<Transaction[]>([]);
 	}
 
-	/**
+/**
 	 * Creates and initializes a new transaction for removing an order from the orderbook
 	 * @param args - Configuration for the remove order transaction
 	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
 	 * @param args.txHash - Hash of the transaction to track
 	 * @param args.orderHash - Hash of the order to be removed
 	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @param args.queryKey - Key for query invalidation and UI links, often the order hash.
+	 * @param args.networkKey - Network identifier for UI links.
 	 * @returns A new Transaction instance configured for order removal
 	 * @throws {Error} If required transaction parameters are missing
 	 * @example
@@ -71,13 +76,13 @@ export class TransactionManager {
 		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
-		const queryKey = args.orderHash;
+		const queryKey = args.queryKey;
 		const networkKey = args.networkKey;
 
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
 		const toastLinks: ToastLink[] = [
 			{
-				link: `/orders/${networkKey}-${args.orderHash}`,
+				link: `/orders/${networkKey}-${args.queryKey}`,
 				label: 'View Order'
 			},
 			{
@@ -91,7 +96,16 @@ export class TransactionManager {
 			errorMessage,
 			successMessage,
 			queryKey,
-			toastLinks
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransactionRemoveOrders,
+				isSuccess: (data: SgRemoveOrderWithOrder[] | SgTransaction) => {
+					return Array.isArray(data) ? data.length > 0 : false;
+				}
+			}
 		});
 	}
 

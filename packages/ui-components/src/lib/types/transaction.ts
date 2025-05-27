@@ -66,7 +66,7 @@ export type DepositOrWithdrawTransactionArgs = {
 };
 
 export type InternalTransactionArgs = {
-	orderHash: string;
+	queryKey: string;
 	chainId: number;
 	subgraphUrl: string;
 	txHash: Hex;
@@ -80,6 +80,7 @@ export type TransactionArgs = InternalTransactionArgs & {
 	successMessage: string;
 	queryKey: string;
 	toastLinks: ToastLink[];
+	awaitSubgraphConfig: AwaitSubgraphConfig;
 };
 
 export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {
