@@ -78,15 +78,9 @@ describe('TransactionManager', () => {
 			awaitSubgraphConfig: AwaitSubgraphConfig;
 		} = {
 			...mockArgs,
-			subgraphUrl: 'https://api.example.com',
-			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
 			awaitSubgraphConfig: {
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+				subgraphUrl: mockArgs.subgraphUrl,
+				txHash: mockArgs.txHash,
 				successMessage: 'Order removed successfully.',
 				fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
 				isSuccess: expect.any(Function)
