@@ -4,10 +4,10 @@
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import {
 		handleDepositModal,
-		handleWithdrawModal,
-		handleTransactionConfirmationModal
+		handleTransactionConfirmationModal,
+		handleWithdrawModal
 	} from '$lib/services/modal';
-	import { type SgOrder, type SgVault } from '@rainlanguage/orderbook';
+	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';

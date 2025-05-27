@@ -74,16 +74,18 @@ export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
 	type ExtendedApprovalCalldata,
-	type TransactionArgs
+	type TransactionArgs,
+	type DeploymentArgs,
+	type VaultActionArgs
 } from './types/transaction';
-export type { DeploymentArgs, VaultActionArgs } from './types/transaction';
+export type { TransactionErrorMessage } from './stores/transactionStore';
 export type {
 	VaultActionModalProps,
-	TransactionConfirmationProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
 	DeployModalProps,
-	DisclaimerModalProps
+	DisclaimerModalProps,
+	TransactionConfirmationProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';
