@@ -66,3 +66,62 @@ impl TransactionStatusNoticeRwLock {
             .unwrap();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::{Address, U256};
+    use alloy_ethers_typecast::transaction::WriteContractParameters;
+    use rain_orderbook_bindings::IOrderBookV4::deposit2Call;
+
+    #[test]
+    fn test_new() {
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+        assert_eq!(
+            notice.0.read().unwrap().status,
+            TransactionStatus::Initialized
+        );
+        assert_eq!(notice.0.read().unwrap().label, "test");
+    }
+
+    #[test]
+    fn test_update_status() {
+        let app = tauri::test::mock_app();
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+
+        notice.update_status_and_emit(
+            &app.handle(),
+            WriteTransactionStatus::PendingPrepare(Box::new(WriteContractParameters {
+                call: deposit2Call {
+                    token: Address::ZERO,
+                    vaultId: U256::ZERO,
+                    amount: U256::ZERO,
+                    tasks: Vec::new(),
+                },
+                address: Address::ZERO,
+                gas: None,
+                gas_price: None,
+                max_fee_per_gas: None,
+                max_priority_fee_per_gas: None,
+                nonce: None,
+                value: None,
+            })),
+        );
+        assert_eq!(
+            notice.0.read().unwrap().status,
+            TransactionStatus::PendingPrepare
+        );
+    }
+
+    #[test]
+    fn test_set_failed_status() {
+        let app = tauri::test::mock_app();
+        let notice = TransactionStatusNoticeRwLock::new("test".to_string());
+
+        notice.set_failed_status_and_emit(&app.handle(), "failed".to_string());
+        assert_eq!(
+            notice.0.read().unwrap().status,
+            TransactionStatus::Failed("failed".to_string())
+        );
+    }
+}
