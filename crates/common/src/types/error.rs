@@ -18,4 +18,6 @@ pub enum FlattenError {
     FromHexError(#[from] FromHexError),
     #[error("ABI decode error: {0}")]
     AbiDecodeError(#[from] alloy::sol_types::Error),
+    #[error("Order is missing add events, cannot determine transaction ID")]
+    MissingAddEvent,
 }
