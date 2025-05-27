@@ -164,16 +164,15 @@
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      await executeWalletConnectOrder(
-        $globalDotrainFile.text,
-        deployment,
-        async (dotrain, deploy) => (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
-        ethersExecute,
-        reportErrorToSentry,
-        formatEthersTransactionError,
-        toasts.success,
-        toasts.error,
-      );
+      await executeWalletConnectOrder($globalDotrainFile.text, deployment, {
+        orderAddCalldataFn: async (dotrain, deploy) =>
+          (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
+        ethersExecuteFn: ethersExecute,
+        reportErrorToSentryFn: reportErrorToSentry,
+        formatEthersTransactionErrorFn: formatEthersTransactionError,
+        successToastFn: toasts.success,
+        errorToastFn: toasts.error,
+      });
     } catch {
       // error already reported by service or toast shown
     }

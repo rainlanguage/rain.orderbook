@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { executeWalletConnectOrder } from '../services/executeWalletConnectOrder';
+import {
+  executeWalletConnectOrder,
+  type ExecuteOrderDependencies,
+} from '../services/executeWalletConnectOrder';
 import type { DeploymentCfg } from '@rainlanguage/orderbook';
 
 // Mocks
@@ -9,6 +12,15 @@ const mockReportErrorToSentryFn = vi.fn();
 const mockFormatEthersTransactionErrorFn = vi.fn();
 const mockSuccessToastFn = vi.fn();
 const mockErrorToastFn = vi.fn();
+
+const mockDependencies: ExecuteOrderDependencies = {
+  orderAddCalldataFn: mockOrderAddCalldataFn,
+  ethersExecuteFn: mockEthersExecuteFn,
+  reportErrorToSentryFn: mockReportErrorToSentryFn,
+  formatEthersTransactionErrorFn: mockFormatEthersTransactionErrorFn,
+  successToastFn: mockSuccessToastFn,
+  errorToastFn: mockErrorToastFn,
+};
 
 const mockDotrainText = 'some dotrain text';
 const mockDeployment: DeploymentCfg = {
@@ -29,16 +41,7 @@ describe('executeWalletConnectOrder', () => {
       order: { orderbook: {} }, // no address
     } as DeploymentCfg;
     await expect(
-      executeWalletConnectOrder(
-        mockDotrainText,
-        depWithoutAddr,
-        mockOrderAddCalldataFn,
-        mockEthersExecuteFn,
-        mockReportErrorToSentryFn,
-        mockFormatEthersTransactionErrorFn,
-        mockSuccessToastFn,
-        mockErrorToastFn,
-      ),
+      executeWalletConnectOrder(mockDotrainText, depWithoutAddr, mockDependencies),
     ).rejects.toThrow('No orderbook associated with scenario');
   });
 
@@ -46,16 +49,7 @@ describe('executeWalletConnectOrder', () => {
     mockOrderAddCalldataFn.mockResolvedValue(mockCalldata);
     mockEthersExecuteFn.mockResolvedValue(mockTxResponse);
 
-    await executeWalletConnectOrder(
-      mockDotrainText,
-      mockDeployment,
-      mockOrderAddCalldataFn,
-      mockEthersExecuteFn,
-      mockReportErrorToSentryFn,
-      mockFormatEthersTransactionErrorFn,
-      mockSuccessToastFn,
-      mockErrorToastFn,
-    );
+    await executeWalletConnectOrder(mockDotrainText, mockDeployment, mockDependencies);
 
     expect(mockOrderAddCalldataFn).toHaveBeenCalledWith(mockDotrainText, mockDeployment);
     expect(mockEthersExecuteFn).toHaveBeenCalledWith(
@@ -74,16 +68,7 @@ describe('executeWalletConnectOrder', () => {
     mockFormatEthersTransactionErrorFn.mockReturnValue('Formatted: Calldata failed');
 
     await expect(
-      executeWalletConnectOrder(
-        mockDotrainText,
-        mockDeployment,
-        mockOrderAddCalldataFn,
-        mockEthersExecuteFn,
-        mockReportErrorToSentryFn,
-        mockFormatEthersTransactionErrorFn,
-        mockSuccessToastFn,
-        mockErrorToastFn,
-      ),
+      executeWalletConnectOrder(mockDotrainText, mockDeployment, mockDependencies),
     ).rejects.toThrow(error);
 
     expect(mockReportErrorToSentryFn).toHaveBeenCalledWith(error);
@@ -98,16 +83,7 @@ describe('executeWalletConnectOrder', () => {
     mockFormatEthersTransactionErrorFn.mockReturnValue('Formatted: Ethers failed');
 
     await expect(
-      executeWalletConnectOrder(
-        mockDotrainText,
-        mockDeployment,
-        mockOrderAddCalldataFn,
-        mockEthersExecuteFn,
-        mockReportErrorToSentryFn,
-        mockFormatEthersTransactionErrorFn,
-        mockSuccessToastFn,
-        mockErrorToastFn,
-      ),
+      executeWalletConnectOrder(mockDotrainText, mockDeployment, mockDependencies),
     ).rejects.toThrow(error);
 
     expect(mockReportErrorToSentryFn).toHaveBeenCalledWith(error);
@@ -123,19 +99,10 @@ describe('executeWalletConnectOrder', () => {
     mockFormatEthersTransactionErrorFn.mockReturnValue('Formatted: Wait failed');
 
     await expect(
-      executeWalletConnectOrder(
-        mockDotrainText,
-        mockDeployment,
-        mockOrderAddCalldataFn,
-        mockEthersExecuteFn,
-        mockReportErrorToSentryFn,
-        mockFormatEthersTransactionErrorFn,
-        mockSuccessToastFn,
-        mockErrorToastFn,
-      ),
+      executeWalletConnectOrder(mockDotrainText, mockDeployment, mockDependencies),
     ).rejects.toThrow(error);
 
-    expect(mockSuccessToastFn).toHaveBeenCalledWith('Transaction sent successfully!'); // This is called before wait
+    expect(mockSuccessToastFn).not.toHaveBeenCalled();
     expect(mockReportErrorToSentryFn).toHaveBeenCalledWith(error);
     expect(mockErrorToastFn).toHaveBeenCalledWith('Formatted: Wait failed');
   });
