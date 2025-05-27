@@ -1,17 +1,20 @@
 import { writable } from 'svelte/store';
 import type { Hex } from 'viem';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
-import { getExplorerLink } from '../services/getExplorerLink';
 import { TransactionStatusMessage } from '$lib/types/transaction';
 import type {
 	DeploymentTransactionArgs,
 	DepositOrWithdrawTransactionArgs
 } from '$lib/types/transaction';
 import {
-	awaitSubgraphIndexing,
-	getNewOrderConfig,
-	getTransactionConfig
-} from '$lib/services/awaitTransactionIndexing';
+	getTransaction,
+	getTransactionAddOrders,
+	type SgAddOrderWithOrder,
+	type SgTransaction
+} from '@rainlanguage/orderbook';
+
+import { getExplorerLink } from '../services/getExplorerLink';
+import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 
 export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 export const ONE = BigInt('1000000000000000000');
@@ -81,16 +84,20 @@ const transactionStore = () => {
 			message: 'Waiting for transaction to be indexed...'
 		}));
 
-		const result = await awaitSubgraphIndexing(
-			getTransactionConfig(subgraphUrl, txHash, successMessage)
-		);
+		const result = await awaitSubgraphIndexing({
+			subgraphUrl,
+			txHash,
+			successMessage,
+			fetchEntityFn: getTransaction,
+			isSuccess: (data: SgTransaction) => !!data
+		});
 
 		if (result.error) {
 			return transactionError(TransactionErrorMessage.TIMEOUT);
 		}
 
 		if (result.value) {
-			return transactionSuccess(result.value.txHash, result.value.successMessage);
+			return transactionSuccess(result.value.txHash, successMessage);
 		}
 	};
 
@@ -101,7 +108,14 @@ const transactionStore = () => {
 			message: 'Waiting for new order to be indexed...'
 		}));
 
-		const result = await awaitSubgraphIndexing(getNewOrderConfig(subgraphUrl, txHash, '', network));
+		const result = await awaitSubgraphIndexing({
+			subgraphUrl,
+			txHash,
+			successMessage: 'New order indexed successfully',
+			network,
+			fetchEntityFn: getTransactionAddOrders,
+			isSuccess: (data: SgAddOrderWithOrder[]) => data?.length > 0
+		});
 
 		if (result.error) {
 			return transactionError(TransactionErrorMessage.TIMEOUT);

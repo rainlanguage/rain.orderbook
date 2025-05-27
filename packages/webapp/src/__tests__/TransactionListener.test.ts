@@ -75,7 +75,7 @@ describe('TransactionsListener.svelte', () => {
 		});
 	});
 
-	it('should call addToast on transaction error', async () => {
+	it('should call errToast on transaction error', async () => {
 		render(TransactionsListener, { props: { queryKey: testQueryKey } });
 
 		const errorMessage = 'Oh no, an error occurred!';
@@ -87,7 +87,7 @@ describe('TransactionsListener.svelte', () => {
 
 		await waitFor(() => {
 			expect(mockErrToast).toHaveBeenCalledTimes(1);
-			expect(mockErrToast).toHaveBeenCalledWith(errorMessage);
+			expect(mockErrToast).toHaveBeenCalledWith('Transaction failed.', errorMessage);
 		});
 		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
 	});
@@ -152,7 +152,7 @@ describe('TransactionsListener.svelte', () => {
 				]
 			});
 
-			expect(mockErrToast).toHaveBeenNthCalledWith(1, 'Error 1');
+			expect(mockErrToast).toHaveBeenNthCalledWith(1, 'Transaction failed.', 'Error 1');
 
 			expect(invalidateTanstackQueries as Mock).toHaveBeenCalledTimes(2);
 			expect(invalidateTanstackQueries).toHaveBeenNthCalledWith(1, { name: 'test' }, [
@@ -175,7 +175,7 @@ describe('TransactionsListener.svelte', () => {
 
 		await waitFor(() => {
 			expect(mockErrToast).toHaveBeenCalledTimes(1);
-			expect(mockErrToast).toHaveBeenCalledWith(undefined);
+			expect(mockErrToast).toHaveBeenCalledWith('Transaction failed.', undefined);
 		});
 
 		mockAddToast.mockClear();
@@ -187,7 +187,7 @@ describe('TransactionsListener.svelte', () => {
 
 		await waitFor(() => {
 			expect(mockErrToast).toHaveBeenCalledTimes(2);
-			expect(mockErrToast).toHaveBeenCalledWith('Error!');
+			expect(mockErrToast).toHaveBeenCalledWith('Transaction failed.', 'Error!');
 		});
 		expect(invalidateTanstackQueries as Mock).not.toHaveBeenCalled();
 	});

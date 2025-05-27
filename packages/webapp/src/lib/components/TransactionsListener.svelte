@@ -38,7 +38,7 @@
 	 * Listens for transaction errors and shows an error toast.
 	 */
 	$: if ($transactionStore.status === TransactionStatusMessage.ERROR) {
-		errToast($transactionStore.error);
+		errToast('Transaction failed.', $transactionStore.error);
 	}
 </script>
 

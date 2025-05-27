@@ -9,8 +9,6 @@ import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import {
 	awaitSubgraphIndexing,
-	getTransactionConfig,
-	getNewOrderConfig
 } from '../lib/services/awaitTransactionIndexing';
 
 vi.mock('@wagmi/core', () => ({
@@ -30,9 +28,6 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 
 vi.mock('../lib/services/awaitTransactionIndexing', () => ({
 	awaitSubgraphIndexing: vi.fn(),
-	getTransactionConfig: vi.fn(),
-	getNewOrderConfig: vi.fn(),
-	TIMEOUT_ERROR: 'The subgraph took too long to respond. Please check the transaction link.'
 }));
 
 describe('transactionStore', () => {
@@ -156,20 +151,9 @@ describe('transactionStore', () => {
 			}
 		});
 
-		(getTransactionConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: mockSuccessMessage
-		});
-
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
-		expect(getTransactionConfig).toHaveBeenCalledWith(
-			mockSubgraphUrl,
-			mockTxHash,
-			mockSuccessMessage
-		);
 
 		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
@@ -183,12 +167,6 @@ describe('transactionStore', () => {
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TransactionErrorMessage.TIMEOUT
-		});
-
-		(getTransactionConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: mockSuccessMessage
 		});
 
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
@@ -212,18 +190,9 @@ describe('transactionStore', () => {
 			}
 		});
 
-		(getNewOrderConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: '',
-			network: mockNetwork
-		});
-
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
-		expect(getNewOrderConfig).toHaveBeenCalledWith(mockSubgraphUrl, mockTxHash, '', mockNetwork);
-
 		expect(get(transactionStore).status).toBe(TransactionStatusMessage.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
@@ -237,13 +206,6 @@ describe('transactionStore', () => {
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TransactionErrorMessage.TIMEOUT
-		});
-
-		(getNewOrderConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: '',
-			network: mockNetwork
 		});
 
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
