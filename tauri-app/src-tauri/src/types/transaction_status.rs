@@ -4,7 +4,7 @@ use uuid::Uuid;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(tag = "type", content = "payload")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub enum TransactionStatus {
