@@ -32,9 +32,8 @@ export async function executeWalletConnectOrder(
   successToastFn: (message: string) => void,
   errorToastFn: (message: string) => void,
 ): Promise<void> {
-  if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
+  if (isEmpty(deployment.order.orderbook))
     throw Error('No orderbook associated with scenario');
-
   try {
     const calldata = await orderAddCalldataFn(dotrainText, deployment);
     const tx = await ethersExecuteFn(calldata, deployment.order.orderbook.address);
