@@ -24,6 +24,10 @@
 		throw new Error(`Chain with id ${chainId} not found`);
 	}
 
+	/**
+	 * Modal component for depositing tokens into a vault.
+	 * This component should only be used for deposit actions.
+	 */
 	export let open: boolean;
 	export let args: VaultActionArgs;
 	export let onSubmit: (amount: bigint) => void;

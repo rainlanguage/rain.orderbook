@@ -73,12 +73,12 @@ export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/order
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
-	type TransactionArgs
+	type TransactionArgs,
+	type DeploymentArgs,
+	type VaultActionArgs
 } from './types/transaction';
-export type { DeploymentArgs, VaultActionArgs } from './types/transaction';
 export type {
 	VaultActionModalProps,
-	TransactionConfirmationProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
 	DisclaimerModalProps
