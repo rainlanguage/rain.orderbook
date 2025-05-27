@@ -18,8 +18,7 @@ export async function executeLedgerOrder(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reportErrorToSentryFn: (error: any, level?: SentrySeverityLevel) => void,
 ): Promise<void> {
-  if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-    throw Error('No orderbook associated with scenario');
+  if (isEmpty(deployment.order?.orderbook)) throw Error('No orderbook associated with scenario');
 
   try {
     await orderAddFn(dotrainText, deployment);
