@@ -76,16 +76,15 @@ export {
 	type ExtendedApprovalCalldata,
 	type TransactionArgs
 } from './types/transaction';
-export type {
-	TransactionErrorMessage,
-} from './stores/transactionStore';
+export type { TransactionErrorMessage } from './stores/transactionStore';
 export type { DeploymentArgs, VaultActionArgs } from './types/transaction';
 export type {
 	VaultActionModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
 	DeployModalProps,
-	DisclaimerModalProps
+	DisclaimerModalProps,
+	TransactionConfirmationProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';
