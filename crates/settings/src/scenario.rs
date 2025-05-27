@@ -557,6 +557,7 @@ mod tests {
     use super::*;
     use crate::{
         blocks::{BlockCfg, BlockRangeCfg},
+        spec_version::SpecVersion,
         test::mock_deployer,
     };
     use alloy::primitives::Address;
@@ -632,7 +633,7 @@ mod tests {
 
         // Construct ConfigSource with the above scenarios
         let config_string = ConfigSource {
-            raindex_version: None,
+            spec_version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification

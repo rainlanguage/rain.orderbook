@@ -227,6 +227,7 @@ mod tests {
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use serde_bytes::ByteBuf;
 
     sol!(
@@ -249,7 +250,7 @@ mod tests {
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -268,7 +269,8 @@ deployers:
 #binding
 :;",
             server.url("/rpc"),
-            server.url("/sg")
+            server.url("/sg"),
+            spec_version = SpecVersion::current()
         );
         let dotrain_path = "./test_dotrain_words_happy.rain";
         std::fs::write(dotrain_path, dotrain_content).unwrap();
@@ -303,12 +305,13 @@ deployers:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 metaboards:
     some-network: {}
 ---
 #binding\n:;",
-            server.url("/sg")
+            server.url("/sg"),
+            spec_version = SpecVersion::current()
         );
         let settings_content = format!(
             "
@@ -323,7 +326,7 @@ deployers:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
-            server.url("/rpc"),
+            server.url("/rpc")
         );
         let settings_path = "./test_settings_words_happy_all.yml";
         std::fs::write(settings_path, settings_content).unwrap();
@@ -361,7 +364,7 @@ deployers:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -388,6 +391,7 @@ _ _: 1 2;
 :;
 ",
             server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
         let dotrain_path = "./test_dotrain_all_words_happy_all.rain";
         std::fs::write(dotrain_path, dotrain_content).unwrap();
@@ -422,12 +426,13 @@ _ _: 1 2;
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 metaboards:
     some-network: {}
 ---
 #binding\n:;",
-            server.url("/sg")
+            server.url("/sg"),
+            spec_version = SpecVersion::current()
         );
         let settings_content = format!(
             "
@@ -498,7 +503,7 @@ orders:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -564,6 +569,7 @@ _ _: 1 2;
 :;
 ",
             server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let dotrain_path = "./test_dotrain_deployment_happy.rain";

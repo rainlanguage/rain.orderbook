@@ -756,8 +756,9 @@ b: fuzzed;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_context_new_happy() {
-        let dotrain = r#"
-spec-version: 1
+        let dotrain = format!(
+            r#"
+spec-version: {spec_version}
 deployers:
     some-key:
         address: 0x1111111111111111111111111111111111111111
@@ -779,8 +780,10 @@ b: fuzzed;
 #handle-io
 :;
 #handle-add-order
-:;"#;
-        let context = FuzzRunnerContext::new(dotrain, None, None).unwrap();
+:;"#,
+            spec_version = SpecVersion::current()
+        );
+        let context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         assert_eq!(context.dotrain, dotrain);
         assert_eq!(
@@ -802,12 +805,15 @@ b: fuzzed;
 :;
 #handle-add-order
 :;"#;
-        let bad_settings = r#"
-spec-version: 1
+        let bad_settings = format!(
+            r#"
+spec-version: {spec_version}
 bad-networks-key:
     some-key:
         rpc: https://example.com
-        chain-id: 123"#;
+        chain-id: 123"#,
+            spec_version = SpecVersion::current()
+        );
 
         let error = FuzzRunnerContext::new(dotrain, Some(bad_settings.to_string()), None)
             .expect_err("expected to fail, but resolved");
@@ -820,7 +826,7 @@ bad-networks-key:
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -844,7 +850,8 @@ b: fuzzed;
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -872,7 +879,7 @@ b: fuzzed;
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -892,6 +899,7 @@ _: block-number();
 :;
 #handle-add-order
 :;"#,
+            spec_version = SpecVersion::current(),
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
             start_block = start_block_number,
@@ -921,7 +929,7 @@ _: block-number();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -954,7 +962,8 @@ d: 4;
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -989,7 +998,7 @@ d: 4;
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -1009,7 +1018,8 @@ _: context<4 4>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1035,7 +1045,7 @@ _: context<4 4>();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -1054,7 +1064,8 @@ _: context<50 50>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1071,7 +1082,7 @@ _: context<50 50>();
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -1090,7 +1101,8 @@ _: context<1 0>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1148,7 +1160,7 @@ _: context<1 0>();
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 deployers:
     flare:
         address: {deployer}
@@ -1211,6 +1223,7 @@ _: add(something 30);
             orderbook_subparser = local_evm.orderbook_subparser.address(),
             wflr_address = wflr_address,
             usdce_address = usdce_address,
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();

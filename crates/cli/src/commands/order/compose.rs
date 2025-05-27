@@ -65,6 +65,8 @@ impl Execute for Compose {
 
 #[cfg(test)]
 mod tests {
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+
     use super::*;
 
     #[tokio::test]
@@ -110,8 +112,9 @@ mod tests {
     }
 
     fn get_dotrain() -> String {
-        "
-spec-version: 1
+        format!(
+            r#"
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: https://some-rpc.com
@@ -158,7 +161,8 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;"
-        .to_string()
+:;"#,
+            spec_version = SpecVersion::current()
+        )
     }
 }

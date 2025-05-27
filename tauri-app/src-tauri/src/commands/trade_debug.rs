@@ -27,6 +27,7 @@ mod tests {
         },
         sol_types::SolCall,
     };
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
 
@@ -59,7 +60,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -115,6 +116,7 @@ amount price: 7 4;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current(),
         );
 
         // add order

@@ -68,6 +68,7 @@ impl Execute for OrderbookAddress {
 mod tests {
     use super::*;
     use clap::CommandFactory;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
 
@@ -116,7 +117,7 @@ mod tests {
     fn get_test_dotrain(orderbook_key: &str) -> String {
         format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 
 networks:
     some-network:
@@ -182,7 +183,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            orderbook_key
+            orderbook_key,
+            spec_version = SpecVersion::current()
         )
     }
 

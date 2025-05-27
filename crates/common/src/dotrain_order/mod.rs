@@ -625,7 +625,7 @@ mod tests {
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -647,6 +647,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -671,7 +672,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -693,6 +694,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -721,7 +723,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -746,6 +748,7 @@ _ _: 0 0;
 _ _: 1 2;
 "#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -771,7 +774,7 @@ _ _: 1 2;"#
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
   polygon:
     rpc: {rpc_url}
@@ -785,6 +788,7 @@ _ _: 00;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc-polygon"),
+            spec_version = SpecVersion::current()
         );
 
         let settings = format!(
@@ -821,7 +825,7 @@ networks:
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     sepolia:
         rpc: {rpc_url}
@@ -843,6 +847,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -865,7 +870,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: 1
+    spec-version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -890,6 +895,7 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -916,7 +922,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: 1
+    spec-version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -941,6 +947,7 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -972,7 +979,7 @@ _ _: 0 0;
         let deployer = Address::random();
         let dotrain = format!(
             r#"
-    spec-version: 1
+    spec-version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -997,6 +1004,7 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
             deployer_address = encode_prefixed(deployer),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -1028,7 +1036,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: 1
+    spec-version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1054,6 +1062,7 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
             deployer_address = encode_prefixed(deployer),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -1104,7 +1113,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: 1
+    spec-version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1134,6 +1143,7 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
             deployer_address = encode_prefixed(deployer),
+            spec_version = SpecVersion::current()
         );
         let mut dotrain_order = DotrainOrder::new();
         dotrain_order
@@ -1303,8 +1313,9 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_validate_spec_version_happy() {
-        let dotrain = "
-                spec-version: 1
+        let dotrain = format!(
+            "
+                spec-version: {spec_version}
                 networks:
                     sepolia:
                         rpc: http://example.com
@@ -1316,7 +1327,9 @@ _ _: 0 0;
                 #calculate-io
                 _ _: 0 0;
                 #handle-io
-                :;";
+                :;",
+            spec_version = SpecVersion::current()
+        );
 
         let mut dotrain_order = DotrainOrder::new();
         dotrain_order
@@ -1395,7 +1408,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -1440,6 +1453,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();

@@ -6,6 +6,7 @@ mod tests {
         primitives::{utils::parse_ether, U256},
         rpc::types::TransactionRequest,
     };
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::*};
 
@@ -22,7 +23,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -80,6 +81,7 @@ amount price: get("amount") 52;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -136,7 +138,7 @@ amount price: get("amount") 52;
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -190,6 +192,7 @@ amount price: get("amount") 52;
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
             deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current(),
         );
 
         let mut dotrain_order = DotrainOrder::new();

@@ -123,11 +123,14 @@ impl DotrainAddOrderLsp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_test_fixtures::LocalEvm;
     use url::Url;
 
-    const TEXT: &str = r#"
-raindex-version: 0
+    fn get_text() -> String {
+        format!(
+            r#"
+spec-version: {spec_version}
 
 tokens:
   token1:
@@ -165,7 +168,7 @@ scenarios:
     runs: 1
     bindings:
       raindex-subparser: 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC
-      fixed-io-output-token: ${order.outputs.0.token.address}
+      fixed-io-output-token: ${{order.outputs.0.token.address}}
 
 deployments:
   flare1:
@@ -204,7 +207,10 @@ io: if(
 
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
 
     fn get_text_document(text: &str) -> TextDocumentItem {
         TextDocumentItem {
@@ -237,7 +243,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_problems() {
-        let lsp = DotrainAddOrderLsp::new(get_text_document(TEXT), HashMap::new());
+        let lsp = DotrainAddOrderLsp::new(get_text_document(&get_text()), HashMap::new());
         let problems = lsp.problems("https://some-rpc-url.com", None, None).await;
 
         let expected_msgs = [

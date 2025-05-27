@@ -162,6 +162,7 @@ mod tests {
     use alloy::sol_types::SolCall;
     use dotrain::error::ComposeError;
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_bindings::IOrderBookV4::{addOrder2Call, IO};
     use rain_orderbook_common::add_order::AddOrderArgsError;
@@ -381,7 +382,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -436,6 +437,7 @@ _ _: 16 52;
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
             deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current(),
         );
 
         let mut order = DotrainOrder::new();
@@ -564,7 +566,7 @@ _ _: 16 52;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -586,6 +588,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         let actual_rainlang = compose_from_scenario(
@@ -612,7 +615,7 @@ _ _: 0 0;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -634,6 +637,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         // Test scenario not found error
@@ -661,7 +665,7 @@ _ _: 0 0;
         // Test compose error with invalid rainlang
         let dotrain_invalid = format!(
             r#"
-spec-version: 1
+spec-version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -683,6 +687,7 @@ _ _: invalid syntax;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         let err = compose_from_scenario(
@@ -708,8 +713,9 @@ _ _: invalid syntax;
 
     #[tokio::test]
     async fn test_validate_spec_version_ok() {
-        let dotrain = "
-spec-version: 1
+        let dotrain = format!(
+            r#"
+spec-version: {spec_version}
 networks:
     sepolia:
         rpc: http://example.com
@@ -721,7 +727,10 @@ deployers:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;";
+:;
+"#,
+            spec_version = SpecVersion::current(),
+        );
 
         validate_spec_version(dotrain.to_string(), vec![])
             .await

@@ -286,13 +286,13 @@ mod tests {
     use super::*;
     use crate::gui::{
         field_values::FieldValue,
-        tests::{initialize_gui, initialize_gui_with_select_tokens, YAML},
+        tests::{get_yaml, initialize_gui, initialize_gui_with_select_tokens},
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PTWvCQBDN2tJS6EkKPRX6A7pkY9qSFXqotFCoCBIRzc0kg4lZd2Oy4tef8CeLOhtRnMO892aGmXk16xgPiGEq41SOqWOZuEF0GLscahAsMKtihtwhapWBdK9tuz55rh5RlWoKVIJeqCJ7wVqidd60baGikUhUqZse8z7sIo_ovBAbc5AYRszp397fE9L6e3-5vUikTu6x3dv_8OqSW6P_O26tslItbHBOTsrh_A1p8NPy_Un83SoGMzaGblgGo2G6dj55Av7ca_P1ohuFeeBl7OvZOAUBkaYH-zSGXKjVFKTeAdKqFhOoAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21P2w7BQBDtIkTiSSSeJD7Apq26VeLBNXUJDxqNR2pDde02tUL5CZ8s2K1oOg9zzpmZzMxJSN_Ictw6ZOeQPVQlEUmOqqJEh6qAFxQpZIKkOTLqIqLFbYuf_Fc5rs70hCBB7Ep9t8RrB8a8tixjam_wgZ5Zu6W06rLv2fDi44c4CAQD4vTQNAqc5mur2zOSQB5keNt8_1DWQEro6VxLhFbChVVdBz-l6npFfLi5j8zGujsxloPeNFjsqXEcBNbEWltNtmhea64D-2g1U8d2pyicIoxsBj_24Q55mAYnRNgLTbl4v6gBAAA=";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -323,7 +323,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_deserialize_state() {
         let mut gui = initialize_gui(None).await;
-        gui.deserialize_state(YAML.to_string(), SERIALIZED_STATE.to_string(), None)
+        gui.deserialize_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
             .await
             .unwrap();
 
@@ -392,7 +392,7 @@ mod tests {
 
         let mut gui = DotrainOrderGui::new();
         gui.choose_deployment(
-            YAML.to_string(),
+            get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),
         )

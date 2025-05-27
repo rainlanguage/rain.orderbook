@@ -68,6 +68,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use clap::CommandFactory;
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
     use std::io::Write;
     use std::str::FromStr;
@@ -181,7 +182,7 @@ mod tests {
         let rpc_server = MockServer::start_async().await;
         let dotrain_content = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -247,7 +248,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            rpc_server.url("/rpc").as_str()
+            rpc_server.url("/rpc").as_str(),
+            spec_version = SpecVersion::current()
         );
 
         let mut temp_dotrain_file = NamedTempFile::new().unwrap();
@@ -355,11 +357,15 @@ deployments:
 
     #[tokio::test]
     async fn test_execute_invalid_yaml_dotrain_file() {
-        let invalid_yaml_content = "
-spec-version: 1
+        let invalid_yaml_content = format!(
+            r#"
+spec-version: {spec_version}
 test: test
 ---
-    :;";
+    :;
+    "#,
+            spec_version = SpecVersion::current()
+        );
 
         let mut temp_dotrain_file = NamedTempFile::new().unwrap();
         write!(temp_dotrain_file, "{}", invalid_yaml_content).unwrap();
@@ -390,7 +396,7 @@ test: test
 
         let dotrain_content_invalid_script = format!(
             "
-spec-version: 1
+spec-version: {spec_version}
 networks:
   some-network:
     rpc: {}
@@ -428,7 +434,8 @@ tokens:
     address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
 ---
 ",
-            rpc_server.url("/rpc").as_str()
+            rpc_server.url("/rpc").as_str(),
+            spec_version = SpecVersion::current()
         );
         let mut temp_dotrain_file = NamedTempFile::new().unwrap();
         write!(temp_dotrain_file, "{}", dotrain_content_invalid_script).unwrap();
@@ -447,8 +454,9 @@ tokens:
 
     #[tokio::test]
     async fn test_execute_no_rpc_response() {
-        let dotrain_content = "
-spec-version: 1
+        let dotrain_content = format!(
+            r#"
+spec-version: {spec_version}
 networks:
     some-network:
         rpc: http://localhost:12345/nonexistent_rpc
@@ -513,7 +521,9 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;";
+:;"#,
+            spec_version = SpecVersion::current()
+        );
 
         let mut temp_dotrain_file = NamedTempFile::new().unwrap();
         write!(temp_dotrain_file, "{}", dotrain_content).unwrap();
