@@ -181,6 +181,7 @@ describe('Full Deployment Tests', () => {
 		};
 		await new Promise((resolve) => setTimeout(resolve, 5000));
 		const args = await getDeploymentArgs().catch((error) => {
+			// eslint-disable-next-line no-console
 			console.log('Fixed limit strategy error', error);
 			return null;
 		});
@@ -321,6 +322,7 @@ describe('Full Deployment Tests', () => {
 		};
 		await new Promise((resolve) => setTimeout(resolve, 5000));
 		const args = await getDeploymentArgs().catch((error) => {
+			// eslint-disable-next-line no-console
 			console.log('Auction strategy error', error);
 			return null;
 		});
@@ -450,6 +452,7 @@ describe('Full Deployment Tests', () => {
 		};
 		await new Promise((resolve) => setTimeout(resolve, 5000));
 		const args = await getDeploymentArgs().catch((error) => {
+			// eslint-disable-next-line no-console
 			console.log('Dynamic spread strategy error', error);
 			return null;
 		});
