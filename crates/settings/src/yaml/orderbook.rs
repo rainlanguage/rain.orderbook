@@ -1,7 +1,7 @@
 use super::{cache::Cache, *};
 use crate::{
-    accounts::AccountCfg, metaboard::MetaboardCfg, raindex_version::RaindexVersion,
-    remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg, sentry::Sentry,
+    accounts::AccountCfg, metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg,
+    remote_tokens::RemoteTokensCfg, sentry::Sentry, spec_version::SpecVersion,
     subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg, TokenCfg,
 };
 use alloy::primitives::Address;
@@ -189,8 +189,8 @@ impl OrderbookYaml {
         Ok(value.map_or(false, |v| v == "true"))
     }
 
-    pub fn get_raindex_version(&self) -> Result<Option<String>, YamlError> {
-        let value = RaindexVersion::parse_from_yaml_optional(self.documents[0].clone())?;
+    pub fn get_spec_version(&self) -> Result<String, YamlError> {
+        let value = SpecVersion::parse_from_yaml(self.documents[0].clone())?;
         Ok(value)
     }
 
@@ -308,7 +308,7 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    raindex-version: 1.0.0
+    spec-version: 1
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
@@ -423,10 +423,7 @@ mod tests {
 
         assert!(ob_yaml.get_sentry().unwrap());
 
-        assert_eq!(
-            ob_yaml.get_raindex_version().unwrap(),
-            Some("1.0.0".to_string())
-        );
+        assert_eq!(ob_yaml.get_spec_version().unwrap(), "1".to_string());
 
         assert_eq!(ob_yaml.get_account_keys().unwrap().len(), 2);
         assert_eq!(
