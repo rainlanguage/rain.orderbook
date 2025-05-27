@@ -4,7 +4,7 @@ import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/typ
 import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
-	getRemoveOrderConfig
+	type AwaitSubgraphConfig
 } from '$lib/services/awaitTransactionIndexing';
 import type { Config } from '@wagmi/core';
 import { writable, type Writable } from 'svelte/store';
@@ -46,7 +46,6 @@ export type Transaction = {
 export class TransactionStore implements Transaction {
 	private name: TransactionName;
 	private config: Config;
-	private subgraphUrl: string;
 	private txHash: Hex;
 	private links: {
 		link: string;
@@ -54,7 +53,7 @@ export class TransactionStore implements Transaction {
 	}[];
 	private onSuccess: () => void;
 	private onError: () => void;
-
+	private awaitSubgraphConfig: AwaitSubgraphConfig;
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
@@ -69,7 +68,6 @@ export class TransactionStore implements Transaction {
 		onError: () => void
 	) {
 		this.config = args.config;
-		this.subgraphUrl = args.subgraphUrl;
 		this.txHash = args.txHash;
 		this.name = args.name;
 		this.links = args.toastLinks;
@@ -78,6 +76,7 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.IDLE,
 			links: this.links
 		});
+		this.awaitSubgraphConfig = args.awaitSubgraphConfig;
 		this.onSuccess = onSuccess;
 		this.onError = onError;
 	}
@@ -114,7 +113,7 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			await this.indexTransaction(this.txHash);
+			await this.indexTransaction();
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
@@ -126,17 +125,15 @@ export class TransactionStore implements Transaction {
 
 	/**
 	 * Monitors the transaction indexing status in the subgraph
-	 * @param {Hex} txHash - The transaction hash to monitor
 	 * @returns {Promise<void>}
 	 * @private
 	 */
-	private async indexTransaction(txHash: Hex): Promise<void> {
+	private async indexTransaction(): Promise<void> {
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});
 
-		const config = getRemoveOrderConfig(this.subgraphUrl, txHash, 'Order removed successfully');
-		const result = await awaitSubgraphIndexing(config);
+		const result = await awaitSubgraphIndexing(this.awaitSubgraphConfig);
 
 		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
 			this.updateState({
