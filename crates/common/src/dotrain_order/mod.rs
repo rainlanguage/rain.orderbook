@@ -240,6 +240,14 @@ impl DotrainOrder {
         }
 
         let mut orderbook_yaml = OrderbookYaml::new(sources.clone(), false)?;
+        let spec_version = orderbook_yaml.get_spec_version()?;
+        if !SpecVersion::is_current(&spec_version) {
+            return Err(DotrainOrderError::SpecVersionMismatch(
+                SpecVersion::current().to_string(),
+                spec_version.to_string(),
+            ));
+        }
+
         let mut dotrain_yaml = DotrainYaml::new(sources.clone(), false)?;
 
         let remote_networks =

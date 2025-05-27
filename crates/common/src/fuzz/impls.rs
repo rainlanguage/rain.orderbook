@@ -21,6 +21,8 @@ pub use rain_interpreter_eval::trace::{RainEvalResultError, RainEvalResults, Tra
 use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs, trace::RainEvalResult};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
+use rain_orderbook_app_settings::spec_version::SpecVersion;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -91,6 +93,8 @@ pub enum FuzzRunnerError {
     AbiDecodeFailedErrors(#[from] AbiDecodeFailedErrors),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error("Spec version mismatch: expected {0} but got {1}")]
+    SpecVersionMismatch(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +120,15 @@ impl FuzzRunnerContext {
         } else {
             vec![frontmatter.to_string()]
         };
+
+        let orderbook_yaml = OrderbookYaml::new(source.clone(), false)?;
+        let spec_version = orderbook_yaml.get_spec_version()?;
+        if !SpecVersion::is_current(&spec_version) {
+            return Err(FuzzRunnerError::SpecVersionMismatch(
+                SpecVersion::current().to_string(),
+                spec_version.to_string(),
+            ));
+        }
 
         let dotrain_yaml = DotrainYaml::new(source, false)?;
 
