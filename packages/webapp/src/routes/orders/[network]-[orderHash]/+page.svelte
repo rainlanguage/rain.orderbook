@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount,
-		useToasts
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
