@@ -1,21 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type {
-	SgAddOrderWithOrder,
-	SgRemoveOrderWithOrder,
-	SgTransaction
-} from '@rainlanguage/orderbook';
-import {
-	getTransaction,
-	getTransactionAddOrders,
-	getTransactionRemoveOrders
-} from '@rainlanguage/orderbook';
-import {
-	awaitSubgraphIndexing,
-	getNewOrderConfig,
-	getRemoveOrderConfig,
-	getTransactionConfig,
-	TIMEOUT_ERROR
-} from '$lib/services/awaitTransactionIndexing';
+import type { SgAddOrderWithOrder, SgTransaction } from '@rainlanguage/orderbook';
+import { awaitSubgraphIndexing, TIMEOUT_ERROR } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
@@ -37,16 +22,15 @@ describe('subgraphIndexing', () => {
 	});
 
 	it('should resolve with value when data is successfully fetched', async () => {
-		const mockData = { id: 'tx123' };
+		const mockData = { id: 'tx123' } as SgTransaction;
 		mockFetchData.mockResolvedValue({ value: mockData });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
 			txHash: 'tx123',
 			successMessage: 'Transaction confirmed',
-			fetchData: mockFetchData,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			isSuccess: (data: any) => !!data.id
+			fetchEntityFn: mockFetchData,
+			isSuccess: (data: SgTransaction) => !!data.id
 		});
 
 		await vi.advanceTimersByTimeAsync(1000);
@@ -70,7 +54,7 @@ describe('subgraphIndexing', () => {
 					orderHash: 'order123'
 				}
 			}
-		];
+		] as SgAddOrderWithOrder[];
 
 		mockFetchData.mockResolvedValue({ value: mockOrderData });
 
@@ -79,10 +63,8 @@ describe('subgraphIndexing', () => {
 			txHash: 'tx123',
 			successMessage: 'Order confirmed',
 			network: 'mainnet',
-			fetchData: mockFetchData,
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			isSuccess: (data: any) => data.length > 0
+			fetchEntityFn: mockFetchData,
+			isSuccess: (data: SgAddOrderWithOrder[]) => data.length > 0
 		});
 
 		await vi.advanceTimersByTimeAsync(1000);
@@ -103,7 +85,7 @@ describe('subgraphIndexing', () => {
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,
-			fetchData: mockFetchData,
+			fetchEntityFn: mockFetchData,
 			isSuccess: () => false
 		});
 
@@ -128,7 +110,7 @@ describe('subgraphIndexing', () => {
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 3,
 			interval: 500,
-			fetchData: mockFetchData,
+			fetchEntityFn: mockFetchData,
 			isSuccess: () => true
 		});
 
@@ -147,7 +129,7 @@ describe('subgraphIndexing', () => {
 	it('should resolve immediately when successful data is found', async () => {
 		mockFetchData
 			.mockResolvedValueOnce({ value: null })
-			.mockResolvedValueOnce({ value: { id: 'tx123' } });
+			.mockResolvedValueOnce({ value: { id: 'tx123' } as SgTransaction });
 
 		const resultPromise = awaitSubgraphIndexing({
 			subgraphUrl: 'https://test.subgraph.com',
@@ -155,9 +137,8 @@ describe('subgraphIndexing', () => {
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
 			interval: 500,
-			fetchData: mockFetchData,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			isSuccess: (data: any) => !!data?.id
+			fetchEntityFn: mockFetchData,
+			isSuccess: (data: SgTransaction) => !!data?.id
 		});
 
 		await vi.advanceTimersByTimeAsync(500);
@@ -168,55 +149,5 @@ describe('subgraphIndexing', () => {
 		expect(result.value).toBeDefined();
 		expect(result.error).toBeUndefined();
 		expect(mockFetchData).toHaveBeenCalledTimes(2);
-	});
-});
-
-describe('helper functions', () => {
-	it('getTransactionConfig should return correct configuration', () => {
-		const config = getTransactionConfig(
-			'https://test.subgraph.com',
-			'tx123',
-			'Transaction confirmed',
-			'mainnet'
-		);
-
-		expect(config.subgraphUrl).toBe('https://test.subgraph.com');
-		expect(config.txHash).toBe('tx123');
-		expect(config.successMessage).toBe('Transaction confirmed');
-		expect(config.network).toBe('mainnet');
-		expect(config.fetchData).toBe(getTransaction);
-
-		expect(config.isSuccess({ id: 'tx123' } as SgTransaction)).toBe(true);
-		expect(config.isSuccess(null as unknown as SgTransaction)).toBe(false);
-	});
-
-	it('getNewOrderConfig should return correct configuration', () => {
-		const config = getNewOrderConfig(
-			'https://test.subgraph.com',
-			'tx123',
-			'Order added',
-			'testnet'
-		);
-
-		expect(config.subgraphUrl).toBe('https://test.subgraph.com');
-		expect(config.txHash).toBe('tx123');
-		expect(config.successMessage).toBe('Order added');
-		expect(config.network).toBe('testnet');
-		expect(config.fetchData).toBe(getTransactionAddOrders);
-
-		expect(config.isSuccess([{ order: { id: 'order1' } } as SgAddOrderWithOrder])).toBe(true);
-		expect(config.isSuccess([])).toBe(false);
-	});
-
-	it('getRemoveOrderConfig should return correct configuration', () => {
-		const config = getRemoveOrderConfig('https://test.subgraph.com', 'tx123', 'Order removed');
-
-		expect(config.subgraphUrl).toBe('https://test.subgraph.com');
-		expect(config.txHash).toBe('tx123');
-		expect(config.successMessage).toBe('Order removed');
-		expect(config.fetchData).toBe(getTransactionRemoveOrders);
-
-		expect(config.isSuccess([{ order: { id: 'order1' } } as SgRemoveOrderWithOrder])).toBe(true);
-		expect(config.isSuccess([])).toBe(false);
 	});
 });

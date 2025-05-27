@@ -2,8 +2,8 @@ use crate::{
     performance::PerformanceError,
     types::common::{SgErc20, SgTrade},
 };
-use alloy::primitives::{ruint::ParseError, U256};
-use rain_orderbook_math::BigUintMath;
+use alloy::primitives::U256;
+use rain_orderbook_math::{BigUintMath, MathError};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, str::FromStr};
 #[cfg(target_family = "wasm")]
@@ -39,104 +39,100 @@ mod impls {
     impl_wasm_traits!(VaultVolume);
 }
 
+fn safe_add(a: U256, b: U256) -> Result<U256, PerformanceError> {
+    a.checked_add(b)
+        .ok_or(PerformanceError::MathError(MathError::Overflow))
+}
+
+fn safe_sub(a: U256, b: U256) -> Result<U256, PerformanceError> {
+    a.checked_sub(b)
+        .ok_or(PerformanceError::MathError(MathError::Overflow))
+}
+
+/// Helper function to update volume details based on an amount
+fn update_volume_details(
+    vol_details: &mut VolumeDetails,
+    amount: &str,
+) -> Result<(), PerformanceError> {
+    if let Some(stripped) = amount.strip_prefix('-') {
+        let amount = U256::from_str(stripped)?;
+        vol_details.total_out = safe_add(vol_details.total_out, amount)?;
+        vol_details.total_vol = safe_add(vol_details.total_vol, amount)?;
+    } else {
+        let amount = U256::from_str(amount)?;
+        vol_details.total_in = safe_add(vol_details.total_in, amount)?;
+        vol_details.total_vol = safe_add(vol_details.total_vol, amount)?;
+    }
+
+    vol_details.net_vol = if vol_details.total_in >= vol_details.total_out {
+        safe_sub(vol_details.total_in, vol_details.total_out)?
+    } else {
+        safe_sub(vol_details.total_out, vol_details.total_in)?
+    };
+
+    Ok(())
+}
+
+/// Helper function to create new volume details from an amount
+fn create_volume_details(amount: &str) -> Result<VolumeDetails, PerformanceError> {
+    if let Some(stripped) = amount.strip_prefix('-') {
+        let amount = U256::from_str(stripped)?;
+        Ok(VolumeDetails {
+            total_in: U256::ZERO,
+            total_out: amount,
+            total_vol: amount,
+            net_vol: amount,
+        })
+    } else {
+        let amount = U256::from_str(amount)?;
+        Ok(VolumeDetails {
+            total_in: amount,
+            total_out: U256::ZERO,
+            total_vol: amount,
+            net_vol: amount,
+        })
+    }
+}
+
+/// Helper function to process a vault balance change
+fn process_vault_balance_change(
+    vaults_vol: &mut Vec<VaultVolume>,
+    vault_id: &str,
+    token: &SgErc20,
+    amount: &str,
+) -> Result<(), PerformanceError> {
+    if let Some(vault_vol) = vaults_vol
+        .iter_mut()
+        .find(|v| v.id == vault_id && v.token.address.0 == token.address.0)
+    {
+        update_volume_details(&mut vault_vol.vol_details, amount)?;
+    } else {
+        vaults_vol.push(VaultVolume {
+            id: vault_id.to_string(),
+            token: token.clone(),
+            vol_details: create_volume_details(amount)?,
+        });
+    }
+    Ok(())
+}
+
 /// Get the vaults volume from array of trades of an order
-pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, ParseError> {
+pub fn get_vaults_vol(trades: &[SgTrade]) -> Result<Vec<VaultVolume>, PerformanceError> {
     let mut vaults_vol: Vec<VaultVolume> = vec![];
     for trade in trades {
-        if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
-            v.id == trade.input_vault_balance_change.vault.vault_id.0
-                && v.token.address.0 == trade.input_vault_balance_change.vault.token.address.0
-        }) {
-            if trade.input_vault_balance_change.amount.0.starts_with('-') {
-                let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
-            } else {
-                let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
-            }
-            vault_vol.vol_details.net_vol =
-                if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
-                } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
-                };
-        } else {
-            let mut total_in = U256::ZERO;
-            let mut total_out = U256::ZERO;
-            let mut total_vol = U256::ZERO;
-            if trade.input_vault_balance_change.amount.0.starts_with('-') {
-                let amount = U256::from_str(&trade.input_vault_balance_change.amount.0[1..])?;
-                total_out += amount;
-                total_vol += amount;
-            } else {
-                let amount = U256::from_str(&trade.input_vault_balance_change.amount.0)?;
-                total_in += amount;
-                total_vol += amount;
-            }
-            vaults_vol.push(VaultVolume {
-                id: trade.input_vault_balance_change.vault.vault_id.0.clone(),
-                token: trade.input_vault_balance_change.vault.token.clone(),
-                vol_details: VolumeDetails {
-                    total_in,
-                    total_out,
-                    total_vol,
-                    net_vol: if total_in >= total_out {
-                        total_in - total_out
-                    } else {
-                        total_out - total_in
-                    },
-                },
-            })
-        }
-        if let Some(vault_vol) = vaults_vol.iter_mut().find(|v| {
-            v.id == trade.output_vault_balance_change.vault.vault_id.0
-                && v.token.address.0 == trade.output_vault_balance_change.vault.token.address.0
-        }) {
-            if trade.output_vault_balance_change.amount.0.starts_with('-') {
-                let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
-                vault_vol.vol_details.total_out += amount;
-                vault_vol.vol_details.total_vol += amount;
-            } else {
-                let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
-                vault_vol.vol_details.total_in += amount;
-                vault_vol.vol_details.total_vol += amount;
-            }
-            vault_vol.vol_details.net_vol =
-                if vault_vol.vol_details.total_in >= vault_vol.vol_details.total_out {
-                    vault_vol.vol_details.total_in - vault_vol.vol_details.total_out
-                } else {
-                    vault_vol.vol_details.total_out - vault_vol.vol_details.total_in
-                };
-        } else {
-            let mut total_in = U256::ZERO;
-            let mut total_out = U256::ZERO;
-            let mut total_vol = U256::ZERO;
-            if trade.output_vault_balance_change.amount.0.starts_with('-') {
-                let amount = U256::from_str(&trade.output_vault_balance_change.amount.0[1..])?;
-                total_out += amount;
-                total_vol += amount;
-            } else {
-                let amount = U256::from_str(&trade.output_vault_balance_change.amount.0)?;
-                total_in += amount;
-                total_vol += amount;
-            }
-            vaults_vol.push(VaultVolume {
-                id: trade.output_vault_balance_change.vault.vault_id.0.clone(),
-                token: trade.output_vault_balance_change.vault.token.clone(),
-                vol_details: VolumeDetails {
-                    total_in,
-                    total_out,
-                    total_vol,
-                    net_vol: if total_in >= total_out {
-                        total_in - total_out
-                    } else {
-                        total_out - total_in
-                    },
-                },
-            })
-        }
+        process_vault_balance_change(
+            &mut vaults_vol,
+            &trade.input_vault_balance_change.vault.vault_id.0,
+            &trade.input_vault_balance_change.vault.token,
+            &trade.input_vault_balance_change.amount.0,
+        )?;
+
+        process_vault_balance_change(
+            &mut vaults_vol,
+            &trade.output_vault_balance_change.vault.vault_id.0,
+            &trade.output_vault_balance_change.vault.token,
+            &trade.output_vault_balance_change.amount.0,
+        )?;
     }
     Ok(vaults_vol)
 }
@@ -167,13 +163,43 @@ impl VaultVolume {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
     use alloy::primitives::{Address, B256};
+
+    #[test]
+    fn test_safe_add() {
+        // Happy path
+        assert_eq!(
+            safe_add(U256::from(5), U256::from(3)).unwrap(),
+            U256::from(8)
+        );
+
+        // Overflow case
+        assert!(matches!(
+            safe_add(U256::MAX, U256::from(1)).unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
+
+    #[test]
+    fn test_safe_sub() {
+        // Happy path
+        assert_eq!(
+            safe_sub(U256::from(5), U256::from(3)).unwrap(),
+            U256::from(2)
+        );
+
+        // Underflow case
+        assert!(matches!(
+            safe_sub(U256::from(1), U256::from(2)).unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
 
     #[test]
     fn test_is_net_vol_negative() {
@@ -393,7 +419,159 @@ mod test {
     }
 
     #[test]
-    fn test_to_18_decimals() {
+    fn test_vaults_vol_overflow() {
+        let bytes = SgBytes("".to_string());
+        let bigint = SgBigInt("".to_string());
+        let token1_address = Address::random();
+        let token2_address = Address::random();
+        let vault_id1 = B256::random();
+        let vault_id2 = B256::random();
+
+        let token1 = SgErc20 {
+            id: SgBytes(token1_address.to_string()),
+            address: SgBytes(token1_address.to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        let token2 = SgErc20 {
+            id: SgBytes(token2_address.to_string()),
+            address: SgBytes(token2_address.to_string()),
+            name: Some("Token2".to_string()),
+            symbol: Some("Token2".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        // Test overflow on addition
+        let trade1 = SgTrade {
+            id: bytes.clone(),
+            order: SgTradeStructPartialOrder {
+                id: bytes.clone(),
+                order_hash: bytes.clone(),
+            },
+            trade_event: SgTradeEvent {
+                sender: bytes.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+            },
+            timestamp: bigint.clone(),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("-1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token1.clone(),
+                    vault_id: SgBigInt(vault_id1.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt(U256::MAX.to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token2.clone(),
+                    vault_id: SgBigInt(vault_id2.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+        };
+
+        let trade2 = SgTrade {
+            id: bytes.clone(),
+            order: SgTradeStructPartialOrder {
+                id: bytes.clone(),
+                order_hash: bytes.clone(),
+            },
+            trade_event: SgTradeEvent {
+                sender: bytes.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+            },
+            timestamp: bigint.clone(),
+            orderbook: SgOrderbook { id: bytes.clone() },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token2.clone(),
+                    vault_id: SgBigInt(vault_id2.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: bytes.clone(),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBigInt("1".to_string()),
+                new_vault_balance: bigint.clone(),
+                old_vault_balance: bigint.clone(),
+                vault: SgVaultBalanceChangeVault {
+                    id: bytes.clone(),
+                    token: token1.clone(),
+                    vault_id: SgBigInt(vault_id1.to_string()),
+                },
+                timestamp: bigint.clone(),
+                transaction: SgTransaction {
+                    id: bytes.clone(),
+                    from: bytes.clone(),
+                    block_number: bigint.clone(),
+                    timestamp: bigint.clone(),
+                },
+                orderbook: SgOrderbook { id: bytes.clone() },
+            },
+        };
+
+        // Test overflow on addition
+        let err = get_vaults_vol(&[trade1, trade2]).unwrap_err();
+        assert!(matches!(
+            err,
+            PerformanceError::MathError(MathError::Overflow)
+        ));
+    }
+
+    #[test]
+    fn test_to_18_decimals_ok() {
         let token_address = Address::random();
         let token = SgErc20 {
             id: SgBytes(token_address.to_string()),
@@ -426,5 +604,127 @@ mod test {
         };
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_to_18_decimals_err() {
+        let token_address = Address::random();
+        let token = SgErc20 {
+            id: SgBytes(token_address.to_string()),
+            address: SgBytes(token_address.to_string()),
+            name: Some("Token".to_string()),
+            symbol: Some("Token".to_string()),
+            decimals: Some(SgBigInt("bad int".to_string())),
+        };
+        let vault_vol = VaultVolume {
+            id: "vault-id".to_string(),
+            token: token.clone(),
+            vol_details: VolumeDetails {
+                total_in: U256::from(20_500_000),
+                total_out: U256::from(30_000_000),
+                total_vol: U256::from(50_500_000),
+                net_vol: U256::from(9_500_000),
+            },
+        };
+
+        let err = vault_vol.scale_18().unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseIntError(_)));
+    }
+
+    #[test]
+    fn test_update_volume_details() {
+        let mut vol_details = VolumeDetails {
+            total_in: U256::from(10),
+            total_out: U256::from(5),
+            total_vol: U256::from(15),
+            net_vol: U256::from(5),
+        };
+
+        // Test positive amount
+        update_volume_details(&mut vol_details, "20").unwrap();
+        assert_eq!(vol_details.total_in, U256::from(30));
+        assert_eq!(vol_details.total_out, U256::from(5));
+        assert_eq!(vol_details.total_vol, U256::from(35));
+        assert_eq!(vol_details.net_vol, U256::from(25));
+
+        // Test negative amount
+        update_volume_details(&mut vol_details, "-15").unwrap();
+        assert_eq!(vol_details.total_in, U256::from(30));
+        assert_eq!(vol_details.total_out, U256::from(20));
+        assert_eq!(vol_details.total_vol, U256::from(50));
+        assert_eq!(vol_details.net_vol, U256::from(10));
+    }
+
+    #[test]
+    fn test_create_volume_details() {
+        // Test positive amount
+        let vol_details = create_volume_details("20").unwrap();
+        assert_eq!(vol_details.total_in, U256::from(20));
+        assert_eq!(vol_details.total_out, U256::from(0));
+        assert_eq!(vol_details.total_vol, U256::from(20));
+        assert_eq!(vol_details.net_vol, U256::from(20));
+
+        // Test negative amount
+        let vol_details = create_volume_details("-15").unwrap();
+        assert_eq!(vol_details.total_in, U256::from(0));
+        assert_eq!(vol_details.total_out, U256::from(15));
+        assert_eq!(vol_details.total_vol, U256::from(15));
+        assert_eq!(vol_details.net_vol, U256::from(15));
+
+        // Test invalid amount
+        let err = create_volume_details("bad int").unwrap_err();
+        assert!(matches!(err, PerformanceError::ParseUnsignedError(_)));
+    }
+
+    #[test]
+    fn test_process_vault_balance_change() {
+        let mut vaults_vol = Vec::new();
+        let token = SgErc20 {
+            id: SgBytes("token1".to_string()),
+            address: SgBytes("token1".to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        // Test new vault
+        process_vault_balance_change(&mut vaults_vol, "vault1", &token, "20").unwrap();
+        assert_eq!(vaults_vol.len(), 1);
+        assert_eq!(vaults_vol[0].id, "vault1");
+        assert_eq!(vaults_vol[0].vol_details.total_in, U256::from(20));
+
+        // Test existing vault
+        process_vault_balance_change(&mut vaults_vol, "vault1", &token, "-10").unwrap();
+        assert_eq!(vaults_vol.len(), 1);
+        assert_eq!(vaults_vol[0].vol_details.total_in, U256::from(20));
+        assert_eq!(vaults_vol[0].vol_details.total_out, U256::from(10));
+    }
+
+    #[test]
+    fn test_process_vault_balance_change_overflow() {
+        let mut vaults_vol = Vec::new();
+        let token = SgErc20 {
+            id: SgBytes("token1".to_string()),
+            address: SgBytes("token1".to_string()),
+            name: Some("Token1".to_string()),
+            symbol: Some("Token1".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        // First add a value that's max - 1
+        let max_minus_one = U256::MAX - U256::from(1);
+        process_vault_balance_change(
+            &mut vaults_vol,
+            "vault1",
+            &token,
+            &max_minus_one.to_string(),
+        )
+        .unwrap();
+
+        // Now try to add 2, which should overflow
+        assert!(matches!(
+            process_vault_balance_change(&mut vaults_vol, "vault1", &token, "2").unwrap_err(),
+            PerformanceError::MathError(MathError::Overflow)
+        ));
     }
 }
