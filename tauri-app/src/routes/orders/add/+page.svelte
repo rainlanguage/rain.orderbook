@@ -2,8 +2,6 @@
   import { PageHeader, CodeMirrorDotrain, ButtonLoading } from '@rainlanguage/ui-components';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { Label, Button, Spinner, Tabs, TabItem } from 'flowbite-svelte';
-  import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
-  import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
   import type { ChartData } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
@@ -18,14 +16,13 @@
   import { orderAdd, orderAddCalldata, validateRaindexVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
-  import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
+  import { CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
   import {
     convertConfigstringToConfig,
     mergeDotrainConfigWithSettings,
   } from '$lib/services/config';
-  import { mergeDotrainConfigWithSettingsProblems } from '$lib/services/configCodemirrorProblems';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
@@ -35,6 +32,7 @@
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
+  import { createRainlangExtension } from '$lib/services/handleRainlangExtension';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -81,41 +79,7 @@
     mergedConfig?.scenarios,
   );
 
-  $: rainlangExtension = new RawRainlangExtension({
-    diagnostics: async (text) => {
-      let configProblems = [];
-      let problems = [];
-      try {
-        // get problems with merging settings config with frontmatter
-        configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
-      } catch (e) {
-        configProblems = [
-          {
-            msg: e as string,
-            position: [0, 0],
-            code: 9,
-          },
-        ];
-      }
-      try {
-        // get problems with dotrain
-        problems = await promiseTimeout(
-          problemsCallback(text, bindings, deployment?.scenario.deployer.address),
-          5000,
-          'failed to parse on native parser',
-        );
-      } catch (e) {
-        problems = [
-          {
-            msg: e as string,
-            position: [0, 0],
-            code: 9,
-          },
-        ];
-      }
-      return [...configProblems, ...problems] as Problem[];
-    },
-  });
+  $: rainlangExtension = createRainlangExtension(bindings, deployment?.scenario);
 
   $: {
     if (isNil(scenarioRef) && !isEmpty(scenarios)) {
@@ -156,6 +120,7 @@
     }
     isSubmitting = false;
   }
+
   async function executeWalletconnect() {
     isSubmitting = true;
     try {
