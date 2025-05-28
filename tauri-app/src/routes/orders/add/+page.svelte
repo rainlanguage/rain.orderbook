@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -15,12 +15,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import {
-    orderAdd,
-    orderAddCalldata,
-    orderAddComposeRainlang,
-    validateRaindexVersion,
-  } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, validateRaindexVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
@@ -38,7 +33,8 @@
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
-  import * as chains from 'viem/chains';
+  import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
+  import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -48,8 +44,6 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-
-  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
@@ -81,7 +75,11 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    [$settingsText],
+    mergedConfig?.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -176,60 +174,12 @@
     isSubmitting = false;
   }
 
-  async function generateRainlangStrings(
-    dotrainText: string,
-    scenarios?: Record<string, ScenarioCfg>,
-  ): Promise<Map<ScenarioCfg, string> | undefined> {
-    try {
-      if (isEmpty(scenarios)) return;
-      composedRainlangForScenarios = new Map();
-      for (const scenario of Object.values(scenarios)) {
-        try {
-          const composedRainlang = await orderAddComposeRainlang(
-            dotrainText,
-            [$settingsText],
-            scenario,
-          );
-          composedRainlangForScenarios.set(scenario, composedRainlang);
-        } catch (e) {
-          composedRainlangForScenarios.set(
-            scenario,
-            e?.toString() || 'Error composing rainlang for scenario',
-          );
-        }
-      }
-      return composedRainlangForScenarios;
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-  }
-
   const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
     useDebouncedFn(validateRaindexVersion, 500);
 
   $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
 
   $: deploymentNetworks = getDeploymentsNetworks(deployments);
-
-  // gathers key/value pairs of deployments chain ids
-  // against their network name to be used for debug modal
-  function getDeploymentsNetworks(
-    deployments: Record<string, DeploymentCfg> | undefined,
-  ): Record<number, string> | undefined {
-    if (deployments) {
-      const networks: Record<number, string> = {};
-      for (const key in deployments) {
-        const chainId = deployments[key].scenario.deployer.network.chainId;
-        const networkKey =
-          Object.values(chains).find((v) => v.id === chainId)?.name ??
-          deployments[key].scenario.deployer.network.key;
-        networks[chainId] = networkKey;
-      }
-      if (!Object.keys(networks).length) return undefined;
-      else return networks;
-    }
-    return undefined;
-  }
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
