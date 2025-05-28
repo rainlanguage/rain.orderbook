@@ -1,16 +1,11 @@
 import type { SgVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
-import type {
-	VaultActionModalProps,
-	TransactionConfirmationProps
-} from '@rainlanguage/ui-components';
 import { getVaultWithdrawCalldata } from '@rainlanguage/orderbook';
+import { handleVaultActionModal, handleTransactionConfirmationModal } from './modal';
 
 export interface VaultWithdrawHandlerDependencies {
 	vault: SgVault;
-	handleWithdrawModal: (props: VaultActionModalProps) => void;
-	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	network: string;
@@ -24,8 +19,6 @@ export interface VaultWithdrawHandlerDependencies {
 export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies): Promise<void> {
 	const {
 		vault,
-		handleWithdrawModal,
-		handleTransactionConfirmationModal,
 		errToast,
 		manager,
 		network,
@@ -35,7 +28,8 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 		account,
 		rpcUrl
 	} = deps;
-	handleWithdrawModal({
+	handleVaultActionModal({
+		actionType: 'withdraw',
 		open: true,
 		args: {
 			vault,

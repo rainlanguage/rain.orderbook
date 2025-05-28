@@ -1,16 +1,13 @@
 import type { SgVault } from '@rainlanguage/orderbook';
-import type { Hex } from 'viem';
+import { formatUnits, type Hex } from 'viem';
 import type {
-	TransactionManager,
-	VaultActionModalProps,
-	TransactionConfirmationProps
+	TransactionManager
 } from '@rainlanguage/ui-components';
 import { getVaultApprovalCalldata, getVaultDepositCalldata } from '@rainlanguage/orderbook';
+import { handleVaultActionModal, handleTransactionConfirmationModal } from './modal';
 
 export interface VaultDepositHandlerDependencies {
 	vault: SgVault;
-	handleDepositModal: (props: VaultActionModalProps) => void;
-	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	network: string;
@@ -27,7 +24,6 @@ async function executeDeposit(args: DepositArgs) {
 	const {
 		amount,
 		vault,
-		handleTransactionConfirmationModal,
 		errToast,
 		manager,
 		network,
@@ -41,7 +37,7 @@ async function executeDeposit(args: DepositArgs) {
 	} else if (calldataResult.value) {
 		handleTransactionConfirmationModal({
 			open: true,
-			modalTitle: `Depositing ${amount} ${vault.token.symbol}`,
+			modalTitle: `Depositing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}`,
 			args: {
 				entity: vault,
 				toAddress: orderbookAddress,
@@ -66,8 +62,6 @@ async function executeDeposit(args: DepositArgs) {
 export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies): Promise<void> {
 	const {
 		vault,
-		handleDepositModal,
-		handleTransactionConfirmationModal,
 		manager,
 		network,
 		subgraphUrl,
@@ -76,8 +70,9 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 		rpcUrl
 	} = deps;
 
-	handleDepositModal({
+	handleVaultActionModal({
 		open: true,
+		actionType: 'deposit',
 		args: {
 			vault,
 			chainId,
@@ -88,6 +83,7 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 		onSubmit: async (amount: bigint) => {
 			const depositArgs = { ...deps, amount };
 			const approvalResult = await getVaultApprovalCalldata(rpcUrl, vault, amount.toString());
+			console.log("approve result", approvalResult)
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
 				await executeDeposit(depositArgs);

@@ -1,5 +1,3 @@
-import DepositModal from '$lib/components/DepositModal.svelte';
-import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import {
 	DisclaimerModal,
@@ -8,12 +6,10 @@ import {
 	type VaultActionModalProps
 } from '@rainlanguage/ui-components';
 
-export const handleDepositModal = (props: VaultActionModalProps) => {
-	new DepositModal({ target: document.body, props });
-};
+import VaultActionModal from '$lib/components/VaultActionModal.svelte';
 
-export const handleWithdrawModal = (props: VaultActionModalProps) => {
-	new WithdrawModal({ target: document.body, props });
+export const handleVaultActionModal = (props: VaultActionModalProps) => {
+	new VaultActionModal({ target: document.body, props });
 };
 
 export const handleTransactionConfirmationModal = (props: TransactionConfirmationProps) => {

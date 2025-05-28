@@ -2,11 +2,6 @@
 	import { PageHeader, useAccount, useToasts, useTransactions } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { VaultDetail } from '@rainlanguage/ui-components';
-	import {
-		handleDepositModal,
-		handleTransactionConfirmationModal,
-		handleWithdrawModal
-	} from '$lib/services/modal';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
@@ -26,8 +21,6 @@
 	async function onDeposit(vault: SgVault) {
 		await handleVaultDeposit({
 			vault,
-			handleDepositModal,
-			handleTransactionConfirmationModal,
 			errToast,
 			manager,
 			network,
@@ -42,8 +35,6 @@
 	async function onWithdraw(vault: SgVault) {
 		await handleVaultWithdraw({
 			vault,
-			handleWithdrawModal,
-			handleTransactionConfirmationModal,
 			errToast,
 			manager,
 			network,

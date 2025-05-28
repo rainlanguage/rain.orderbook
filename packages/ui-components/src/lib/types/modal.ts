@@ -5,6 +5,7 @@ import type { Hex } from 'viem';
 export type VaultActionModalProps = {
 	open: boolean;
 	args: VaultActionArgs;
+	actionType: 'deposit' | 'withdraw';
 	onSubmit: (amount: bigint) => void;
 };
 
