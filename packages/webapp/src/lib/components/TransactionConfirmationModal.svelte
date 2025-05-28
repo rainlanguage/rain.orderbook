@@ -9,12 +9,17 @@
 
 	export let open: boolean = false;
 	export let modalTitle: string;
+	export let closeOnConfirm: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
+
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 
 	async function init() {
 		const result = await handleWalletConfirmation(args);
 		confirmationState = result.state;
+		if (closeOnConfirm && confirmationState.status === 'confirmed') {
+			open = false;
+		}
 	}
 
 	$: if (open && args) {

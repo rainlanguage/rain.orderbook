@@ -127,4 +127,14 @@ describe('TransactionConfirmationModal', () => {
 			expect(screen.getByText('❌')).toBeInTheDocument();
 		});
 	});
+
+	it('closes the modal on success if closeOnConfirm is true', async () => {
+		render(TransactionConfirmationModal, { ...defaultProps, closeOnConfirm: true });
+
+		await waitFor(() => {
+			expect(handleWalletConfirmation).toHaveBeenCalledWith(defaultProps.args);
+			const modal = screen.queryByTestId('transaction-modal');
+			expect(modal).not.toBeInTheDocument();
+		});
+	});
 });
