@@ -3,13 +3,26 @@
  * @description Utilities for waiting for transactions to be indexed by a subgraph
  */
 
-import type { WasmEncodedResult } from '@rainlanguage/orderbook';
+import { TransactionStoreErrorMessage } from '$lib/types/transaction';
+import type {
+	getTransactionRemoveOrders,
+	getTransaction,
+	getTransactionAddOrders,
+	WasmEncodedResult,
+	SgTransaction,
+	SgRemoveOrderWithOrder
+} from '@rainlanguage/orderbook';
 
-/**
- * Error message when subgraph indexing times out
- */
-export const TIMEOUT_ERROR =
-	'The subgraph took too long to respond. Your transaction may still be processing.';
+export type AwaitSubgraphConfig = {
+	subgraphUrl: string;
+	txHash: string;
+	successMessage: string;
+	fetchEntityFn:
+		| typeof getTransaction
+		| typeof getTransactionRemoveOrders
+		| typeof getTransactionAddOrders;
+	isSuccess: (data: SgTransaction | SgRemoveOrderWithOrder[]) => boolean;
+};
 
 /**
  * Result of a subgraph indexing operation
@@ -119,17 +132,18 @@ export const awaitSubgraphIndexing = async <T>(options: {
 			const data = await fetchEntityFn(subgraphUrl, txHash);
 
 			if (data.value && isSuccess(data.value)) {
-				let orderHash;
+				let newOrderHash;
 				// Extract orderHash from order data if it exists in the expected format
+				// This only applies to addOrder transactions
 				if (Array.isArray(data.value) && data.value.length > 0 && data.value[0]?.order?.orderHash) {
-					orderHash = data.value[0].order.orderHash;
+					newOrderHash = data.value[0].order.orderHash;
 				}
 
 				return {
 					value: {
 						txHash,
 						successMessage,
-						orderHash,
+						orderHash: newOrderHash,
 						network,
 						data: data.value
 					}
@@ -141,7 +155,7 @@ export const awaitSubgraphIndexing = async <T>(options: {
 
 		if (attempt >= maxAttempts) {
 			return {
-				error: TIMEOUT_ERROR
+				error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
 			};
 		}
 

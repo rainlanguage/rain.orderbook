@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SgAddOrderWithOrder, SgTransaction } from '@rainlanguage/orderbook';
-import { awaitSubgraphIndexing, TIMEOUT_ERROR } from '$lib/services/awaitTransactionIndexing';
-
+import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
+import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
 	getTransactionAddOrders: vi.fn(),
@@ -97,7 +97,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TIMEOUT_ERROR);
+		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 		expect(mockFetchData).toHaveBeenCalledTimes(5);
 	});
 
@@ -122,7 +122,7 @@ describe('subgraphIndexing', () => {
 
 		expect(result.error).toBeDefined();
 		expect(result.value).toBeUndefined();
-		expect(result.error).toBe(TIMEOUT_ERROR);
+		expect(result.error).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
 	});
 
 	it('should resolve immediately when successful data is found', async () => {
