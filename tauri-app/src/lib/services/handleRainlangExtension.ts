@@ -43,4 +43,4 @@ export function createRainlangExtension(
       return [...configProblems, ...problems];
     },
   });
-} 
+}
