@@ -50,8 +50,8 @@ derive_builder = "0.20.0"
 thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
-rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "ab987462d37099af7bdab03d9c308032147a9081" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
+rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "fa0cc05a8dbf0f167a2392255a8b509309e9da46" }
 wasm-bindgen-utils = "0.0.8"
 tempfile = "3.20.0"
 
