@@ -34,6 +34,7 @@
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
   import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
+  import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
 
@@ -144,16 +145,13 @@
     isCharting = false;
   }
 
-  async function executeLedger() {
+  async function handleExecuteLedger() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      await orderAdd($globalDotrainFile.text, deployment);
-    } catch (e) {
-      reportErrorToSentry(e);
+      await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
+    } catch (e: unknown) {
+      toasts.error((e as Error).message || 'Ledger execution failed');
     }
     isSubmitting = false;
   }
@@ -274,7 +272,7 @@
   overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
-  {executeLedger}
   executeWalletconnect={handleExecuteWalletConnect}
+  executeLedger={handleExecuteLedger}
   bind:isSubmitting
 />
