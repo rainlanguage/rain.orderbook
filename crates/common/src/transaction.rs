@@ -218,11 +218,18 @@ mod tests {
         };
 
         let err = args.try_fill_chain_id().await.unwrap_err();
-        assert!(matches!(
-            err,
-            TransactionArgsError::ReadableClient(ReadableClientError::ReadChainIdError(msg))
-            if msg.contains("Deserialization Error: EOF while parsing a value at line 1 column 0. Response: ")
-        ));
+        assert!(
+            matches!(
+                &err,
+                TransactionArgsError::ReadableClient(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&args.rpc_url).is_some()
+                    && matches!(
+                        msg.get(&args.rpc_url).unwrap(),
+                        ReadableClientError::ReadChainIdError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 
     #[tokio::test]

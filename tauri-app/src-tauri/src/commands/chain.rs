@@ -65,12 +65,19 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-1");
-        let err = get_chainid(rpc_url).await.unwrap_err();
-        assert!(matches!(
+        let err = get_chainid(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
             err,
-            CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
-            if msg.contains("Deserialization Error: invalid type")
-        ));
+                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadChainIdError(_)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
 
         server.mock(|when, then| {
             when.path("/rpc-2");
@@ -78,12 +85,20 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-2");
-        let err = get_chainid(rpc_url).await.unwrap_err();
-        assert!(matches!(
-            err,
-            CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
-            if msg.contains("Deserialization Error: EOF")
-        ));
+        let err = get_chainid(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
+                err,
+                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                    if msg.get(&rpc_url).is_some()
+                        && matches!(
+                            msg.get(&rpc_url).unwrap(),
+                            ReadableClientError::ReadChainIdError(msg)
+                            if msg.contains("Deserialization Error: EOF")
+                        )
+            ),
+            "unexpected error: {err}"
+        );
 
         server.mock(|when, then| {
             when.path("/rpc-3").body_contains("eth_chainId");
@@ -92,12 +107,20 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-3");
-        let err = get_chainid(rpc_url).await.unwrap_err();
-        assert!(matches!(
+        let err = get_chainid(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
             err,
-            CommandError::ReadableClientError(ReadableClientError::ReadChainIdError(msg))
-            if msg.contains("Deserialization Error: invalid hex character: y")
-        ));
+            CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadChainIdError(msg)
+                        if msg.contains("Deserialization Error: invalid hex character")
+                    )
+            ),
+            "unexpected error: {err}"
+        );
     }
 
     #[tokio::test]
@@ -136,12 +159,19 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-1");
-        let err = get_block_number(rpc_url).await.unwrap_err();
-        assert!(matches!(
-            err,
-            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
-            if msg.contains("Deserialization Error: invalid type: null")
-        ));
+        let err = get_block_number(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
+                err,
+                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadBlockNumberError(_)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
 
         server.mock(|when, then| {
             when.path("/rpc-2").body_contains("eth_blockNumber");
@@ -150,12 +180,19 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-2");
-        let err = get_block_number(rpc_url).await.unwrap_err();
-        assert!(matches!(
-            err,
-            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
-            if msg.contains("message: Internal error")
-        ));
+        let err = get_block_number(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
+                err,
+                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadBlockNumberError(_)
+                    )
+            ),
+            "unexpected error: {err}"
+        );
 
         server.mock(|when, then| {
             when.path("/rpc-3").body_contains("eth_blockNumber");
@@ -164,11 +201,19 @@ mod tests {
         });
 
         let rpc_url = server.url("/rpc-3");
-        let err = get_block_number(rpc_url).await.unwrap_err();
-        assert!(matches!(
-            err,
-            CommandError::ReadableClientError(ReadableClientError::ReadBlockNumberError(msg))
-            if msg.contains("Deserialization Error: invalid hex character: y")
-        ));
+        let err = get_block_number(rpc_url.clone()).await.unwrap_err();
+        assert!(
+            matches!(
+                err,
+                CommandError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadBlockNumberError(msg)
+                        if msg.contains("Deserialization Error: invalid hex character")
+                    )
+            ),
+            "unexpected error: {err}"
+        );
     }
 }

@@ -841,9 +841,12 @@ mod tests {
 
         assert!(matches!(
             err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(data)
-            )) if data.is_empty()
+            Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
+            if msg.get(server.url("/bad-rpc").as_str()).is_some()
+                && matches!(
+                    msg.get(server.url("/bad-rpc").as_str()).unwrap(),
+                    ReadableClientError::ReadCallError(_)
+                )
         ));
 
         let err = quote_target_specifier
@@ -1146,9 +1149,7 @@ mod tests {
 
         assert!(matches!(
             err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(data)
-            )) if data.is_empty()
+            Error::RpcCallError(ReadableClientError::AllProvidersFailed(_))
         ));
 
         let results = quote_targets
