@@ -12,7 +12,7 @@ homepage = "https://github.com/rainprotocol/rain.orderbook"
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
 alloy = { version = "0.1.4" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "f2e4fe4f8ba3773e4266c1911b531b0b22214cfb" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "adda117b1f43e1a4dfa012299e71f2b0e73f46f4" }
 anyhow = "1.0.70"
 async-trait = "0.1.77"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
