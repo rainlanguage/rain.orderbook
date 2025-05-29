@@ -289,7 +289,7 @@ dependencies = [
 [[package]]
 name = "alloy-ethers-typecast"
 version = "0.2.0"
-source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=f2e4fe4f8ba3773e4266c1911b531b0b22214cfb#f2e4fe4f8ba3773e4266c1911b531b0b22214cfb"
+source = "git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4#adda117b1f43e1a4dfa012299e71f2b0e73f46f4"
 dependencies = [
  "alloy",
  "async-trait",
@@ -297,7 +297,7 @@ dependencies = [
  "ethers",
  "getrandom 0.2.15",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=ab987462d37099af7bdab03d9c308032147a9081)",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -8160,24 +8160,6 @@ dependencies = [
 [[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
-source = "git+https://github.com/rainlanguage/rain.error?rev=ab987462d37099af7bdab03d9c308032147a9081#ab987462d37099af7bdab03d9c308032147a9081"
-dependencies = [
- "alloy-dyn-abi 0.7.7",
- "alloy-json-abi 0.7.7",
- "alloy-primitives 0.7.7",
- "alloy-sol-types 0.7.7",
- "ethers",
- "getrandom 0.2.15",
- "once_cell",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "rain-error-decoding"
-version = "0.1.0"
 source = "git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46#fa0cc05a8dbf0f167a2392255a8b509309e9da46"
 dependencies = [
  "alloy-dyn-abi 0.7.7",
@@ -8195,7 +8177,7 @@ dependencies = [
 
 [[package]]
 name = "rain-interpreter-eval"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "eyre",
@@ -8208,6 +8190,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "wasm-bindgen-utils",
 ]
 
 [[package]]
@@ -8296,17 +8279,17 @@ dependencies = [
 
 [[package]]
 name = "rain_interpreter_bindings"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
 ]
 
 [[package]]
 name = "rain_interpreter_dispair"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=f2e4fe4f8ba3773e4266c1911b531b0b22214cfb)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "ethers",
  "rain_interpreter_bindings",
  "serde",
@@ -8319,10 +8302,10 @@ dependencies = [
 
 [[package]]
 name = "rain_interpreter_parser"
-version = "0.1.0"
+version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=f2e4fe4f8ba3773e4266c1911b531b0b22214cfb)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "ethers",
  "rain_interpreter_bindings",
  "rain_interpreter_dispair",
@@ -8330,6 +8313,15 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "rain_interpreter_test_fixtures"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "getrandom 0.2.15",
+ "serde_json",
 ]
 
 [[package]]
@@ -8363,7 +8355,7 @@ name = "rain_orderbook_common"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=f2e4fe4f8ba3773e4266c1911b531b0b22214cfb)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "chrono",
  "csv",
  "dotrain",
@@ -8371,7 +8363,7 @@ dependencies = [
  "futures",
  "once_cell",
  "proptest",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain-metaboard-subgraph",
  "rain-metadata 0.0.2-alpha.6",
@@ -8409,11 +8401,11 @@ name = "rain_orderbook_quote"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=f2e4fe4f8ba3773e4266c1911b531b0b22214cfb)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "anyhow",
  "clap",
  "once_cell",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain_orderbook_bindings",
  "rain_orderbook_subgraph_client",
@@ -8455,7 +8447,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "getrandom 0.2.15",
- "rain_interpreter_bindings",
+ "rain_interpreter_test_fixtures",
  "serde_json",
 ]
 
@@ -10551,13 +10543,13 @@ name = "tauri-app"
 version = "0.0.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=65a68f207287d024cba934bf1e3c8b3f63d2834a)",
+ "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=adda117b1f43e1a4dfa012299e71f2b0e73f46f4)",
  "chrono",
  "dotrain",
  "futures",
  "httpmock",
  "rain-erc",
- "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=72d9577fdaf7135113847027ba951f9a43b41827)",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=fa0cc05a8dbf0f167a2392255a8b509309e9da46)",
  "rain-interpreter-eval",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
