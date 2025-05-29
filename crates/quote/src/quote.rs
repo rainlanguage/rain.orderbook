@@ -924,11 +924,14 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(url_err))
-            if url_err.to_string().contains("relative URL without a base")
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref url_err))
+                if url_err.contains("No valid providers could be created from the given URLs")
+            ),
+            "unexpected error: {err}"
+        );
 
         let result = batch_quote_targets_specifiers
             .do_quote(

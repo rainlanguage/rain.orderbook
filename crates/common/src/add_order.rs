@@ -98,7 +98,8 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = ReadableClientHttp::new_from_url(input_token.network.rpc.to_string())?;
+                let client =
+                    ReadableClientHttp::new_from_urls(vec![input_token.network.rpc.to_string()])?;
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -129,7 +130,7 @@ impl AddOrderArgs {
                 });
             } else {
                 let client =
-                    ReadableClientHttp::new_from_url(output_token.network.rpc.to_string())?;
+                    ReadableClientHttp::new_from_urls(vec![output_token.network.rpc.to_string()])?;
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
@@ -160,7 +161,7 @@ impl AddOrderArgs {
         rpc_url: String,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_url(rpc_url)
+        let client = ReadableClientHttp::new_from_urls(vec![rpc_url])
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
@@ -223,9 +224,11 @@ impl AddOrderArgs {
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
-        let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url.clone())?)
-                .await?;
+        let dispair = DISPair::from_deployer(
+            deployer,
+            ReadableClientHttp::new_from_urls(vec![rpc_url.clone()])?,
+        )
+        .await?;
 
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;

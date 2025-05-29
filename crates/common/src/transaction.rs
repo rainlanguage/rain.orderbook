@@ -69,7 +69,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_url(self.rpc_url.clone())?
+            let chain_id = ReadableClientHttp::new_from_urls(vec![self.rpc_url.clone()])?
                 .get_chainid()
                 .await?;
             let chain_id_u64: u64 = chain_id.try_into()?;

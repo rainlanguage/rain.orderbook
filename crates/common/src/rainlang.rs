@@ -213,7 +213,7 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
+                let client = ReadableClientHttp::new_from_urls(vec![rpc_url.to_string()])?;
                 client.get_block_number().await?
             }
         };

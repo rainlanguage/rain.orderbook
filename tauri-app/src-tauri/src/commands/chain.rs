@@ -3,7 +3,7 @@ use alloy_ethers_typecast::transaction::ReadableClientHttp;
 
 #[tauri::command]
 pub async fn get_chainid(rpc_url: String) -> CommandResult<u64> {
-    let chain_id = ReadableClientHttp::new_from_url(rpc_url)?
+    let chain_id = ReadableClientHttp::new_from_urls(vec![rpc_url])?
         .get_chainid()
         .await?;
 
@@ -14,7 +14,7 @@ pub async fn get_chainid(rpc_url: String) -> CommandResult<u64> {
 
 #[tauri::command]
 pub async fn get_block_number(rpc_url: String) -> CommandResult<u64> {
-    let block_number = ReadableClientHttp::new_from_url(rpc_url)?
+    let block_number = ReadableClientHttp::new_from_urls(vec![rpc_url])?
         .get_block_number()
         .await?;
     Ok(block_number)
