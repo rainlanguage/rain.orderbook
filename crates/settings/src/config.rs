@@ -386,8 +386,8 @@ mod tests {
         assert_eq!(config.networks.len(), 1);
         let mainnet_network = config.networks.get("mainnet").unwrap();
         assert_eq!(
-            mainnet_network.rpc,
-            Url::parse("https://mainnet.node").unwrap()
+            mainnet_network.rpcs,
+            vec![Url::parse("https://mainnet.node").unwrap()]
         );
         assert_eq!(mainnet_network.chain_id, 1);
         assert_eq!(mainnet_network.key, "mainnet".to_string());

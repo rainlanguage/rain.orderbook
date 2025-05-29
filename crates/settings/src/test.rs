@@ -9,7 +9,7 @@ pub fn mock_network() -> Arc<NetworkCfg> {
     Arc::new(NetworkCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
         key: "local".into(),
-        rpc: ("http://127.0.0.1:8545").parse().unwrap(),
+        rpcs: vec![("http://127.0.0.1:8545").parse().unwrap()],
         chain_id: 1,
         label: Some("Local Testnet".into()),
         network_id: Some(1),

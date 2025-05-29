@@ -99,7 +99,7 @@ impl ChainId {
                 return Ok(NetworkCfg {
                     document: document.clone(),
                     key: self.short_name,
-                    rpc: rpc.clone(),
+                    rpcs: vec![rpc.clone()],
                     chain_id: self.chain_id,
                     label: Some(self.name),
                     network_id: Some(self.network_id),
@@ -180,7 +180,7 @@ mod tests {
             Ok(NetworkCfg {
                 document: strict_yaml_arc,
                 key: "short_name".to_string(),
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                rpcs: vec![Url::parse("https://cloudflare-eth.com").unwrap()],
                 chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
                 network_id: Some(1),

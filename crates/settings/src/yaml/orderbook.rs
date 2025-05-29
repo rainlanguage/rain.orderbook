@@ -272,7 +272,10 @@ mod tests {
     const FULL_YAML: &str = r#"
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io/1
+                - https://mainnet.infura.io/2
+                - https://mainnet.infura.io/3
             chain-id: 1
             label: Ethereum Mainnet
             network-id: 1
@@ -339,8 +342,12 @@ mod tests {
         assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
         let network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
         assert_eq!(network.chain_id, 1);
         assert_eq!(network.label, Some("Ethereum Mainnet".to_string()));
@@ -348,7 +355,11 @@ mod tests {
         assert_eq!(network.currency, Some("ETH".to_string()));
         assert_eq!(
             NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
-            Url::parse("https://mainnet.infura.io").unwrap()
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         let remote_networks = ob_yaml.get_remote_networks().unwrap();
@@ -445,22 +456,35 @@ mod tests {
 
         let mut network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io/1").unwrap(),
+                Url::parse("https://mainnet.infura.io/2").unwrap(),
+                Url::parse("https://mainnet.infura.io/3").unwrap(),
+            ]
         );
 
         let network = network
-            .update_rpc("https://some-random-rpc-address.com")
+            .update_rpc(vec![
+                "https://some-random-rpc-address.com".to_string(),
+                "https://some-other-random-rpc-address.com".to_string(),
+            ])
             .unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://some-random-rpc-address.com").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://some-random-rpc-address.com").unwrap(),
+                Url::parse("https://some-other-random-rpc-address.com").unwrap(),
+            ]
         );
 
         let network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
-            network.rpc,
-            Url::parse("https://some-random-rpc-address.com").unwrap()
+            network.rpcs,
+            vec![
+                Url::parse("https://some-random-rpc-address.com").unwrap(),
+                Url::parse("https://some-other-random-rpc-address.com").unwrap(),
+            ]
         );
     }
 

@@ -1,8 +1,8 @@
 use crate::config_source::*;
 use crate::yaml::context::Context;
 use crate::yaml::{
-    default_document, optional_string, require_hash, require_string, FieldErrorKind, YamlError,
-    YamlParsableHash,
+    default_document, optional_string, require_hash, require_string, require_vec, FieldErrorKind,
+    YamlError, YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,8 +23,8 @@ pub struct NetworkCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
     pub key: String,
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub rpc: Url,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
+    pub rpcs: Vec<Url>,
     pub chain_id: u64,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub label: Option<String>,
@@ -41,7 +41,7 @@ impl NetworkCfg {
         NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
-            rpc: Url::parse("http://rpc.com").unwrap(),
+            rpcs: vec![Url::parse("http://rpc.com").unwrap()],
             chain_id: 1,
             label: None,
             network_id: None,
@@ -63,8 +63,11 @@ impl NetworkCfg {
             .map_err(ParseNetworkConfigSourceError::NetworkIdParseError)
     }
 
-    pub fn update_rpc(&mut self, rpc: &str) -> Result<Self, YamlError> {
-        let rpc = NetworkCfg::validate_rpc(rpc)?;
+    pub fn update_rpc(&mut self, rpcs: Vec<String>) -> Result<Self, YamlError> {
+        let mut rpc_vec = Vec::new();
+        for rpc in rpcs {
+            rpc_vec.push(NetworkCfg::validate_rpc(&rpc)?);
+        }
 
         let mut document = self
             .document
@@ -78,9 +81,12 @@ impl NetworkCfg {
                 if let Some(StrictYaml::Hash(ref mut network)) =
                     networks.get_mut(&StrictYaml::String(self.key.to_string()))
                 {
-                    network[&StrictYaml::String("rpc".to_string())] =
-                        StrictYaml::String(rpc.to_string());
-                    self.rpc = rpc;
+                    let rpcs = rpc_vec
+                        .iter()
+                        .map(|rpc| StrictYaml::String(rpc.to_string()))
+                        .collect();
+                    network[&StrictYaml::String("rpcs".to_string())] = StrictYaml::Array(rpcs);
+                    self.rpcs = rpc_vec;
                 } else {
                     return Err(YamlError::Field {
                         kind: FieldErrorKind::Missing(self.key.clone()),
@@ -109,7 +115,9 @@ impl NetworkCfg {
     pub fn parse_rpc(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         network_key: &str,
-    ) -> Result<Url, YamlError> {
+    ) -> Result<Vec<Url>, YamlError> {
+        let mut res = Vec::new();
+
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
@@ -120,15 +128,23 @@ impl NetworkCfg {
                 networks_hash.get(&StrictYaml::String(network_key.to_string()))
             {
                 let location = format!("network '{}'", network_key);
-                let rpc_str = require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+                let rpcs = require_vec(network_yaml, "rpcs", Some(location.clone()))?;
 
-                return NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
-                    kind: FieldErrorKind::InvalidValue {
-                        field: "rpc".to_string(),
-                        reason: e.to_string(),
-                    },
-                    location,
-                });
+                for rpc_value in rpcs {
+                    let url_str = require_string(rpc_value, None, None)?;
+                    let url = NetworkCfg::validate_rpc(&url_str)?;
+                    res.push(url);
+                }
+
+                if res.is_empty() {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::InvalidValue {
+                            field: "rpcs".to_string(),
+                            reason: "must be a non-empty array".to_string(),
+                        },
+                        location: location,
+                    });
+                }
             }
         }
 
@@ -156,17 +172,23 @@ impl YamlParsableHash for NetworkCfg {
                     let network_key = key_yaml.as_str().unwrap_or_default().to_string();
                     let location = format!("network '{}'", network_key);
 
-                    let rpc_str =
-                        require_string(network_yaml, Some("rpc"), Some(location.clone()))?;
+                    let mut rpcs = Vec::new();
+                    let rpc_vec = require_vec(network_yaml, "rpcs", Some(location.clone()))?;
 
-                    let rpc_url =
-                        NetworkCfg::validate_rpc(&rpc_str).map_err(|e| YamlError::Field {
+                    for rpc_value in rpc_vec {
+                        let rpc_str = require_string(rpc_value, None, None)?;
+                        let rpc_url = NetworkCfg::validate_rpc(&rpc_str)?;
+                        rpcs.push(rpc_url);
+                    }
+                    if rpcs.is_empty() {
+                        return Err(YamlError::Field {
                             kind: FieldErrorKind::InvalidValue {
-                                field: "rpc".to_string(),
-                                reason: e.to_string(),
+                                field: "rpcs".to_string(),
+                                reason: "must be a non-empty array".to_string(),
                             },
                             location: location.clone(),
-                        })?;
+                        });
+                    }
 
                     let chain_id_str =
                         require_string(network_yaml, Some("chain-id"), Some(location.clone()))?;
@@ -196,7 +218,7 @@ impl YamlParsableHash for NetworkCfg {
                     let network = NetworkCfg {
                         document: document.clone(),
                         key: network_key.clone(),
-                        rpc: rpc_url,
+                        rpcs,
                         chain_id,
                         label,
                         network_id,
@@ -243,7 +265,7 @@ impl Default for NetworkCfg {
 impl PartialEq for NetworkCfg {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
-            && self.rpc == other.rpc
+            && self.rpcs == other.rpcs
             && self.chain_id == other.chain_id
             && self.label == other.label
             && self.network_id == other.network_id
@@ -291,7 +313,7 @@ impl NetworkConfigSource {
         NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key,
-            rpc: self.rpc,
+            rpcs: vec![self.rpc],
             chain_id: self.chain_id,
             label: self.label,
             network_id: self.network_id,
@@ -318,7 +340,10 @@ mod tests {
 
         let network = network_src.into_network("local".into());
 
-        assert_eq!(network.rpc, Url::parse("http://127.0.0.1:8545").unwrap());
+        assert_eq!(
+            network.rpcs,
+            vec![Url::parse("http://127.0.0.1:8545").unwrap()]
+        );
         assert_eq!(network.chain_id, 1);
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.label, Some("Local Testnet".into()));
@@ -385,19 +410,24 @@ networks:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
+            - https://mainnet.infura.io/v3/1234567890
         chain-id: 1
     testnet:
-        rpc: https://testnet.infura.io
+        rpcs:
+            - https://testnet.infura.io
         chain-id: 2
 "#;
         let yaml_two = r#"
 networks:
     network-one:
-        rpc: https://network-one.infura.io
+        rpcs:
+            - https://network-one.infura.io
         chain-id: 3
     network-two:
-        rpc: https://network-two.infura.io
+        rpcs:
+            - https://network-two.infura.io
         chain-id: 4
 "#;
         let networks = NetworkCfg::parse_all_from_yaml(
@@ -408,20 +438,23 @@ networks:
 
         assert_eq!(networks.len(), 4);
         assert_eq!(
-            networks.get("mainnet").unwrap().rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            networks.get("mainnet").unwrap().rpcs,
+            vec![
+                Url::parse("https://mainnet.infura.io").unwrap(),
+                Url::parse("https://mainnet.infura.io/v3/1234567890").unwrap(),
+            ]
         );
         assert_eq!(
-            networks.get("testnet").unwrap().rpc,
-            Url::parse("https://testnet.infura.io").unwrap()
+            networks.get("testnet").unwrap().rpcs,
+            vec![Url::parse("https://testnet.infura.io").unwrap()]
         );
         assert_eq!(
-            networks.get("network-one").unwrap().rpc,
-            Url::parse("https://network-one.infura.io").unwrap()
+            networks.get("network-one").unwrap().rpcs,
+            vec![Url::parse("https://network-one.infura.io").unwrap()]
         );
         assert_eq!(
-            networks.get("network-two").unwrap().rpc,
-            Url::parse("https://network-two.infura.io").unwrap()
+            networks.get("network-two").unwrap().rpcs,
+            vec![Url::parse("https://network-two.infura.io").unwrap()]
         );
     }
 
@@ -430,16 +463,19 @@ networks:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
     testnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 2
 "#;
         let yaml_two = r#"
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
 "#;
         let error = NetworkCfg::parse_all_from_yaml(
@@ -521,10 +557,11 @@ networks:
         let yaml = r#"
 networks:
   mainnet:
-    rpc: https://rpc.com
+    rpcs:
+      - https://rpc.com
     chain-id: 1
 "#;
         let res = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
-        assert_eq!(res, Url::parse("https://rpc.com").unwrap());
+        assert_eq!(res, vec![Url::parse("https://rpc.com").unwrap()]);
     }
 }
