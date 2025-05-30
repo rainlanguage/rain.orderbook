@@ -33,6 +33,7 @@
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
   import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
@@ -155,20 +156,21 @@
     isSubmitting = false;
   }
 
-  async function executeWalletconnect() {
+  async function handleExecuteWalletConnect() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
-      toasts.success('Transaction sent successfully!');
-      await tx.wait(1);
-    } catch (e) {
-      reportErrorToSentry(e);
-      toasts.error(formatEthersTransactionError(e));
+      await executeWalletConnectOrder($globalDotrainFile.text, deployment, {
+        orderAddCalldataFn: async (dotrain, deploy) =>
+          (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
+        ethersExecuteFn: ethersExecute,
+        reportErrorToSentryFn: reportErrorToSentry,
+        formatEthersTransactionErrorFn: formatEthersTransactionError,
+        successToastFn: toasts.success,
+        errorToastFn: toasts.error,
+      });
+    } catch {
+      // error already reported by service or toast shown
     }
     isSubmitting = false;
   }
@@ -270,7 +272,7 @@
   overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
+  executeWalletconnect={handleExecuteWalletConnect}
   executeLedger={handleExecuteLedger}
-  {executeWalletconnect}
   bind:isSubmitting
 />
