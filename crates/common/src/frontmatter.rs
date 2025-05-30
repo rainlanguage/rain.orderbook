@@ -29,8 +29,8 @@ mod tests {
         assert_eq!(config.networks.len(), 2);
         let mainnet_network = config.networks.get("mainnet").unwrap();
         assert_eq!(
-            mainnet_network.rpc,
-            Url::parse("https://mainnet.infura.io").unwrap()
+            mainnet_network.rpcs,
+            vec![Url::parse("https://mainnet.infura.io").unwrap()]
         );
         assert_eq!(mainnet_network.chain_id, 1);
         assert!(mainnet_network.label.is_none());
@@ -38,8 +38,8 @@ mod tests {
         assert!(mainnet_network.currency.is_none());
         let testnet_network = config.networks.get("testnet").unwrap();
         assert_eq!(
-            testnet_network.rpc,
-            Url::parse("https://testnet.infura.io").unwrap()
+            testnet_network.rpcs,
+            vec![Url::parse("https://testnet.infura.io").unwrap()]
         );
         assert_eq!(testnet_network.chain_id, 1337);
         assert!(testnet_network.label.is_none());

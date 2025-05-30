@@ -6,6 +6,7 @@ import Provider from '@walletconnect/ethereum-provider';
 import { WalletConnectModal } from '@walletconnect/modal';
 import { reportErrorToSentry } from '$lib/services/sentry';
 import { hexToNumber, isHex, type Hex } from 'viem';
+import { getChainIdFromRpc } from '$lib/services/chain';
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 const metadata = {
@@ -73,8 +74,19 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
 
     if ($settings?.networks) {
       for (const network of Object.values($settings.networks)) {
-        rpcMap[network['chain-id']] = network.rpc;
-        chains.push(network['chain-id']);
+        const chainId = network['chain-id'];
+        // Try all RPCs until we find a working one
+        for (const rpc of network.rpcs) {
+          try {
+            // Simple test to verify RPC connection
+            await getChainIdFromRpc([rpc]);
+            rpcMap[chainId] = rpc;
+            chains.push(chainId);
+            break;
+          } catch {
+            continue;
+          }
+        }
       }
       try {
         await walletconnectProvider?.connect({

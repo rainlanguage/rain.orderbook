@@ -98,7 +98,13 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = ReadableClientHttp::new_from_url(input_token.network.rpc.to_string())?;
+                let rpcs = input_token
+                    .network
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                let client = ReadableClientHttp::new_from_urls(rpcs)?;
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -128,8 +134,13 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_url(output_token.network.rpc.to_string())?;
+                let rpcs = output_token
+                    .network
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                let client = ReadableClientHttp::new_from_urls(rpcs)?;
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
@@ -157,10 +168,10 @@ impl AddOrderArgs {
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
     async fn try_parse_rainlang(
         &self,
-        rpc_url: String,
+        rpcs: Vec<String>,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_url(rpc_url)
+        let client = ReadableClientHttp::new_from_urls(rpcs)
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
@@ -214,23 +225,26 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
+    pub async fn try_into_call(
+        &self,
+        rpcs: Vec<String>,
+    ) -> Result<addOrder2Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
+            .try_parse_rainlang(rpcs.clone(), rainlang.clone())
             .await?;
 
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
         let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url.clone())?)
+            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_urls(rpcs.clone())?)
                 .await?;
 
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;
         let post_bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
+            .try_parse_rainlang(rpcs.clone(), post_rainlang.clone())
             .await?;
 
         let post_evaluable = EvaluableV3 {
@@ -265,7 +279,7 @@ impl AddOrderArgs {
         &self,
         transaction_args: TransactionArgs,
     ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
-        let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
+        let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,
             transaction_args.orderbook_address,
@@ -295,7 +309,7 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
         Ok(self
-            .try_into_call(transaction_args.clone().rpc_url)
+            .try_into_call(transaction_args.clone().rpcs)
             .await?
             .abi_encode())
     }
@@ -317,25 +331,41 @@ impl AddOrderArgs {
                 .address()
                 .0
         };
-        let mut forker = Forker::new_with_fork(
-            NewForkedEvm {
-                fork_url: transaction_args.rpc_url.clone(),
-                fork_block_number: None,
-            },
-            None,
-            None,
-        )
-        .await?;
-        let call = self.try_into_call(transaction_args.rpc_url.clone()).await?;
-        forker
-            .alloy_call_committing(
-                Address::from(from_address),
-                transaction_args.orderbook_address,
-                call,
-                U256::ZERO,
-                true,
+
+        let mut err: Option<AddOrderArgsError> = None;
+        for rpc in transaction_args.rpcs.clone() {
+            match Forker::new_with_fork(
+                NewForkedEvm {
+                    fork_url: rpc,
+                    fork_block_number: None,
+                },
+                None,
+                None,
             )
-            .await?;
+            .await
+            {
+                Ok(mut forker) => {
+                    let call = self.try_into_call(transaction_args.clone().rpcs).await?;
+                    forker
+                        .alloy_call_committing(
+                            Address::from(from_address),
+                            transaction_args.orderbook_address,
+                            call,
+                            U256::ZERO,
+                            true,
+                        )
+                        .await?;
+                    break;
+                }
+                Err(e) => {
+                    err = Some(AddOrderArgsError::ForkCallError(e));
+                }
+            }
+        }
+        if let Some(err) = err {
+            return Err(err);
+        }
+
         Ok(())
     }
 }
@@ -423,7 +453,7 @@ price: 2e18;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse("https://some-rpc.com").unwrap(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -534,7 +564,7 @@ _ _: 0 0;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse(&local_evm.url()).unwrap(),
+            rpcs: vec![Url::parse(&local_evm.url()).unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -631,7 +661,7 @@ _ _: 0 0;
             .await
             .unwrap();
 
-        let add_order_call = result.try_into_call(local_evm.url()).await.unwrap();
+        let add_order_call = result.try_into_call(vec![local_evm.url()]).await.unwrap();
 
         assert_eq!(add_order_call.config.validInputs.len(), 2);
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
@@ -679,7 +709,7 @@ _ _: 0 0;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse("https://some-rpc.com").unwrap(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -835,7 +865,8 @@ _ _: 0 key1;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -905,7 +936,7 @@ _ _: 16 52;
             .simulate_execute(
                 TransactionArgs {
                     orderbook_address: *orderbook.address(),
-                    rpc_url: local_evm.url(),
+                    rpcs: vec![local_evm.url()],
                     ..Default::default()
                 },
                 Some(token1_holder),
@@ -927,7 +958,8 @@ _ _: 16 52;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -998,7 +1030,7 @@ _ _: 16 52;
                 TransactionArgs {
                     // send the tx to random address
                     orderbook_address: Address::random(),
-                    rpc_url: local_evm.url(),
+                    rpcs: vec![local_evm.url()],
                     ..Default::default()
                 },
                 Some(token1_holder),
@@ -1011,7 +1043,7 @@ _ _: 16 52;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse(rpc_url).unwrap(),
+            rpcs: vec![Url::parse(rpc_url).unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -1115,7 +1147,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let res = add_order_args
-            .try_parse_rainlang(local_evm.url(), rainlang)
+            .try_parse_rainlang(vec![local_evm.url()], rainlang)
             .await
             .unwrap();
         assert_eq!(
@@ -1148,7 +1180,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang("invalid-url".to_string(), rainlang)
+            .try_parse_rainlang(vec!["invalid-url".to_string()], rainlang)
             .await
             .unwrap_err();
         assert!(matches!(err, AddOrderArgsError::ReadableClientError(_)));
@@ -1156,7 +1188,8 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_try_parse_rainlang_missing_rpc_data() {
-        let deployment = get_deployment("https://testtest.com", Address::random());
+        let rpc_url = "https://testtest.com/".to_string();
+        let deployment = get_deployment(&rpc_url, Address::random());
         let dotrain = r#"
 raindex-version: 1234
 ---
@@ -1172,15 +1205,23 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang("https://testtest.com".to_string(), rainlang)
+            .try_parse_rainlang(vec![rpc_url.clone()], rainlang)
             .await
             .unwrap_err();
-        assert!(matches!(
-            err,
-            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
-                ReadableClientError::AbiDecodedErrorType(_)
-            ))
-        ));
+        assert!(
+            matches!(
+                &err,
+                AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                    ReadableClientError::AllProvidersFailed(ref msg)
+                ))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadCallError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 
     #[tokio::test]
@@ -1202,7 +1243,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang(local_evm.url(), rainlang.as_str()[..10].to_string())
+            .try_parse_rainlang(vec![local_evm.url()], rainlang.as_str()[..10].to_string())
             .await
             .unwrap_err();
         assert!(matches!(err, AddOrderArgsError::ParserError(_)));
@@ -1215,7 +1256,8 @@ _ _: 0 0;
             r#"
 networks:
     test:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1281,7 +1323,8 @@ _ _: key1 key2;
         let dotrain = r#"
 networks:
     test:
-        rpc: https://testtest.com
+        rpcs:
+            - https://testtest.com
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1324,7 +1367,8 @@ _ _: key1 key2;
             r#"
 networks:
     test:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1397,7 +1441,7 @@ _ _: 0 0;
 
         let res = add_order_args
             .get_add_order_call_parameters(TransactionArgs {
-                rpc_url: local_evm.url().to_string(),
+                rpcs: vec![local_evm.url().to_string()],
                 orderbook_address: *local_evm.orderbook.address(),
                 max_priority_fee_per_gas: Some(U256::from(100)),
                 max_fee_per_gas: Some(U256::from(200)),
@@ -1444,7 +1488,7 @@ _ _: 0 0;
             .unwrap();
         let calldata: Bytes = result
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: local_evm.url().to_string(),
+                rpcs: vec![local_evm.url().to_string()],
                 ..Default::default()
             })
             .await
@@ -1516,18 +1560,27 @@ _ _: 0 0;
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
+        let rpc_url = "https://testtest.com/".to_string();
         let err = result
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: "https://testtest.com".to_string(),
+                rpcs: vec![rpc_url.clone()],
                 ..Default::default()
             })
             .await
             .unwrap_err();
-        assert!(matches!(
-            err,
-            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
-                ReadableClientError::AbiDecodedErrorType(_)
-            ))
-        ));
+        assert!(
+            matches!(
+                &err,
+                AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                    ReadableClientError::AllProvidersFailed(msg)
+                ))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadCallError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 }

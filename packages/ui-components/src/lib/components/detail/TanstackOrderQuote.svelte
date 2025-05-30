@@ -21,13 +21,13 @@
 	import Tooltip from '../Tooltip.svelte';
 	export let id: string;
 	export let order: SgOrder;
-	export let rpcUrl: string;
+	export let rpcUrls: string[];
 	export let orderbookAddress: Hex;
 	export let handleQuoteDebugModal:
 		| undefined
 		| ((
 				order: SgOrder,
-				rpcUrl: string,
+				rpcUrls: string[],
 				orderbookAddress: Hex,
 				inputIndex: number,
 				outputIndex: number,
@@ -51,7 +51,7 @@
 	$: orderQuoteQuery = createQuery<BatchOrderQuotesResponse[]>({
 		queryKey: [id, QKEY_ORDER_QUOTE + id],
 		queryFn: async () => {
-			const result = await getOrderQuote([order], rpcUrl);
+			const result = await getOrderQuote([order], rpcUrls);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		},
@@ -138,7 +138,7 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												orderModalArg,
-												rpcUrl || '',
+												rpcUrls || [],
 												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,
@@ -173,7 +173,7 @@
 										on:click={() =>
 											handleQuoteDebugModal(
 												order,
-												rpcUrl || '',
+												rpcUrls || [],
 												orderbookAddress || '',
 												item.pair.inputIndex,
 												item.pair.outputIndex,

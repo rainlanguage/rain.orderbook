@@ -24,7 +24,8 @@ mod tests {
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -93,7 +94,7 @@ amount price: get("amount") 52;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();
@@ -137,7 +138,8 @@ amount price: get("amount") 52;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -202,7 +204,7 @@ amount price: get("amount") 52;
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(vec![local_evm.url()])
             .await
             .unwrap()
             .abi_encode();

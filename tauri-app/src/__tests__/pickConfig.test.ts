@@ -12,12 +12,12 @@ export const config: Config = {
   networks: {
     network1: {
       key: 'network1',
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       chainId: 14,
     },
     network2: {
       key: 'network2',
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       chainId: 137,
     },
   },
@@ -36,7 +36,7 @@ export const config: Config = {
       address: '0x123456',
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
       subgraph: {
@@ -51,7 +51,7 @@ export const config: Config = {
       address: '0xabcdef',
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -64,7 +64,7 @@ export const config: Config = {
       outputs: [],
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -74,7 +74,7 @@ export const config: Config = {
       outputs: [],
       network: {
         key: 'network1',
-        rpc: 'rpc-url',
+        rpcs: ['rpc-url'],
         chainId: 14,
       },
     },
@@ -88,7 +88,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -101,7 +101,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -114,7 +114,7 @@ export const config: Config = {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -132,7 +132,7 @@ export const config: Config = {
           address: '0xabcdef',
           network: {
             key: 'network1',
-            rpc: 'rpc-url',
+            rpcs: ['rpc-url'],
             chainId: 14,
           },
         },
@@ -143,7 +143,7 @@ export const config: Config = {
         outputs: [],
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -158,7 +158,7 @@ export const config: Config = {
           address: '0xabcdef',
           network: {
             key: 'network1',
-            rpc: 'rpc-url',
+            rpcs: ['rpc-url'],
             chainId: 14,
           },
         },
@@ -169,7 +169,7 @@ export const config: Config = {
         outputs: [],
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -184,11 +184,11 @@ export const config: Config = {
 export const configSource: ConfigSource = {
   networks: {
     network1: {
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       'chain-id': 14,
     },
     network2: {
-      rpc: 'rpc-url',
+      rpcs: ['rpc-url'],
       'chain-id': 137,
     },
   },
@@ -285,7 +285,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -298,7 +298,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },
@@ -311,7 +311,7 @@ test('pick scenarios', () => {
         address: '0xabcdef',
         network: {
           key: 'network1',
-          rpc: 'rpc-url',
+          rpcs: ['rpc-url'],
           chainId: 14,
         },
       },

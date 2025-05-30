@@ -140,8 +140,8 @@ pub type DeploymentCfgRef = String;
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct NetworkConfigSource {
-    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
-    pub rpc: Url,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
+    pub rpcs: Vec<Url>,
     pub chain_id: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
@@ -467,13 +467,15 @@ using-networks-from:
 
 networks:
     mainnet:
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
         currency: ETH
     testnet:
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         chain-id: 2
         label: Testnet
         network-id: 2
@@ -671,8 +673,8 @@ gui:
 
         // Asserting a few values to verify successful parsing
         assert_eq!(
-            config.clone().networks.get("mainnet").unwrap().rpc,
-            Url::parse("https://mainnet.node").unwrap()
+            config.clone().networks.get("mainnet").unwrap().rpcs,
+            vec![Url::parse("https://mainnet.node").unwrap()]
         );
         assert_eq!(
             config.networks.get("mainnet").unwrap().label,
@@ -693,16 +695,16 @@ gui:
 
         // remote networks fetched from remote source and converted and added to networks
         assert_eq!(
-            config.clone().networks.get("eth").unwrap().rpc,
-            Url::parse("https://api.mycryptoapi.com/eth").unwrap()
+            config.clone().networks.get("eth").unwrap().rpcs,
+            vec![Url::parse("https://api.mycryptoapi.com/eth").unwrap()]
         );
         assert_eq!(
             config.networks.get("eth").unwrap().label,
             Some("Ethereum Mainnet".into())
         );
         assert_eq!(
-            config.clone().networks.get("matic").unwrap().rpc,
-            Url::parse("https://polygon-rpc.com/").unwrap()
+            config.clone().networks.get("matic").unwrap().rpcs,
+            vec![Url::parse("https://polygon-rpc.com/").unwrap()]
         );
         assert_eq!(
             config.networks.get("matic").unwrap().label,
@@ -809,7 +811,7 @@ using-networks-from:
             {
                 "name": "Ethereum Mainnet",
                 "chain": "ETH",
-                "rpc": ["https://abcd.com, wss://abcd.com/ws"],
+                "rpcs": ["https://abcd.com, wss://abcd.com/ws"],
                 "nativeCurrency": {"name": "Ether","symbol": "ETH","decimals": 18},
                 "infoURL": "https://ethereum.org",
                 "shortName": "eth",
@@ -834,13 +836,15 @@ using-networks-from:
 raindex-version: &raindex 123
 networks:
     mainnet: &mainnet
-        rpc: https://mainnet.node
+        rpcs:
+            - https://mainnet.node
         chain-id: 1
         label: Mainnet
         network-id: 1
         currency: ETH
     testnet: &testnet
-        rpc: https://testnet.node
+        rpcs:
+            - https://testnet.node
         chain-id: 2
         label: Testnet
         network-id: 2
@@ -873,8 +877,8 @@ orderbooks: *orderbooks
         // Asserting a few values to verify successful parsing for config
         assert_eq!(config.clone().raindex_version.unwrap(), "123".to_string());
         assert_eq!(
-            config.clone().networks.get("mainnet").unwrap().rpc,
-            Url::parse("https://mainnet.node").unwrap()
+            config.clone().networks.get("mainnet").unwrap().rpcs,
+            vec![Url::parse("https://mainnet.node").unwrap()]
         );
         assert_eq!(
             config.networks.get("mainnet").unwrap().label,
@@ -897,8 +901,8 @@ orderbooks: *orderbooks
             "123".to_string()
         );
         assert_eq!(
-            top_config.clone().networks.get("mainnet").unwrap().rpc,
-            Url::parse("https://mainnet.node").unwrap()
+            top_config.clone().networks.get("mainnet").unwrap().rpcs,
+            vec![Url::parse("https://mainnet.node").unwrap()]
         );
         assert_eq!(
             top_config.networks.get("mainnet").unwrap().label,

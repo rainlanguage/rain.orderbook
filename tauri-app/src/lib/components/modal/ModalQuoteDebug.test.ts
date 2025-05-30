@@ -34,7 +34,7 @@ test('renders table with the correct data', async () => {
         timestampAdded: '123',
         trades: [],
       } as unknown as SgOrder,
-      rpcUrl: 'https://rpc-url.com',
+      rpcUrls: ['https://rpc-url.com'],
       inputIOIndex: 0,
       outputIOIndex: 0,
       orderbook: '0x123',
@@ -47,7 +47,7 @@ test('renders table with the correct data', async () => {
 
   await waitFor(() => {
     expect(screen.queryByTestId('modal-quote-debug-rpc-url')).toHaveTextContent(
-      'RPC: https://rpc-url.com',
+      'RPCs: https://rpc-url.com',
     );
   });
 

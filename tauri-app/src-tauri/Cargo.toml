@@ -38,7 +38,7 @@ rain_orderbook_quote = { path = "../../crates/quote" }
 rain_orderbook_subgraph_client = { path = "../../crates/subgraph" }
 rain_orderbook_app_settings = { path = "../../crates/settings" }
 rain_orderbook_bindings = { path = "../../crates/bindings" }
-alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "65a68f207287d024cba934bf1e3c8b3f63d2834a" }
+alloy-ethers-typecast = { git = "https://github.com/rainlanguage/alloy-ethers-typecast", rev = "adda117b1f43e1a4dfa012299e71f2b0e73f46f4" }
 alloy = { version = "0.1.4", features = ["full", "node-bindings"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 serde_bytes = "0.11.14"
@@ -61,7 +61,7 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-cli = "1.5"
 httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
-rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
+rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "fa0cc05a8dbf0f167a2392255a8b509309e9da46" }
 rain-interpreter-eval.path = "../../lib/rain.interpreter/crates/eval"
 strict-yaml-rust = "0.1.2"
 tempfile = "3.20.0"

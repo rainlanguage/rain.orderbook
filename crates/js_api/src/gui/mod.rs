@@ -156,10 +156,10 @@ impl DotrainOrderGui {
                 self.dotrain_order.dotrain_yaml().documents,
                 &order_key,
             )?;
-            let rpc_url =
-                NetworkCfg::parse_rpc(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
+            let rpcs =
+                NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
 
-            let erc20 = ERC20::new(rpc_url, token.address);
+            let erc20 = ERC20::new(rpcs, token.address);
             let onchain_info = erc20.token_info(None).await?;
 
             TokenInfo {
@@ -559,7 +559,8 @@ gui:
           description: Token 4 description
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -1376,7 +1377,8 @@ _ _: 0 0;
                 r#"
 networks:
     some-network:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH

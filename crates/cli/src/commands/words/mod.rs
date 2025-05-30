@@ -115,13 +115,15 @@ impl Execute for Words {
                 })
                 .ok_or(anyhow!("undefined metaboard subgraph url"))?;
 
-            AuthoringMetaV2::fetch_for_contract(
-                deployer.address,
-                deployer.network.rpc.to_string(),
-                metaboard_url,
-            )
-            .await?
-            .words
+            let rpcs = deployer
+                .network
+                .rpcs
+                .iter()
+                .map(|rpc| rpc.to_string())
+                .collect::<Vec<String>>();
+            AuthoringMetaV2::fetch_for_contract(deployer.address, rpcs, metaboard_url)
+                .await?
+                .words
         } else if let Some(scenario) = &self.source.scenario {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
@@ -251,7 +253,8 @@ mod tests {
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -312,7 +315,8 @@ metaboards:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -361,7 +365,8 @@ deployers:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -429,7 +434,8 @@ metaboards:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -496,7 +502,8 @@ orders:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -606,7 +613,8 @@ _ _: 1 2;
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH

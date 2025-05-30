@@ -467,7 +467,13 @@ impl DotrainOrder {
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let client = ReadableClient::new_from_url(deployer.network.rpc.clone().to_string())?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect();
+        let client = ReadableClient::new_from_urls(rpcs)?;
         let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }
@@ -481,12 +487,13 @@ impl DotrainOrder {
 
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
-        let rpc = &network.rpc;
+        let rpcs = network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
         let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
-        Ok(
-            AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
-                .await?,
-        )
+        Ok(AuthoringMetaV2::fetch_for_contract(address, rpcs, metaboard.to_string()).await?)
     }
 
     pub async fn get_deployer_words_for_scenario(
@@ -623,7 +630,8 @@ mod tests {
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -655,7 +663,12 @@ _ _: 0 0;
                 .orderbook_yaml()
                 .get_network("polygon")
                 .unwrap()
-                .rpc
+                .rpcs
+                .iter()
+                .map(|rpc| rpc.to_string())
+                .collect::<Vec<String>>()
+                .first()
+                .unwrap()
                 .to_string(),
             server.url("/rpc"),
         );
@@ -668,7 +681,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -717,7 +731,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -766,7 +781,8 @@ _ _: 1 2;"#
             r#"
 networks:
   polygon:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 137
     network-id: 137
     currency: MATIC
@@ -783,7 +799,8 @@ _ _: 00;
             r#"
 networks:
     mainnet:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 1
         network-id: 1
         currency: ETH"#,
@@ -801,7 +818,12 @@ networks:
                 .orderbook_yaml()
                 .get_network("mainnet")
                 .unwrap()
-                .rpc
+                .rpcs
+                .iter()
+                .map(|rpc| rpc.to_string())
+                .collect::<Vec<String>>()
+                .first()
+                .unwrap()
                 .to_string(),
             server.url("/rpc-mainnet")
         );
@@ -815,7 +837,8 @@ networks:
             r#"
 networks:
     sepolia:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -858,7 +881,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -908,7 +932,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -963,7 +988,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1018,7 +1044,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1093,7 +1120,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1294,7 +1322,8 @@ _ _: 0 0;
                 raindex-version: {GH_COMMIT_SHA}
                 networks:
                     sepolia:
-                        rpc: http://example.com
+                        rpcs:
+                            - http://example.com
                         chain-id: 0
                 deployers:
                     sepolia:
@@ -1323,7 +1352,8 @@ _ _: 0 0;
                 raindex-version: {GH_COMMIT_SHA}
                 networks:
                     sepolia:
-                        rpc: http://example.com
+                        rpcs:
+                            - http://example.com
                         chain-id: 0
                 deployers:
                     sepolia:
@@ -1352,7 +1382,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC

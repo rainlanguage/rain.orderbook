@@ -277,7 +277,8 @@ id,timestamp,timestamp_display,owner,order_active,interpreter,interpreter_store,
         let dotrain = r#"
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -329,7 +330,7 @@ _ _: 0 0;
         });
 
         let transaction_args = TransactionArgs {
-            rpc_url: rpc_server.url("/rpc"),
+            rpcs: vec![rpc_server.url("/rpc")],
             ..Default::default()
         };
 
@@ -382,7 +383,8 @@ _ _: 0 0;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -442,7 +444,7 @@ _ _: 16 52;
 
         let transaction_args = TransactionArgs {
             orderbook_address: *orderbook.address(),
-            rpc_url: local_evm.url(),
+            rpcs: vec![local_evm.url()],
             ..Default::default()
         };
 
@@ -564,7 +566,8 @@ _ _: 16 52;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -611,7 +614,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -659,7 +663,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -708,7 +713,8 @@ _ _: invalid syntax;
 raindex-version: {version}
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -731,7 +737,8 @@ _ _: 0 0;
         let dotrain = r#"
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:
@@ -755,7 +762,8 @@ _ _: 0 0;
 raindex-version: wrong-version
 networks:
     sepolia:
-        rpc: http://example.com
+        rpcs:
+            - http://example.com
         chain-id: 0
 deployers:
     sepolia:

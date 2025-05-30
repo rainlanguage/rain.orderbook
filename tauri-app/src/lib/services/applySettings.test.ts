@@ -24,7 +24,9 @@ describe('applySettings service', () => {
 
   it('should successfully apply settings and update stores', async () => {
     const settingsContent = '{ "networks": {} }';
-    const parsedConfig: ConfigSource = { networks: { mainnet: { 'chain-id': 1, rpc: 'rpc' } } };
+    const parsedConfig: ConfigSource = {
+      networks: { mainnet: { 'chain-id': 1, rpcs: ['rpc'] } },
+    };
     mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);
 
     const result = await applySettings(

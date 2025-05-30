@@ -189,7 +189,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 				signedContext: []
 			}
 		};
-		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		const result = await doQuoteTargets([target], [mockServer.url + '/rpc-url']);
 		if (!result.value) expect.fail('Expected value');
 		const expected: OrderQuoteValue = {
 			maxOutput: '0x1',
@@ -272,7 +272,7 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 			trades: [],
 			removeEvents: []
 		} as unknown as SgOrder;
-		const result = await getOrderQuote([order], mockServer.url + '/rpc-url');
+		const result = await getOrderQuote([order], [mockServer.url + '/rpc-url']);
 		if (result.error) expect.fail('Expected value');
 		const expected: BatchOrderQuotesResponse[] = [
 			{
@@ -331,18 +331,21 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		};
 
 		// should fail without gas specified
-		const doQuoteTargetsResult = await doQuoteTargets([target], mockServer.url + '/rpc-url');
+		const doQuoteTargetsResult = await doQuoteTargets([target], [mockServer.url + '/rpc-url']);
 		if (!doQuoteTargetsResult.error) expect.fail('Expected error');
-		assert.deepEqual(
-			doQuoteTargetsResult.error.msg,
-			'Execution reverted with unknown error. Data: "" '
-		);
-		assert.deepEqual(
-			doQuoteTargetsResult.error.readableMsg,
-			'Failed to get quote: Execution reverted with unknown error. Data: "" '
+		assert(doQuoteTargetsResult.error.msg.includes('all providers failed to handle the request'));
+		assert(
+			doQuoteTargetsResult.error.readableMsg.includes(
+				'Failed to get quote: all providers failed to handle the request'
+			)
 		);
 
-		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url', undefined, '123456');
+		const result = await doQuoteTargets(
+			[target],
+			[mockServer.url + '/rpc-url'],
+			undefined,
+			'123456'
+		);
 		if (result.error) expect.fail('Expected value');
 		const expected: OrderQuoteValue = {
 			maxOutput: '0x1',

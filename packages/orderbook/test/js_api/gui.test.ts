@@ -138,7 +138,8 @@ gui:
 const dotrain = `
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -214,7 +215,8 @@ _ _: 0 0;
 const dotrainWithoutVaultIds = `
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -283,7 +285,8 @@ _ _: 0 0;
 const dotrainWithoutTokens = `
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -360,7 +363,8 @@ gui:
           default: some-default-value
 networks:
     some-network:
-        rpc: http://localhost:8085/rpc-url
+        rpcs:
+            - http://localhost:8085/rpc-url
         chain-id: 999
         network-id: 999
         currency: ZZ
@@ -949,7 +953,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_7WOu07DMBSG44KKhBgQYkVCYiXEcUgwVdm4pEFCRcpQsaWpIVFcO7WdIuAhGFl5gYonYGXjeRAbQti0qbr2LOc_5z-XD1h_saGzIlLZ_ZwNcnYHdA9a67PuOKEVaehO0zi8IMy1TKzq7MODoDaC_kdWdHYhXHysXhlAyYfEZkTdc1Hs6F6mVNlyHMrThGZcqhaG2HdEmdqVoE_mITAKmNdncbit5e2CAE2wpu34l2HXBYY0rtOherVk1uf212Tvsz15f_HfvnsNdPzxmoKtOVY0ZUVGzZzzPA9MqyAI9rUMZYSPbOzRccRE1VM33c7hIz-PqpG8CPvXpz68xKNOcpV3i5NNvcNVRoQ9ICXlD0PC1A_3nQ2PVQIAAA==';
+			'H4sIAAAAAAAA_72Ov07DMBDG44KKhBgQYkVCYiXEcUhIqzIwIKryr0CqslUhMUmpa0eOS0E8BCMrL1DxBKxsPA9iQwgfbarOveX77r7z-YeMv1rRqmiuzJsuj7s8QXqGjeXJ9D5kA1rSkzIkoke5bUAtanXxjldYIf8rC1ptjGcfK3YAmIs-NTlVQyF7ALihNVUqq1oWE1HIUpGrqo9915JZZA4ke4KPETgECIdBfV3b2xmFymhJx8Evy6aNgDgoUpJiNyfm59rXaOuzNnp_cd--r0uk8vEaobUpZjJmJuAmzjmOg8ad53nbYO9OKYvDvcpu8tA87gxbSSO_8Dv0vHF0dXImfd5stS95vW3zg_1V_UaolEozphkTj33K1Q9x6jJIZQIAAA==';
 		let dotrain3: string;
 		let gui = new DotrainOrderGui();
 		beforeAll(async () => {
