@@ -79,7 +79,7 @@ pub struct Config {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub sentry: Option<bool>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub raindex_version: Option<String>,
+    pub spec_version: String,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_opt_hashmap_as_object"),
@@ -244,7 +244,7 @@ impl TryFrom<ConfigSource> for Config {
         };
 
         let config = Config {
-            raindex_version: item.raindex_version,
+            spec_version: item.spec_version,
             networks,
             subgraphs,
             metaboards,
@@ -360,7 +360,7 @@ mod tests {
         });
 
         let config_string = ConfigSource {
-            raindex_version: Some("0x123".to_string()),
+            spec_version: "1".to_string(),
             using_networks_from,
             networks,
             subgraphs,
@@ -431,8 +431,8 @@ mod tests {
         // Verify sentry
         assert!(config.sentry.unwrap());
 
-        // Verify raindex_version
-        assert_eq!(config.raindex_version, Some("0x123".to_string()));
+        // Verify spec_version
+        assert_eq!(config.spec_version, "1".to_string());
 
         // Verify accounts
         assert!(config.accounts.is_some());

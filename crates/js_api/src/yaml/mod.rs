@@ -87,9 +87,13 @@ impl From<OrderbookYamlError> for WasmEncodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const FULL_YAML: &str = r#"
+    pub fn get_yaml() -> String {
+        format!(
+            r#"
+    spec-version: {spec_version}
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
@@ -124,12 +128,14 @@ mod tests {
         admin: 0x4567890123abcdef
         user: 0x5678901234abcdef
     sentry: true
-    raindex-version: 1.0.0
-    "#;
+    "#,
+            spec_version = SpecVersion::current()
+        )
+    }
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml() {
-        let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
         let orderbook = orderbook_yaml
             .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
             .unwrap();
@@ -146,7 +152,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml_error() {
-        let orderbook_yaml = OrderbookYaml::new(vec![FULL_YAML.to_string()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
         let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
 
         assert_eq!(orderbook.is_err(), true);

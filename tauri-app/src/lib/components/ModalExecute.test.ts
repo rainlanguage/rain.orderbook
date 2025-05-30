@@ -31,6 +31,7 @@ describe('ModalExecute', () => {
     vi.clearAllMocks();
     // Reset settings store before each test
     settings.set({
+      'spec-version': '1',
       networks: {},
     });
   });
@@ -61,6 +62,7 @@ describe('ModalExecute', () => {
 
     it('should show current connected network name when network is in settings', () => {
       settings.set({
+        'spec-version': '1',
         networks: {
           mainnet: {
             'chain-id': 1,

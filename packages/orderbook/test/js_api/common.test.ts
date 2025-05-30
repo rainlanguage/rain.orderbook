@@ -9,6 +9,7 @@ describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	afterEach(() => mockServer.stop());
 
 	const dotrain = `
+spec-version: 1
 networks:
   some-network:
     rpc: http://localhost:8080/rpc-url

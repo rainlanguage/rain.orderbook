@@ -10,6 +10,7 @@ publish = false
 
 [dev-dependencies]
 tokio = { workspace = true }
+rain_orderbook_app_settings = { workspace = true }
 rain_orderbook_test_fixtures = { workspace = true }
 alloy = { workspace = true, features = ["full", "node-bindings"] }
 rain_orderbook_common = { workspace = true }

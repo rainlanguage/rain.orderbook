@@ -12,12 +12,12 @@ pub mod network;
 pub mod order;
 pub mod orderbook;
 pub mod plot_source;
-pub mod raindex_version;
 pub mod remote;
 pub mod remote_networks;
 pub mod remote_tokens;
 pub mod scenario;
 pub mod sentry;
+pub mod spec_version;
 pub mod subgraph;
 pub mod token;
 pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
