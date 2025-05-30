@@ -1,23 +1,17 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
-import { transactionStore } from '@rainlanguage/ui-components';
 import { readContract, switchChain } from '@wagmi/core';
 import type { ComponentProps } from 'svelte';
-import { getVaultWithdrawCalldata, type SgVault } from '@rainlanguage/orderbook';
+import type { SgVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
-import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 
 type ModalProps = ComponentProps<WithdrawModal>;
 
 const { mockAppKitModalStore, mockConnectedStore, mockWagmiConfigStore } = await vi.hoisted(
 	() => import('../lib/__mocks__/stores')
 );
-
-vi.mock('@rainlanguage/orderbook', () => ({
-	getVaultWithdrawCalldata: vi.fn().mockResolvedValue({ value: '0xghi' })
-}));
 
 vi.mock('../lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
@@ -45,24 +39,26 @@ describe('WithdrawModal', () => {
 		balance: BigInt(1000000000000000000) // 1 token
 	};
 
-	const defaultProps = {
+	const mockOnSubmit = vi.fn();
+
+	const defaultProps: ModalProps = {
 		open: true,
 		args: {
-			vault: mockVault,
+			vault: mockVault as unknown as SgVault,
 			chainId: 1,
 			rpcUrl: 'https://example.com',
-			onDepositOrWithdraw: vi.fn(),
-			account: '0x0000000000000000000000000000000000000000'
-		}
-	} as unknown as ModalProps;
+			account: '0x0000000000000000000000000000000000000000' as Hex,
+			subgraphUrl: 'https://default.subgraph.com'
+		},
+		onSubmit: mockOnSubmit
+	};
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.spyOn(transactionStore, 'reset');
-
 		(readContract as Mock).mockReset();
 		(switchChain as Mock).mockReset();
 		(readContract as Mock).mockResolvedValue(BigInt(1000000000000000000)); // 1 token by default
+		mockOnSubmit.mockClear();
 	});
 
 	it('renders withdraw modal correctly', () => {
@@ -71,29 +67,25 @@ describe('WithdrawModal', () => {
 		expect(screen.getByTestId('withdraw-button')).toBeInTheDocument();
 	});
 
-	it('handles withdraw transaction correctly', async () => {
-		const handleTransactionSpy = vi.spyOn(transactionStore, 'handleDepositOrWithdrawTransaction');
+	it('calls onSubmit with the amount when withdraw button is clicked', async () => {
 		render(WithdrawModal, defaultProps);
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
+		const inputAmount = '1';
+		const expectedAmountBigInt = BigInt(
+			parseFloat(inputAmount) * 10 ** Number(mockVault.token.decimals)
+		);
+
+		const amountInput = screen.getByRole('textbox');
+		await fireEvent.input(amountInput, { target: { value: inputAmount } });
 
 		const withdrawButton = screen.getByTestId('withdraw-button');
 		await fireEvent.click(withdrawButton);
 
-		expect(handleTransactionSpy).toHaveBeenCalledWith({
-			config: mockWeb3Config,
-			transactionCalldata: '0xghi',
-			action: 'withdraw',
-			chainId: 1,
-			vault: mockVault,
-			subgraphUrl: undefined
-		});
+		expect(defaultProps.onSubmit).toHaveBeenCalledWith(expectedAmountBigInt);
 	});
 
 	it('shows error when amount exceeds balance', async () => {
@@ -110,13 +102,12 @@ describe('WithdrawModal', () => {
 			}
 		});
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
+		const amountInput = screen.getByRole('textbox');
+		await fireEvent.input(amountInput, { target: { value: '1' } });
 
 		expect(screen.getByTestId('amount-error')).toHaveTextContent(
 			'Amount cannot exceed available balance.'
@@ -135,13 +126,12 @@ describe('WithdrawModal', () => {
 	it('disables continue button when amount is 0', async () => {
 		render(WithdrawModal, defaultProps);
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '0' } });
+		const amountInput = screen.getByRole('textbox');
+		await fireEvent.input(amountInput, { target: { value: '0' } });
 
 		const continueButton = screen.getByTestId('withdraw-button');
 		expect(continueButton).toBeDisabled();
@@ -161,86 +151,15 @@ describe('WithdrawModal', () => {
 			}
 		});
 
-		// Wait for balance to be displayed
 		await waitFor(() => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
+		const amountInput = screen.getByRole('textbox');
+		await fireEvent.input(amountInput, { target: { value: '1' } });
 
 		const continueButton = screen.getByTestId('withdraw-button');
 		expect(continueButton).toBeDisabled();
-	});
-
-	it('shows loading state while checking calldata', async () => {
-		vi.mocked(getVaultWithdrawCalldata).mockImplementationOnce(
-			() =>
-				new Promise((resolve) =>
-					setTimeout(() => resolve({ value: '0xghi', error: undefined }), 100)
-				)
-		);
-
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
-		});
-
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
-
-		const withdrawButton = screen.getByTestId('withdraw-button');
-		await fireEvent.click(withdrawButton);
-
-		await waitFor(() => {
-			const button = screen.getByTestId('withdraw-button');
-			expect(button).toHaveTextContent('Checking...');
-		});
-	});
-
-	it('handles failed calldata fetch', async () => {
-		vi.mocked(getVaultWithdrawCalldata).mockRejectedValueOnce(new Error('Failed to fetch'));
-
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
-		});
-
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
-
-		const withdrawButton = screen.getByTestId('withdraw-button');
-		await fireEvent.click(withdrawButton);
-
-		await waitFor(() => {
-			expect(screen.getByText('Failed to get calldata.')).toBeInTheDocument();
-		});
-	});
-
-	it('handles error in calldata getter', async () => {
-		const errorMessage = 'Failed to fetch';
-		vi.mocked(getVaultWithdrawCalldata).mockResolvedValue({
-			value: undefined,
-			error: { msg: errorMessage, readableMsg: errorMessage }
-		});
-
-		render(WithdrawModal, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
-		});
-
-		const input = screen.getByRole('textbox');
-		await fireEvent.input(input, { target: { value: '1' } });
-
-		const withdrawButton = screen.getByTestId('withdraw-button');
-		await fireEvent.click(withdrawButton);
-
-		await waitFor(() => {
-			expect(screen.getByText(errorMessage)).toBeInTheDocument();
-		});
 	});
 
 	it('handles zero vault balance correctly', async () => {
@@ -311,9 +230,6 @@ describe('WithdrawModal', () => {
 
 		const cancelButton = screen.getByText('Cancel');
 		await fireEvent.click(cancelButton);
-		await waitFor(() => {
-			expect(transactionStore.reset).not.toHaveBeenCalled();
-		});
 	});
 
 	it('shows the WalletConnect button when account is not provided', async () => {
