@@ -213,7 +213,7 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
+                let client = ReadableClientHttp::new_from_urls(vec![rpc_url.to_string()])?;
                 client.get_block_number().await?
             }
         };
@@ -345,11 +345,17 @@ _ _: 1 2;
                 .await
                 .unwrap_err();
 
-            assert!(matches!(
-                err,
-                ForkParseError::ReadableClientError(ReadableClientError::ReadBlockNumberError(err_msg))
-                if err_msg == "Deserialization Error: EOF while parsing a value at line 1 column 0. Response: "
-            ));
+            assert!(
+                matches!(&err,
+                    ForkParseError::ReadableClientError(ReadableClientError::AllProvidersFailed(ref msg))
+                    if msg.get(&rpc_url).is_some()
+                        && matches!(
+                            msg.get(&rpc_url).unwrap(),
+                            ReadableClientError::ReadBlockNumberError(_)
+                        )
+                ),
+                "unexpected error variant: {err:?}"
+            );
         }
     }
 }

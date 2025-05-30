@@ -841,9 +841,12 @@ mod tests {
 
         assert!(matches!(
             err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(data)
-            )) if data.is_empty()
+            Error::RpcCallError(ReadableClientError::AllProvidersFailed(ref msg))
+            if msg.get(server.url("/bad-rpc").as_str()).is_some()
+                && matches!(
+                    msg.get(server.url("/bad-rpc").as_str()).unwrap(),
+                    ReadableClientError::ReadCallError(_)
+                )
         ));
 
         let err = quote_target_specifier
@@ -921,11 +924,14 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(url_err))
-            if url_err.to_string().contains("relative URL without a base")
-        ));
+        assert!(
+            matches!(
+                err,
+                Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(ref url_err))
+                if url_err.contains("No valid providers could be created from the given URLs")
+            ),
+            "unexpected error: {err}"
+        );
 
         let result = batch_quote_targets_specifiers
             .do_quote(
@@ -1146,9 +1152,7 @@ mod tests {
 
         assert!(matches!(
             err,
-            Error::RpcCallError(ReadableClientError::AbiDecodedErrorType(
-                AbiDecodedErrorType::Unknown(data)
-            )) if data.is_empty()
+            Error::RpcCallError(ReadableClientError::AllProvidersFailed(_))
         ));
 
         let results = quote_targets

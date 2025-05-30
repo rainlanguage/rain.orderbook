@@ -333,13 +333,11 @@ describe('Rain Orderbook Quote Package Bindgen Tests', async function () {
 		// should fail without gas specified
 		const doQuoteTargetsResult = await doQuoteTargets([target], mockServer.url + '/rpc-url');
 		if (!doQuoteTargetsResult.error) expect.fail('Expected error');
-		assert.deepEqual(
-			doQuoteTargetsResult.error.msg,
-			'Execution reverted with unknown error. Data: "" '
-		);
-		assert.deepEqual(
-			doQuoteTargetsResult.error.readableMsg,
-			'Failed to get quote: Execution reverted with unknown error. Data: "" '
+		assert(doQuoteTargetsResult.error.msg.includes('all providers failed to handle the request'));
+		assert(
+			doQuoteTargetsResult.error.readableMsg.includes(
+				'Failed to get quote: all providers failed to handle the request'
+			)
 		);
 
 		const result = await doQuoteTargets([target], mockServer.url + '/rpc-url', undefined, '123456');

@@ -60,7 +60,8 @@ impl DepositArgs {
         owner: Address,
         transaction_args: TransactionArgs,
     ) -> Result<U256, DepositError> {
-        let readable_client = ReadableClient::new_from_url(transaction_args.rpc_url.clone())?;
+        let readable_client =
+            ReadableClient::new_from_urls(vec![transaction_args.rpc_url.clone()])?;
         let parameters = ReadContractParametersBuilder::<allowanceCall>::default()
             .address(self.token)
             .call(allowanceCall {

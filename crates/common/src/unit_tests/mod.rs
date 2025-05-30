@@ -330,10 +330,14 @@ impl TestRunner {
             .clone();
 
         // Fetch the latest block number
-        let block_number =
-            ReadableClientHttp::new_from_url(self.test_setup.deployer.network.rpc.to_string())?
-                .get_block_number()
-                .await?;
+        let block_number = ReadableClientHttp::new_from_urls(vec![self
+            .test_setup
+            .deployer
+            .network
+            .rpc
+            .to_string()])?
+        .get_block_number()
+        .await?;
         let blocks = self
             .settings
             .test_config

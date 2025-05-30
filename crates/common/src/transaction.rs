@@ -69,7 +69,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_url(self.rpc_url.clone())?
+            let chain_id = ReadableClientHttp::new_from_urls(vec![self.rpc_url.clone()])?
                 .get_chainid()
                 .await?;
             let chain_id_u64: u64 = chain_id.try_into()?;
@@ -218,11 +218,18 @@ mod tests {
         };
 
         let err = args.try_fill_chain_id().await.unwrap_err();
-        assert!(matches!(
-            err,
-            TransactionArgsError::ReadableClient(ReadableClientError::ReadChainIdError(msg))
-            if msg.contains("Deserialization Error: EOF while parsing a value at line 1 column 0. Response: ")
-        ));
+        assert!(
+            matches!(
+                &err,
+                TransactionArgsError::ReadableClient(ReadableClientError::AllProvidersFailed(ref msg))
+                if msg.get(&args.rpc_url).is_some()
+                    && matches!(
+                        msg.get(&args.rpc_url).unwrap(),
+                        ReadableClientError::ReadChainIdError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 
     #[tokio::test]
