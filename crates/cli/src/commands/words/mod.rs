@@ -253,7 +253,8 @@ mod tests {
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -314,7 +315,8 @@ metaboards:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -363,7 +365,8 @@ deployers:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -431,7 +434,8 @@ metaboards:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -498,7 +502,8 @@ orders:
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -608,7 +613,8 @@ _ _: 1 2;
             "
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH

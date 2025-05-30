@@ -5,11 +5,11 @@ use rain_orderbook_common::rainlang::parse_rainlang_on_fork;
 #[tauri::command]
 pub async fn parse_dotrain(
     rainlang: &str,
-    rpc_url: &str,
+    rpcs: Vec<String>,
     block_number: u64,
     deployer: Address,
 ) -> CommandResult<Bytes> {
-    Ok(parse_rainlang_on_fork(rainlang, rpc_url, Some(block_number), deployer).await?)
+    Ok(parse_rainlang_on_fork(rainlang, &rpcs, Some(block_number), deployer).await?)
 }
 
 #[cfg(test)]
@@ -43,7 +43,7 @@ _ _: 0 0;
         "
         );
 
-        let bytes = parse_dotrain(&rainlang, &rpc_url, block_number, deployer)
+        let bytes = parse_dotrain(&rainlang, vec![rpc_url], block_number, deployer)
             .await
             .unwrap();
 
@@ -60,9 +60,14 @@ _ _: 0 0;
         let block_number = local_evm.provider.get_block_number().await.unwrap();
 
         let invalid_rainlang = "invalid";
-        let err = parse_dotrain(invalid_rainlang, &rpc_url, block_number, deployer)
-            .await
-            .unwrap_err();
+        let err = parse_dotrain(
+            invalid_rainlang,
+            vec![rpc_url.clone()],
+            block_number,
+            deployer,
+        )
+        .await
+        .unwrap_err();
 
         assert!(matches!(
             err,
@@ -83,7 +88,7 @@ _ _: 0 0;
 _ _: 1 2;
 ";
 
-        let err = parse_dotrain(invalid_rainlang, &rpc_url, block_number, deployer)
+        let err = parse_dotrain(invalid_rainlang, vec![rpc_url], block_number, deployer)
             .await
             .unwrap_err();
 
@@ -116,7 +121,7 @@ _ _: 0 0;
         "
         );
 
-        let err = parse_dotrain(&rainlang, &rpc_url, block_number, deployer)
+        let err = parse_dotrain(&rainlang, vec![rpc_url], block_number, deployer)
             .await
             .unwrap_err();
 

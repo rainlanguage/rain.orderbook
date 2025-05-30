@@ -11,7 +11,8 @@ describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
 networks:
   some-network:
-    rpc: http://localhost:8080/rpc-url
+    rpcs:
+      - http://localhost:8080/rpc-url
     chain-id: 123
     network-id: 123
     currency: ETH

@@ -630,7 +630,8 @@ mod tests {
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -680,7 +681,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -729,7 +731,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -778,7 +781,8 @@ _ _: 1 2;"#
             r#"
 networks:
   polygon:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 137
     network-id: 137
     currency: MATIC
@@ -795,7 +799,8 @@ _ _: 00;
             r#"
 networks:
     mainnet:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 1
         network-id: 1
         currency: ETH"#,
@@ -832,7 +837,8 @@ networks:
             r#"
 networks:
     sepolia:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 0
 deployers:
     sepolia:
@@ -875,7 +881,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -925,7 +932,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -980,7 +988,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1035,7 +1044,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1110,7 +1120,8 @@ _ _: 0 0;
             r#"
     networks:
         sepolia:
-            rpc: {rpc_url}
+            rpcs:
+                - {rpc_url}
             chain-id: 0
     deployers:
         sepolia:
@@ -1311,7 +1322,8 @@ _ _: 0 0;
                 raindex-version: {GH_COMMIT_SHA}
                 networks:
                     sepolia:
-                        rpc: http://example.com
+                        rpcs:
+                            - http://example.com
                         chain-id: 0
                 deployers:
                     sepolia:
@@ -1340,7 +1352,8 @@ _ _: 0 0;
                 raindex-version: {GH_COMMIT_SHA}
                 networks:
                     sepolia:
-                        rpc: http://example.com
+                        rpcs:
+                            - http://example.com
                         chain-id: 0
                 deployers:
                     sepolia:
@@ -1369,7 +1382,8 @@ _ _: 0 0;
             r#"
 networks:
     polygon:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC

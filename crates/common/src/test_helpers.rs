@@ -2,10 +2,12 @@ pub const TEST_DOTRAIN: &str = r#"
 raindex-version: 123
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+            - https://mainnet.infura.io
         chain-id: 1
     testnet:
-        rpc: https://testnet.infura.io
+        rpcs:
+            - https://testnet.infura.io
         chain-id: 1337
 subgraphs:
     mainnet: https://mainnet-subgraph.com

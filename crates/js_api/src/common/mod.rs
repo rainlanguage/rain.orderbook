@@ -93,23 +93,14 @@ pub async fn get_add_order_calldata(
         .iter()
         .map(|rpc| rpc.to_string())
         .collect::<Vec<String>>();
-
-    let mut last_err = None;
-    for rpc_url in &rpcs {
-        let tx_args = TransactionArgs {
-            rpc_url: rpc_url.clone(),
+    let calldata = add_order_args
+        .get_add_order_calldata(TransactionArgs {
+            rpcs,
             ..Default::default()
-        };
-        match add_order_args.get_add_order_calldata(tx_args).await {
-            Ok(calldata) => {
-                return Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)));
-            }
-            Err(e) => {
-                last_err = Some(Error::AddOrderArgsError(e));
-            }
-        }
-    }
-    Err(last_err.expect("At least one RPC should have been tried"))
+        })
+        .await?;
+
+    Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
 /// Get removeOrder() calldata for a given order
@@ -215,7 +206,8 @@ mod tests {
                 r#"
 networks:
   mainnet:
-    rpc: {rpc_url}
+    rpcs:
+      - {rpc_url}
     chain-id: 1
 subgraphs:
   mainnet: https://mainnet-subgraph.com
@@ -363,7 +355,7 @@ _ _: 0 0;
                 ]),
             }
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: rpc_server.url("/rpc"),
+                rpcs: vec![rpc_server.url("/rpc")],
                 ..Default::default()
             })
             .await

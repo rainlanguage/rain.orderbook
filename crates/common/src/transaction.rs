@@ -45,7 +45,7 @@ pub struct TransactionArgs {
     pub orderbook_address: Address,
     pub derivation_index: Option<usize>,
     pub chain_id: Option<u64>,
-    pub rpc_url: String,
+    pub rpcs: Vec<String>,
     pub max_priority_fee_per_gas: Option<U256>,
     pub max_fee_per_gas: Option<U256>,
     pub gas_fee_speed: Option<GasFeeSpeed>,
@@ -69,7 +69,7 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_urls(vec![self.rpc_url.clone()])?
+            let chain_id = ReadableClientHttp::new_from_urls(self.rpcs.clone())?
                 .get_chainid()
                 .await?;
             let chain_id_u64: u64 = chain_id.try_into()?;
@@ -84,16 +84,27 @@ impl TransactionArgs {
     pub async fn try_into_ledger_client(self) -> Result<LedgerClient, TransactionArgsError> {
         match self.chain_id {
             Some(chain_id) => {
-                let client = LedgerClient::new(
-                    self.derivation_index
-                        .map(alloy_ethers_typecast::client::HDPath::LedgerLive),
-                    chain_id,
-                    self.rpc_url.clone(),
-                    self.gas_fee_speed,
-                )
-                .await?;
-
-                Ok(client)
+                let mut err: Option<TransactionArgsError> = None;
+                for rpc in self.rpcs.clone() {
+                    let client = LedgerClient::new(
+                        self.derivation_index
+                            .map(alloy_ethers_typecast::client::HDPath::LedgerLive),
+                        chain_id,
+                        rpc,
+                        self.gas_fee_speed.clone(),
+                    )
+                    .await;
+                    match client {
+                        Ok(client) => {
+                            return Ok(client);
+                        }
+                        Err(e) => {
+                            err = Some(TransactionArgsError::LedgerClient(e));
+                        }
+                    }
+                }
+                // if we are here, we have tried all rpcs and failed
+                Err(err.unwrap())
             }
             None => Err(TransactionArgsError::ChainIdNone),
         }
@@ -114,7 +125,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
+            rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
             gas_fee_speed: None,
@@ -139,7 +150,7 @@ mod tests {
             orderbook_address: address!("123abcdef24Ca5003905aA834De7156C68b2E1d0"),
             derivation_index: Some(0),
             chain_id: Some(1),
-            rpc_url: "https://mainnet.infura.io/v3/your-api-key".to_string(),
+            rpcs: vec!["https://mainnet.infura.io/v3/your-api-key".to_string()],
             max_priority_fee_per_gas: Some(U256::from(100)),
             max_fee_per_gas: Some(U256::from(200)),
             gas_fee_speed: Some(GasFeeSpeed::Fast),
@@ -183,7 +194,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpcs: vec![server.url("/rpc")],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
             gas_fee_speed: None,
@@ -193,7 +204,7 @@ mod tests {
         assert_eq!(args.chain_id, Some(1));
 
         // the URL is invalid but it shouldn't be used now that chain ID is set
-        args.rpc_url = "".to_string();
+        args.rpcs = vec!["".to_string()];
         args.try_fill_chain_id().await.unwrap();
         assert_eq!(args.chain_id, Some(1));
     }
@@ -211,7 +222,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpcs: vec![server.url("/rpc")],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
             gas_fee_speed: None,
@@ -222,9 +233,9 @@ mod tests {
             matches!(
                 &err,
                 TransactionArgsError::ReadableClient(ReadableClientError::AllProvidersFailed(ref msg))
-                if msg.get(&args.rpc_url).is_some()
+                if msg.get(&args.rpcs[0]).is_some()
                     && matches!(
-                        msg.get(&args.rpc_url).unwrap(),
+                        msg.get(&args.rpcs[0]).unwrap(),
                         ReadableClientError::ReadChainIdError(_)
                     )
             ),
@@ -246,7 +257,7 @@ mod tests {
             orderbook_address: Address::ZERO,
             derivation_index: None,
             chain_id: None,
-            rpc_url: server.url("/rpc"),
+            rpcs: vec![server.url("/rpc")],
             max_priority_fee_per_gas: None,
             max_fee_per_gas: None,
             gas_fee_speed: None,
@@ -256,7 +267,7 @@ mod tests {
         assert!(matches!(err, Err(TransactionArgsError::ChainIdNone)));
 
         args.try_fill_chain_id().await.unwrap();
-        args.rpc_url = "".to_string();
+        args.rpcs = vec!["".to_string()];
         let result = args.try_into_ledger_client().await;
         // The error is different based on whether you have a Ledger plugged in,
         // hence no pattern matching to avoid breaking the test for devs

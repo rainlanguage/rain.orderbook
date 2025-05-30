@@ -229,8 +229,8 @@ describe('Network and Orderbook Management', () => {
     const multiNetworkConfig = {
       ...mockConfigSource,
       networks: {
-        mainnet: { rpc: 'mainnet.rpc', 'chain-id': 1 },
-        testnet: { rpc: 'testnet.rpc', 'chain-id': 5 },
+        mainnet: { rpcs: ['mainnet.rpc'], 'chain-id': 1 },
+        testnet: { rpcs: ['testnet.rpc'], 'chain-id': 5 },
       },
       orderbooks: {
         orderbook1: {

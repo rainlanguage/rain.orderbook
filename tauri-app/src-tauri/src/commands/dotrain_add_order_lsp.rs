@@ -28,13 +28,13 @@ pub fn call_lsp_completion(
 #[tauri::command]
 pub async fn call_lsp_problems(
     text_document: TextDocumentItem,
-    rpc_url: &str,
+    rpcs: Vec<String>,
     block_number: Option<u64>,
     bindings: HashMap<String, String>,
     deployer: Option<Address>,
 ) -> CommandResult<Vec<Problem>> {
     Ok(DotrainAddOrderLsp::new(text_document, bindings)
-        .problems(rpc_url, block_number, deployer)
+        .problems(&rpcs, block_number, deployer)
         .await)
 }
 
@@ -68,7 +68,7 @@ _ _: 0 0;
 "#;
         let problems = call_lsp_problems(
             get_text_document(rainlang),
-            &local_evm.url(),
+            vec![local_evm.url()],
             None,
             HashMap::new(),
             Some(*local_evm.deployer.address()),
@@ -164,7 +164,7 @@ _ _: 0 0;
 
         let problems = call_lsp_problems(
             get_text_document(dotrain),
-            &local_evm.url(),
+            vec![local_evm.url()],
             None,
             HashMap::from([
                 (

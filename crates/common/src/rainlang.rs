@@ -205,7 +205,7 @@ mod fork_parse {
     /// returns abi encoded expression config on Ok variant
     pub async fn parse_rainlang_on_fork(
         rainlang: &str,
-        rpc_url: &str,
+        rpcs: &Vec<String>,
         block_number: Option<u64>,
         deployer: Address,
     ) -> Result<Bytes, ForkParseError> {
@@ -213,18 +213,30 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_urls(vec![rpc_url.to_string()])?;
+                let client = ReadableClientHttp::new_from_urls(rpcs.clone())?;
                 client.get_block_number().await?
             }
         };
 
-        let args = NewForkedEvm {
-            fork_url: rpc_url.to_owned(),
-            fork_block_number: Some(block_number_val),
-        };
-
         let mut forker = FORKER.lock().await;
-        forker.add_or_select(args, None).await?;
+        let mut err: Option<ForkParseError> = None;
+        for rpc in rpcs {
+            let args = NewForkedEvm {
+                fork_url: rpc.to_owned(),
+                fork_block_number: Some(block_number_val),
+            };
+            match forker.add_or_select(args, None).await {
+                Ok(_) => {
+                    break;
+                }
+                Err(e) => {
+                    err = Some(ForkParseError::ForkerError(e));
+                }
+            }
+        }
+        if let Some(err) = err {
+            return Err(err);
+        };
 
         let parse_args = ForkParseArgs {
             rainlang_string: rainlang.to_owned(),
@@ -272,7 +284,7 @@ _ _: 1 2;
             )
             .unwrap();
 
-            let bytes = parse_rainlang_on_fork(&rainlang, &rpc_url, None, deployer)
+            let bytes = parse_rainlang_on_fork(&rainlang, &vec![rpc_url], None, deployer)
                 .await
                 .unwrap();
 
@@ -299,7 +311,7 @@ _ _: 0 0;
 _ _: 1 2;
 ";
 
-            let err = parse_rainlang_on_fork(dotrain, &rpc_url, None, deployer)
+            let err = parse_rainlang_on_fork(dotrain, &vec![rpc_url], None, deployer)
                 .await
                 .unwrap_err();
 
@@ -341,7 +353,7 @@ _ _: 1 2;
             )
             .unwrap();
 
-            let err = parse_rainlang_on_fork(&rainlang, &rpc_url, None, deployer)
+            let err = parse_rainlang_on_fork(&rainlang, &vec![rpc_url.clone()], None, deployer)
                 .await
                 .unwrap_err();
 

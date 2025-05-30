@@ -75,7 +75,7 @@ impl TryFrom<ChainId> for NetworkConfigSource {
             if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
                 return Ok(NetworkConfigSource {
                     chain_id: value.chain_id,
-                    rpc: rpc.clone(),
+                    rpcs: vec![rpc.clone()],
                     network_id: Some(value.network_id),
                     currency: Some(value.native_currency.symbol),
                     label: Some(value.name),
@@ -164,7 +164,7 @@ mod tests {
             network_cfg_source,
             Ok(NetworkConfigSource {
                 chain_id: 1,
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
+                rpcs: vec![Url::parse("https://cloudflare-eth.com").unwrap()],
                 network_id: Some(1),
                 currency: Some("ETH".to_string()),
                 label: Some("Ethereum Mainnet".to_string()),

@@ -113,7 +113,8 @@ mod tests {
         "
 networks:
     some-network:
-        rpc: https://some-rpc.com
+        rpcs:
+            - https://some-rpc.com
         chain-id: 123
         network-id: 123
         currency: ETH

@@ -47,7 +47,7 @@ impl Execute for AddOrderCalldata {
             .get_deployment(&self.deployment)?;
 
         let add_order_args =
-            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await;
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await?;
 
         let rpcs = config_deployment
             .scenario
@@ -57,10 +57,7 @@ impl Execute for AddOrderCalldata {
             .iter()
             .map(|rpc| rpc.to_string())
             .collect::<Vec<String>>();
-        let add_order_calldata = add_order_args?
-            .try_into_call(rpcs[0].clone())
-            .await?
-            .abi_encode();
+        let add_order_calldata = add_order_args.try_into_call(rpcs).await?.abi_encode();
 
         output(&None, self.encoding.clone(), &add_order_calldata)?;
 
@@ -192,7 +189,8 @@ mod tests {
 raindex-version: {raindex_version}
 networks:
     some-network:
-        rpc: {}
+        rpcs:
+            - {}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -299,7 +297,8 @@ _ _: 0 0;
         let temp_dotrain_content = "
 networks:
     some-network:
-        rpc: http://localhost:8545
+        rpcs:
+            - http://localhost:8545
         chain-id: 1
         network-id: 1
         currency: ETH
@@ -401,7 +400,8 @@ test: test
 raindex-version: 1234
 networks:
   some-network:
-    rpc: {}
+    rpcs:
+        - {}
     chain-id: 1
 subgraphs:
   some-subgraph: https://www.some-subgraph.com
@@ -459,7 +459,8 @@ tokens:
 raindex-version: 1234
 networks:
     some-network:
-        rpc: http://localhost:12345/nonexistent_rpc
+        rpcs:
+            - http://localhost:12345/nonexistent_rpc
         chain-id: 123
         network-id: 123
         currency: ETH

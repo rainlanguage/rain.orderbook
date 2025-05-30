@@ -386,7 +386,8 @@ test: test
         let yaml = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 test: test
 "#;
@@ -406,7 +407,8 @@ test: test
         let yaml = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
@@ -428,7 +430,8 @@ test: test
         let yaml = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
@@ -451,7 +454,8 @@ orderbooks:
         let yaml = r#"
 networks:
     SomeNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
@@ -476,7 +480,8 @@ orderbooks:
         let yaml = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     SomeSubgraph: https://subgraph.com
@@ -505,7 +510,8 @@ orderbooks:
         let yaml_one = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
@@ -545,7 +551,8 @@ orderbooks:
         let yaml_one = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 subgraphs:
     TestSubgraph: https://subgraph.com
@@ -578,7 +585,8 @@ orderbooks:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 orderbooks:
     mainnet:
@@ -593,7 +601,8 @@ orderbooks:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 orderbooks:
     mainnet:

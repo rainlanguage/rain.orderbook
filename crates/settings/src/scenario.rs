@@ -571,7 +571,7 @@ mod tests {
         networks.insert(
             "mainnet".to_string(),
             NetworkConfigSource {
-                rpc: Url::parse("https://mainnet.node").unwrap(),
+                rpcs: vec![Url::parse("https://mainnet.node").unwrap()],
                 chain_id: 1,
                 label: Some("Ethereum Mainnet".to_string()),
                 network_id: Some(1),
@@ -723,7 +723,8 @@ mod tests {
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -747,7 +748,8 @@ test: test
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -778,7 +780,8 @@ scenarios:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -809,7 +812,8 @@ scenarios:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -838,10 +842,12 @@ scenarios:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
     testnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 2
 deployers:
     mainnet:
@@ -877,7 +883,8 @@ scenarios:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -959,7 +966,8 @@ scenarios:
         let yaml_one = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -997,7 +1005,8 @@ scenarios:
         let prefix = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:

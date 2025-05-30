@@ -60,7 +60,7 @@ impl DotrainAddOrderLsp {
     #[cfg(not(target_family = "wasm"))]
     pub async fn problems(
         &self,
-        rpc_url: &str,
+        rpcs: &Vec<String>,
         block_number: Option<u64>,
         deployer: Option<Address>,
     ) -> Vec<Problem> {
@@ -100,7 +100,7 @@ impl DotrainAddOrderLsp {
 
             if let Some(deployer_address) = deployer {
                 if let Err(e) =
-                    parse_rainlang_on_fork(&rainlang, rpc_url, block_number, deployer_address).await
+                    parse_rainlang_on_fork(&rainlang, rpcs, block_number, deployer_address).await
                 {
                     bindings_problems.push(Problem {
                         msg: e.to_string(),
@@ -230,7 +230,11 @@ _ _: 0 0;
 "#;
         let lsp = DotrainAddOrderLsp::new(get_text_document(rainlang), HashMap::new());
         let problems = lsp
-            .problems(&local_evm.url(), None, Some(*local_evm.deployer.address()))
+            .problems(
+                &vec![local_evm.url()],
+                None,
+                Some(*local_evm.deployer.address()),
+            )
             .await;
         assert_eq!(problems.len(), 0);
     }
@@ -238,7 +242,9 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_problems() {
         let lsp = DotrainAddOrderLsp::new(get_text_document(TEXT), HashMap::new());
-        let problems = lsp.problems("https://some-rpc-url.com", None, None).await;
+        let problems = lsp
+            .problems(&vec!["https://some-rpc-url.com".to_string()], None, None)
+            .await;
 
         let expected_msgs = [
             "invalid reference to binding: raindex-subparser, only literal bindings can be referenced",

@@ -168,10 +168,10 @@ impl AddOrderArgs {
     /// Read parser address from deployer contract, then call parser to parse rainlang into bytecode and constants
     async fn try_parse_rainlang(
         &self,
-        rpc_url: String,
+        rpcs: Vec<String>,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_urls(vec![rpc_url])
+        let client = ReadableClientHttp::new_from_urls(rpcs)
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
@@ -225,25 +225,26 @@ impl AddOrderArgs {
     }
 
     /// Generate an addOrder call from given dotrain
-    pub async fn try_into_call(&self, rpc_url: String) -> Result<addOrder2Call, AddOrderArgsError> {
+    pub async fn try_into_call(
+        &self,
+        rpcs: Vec<String>,
+    ) -> Result<addOrder2Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), rainlang.clone())
+            .try_parse_rainlang(rpcs.clone(), rainlang.clone())
             .await?;
 
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
-        let dispair = DISPair::from_deployer(
-            deployer,
-            ReadableClientHttp::new_from_urls(vec![rpc_url.clone()])?,
-        )
-        .await?;
+        let dispair =
+            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_urls(rpcs.clone())?)
+                .await?;
 
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;
         let post_bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
+            .try_parse_rainlang(rpcs.clone(), post_rainlang.clone())
             .await?;
 
         let post_evaluable = EvaluableV3 {
@@ -278,7 +279,7 @@ impl AddOrderArgs {
         &self,
         transaction_args: TransactionArgs,
     ) -> Result<WriteContractParameters<addOrder2Call>, AddOrderArgsError> {
-        let add_order_call = self.try_into_call(transaction_args.clone().rpc_url).await?;
+        let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,
             transaction_args.orderbook_address,
@@ -308,7 +309,7 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
         Ok(self
-            .try_into_call(transaction_args.clone().rpc_url)
+            .try_into_call(transaction_args.clone().rpcs)
             .await?
             .abi_encode())
     }
@@ -330,25 +331,41 @@ impl AddOrderArgs {
                 .address()
                 .0
         };
-        let mut forker = Forker::new_with_fork(
-            NewForkedEvm {
-                fork_url: transaction_args.rpc_url.clone(),
-                fork_block_number: None,
-            },
-            None,
-            None,
-        )
-        .await?;
-        let call = self.try_into_call(transaction_args.rpc_url.clone()).await?;
-        forker
-            .alloy_call_committing(
-                Address::from(from_address),
-                transaction_args.orderbook_address,
-                call,
-                U256::ZERO,
-                true,
+
+        let mut err: Option<AddOrderArgsError> = None;
+        for rpc in transaction_args.rpcs.clone() {
+            match Forker::new_with_fork(
+                NewForkedEvm {
+                    fork_url: rpc,
+                    fork_block_number: None,
+                },
+                None,
+                None,
             )
-            .await?;
+            .await
+            {
+                Ok(mut forker) => {
+                    let call = self.try_into_call(transaction_args.clone().rpcs).await?;
+                    forker
+                        .alloy_call_committing(
+                            Address::from(from_address),
+                            transaction_args.orderbook_address,
+                            call,
+                            U256::ZERO,
+                            true,
+                        )
+                        .await?;
+                    break;
+                }
+                Err(e) => {
+                    err = Some(AddOrderArgsError::ForkCallError(e));
+                }
+            }
+        }
+        if let Some(err) = err {
+            return Err(err);
+        }
+
         Ok(())
     }
 }
@@ -644,7 +661,7 @@ _ _: 0 0;
             .await
             .unwrap();
 
-        let add_order_call = result.try_into_call(local_evm.url()).await.unwrap();
+        let add_order_call = result.try_into_call(vec![local_evm.url()]).await.unwrap();
 
         assert_eq!(add_order_call.config.validInputs.len(), 2);
         assert_eq!(add_order_call.config.validOutputs.len(), 1);
@@ -848,7 +865,8 @@ _ _: 0 key1;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -918,7 +936,7 @@ _ _: 16 52;
             .simulate_execute(
                 TransactionArgs {
                     orderbook_address: *orderbook.address(),
-                    rpc_url: local_evm.url(),
+                    rpcs: vec![local_evm.url()],
                     ..Default::default()
                 },
                 Some(token1_holder),
@@ -940,7 +958,8 @@ _ _: 16 52;
             r#"
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
         network-id: 123
         currency: ETH
@@ -1011,7 +1030,7 @@ _ _: 16 52;
                 TransactionArgs {
                     // send the tx to random address
                     orderbook_address: Address::random(),
-                    rpc_url: local_evm.url(),
+                    rpcs: vec![local_evm.url()],
                     ..Default::default()
                 },
                 Some(token1_holder),
@@ -1128,7 +1147,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let res = add_order_args
-            .try_parse_rainlang(local_evm.url(), rainlang)
+            .try_parse_rainlang(vec![local_evm.url()], rainlang)
             .await
             .unwrap();
         assert_eq!(
@@ -1161,7 +1180,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang("invalid-url".to_string(), rainlang)
+            .try_parse_rainlang(vec!["invalid-url".to_string()], rainlang)
             .await
             .unwrap_err();
         assert!(matches!(err, AddOrderArgsError::ReadableClientError(_)));
@@ -1186,7 +1205,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang(rpc_url.clone(), rainlang)
+            .try_parse_rainlang(vec![rpc_url.clone()], rainlang)
             .await
             .unwrap_err();
         assert!(
@@ -1224,7 +1243,7 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang(local_evm.url(), rainlang.as_str()[..10].to_string())
+            .try_parse_rainlang(vec![local_evm.url()], rainlang.as_str()[..10].to_string())
             .await
             .unwrap_err();
         assert!(matches!(err, AddOrderArgsError::ParserError(_)));
@@ -1237,7 +1256,8 @@ _ _: 0 0;
             r#"
 networks:
     test:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1303,7 +1323,8 @@ _ _: key1 key2;
         let dotrain = r#"
 networks:
     test:
-        rpc: https://testtest.com
+        rpcs:
+            - https://testtest.com
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1346,7 +1367,8 @@ _ _: key1 key2;
             r#"
 networks:
     test:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 137
         network-id: 137
         currency: MATIC
@@ -1419,7 +1441,7 @@ _ _: 0 0;
 
         let res = add_order_args
             .get_add_order_call_parameters(TransactionArgs {
-                rpc_url: local_evm.url().to_string(),
+                rpcs: vec![local_evm.url().to_string()],
                 orderbook_address: *local_evm.orderbook.address(),
                 max_priority_fee_per_gas: Some(U256::from(100)),
                 max_fee_per_gas: Some(U256::from(200)),
@@ -1466,7 +1488,7 @@ _ _: 0 0;
             .unwrap();
         let calldata: Bytes = result
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: local_evm.url().to_string(),
+                rpcs: vec![local_evm.url().to_string()],
                 ..Default::default()
             })
             .await
@@ -1541,7 +1563,7 @@ _ _: 0 0;
         let rpc_url = "https://testtest.com/".to_string();
         let err = result
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: rpc_url.clone(),
+                rpcs: vec![rpc_url.clone()],
                 ..Default::default()
             })
             .await

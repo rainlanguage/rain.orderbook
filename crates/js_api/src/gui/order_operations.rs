@@ -10,6 +10,7 @@ use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
+use url::Url;
 
 pub enum CalldataFunction {
     Allowance,
@@ -123,7 +124,13 @@ impl DotrainOrderGui {
         let orderbook = self.get_orderbook()?;
         Ok(TransactionArgs {
             orderbook_address: orderbook.address,
-            rpc_url: orderbook.network.rpc.to_string(),
+            rpcs: orderbook
+                .network
+                .rpcs
+                .clone()
+                .into_iter()
+                .map(|url| url.to_string())
+                .collect(),
             ..Default::default()
         })
     }
@@ -173,10 +180,10 @@ impl DotrainOrderGui {
         let allowance = deposit_args
             .read_allowance(Address::from_str(owner)?, self.get_transaction_args()?)
             .await?;
-        Ok(TokenAllowance {
+        return Ok(TokenAllowance {
             token: deposit_args.token,
             allowance,
-        })
+        });
     }
 
     fn prepare_calldata_generation(
@@ -254,25 +261,27 @@ impl DotrainOrderGui {
             return Ok(ApprovalCalldataResult::NoDeposits);
         }
 
-        let transaction_args = self.get_transaction_args()?;
-
         let mut calldatas = Vec::new();
-        for (token_address, deposit_amount) in deposits_map {
+
+        for (token_address, deposit_amount) in &deposits_map {
             let deposit_args = DepositArgs {
-                token: token_address,
-                amount: deposit_amount,
+                token: *token_address,
+                amount: *deposit_amount,
                 vault_id: U256::default(),
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
-            if token_allowance.allowance < deposit_amount {
+
+            if token_allowance.allowance < *deposit_amount {
                 let approve_call = deposit_args
-                    .get_approve_calldata(transaction_args.clone())
-                    .await?;
-                calldatas.push(ApprovalCalldata {
-                    token: token_address,
-                    calldata: Bytes::copy_from_slice(&approve_call),
-                });
+                    .get_approve_calldata(self.get_transaction_args()?)
+                    .await;
+                if let Ok(approve_call) = approve_call {
+                    calldatas.push(ApprovalCalldata {
+                        token: *token_address,
+                        calldata: Bytes::copy_from_slice(&approve_call),
+                    });
+                }
             }
         }
 
@@ -363,7 +372,7 @@ impl DotrainOrderGui {
         .await?
         .get_add_order_calldata(self.get_transaction_args()?)
         .await?;
-        Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)))
+        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
     }
 
     #[wasm_export(

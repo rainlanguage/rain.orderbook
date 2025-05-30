@@ -156,7 +156,7 @@ impl FuzzRunner {
                 .forker
                 .add_or_select(
                     NewForkedEvm {
-                        fork_url: rpc.clone().into(),
+                        fork_url: rpc.clone(),
                         fork_block_number: Some(block_number),
                     },
                     None,
@@ -718,7 +718,8 @@ deployers:
         address: 0x1111111111111111111111111111111111111111
 networks:
     some-key:
-        rpc: https://example.com
+        rpcs:
+            - https://example.com
         chain-id: 123
 scenarios:
     some-key:
@@ -760,7 +761,8 @@ b: fuzzed;
         let bad_settings = r#"
 bad-networks-key:
     some-key:
-        rpc: https://example.com
+        rpcs:
+            - https://example.com
         chain-id: 123"#;
 
         let error = FuzzRunnerContext::new(dotrain, Some(bad_settings.to_string()), None)
@@ -779,7 +781,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -830,7 +833,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -878,7 +882,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -945,7 +950,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -990,7 +996,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1025,7 +1032,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:
@@ -1101,7 +1109,8 @@ deployers:
         address: {deployer}
 networks:
     flare:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 tokens:
     wflr:

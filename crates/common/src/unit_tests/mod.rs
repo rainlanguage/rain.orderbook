@@ -330,7 +330,7 @@ impl TestRunner {
                 .forker
                 .add_or_select(
                     NewForkedEvm {
-                        fork_url: rpc.clone().into(),
+                        fork_url: rpc.clone(),
                         fork_block_number: Some(block_number),
                     },
                     None,
@@ -470,7 +470,8 @@ deployers:
         address: {deployer}
 networks:
     some-key:
-        rpc: {rpc_url}
+        rpcs:
+            - {rpc_url}
         chain-id: 123
 scenarios:
     some-key:

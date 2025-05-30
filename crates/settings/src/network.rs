@@ -142,7 +142,7 @@ impl NetworkCfg {
                             field: "rpcs".to_string(),
                             reason: "must be a non-empty array".to_string(),
                         },
-                        location: location,
+                        location,
                     });
                 }
 
@@ -277,11 +277,11 @@ impl PartialEq for NetworkCfg {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseNetworkConfigSourceError {
-    #[error("Failed to parse rpc: {}", 0)]
+    #[error("Failed to parse rpc: {0}")]
     RpcParseError(ParseError),
-    #[error("Failed to parse chain_id: {}", 0)]
+    #[error("Failed to parse chain_id: {0}")]
     ChainIdParseError(ParseIntError),
-    #[error("Failed to parse network_id: {}", 0)]
+    #[error("Failed to parse network_id: {0}")]
     NetworkIdParseError(ParseIntError),
     #[error("Remote network key shadowing: {0}")]
     RemoteNetworkKeyShadowing(String),
@@ -315,7 +315,7 @@ impl NetworkConfigSource {
         NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key,
-            rpcs: vec![self.rpc],
+            rpcs: self.rpcs,
             chain_id: self.chain_id,
             label: self.label,
             network_id: self.network_id,
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn test_try_from_network_string_success() {
         let network_src = NetworkConfigSource {
-            rpc: Url::parse("http://127.0.0.1:8545").unwrap(),
+            rpcs: vec![Url::parse("http://127.0.0.1:8545").unwrap()],
             chain_id: 1,
             network_id: Some(1),
             label: Some("Local Testnet".into()),
@@ -379,19 +379,59 @@ networks:
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::Missing("rpc".to_string()),
+                kind: FieldErrorKind::Missing("rpcs".to_string()),
                 location: "network 'mainnet'".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Missing required field 'rpc' in network 'mainnet'"
+            "Missing required field 'rpcs' in network 'mainnet'"
         );
 
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://mainnet.infura.io
+        rpcs:
+"#;
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "rpcs".to_string(),
+                    expected: "a vector".to_string(),
+                },
+                location: "network 'mainnet'".to_string(),
+            }
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Field 'rpcs' in network 'mainnet' must be a vector"
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - 
+"#;
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseNetworkConfigSourceError(ParseNetworkConfigSourceError::RpcParseError(
+                ParseError::RelativeUrlWithoutBase
+            ))
+        );
+        assert_eq!(
+            error.to_readable_msg(),
+            "Network configuration error in your YAML: Failed to parse rpc: relative URL without a base"
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
 "#;
         let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(

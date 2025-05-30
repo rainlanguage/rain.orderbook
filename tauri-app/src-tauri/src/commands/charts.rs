@@ -167,7 +167,8 @@ io: if(
             r#"
 networks:
   flare:
-    rpc: {rpc}
+    rpcs:
+      - {rpc}
     chain-id: 14
     currency: "FLR"
 subgraphs:

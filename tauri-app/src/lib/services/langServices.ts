@@ -7,7 +7,7 @@ import {
   Hover,
   CompletionItem,
 } from 'codemirror-rainlang';
-import { rpcUrl } from '$lib/stores/settings';
+import { rpcUrls } from '$lib/stores/settings';
 import { get } from 'svelte/store';
 import { forkBlockNumber } from '$lib/stores/forkBlockNumber';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
@@ -23,7 +23,7 @@ export async function problemsCallback(
   try {
     return await invoke('call_lsp_problems', {
       textDocument,
-      rpcUrl: get(rpcUrl),
+      rpcs: get(rpcUrls),
       blockNumber: get(forkBlockNumber).value,
       bindings,
       deployer: deployerAddress,
