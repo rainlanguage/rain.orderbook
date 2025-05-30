@@ -10,7 +10,7 @@ interface HandleVaultActionParams {
 	queryClient: QueryClient;
 	queryKey: string;
 	chainId: number;
-	rpcUrl: string;
+	rpcUrls: string[];
 	subgraphUrl: string;
 	account: Hex;
 }
@@ -21,7 +21,7 @@ export function handleVaultAction({
 	queryClient,
 	queryKey,
 	chainId,
-	rpcUrl,
+	rpcUrls,
 	subgraphUrl,
 	account
 }: HandleVaultActionParams) {
@@ -34,7 +34,7 @@ export function handleVaultAction({
 				invalidateTanstackQueries(queryClient, [queryKey]);
 			},
 			chainId,
-			rpcUrl,
+			rpcUrls,
 			subgraphUrl,
 			account
 		}

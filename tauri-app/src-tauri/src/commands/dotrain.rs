@@ -33,17 +33,15 @@ mod tests {
         let rpc_url = local_evm.url();
         let block_number = local_evm.provider.get_block_number().await.unwrap();
 
-        let rainlang = format!(
-            r"
+        let rainlang = "
 /* 0. calculate-io */
 _ _: 0 0;
 
 /* 1. handle-io */
 :;
-        "
-        );
+        ";
 
-        let bytes = parse_dotrain(&rainlang, vec![rpc_url], block_number, deployer)
+        let bytes = parse_dotrain(rainlang, vec![rpc_url], block_number, deployer)
             .await
             .unwrap();
 
@@ -111,17 +109,15 @@ _ _: 1 2;
         let rpc_url = local_evm.url();
         let block_number = local_evm.provider.get_block_number().await.unwrap();
 
-        let rainlang = format!(
-            r"
+        let rainlang = "
 /* 0. calculate-io */
 _ _: 0 0;
 
 /* 1. handle-io */
 :;
-        "
-        );
+        ";
 
-        let err = parse_dotrain(&rainlang, vec![rpc_url], block_number, deployer)
+        let err = parse_dotrain(rainlang, vec![rpc_url], block_number, deployer)
             .await
             .unwrap_err();
 

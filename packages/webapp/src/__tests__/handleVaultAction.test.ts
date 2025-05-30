@@ -39,7 +39,7 @@ describe('handleVaultAction', () => {
 			queryClient: mockQueryClient,
 			queryKey: mockQueryKey,
 			chainId: mockChainId,
-			rpcUrl: mockRpcUrl,
+			rpcUrls: [mockRpcUrl],
 			subgraphUrl: mockSubgraphUrl,
 			account: mockAccount
 		});
@@ -51,7 +51,7 @@ describe('handleVaultAction', () => {
 				vault: mockVault,
 				onSuccess: expect.any(Function),
 				chainId: mockChainId,
-				rpcUrl: mockRpcUrl,
+				rpcUrls: [mockRpcUrl],
 				subgraphUrl: mockSubgraphUrl,
 				account: mockAccount
 			}
@@ -66,7 +66,7 @@ describe('handleVaultAction', () => {
 			queryClient: mockQueryClient,
 			queryKey: mockQueryKey,
 			chainId: mockChainId,
-			rpcUrl: mockRpcUrl,
+			rpcUrls: [mockRpcUrl],
 			subgraphUrl: mockSubgraphUrl,
 			account: mockAccount
 		});
@@ -78,7 +78,7 @@ describe('handleVaultAction', () => {
 				vault: mockVault,
 				onSuccess: expect.any(Function),
 				chainId: mockChainId,
-				rpcUrl: mockRpcUrl,
+				rpcUrls: [mockRpcUrl],
 				subgraphUrl: mockSubgraphUrl,
 				account: mockAccount
 			}
@@ -93,7 +93,7 @@ describe('handleVaultAction', () => {
 			queryClient: mockQueryClient,
 			queryKey: mockQueryKey,
 			chainId: mockChainId,
-			rpcUrl: mockRpcUrl,
+			rpcUrls: [mockRpcUrl],
 			subgraphUrl: mockSubgraphUrl,
 			account: mockAccount
 		});
@@ -113,7 +113,7 @@ describe('handleVaultAction', () => {
 			queryClient: mockQueryClient,
 			queryKey: mockQueryKey,
 			chainId: mockChainId,
-			rpcUrl: mockRpcUrl,
+			rpcUrls: [mockRpcUrl],
 			subgraphUrl: mockSubgraphUrl,
 			account: mockAccount
 		});

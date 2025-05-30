@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 export const mockConfigSource: ConfigSource = {
 	networks: {
 		mainnet: {
-			rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+			rpcs: ['https://mainnet.infura.io/v3/YOUR-PROJECT-ID'],
 			'chain-id': 1,
 			label: 'Ethereum Mainnet',
 			currency: 'ETH'

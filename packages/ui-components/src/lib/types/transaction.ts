@@ -15,7 +15,7 @@ export type VaultActionArgs = {
 	vault: SgVault;
 	onSuccess: () => void;
 	chainId: number;
-	rpcUrl: string;
+	rpcUrls: string[];
 	subgraphUrl: string;
 	account: Hex;
 };

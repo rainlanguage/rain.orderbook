@@ -2,10 +2,10 @@ import type { RainEvalResultsTable } from '@rainlanguage/orderbook';
 import { invoke } from '@tauri-apps/api';
 import { mockIPC } from '@tauri-apps/api/mocks';
 
-export const tradeDebug = async (txHash: string, rpcUrl: string) => {
+export const tradeDebug = async (txHash: string, rpcUrls: string[]) => {
   return await invoke<RainEvalResultsTable>('debug_trade', {
     txHash,
-    rpcUrl,
+    rpcs: rpcUrls,
   });
 };
 
@@ -24,7 +24,7 @@ if (import.meta.vitest) {
       }
     });
 
-    const result = await tradeDebug('0x123', 'https://rpc-url.com');
+    const result = await tradeDebug('0x123', ['https://rpc-url.com']);
     expect(result).toEqual(mockTradeDebug);
   });
 }

@@ -42,7 +42,7 @@ const orderHash = 'mockOrderHash';
 
 const defaultProps: ComponentProps<OrderDetail> = {
 	orderHash,
-	rpcUrl,
+	rpcUrls: [rpcUrl],
 	subgraphUrl,
 	orderbookAddress,
 	colorTheme: readable('dark'),

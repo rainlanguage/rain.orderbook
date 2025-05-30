@@ -24,13 +24,13 @@ export const handleOrderRemoveModal = (order: SgOrder, onOrderRemoved: () => voi
   new ModalOrderRemove({ target: document.body, props: { order, onOrderRemoved } });
 };
 
-export const handleDebugTradeModal = (txHash: string, rpcUrl: string) => {
-  new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrl } });
+export const handleDebugTradeModal = (txHash: string, rpcUrls: string[]) => {
+  new ModalTradeDebug({ target: document.body, props: { open: true, txHash, rpcUrls } });
 };
 
 export const handleQuoteDebugModal = (
   order: SgOrder,
-  rpcUrl: string,
+  rpcUrls: string[],
   orderbook: string,
   inputIOIndex: number,
   outputIOIndex: number,
@@ -42,7 +42,7 @@ export const handleQuoteDebugModal = (
     props: {
       open: true,
       order,
-      rpcUrl,
+      rpcUrls,
       orderbook: orderbook as Hex,
       inputIOIndex,
       outputIOIndex,

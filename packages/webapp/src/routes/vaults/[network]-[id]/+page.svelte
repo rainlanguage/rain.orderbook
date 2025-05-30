@@ -13,7 +13,7 @@
 	const network = $page.params.network;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const rpcUrls = $settings?.networks?.[network]?.['rpcs'] || [];
 	const { account } = useAccount();
 
 	function onDeposit(vault: SgVault) {
@@ -23,7 +23,7 @@
 			queryClient,
 			queryKey: $page.params.id,
 			chainId,
-			rpcUrl,
+			rpcUrls,
 			subgraphUrl,
 			account: $account as Hex
 		});
@@ -36,7 +36,7 @@
 			queryClient,
 			queryKey: $page.params.id,
 			chainId,
-			rpcUrl,
+			rpcUrls,
 			subgraphUrl,
 			account: $account as Hex
 		});

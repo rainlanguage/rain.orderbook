@@ -8,7 +8,7 @@ export async function debugOrderQuote(
   inputIOIndex: number,
   outputIOIndex: number,
   orderbook: Hex,
-  rpcUrl: string,
+  rpcUrls: string[],
   blockNumber?: number,
 ) {
   return await invoke<[RainEvalResultsTable, string | undefined]>('debug_order_quote', {
@@ -16,7 +16,7 @@ export async function debugOrderQuote(
     inputIoIndex: inputIOIndex,
     outputIoIndex: outputIOIndex,
     orderbook,
-    rpcUrl,
+    rpcs: rpcUrls,
     blockNumber,
   });
 }
@@ -56,7 +56,7 @@ if (import.meta.vitest) {
       0,
       0,
       '0x123',
-      'https://rpc-url.com',
+      ['https://rpc-url.com'],
     );
     expect(result).toEqual(mockQuoteDebug);
   });

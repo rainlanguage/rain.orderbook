@@ -5,48 +5,48 @@
 	},
 	"networks": {
 		"flare": {
-			"rpc": "https://rpc.ankr.com/flare",
+			"rpcs": ["https://rpc.ankr.com/flare"],
 			"chain-id": 14,
 			"currency": "FLR"
 		},
 		"base": {
-			"rpc": "https://mainnet.base.org",
+			"rpcs": ["https://mainnet.base.org"],
 			"chain-id": 8453,
 			"network-id": 8453,
 			"currency": "ETH"
 		},
 		"sepolia": {
-			"rpc": "https://1rpc.io/sepolia",
+			"rpcs": ["https://1rpc.io/sepolia"],
 			"chain-id": 11155111,
 			"network-id": 11155111,
 			"currency": "ETH"
 		},
 		"polygon": {
-			"rpc": "https://rpc.ankr.com/polygon",
+			"rpcs": ["https://rpc.ankr.com/polygon"],
 			"chain-id": 137,
 			"network-id": 137,
 			"currency": "POL"
 		},
 		"arbitrum": {
-			"rpc": "https://rpc.ankr.com/arbitrum",
+			"rpcs": ["https://rpc.ankr.com/arbitrum"],
 			"chain-id": 42161,
 			"network-id": 42161,
 			"currency": "ETH"
 		},
 		"bsc": {
-			"rpc": "https://rpc.ankr.com/bsc",
+			"rpcs": ["https://rpc.ankr.com/bsc"],
 			"chain-id": 56,
 			"network-id": 56,
 			"currency": "BNB"
 		},
 		"linea": {
-			"rpc": "https://rpc.linea.build",
+			"rpcs": ["https://rpc.linea.build"],
 			"chain-id": 59144,
 			"network-id": 59144,
 			"currency": "ETH"
 		},
 		"ethereum": {
-			"rpc": "https://rpc.ankr.com/eth",
+			"rpcs": ["https://rpc.ankr.com/eth"],
 			"chain-id": 1,
 			"network-id": 1,
 			"currency": "ETH"

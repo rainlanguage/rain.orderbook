@@ -10,7 +10,6 @@ use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
-use url::Url;
 
 pub enum CalldataFunction {
     Allowance,

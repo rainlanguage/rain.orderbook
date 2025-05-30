@@ -8,7 +8,7 @@ describe('resetActiveNetworkRef', () => {
 	let mockSettingsStore: AppStoresInterface['settings'];
 
 	const createMockNetworkConfigSource = (label?: string): NetworkConfigSource => ({
-		rpc: 'http://localhost:8545',
+		rpcs: ['http://localhost:8545'],
 		'chain-id': 1337,
 		label,
 		'network-id': undefined,

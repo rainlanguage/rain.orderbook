@@ -66,7 +66,7 @@ describe('Order Page', () => {
       },
       networks: {
         ethereum: {
-          rpc: 'https://ethereum.example.com',
+          rpcs: ['https://ethereum.example.com'],
           'chain-id': 1,
         },
       },
@@ -90,7 +90,7 @@ describe('Order Page', () => {
       expect(screen.getByText(/Missing the following items from settings for/)).toBeTruthy();
       expect(screen.getByText('ethereum')).toBeTruthy();
 
-      expect(screen.getByText('RPC URL')).toBeTruthy();
+      expect(screen.getByText('RPC URLs')).toBeTruthy();
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
       expect(screen.getByText('Orderbook Address')).toBeTruthy();
     });
@@ -105,7 +105,7 @@ describe('Order Page', () => {
         },
         networks: {
           ethereum: {
-            rpc: 'https://ethereum.example.com',
+            rpcs: ['https://ethereum.example.com'],
           },
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,7 +115,7 @@ describe('Order Page', () => {
 
       expect(screen.getByText('Subgraph URL')).toBeTruthy();
 
-      expect(screen.queryByText('RPC URL')).toBeFalsy();
+      expect(screen.queryByText('RPC URLs')).toBeFalsy();
       expect(screen.queryByText('Orderbook Address')).toBeFalsy();
     });
 

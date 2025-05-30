@@ -29,7 +29,7 @@ describe('ListViewOrderbookFilters', () => {
 	const mockSettings = writable<ConfigSource>({
 		networks: {
 			ethereum: {
-				rpc: 'https://rpc.ankr.com/eth',
+				rpcs: ['https://rpc.ankr.com/eth'],
 				'chain-id': 1,
 				'network-id': 1,
 				currency: 'ETH'
@@ -55,7 +55,7 @@ describe('ListViewOrderbookFilters', () => {
 		mockSettings.set({
 			networks: {
 				ethereum: {
-					rpc: 'https://rpc.ankr.com/eth',
+					rpcs: ['https://rpc.ankr.com/eth'],
 					'chain-id': 1,
 					'network-id': 1,
 					currency: 'ETH'

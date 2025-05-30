@@ -21,7 +21,7 @@
 
   let orderbookAddress: Hex | undefined;
   let subgraphUrl: string | undefined;
-  let rpcUrl: string | undefined;
+  let rpcUrls: string[] | undefined;
 
   if ($settings) {
     if ($settings.orderbooks?.[network]) {
@@ -33,7 +33,7 @@
     }
 
     if ($settings.networks?.[network]) {
-      rpcUrl = $settings.networks[network].rpc;
+      rpcUrls = $settings.networks[network].rpcs;
     }
   }
 
@@ -58,11 +58,11 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
-{#if rpcUrl && subgraphUrl && orderbookAddress}
+{#if rpcUrls && subgraphUrl && orderbookAddress}
   <div data-testid="order-detail">
     <OrderDetail
       {orderHash}
-      {rpcUrl}
+      {rpcUrls}
       {subgraphUrl}
       {colorTheme}
       {codeMirrorTheme}
@@ -83,8 +83,8 @@
         Missing the following items from settings for <b>{network}</b> network.
       </p>
       <ul class="flex list-none flex-col gap-1">
-        {#if !rpcUrl}
-          <li><span class="font-semibold">RPC URL</span></li>
+        {#if !rpcUrls || rpcUrls.length === 0}
+          <li><span class="font-semibold">RPC URLs</span></li>
         {/if}
         {#if !subgraphUrl}
           <li><span class="font-semibold">Subgraph URL</span></li>

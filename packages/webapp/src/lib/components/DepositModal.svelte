@@ -38,7 +38,7 @@
 	export let open: boolean;
 	export let args: VaultActionArgs;
 
-	const { vault, chainId, rpcUrl, subgraphUrl, account } = args;
+	const { vault, chainId, rpcUrls, subgraphUrl, account } = args;
 
 	let currentStep = 1;
 	let amount: bigint = 0n;
@@ -92,7 +92,7 @@
 		isCheckingCalldata = true;
 		try {
 			const approvalCalldataResult = await getVaultApprovalCalldata(
-				rpcUrl,
+				rpcUrls,
 				vault,
 				amount.toString()
 			);
