@@ -98,8 +98,13 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_urls(vec![input_token.network.rpc.to_string()])?;
+                let rpcs = input_token
+                    .network
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                let client = ReadableClientHttp::new_from_urls(rpcs)?;
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -129,8 +134,13 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_urls(vec![output_token.network.rpc.to_string()])?;
+                let rpcs = output_token
+                    .network
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                let client = ReadableClientHttp::new_from_urls(rpcs)?;
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
@@ -426,7 +436,7 @@ price: 2e18;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse("https://some-rpc.com").unwrap(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -537,7 +547,7 @@ _ _: 0 0;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse(&local_evm.url()).unwrap(),
+            rpcs: vec![Url::parse(&local_evm.url()).unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -682,7 +692,7 @@ _ _: 0 0;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse("https://some-rpc.com").unwrap(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,
@@ -1014,7 +1024,7 @@ _ _: 16 52;
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
-            rpc: Url::parse(rpc_url).unwrap(),
+            rpcs: vec![Url::parse(rpc_url).unwrap()],
             chain_id: 137,
             label: None,
             network_id: None,

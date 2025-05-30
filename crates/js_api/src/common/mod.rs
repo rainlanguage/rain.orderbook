@@ -85,12 +85,31 @@ pub async fn get_add_order_calldata(
         AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment_ref.deref().clone())
             .await?;
 
-    let tx_args = TransactionArgs {
-        rpc_url: deployment_ref.scenario.deployer.network.rpc.to_string(),
-        ..Default::default()
-    };
-    let calldata = add_order_args.get_add_order_calldata(tx_args).await?;
-    Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
+    let rpcs = deployment_ref
+        .scenario
+        .deployer
+        .network
+        .rpcs
+        .iter()
+        .map(|rpc| rpc.to_string())
+        .collect::<Vec<String>>();
+
+    let mut last_err = None;
+    for rpc_url in &rpcs {
+        let tx_args = TransactionArgs {
+            rpc_url: rpc_url.clone(),
+            ..Default::default()
+        };
+        match add_order_args.get_add_order_calldata(tx_args).await {
+            Ok(calldata) => {
+                return Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)));
+            }
+            Err(e) => {
+                last_err = Some(Error::AddOrderArgsError(e));
+            }
+        }
+    }
+    Err(last_err.expect("At least one RPC should have been tried"))
 }
 
 /// Get removeOrder() calldata for a given order

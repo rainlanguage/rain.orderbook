@@ -287,7 +287,8 @@ mod tests {
         let yaml_one = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     DeployerOne:
@@ -323,7 +324,8 @@ deployers:
         let yaml_one = r#"
 networks:
     TestNetwork:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     DuplicateDeployer:
@@ -355,7 +357,8 @@ deployers:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -370,7 +373,8 @@ deployers:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
     mainnet:
@@ -386,7 +390,8 @@ deployers:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers: test
 "#;
@@ -435,7 +440,8 @@ deployers:
         let yaml = r#"
 networks:
     mainnet:
-        rpc: https://rpc.com
+        rpcs:
+            - https://rpc.com
         chain-id: 1
 deployers:
   - test: test

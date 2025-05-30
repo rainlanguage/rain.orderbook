@@ -49,8 +49,16 @@ impl Execute for AddOrderCalldata {
         let add_order_args =
             AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await;
 
+        let rpcs = config_deployment
+            .scenario
+            .deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
         let add_order_calldata = add_order_args?
-            .try_into_call(config_deployment.scenario.deployer.network.rpc.to_string())
+            .try_into_call(rpcs[0].clone())
             .await?
             .abi_encode();
 

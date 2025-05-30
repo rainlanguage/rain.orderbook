@@ -144,6 +144,42 @@ impl FuzzRunner {
         self.run_scenario(context, &scenario).await
     }
 
+    async fn create_fork(
+        &mut self,
+        rpcs: Vec<String>,
+        block_number: u64,
+    ) -> Result<(), FuzzRunnerError> {
+        let mut last_err = None;
+        let mut fork_success = false;
+        for rpc in &rpcs {
+            match self
+                .forker
+                .add_or_select(
+                    NewForkedEvm {
+                        fork_url: rpc.clone().into(),
+                        fork_block_number: Some(block_number),
+                    },
+                    None,
+                )
+                .await
+            {
+                Ok(_) => {
+                    fork_success = true;
+                    break;
+                }
+                Err(e) => {
+                    last_err = Some(e);
+                }
+            }
+        }
+        if !fork_success {
+            return Err(FuzzRunnerError::ForkCallError(
+                last_err.expect("At least one RPC should have been tried"),
+            ));
+        }
+        Ok(())
+    }
+
     pub async fn run_scenario(
         &mut self,
         context: &mut FuzzRunnerContext,
@@ -155,10 +191,15 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Fetch the latest block number
-        let block_number =
-            ReadableClientHttp::new_from_urls(vec![deployer.network.rpc.to_string()])?
-                .get_block_number()
-                .await?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
+        let block_number = ReadableClientHttp::new_from_urls(rpcs.clone())?
+            .get_block_number()
+            .await?;
 
         let blocks = scenario
             .blocks
@@ -167,16 +208,7 @@ impl FuzzRunner {
                 b.expand_to_block_numbers(block_number)
             })?;
 
-        // Create a fork with the first block number
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(blocks[0]),
-                },
-                None,
-            )
-            .await?;
+        self.create_fork(rpcs, blocks[0]).await?;
 
         // Pull out the bindings from the scenario
         let scenario_bindings: Vec<Rebind> = scenario
@@ -297,15 +329,14 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Create or select a cached fork
-        self.forker
-            .add_or_select(
-                NewForkedEvm {
-                    fork_url: deployer.network.rpc.clone().into(),
-                    fork_block_number: Some(block_number),
-                },
-                None,
-            )
-            .await?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
+
+        self.create_fork(rpcs, block_number).await?;
 
         // Pull out the bindings from the scenario
         let scenario_bindings: Vec<Rebind> = scenario
@@ -543,12 +574,14 @@ impl FuzzRunner {
                 *cached_block_number
             } else {
                 // Fetch the latest block number, if failed, record the error and continue to next deployment key
-                match ReadableClientHttp::new_from_urls(vec![scenario
+                let rpcs = scenario
                     .deployer
                     .network
-                    .rpc
-                    .to_string()])
-                {
+                    .rpcs
+                    .iter()
+                    .map(|rpc| rpc.to_string())
+                    .collect::<Vec<String>>();
+                match ReadableClientHttp::new_from_urls(rpcs) {
                     Ok(v) => match v.get_block_number().await {
                         Ok(bn) => bn,
                         Err(e) => {

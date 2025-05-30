@@ -317,7 +317,8 @@ mod tests {
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
     networks:
         mainnet:
-            rpc: https://mainnet.infura.io
+            rpcs:
+                - https://mainnet.infura.io
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
@@ -354,7 +355,7 @@ mod tests {
         assert_eq!(network.network_id, Some(1));
         assert_eq!(network.currency, Some("ETH".to_string()));
         assert_eq!(
-            NetworkCfg::parse_rpc(ob_yaml.documents.clone(), "mainnet").unwrap(),
+            NetworkCfg::parse_rpcs(ob_yaml.documents.clone(), "mainnet").unwrap(),
             vec![
                 Url::parse("https://mainnet.infura.io/1").unwrap(),
                 Url::parse("https://mainnet.infura.io/2").unwrap(),
@@ -518,7 +519,8 @@ mod tests {
         let yaml = r#"
 networks:
     mainnet:
-        rpc: "https://mainnet.infura.io"
+        rpcs:
+            - "https://mainnet.infura.io"
         chain-id: "1"
 "#;
         let ob_yaml = OrderbookYaml::new(vec![yaml.to_string()], false).unwrap();

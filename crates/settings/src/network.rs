@@ -112,7 +112,7 @@ impl NetworkCfg {
         Ok(self.clone())
     }
 
-    pub fn parse_rpc(
+    pub fn parse_rpcs(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         network_key: &str,
     ) -> Result<Vec<Url>, YamlError> {
@@ -145,11 +145,13 @@ impl NetworkCfg {
                         location: location,
                     });
                 }
+
+                return Ok(res);
             }
         }
 
         Err(YamlError::Field {
-            kind: FieldErrorKind::Missing(format!("rpc for network '{}'", network_key)),
+            kind: FieldErrorKind::Missing(format!("rpcs for network '{}'", network_key)),
             location: "root".to_string(),
         })
     }
@@ -498,7 +500,7 @@ networks:
         let yaml = r#"
 networks: test
 "#;
-        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -518,7 +520,7 @@ networks: test
 networks:
   - test
 "#;
-        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -538,7 +540,7 @@ networks:
 networks:
   - test: test
 "#;
-        let error = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap_err();
+        let error = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -561,7 +563,7 @@ networks:
       - https://rpc.com
     chain-id: 1
 "#;
-        let res = NetworkCfg::parse_rpc(vec![get_document(yaml)], "mainnet").unwrap();
+        let res = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, vec![Url::parse("https://rpc.com").unwrap()]);
     }
 }

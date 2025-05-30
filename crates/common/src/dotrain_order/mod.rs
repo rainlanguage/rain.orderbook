@@ -467,7 +467,13 @@ impl DotrainOrder {
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let client = ReadableClient::new_from_urls(vec![deployer.network.rpc.clone().to_string()])?;
+        let rpcs = deployer
+            .network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect();
+        let client = ReadableClient::new_from_urls(rpcs)?;
         let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }
@@ -481,12 +487,13 @@ impl DotrainOrder {
 
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
-        let rpc = &network.rpc;
+        let rpcs = network
+            .rpcs
+            .iter()
+            .map(|rpc| rpc.to_string())
+            .collect::<Vec<String>>();
         let metaboard = self.orderbook_yaml().get_metaboard(&network.key)?.url;
-        Ok(
-            AuthoringMetaV2::fetch_for_contract(address, rpc.to_string(), metaboard.to_string())
-                .await?,
-        )
+        Ok(AuthoringMetaV2::fetch_for_contract(address, rpcs, metaboard.to_string()).await?)
     }
 
     pub async fn get_deployer_words_for_scenario(
@@ -655,7 +662,12 @@ _ _: 0 0;
                 .orderbook_yaml()
                 .get_network("polygon")
                 .unwrap()
-                .rpc
+                .rpcs
+                .iter()
+                .map(|rpc| rpc.to_string())
+                .collect::<Vec<String>>()
+                .first()
+                .unwrap()
                 .to_string(),
             server.url("/rpc"),
         );
@@ -801,7 +813,12 @@ networks:
                 .orderbook_yaml()
                 .get_network("mainnet")
                 .unwrap()
-                .rpc
+                .rpcs
+                .iter()
+                .map(|rpc| rpc.to_string())
+                .collect::<Vec<String>>()
+                .first()
+                .unwrap()
                 .to_string(),
             server.url("/rpc-mainnet")
         );
