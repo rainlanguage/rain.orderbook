@@ -34,16 +34,21 @@ impl Execute for OrderbookAddress {
             }
             None => None,
         };
-        let order = DotrainOrder::new(dotrain, settings.map(|v| vec![v])).await?;
-        let deployment_ref = order.dotrain_yaml().get_deployment(&self.deployment)?;
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain, settings.map(|v| vec![v]))
+            .await?;
+        let deployment_ref = dotrain_order
+            .dotrain_yaml()
+            .get_deployment(&self.deployment)?;
 
         let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
             v.address
         } else {
             let network_key = &deployment_ref.scenario.deployer.network.key;
             let mut orderbook_address = None;
-            for key in order.orderbook_yaml().get_orderbook_keys()? {
-                let orderbook = order.orderbook_yaml().get_orderbook(&key)?;
+            for key in dotrain_order.orderbook_yaml().get_orderbook_keys()? {
+                let orderbook = dotrain_order.orderbook_yaml().get_orderbook(&key)?;
                 if key == *network_key || orderbook.network.key == *network_key {
                     orderbook_address = Some(orderbook.address);
                 }
@@ -64,6 +69,7 @@ mod tests {
     use super::*;
     use clap::CommandFactory;
     use std::str::FromStr;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn verify_cli() {
@@ -182,39 +188,76 @@ _ _: 0 0;
     async fn test_execute_diff_name() {
         let dotrain = get_test_dotrain("some-orderbook");
 
-        let dotrain_path = "./test_dotrain2.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        std::fs::write(dotrain_file.path(), dotrain).unwrap();
 
         let orderbook_adress = OrderbookAddress {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should succeed without err
         orderbook_adress.execute().await.unwrap();
-
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
     }
 
     #[tokio::test]
     async fn test_execute_same_name() {
         let dotrain = get_test_dotrain("some-network");
 
-        let dotrain_path = "./test_dotrain3.rain";
-        std::fs::write(dotrain_path, dotrain).unwrap();
+        let dotrain_file = NamedTempFile::new().unwrap();
+        std::fs::write(dotrain_file.path(), dotrain).unwrap();
 
         let orderbook_adress = OrderbookAddress {
-            dotrain_file: dotrain_path.into(),
+            dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should succeed without err
         orderbook_adress.execute().await.unwrap();
+    }
 
-        // remove test file
-        std::fs::remove_file(dotrain_path).unwrap();
+    #[tokio::test]
+    async fn test_execute_non_existing_deployment() {
+        let dotrain = get_test_dotrain("some-network");
+
+        let dotrain_file = NamedTempFile::new().unwrap();
+        std::fs::write(dotrain_file.path(), dotrain).unwrap();
+
+        let orderbook_adress = OrderbookAddress {
+            dotrain_file: dotrain_file.path().into(),
+            settings_file: None,
+            deployment: "non-existing-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+        // should return err
+        orderbook_adress.execute().await.unwrap_err();
+    }
+
+    #[tokio::test]
+    async fn test_execute_non_existing_file() {
+        let orderbook_adress = OrderbookAddress {
+            dotrain_file: PathBuf::from_str("non-existing-file.rain").unwrap(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+        // should return err
+        orderbook_adress.execute().await.unwrap_err();
+    }
+
+    #[tokio::test]
+    async fn test_execute_empty_dotrain() {
+        let dotrain_file = NamedTempFile::new().unwrap();
+
+        let orderbook_adress = OrderbookAddress {
+            dotrain_file: dotrain_file.path().into(),
+            settings_file: None,
+            deployment: "some-deployment".to_string(),
+            encoding: SupportedOutputEncoding::Hex,
+        };
+        // should return err
+        orderbook_adress.execute().await.unwrap_err();
     }
 }

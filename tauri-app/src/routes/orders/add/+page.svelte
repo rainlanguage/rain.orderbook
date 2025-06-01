@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -15,12 +15,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import {
-    orderAdd,
-    orderAddCalldata,
-    orderAddComposeRainlang,
-    validateRaindexVersion,
-  } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, validateRaindexVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
@@ -38,6 +33,10 @@
   import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
+  import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
+  import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
+  import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
+  import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -47,8 +46,6 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-
-  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
@@ -80,7 +77,11 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    [$settingsText],
+    mergedConfig?.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -144,69 +145,42 @@
     isCharting = false;
   }
 
-  async function executeLedger() {
+  async function handleExecuteLedger() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      await orderAdd($globalDotrainFile.text, deployment);
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-    isSubmitting = false;
-  }
-  async function executeWalletconnect() {
-    isSubmitting = true;
-    try {
-      if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
-      toasts.success('Transaction sent successfully!');
-      await tx.wait(1);
-    } catch (e) {
-      reportErrorToSentry(e);
-      toasts.error(formatEthersTransactionError(e));
+      await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
+    } catch (e: unknown) {
+      toasts.error((e as Error).message || 'Ledger execution failed');
     }
     isSubmitting = false;
   }
 
-  async function generateRainlangStrings(
-    dotrainText: string,
-    scenarios?: Record<string, ScenarioCfg>,
-  ): Promise<Map<ScenarioCfg, string> | undefined> {
+  async function handleExecuteWalletConnect() {
+    isSubmitting = true;
     try {
-      if (isEmpty(scenarios)) return;
-      composedRainlangForScenarios = new Map();
-      for (const scenario of Object.values(scenarios)) {
-        try {
-          const composedRainlang = await orderAddComposeRainlang(
-            dotrainText,
-            [$settingsText],
-            scenario,
-          );
-          composedRainlangForScenarios.set(scenario, composedRainlang);
-        } catch (e) {
-          composedRainlangForScenarios.set(
-            scenario,
-            e?.toString() || 'Error composing rainlang for scenario',
-          );
-        }
-      }
-      return composedRainlangForScenarios;
-    } catch (e) {
-      reportErrorToSentry(e);
+      if (!deployment) throw Error('Select a deployment to add order');
+      await executeWalletConnectOrder($globalDotrainFile.text, deployment, {
+        orderAddCalldataFn: async (dotrain, deploy) =>
+          (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
+        ethersExecuteFn: ethersExecute,
+        reportErrorToSentryFn: reportErrorToSentry,
+        formatEthersTransactionErrorFn: formatEthersTransactionError,
+        successToastFn: toasts.success,
+        errorToastFn: toasts.error,
+      });
+    } catch {
+      // error already reported by service or toast shown
     }
+    isSubmitting = false;
   }
 
   const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
     useDebouncedFn(validateRaindexVersion, 500);
 
   $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
+
+  $: deploymentNetworks = getDeploymentsNetworks(deployments);
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
@@ -257,7 +231,7 @@
 </FileTextarea>
 
 <Button disabled={isCharting} on:click={chart} size="sm" class="self-center"
-  ><span class="mr-2">Run all scenarios</span>{#if isCharting}<Spinner size="5" />{/if}</Button
+  ><span class="mr-2">Generate charts</span>{#if isCharting}<Spinner size="5" />{/if}</Button
 >
 
 <Tabs
@@ -284,7 +258,7 @@
       </Tabs>
     {/if}
   </TabItem>
-  <TabItem title="Debug"><ScenarioDebugTable {chartData} /></TabItem>
+  <TabItem title="Debug"><ScenarioDebugTable bind:networks={deploymentNetworks} /></TabItem>
   <TabItem title="Charts">
     <Charts {chartData} />
   </TabItem>
@@ -298,7 +272,7 @@
   overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
-  {executeLedger}
-  {executeWalletconnect}
+  executeWalletconnect={handleExecuteWalletConnect}
+  executeLedger={handleExecuteLedger}
   bind:isSubmitting
 />

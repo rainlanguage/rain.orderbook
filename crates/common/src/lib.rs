@@ -14,18 +14,13 @@ pub mod replays;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
-#[cfg(not(target_family = "wasm"))]
+#[cfg(all(not(target_family = "wasm"), test))]
 pub mod unit_tests;
 pub mod utils;
 pub mod withdraw;
-
-#[cfg(target_family = "wasm")]
-pub mod js_api;
-
 pub use dotrain;
 pub use dotrain_lsp;
-
 #[cfg(test)]
-mod test_helpers;
+pub mod test_helpers;
 
 pub const GH_COMMIT_SHA: &str = env!("COMMIT_SHA", "$COMMIT_SHA not set.");
