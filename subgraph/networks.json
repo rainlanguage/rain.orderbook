@@ -19,7 +19,7 @@
     },
     "arbitrum-one": {
         "OrderBook": {
-            "address": "0x59401c9302e79eb8ac6aea659b8b3ae475715e86",
+            "address": "0x59401C9302E79Eb8AC6aea659B8B3ae475715e86",
             "startBlock": 343433995
         }
     },
