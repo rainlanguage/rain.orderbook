@@ -36,14 +36,14 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
         // 3 reads for reentrancy guard.
         // 5 reads for deposit.
         assertEq(reads.length, isFirstDeposit ? 8 : 6);
-        assert(reads[0] == bytes32(uint256(0)));
-        assert(reads[1] == bytes32(uint256(0)));
-        assert(reads[reads.length - 1] == bytes32(uint256(0)));
+        assertEq(reads[0], bytes32(uint256(0)));
+        assertEq(reads[1], bytes32(uint256(0)));
+        assertEq(reads[reads.length - 1], bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
         // 2 write for deposit.
         assertEq(writes.length, isFirstDeposit ? 4 : 3);
-        assert(writes[0] == bytes32(uint256(0)));
-        assert(writes[writes.length - 1] == bytes32(uint256(0)));
+        assertEq(writes[0], bytes32(uint256(0)));
+        assertEq(writes[writes.length - 1], bytes32(uint256(0)));
     }
 
     function checkDeposit(
