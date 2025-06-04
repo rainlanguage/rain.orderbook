@@ -431,7 +431,7 @@ using-words-from orderbook-subparser
         );
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}

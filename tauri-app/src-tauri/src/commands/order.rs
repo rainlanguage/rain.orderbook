@@ -382,7 +382,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -566,7 +566,7 @@ _ _: 16 52;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -615,7 +615,7 @@ _ _: 0 0;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -665,7 +665,7 @@ _ _: 0 0;
         // Test compose error with invalid rainlang
         let dotrain_invalid = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -715,7 +715,7 @@ _ _: invalid syntax;
     async fn test_validate_spec_version_ok() {
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     sepolia:
         rpc: http://example.com
@@ -762,11 +762,11 @@ _ _: 0 0;
             CommandError::DotrainOrderError(DotrainOrderError::YamlError(YamlError::Field {
                 kind: FieldErrorKind::Missing(ref s),
                 location: ref loc
-            })) if s == "spec-version" && loc == "root"
+            })) if s == "version" && loc == "root"
         ));
 
         let dotrain = r#"
-spec-version: 2
+version: 2
 networks:
     sepolia:
         rpc: http://example.com

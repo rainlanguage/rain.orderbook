@@ -250,7 +250,7 @@ mod tests {
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -305,7 +305,7 @@ deployers:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 metaboards:
     some-network: {}
 ---
@@ -364,7 +364,7 @@ deployers:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -426,7 +426,7 @@ _ _: 1 2;
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 metaboards:
     some-network: {}
 ---
@@ -503,7 +503,7 @@ orders:
         let server = mock_server();
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: {}

@@ -114,7 +114,7 @@ mod tests {
     fn get_dotrain() -> String {
         format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: https://some-rpc.com

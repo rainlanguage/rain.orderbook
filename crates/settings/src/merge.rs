@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -319,7 +319,7 @@ mod tests {
         };
 
         let other = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -360,7 +360,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn test_successful_merge_metaboard() {
         let mut config = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -415,7 +415,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),

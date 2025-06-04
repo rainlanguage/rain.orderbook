@@ -182,7 +182,7 @@ export const config: Config = {
 };
 
 export const configSource: ConfigSource = {
-  'spec-version': '1',
+  version: '1',
   networks: {
     network1: {
       rpc: 'rpc-url',

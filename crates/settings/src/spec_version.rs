@@ -20,11 +20,7 @@ impl SpecVersion {
 impl YamlParsableString for SpecVersion {
     fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let value = require_string(
-            &document_read,
-            Some("spec-version"),
-            Some("root".to_string()),
-        )?;
+        let value = require_string(&document_read, Some("version"), Some("root".to_string()))?;
         Ok(value)
     }
 
@@ -59,7 +55,7 @@ test: test
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::Missing("spec-version".to_string()),
+                kind: FieldErrorKind::Missing("version".to_string()),
                 location: "root".to_string()
             }
         )

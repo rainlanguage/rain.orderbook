@@ -130,7 +130,7 @@ mod tests {
     fn get_text() -> String {
         format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 
 tokens:
   token1:

@@ -507,7 +507,7 @@ price: 2e18;
 
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -617,7 +617,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -764,7 +764,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -805,7 +805,7 @@ _ _: 0 0;
         let result = AddOrderArgs::new_from_deployment(
             format!(
                 "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #key1 !Test binding
 #calculate-io
@@ -838,7 +838,7 @@ _ _: 0 key1;
 
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -932,7 +932,7 @@ _ _: 16 52;
 
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -1108,7 +1108,7 @@ _ _: 16 52;
 
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1144,7 +1144,7 @@ _ _: 0 0;
         let deployment = get_deployment("https://testtest.com", Address::random());
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1171,7 +1171,7 @@ _ _: 0 0;
         let deployment = get_deployment("https://testtest.com", Address::random());
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1204,7 +1204,7 @@ _ _: 0 0;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1446,7 +1446,7 @@ _ _: 0 0;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1520,7 +1520,7 @@ _ _: 0 0;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;

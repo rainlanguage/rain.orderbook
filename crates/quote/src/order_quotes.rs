@@ -212,7 +212,7 @@ mod tests {
     fn create_dotrain_config(setup: &TestSetup) -> String {
         format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}

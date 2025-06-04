@@ -132,10 +132,13 @@ impl DotrainOrderError {
                 format!("Internal configuration processing error: {}", e)
             }
             DotrainOrderError::SpecVersionMismatch(expected, got) => {
-                format!("Configuration spec version mismatch. Expected '{}', but found '{}'. Please update 'spec-version'.", expected, got)
+                format!("Configuration version mismatch. Expected '{}', but found '{}'. Please update 'version'.", expected, got)
             }
             DotrainOrderError::MissingSpecVersion(expected) => {
-                format!("The required 'spec-version' field is missing. Please add it and set it to '{}'.", expected)
+                format!(
+                    "The required 'version' field is missing. Please add it and set it to '{}'.",
+                    expected
+                )
             }
             DotrainOrderError::DeploymentNotFound(name) => {
                 format!("Deployment '{}' is not defined in the configuration.", name)
@@ -625,7 +628,7 @@ mod tests {
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -672,7 +675,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -723,7 +726,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -774,7 +777,7 @@ _ _: 1 2;"#
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
   polygon:
     rpc: {rpc_url}
@@ -825,7 +828,7 @@ networks:
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     sepolia:
         rpc: {rpc_url}
@@ -870,7 +873,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -922,7 +925,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -979,7 +982,7 @@ _ _: 0 0;
         let deployer = Address::random();
         let dotrain = format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1036,7 +1039,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1113,7 +1116,7 @@ _ _: 0 0;
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         sepolia:
             rpc: {rpc_url}
@@ -1315,7 +1318,7 @@ _ _: 0 0;
     async fn test_validate_spec_version_happy() {
         let dotrain = format!(
             "
-                spec-version: {spec_version}
+                version: {spec_version}
                 networks:
                     sepolia:
                         rpc: http://example.com
@@ -1367,14 +1370,14 @@ _ _: 0 0;
             DotrainOrderError::YamlError(YamlError::Field {
                 kind: FieldErrorKind::Missing(ref key),
                 location
-            }) if key == "spec-version" && location == "root"
+            }) if key == "version" && location == "root"
         ));
     }
 
     #[tokio::test]
     async fn test_validate_spec_version_unhappy() {
         let dotrain = "
-                spec-version: 2
+                version: 2
                 networks:
                     sepolia:
                         rpc: http://example.com
@@ -1408,7 +1411,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}

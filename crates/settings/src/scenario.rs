@@ -633,7 +633,7 @@ mod tests {
 
         // Construct ConfigSource with the above scenarios
         let config_string = ConfigSource {
-            spec_version: SpecVersion::current().to_string(),
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             networks,
             subgraphs: HashMap::new(), // Assuming no subgraphs for simplification

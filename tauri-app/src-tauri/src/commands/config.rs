@@ -47,7 +47,7 @@ mod tests {
     async fn test_parse_configstring_and_convert_configstring_to_config() {
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -134,7 +134,7 @@ orderbooks: &orderbooks
         assert_eq!(config_src.deployments, HashMap::new());
         assert_eq!(config_src.metaboards, HashMap::new());
         assert_eq!(config_src.sentry, None);
-        assert_eq!(config_src.spec_version, "1".to_string());
+        assert_eq!(config_src.version, "1".to_string());
         assert_eq!(config_src.accounts, None);
         assert_eq!(config_src.gui, None);
 
@@ -284,7 +284,7 @@ orderbooks: &orderbooks
         // Inspect sentry
         assert_eq!(config.sentry, None);
         // Inspect spec_version
-        assert_eq!(config.spec_version, "1".to_string());
+        assert_eq!(config.version, "1".to_string());
         // Inspect accounts
         assert_eq!(config.accounts, None);
         // Inspect gui
@@ -294,7 +294,7 @@ orderbooks: &orderbooks
     async fn test_parse_configstring_err_invalid_config() {
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         chain-id: 1
@@ -320,7 +320,7 @@ networks:
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -349,7 +349,7 @@ networks:
     async fn test_merge_configstrings_ok() {
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -372,7 +372,7 @@ orderbooks:
 
         let config_text = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     testnet: &testnet
         rpc: https://testnet.node
@@ -412,14 +412,14 @@ orderbooks:
         assert!(merged_config.orderbooks.contains_key("testnetOrderbook"));
 
         // Verify raindex version was preserved
-        assert_eq!(merged_config.spec_version, "1".to_string());
+        assert_eq!(merged_config.version, "1".to_string());
     }
 
     #[tokio::test]
     async fn test_merge_configstrings_collision() {
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -436,7 +436,7 @@ subgraphs:
 
         let config_text = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -465,7 +465,7 @@ subgraphs:
     async fn test_merge_configstrings_invalid_config() {
         let dotrain = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -480,7 +480,7 @@ networks:
 
         let config_text = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     testnet: &testnet
         chain-id: 2

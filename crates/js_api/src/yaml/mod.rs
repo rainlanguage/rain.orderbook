@@ -93,7 +93,7 @@ mod tests {
     pub fn get_yaml() -> String {
         format!(
             r#"
-    spec-version: {spec_version}
+    version: {spec_version}
     networks:
         mainnet:
             rpc: https://mainnet.infura.io

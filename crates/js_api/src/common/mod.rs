@@ -195,7 +195,7 @@ mod tests {
         fn get_dotrain(rpc_url: &str) -> String {
             format!(
                 r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
   mainnet:
     rpc: {rpc_url}
@@ -378,7 +378,7 @@ _ _: 0 0;
         async fn test_get_add_order_calldata_invalid_dotrain() {
             let dotrain = format!(
                 r#"
-spec-version: {}
+version: {}
 test: test
 ---
 "#,

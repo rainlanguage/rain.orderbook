@@ -473,7 +473,7 @@ mod tests {
     pub fn get_yaml() -> String {
         format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
   name: Fixed limit
   description: Fixed limit order strategy
@@ -952,7 +952,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     test: test
 ---
@@ -983,7 +983,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     name: Test name
 ---
@@ -1014,7 +1014,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     name: Test name
     description: Test description
@@ -1075,7 +1075,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 test: test
 ---
 #calculate-io
@@ -1094,7 +1094,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     test: test
 ---
@@ -1125,7 +1125,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     deployments: test
 ---
@@ -1159,7 +1159,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     deployments:
         - test
@@ -1194,7 +1194,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     deployments:
         test: test
@@ -1226,7 +1226,7 @@ _ _: 0 0;
 
         let yaml = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 gui:
     deployments:
         test:

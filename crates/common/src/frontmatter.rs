@@ -346,7 +346,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_spec_version() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
-        assert_eq!(config.spec_version, SpecVersion::current().to_string());
+        assert_eq!(config.version, SpecVersion::current().to_string());
     }
 
     #[tokio::test]
@@ -367,7 +367,7 @@ mod tests {
         // at the beginning of the original test.
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.spec_version, SpecVersion::current().to_string());
+        assert_eq!(config.version, SpecVersion::current().to_string());
         assert_eq!(config.networks.len(), 2);
         assert_eq!(config.subgraphs.len(), 2);
         assert_eq!(config.metaboards.len(), 2);

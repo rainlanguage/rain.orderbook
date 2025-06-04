@@ -182,7 +182,7 @@ mod tests {
         let rpc_server = MockServer::start_async().await;
         let dotrain_content = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: {}
@@ -359,7 +359,7 @@ deployments:
     async fn test_execute_invalid_yaml_dotrain_file() {
         let invalid_yaml_content = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 test: test
 ---
     :;
@@ -396,7 +396,7 @@ test: test
 
         let dotrain_content_invalid_script = format!(
             "
-spec-version: {spec_version}
+version: {spec_version}
 networks:
   some-network:
     rpc: {}
@@ -456,7 +456,7 @@ tokens:
     async fn test_execute_no_rpc_response() {
         let dotrain_content = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     some-network:
         rpc: http://localhost:12345/nonexistent_rpc

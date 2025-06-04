@@ -308,7 +308,7 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    spec-version: 1
+    version: 1
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"

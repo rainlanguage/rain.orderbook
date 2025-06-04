@@ -94,7 +94,7 @@ pub struct ConfigSource {
     pub metaboards: HashMap<String, Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
-    pub spec_version: String,
+    pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(
         target_family = "wasm",
@@ -459,7 +459,7 @@ mod tests {
         let mocked_chain_id_server = MockServer::start_async().await;
         let yaml_data = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 
 using-networks-from:
     chainid:
@@ -742,7 +742,7 @@ gui:
         assert_eq!(order.deployer, expected_order.deployer);
         assert_eq!(order.orderbook, expected_order.orderbook);
 
-        assert_eq!(config.spec_version, "1".to_string());
+        assert_eq!(config.version, "1".to_string());
 
         let accounts = config.accounts.unwrap();
         assert_eq!(accounts.get("name-one").unwrap(), "address-one");
@@ -834,7 +834,7 @@ using-networks-from:
     async fn parse_yaml_into_configstrings_with_anchors() {
         let top_yml_data = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -863,7 +863,7 @@ orderbooks: &orderbooks
 
         let yaml_data = format!(
             r#"
-spec-version: {spec_version}
+version: {spec_version}
 networks:
     mainnet: *mainnet
     testnet: *testnet
@@ -879,7 +879,7 @@ orderbooks: *orderbooks
                 .unwrap();
 
         // Asserting a few values to verify successful parsing for config
-        assert_eq!(config.clone().spec_version, "1".to_string());
+        assert_eq!(config.clone().version, "1".to_string());
         assert_eq!(
             config.clone().networks.get("mainnet").unwrap().rpc,
             Url::parse("https://mainnet.node").unwrap()
@@ -900,7 +900,7 @@ orderbooks: *orderbooks
         );
 
         // Asserting a few values to verify successful parsing for other config
-        assert_eq!(top_config.clone().spec_version, "1".to_string());
+        assert_eq!(top_config.clone().version, "1".to_string());
         assert_eq!(
             top_config.clone().networks.get("mainnet").unwrap().rpc,
             Url::parse("https://mainnet.node").unwrap()

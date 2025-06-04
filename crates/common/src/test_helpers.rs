@@ -1,5 +1,5 @@
 pub const TEST_DOTRAIN: &str = r#"
-spec-version: 1
+version: 1
 networks:
     mainnet:
         rpc: https://mainnet.infura.io

@@ -85,7 +85,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
-        spec-version: {spec_version}
+        version: {spec_version}
         
         tokens:
           token1:
