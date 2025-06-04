@@ -5,7 +5,7 @@
 	import { getOrderTradesList, getOrderTradesCount } from '@rainlanguage/orderbook';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
-	import { formatTimestampSecondsAsLocal } from '../../utils/time';
+	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { formatUnits } from 'viem';
 	import { BugOutline } from 'flowbite-svelte-icons';
@@ -27,7 +27,7 @@
 		queryFn: async ({ pageParam }: { pageParam: number }) => {
 			tradesCount = undefined;
 
-			const [count, trades] = await Promise.all([
+			const [countResult, tradesResult] = await Promise.all([
 				getOrderTradesCount(
 					subgraphUrl || '',
 					id,
@@ -42,6 +42,11 @@
 					endTimestamp ? BigInt(endTimestamp) : undefined
 				)
 			]);
+			if (countResult.error) throw new Error(countResult.error.msg);
+			if (tradesResult.error) throw new Error(tradesResult.error.msg);
+
+			const count = countResult.value;
+			const trades = tradesResult.value;
 
 			if (typeof count === 'number') {
 				tradesCount = count;

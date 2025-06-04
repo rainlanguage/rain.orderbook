@@ -22,11 +22,12 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { handleDeployment } from './handleDeployment';
 	import { type DeploymentArgs } from '$lib/types/transaction';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
+	import { useRegistry } from '$lib/providers/registry/useRegistry';
+	import type { Account } from '$lib/types/account';
 
 	interface Deployment {
 		key: string;
@@ -43,7 +44,7 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let settings: Writable<ConfigSource>;
-	export let registryUrl: string;
+	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -56,8 +57,8 @@
 	let checkingDeployment: boolean = false;
 	let subgraphUrl: string | undefined = undefined;
 
-	const { account } = useAccount();
 	const gui = useGui();
+	const registry = useRegistry();
 
 	let deploymentStepsError = DeploymentStepsError.error;
 
@@ -151,7 +152,7 @@
 	}
 
 	async function _handleShareChoices() {
-		await handleShareChoices(gui, registryUrl);
+		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
 	async function onSelectTokenSelect() {
@@ -218,7 +219,7 @@
 			}
 			DeploymentStepsError.clear();
 			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return await onDeploy(deploymentArgs);
+			return onDeploy(deploymentArgs);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

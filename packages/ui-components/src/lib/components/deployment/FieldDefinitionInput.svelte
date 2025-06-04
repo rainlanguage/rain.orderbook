@@ -62,6 +62,7 @@
 			<div class="flex w-full flex-wrap gap-4">
 				{#each fieldDefinition.presets as preset}
 					<ButtonSelectOption
+						dataTestId={`binding-${fieldDefinition.binding}-preset-${preset.name || preset.value}`}
 						buttonText={preset.name || preset.value}
 						clickHandler={() => handlePresetClick(preset)}
 						active={currentValue?.value === preset.value}
@@ -72,6 +73,7 @@
 
 		{#if !fieldDefinition.presets || fieldDefinition.showCustomField}
 			<Input
+				data-testid={`binding-${fieldDefinition.binding}-input`}
 				size="lg"
 				placeholder="Enter custom value"
 				bind:value={inputValue}

@@ -1,15 +1,9 @@
 <script lang="ts">
-	import { timestampSecondsToUTCTimestamp } from '../../utils/time';
+	import { timestampSecondsToUTCTimestamp } from '../../services/time';
 	import { bigintToFloat } from '../../utils/number';
-	import type { SgVault } from '@rainlanguage/orderbook';
+	import type { SgVault, SgVaultBalanceChangeUnwrapped } from '@rainlanguage/orderbook';
 	import { createQuery } from '@tanstack/svelte-query';
-	import {
-		getVaultBalanceChanges,
-		type SgClearBounty,
-		type SgDeposit,
-		type SgTradeVaultBalanceChange,
-		type SgWithdrawal
-	} from '@rainlanguage/orderbook';
+	import { getVaultBalanceChanges } from '@rainlanguage/orderbook';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 
@@ -20,18 +14,18 @@
 
 	$: query = createQuery({
 		queryKey: [id, QKEY_VAULT_CHANGES + id, QKEY_VAULT_CHANGES],
-		queryFn: () => {
-			return getVaultBalanceChanges(subgraphUrl || '', vault.id, {
+		queryFn: async () => {
+			const result = await getVaultBalanceChanges(subgraphUrl || '', vault.id, {
 				page: 1,
 				pageSize: 1000
 			});
+			if (result.error) throw new Error(result.error.msg);
+			return result.value;
 		},
 		enabled: !!subgraphUrl
 	});
 
-	const Chart = TanstackLightweightChartLine<
-		SgWithdrawal | SgDeposit | SgTradeVaultBalanceChange | SgClearBounty
-	>;
+	const Chart = TanstackLightweightChartLine<SgVaultBalanceChangeUnwrapped>;
 </script>
 
 {#if vault && $query.data}

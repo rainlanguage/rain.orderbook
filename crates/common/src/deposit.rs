@@ -96,9 +96,8 @@ impl DepositArgs {
                 spender: transaction_args.orderbook_address,
                 amount: self.amount - current_allowance,
             };
-            let params = transaction_args
-                .try_into_write_contract_parameters(approve_call, self.token)
-                .await?;
+            let params =
+                transaction_args.try_into_write_contract_parameters(approve_call, self.token)?;
 
             WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
                 .execute()
@@ -130,8 +129,7 @@ impl DepositArgs {
 
         let deposit_call: deposit2Call = self.clone().into();
         let params = transaction_args
-            .try_into_write_contract_parameters(deposit_call, transaction_args.orderbook_address)
-            .await?;
+            .try_into_write_contract_parameters(deposit_call, transaction_args.orderbook_address)?;
 
         WriteTransaction::new(ledger_client.client, params, 4, transaction_status_changed)
             .execute()
@@ -230,8 +228,8 @@ mod tests {
         assert_eq!(calldata.len(), 164);
     }
 
-    #[tokio::test]
-    async fn test_deposit_call_try_into_write_contract_parameters() {
+    #[test]
+    fn test_deposit_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
             rpc_url: "http://test.com".to_string(),
             orderbook_address: Address::ZERO,
@@ -249,7 +247,6 @@ mod tests {
         };
         let params = args
             .try_into_write_contract_parameters(deposit_call.clone(), Address::ZERO)
-            .await
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, deposit_call);
@@ -283,8 +280,8 @@ mod tests {
         assert_eq!(calldata.len(), 68);
     }
 
-    #[tokio::test]
-    async fn test_approve_call_try_into_write_contract_parameters() {
+    #[test]
+    fn test_approve_call_try_into_write_contract_parameters() {
         let args = TransactionArgs {
             rpc_url: "http://test.com".to_string(),
             orderbook_address: Address::ZERO,
@@ -300,7 +297,6 @@ mod tests {
         };
         let params = args
             .try_into_write_contract_parameters(approve_call.clone(), Address::ZERO)
-            .await
             .unwrap();
         assert_eq!(params.address, Address::ZERO);
         assert_eq!(params.call, approve_call);

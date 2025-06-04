@@ -5,20 +5,10 @@ import transactionStore, {
 	TransactionErrorMessage
 } from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import {
-	getTransaction,
-	type DepositCalldataResult,
-	type SgVault,
-	type WithdrawCalldataResult
-} from '@rainlanguage/orderbook';
+import { getTransaction, type SgVault, type VaultCalldataResult } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
-import {
-	awaitSubgraphIndexing,
-	getTransactionConfig,
-	getNewOrderConfig,
-	TIMEOUT_ERROR
-} from '../lib/services/awaitTransactionIndexing';
+import { awaitSubgraphIndexing, TIMEOUT_ERROR } from '../lib/services/awaitTransactionIndexing';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn(),
@@ -165,20 +155,9 @@ describe('transactionStore', () => {
 			}
 		});
 
-		(getTransactionConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: mockSuccessMessage
-		});
-
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
-		expect(getTransactionConfig).toHaveBeenCalledWith(
-			mockSubgraphUrl,
-			mockTxHash,
-			mockSuccessMessage
-		);
 
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
@@ -192,12 +171,6 @@ describe('transactionStore', () => {
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
-		});
-
-		(getTransactionConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: mockSuccessMessage
 		});
 
 		await awaitTransactionIndexing(mockSubgraphUrl, mockTxHash, mockSuccessMessage);
@@ -221,18 +194,9 @@ describe('transactionStore', () => {
 			}
 		});
 
-		(getNewOrderConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: '',
-			network: mockNetwork
-		});
-
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
 
 		expect(awaitSubgraphIndexing).toHaveBeenCalled();
-		expect(getNewOrderConfig).toHaveBeenCalledWith(mockSubgraphUrl, mockTxHash, '', mockNetwork);
-
 		expect(get(transactionStore).status).toBe(TransactionStatus.SUCCESS);
 		expect(get(transactionStore).hash).toBe(mockTxHash);
 		expect(get(transactionStore).newOrderHash).toBe(mockOrderHash);
@@ -246,13 +210,6 @@ describe('transactionStore', () => {
 
 		(awaitSubgraphIndexing as Mock).mockResolvedValue({
 			error: TIMEOUT_ERROR
-		});
-
-		(getNewOrderConfig as Mock).mockReturnValue({
-			subgraphUrl: mockSubgraphUrl,
-			txHash: mockTxHash,
-			successMessage: '',
-			network: mockNetwork
 		});
 
 		await awaitNewOrderIndexing(mockSubgraphUrl, mockTxHash, mockNetwork);
@@ -478,9 +435,7 @@ describe('handleDepositOrWithdrawTransaction', () => {
 			id: '0xorderbook1' as `0x${string}`
 		}
 	} as SgVault;
-	const mockTransactionCalldata = '0xtransactioncalldata' as unknown as
-		| DepositCalldataResult
-		| WithdrawCalldataResult;
+	const mockTransactionCalldata = '0xtransactioncalldata' as VaultCalldataResult;
 
 	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
 

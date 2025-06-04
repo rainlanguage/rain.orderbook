@@ -154,31 +154,62 @@ pub async fn get_order_quotes(
 mod tests {
     use super::*;
     use alloy::{
-        hex::encode_prefixed,
+        hex::{encode_prefixed, FromHexError},
         primitives::B256,
         providers::Provider,
         sol_types::{SolCall, SolValue},
     };
+    use alloy_ethers_typecast::transaction::ReadableClientError;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+    use rain_orderbook_subgraph_client::types::{
+        common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
+        order_detail_traits::OrderDetailError,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
 
-    #[tokio::test]
-    async fn test_get_order_quotes() {
-        let mut local_evm = LocalEvm::new().await;
+    struct TestSetup {
+        local_evm: LocalEvm,
+        owner: Address,
+        token1: SgErc20,
+        token2: SgErc20,
+        orderbook: Address,
+    }
 
+    async fn setup_test() -> TestSetup {
+        let mut local_evm = LocalEvm::new().await;
         let owner = local_evm.signer_wallets[0].default_signer().address();
+
         let token1 = local_evm
             .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
             .await;
         let token2 = local_evm
             .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
-        let orderbook = &local_evm.orderbook;
+        let orderbook = *local_evm.orderbook.address();
 
-        let dotrain = format!(
+        TestSetup {
+            local_evm,
+            owner,
+            token1: SgErc20 {
+                id: SgBytes(token1.address().to_string()),
+                address: SgBytes(token1.address().to_string()),
+                name: Some("Token1".to_string()),
+                symbol: Some("Token1".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            token2: SgErc20 {
+                id: SgBytes(token2.address().to_string()),
+                address: SgBytes(token2.address().to_string()),
+                name: Some("Token2".to_string()),
+                symbol: Some("Token2".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            orderbook,
+        }
+    }
+
+    fn create_dotrain_config(setup: &TestSetup) -> String {
+        format!(
             r#"
 networks:
     some-key:
@@ -234,92 +265,73 @@ amount price: context<3 0>() context<4 0>();
 #handle-io
 :;
 "#,
-            rpc_url = local_evm.url(),
-            orderbook = orderbook.address(),
-            deployer = local_evm.deployer.address(),
-            token1 = token1.address(),
-            token2 = token2.address(),
-        );
+            rpc_url = setup.local_evm.url(),
+            orderbook = setup.orderbook,
+            deployer = setup.local_evm.deployer.address(),
+            token1 = setup.token1.address.0,
+            token2 = setup.token2.address.0,
+        )
+    }
 
-        let order = DotrainOrder::new(dotrain.clone(), None).await.unwrap();
-        let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
+    async fn create_order(setup: &TestSetup, dotrain: String) -> String {
+        let mut dotrain_order = DotrainOrder::new();
+        dotrain_order
+            .initialize(dotrain.clone(), None)
+            .await
+            .unwrap();
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("some-key")
+            .unwrap();
         let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
             .unwrap()
-            .try_into_call(local_evm.url())
+            .try_into_call(setup.local_evm.url())
             .await
             .unwrap()
             .abi_encode();
 
-        // add order
-        let order = encode_prefixed(
-            local_evm
-                .add_order(&calldata, owner)
+        encode_prefixed(
+            setup
+                .local_evm
+                .add_order(&calldata, setup.owner)
                 .await
                 .0
                 .order
                 .abi_encode(),
-        );
-        // deposit in token1 and token2 vaults
-        // deposit MAX so we can get token addresses as the quote result
-        local_evm
-            .deposit(owner, *token1.address(), U256::MAX, U256::from(1))
-            .await;
-        local_evm
-            .deposit(owner, *token2.address(), U256::MAX, U256::from(1))
-            .await;
+        )
+    }
 
-        let vault1 = SgVault {
+    fn create_vault(setup: &TestSetup, token: &SgErc20) -> SgVault {
+        SgVault {
             id: SgBytes(B256::random().to_string()),
-            token: SgErc20 {
-                id: SgBytes(token1.address().to_string()),
-                address: SgBytes(token1.address().to_string()),
-                name: Some("Token1".to_string()),
-                symbol: Some("Token1".to_string()),
-                decimals: Some(SgBigInt(18.to_string())),
-            },
+            token: token.clone(),
             balance: SgBigInt("123".to_string()),
             vault_id: SgBigInt(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
+            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(orderbook.address().to_string()),
+                id: SgBytes(setup.orderbook.to_string()),
             },
             orders_as_input: vec![],
             orders_as_output: vec![],
             balance_changes: vec![],
-        };
-        let vault2 = SgVault {
-            id: SgBytes(B256::random().to_string()),
-            token: SgErc20 {
-                id: SgBytes(token2.address().to_string()),
-                address: SgBytes(token2.address().to_string()),
-                name: Some("Token2".to_string()),
-                symbol: Some("Token2".to_string()),
-                decimals: Some(SgBigInt(6.to_string())),
-            },
-            balance: SgBigInt("123".to_string()),
-            vault_id: SgBigInt(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(orderbook.address().to_string()),
-            },
-            orders_as_input: vec![],
-            orders_as_output: vec![],
-            balance_changes: vec![],
-        };
+        }
+    }
 
-        // does not follow the actual original order's io order
-        let inputs = vec![vault2.clone(), vault1.clone()];
-        let outputs = vec![vault2.clone(), vault1.clone()];
-
-        let order = SgOrder {
+    fn create_sg_order(
+        setup: &TestSetup,
+        order_bytes: String,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> SgOrder {
+        SgOrder {
             id: SgBytes(B256::random().to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(orderbook.address().to_string()),
+                id: SgBytes(setup.orderbook.to_string()),
             },
-            order_bytes: SgBytes(order),
+            order_bytes: SgBytes(order_bytes),
             order_hash: SgBytes(B256::random().to_string()),
-            owner: SgBytes(local_evm.anvil.addresses()[0].to_string()),
+            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             outputs,
             inputs,
             active: true,
@@ -328,15 +340,52 @@ amount price: context<3 0>() context<4 0>();
             timestamp_added: SgBigInt(0.to_string()),
             trades: vec![],
             remove_events: vec![],
-        };
+        }
+    }
 
-        let result = get_order_quotes(vec![order], None, local_evm.url(), None)
+    #[tokio::test]
+    async fn test_get_order_quotes_ok() {
+        let setup = setup_test().await;
+
+        // Deposit in token1 and token2 vaults
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                Address::from_str(&setup.token1.address.0).unwrap(),
+                U256::MAX,
+                U256::from(1),
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                Address::from_str(&setup.token2.address.0).unwrap(),
+                U256::MAX,
+                U256::from(1),
+            )
+            .await;
+
+        let dotrain = create_dotrain_config(&setup);
+        let order = create_order(&setup, dotrain).await;
+
+        let vault1 = create_vault(&setup, &setup.token1);
+        let vault2 = create_vault(&setup, &setup.token2);
+
+        // does not follow the actual original order's io order
+        let inputs = vec![vault2.clone(), vault1.clone()];
+        let outputs = vec![vault2.clone(), vault1.clone()];
+
+        let order = create_sg_order(&setup, order, inputs, outputs);
+
+        let result = get_order_quotes(vec![order], None, setup.local_evm.url(), None)
             .await
             .unwrap();
 
-        let token1_as_u256 = U256::from_str(&token1.address().to_string()).unwrap();
-        let token2_as_u256 = U256::from_str(&token2.address().to_string()).unwrap();
-        let block_number = local_evm.provider.get_block_number().await.unwrap();
+        let token1_as_u256 = U256::from_str(&setup.token1.address.0).unwrap();
+        let token2_as_u256 = U256::from_str(&setup.token2.address.0).unwrap();
+        let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![
             BatchOrderQuotesResponse {
                 pair: Pair {
@@ -368,5 +417,46 @@ amount price: context<3 0>() context<4 0>();
             },
         ];
         assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn test_get_order_quotes_err() {
+        let setup = setup_test().await;
+        let dotrain = create_dotrain_config(&setup);
+        let order = create_order(&setup, dotrain).await;
+
+        // Test invalid orderbook address
+        let mut invalid_order = create_sg_order(&setup, order.clone(), vec![], vec![]);
+        invalid_order.orderbook.id = SgBytes("invalid_address".to_string());
+
+        let err = get_order_quotes(vec![invalid_order], None, setup.local_evm.url(), None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, Error::FromHexError(FromHexError::OddLength)));
+
+        // Test invalid order bytes
+        let invalid_order = create_sg_order(&setup, B256::random().to_string(), vec![], vec![]);
+
+        let err = get_order_quotes(vec![invalid_order], None, setup.local_evm.url(), None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::OrderDetailError(OrderDetailError::AbiDecode(_))
+        ));
+
+        // Test invalid RPC URL
+        let valid_order = create_sg_order(&setup, order, vec![], vec![]);
+
+        let err = get_order_quotes(vec![valid_order], None, "invalid_rpc_url".to_string(), None)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            Error::RpcCallError(ReadableClientError::CreateReadableClientHttpError(_))
+        ));
     }
 }

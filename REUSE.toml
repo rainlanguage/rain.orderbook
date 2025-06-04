@@ -2,6 +2,7 @@ version = 1
 
 [[annotations]]
 path = [
+    ".envrc",
     ".gas-snapshot",
     ".github/workflows/**/",
     ".gitignore",
@@ -27,6 +28,7 @@ path = [
     "subgraph/**/",
     "crates/**/",
     "tauri-app/**/",
+    "test-resources/**/",
 ]
 SPDX-FileCopyrightText = "Copyright (c) 2020 Rain Open Source Software Ltd"
 SPDX-License-Identifier = "LicenseRef-DCL-1.0"

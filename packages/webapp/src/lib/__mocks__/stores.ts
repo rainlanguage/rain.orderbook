@@ -8,7 +8,8 @@ export const initialPageState = {
 		stores: { settings: {} },
 		dotrain: 'some dotrain content',
 		deployment: { key: 'deploy-key' },
-		strategyDetail: {}
+		strategyDetail: {},
+		errorMessage: ''
 	},
 	url: new URL('http://localhost:3000/deploy'),
 	params: {},
@@ -60,5 +61,11 @@ export const mockAppKitModalStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (value: typeof initialPageState): void => mockPageWritable.set(value)
+	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+		mockPageWritable.update((currentValue) => ({
+			...currentValue,
+			...newValue
+		}));
+	},
+	reset: () => mockPageWritable.set(initialPageState)
 };

@@ -75,9 +75,9 @@ export {
 	type TransactionState,
 	type ExtendedApprovalCalldata
 } from './stores/transactionStore';
-export type { DeploymentArgs, DepositOrWithdrawArgs, OrderRemoveArgs } from './types/transaction';
+export type { DeploymentArgs, VaultActionArgs, OrderRemoveArgs } from './types/transaction';
 export type {
-	DepositOrWithdrawModalProps,
+	VaultActionModalProps,
 	OrderRemoveModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
@@ -85,6 +85,7 @@ export type {
 	DisclaimerModalProps
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
+export type { ToastProps } from './types/toast';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -92,7 +93,7 @@ export {
 	formatTimestampSecondsAsLocal,
 	timestampSecondsToUTCTimestamp,
 	promiseTimeout
-} from './utils/time';
+} from './services/time';
 export { bigintStringToHex, HEX_INPUT_REGEX } from './utils/hex';
 export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
@@ -131,10 +132,17 @@ export { default as logoDark } from './assets/logo-dark.svg';
 // Providers
 export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
+export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
+export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
+export { useRegistry } from './providers/registry/useRegistry';
+export { useToasts } from './providers/toasts/useToasts';
+
+// Classes
+export { RegistryManager } from './providers/registry/RegistryManager';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
