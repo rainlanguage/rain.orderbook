@@ -141,8 +141,7 @@ pub async fn compose_from_scenario(
     settings: Option<Vec<String>>,
     scenario: ScenarioCfg,
 ) -> CommandResult<String> {
-    let mut dotrain_order = DotrainOrder::new();
-    dotrain_order.initialize(dotrain, settings).await?;
+    let dotrain_order = DotrainOrder::create(dotrain, settings).await?;
     Ok(dotrain_order
         .compose_scenario_to_rainlang(scenario.key)
         .await?)
@@ -150,8 +149,7 @@ pub async fn compose_from_scenario(
 
 #[tauri::command]
 pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
-    let mut dotrain_order = DotrainOrder::new();
-    dotrain_order.initialize(dotrain, Some(settings)).await?;
+    let dotrain_order = DotrainOrder::create(dotrain, Some(settings)).await?;
     Ok(dotrain_order.validate_raindex_version().await?)
 }
 
@@ -436,8 +434,7 @@ _ _: 16 52;
             deployer = local_evm.deployer.address(),
         );
 
-        let mut order = DotrainOrder::new();
-        order.initialize(dotrain.clone(), None).await.unwrap();
+        let order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = order.dotrain_yaml().get_deployment("some-key").unwrap();
 
         let transaction_args = TransactionArgs {

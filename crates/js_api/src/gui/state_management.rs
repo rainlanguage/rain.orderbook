@@ -178,8 +178,7 @@ impl DotrainOrderGui {
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
 
         let field_values = state
             .field_values

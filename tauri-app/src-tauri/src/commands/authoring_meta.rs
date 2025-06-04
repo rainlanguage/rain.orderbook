@@ -6,8 +6,7 @@ pub async fn get_authoring_meta_v2_for_scenarios(
     dotrain: String,
     settings: Option<Vec<String>>,
 ) -> CommandResult<Vec<ScenarioWords>> {
-    let mut dotrain_order = DotrainOrder::new();
-    dotrain_order.initialize(dotrain, settings).await?;
+    let dotrain_order = DotrainOrder::create(dotrain, settings).await?;
     Ok(dotrain_order.get_all_scenarios_all_words().await?)
 }
 

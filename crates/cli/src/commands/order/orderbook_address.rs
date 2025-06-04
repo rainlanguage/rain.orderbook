@@ -34,10 +34,7 @@ impl Execute for OrderbookAddress {
             }
             None => None,
         };
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain, settings.map(|v| vec![v]))
-            .await?;
+        let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
         let deployment_ref = dotrain_order
             .dotrain_yaml()
             .get_deployment(&self.deployment)?;

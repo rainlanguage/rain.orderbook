@@ -42,10 +42,7 @@ impl Execute for Compose {
             None => None,
         };
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain, settings.map(|v| vec![v]))
-            .await?;
+        let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
 
         let rainlang = if self.post {
             dotrain_order
