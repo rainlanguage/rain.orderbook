@@ -41,6 +41,7 @@ pub async fn call_lsp_problems(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_test_fixtures::LocalEvm;
     use url::Url;
 
@@ -82,8 +83,9 @@ _ _: 0 0;
     async fn test_call_lsp_problems() {
         let local_evm = LocalEvm::new().await;
 
-        let dotrain = r#"
-        raindex-version: 0
+        let dotrain = format!(
+            r#"
+        version: {spec_version}
         
         tokens:
           token1:
@@ -121,7 +123,7 @@ _ _: 0 0;
             runs: 1
             bindings:
               raindex-subparser: 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC
-              fixed-io-output-token: ${order.outputs.0.token.address}
+              fixed-io-output-token: ${{order.outputs.0.token.address}}
         
         deployments:
           flare1:
@@ -160,10 +162,12 @@ _ _: 0 0;
         
         #handle-add-order
         :;
-        "#;
+        "#,
+            spec_version = SpecVersion::current()
+        );
 
         let problems = call_lsp_problems(
-            get_text_document(dotrain),
+            get_text_document(&dotrain),
             &local_evm.url(),
             None,
             HashMap::from([

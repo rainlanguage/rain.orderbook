@@ -4,6 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
+version: 1
 networks:
     some-network:
         rpc: http://localhost:8080/rpc-url

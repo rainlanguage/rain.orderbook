@@ -80,6 +80,7 @@ mod tests {
     use alloy::primitives::U256;
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_bindings::IOrderBookV4::{OrderV3, Quote};
     use rain_orderbook_common::add_order::AddOrderArgs;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
@@ -97,6 +98,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -152,6 +154,7 @@ amount price: 16 52;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -222,6 +225,7 @@ amount price: 16 52;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -282,6 +286,7 @@ _: 1;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
         let mut dotrain_order = DotrainOrder::new();
@@ -350,6 +355,7 @@ _: 1;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -410,6 +416,7 @@ _: 1;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current(),
         );
 
         let mut dotrain_order = DotrainOrder::new();
