@@ -19,8 +19,8 @@
     },
     "arbitrum-one": {
         "OrderBook": {
-            "address": "0x550878091b2B1506069F61ae59e3A5484Bca9166",
-            "startBlock": 256576979
+            "address": "0x59401c9302e79eb8ac6aea659b8b3ae475715e86",
+            "startBlock": 343433995
         }
     },
     "matic": {
