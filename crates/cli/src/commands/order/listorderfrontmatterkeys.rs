@@ -71,6 +71,7 @@ impl Execute for ListOrderFrontmatterKeys {
 #[cfg(test)]
 mod tests {
     use clap::CommandFactory;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
 
@@ -121,6 +122,7 @@ mod tests {
     fn get_test_dotrain(orderbook_key: &str) -> String {
         format!(
             "
+version: {spec_version}
 networks:
     some-network:
         rpc: https://some-url.com
@@ -194,7 +196,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            orderbook_key
+            orderbook_key,
+            spec_version = SpecVersion::current()
         )
     }
 

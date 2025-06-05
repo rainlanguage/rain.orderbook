@@ -188,12 +188,14 @@ mod tests {
         };
         use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
+        use rain_orderbook_app_settings::spec_version::SpecVersion;
         use rain_orderbook_bindings::IOrderBookV4::IO;
         use std::{collections::HashMap, str::FromStr};
 
         fn get_dotrain(rpc_url: &str) -> String {
             format!(
                 r#"
+version: {spec_version}
 networks:
   mainnet:
     rpc: {rpc_url}
@@ -256,7 +258,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#
+"#,
+                spec_version = SpecVersion::current()
             )
         }
 
@@ -373,10 +376,18 @@ _ _: 0 0;
 
         #[tokio::test]
         async fn test_get_add_order_calldata_invalid_dotrain() {
-            let err = get_add_order_calldata("invalid-dotrain", "deployment1")
+            let dotrain = format!(
+                r#"
+version: {}
+test: test
+---
+"#,
+                SpecVersion::current()
+            );
+            let err = get_add_order_calldata(&dotrain, "deployment1")
                 .await
                 .unwrap_err();
-            assert!(matches!(err, Error::UndefinedDeployment));
+            assert!(matches!(err, Error::UndefinedDeployment), "{:?}", err);
 
             let err = get_add_order_calldata(
                 r#"

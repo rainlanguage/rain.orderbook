@@ -148,9 +148,9 @@ pub async fn compose_from_scenario(
 }
 
 #[tauri::command]
-pub async fn validate_raindex_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
+pub async fn validate_spec_version(dotrain: String, settings: Vec<String>) -> CommandResult<()> {
     let dotrain_order = DotrainOrder::create(dotrain, Some(settings)).await?;
-    Ok(dotrain_order.validate_raindex_version().await?)
+    Ok(dotrain_order.validate_spec_version().await?)
 }
 
 #[cfg(test)]
@@ -160,6 +160,8 @@ mod tests {
     use alloy::sol_types::SolCall;
     use dotrain::error::ComposeError;
     use httpmock::MockServer;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_bindings::IOrderBookV4::{addOrder2Call, IO};
     use rain_orderbook_common::add_order::AddOrderArgsError;
     use rain_orderbook_common::transaction::TransactionArgsError;
@@ -174,7 +176,7 @@ mod tests {
     use super::*;
     use crate::error::CommandError;
     use rain_orderbook_app_settings::{deployer::DeployerCfg, yaml::YamlError};
-    use rain_orderbook_common::{dotrain_order::DotrainOrderError, GH_COMMIT_SHA};
+    use rain_orderbook_common::dotrain_order::DotrainOrderError;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 
     #[tokio::test]
@@ -378,6 +380,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -432,6 +435,7 @@ _ _: 16 52;
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
             deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current(),
         );
 
         let order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
@@ -559,6 +563,7 @@ _ _: 16 52;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -580,6 +585,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         let actual_rainlang = compose_from_scenario(
@@ -606,6 +612,7 @@ _ _: 0 0;
         let server = MockServer::start();
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -627,6 +634,7 @@ _ _: 0 0;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         // Test scenario not found error
@@ -654,6 +662,7 @@ _ _: 0 0;
         // Test compose error with invalid rainlang
         let dotrain_invalid = format!(
             r#"
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -675,6 +684,7 @@ _ _: invalid syntax;
 #handle-io
 :;"#,
             rpc_url = server.url("/rpc"),
+            spec_version = SpecVersion::current(),
         );
 
         let err = compose_from_scenario(
@@ -699,10 +709,10 @@ _ _: invalid syntax;
     }
 
     #[tokio::test]
-    async fn test_validate_raindex_version_ok() {
+    async fn test_validate_spec_version_ok() {
         let dotrain = format!(
             r#"
-raindex-version: {version}
+version: {spec_version}
 networks:
     sepolia:
         rpc: http://example.com
@@ -714,17 +724,18 @@ deployers:
 #calculate-io
 _ _: 0 0;
 #handle-io
-:;"#,
-            version = GH_COMMIT_SHA
+:;
+"#,
+            spec_version = SpecVersion::current(),
         );
 
-        validate_raindex_version(dotrain.to_string(), vec![])
+        validate_spec_version(dotrain.to_string(), vec![])
             .await
             .unwrap();
     }
 
     #[tokio::test]
-    async fn test_validate_raindex_version_err() {
+    async fn test_validate_spec_version_err() {
         let dotrain = r#"
 networks:
     sepolia:
@@ -739,17 +750,20 @@ _ _: 0 0;
 #handle-io
 :;"#;
 
-        let err = validate_raindex_version(dotrain.to_string(), vec![])
+        let err = validate_spec_version(dotrain.to_string(), vec![])
             .await
             .unwrap_err();
 
         assert!(matches!(
             err,
-            CommandError::DotrainOrderError(DotrainOrderError::MissingRaindexVersion(_))
+            CommandError::DotrainOrderError(DotrainOrderError::YamlError(YamlError::Field {
+                kind: FieldErrorKind::Missing(ref s),
+                location: ref loc
+            })) if s == "version" && loc == "root"
         ));
 
         let dotrain = r#"
-raindex-version: wrong-version
+version: 2
 networks:
     sepolia:
         rpc: http://example.com
@@ -763,13 +777,14 @@ _ _: 0 0;
 #handle-io
 :;"#;
 
-        let err = validate_raindex_version(dotrain.to_string(), vec![])
+        let err = validate_spec_version(dotrain.to_string(), vec![])
             .await
             .unwrap_err();
 
         assert!(matches!(
             err,
-            CommandError::DotrainOrderError(DotrainOrderError::RaindexVersionMismatch(_, _))
+            CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
+            if expected == "1" && actual == "2"
         ));
     }
 }

@@ -6452,6 +6452,7 @@ name = "rain_orderbook_integration_tests"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_test_fixtures",
  "serde_json",
@@ -6507,6 +6508,7 @@ dependencies = [
  "once_cell",
  "rain-error-decoding",
  "rain-interpreter-eval",
+ "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
