@@ -69,6 +69,7 @@
 	/>
 	<div class="flex flex-col gap-2">
 		<Input
+			data-testid="vault-id-input"
 			size="lg"
 			type="text"
 			placeholder="Enter vault ID"
