@@ -11,18 +11,36 @@
 	export let modalTitle: string;
 	export let args: TransactionConfirmationProps['args'];
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
+	let autoCloseTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	async function init() {
+		confirmationState = { status: 'awaiting_confirmation' };
+		clearAutoCloseTimeout();
 		const result = await handleWalletConfirmation(args);
 		confirmationState = result.state;
+	}
+
+	function clearAutoCloseTimeout() {
+		if (autoCloseTimeout) {
+			clearTimeout(autoCloseTimeout);
+			autoCloseTimeout = undefined;
+		}
 	}
 
 	$: if (open && args) {
 		init();
 	}
 
-	$: if (!open) {
-		confirmationState = { status: 'awaiting_confirmation' };
+	// Auto-close modal after 2 seconds when transaction is confirmed
+	$: if (confirmationState.status === 'confirmed' && open && !autoCloseTimeout) {
+		autoCloseTimeout = setTimeout(() => {
+			open = false;
+		}, 2000);
+	}
+
+	function handleDismiss() {
+		clearAutoCloseTimeout();
+		open = false;
 	}
 </script>
 
@@ -98,8 +116,7 @@
 			</div>
 
 			{#if ui.showDismiss}
-				<Button on:click={() => (open = false)} aria-label="Close transaction modal">Dismiss</Button
-				>
+				<Button on:click={handleDismiss} aria-label="Close transaction modal">Dismiss</Button>
 			{/if}
 		</div>
 	{/if}
