@@ -71,7 +71,9 @@
 				on:click={() => (sideBarHidden = true)}
 			/>
 		{/if}
-		<SidebarWrapper divClass="flex flex-col h-full pt-11 pb-4 px-3 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+		<SidebarWrapper
+			divClass="flex flex-col h-full pt-11 pb-4 px-3 bg-gray-100 dark:bg-gray-800 overflow-hidden"
+		>
 			<SidebarGroup ulClass="list-none">
 				<SidebarBrand
 					site={{
@@ -143,7 +145,7 @@
 			<SidebarGroup border class="flex justify-start" ulClass="list-none">
 				<ButtonDarkMode {colorTheme} />
 			</SidebarGroup>
-			<SidebarGroup border class="flex-1 min-h-0 overflow-hidden" ulClass="list-none h-full">
+			<SidebarGroup border class="min-h-0 flex-1 overflow-hidden" ulClass="list-none h-full">
 				<TransactionList />
 			</SidebarGroup>
 		</SidebarWrapper>
