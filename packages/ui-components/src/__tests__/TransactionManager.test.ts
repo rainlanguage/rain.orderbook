@@ -206,12 +206,7 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Order removed successfully.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
+			expect(mockAddToast).not.toHaveBeenCalled();
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xsuccesskey'] // ensure this matches the queryKey used in this specific test call
 			});
