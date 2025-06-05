@@ -11,7 +11,6 @@ pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
 use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::spec_version::SpecVersion;
-use rain_orderbook_app_settings::yaml::cache::Cache;
 use rain_orderbook_app_settings::yaml::{
     dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
