@@ -66,6 +66,7 @@ export { default as InvalidStrategiesSection } from './components/deployment/Inv
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
+export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

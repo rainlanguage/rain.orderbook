@@ -72,7 +72,7 @@ describe('TransactionList', () => {
 
 		const { container } = render(TransactionList);
 
-		const listContainer = container.querySelector('.transaction-list-container');
+		const listContainer = container.querySelector('[data-testid="transaction-list"]');
 		expect(listContainer).toBeInTheDocument();
 		expect(listContainer).toHaveClass('h-full', 'overflow-y-auto');
 
@@ -197,7 +197,7 @@ describe('TransactionList', () => {
 
 		const { container } = render(TransactionList);
 
-		const listContainer = container.querySelector('.transaction-list-container');
+		const listContainer = container.querySelector('[data-testid="transaction-list"]');
 		expect(listContainer).toBeInTheDocument();
 		expect(listContainer).toHaveClass('h-full', 'overflow-y-auto');
 

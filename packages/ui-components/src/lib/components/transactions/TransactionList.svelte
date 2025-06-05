@@ -5,7 +5,7 @@
 </script>
 
 {#if $transactions.length > 0}
-	<div class="h-full overflow-y-auto">
+	<div class="h-full overflow-y-auto" data-testid="transaction-list">
 		<ul aria-label="Transaction list" class="flex w-full flex-col gap-4">
 			{#each $transactions.slice().reverse() as transaction}
 				{@const state = transaction.state}
