@@ -70,7 +70,11 @@ describe('TransactionList', () => {
 
 		mockTransactionsStore.set(mockTransactions);
 
-		render(TransactionList);
+		const { container } = render(TransactionList);
+
+		const listContainer = container.querySelector('.transaction-list-container');
+		expect(listContainer).toBeInTheDocument();
+		expect(listContainer).toHaveClass('h-full', 'overflow-y-auto');
 
 		const list = screen.getByRole('list');
 		expect(list).toBeInTheDocument();
@@ -171,5 +175,34 @@ describe('TransactionList', () => {
 		expect(firstItemContent).toBeTruthy();
 		expect(secondItemContent).toBeTruthy();
 		expect(thirdItemContent).toBeTruthy();
+	});
+
+	it('should have a scrollable container for transactions', () => {
+		const mockTransactions = Array(10)
+			.fill(null)
+			.map((_, index) => ({
+				state: writable<TransactionStoreState>({
+					status: TransactionStatusMessage.SUCCESS,
+					name: TransactionName.REMOVAL,
+					links: [
+						{
+							label: 'View on Explorer',
+							link: `https://etherscan.io/tx/0x${index.toString().padStart(64, '0')}`
+						}
+					]
+				})
+			})) as unknown as Transaction[];
+
+		mockTransactionsStore.set(mockTransactions);
+
+		const { container } = render(TransactionList);
+
+		const listContainer = container.querySelector('.transaction-list-container');
+		expect(listContainer).toBeInTheDocument();
+		expect(listContainer).toHaveClass('h-full', 'overflow-y-auto');
+
+		const list = screen.getByRole('list');
+		expect(list).toBeInTheDocument();
+		expect(list.children).toHaveLength(10);
 	});
 });
