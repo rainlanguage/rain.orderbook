@@ -389,8 +389,7 @@ mod tests {
             .dyn_into::<js_sys::Function>()
             .expect("testCallback should be a function");
 
-        let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(
+        let mut gui = DotrainOrderGui::choose_deployment(
             get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),
