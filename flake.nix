@@ -2,15 +2,15 @@
   description = "Flake for development workflows.";
 
   inputs = {
-    rainix.url = "github:rainlanguage/rainix";
+    rainix.url =
+      "github:rainlanguage/rainix?rev=8ef27fa997337ec2414d1e21999a298b75a0f01e";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {self, flake-utils, rainix, rain }:
+  outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = rainix.pkgs.${system};
+      let pkgs = rainix.pkgs.${system};
       in rec {
         packages = rec {
 
@@ -81,7 +81,7 @@
             ];
           };
 
-          ob-tauri-unit-test =  rainix.mkTask.${system} {
+          ob-tauri-unit-test = rainix.mkTask.${system} {
             name = "ob-tauri-unit-test";
             body = ''
               set -euxo pipefail
@@ -108,9 +108,7 @@
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
               echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
-            additionalBuildInputs = [
-              pkgs.sentry-cli
-            ];
+            additionalBuildInputs = [ pkgs.sentry-cli ];
           };
 
           ob-tauri-before-build-ci = rainix.mkTask.${system} {
@@ -158,7 +156,7 @@
               rm -rf lib
               mkdir -p lib
 
-              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
+              if [ ${if pkgs.stdenv.isDarwin then "1" else "0"} -eq 1 ]; then
                 cp ${pkgs.libiconv}/lib/libcharset.1.dylib lib/libcharset.1.dylib
                 chmod +w lib/libcharset.1.dylib
                 install_name_tool -id @executable_path/../Frameworks/libcharset.1.dylib lib/libcharset.1.dylib
@@ -191,7 +189,7 @@
 
               ls src-tauri/target/release
 
-              if [ ${if pkgs.stdenv.isDarwin then "1" else "0" } -eq 1 ]; then
+              if [ ${if pkgs.stdenv.isDarwin then "1" else "0"} -eq 1 ]; then
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb1}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
@@ -270,7 +268,8 @@
 
           shellHook = rainix.devShells.${system}.default.shellHook;
           buildInputs = rainix.devShells.${system}.default.buildInputs;
-          nativeBuildInputs = rainix.devShells.${system}.default.nativeBuildInputs;
+          nativeBuildInputs =
+            rainix.devShells.${system}.default.nativeBuildInputs;
         };
         devShells.tauri-shell = pkgs.mkShell {
           packages = [
@@ -285,16 +284,14 @@
             packages.tauri-rs-test
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
-          buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs ++ [pkgs.clang-tools];
-          nativeBuildInputs = rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
+          buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs
+            ++ [ pkgs.clang-tools ];
+          nativeBuildInputs =
+            rainix.devShells.${system}.tauri-shell.nativeBuildInputs;
         };
-        devShells.webapp-shell = pkgs.mkShell {
-          packages = with pkgs; [
-              nodejs_20
-          ];
-        };
+        devShells.webapp-shell =
+          pkgs.mkShell { packages = with pkgs; [ nodejs_20 ]; };
 
-      }
-    );
+      });
 
 }

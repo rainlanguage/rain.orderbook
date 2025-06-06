@@ -139,7 +139,7 @@ impl TryFrom<&Vec<String>> for BatchQuoteTarget {
                                 signedContext: vec![],
                                 inputIOIndex: U256::from_str(input_io_index_str)?,
                                 outputIOIndex: U256::from_str(output_io_index_str)?,
-                                order: OrderV3::abi_decode(&decode(order_bytes_str)?, true)?,
+                                order: OrderV3::abi_decode(&decode(order_bytes_str)?)?,
                             },
                         });
                     } else {

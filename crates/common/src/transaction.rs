@@ -46,8 +46,8 @@ pub struct TransactionArgs {
     pub derivation_index: Option<usize>,
     pub chain_id: Option<u64>,
     pub rpc_url: String,
-    pub max_priority_fee_per_gas: Option<U256>,
-    pub max_fee_per_gas: Option<U256>,
+    pub max_priority_fee_per_gas: Option<u128>,
+    pub max_fee_per_gas: Option<u128>,
     pub gas_fee_speed: Option<GasFeeSpeed>,
 }
 

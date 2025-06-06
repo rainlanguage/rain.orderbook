@@ -140,24 +140,24 @@ impl ERC20 {
             })?;
 
         Ok(TokenInfo {
-            decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData, true)
-                .map_err(|err| Error::SolTypesError {
+            decimals: decimalsCall::abi_decode_returns(&results.returnData[0].returnData).map_err(
+                |err| Error::SolTypesError {
                     msg: format!("address: {}", self.address),
                     source: err,
-                })?
-                ._0,
-            name: nameCall::abi_decode_returns(&results.returnData[1].returnData, true)
-                .map_err(|err| Error::SolTypesError {
+                },
+            )?,
+            name: nameCall::abi_decode_returns(&results.returnData[1].returnData).map_err(
+                |err| Error::SolTypesError {
                     msg: format!("address: {}", self.address),
                     source: err,
-                })?
-                ._0,
-            symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData, true)
-                .map_err(|err| Error::SolTypesError {
+                },
+            )?,
+            symbol: symbolCall::abi_decode_returns(&results.returnData[2].returnData).map_err(
+                |err| Error::SolTypesError {
                     msg: format!("address: {}", self.address),
                     source: err,
-                })?
-                ._0,
+                },
+            )?,
         })
     }
 }

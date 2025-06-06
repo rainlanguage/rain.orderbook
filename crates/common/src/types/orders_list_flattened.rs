@@ -31,7 +31,7 @@ impl TryFrom<SgOrder> for OrderFlattened {
     type Error = FlattenError;
 
     fn try_from(val: SgOrder) -> Result<Self, Self::Error> {
-        let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?, true)?;
+        let order = OrderV3::abi_decode(&decode(&val.order_bytes.0)?)?;
         Ok(Self {
             id: val.id.0,
             timestamp: val.timestamp_added.clone(),
