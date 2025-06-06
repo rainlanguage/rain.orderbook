@@ -6215,7 +6215,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -6261,7 +6261,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -6365,7 +6365,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -6375,7 +6375,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -6444,7 +6444,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -6484,7 +6484,7 @@ dependencies = [
  "tokio",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -6522,7 +6522,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -6546,7 +6546,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.9",
 ]
 
 [[package]]
@@ -8942,7 +8942,23 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros",
+ "wasm-bindgen-utils-macros 0.0.3",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00ab2df229e9126f93bf70f7e2e3c8b738e3cbf64bb7a43e7a57a133ae0007b6"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-utils-macros 0.0.4",
 ]
 
 [[package]]
@@ -8950,6 +8966,17 @@ name = "wasm-bindgen-utils-macros"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c58b27b0253678a6638beae169cb00dba24d96c5c45ae4bd03c2ba4ee94a5cc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
+]
+
+[[package]]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c640203bf191822842c895a29f20595d88b21f24ad4a83f431a3b9d789e4552"
 dependencies = [
  "proc-macro2",
  "quote",
