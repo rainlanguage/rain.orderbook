@@ -466,10 +466,14 @@ impl From<GuiError> for WasmEncodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    pub const YAML: &str = r#"
+    pub fn get_yaml() -> String {
+        format!(
+            r#"
+version: {spec_version}
 gui:
   name: Fixed limit
   description: Fixed limit order strategy
@@ -634,12 +638,15 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-    "#;
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
 
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         let mut gui = DotrainOrderGui::new();
         gui.choose_deployment(
-            YAML.to_string(),
+            get_yaml(),
             deployment_name.unwrap_or("some-deployment".to_string()),
             None,
         )
@@ -650,19 +657,15 @@ _ _: 0 0;
 
     pub async fn initialize_gui_with_select_tokens() -> DotrainOrderGui {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(
-            YAML.to_string(),
-            "select-token-deployment".to_string(),
-            None,
-        )
-        .await
-        .unwrap();
+        gui.choose_deployment(get_yaml(), "select-token-deployment".to_string(), None)
+            .await
+            .unwrap();
         gui
     }
 
     #[wasm_bindgen_test]
     async fn test_get_deployment_keys() {
-        let deployment_keys = DotrainOrderGui::get_deployment_keys(YAML.to_string())
+        let deployment_keys = DotrainOrderGui::get_deployment_keys(get_yaml())
             .await
             .unwrap();
         assert_eq!(
@@ -679,12 +682,12 @@ _ _: 0 0;
     async fn test_choose_deployment() {
         let mut gui = DotrainOrderGui::new();
 
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
         let err = gui
-            .choose_deployment(YAML.to_string(), "invalid-deployment".to_string(), None)
+            .choose_deployment(get_yaml(), "invalid-deployment".to_string(), None)
             .await
             .unwrap_err();
         assert_eq!(
@@ -705,7 +708,7 @@ _ _: 0 0;
             "The GUI configuration could not be found. Please check your YAML configuration file."
         );
 
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
@@ -797,7 +800,7 @@ _ _: 0 0;
             "The GUI configuration could not be found. Please check your YAML configuration file."
         );
 
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
@@ -874,7 +877,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
@@ -913,7 +916,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
@@ -937,7 +940,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_strategy_details() {
-        let strategy_details = DotrainOrderGui::get_strategy_details(YAML.to_string())
+        let strategy_details = DotrainOrderGui::get_strategy_details(get_yaml())
             .await
             .unwrap();
         assert_eq!(strategy_details.name, "Fixed limit");
@@ -947,7 +950,9 @@ _ _: 0 0;
             Some("Buy WETH with USDC on Base.".to_string())
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     test: test
 ---
@@ -957,7 +962,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -974,7 +981,9 @@ _ _: 0 0;
             "YAML configuration error: Missing required field 'name' in gui"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     name: Test name
 ---
@@ -984,7 +993,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1001,7 +1012,9 @@ _ _: 0 0;
             "YAML configuration error: Missing required field 'description' in gui"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     name: Test name
     description: Test description
@@ -1012,7 +1025,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_strategy_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1032,7 +1047,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_deployment_details() {
-        let deployment_details = DotrainOrderGui::get_deployment_details(YAML.to_string())
+        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml())
             .await
             .unwrap();
         assert_eq!(deployment_details.len(), 3);
@@ -1058,7 +1073,9 @@ _ _: 0 0;
         );
         assert_eq!(deployment_detail.short_description, None);
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 test: test
 ---
 #calculate-io
@@ -1067,13 +1084,17 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let details = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap();
         assert_eq!(details.len(), 0);
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     test: test
 ---
@@ -1083,7 +1104,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1100,7 +1123,9 @@ _ _: 0 0;
             "YAML configuration error: Missing required field 'deployments' in gui"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     deployments: test
 ---
@@ -1110,7 +1135,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1130,7 +1157,9 @@ _ _: 0 0;
             "YAML configuration error: Field 'deployments' must be a map in gui"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     deployments:
         - test
@@ -1141,7 +1170,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1161,7 +1192,9 @@ _ _: 0 0;
             "YAML configuration error: Field 'deployments' must be a map in gui"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     deployments:
         test: test
@@ -1172,7 +1205,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1189,7 +1224,9 @@ _ _: 0 0;
             "YAML configuration error: Missing required field 'name' in gui deployment 'test'"
         );
 
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+version: {spec_version}
 gui:
     deployments:
         test:
@@ -1201,7 +1238,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
         let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
             .await
             .unwrap_err();
@@ -1222,7 +1261,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_deployment_detail() {
         let deployment_detail =
-            DotrainOrderGui::get_deployment_detail(YAML.to_string(), "some-deployment".to_string())
+            DotrainOrderGui::get_deployment_detail(get_yaml(), "some-deployment".to_string())
                 .await
                 .unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1239,7 +1278,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_current_deployment_detail() {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 
@@ -1258,7 +1297,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_generate_dotrain_text() {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
         let original_current_deployment = gui.get_current_deployment_details().unwrap();
@@ -1275,7 +1314,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_composed_rainlang() {
         let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(YAML.to_string(), "some-deployment".to_string(), None)
+        gui.choose_deployment(get_yaml(), "some-deployment".to_string(), None)
             .await
             .unwrap();
 

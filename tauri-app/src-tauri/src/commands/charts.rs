@@ -33,6 +33,7 @@ mod tests {
             DotOptionsCfg, HexBinOptionsCfg, HexBinTransformCfg, MarkCfg, TransformCfg,
             TransformOutputsCfg,
         },
+        spec_version::SpecVersion,
         yaml::YamlError,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
@@ -41,6 +42,7 @@ mod tests {
     fn get_dotrain_prefix(subparser: &str, token1: &str, token2: &str) -> String {
         format!(
             r#"
+version: {spec_version}
 tokens:
   token1:
     network: "flare"
@@ -68,7 +70,8 @@ deployments:
   flare:
     order: flare
     scenario: flare
-"#
+"#,
+            spec_version = SpecVersion::current()
         )
     }
 
