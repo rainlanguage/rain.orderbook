@@ -159,12 +159,12 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
-    #[wasm_export(js_name = "deserializeState", unchecked_return_type = "void")]
+    #[wasm_export(js_name = "deserializeState", preserve_js_class)]
     pub async fn deserialize_state(
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<Self, GuiError> {
+    ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -278,7 +278,7 @@ mod tests {
     use super::*;
     use crate::gui::{
         field_values::FieldValue,
-        tests::{get_yaml, initialize_gui, initialize_gui_with_select_tokens},
+        tests::{get_yaml, initialize_gui_with_select_tokens},
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};

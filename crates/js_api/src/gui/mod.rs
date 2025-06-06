@@ -660,10 +660,10 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_choose_deployment() {
-        let gui =
+        let res =
             DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+                .await;
+        assert!(res.is_ok());
 
         let err =
             DotrainOrderGui::choose_deployment(get_yaml(), "invalid-deployment".to_string(), None)
