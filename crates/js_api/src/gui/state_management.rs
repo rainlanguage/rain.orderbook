@@ -161,11 +161,10 @@ impl DotrainOrderGui {
 
     #[wasm_export(js_name = "deserializeState", unchecked_return_type = "void")]
     pub async fn deserialize_state(
-        &mut self,
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<(), GuiError> {
+    ) -> Result<Self, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -240,13 +239,7 @@ impl DotrainOrderGui {
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
-        self.dotrain_order = dotrain_order_gui.dotrain_order;
-        self.field_values = dotrain_order_gui.field_values;
-        self.deposits = dotrain_order_gui.deposits;
-        self.selected_deployment = dotrain_order_gui.selected_deployment;
-        self.state_update_callback = dotrain_order_gui.state_update_callback;
-
-        Ok(())
+        Ok(dotrain_order_gui)
     }
 
     #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
@@ -321,10 +314,10 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state() {
-        let mut gui = initialize_gui(None).await;
-        gui.deserialize_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap();
+        let gui =
+            DotrainOrderGui::deserialize_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+                .await
+                .unwrap();
 
         assert!(gui.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
@@ -351,17 +344,19 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_deserialize_state_invalid_dotrain() {
-        let mut gui = initialize_gui(None).await;
         let dotrain = r#"
         dotrain:
             name: Test
             description: Test
         "#;
 
-        let err = gui
-            .deserialize_state(dotrain.to_string(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::deserialize_state(
+            dotrain.to_string(),
+            SERIALIZED_STATE.to_string(),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),
