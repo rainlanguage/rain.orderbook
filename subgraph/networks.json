@@ -7,8 +7,8 @@
     },
     "base": {
         "OrderBook": {
-            "address": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
-            "startBlock": 19033330
+            "address": "0xF6FdCB30FD027C73cBacD54E22f02987E3116eBc",
+            "startBlock": 31080825
         }
     },
     "bsc": {
