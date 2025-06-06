@@ -11827,8 +11827,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils"
 version = "0.0.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00ab2df229e9126f93bf70f7e2e3c8b738e3cbf64bb7a43e7a57a133ae0007b6"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=365e6bf1efc3c9d154dc8cbae6658b8245921e6c#365e6bf1efc3c9d154dc8cbae6658b8245921e6c"
 dependencies = [
  "js-sys",
  "paste",
@@ -11854,8 +11853,7 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-utils-macros"
 version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c640203bf191822842c895a29f20595d88b21f24ad4a83f431a3b9d789e4552"
+source = "git+https://github.com/rainlanguage/rain.wasm?rev=365e6bf1efc3c9d154dc8cbae6658b8245921e6c#365e6bf1efc3c9d154dc8cbae6658b8245921e6c"
 dependencies = [
  "proc-macro2",
  "quote",

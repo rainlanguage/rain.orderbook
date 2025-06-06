@@ -50,7 +50,7 @@ futures = "0.3.17"
 tokio = { version = "1.28.0", features = ["full"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-wasm-bindgen-utils = "0.0.9"
+wasm-bindgen-utils = { git = "https://github.com/rainlanguage/rain.wasm", rev = "365e6bf1efc3c9d154dc8cbae6658b8245921e6c" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
