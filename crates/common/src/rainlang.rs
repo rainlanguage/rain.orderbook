@@ -164,7 +164,7 @@ pub use fork_parse::*;
 #[cfg(not(target_family = "wasm"))]
 mod fork_parse {
     use alloy::primitives::{bytes::Bytes, Address};
-    use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+    use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
     use once_cell::sync::Lazy;
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_interpreter_eval::error::ForkCallError;
@@ -175,7 +175,8 @@ mod fork_parse {
     use thiserror::Error;
     use tokio::sync::Mutex;
 
-    pub static FORKER: Lazy<Arc<Mutex<Forker>>> = Lazy::new(|| Arc::new(Mutex::new(Forker::new())));
+    pub static FORKER: Lazy<Arc<Mutex<Forker>>> =
+        Lazy::new(|| Arc::new(Mutex::new(Forker::new().unwrap()))); // TODO: remove unwrap
 
     #[derive(Debug, Error)]
     pub enum ForkParseError {
@@ -213,7 +214,7 @@ mod fork_parse {
         let block_number_val = match block_number {
             Some(b) => b,
             None => {
-                let client = ReadableClientHttp::new_from_url(rpc_url.to_string())?;
+                let client = ReadableClient::new_from_url(rpc_url.to_string()).await?;
                 client.get_block_number().await?
             }
         };

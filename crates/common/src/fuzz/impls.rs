@@ -95,6 +95,8 @@ pub enum FuzzRunnerError {
     YamlError(#[from] YamlError),
     #[error("Spec version mismatch: expected {0} but got {1}")]
     SpecVersionMismatch(String, String),
+    #[error(transparent)]
+    Eyre(#[from] eyre::Report),
 }
 
 #[derive(Debug, Clone)]
@@ -142,10 +144,14 @@ impl FuzzRunnerContext {
 
 impl FuzzRunner {
     /// Creates a new instance optionally with the given [Forker] instance
-    pub fn new(forker: Option<Forker>) -> FuzzRunner {
-        Self {
-            forker: forker.unwrap_or_default(),
-        }
+    pub fn new(forker: Option<Forker>) -> Result<FuzzRunner, FuzzRunnerError> {
+        let forker = if let Some(forker) = forker {
+            forker
+        } else {
+            Forker::new()?
+        };
+
+        Ok(Self { forker })
     }
 
     pub async fn run_scenario_by_key(
@@ -391,7 +397,7 @@ impl FuzzRunner {
             .await?;
         let pair_symbols = format!(
             "{}/{}",
-            input_symbol_res.typed_return._0, output_symbol_res.typed_return._0
+            input_symbol_res.typed_return, output_symbol_res.typed_return
         );
 
         final_bindings.extend(scenario_bindings.clone());
@@ -439,13 +445,14 @@ impl FuzzRunner {
             })
             .await
             .map_err(FuzzRunnerError::ForkCallError)?;
+
         let store = self
             .forker
             .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)
             .await?
-            .typed_return
-            ._0;
-        let interpreter = self
+            .typed_return;
+
+        let Address(interpreter) = self
             .forker
             .alloy_call(
                 Address::default(),
@@ -454,13 +461,13 @@ impl FuzzRunner {
                 true,
             )
             .await?
-            .typed_return
-            ._0;
+            .typed_return;
+
         let res = self.forker.call(
             Address::default().as_slice(),
             interpreter.as_slice(),
             &eval3Call {
-                bytecode: parse_result.typed_return.bytecode,
+                bytecode: parse_result.typed_return,
                 sourceIndex: U256::from(0),
                 store,
                 namespace: FullyQualifiedNamespace::default().into(),
