@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {
-		TransactionStatus,
+		TransactionStatusMessage,
 		useToasts,
 		transactionStore,
 		invalidateTanstackQueries
@@ -19,11 +19,17 @@
 	 * Listens for successful transactions and shows a success toast.
 	 * Also invalidates the specified query to refresh data.
 	 */
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
+	$: if ($transactionStore.status === TransactionStatusMessage.SUCCESS) {
 		addToast({
 			message: $transactionStore.message,
 			type: 'success',
-			color: 'green'
+			color: 'green',
+			links: [
+				{
+					link: $transactionStore.explorerLink,
+					label: 'View transaction on explorer'
+				}
+			]
 		});
 		invalidateTanstackQueries(queryClient, [queryKey]);
 	}
@@ -31,7 +37,7 @@
 	/**
 	 * Listens for transaction errors and shows an error toast.
 	 */
-	$: if ($transactionStore.status === TransactionStatus.ERROR) {
+	$: if ($transactionStore.status === TransactionStatusMessage.ERROR) {
 		errToast('Transaction failed.', $transactionStore.error);
 	}
 </script>

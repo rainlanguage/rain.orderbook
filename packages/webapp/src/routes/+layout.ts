@@ -1,12 +1,12 @@
 import type {
 	AppStoresInterface,
-	ConfigSource,
 	OrderbookConfigSource,
 	OrderbookCfgRef
 } from '@rainlanguage/ui-components';
 import { writable, derived } from 'svelte/store';
 import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
+import type { ConfigSource } from '@rainlanguage/orderbook';
 
 export interface LayoutData {
 	errorMessage?: string;

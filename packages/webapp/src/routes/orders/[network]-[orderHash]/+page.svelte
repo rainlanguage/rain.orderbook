@@ -1,16 +1,13 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleOrderRemoveModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
+	import { handleTransactionConfirmationModal } from '$lib/services/modal';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
+	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	import { handleVaultAction } from '$lib/services/handleVaultAction';
 
 	const queryClient = useQueryClient();
@@ -21,19 +18,19 @@
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
+	const { manager } = useTransactions();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleOrderRemoveModal({
-			open: true,
-			args: {
-				order,
-				chainId,
-				orderbookAddress,
-				subgraphUrl,
-				onRemove: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				}
-			}
+	async function onRemove(order: SgOrder) {
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
 		});
 	}
 
