@@ -72,8 +72,7 @@ impl Default for DotrainOrderGui {
 impl DotrainOrderGui {
     #[wasm_export(js_name = "getDeploymentKeys", unchecked_return_type = "string[]")]
     pub async fn get_deployment_keys(dotrain: String) -> Result<Vec<String>, GuiError> {
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_keys(
             dotrain_order.dotrain_yaml().documents.clone(),
         )?)
@@ -86,8 +85,7 @@ impl DotrainOrderGui {
         deployment_name: String,
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<(), GuiError> {
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
 
         let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         if !keys.contains(&deployment_name) {
@@ -206,9 +204,7 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg"
     )]
     pub async fn get_strategy_details(dotrain: String) -> Result<NameAndDescriptionCfg, GuiError> {
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
-
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         let details =
             GuiCfg::parse_strategy_details(dotrain_order.dotrain_yaml().documents.clone())?;
         Ok(details)
@@ -221,9 +217,7 @@ impl DotrainOrderGui {
     pub async fn get_deployment_details(
         dotrain: String,
     ) -> Result<HashMap<String, NameAndDescriptionCfg>, GuiError> {
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
-
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         Ok(GuiCfg::parse_deployment_details(
             dotrain_order.dotrain_yaml().documents.clone(),
         )?)
@@ -275,10 +269,7 @@ impl DotrainOrderGui {
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
-
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
-
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;

@@ -41,10 +41,7 @@ impl Execute for ListOrderFrontmatterKeys {
             None => None,
         };
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain, settings.map(|v| vec![v]))
-            .await?;
+        let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
 
         let keys_string = match self.key_type {
             KeyType::Deployment => {

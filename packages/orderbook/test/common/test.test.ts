@@ -73,7 +73,9 @@ _ _: 0 0;
 `;
 
 	it('should compose deployment to rainlang', async () => {
-		const dotrainOrder = await DotrainOrder.create(dotrain);
+		const res = await DotrainOrder.create(dotrain);
+		if (res.error) assert.fail('expected to resolve, but failed');
+		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
 		if (!result.value) assert.fail('expected to resolve, but failed');
 		const expected = `/* 0. calculate-io */ 
@@ -94,7 +96,9 @@ scenarios:
         bindings:
             key: 10
 `;
-		const dotrainOrder = await DotrainOrder.create(dotrain, [config]);
+		const res = await DotrainOrder.create(dotrain, [config]);
+		if (res.error) assert.fail('expected to resolve, but failed');
+		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
 		if (!result.value) assert.fail('expected to resolve, but failed');
 		const expected = `/* 0. calculate-io */ 

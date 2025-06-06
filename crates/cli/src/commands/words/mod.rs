@@ -92,10 +92,7 @@ impl Execute for Words {
             None => None,
         };
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain, settings.map(|v| vec![v]))
-            .await?;
+        let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
 
         let results = if let Some(deployer_key) = &self.source.deployer {
             // get deployer from order config
