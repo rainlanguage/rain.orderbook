@@ -22,15 +22,17 @@ export type DeploymentArgs = {
 
 export type VaultActionArgs = {
 	vault: SgVault;
-	onSuccess: () => void;
 	chainId: number;
+	onDeposit?: () => void;
+	// rpcUrl is used to check balances
 	rpcUrl: string;
 	subgraphUrl: string;
 	account: Hex;
 };
 
 export enum TransactionName {
-	REMOVAL = 'Order Removal'
+	REMOVAL = 'Order Removal',
+	WITHDRAWAL = 'Vault Withdrawal'
 }
 
 export enum TransactionStatusMessage {
@@ -66,11 +68,11 @@ export type DepositOrWithdrawTransactionArgs = {
 };
 
 export type InternalTransactionArgs = {
-	queryKey: string;
 	chainId: number;
 	subgraphUrl: string;
 	txHash: Hex;
 	networkKey: string;
+	queryKey: string;
 };
 
 export type TransactionArgs = InternalTransactionArgs & {

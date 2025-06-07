@@ -29,7 +29,7 @@ export async function handleRemoveOrder(
 			open: true,
 			modalTitle: 'Removing order',
 			args: {
-				order: order,
+				entity: order,
 				orderbookAddress: deps.orderbookAddress,
 				chainId: deps.chainId,
 				onConfirm: (txHash: Hex) => {

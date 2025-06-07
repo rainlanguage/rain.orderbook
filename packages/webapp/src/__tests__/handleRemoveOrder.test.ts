@@ -79,7 +79,7 @@ describe('handleRemoveOrder', () => {
 			open: true,
 			modalTitle: 'Removing order',
 			args: {
-				order: mockOrder,
+				entity: mockOrder,
 				orderbookAddress: mockDeps.orderbookAddress,
 				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),

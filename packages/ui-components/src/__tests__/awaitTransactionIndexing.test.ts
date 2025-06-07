@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SgAddOrderWithOrder, SgTransaction } from '@rainlanguage/orderbook';
 import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
-
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransaction: vi.fn(),
 	getTransactionAddOrders: vi.fn(),

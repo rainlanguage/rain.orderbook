@@ -1,10 +1,11 @@
-import type { SgOrder } from '@rainlanguage/orderbook';
-import type { VaultActionArgs, DeploymentArgs } from './transaction';
+import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
+import type { DeploymentArgs, VaultActionArgs } from './transaction';
 import type { Hex } from 'viem';
 
 export type VaultActionModalProps = {
 	open: boolean;
 	args: VaultActionArgs;
+	onSubmit: (amount: bigint) => void;
 };
 
 export type DeployModalProps = {
@@ -28,8 +29,8 @@ export type TransactionConfirmationProps = {
 		orderbookAddress: Hex;
 		// Function to call when the transaction is confirmed in wallet
 		onConfirm: (hash: Hex) => void;
-		// Order to generate calldata for
-		order: SgOrder;
+		// Entity to generate calldata for
+		entity: SgOrder | SgVault;
 		// Calldata for the transaction
 		calldata: string;
 	};
