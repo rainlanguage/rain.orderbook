@@ -6365,7 +6365,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6375,7 +6375,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6444,7 +6444,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6484,7 +6484,7 @@ dependencies = [
  "tokio",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6522,7 +6522,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6546,7 +6546,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -8947,9 +8947,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils"
-version = "0.0.9"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00ab2df229e9126f93bf70f7e2e3c8b738e3cbf64bb7a43e7a57a133ae0007b6"
+checksum = "ed82a9f56693dd939d2f37431e0dd5401e6447694f9930353fd5c3fb3d9d152e"
 dependencies = [
  "js-sys",
  "paste",
@@ -8958,7 +8958,7 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros 0.0.4",
+ "wasm-bindgen-utils-macros 0.0.5",
 ]
 
 [[package]]
@@ -8974,9 +8974,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils-macros"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c640203bf191822842c895a29f20595d88b21f24ad4a83f431a3b9d789e4552"
+checksum = "8cc4956f28c8dba2ad5b3afb5ed7d584f7e9e7194e516eae0577d79d594de6e6"
 dependencies = [
  "proc-macro2",
  "quote",
