@@ -1,13 +1,12 @@
 <script lang="ts">
-	import {
-		PageHeader,
-		useAccount,
-		useTransactions,
-		VaultDetail,
-		useToasts
-	} from '@rainlanguage/ui-components';
+	import { PageHeader, useAccount, useToasts, useTransactions } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
-	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
+	import { VaultDetail } from '@rainlanguage/ui-components';
+	import {
+		handleDepositModal,
+		handleTransactionConfirmationModal,
+		handleWithdrawModal
+	} from '$lib/services/modal';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
@@ -24,15 +23,22 @@
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
-	function onDeposit(vault: SgVault) {
-		handleVaultDeposit({
+	async function onDeposit(vault: SgVault) {
+		await handleVaultDeposit({
 			vault,
-			chainId,
-			rpcUrl,
+			handleDepositModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
 			subgraphUrl,
-			account: $account as Hex
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
+
 	async function onWithdraw(vault: SgVault) {
 		await handleVaultWithdraw({
 			vault,
@@ -41,7 +47,7 @@
 			errToast,
 			manager,
 			network,
-			orderbookAddress,
+			toAddress: orderbookAddress as Hex,
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,

@@ -4,7 +4,7 @@ import { TransactionStatusMessage } from '../lib/types/transaction';
 import { TransactionErrorMessage } from '../lib/stores/transactionStore';
 import transactionStore from '../lib/stores/transactionStore';
 import { waitForTransactionReceipt, sendTransaction, switchChain, type Config } from '@wagmi/core';
-import { getTransaction, type SgVault, type VaultCalldataResult } from '@rainlanguage/orderbook';
+import { getTransaction } from '@rainlanguage/orderbook';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 
 import { awaitSubgraphIndexing } from '../lib/services/awaitTransactionIndexing';
@@ -238,109 +238,6 @@ describe('transactionStore', () => {
 		expect(get(transactionStore).explorerLink).toBe('https://explorer.example.com/tx/deployHash');
 
 		expect(awaitSubgraphIndexing).not.toHaveBeenCalled();
-	});
-});
-
-describe('handleDepositOrWithdrawTransaction', () => {
-	const mockConfig = {} as Config;
-	const mockChainId = 1;
-	const mockSubgraphUrl = 'https://api.thegraph.com/subgraphs/name/test/orderbook';
-	const mockVault = {
-		token: {
-			address: '0xtoken1' as `0x${string}`,
-			symbol: 'TKN1'
-		},
-		orderbook: {
-			id: '0xorderbook1' as `0x${string}`
-		}
-	} as SgVault;
-
-	const mockTransactionCalldata: VaultCalldataResult = '0xTransactionCalldata';
-
-	const { reset, handleDepositOrWithdrawTransaction } = transactionStore;
-
-	beforeEach(() => {
-		vi.resetAllMocks();
-		reset();
-	});
-
-	afterAll(() => {
-		vi.clearAllMocks();
-	});
-
-	it('should successfully handle a deposit transaction', async () => {
-		(switchChain as Mock).mockResolvedValue({});
-		const mockTxHash = '0xdeposittxhash';
-		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
-		(waitForTransactionReceipt as Mock).mockResolvedValue({});
-		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deposittxhash');
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let resolveIndexing3: ((value: unknown) => void) | undefined;
-		const indexingPromise3 = new Promise<unknown>((resolve) => {
-			resolveIndexing3 = resolve;
-		});
-
-		(awaitSubgraphIndexing as Mock).mockReturnValue(indexingPromise3);
-
-		const transactionPromise = handleDepositOrWithdrawTransaction({
-			config: mockConfig,
-			transactionCalldata: mockTransactionCalldata,
-			action: 'deposit',
-			chainId: mockChainId,
-			vault: mockVault,
-			subgraphUrl: mockSubgraphUrl
-		});
-
-		await new Promise((resolve) => setTimeout(resolve, 0));
-
-		const pendingState = get(transactionStore);
-		expect(pendingState.status).toBe(TransactionStatusMessage.PENDING_SUBGRAPH);
-		expect(pendingState.hash).toBe(mockTxHash);
-		expect(pendingState.message).toBe('Waiting for transaction to be indexed...');
-
-		if (resolveIndexing3) {
-			resolveIndexing3({
-				value: {
-					txHash: mockTxHash,
-					successMessage: 'The deposit was successful.'
-				}
-			});
-		}
-
-		await transactionPromise;
-
-		const finalState = get(transactionStore);
-		expect(finalState.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(finalState.message).toBe('The deposit was successful.');
-		expect(finalState.explorerLink).toBe('https://explorer.example.com/tx/deposittxhash');
-	});
-
-	it('should handle subgraph indexing error', async () => {
-		(switchChain as Mock).mockResolvedValue({});
-
-		const mockTxHash = '0xdeposittxhash';
-		(sendTransaction as Mock).mockResolvedValue(mockTxHash);
-
-		(waitForTransactionReceipt as Mock).mockResolvedValue({});
-		(getExplorerLink as Mock).mockResolvedValue('https://explorer.example.com/tx/deployHash');
-
-		(awaitSubgraphIndexing as Mock).mockResolvedValue({
-			error: TransactionErrorMessage.TIMEOUT
-		});
-
-		await handleDepositOrWithdrawTransaction({
-			config: mockConfig,
-			transactionCalldata: mockTransactionCalldata,
-			action: 'deposit',
-			chainId: mockChainId,
-			vault: mockVault,
-			subgraphUrl: mockSubgraphUrl
-		});
-
-		const state = get(transactionStore);
-		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.error).toBe(TransactionErrorMessage.TIMEOUT);
 	});
 });
 

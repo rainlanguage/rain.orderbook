@@ -9,7 +9,9 @@
 
 	export let open: boolean = false;
 	export let modalTitle: string;
+	export let closeOnConfirm: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
+
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 	let autoCloseTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -18,6 +20,9 @@
 		clearAutoCloseTimeout();
 		const result = await handleWalletConfirmation(args);
 		confirmationState = result.state;
+		if (closeOnConfirm && confirmationState.status === 'confirmed') {
+			open = false;
+		}
 	}
 
 	function clearAutoCloseTimeout() {

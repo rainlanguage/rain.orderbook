@@ -80,7 +80,7 @@ describe('handleRemoveOrder', () => {
 			modalTitle: 'Removing order',
 			args: {
 				entity: mockOrder,
-				orderbookAddress: mockDeps.orderbookAddress,
+				toAddress: mockDeps.orderbookAddress,
 				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
@@ -107,7 +107,8 @@ describe('handleRemoveOrder', () => {
 			txHash: mockTxHash,
 			queryKey: mockDeps.orderHash,
 			chainId: mockDeps.chainId,
-			networkKey: mockDeps.network
+			networkKey: mockDeps.network,
+			entity: mockOrder
 		});
 	});
 

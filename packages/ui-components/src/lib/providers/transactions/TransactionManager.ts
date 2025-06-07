@@ -10,16 +10,19 @@ import {
 	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction
+	type SgTransaction,
+	type SgVault,
+	type SgOrder
 } from '@rainlanguage/orderbook';
+import { formatUnits } from 'viem';
 
 /**
- * Function type for adding toast notifications to the UI
- * @param toast - The toast notification configuration object
- * @param toast.message - The message text to display in the toast
- * @param toast.type - The type of toast notification (success, error, or info)
- * @param toast.color - The color theme of the toast
- * @param toast.links - Optional array of links to display in the toast
+ * Function type for adding toast notifications to the UI.
+ * @param toast - The toast notification configuration object.
+ * @param toast.message - The message text to display in the toast.
+ * @param toast.type - The type of toast notification ('success', 'error', or 'info').
+ * @param toast.color - The color theme of the toast.
+ * @param toast.links - Optional array of links to display in the toast.
  */
 export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
 
@@ -27,27 +30,22 @@ export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
  * Manages blockchain transactions with toast notifications and query invalidation.
  * Handles transaction lifecycle, status updates, and UI feedback.
  * Provides functionality for creating, tracking, and managing blockchain transactions.
- *
- * @class TransactionManager
- * @description A class that manages the lifecycle of blockchain transactions, including
- * tracking their status, displaying notifications, and invalidating relevant queries.
  */
 export class TransactionManager {
-	/** Writable store tracking all active transactions */
+	/** Writable store tracking all active transactions. */
 	private transactions: Writable<Transaction[]>;
-	/** Query client for cache invalidation after successful transactions */
+	/** Query client for cache invalidation after successful transactions. */
 	private queryClient: QueryClient;
-	/** Function to display toast notifications in the UI */
+	/** Function to display toast notifications in the UI. */
 	private addToast: AddToastFunction;
-	/** Wagmi configuration for blockchain interactions */
+	/** Wagmi configuration for blockchain interactions. */
 	private wagmiConfig: Config;
 
 	/**
-	 * Initializes a new TransactionManager instance
-	 * @param queryClient - Query client for cache invalidation
-	 * @param addToast - Function to display toast notifications
-	 * @param wagmiConfig - Wagmi configuration for blockchain interactions
-	 * @throws {Error} If required dependencies are not provided
+	 * Initializes a new TransactionManager instance.
+	 * @param queryClient - Query client for cache invalidation.
+	 * @param addToast - Function to display toast notifications.
+	 * @param wagmiConfig - Wagmi configuration for blockchain interactions.
 	 */
 	constructor(queryClient: QueryClient, addToast: AddToastFunction, wagmiConfig: Config) {
 		this.queryClient = queryClient;
@@ -57,30 +55,34 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Creates and initializes a new transaction for removing an order from the orderbook
-	 * @param args - Configuration for the remove order transaction
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
-	 * @param args.txHash - Hash of the transaction to track
-	 * @param args.orderHash - Hash of the order to be removed
-	 * @param args.chainId - Chain ID where the transaction is being executed
-	 * @param args.queryKey - Key for query invalidation and UI links, often the order hash.
-	 * @param args.networkKey - Network identifier for UI links.
-	 * @returns A new Transaction instance configured for order removal
-	 * @throws {Error} If required transaction parameters are missing
+	 * Creates and initializes a new transaction for removing an order from the orderbook.
+	 * @param args - Configuration for the remove order transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.networkKey - Network identifier string (e.g., 'mainnet', 'arbitrum').
+	 * @param args.queryKey - The hash of the order to be removed (used for query invalidation and UI links).
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
+	 * @param args.entity - The `SgOrder` entity associated with this transaction.
+	 * @returns A new Transaction instance configured for order removal.
 	 * @example
 	 * const tx = await manager.createRemoveOrderTransaction({
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
 	 *   txHash: '0x123...',
-	 *   orderHash: '0x456...',
-	 *   chainId: 1
+	 *   chainId: 1,
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   networkKey: 'mainnet',
+	 *   queryKey: '0x456...', // Order hash
+	 *   entity: sgOrderInstance
 	 * });
 	 */
-	public async createRemoveOrderTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+	public async createRemoveOrderTransaction(
+		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder }
+	): Promise<Transaction> {
 		const name = TransactionName.REMOVAL;
 		const errorMessage = 'Order removal failed.';
 		const successMessage = 'Order removed successfully.';
 		const queryKey = args.queryKey;
 		const networkKey = args.networkKey;
+		const subgraphUrl = args.subgraphUrl;
 
 		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
 		const toastLinks: ToastLink[] = [
@@ -90,7 +92,7 @@ export class TransactionManager {
 			},
 			{
 				link: explorerLink,
-				label: 'View transaction'
+				label: 'View on explorer'
 			}
 		];
 		return this.createTransaction({
@@ -101,7 +103,7 @@ export class TransactionManager {
 			queryKey,
 			toastLinks,
 			awaitSubgraphConfig: {
-				subgraphUrl: args.subgraphUrl,
+				subgraphUrl: subgraphUrl,
 				txHash: args.txHash,
 				successMessage,
 				fetchEntityFn: getTransactionRemoveOrders,
@@ -113,25 +115,28 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Creates and initializes a new transaction for withdrawing funds from a vault
-	 * @param args - Configuration for the withdrawal transaction
-	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
-	 * @param args.txHash - Hash of the transaction to track
-	 * @param args.orderHash - Identifier related to the transaction (e.g. vault ID or context-specific ID if applicable).
-	 * @param args.chainId - Chain ID where the transaction is being executed
-	 * @param args.queryKey - Identifier for the vault, used for cache invalidation and UI links.
-	 * @param args.networkKey - Network identifier for UI links.
-	 * @returns A new Transaction instance configured for withdrawal
-	 * @throws {Error} If required transaction parameters are missing
+	 * Creates and initializes a new transaction for withdrawing funds from a vault.
+	 * @param args - Configuration for the withdrawal transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.networkKey - Network identifier string.
+	 * @param args.queryKey - The ID of the vault from which funds are withdrawn (used for query invalidation and UI links).
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
+	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @returns A new Transaction instance configured for withdrawal.
 	 * @example
 	 * const tx = await manager.createWithdrawTransaction({
-	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
 	 *   txHash: '0x123...',
-	 *   orderHash: '0x456...',
-	 *   chainId: 1
+	 *   chainId: 1,
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   networkKey: 'mainnet',
+	 *   queryKey: '0x789...', // Vault ID
+	 *   entity: sgVaultInstance
 	 * });
 	 */
-	public async createWithdrawTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+	public async createWithdrawTransaction(
+		args: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault }
+	): Promise<Transaction> {
 		const name = TransactionName.WITHDRAWAL;
 		const errorMessage = 'Withdrawal failed.';
 		const successMessage = 'Withdrawal successful.';
@@ -146,7 +151,7 @@ export class TransactionManager {
 			},
 			{
 				link: explorerLink,
-				label: 'View transaction'
+				label: 'View on explorer'
 			}
 		];
 		return this.createTransaction({
@@ -167,15 +172,133 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Creates and executes a new transaction instance
-	 * @param args - Configuration for the transaction
-	 * @param args.pendingMessage - Message to display on pending transaction
-	 * @param args.errorMessage - Message to display on transaction failure
-	 * @param args.successMessage - Message to display on transaction success
-	 * @param args.queryKey - Key used for query invalidation
-	 * @param args.toastLinks - Array of links to display in toast notifications
-	 * @returns A new Transaction instance that has been initialized and started
-	 * @throws {Error} If transaction creation fails
+	 * Creates and initializes a new transaction for approving token spend.
+	 * @param args - Configuration for the approval transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.networkKey - Network identifier string.
+	 * @param args.queryKey - The ID of the vault or context for which approval is made (used for query invalidation and UI links).
+	 * @param args.tokenSymbol - The symbol of the token being approved.
+	 * @param args.entity - The `SgVault` entity associated with this transaction. (Optional, used for approvals to pre-existing vaults).
+	 * @returns A new Transaction instance configured for token approval.
+	 * @example
+	 * const tx = await manager.createApprovalTransaction({
+	 *   txHash: '0xabc...',
+	 *   chainId: 1,
+	 *   networkKey: 'mainnet',
+	 *   queryKey: '0x789...', // Vault ID
+	 *   entity: sgVaultInstance
+	 * });
+	 */
+	public async createApprovalTransaction(
+		args: InternalTransactionArgs & { entity?: SgVault }
+	): Promise<Transaction> {
+		const { entity, queryKey, networkKey } = args;
+		const tokenSymbol = entity?.token.symbol || 'token';
+		const name = `Approving ${tokenSymbol} spend`;
+		const errorMessage = 'Approval failed.';
+		const successMessage = 'Approval successful.';
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		let toastLinks: ToastLink[] = [
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+
+		if (entity) {
+			toastLinks = [
+				{
+					link: `/vaults/${networkKey}-${args.queryKey}`,
+					label: 'View vault'
+				},
+				...toastLinks
+			];
+		}
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks
+		});
+	}
+
+	/**
+	 * Creates and initializes a new transaction for depositing funds into a vault.
+	 * @param args - Configuration for the deposit transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.networkKey - Network identifier string.
+	 * @param args.queryKey - The ID of the vault into which funds are deposited (used for query invalidation and UI links).
+	 * @param args.entity - The `SgVault` entity associated with this transaction.
+	 * @param args.amount - The amount of tokens being deposited.
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status.
+	 * @returns A new Transaction instance configured for deposit.
+	 * @example
+	 * const tx = await manager.createDepositTransaction({
+	 *   txHash: '0xdef...',
+	 *   chainId: 1,
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   networkKey: 'mainnet',
+	 *   queryKey: '0x789...', // Vault ID
+	 *   entity: sgVaultInstance,
+	 *   amount: 1000n
+	 * });
+	 */
+	public async createDepositTransaction(
+		args: InternalTransactionArgs & { amount: bigint; entity: SgVault; subgraphUrl: string }
+	): Promise<Transaction> {
+		const tokenSymbol = args.entity.token.symbol;
+		const readableAmount = formatUnits(args.amount, Number(args.entity.token.decimals));
+		const name = `Depositing ${readableAmount} ${tokenSymbol}`;
+		const errorMessage = 'Deposit failed.';
+		const successMessage = 'Deposit successful.';
+		const queryKey = args.queryKey;
+		const networkKey = args.networkKey;
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: `/vaults/${networkKey}-${args.queryKey}`,
+				label: 'View vault'
+			},
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransaction,
+				isSuccess: (data) => !!data
+			}
+		});
+	}
+
+	/**
+	 * Creates, initializes, and executes a new transaction instance.
+	 * @param args - Configuration for the transaction.
+	 * @param args.name - Name or title of the transaction.
+	 * @param args.errorMessage - Message to display on transaction failure.
+	 * @param args.successMessage - Message to display on transaction success.
+	 * @param args.queryKey - Key used for query invalidation.
+	 * @param args.toastLinks - Array of links to display in toast notifications.
+	 * @param args.awaitSubgraphConfig - Optional configuration for awaiting subgraph indexing.
+	 * @returns A new Transaction instance that has been initialized and started.
 	 * @private
 	 */
 	private async createTransaction(args: TransactionArgs): Promise<Transaction> {
@@ -208,21 +331,18 @@ export class TransactionManager {
 	}
 
 	/**
-	 * Retrieves the store containing all active transactions
-	 * @returns A writable store containing all active Transaction instances
-	 * @throws {Error} If transaction store is not initialized
+	 * Retrieves the store containing all active transactions.
+	 * @returns A readable store containing all active Transaction instances.
 	 * @example
-	 * const transactions = manager.getTransactions();
-	 * $: console.log($transactions); // Log all active transactions
+	 * const transactionsStore = manager.getTransactions();
+	 * transactionsStore.subscribe(transactions => console.log(transactions));
 	 */
 	public getTransactions(): Readable<Transaction[]> {
 		return this.transactions;
 	}
 
 	/**
-	 * Removes all transactions from the store
-	 * Resets the transaction tracking state
-	 * @throws {Error} If transaction store is not initialized
+	 * Removes all transactions from the store, resetting the transaction tracking state.
 	 * @example
 	 * manager.clearTransactions(); // Clear all tracked transactions
 	 */

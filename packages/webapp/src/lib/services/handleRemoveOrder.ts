@@ -30,7 +30,7 @@ export async function handleRemoveOrder(
 			modalTitle: 'Removing order',
 			args: {
 				entity: order,
-				orderbookAddress: deps.orderbookAddress,
+				toAddress: deps.orderbookAddress,
 				chainId: deps.chainId,
 				onConfirm: (txHash: Hex) => {
 					deps.manager.createRemoveOrderTransaction({
@@ -38,7 +38,8 @@ export async function handleRemoveOrder(
 						txHash,
 						queryKey: deps.orderHash,
 						chainId: deps.chainId,
-						networkKey: deps.network
+						networkKey: deps.network,
+						entity: order
 					});
 				},
 				calldata

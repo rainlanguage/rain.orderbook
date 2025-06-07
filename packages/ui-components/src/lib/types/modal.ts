@@ -22,11 +22,13 @@ export type TransactionConfirmationProps = {
 	open: boolean;
 	// A title for the modal
 	modalTitle: string;
+	// Close the modal after transaction is confirmed (for approvals that precede deposits)
+	closeOnConfirm?: boolean;
 	args: {
 		// Chain ID for switching chains
 		chainId: number;
 		// Address to send the transaction to
-		orderbookAddress: Hex;
+		toAddress: Hex;
 		// Function to call when the transaction is confirmed in wallet
 		onConfirm: (hash: Hex) => void;
 		// Entity to generate calldata for

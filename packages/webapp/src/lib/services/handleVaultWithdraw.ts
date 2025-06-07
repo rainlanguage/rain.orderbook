@@ -14,7 +14,7 @@ export interface VaultWithdrawHandlerDependencies {
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	network: string;
-	orderbookAddress: Hex;
+	toAddress: Hex;
 	subgraphUrl: string;
 	chainId: number;
 	account: Hex;
@@ -29,7 +29,7 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 		errToast,
 		manager,
 		network,
-		orderbookAddress,
+		toAddress,
 		subgraphUrl,
 		chainId,
 		account,
@@ -57,10 +57,11 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 					modalTitle: `Withdrawing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}...`,
 					args: {
 						entity: vault,
-						orderbookAddress,
+						toAddress,
 						chainId,
 						onConfirm: (txHash: Hex) => {
 							manager.createWithdrawTransaction({
+								entity: vault,
 								subgraphUrl,
 								txHash,
 								chainId,

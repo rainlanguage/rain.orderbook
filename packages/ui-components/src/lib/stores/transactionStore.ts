@@ -3,10 +3,7 @@ import type { Hex } from 'viem';
 import { sendTransaction, switchChain, waitForTransactionReceipt } from '@wagmi/core';
 import { getExplorerLink } from '../services/getExplorerLink';
 import { TransactionStatusMessage } from '$lib/types/transaction';
-import type {
-	DeploymentTransactionArgs,
-	DepositOrWithdrawTransactionArgs
-} from '$lib/types/transaction';
+import type { DeploymentTransactionArgs } from '$lib/types/transaction';
 import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import {
 	getTransaction,
@@ -38,17 +35,13 @@ export enum TransactionErrorMessage {
 	USER_REJECTED_APPROVAL = 'User rejected approval transaction.',
 	USER_REJECTED_TRANSACTION = 'User rejected the transaction.',
 	DEPLOYMENT_FAILED = 'Deployment transaction failed.',
-	SWITCH_CHAIN_FAILED = 'Failed to switch chain.',
-	DEPOSIT_FAILED = 'Failed to deposit tokens.',
-	WITHDRAWAL_FAILED = 'Failed to withdraw tokens.',
-	REMOVE_ORDER_FAILED = 'Failed to remove order.'
+	SWITCH_CHAIN_FAILED = 'Failed to switch chain.'
 }
 
 export type TransactionStore = {
 	subscribe: (run: (value: TransactionState) => void) => () => void;
 	reset: () => void;
 	handleDeploymentTransaction: (args: DeploymentTransactionArgs) => Promise<void>;
-	handleDepositOrWithdrawTransaction: (args: DepositOrWithdrawTransactionArgs) => Promise<void>;
 	checkingWalletAllowance: (message?: string) => void;
 	awaitWalletConfirmation: (message?: string) => void;
 	awaitApprovalTx: (hash: string) => void;
@@ -250,81 +243,10 @@ const transactionStore = () => {
 		}
 	};
 
-	const handleDepositOrWithdrawTransaction = async ({
-		config,
-		approvalCalldata,
-		transactionCalldata,
-		action,
-		chainId,
-		vault,
-		subgraphUrl
-	}: DepositOrWithdrawTransactionArgs) => {
-		reset();
-
-		try {
-			await switchChain(config, { chainId });
-		} catch {
-			return transactionError(TransactionErrorMessage.SWITCH_CHAIN_FAILED);
-		}
-		if (approvalCalldata) {
-			let approvalHash: Hex;
-			try {
-				awaitWalletConfirmation(`Please approve ${vault.token.symbol} spend in your wallet...`);
-				approvalHash = await sendTransaction(config, {
-					to: vault.token.address as `0x${string}`,
-					data: approvalCalldata as unknown as `0x${string}`
-				});
-			} catch {
-				return transactionError(TransactionErrorMessage.USER_REJECTED_APPROVAL);
-			}
-			try {
-				awaitApprovalTx(approvalHash, vault.token.symbol);
-				await waitForTransactionReceipt(config, { hash: approvalHash });
-			} catch {
-				return transactionError(TransactionErrorMessage.APPROVAL_FAILED);
-			}
-		}
-		let hash: Hex;
-		try {
-			awaitWalletConfirmation(
-				`Please confirm ${action === 'deposit' ? 'deposit' : 'withdrawal'} in your wallet...`
-			);
-			hash = await sendTransaction(config, {
-				to: vault.orderbook.id as `0x${string}`,
-				data: transactionCalldata as unknown as `0x${string}`
-			});
-		} catch {
-			return transactionError(TransactionErrorMessage.USER_REJECTED_TRANSACTION);
-		}
-		try {
-			const transactionExplorerLink = await getExplorerLink(hash, chainId, 'tx');
-			awaitTx(
-				hash,
-				action === 'deposit'
-					? TransactionStatusMessage.PENDING_DEPOSIT
-					: TransactionStatusMessage.PENDING_WITHDRAWAL,
-				transactionExplorerLink
-			);
-			await waitForTransactionReceipt(config, { hash });
-			return awaitTransactionIndexing(
-				subgraphUrl,
-				hash,
-				`The ${action === 'deposit' ? 'deposit' : 'withdrawal'} was successful.`
-			);
-		} catch {
-			return transactionError(
-				action === 'deposit'
-					? TransactionErrorMessage.DEPOSIT_FAILED
-					: TransactionErrorMessage.WITHDRAWAL_FAILED
-			);
-		}
-	};
-
 	return {
 		subscribe,
 		reset,
 		handleDeploymentTransaction,
-		handleDepositOrWithdrawTransaction,
 		checkingWalletAllowance,
 		awaitWalletConfirmation,
 		awaitApprovalTx,

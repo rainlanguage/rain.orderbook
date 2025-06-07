@@ -27,7 +27,7 @@ const mockVault = {
 const mockDeps: VaultWithdrawHandlerDependencies = {
 	vault: mockVault,
 	network: 'ethereum',
-	orderbookAddress: '0xorderbook' as Hex,
+	toAddress: '0xorderbook' as Hex,
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	account: '0xaccount' as Hex,
@@ -112,7 +112,7 @@ describe('handleVaultWithdraw', () => {
 			modalTitle: 'Withdrawing 0.1 TEST...',
 			args: {
 				entity: mockVault,
-				orderbookAddress: mockDeps.orderbookAddress,
+				toAddress: mockDeps.toAddress,
 				chainId: mockDeps.chainId,
 				onConfirm: expect.any(Function),
 				calldata: mockCalldata
@@ -138,6 +138,7 @@ describe('handleVaultWithdraw', () => {
 		onConfirmCall(mockTxHash);
 
 		expect(mockCreateWithdrawTransaction).toHaveBeenCalledWith({
+			entity: mockVault,
 			subgraphUrl: mockDeps.subgraphUrl,
 			txHash: mockTxHash,
 			chainId: mockDeps.chainId,

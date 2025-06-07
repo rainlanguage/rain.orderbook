@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
 import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/types/transaction';
-import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
+import type { TransactionArgs } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	type AwaitSubgraphConfig
@@ -18,7 +18,7 @@ import { writable, type Writable } from 'svelte/store';
  * @property {Array<{link: string, label: string}>} links - An array of relevant links for the transaction (e.g., explorer link, link to the affected entity).
  */
 export type TransactionStoreState = {
-	name: TransactionName;
+	name: string;
 	status: TransactionStatusMessage;
 	errorDetails?: TransactionStoreErrorMessage;
 	links: {
@@ -44,7 +44,7 @@ export type Transaction = {
  * @implements {Transaction}
  */
 export class TransactionStore implements Transaction {
-	private name: TransactionName;
+	private name: string;
 	private config: Config;
 	private txHash: Hex;
 	private links: {
@@ -53,7 +53,8 @@ export class TransactionStore implements Transaction {
 	}[];
 	private onSuccess: () => void;
 	private onError: () => void;
-	private awaitSubgraphConfig: AwaitSubgraphConfig;
+	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
+	private awaitSubgraphConfig?: AwaitSubgraphConfig;
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
@@ -113,7 +114,14 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			await this.indexTransaction();
+			if (this.awaitSubgraphConfig) {
+				await this.indexTransaction();
+			} else {
+				this.updateState({
+					status: TransactionStatusMessage.SUCCESS
+				});
+				return this.onSuccess();
+			}
 		} catch {
 			this.updateState({
 				status: TransactionStatusMessage.ERROR,
@@ -129,6 +137,8 @@ export class TransactionStore implements Transaction {
 	 * @private
 	 */
 	private async indexTransaction(): Promise<void> {
+		if (!this.awaitSubgraphConfig) return;
+
 		this.updateState({
 			status: TransactionStatusMessage.PENDING_SUBGRAPH
 		});

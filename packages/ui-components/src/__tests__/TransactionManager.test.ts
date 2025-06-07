@@ -10,8 +10,11 @@ import {
 	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
-	type SgTransaction
+	type SgTransaction,
+	type SgVault,
+	type SgOrder
 } from '@rainlanguage/orderbook';
+import { formatUnits } from 'viem';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
@@ -33,9 +36,17 @@ describe('TransactionManager', () => {
 	let mockWagmiConfig: Config;
 	let manager: TransactionManager;
 
-	// Define a base mock args for callback tests to use
+	const mockSgOrderEntity = {
+		id: 'mockOrderEntityId'
+	} as unknown as SgOrder;
+
+	const mockSgVaultEntity = {
+		token: { symbol: 'MOCKVAULT', decimals: '18' },
+		vaultId: 'mockVaultEntityId',
+		id: 'mockVaultEntityId'
+	} as unknown as SgVault;
+
 	const mockBaseArgs: InternalTransactionArgs = {
-		subgraphUrl: 'https://api.example.com',
 		txHash: '0xcallbacktxhash' as `0x${string}`,
 		chainId: 1,
 		networkKey: 'ethereum',
@@ -68,27 +79,24 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createRemoveOrderTransaction', () => {
-		const mockArgs: Omit<InternalTransactionArgs, 'awaitSubgraphConfig'> = {
-			subgraphUrl: 'https://api.example.com',
-			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
-		};
+		const removeOrderMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgOrder } =
+			{
+				subgraphUrl: 'https://api.example.com',
+				txHash:
+					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+				chainId: 1,
+				networkKey: 'ethereum',
+				queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+				entity: mockSgOrderEntity
+			};
 
 		const fullMockArgsForExpectation: InternalTransactionArgs & {
 			awaitSubgraphConfig: AwaitSubgraphConfig;
 		} = {
-			...mockArgs,
-			subgraphUrl: 'https://api.example.com',
-			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+			...removeOrderMockArgs,
 			awaitSubgraphConfig: {
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+				subgraphUrl: removeOrderMockArgs.subgraphUrl,
+				txHash: removeOrderMockArgs.txHash,
 				successMessage: 'Order removed successfully.',
 				fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
 				isSuccess: expect.any(Function)
@@ -107,7 +115,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createRemoveOrderTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				{
@@ -115,23 +123,23 @@ describe('TransactionManager', () => {
 					name: TransactionName.REMOVAL,
 					errorMessage: 'Order removal failed.',
 					successMessage: 'Order removed successfully.',
-					queryKey: mockArgs.queryKey,
+					queryKey: removeOrderMockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/orders/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							link: `/orders/${removeOrderMockArgs.networkKey}-${removeOrderMockArgs.queryKey}`,
 							label: 'View Order'
 						},
 						{
 							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-							label: 'View transaction'
+							label: 'View on explorer'
 						}
 					],
 					config: mockWagmiConfig,
 					awaitSubgraphConfig: {
-						subgraphUrl: mockArgs.subgraphUrl,
-						txHash: mockArgs.txHash,
+						subgraphUrl: removeOrderMockArgs.subgraphUrl,
+						txHash: removeOrderMockArgs.txHash,
 						successMessage: 'Order removed successfully.',
-						fetchEntityFn: getTransactionRemoveOrders as typeof getTransactionRemoveOrders,
+						fetchEntityFn: getTransactionRemoveOrders,
 						isSuccess: expect.any(Function)
 					}
 				},
@@ -140,24 +148,21 @@ describe('TransactionManager', () => {
 			);
 
 			const removeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig.isSuccess;
+			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
 			expect(
 				removeOrderIsSuccessFn([
 					{
-						// SgRemoveOrderWithOrder structure:
-						// NO 'id' field at this top level for SgRemoveOrderWithOrder itself.
 						transaction: {
 							id: 'tx1',
 							from: '0xfrom',
 							blockNumber: '123',
 							timestamp: '1678886400'
 						},
-						order: { id: 'order1' } // SgOrder needs at least an id
+						order: { id: 'order1' }
 					}
 				] as SgRemoveOrderWithOrder[])
 			).toBe(true);
 			expect(removeOrderIsSuccessFn([] as SgRemoveOrderWithOrder[])).toBe(false);
-			// Test with a non-array SgTransaction to ensure it's handled as false by the original logic
 			expect(
 				removeOrderIsSuccessFn({
 					id: 'tx1',
@@ -175,7 +180,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createRemoveOrderTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
 
 			expect(mockExecute).toHaveBeenCalled();
 		});
@@ -186,7 +191,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createRemoveOrderTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
 
 			const transactions = manager.getTransactions();
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,27 +204,22 @@ describe('TransactionManager', () => {
 	});
 
 	describe('createWithdrawTransaction', () => {
-		const mockArgs: Omit<InternalTransactionArgs, 'awaitSubgraphConfig'> = {
-			subgraphUrl: 'https://api.example.com',
-			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
-			chainId: 1,
-			networkKey: 'ethereum',
-			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
-		};
-
-		const fullMockArgsForExpectation: InternalTransactionArgs & {
-			awaitSubgraphConfig: AwaitSubgraphConfig;
-		} = {
-			...mockArgs,
+		const withdrawMockArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
 			subgraphUrl: 'https://api.example.com',
 			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
 			chainId: 1,
 			networkKey: 'ethereum',
 			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+			entity: mockSgVaultEntity // Added entity
+		};
+
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
+			...withdrawMockArgs, // Spreads withdrawMockArgs including entity
 			awaitSubgraphConfig: {
-				subgraphUrl: 'https://api.example.com',
-				txHash:
-					'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+				subgraphUrl: withdrawMockArgs.subgraphUrl,
+				txHash: withdrawMockArgs.txHash,
 				successMessage: 'Withdrawal successful.',
 				fetchEntityFn: getTransaction as typeof getTransaction,
 				isSuccess: expect.any(Function)
@@ -238,7 +238,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createWithdrawTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createWithdrawTransaction(withdrawMockArgs);
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				{
@@ -246,23 +246,23 @@ describe('TransactionManager', () => {
 					name: TransactionName.WITHDRAWAL,
 					errorMessage: 'Withdrawal failed.',
 					successMessage: 'Withdrawal successful.',
-					queryKey: mockArgs.queryKey,
+					queryKey: withdrawMockArgs.queryKey,
 					toastLinks: [
 						{
-							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							link: `/vaults/${withdrawMockArgs.networkKey}-${withdrawMockArgs.queryKey}`,
 							label: 'View vault'
 						},
 						{
 							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-							label: 'View transaction'
+							label: 'View on explorer'
 						}
 					],
 					config: mockWagmiConfig,
 					awaitSubgraphConfig: {
-						subgraphUrl: mockArgs.subgraphUrl,
-						txHash: mockArgs.txHash,
+						subgraphUrl: withdrawMockArgs.subgraphUrl,
+						txHash: withdrawMockArgs.txHash,
 						successMessage: 'Withdrawal successful.',
-						fetchEntityFn: getTransaction as typeof getTransaction,
+						fetchEntityFn: getTransaction,
 						isSuccess: expect.any(Function)
 					}
 				},
@@ -271,7 +271,7 @@ describe('TransactionManager', () => {
 			);
 
 			const withdrawCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig.isSuccess;
+			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig!.isSuccess;
 			expect(withdrawIsSuccessFn({ id: 'tx1' } as SgTransaction)).toBe(true);
 			expect(withdrawIsSuccessFn(null as unknown as SgTransaction)).toBe(false);
 			expect(withdrawIsSuccessFn(undefined as unknown as SgTransaction)).toBe(false);
@@ -286,7 +286,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createWithdrawTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createWithdrawTransaction(withdrawMockArgs);
 
 			expect(mockExecute).toHaveBeenCalled();
 		});
@@ -297,7 +297,7 @@ describe('TransactionManager', () => {
 				() => mockTransaction as unknown as TransactionStore
 			);
 
-			await manager.createWithdrawTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createWithdrawTransaction(withdrawMockArgs);
 
 			const transactions = manager.getTransactions();
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,12 +316,12 @@ describe('TransactionManager', () => {
 				return mockTransaction as unknown as TransactionStore;
 			});
 
-			const depositMockArgs = {
-				...mockArgs,
-				queryKey: '0xvaultid'
+			const testSpecificArgs: InternalTransactionArgs & { subgraphUrl: string; entity: SgVault } = {
+				...withdrawMockArgs, // Use base withdraw args
+				queryKey: '0xvaultid' // Override queryKey for this specific test
 			};
 
-			await manager.createWithdrawTransaction(depositMockArgs as InternalTransactionArgs);
+			await manager.createWithdrawTransaction(testSpecificArgs);
 
 			onSuccess!();
 
@@ -338,7 +338,7 @@ describe('TransactionManager', () => {
 				return mockTransaction as unknown as TransactionStore;
 			});
 
-			await manager.createWithdrawTransaction(mockArgs as InternalTransactionArgs);
+			await manager.createWithdrawTransaction(withdrawMockArgs);
 
 			onError!();
 
@@ -362,14 +362,16 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xsuccesskey' // Override for specific test
+				queryKey: '0xsuccesskey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			onSuccess!();
 
 			expect(mockAddToast).not.toHaveBeenCalled();
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
-				queryKey: ['0xsuccesskey'] // ensure this matches the queryKey used in this specific test call
+				queryKey: ['0xsuccesskey']
 			});
 		});
 
@@ -383,7 +385,9 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xfailkey' // Override for specific test
+				queryKey: '0xfailkey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			onError!();
@@ -406,7 +410,9 @@ describe('TransactionManager', () => {
 
 			await manager.createRemoveOrderTransaction({
 				...mockBaseArgs,
-				queryKey: '0xclearkey' // Override for specific test
+				queryKey: '0xclearkey',
+				entity: mockSgOrderEntity,
+				subgraphUrl: 'https://api.example.com'
 			});
 
 			manager.clearTransactions();
@@ -418,6 +424,223 @@ describe('TransactionManager', () => {
 				storeValue = value;
 			});
 			expect(storeValue).toEqual([]);
+		});
+	});
+
+	describe('createApprovalTransaction', () => {
+		const mockEntity = {
+			token: {
+				symbol: 'TEST',
+				decimals: '18'
+			}
+		} as SgVault;
+		const mockArgs: InternalTransactionArgs = {
+			txHash: '0xapprovehash' as `0x${string}`,
+			chainId: 1,
+			networkKey: 'ethereum',
+			queryKey: '0xvaultid'
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xapprovehash');
+		});
+
+		it('should create a transaction with correct parameters when entity is provided', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createApprovalTransaction({ ...mockArgs, entity: mockEntity });
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					entity: mockEntity,
+					name: 'Approving TEST spend',
+					errorMessage: 'Approval failed.',
+					successMessage: 'Approval successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							label: 'View vault'
+						},
+						{
+							link: 'https://explorer.example.com/tx/0xapprovehash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should create a transaction with correct parameters when entity is not provided', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			// entity is deliberately omitted here
+			await manager.createApprovalTransaction({ ...mockArgs });
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: 'Approving token spend',
+					errorMessage: 'Approval failed.',
+					successMessage: 'Approval successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: 'https://explorer.example.com/tx/0xapprovehash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+	});
+
+	describe('createDepositTransaction', () => {
+		const mockEntity = {
+			token: {
+				symbol: 'TEST',
+				decimals: '18'
+			}
+		} as SgVault;
+		const mockArgs: InternalTransactionArgs & {
+			amount: bigint;
+			entity: SgVault;
+			subgraphUrl: string;
+		} = {
+			subgraphUrl: 'https://api.example.com',
+			txHash: '0xdeposithash' as `0x${string}`,
+			chainId: 1,
+			networkKey: 'ethereum',
+			queryKey: '0xvaultid',
+			entity: mockEntity,
+			amount: 1000000000000000000n
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xdeposithash');
+		});
+
+		it('should create a transaction with correct parameters including formatted amount', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			const expectedReadableAmount = formatUnits(
+				mockArgs.amount,
+				Number(mockEntity.token.decimals)
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: `Depositing ${expectedReadableAmount} ${mockEntity.token.symbol}`,
+					errorMessage: 'Deposit failed.',
+					successMessage: 'Deposit successful.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: `/vaults/${mockArgs.networkKey}-${mockArgs.queryKey}`,
+							label: 'View vault'
+						},
+						{
+							link: 'https://explorer.example.com/tx/0xdeposithash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig,
+					awaitSubgraphConfig: {
+						subgraphUrl: mockArgs.subgraphUrl,
+						txHash: mockArgs.txHash,
+						successMessage: 'Deposit successful.',
+						fetchEntityFn: getTransaction,
+						isSuccess: expect.any(Function)
+					}
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should execute the transaction after creation', async () => {
+			const mockExecute = vi.fn();
+			const mockTransaction = { execute: mockExecute };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			expect(mockExecute).toHaveBeenCalled();
+		});
+
+		it('should add transaction to store', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			const transactions = manager.getTransactions();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let storeValue: any[] = [];
+			transactions.subscribe((value) => {
+				storeValue = value;
+			});
+			expect(storeValue).toContain(mockTransaction);
+		});
+
+		it('should handle successful transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createDepositTransaction(mockArgs);
+
+			onSuccess!();
+
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: ['0xvaultid']
+			});
+		});
+
+		it('should handle failed transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createDepositTransaction(mockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Deposit failed.',
+				type: 'error',
+				color: 'red',
+				links: expect.any(Array)
+			});
 		});
 	});
 });

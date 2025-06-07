@@ -2,7 +2,11 @@
 	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
+	import {
+		handleDepositModal,
+		handleTransactionConfirmationModal,
+		handleWithdrawModal
+	} from '$lib/services/modal';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
@@ -33,13 +37,19 @@
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultDeposit({
+	async function onDeposit(vault: SgVault) {
+		await handleVaultDeposit({
 			vault,
-			chainId,
-			rpcUrl,
+			handleDepositModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
 			subgraphUrl,
-			account: $account as Hex
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 
@@ -51,7 +61,7 @@
 			errToast,
 			manager,
 			network,
-			orderbookAddress,
+			toAddress: orderbookAddress as Hex,
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,
