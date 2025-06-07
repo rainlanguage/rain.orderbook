@@ -69,7 +69,15 @@ impl QuoteDebugger {
                 Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
         }
 
-        Ok((res.into(), abi_decoded_error))
+        Ok((
+            RainEvalResult {
+                // reverted: bool,
+                // stack: Vec<U256>,
+                // writes: Vec<U256>,
+                // traces: Vec<RainSourceTrace>,
+        },
+            abi_decoded_error,
+        ))
     }
 }
 

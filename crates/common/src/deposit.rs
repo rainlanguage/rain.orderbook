@@ -60,7 +60,8 @@ impl DepositArgs {
         owner: Address,
         transaction_args: TransactionArgs,
     ) -> Result<U256, DepositError> {
-        let readable_client = ReadableClient::new_from_url(transaction_args.rpc_url.clone())?;
+        let readable_client =
+            ReadableClient::new_from_url(transaction_args.rpc_url.clone()).await?;
         let parameters = ReadContractParametersBuilder::<allowanceCall>::default()
             .address(self.token)
             .call(allowanceCall {
@@ -70,7 +71,7 @@ impl DepositArgs {
             .build()?;
         let res = readable_client.read(parameters).await?;
 
-        Ok(res._0)
+        Ok(res)
     }
 
     /// Execute IERC20 approve call

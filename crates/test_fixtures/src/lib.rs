@@ -22,7 +22,7 @@ pub use interpreter_fixtures::{Deployer, Interpreter, Parser, Store, ERC20};
 use serde_json::value::RawValue;
 use std::{marker::PhantomData, str::FromStr};
 
-pub mod interpreter_fixtures;
+use rain_interpreter_test_fixtures::LocalEvmProvider;
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
@@ -103,7 +103,6 @@ impl LocalEvm {
 
         // Create a provider with the wallet and fillers
         let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(signer_wallets[0].clone())
             .on_http(anvil.endpoint_url());
 
@@ -365,5 +364,6 @@ impl<'a, T: SolCall> ContractTxHandler<T>
             .await?
             .get_receipt()
             .await
+            .map(|r| r.inner)
     }
 }

@@ -168,7 +168,6 @@ impl QuoteSpec {
                 signedContext: self.signed_context.clone(),
                 order: OrderV3::abi_decode(
                     decode(order_detail.order_bytes.0.as_str())?.as_slice(),
-                    true,
                 )?,
             },
         })
@@ -181,7 +180,7 @@ impl QuoteSpec {
         subgraph_url: &str,
         rpc_url: &str,
         block_number: Option<u64>,
-        gas: Option<U256>,
+        gas: Option<u64>,
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;

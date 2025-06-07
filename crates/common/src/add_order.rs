@@ -6,7 +6,7 @@ use crate::{
 use alloy::primitives::{hex::FromHexError, private::rand, Address, U256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::transaction::{
-    ReadContractParameters, ReadableClientError, ReadableClientHttp, WritableClientError,
+    ReadContractParameters, ReadableClient, ReadableClientError, WritableClientError,
     WriteContractParameters,
 };
 #[cfg(not(target_family = "wasm"))]
@@ -98,14 +98,15 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = ReadableClientHttp::new_from_url(input_token.network.rpc.to_string())?;
+                let client =
+                    ReadableClient::new_from_url(input_token.network.rpc.to_string()).await?;
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
                     block_number: None,
                     gas: None,
                 };
-                let decimals = client.read(parameters).await?._0;
+                let decimals = client.read(parameters).await?;
                 inputs.push(IO {
                     token: input_token.address,
                     vaultId: input.vault_id.unwrap_or(random_vault_id),
@@ -129,7 +130,7 @@ impl AddOrderArgs {
                 });
             } else {
                 let client =
-                    ReadableClientHttp::new_from_url(output_token.network.rpc.to_string())?;
+                    ReadableClient::new_from_url(output_token.network.rpc.to_string()).await?;
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
@@ -160,7 +161,8 @@ impl AddOrderArgs {
         rpc_url: String,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_url(rpc_url)
+        let client = ReadableClient::new_from_url(rpc_url)
+            .await
             .map_err(AddOrderArgsError::ReadableClientError)?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
