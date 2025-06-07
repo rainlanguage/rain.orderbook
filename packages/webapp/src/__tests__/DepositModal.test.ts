@@ -49,7 +49,6 @@ describe('DepositModal', () => {
 			chainId: 1,
 			rpcUrl: 'https://example.com',
 			account: '0x0000000000000000000000000000000000000000',
-			onSubmit: mockOnSubmit,
 			config: mockWeb3Config
 		}
 	} as unknown as ModalProps;
@@ -195,7 +194,7 @@ describe('DepositModal', () => {
 	});
 
 	it('shows the cancel button that closes the modal', async () => {
-		const { component } = render(DepositModal, defaultProps);
+		render(DepositModal, defaultProps);
 
 		await waitFor(() => {
 			expect(screen.getByText('Cancel')).toBeInTheDocument();

@@ -22,7 +22,7 @@ export type TransactionConfirmationProps = {
 	open: boolean;
 	// A title for the modal
 	modalTitle: string;
-	// Close the modal after transaction is confirmed (for approvals that preced deposits)
+	// Close the modal after transaction is confirmed (for approvals that precede deposits)
 	closeOnConfirm?: boolean;
 	args: {
 		// Chain ID for switching chains

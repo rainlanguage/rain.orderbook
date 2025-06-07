@@ -36,10 +36,9 @@ async function executeDeposit(args: DepositArgs) {
 		chainId
 	} = args;
 	const calldataResult = await getVaultDepositCalldata(vault, amount.toString());
-	let displayAmount;
-	if (vault.token.decimals) {
-		displayAmount = formatUnits(amount, Number(vault.token.decimals));
-	}
+	const displayAmount = vault.token.decimals
+		? formatUnits(amount, Number(vault.token.decimals))
+		: amount.toString();
 	if (calldataResult.error) {
 		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {

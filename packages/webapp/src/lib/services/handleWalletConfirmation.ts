@@ -14,7 +14,6 @@ export async function handleWalletConfirmation(
 	args: TransactionConfirmationProps['args']
 ): Promise<{ state: WalletConfirmationState; hash?: Hex }> {
 	const config = get(wagmiConfig);
-
 	let transactionHash: Hex;
 	try {
 		await switchChain(config, { chainId: args.chainId });

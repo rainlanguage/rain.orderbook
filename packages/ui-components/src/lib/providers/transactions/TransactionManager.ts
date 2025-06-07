@@ -194,8 +194,8 @@ export class TransactionManager {
 		args: InternalTransactionArgs & { entity?: SgVault }
 	): Promise<Transaction> {
 		const { entity, queryKey, networkKey } = args;
-		const tokenSymbol = entity?.token.symbol || '';
-		const name = `Approving ${tokenSymbol || 'token'} spend`;
+		const tokenSymbol = entity?.token.symbol || 'token';
+		const name = `Approving ${tokenSymbol} spend`;
 		const errorMessage = 'Approval failed.';
 		const successMessage = 'Approval successful.';
 
