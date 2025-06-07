@@ -3,7 +3,6 @@ import { handleWalletConfirmation } from '../lib/services/handleWalletConfirmati
 import { sendTransaction, switchChain } from '@wagmi/core';
 import { mockWeb3Config } from '$lib/__mocks__/mockWeb3Config';
 import type { SgOrder } from '@rainlanguage/orderbook';
-import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
 
 const { mockWagmiConfigStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 

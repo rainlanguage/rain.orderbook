@@ -8,19 +8,15 @@ import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { useAccount } from '$lib/providers/wallet/useAccount';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
 import { mockConfigSource } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
+import type { Account } from '$lib/types/account';
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
-}));
-
-vi.mock('$lib/providers/wallet/useAccount', () => ({
-	useAccount: vi.fn()
 }));
 
 vi.mock('../lib/components/deployment/handleDeployment', () => ({
@@ -91,7 +87,8 @@ const defaultProps: DeploymentStepsProps = {
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
 	settings: writable(mockConfigSource),
-	registryUrl: 'https://registry.reown.xyz'
+	registryUrl: 'https://registry.reown.xyz',
+	account: readable('0x123')
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
@@ -118,10 +115,6 @@ describe('DeploymentSteps', () => {
 		});
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
-		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0x123'),
-			matchesAccount: vi.fn()
-		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -186,10 +179,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows wallet connect button when all required fields are filled, but no account exists', async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: writable(null)
-		});
-
 		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
@@ -232,7 +221,7 @@ describe('DeploymentSteps', () => {
 			]
 		});
 
-		render(DeploymentSteps, { props: defaultProps });
+		render(DeploymentSteps, { props: { ...defaultProps, account: readable(null) } });
 
 		await waitFor(() => {
 			expect(screen.getByText('Connect')).toBeInTheDocument();
@@ -240,10 +229,6 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows deploy button when all required fields are filled, and account is connected', async () => {
-		(useAccount as Mock).mockReturnValue({
-			account: writable('0x123')
-		});
-
 		const mockSelectTokens = [
 			{ key: 'token1', name: 'Token 1', description: undefined },
 			{ key: 'token2', name: 'Token 2', description: undefined }
@@ -442,15 +427,11 @@ describe('DeploymentSteps', () => {
 		vi.useRealTimers();
 	});
 	it('passes correct arguments to handleDeployment', async () => {
-		vi.mocked(useAccount).mockReturnValue({
-			account: readable('0xTestAccount'),
-			matchesAccount: vi.fn()
-		});
-
 		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 
 		const propsWithMockHandlers = {
-			...defaultProps
+			...defaultProps,
+			account: readable('0xTestAccount') as Account
 		};
 
 		const user = userEvent.setup();

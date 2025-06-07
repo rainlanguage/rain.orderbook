@@ -7,7 +7,11 @@
 	import { page } from '$app/stores';
 	import Homepage from '$lib/components/Homepage.svelte';
 	import LoadingWrapper from '$lib/components/LoadingWrapper.svelte';
-	import { ToastProvider, WalletProvider } from '@rainlanguage/ui-components';
+	import {
+		ToastProvider,
+		WalletProvider,
+		FixedBottomTransaction
+	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
@@ -61,6 +65,7 @@
 							</main>
 						</div>
 					{/if}
+					<FixedBottomTransaction />
 				</LoadingWrapper>
 			</TransactionProviderWrapper>
 		</QueryClientProvider>
