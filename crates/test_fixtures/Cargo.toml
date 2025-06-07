@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 serde_json = { workspace = true }
+rain_interpreter_test_fixtures = { path = "../../lib/rain.interpreter/crates/test_fixtures" }
 alloy = { workspace = true, features = [
     "node-bindings",
     "sol-types",

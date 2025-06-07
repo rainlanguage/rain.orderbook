@@ -4,7 +4,7 @@ use alloy::primitives::private::rand;
 use alloy::primitives::Address;
 use alloy::primitives::U256;
 use alloy::sol_types::SolCall;
-use alloy_ethers_typecast::transaction::{ReadableClientError, ReadableClientHttp};
+use alloy_ethers_typecast::transaction::{ReadableClient, ReadableClientError};
 use dotrain::{error::ComposeError, RainDocument, Rebind};
 use futures::TryFutureExt;
 use proptest::prelude::RngCore;
@@ -174,7 +174,8 @@ impl FuzzRunner {
         let deployer = scenario.deployer.clone();
 
         // Fetch the latest block number
-        let block_number = ReadableClientHttp::new_from_url(deployer.network.rpc.to_string())?
+        let block_number = ReadableClient::new_from_url(deployer.network.rpc.to_string())
+            .await?
             .get_block_number()
             .await?;
 

@@ -19,10 +19,10 @@ pub async fn batch_quote(
     quote_targets: &[QuoteTarget],
     rpc: &str,
     block_number: Option<u64>,
-    gas: Option<U256>,
+    gas: Option<u64>,
     multicall_address: Option<Address>,
 ) -> Result<Vec<QuoteResult>, Error> {
-    let client = ReadableClient::new_from_url(rpc.to_string())?;
+    let client = ReadableClient::new_from_url(rpc.to_string()).await?;
     let parameters = ReadContractParameters {
         gas,
         address: multicall_address.unwrap_or(Address::from_hex(MULTICALL3_ADDRESS).unwrap()),
@@ -47,7 +47,7 @@ pub async fn batch_quote(
     let mut result: Vec<QuoteResult> = vec![];
     for res in multicall_result.returnData {
         if res.success {
-            match quoteCall::abi_decode_returns(&res.returnData, true) {
+            match quoteCall::abi_decode_returns(&res.returnData) {
                 Ok(v) => {
                     if v.exists {
                         result.push(Ok(v.into()));

@@ -2,12 +2,9 @@ use alloy::primitives::{ruint::FromUintError, Address, U256};
 use alloy::sol_types::SolCall;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::client::{LedgerClient, LedgerClientError};
-use alloy_ethers_typecast::{
-    gas_fee_middleware::GasFeeSpeed,
-    transaction::{
-        ReadableClientError, ReadableClientHttp, WritableClientError, WriteContractParameters,
-        WriteContractParametersBuilder, WriteContractParametersBuilderError,
-    },
+use alloy_ethers_typecast::transaction::{
+    ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
+    WriteContractParametersBuilder, WriteContractParametersBuilderError,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -48,7 +45,6 @@ pub struct TransactionArgs {
     pub rpc_url: String,
     pub max_priority_fee_per_gas: Option<u128>,
     pub max_fee_per_gas: Option<u128>,
-    pub gas_fee_speed: Option<GasFeeSpeed>,
 }
 
 impl TransactionArgs {
@@ -69,7 +65,8 @@ impl TransactionArgs {
 
     pub async fn try_fill_chain_id(&mut self) -> Result<(), TransactionArgsError> {
         if self.chain_id.is_none() {
-            let chain_id = ReadableClientHttp::new_from_url(self.rpc_url.clone())?
+            let chain_id = ReadableClient::new_from_url(self.rpc_url.clone())
+                .await?
                 .get_chainid()
                 .await?;
             let chain_id_u64: u64 = chain_id.try_into()?;

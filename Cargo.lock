@@ -6465,6 +6465,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rain_interpreter_test_fixtures"
+version = "0.0.0"
+dependencies = [
+ "alloy",
+ "getrandom 0.2.16",
+ "serde_json",
+]
+
+[[package]]
 name = "rain_orderbook_app_settings"
 version = "0.0.0-alpha.0"
 dependencies = [
@@ -6671,6 +6680,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "getrandom 0.2.16",
+ "rain_interpreter_test_fixtures",
  "serde_json",
 ]
 
