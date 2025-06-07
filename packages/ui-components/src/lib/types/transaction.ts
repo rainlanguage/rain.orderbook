@@ -3,8 +3,7 @@ import type {
 	SgVault,
 	ApprovalCalldata,
 	VaultCalldataResult,
-	DepositAndAddOrderCalldataResult,
-	SgOrder
+	DepositAndAddOrderCalldataResult
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';

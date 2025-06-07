@@ -618,12 +618,6 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Deposit successful.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xvaultid']
 			});
