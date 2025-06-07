@@ -6365,7 +6365,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6375,7 +6375,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6444,7 +6444,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6484,7 +6484,7 @@ dependencies = [
  "tokio",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6522,7 +6522,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6546,7 +6546,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils 0.0.9",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -8947,8 +8947,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils"
-version = "0.0.9"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=365e6bf1efc3c9d154dc8cbae6658b8245921e6c#365e6bf1efc3c9d154dc8cbae6658b8245921e6c"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed82a9f56693dd939d2f37431e0dd5401e6447694f9930353fd5c3fb3d9d152e"
 dependencies = [
  "js-sys",
  "paste",
@@ -8957,7 +8958,7 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros 0.0.4",
+ "wasm-bindgen-utils-macros 0.0.5",
 ]
 
 [[package]]
@@ -8973,8 +8974,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-utils-macros"
-version = "0.0.4"
-source = "git+https://github.com/rainlanguage/rain.wasm?rev=365e6bf1efc3c9d154dc8cbae6658b8245921e6c#365e6bf1efc3c9d154dc8cbae6658b8245921e6c"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cc4956f28c8dba2ad5b3afb5ed7d584f7e9e7194e516eae0577d79d594de6e6"
 dependencies = [
  "proc-macro2",
  "quote",

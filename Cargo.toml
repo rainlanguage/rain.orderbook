@@ -52,7 +52,7 @@ test-context = "0.3.0"
 portpicker = "0.1.1"
 rain-erc = { git = "https://github.com/rainlanguage/rain.erc", rev = "0106e645ebd49334addc698c5aad9a85370eb54d" }
 rain-error-decoding = { git = "https://github.com/rainlanguage/rain.error", rev = "72d9577fdaf7135113847027ba951f9a43b41827" }
-wasm-bindgen-utils = { git = "https://github.com/rainlanguage/rain.wasm", rev = "365e6bf1efc3c9d154dc8cbae6658b8245921e6c" }
+wasm-bindgen-utils = "0.0.10"
 tempfile = "3.20.0"
 
 [workspace.dependencies.rain_orderbook_bindings]
