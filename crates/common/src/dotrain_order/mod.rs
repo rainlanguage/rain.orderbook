@@ -11,9 +11,8 @@ pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
 use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::spec_version::SpecVersion;
-use rain_orderbook_app_settings::yaml::cache::Cache;
 use rain_orderbook_app_settings::yaml::{
-    default_document, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::ParseConfigSourceError;
 use serde::{Deserialize, Serialize};
@@ -219,20 +218,18 @@ impl DotrainOrder {
     pub fn dummy() -> Self {
         Self {
             dotrain: "".to_string(),
-            dotrain_yaml: DotrainYaml {
-                documents: vec![default_document()],
-                cache: Cache::new(),
-            },
+            dotrain_yaml: DotrainYaml::new(vec![], false).unwrap(),
         }
     }
-    pub fn is_initialized(&self) -> bool {
-        !self.dotrain.is_empty()
-    }
+}
 
-    async fn _initialize(
+#[wasm_export]
+impl DotrainOrder {
+    #[wasm_export(js_name = "create", preserve_js_class)]
+    pub async fn create(
         dotrain: String,
         settings: Option<Vec<String>>,
-    ) -> Result<(String, DotrainYaml), DotrainOrderError> {
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -270,132 +267,15 @@ impl DotrainOrder {
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 
-        Ok((dotrain, dotrain_yaml))
-    }
-}
-
-/*
-
-NOTE FOR DEVELOPERS:
-
-Due to the way `wasm_bindgen` works, and how the `impl_wasm_traits` macro, we must separate the construction and initialization steps for `DotrainOrder`.
-
-- When using the macro, the `DotrainOrder` object created on the JavaScript side is **not** a class instance; it's just a plain object with fields (which will be `undefined`).
-- To get a proper class instance in JavaScript, you must use the constructor exposed by `wasm_bindgen` (`new DotrainOrder()`), which gives you a real class object.
-- After construction, you must call the `.initialize()` method to populate the instance with your configuration and make it ready for use.
-
-This two-step process is required for correct interop between Rust and JavaScript via WASM.
-
-*/
-#[wasm_bindgen]
-impl DotrainOrder {
-    /// Creates a new, uninitialized `DotrainOrder` instance.
-    ///
-    /// # JavaScript Usage
-    ///
-    /// To use `DotrainOrder` from JavaScript, you must first create an instance
-    /// using this constructor, and then initialize it with your configuration:
-    ///
-    /// ```javascript
-    /// // Step 1: Create a new DotrainOrder instance (not yet initialized)
-    /// const dotrainOrder = new DotrainOrder();
-    ///
-    /// // Step 2: Initialize the instance with your dotrain script and optional settings
-    /// await dotrainOrder.initialize(dotrain, [settings]);
-    ///
-    /// // Now you can use other methods on dotrainOrder
-    /// const rainlang = await dotrainOrder.composeScenarioToRainlang("my-scenario");
-    /// ```
-    ///
-    /// **Note:** The constructor does NOT initialize the instance.  
-    /// You must always call `.initialize()` before using any other methods.  
-    /// If you try to use methods before initialization, they will throw an error.
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> DotrainOrder {
-        Self::dummy()
-    }
-
-    fn ensure_initialized(&self) -> Result<(), DotrainOrderError> {
-        if self.is_initialized() {
-            Ok(())
-        } else {
-            Err(DotrainOrderError::DotrainOrderNotInitialized)
-        }
-    }
-
-    /// Creates a new `DotrainOrder` instance asynchronously.
-    ///
-    /// **Deprecated:** This method is deprecated and will be removed in a future version.
-    /// The preferred way to create and initialize a `DotrainOrder` instance is to
-    /// first instantiate it using the constructor `new DotrainOrder()` and then
-    /// call the asynchronous `initialize` method.
-    ///
-    /// # Example (JavaScript)
-    ///
-    /// ```javascript
-    /// // Deprecated usage:
-    /// // const dotrainOrder = await DotrainOrder.create(dotrain, [settings]);
-    ///
-    /// // Preferred usage:
-    /// const dotrainOrder = new DotrainOrder();
-    /// await dotrainOrder.initialize(dotrain, [settings]);
-    /// ```
-    ///
-    /// # Arguments
-    ///
-    /// * `dotrain` - A string containing the dotrain script.
-    /// * `settings` - An optional vector of strings representing additional configuration settings.
-    ///
-    /// # See Also
-    ///
-    /// * [`initialize`](#method.initialize)
-    #[wasm_bindgen(js_name = "create")]
-    pub async fn create(
-        dotrain: String,
-        settings: Option<Vec<String>>,
-    ) -> Result<DotrainOrder, DotrainOrderError> {
-        let (dotrain, dotrain_yaml) = DotrainOrder::_initialize(dotrain, settings).await?;
         Ok(DotrainOrder {
             dotrain,
             dotrain_yaml,
         })
     }
-}
-
-#[wasm_export]
-impl DotrainOrder {
-    /// Initializes the `DotrainOrder` instance asynchronously with the provided dotrain script and settings.
-    ///
-    /// This method should be called after creating an instance with `new DotrainOrder()`.
-    /// It processes the dotrain script and settings, fetching remote configurations if necessary.
-    ///
-    /// # Example (JavaScript)
-    ///
-    /// ```javascript
-    /// const dotrainOrder = new DotrainOrder();
-    /// await dotrainOrder.initialize(dotrain, [settings]);
-    /// ```
-    ///
-    /// # Arguments
-    ///
-    /// * `dotrain` - A string containing the dotrain script.
-    /// * `settings` - An optional vector of strings representing additional configuration settings.
-    #[wasm_export(js_name = "initialize", unchecked_return_type = "void")]
-    pub async fn initialize(
-        &mut self,
-        dotrain: String,
-        settings: Option<Vec<String>>,
-    ) -> Result<(), DotrainOrderError> {
-        let (dotrain, dotrain_yaml) = DotrainOrder::_initialize(dotrain, settings).await?;
-        self.dotrain = dotrain;
-        self.dotrain_yaml = dotrain_yaml;
-        Ok(())
-    }
 
     // get this instance's dotrain string
     #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
     pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
-        self.ensure_initialized()?;
         Ok(self.dotrain.clone())
     }
 
@@ -407,8 +287,6 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
@@ -426,8 +304,6 @@ impl DotrainOrder {
         &self,
         scenario: String,
     ) -> Result<String, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let scenario = self.dotrain_yaml.get_scenario(&scenario)?;
 
         Ok(compose_to_rainlang(
@@ -445,8 +321,6 @@ impl DotrainOrder {
         &self,
         deployment: String,
     ) -> Result<String, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let scenario = self.dotrain_yaml.get_deployment(&deployment)?.scenario;
 
         Ok(compose_to_rainlang(
@@ -470,8 +344,6 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let deployer = self.dotrain_yaml.get_scenario(scenario)?.deployer;
         let parser: ParserV2 = deployer.address.into();
         let rainlang = self
@@ -488,8 +360,6 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let network = &self.dotrain_yaml.get_scenario(scenario)?.deployer.network;
 
         let rpc = &network.rpc;
@@ -504,8 +374,6 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
 
         Ok(ContractWords {
@@ -521,8 +389,6 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<ContractWords>, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let pragma_addresses = self.get_pragmas_for_scenario(scenario).await?;
         let mut futures = vec![];
 
@@ -544,8 +410,6 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let deployer = &self.dotrain_yaml.get_scenario(scenario)?.deployer.address;
         let mut addresses = vec![*deployer];
         addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
@@ -579,8 +443,6 @@ impl DotrainOrder {
     pub async fn get_all_scenarios_all_words(
         &self,
     ) -> Result<Vec<ScenarioWords>, DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let mut scenarios = vec![];
         for scenario in self.dotrain_yaml.get_scenario_keys()? {
             scenarios.push(self.get_all_words_for_scenario(&scenario).await?);
@@ -589,8 +451,6 @@ impl DotrainOrder {
     }
 
     pub async fn validate_spec_version(&self) -> Result<(), DotrainOrderError> {
-        self.ensure_initialized()?;
-
         let spec_version = self.orderbook_yaml().get_spec_version()?;
         if !SpecVersion::is_current(&spec_version) {
             return Err(DotrainOrderError::SpecVersionMismatch(
@@ -653,9 +513,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -700,9 +558,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -754,9 +610,7 @@ _ _: 1 2;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -805,11 +659,10 @@ networks:
             rpc_url = server.url("/rpc-mainnet"),
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), Some(vec![settings.to_string()]))
-            .await
-            .unwrap();
+        let dotrain_order =
+            DotrainOrder::create(dotrain.to_string(), Some(vec![settings.to_string()]))
+                .await
+                .unwrap();
 
         assert_eq!(
             dotrain_order
@@ -853,9 +706,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -901,9 +752,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -953,9 +802,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1010,9 +857,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1068,9 +913,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1148,9 +991,7 @@ _ _: 0 0;
             deployer_address = encode_prefixed(deployer),
             spec_version = SpecVersion::current()
         );
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1334,9 +1175,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1359,9 +1198,7 @@ _ _: 0 0;
                 #handle-io
                 :;";
 
-        let mut dotrain_order = DotrainOrder::new();
-        let err = dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let err = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap_err();
 
@@ -1391,9 +1228,7 @@ _ _: 0 0;
                 #handle-io
                 :;";
 
-        let mut dotrain_order = DotrainOrder::new();
-        let err = dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let err = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap_err();
 
@@ -1459,9 +1294,7 @@ _ _: 0 0;
             spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.to_string(), None)
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
             .await
             .unwrap();
 
@@ -1478,83 +1311,5 @@ _ _: 0 0;
 /* 1. handle-io */ 
 :;"#
         );
-    }
-
-    #[tokio::test]
-    async fn test_is_initialized() {
-        let dotrain_order = DotrainOrder::new();
-        assert!(!dotrain_order.is_initialized());
-
-        assert!(matches!(
-            dotrain_order.dotrain().unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .compose_deployment_to_rainlang("".to_string())
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .compose_scenario_to_rainlang("".to_string())
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .compose_scenario_to_post_task_rainlang("".to_string())
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_pragmas_for_scenario("")
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_contract_authoring_meta_v2_for_scenario("", Address::ZERO)
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_deployer_words_for_scenario("")
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_pragma_words_for_scenario("")
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_all_words_for_scenario("")
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order
-                .get_all_scenarios_all_words()
-                .await
-                .unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
-        assert!(matches!(
-            dotrain_order.validate_spec_version().await.unwrap_err(),
-            DotrainOrderError::DotrainOrderNotInitialized
-        ));
     }
 }

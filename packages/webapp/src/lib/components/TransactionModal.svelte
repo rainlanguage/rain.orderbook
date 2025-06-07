@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Modal, Spinner, Button } from 'flowbite-svelte';
-	import { TransactionStatus } from '@rainlanguage/ui-components';
+	import { TransactionStatusMessage } from '@rainlanguage/ui-components';
 	import { transactionStore } from '@rainlanguage/ui-components';
 	import { createEventDispatcher } from 'svelte';
 
@@ -16,15 +16,15 @@
 	}
 	const dispatch = createEventDispatcher();
 
-	$: if ($transactionStore.status === TransactionStatus.SUCCESS) {
+	$: if ($transactionStore.status === TransactionStatusMessage.SUCCESS) {
 		dispatch('success');
 	}
 </script>
 
 <Modal size="sm" class="bg-opacity-90 backdrop-blur-sm" bind:open data-testid="transaction-modal">
-	{#if $transactionStore.status !== TransactionStatus.IDLE}
+	{#if $transactionStore.status !== TransactionStatusMessage.IDLE}
 		<div class="flex flex-col items-center justify-center gap-2 p-4">
-			{#if $transactionStore.status === TransactionStatus.ERROR}
+			{#if $transactionStore.status === TransactionStatusMessage.ERROR}
 				<div
 					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-red-400 bg-red-100 dark:bg-red-900"
 					data-testid="error-icon"
@@ -42,7 +42,7 @@
 					{$transactionStore.error}
 				</p>
 				<Button on:click={handleClose}>Dismiss</Button>
-			{:else if $transactionStore.status === TransactionStatus.SUCCESS}
+			{:else if $transactionStore.status === TransactionStatusMessage.SUCCESS}
 				<div
 					class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"
 				>

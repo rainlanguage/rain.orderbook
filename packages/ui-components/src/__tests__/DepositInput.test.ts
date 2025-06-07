@@ -7,6 +7,10 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 type DepositInputProps = ComponentProps<DepositInput>;
 
+vi.mock('@rainlanguage/orderbook', () => ({
+	DotrainOrderGui: vi.fn()
+}));
+
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
@@ -22,20 +26,23 @@ describe('DepositInput', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
+
+		guiInstance = {
+			getDeposits: vi.fn().mockReturnValue({
+				value: [{ token: 'output', amount: '10', address: '0x1234' }]
+			}),
+			saveDeposit: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			}),
+			getTokenInfo: vi.fn()
+		} as unknown as DotrainOrderGui;
 
 		mockStateUpdateCallback = vi.fn();
-		(DotrainOrderGui.prototype.getDeposits as Mock).mockReturnValue({
-			value: [{ token: 'output', amount: '10', address: '0x1234' }]
-		});
-		(DotrainOrderGui.prototype.saveDeposit as Mock).mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
 		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
 	it('renders token name and presets', async () => {
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValueOnce({
+		(guiInstance.getTokenInfo as Mock).mockResolvedValueOnce({
 			value: {
 				name: 'Test Token',
 				symbol: 'TEST'

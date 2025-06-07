@@ -145,11 +145,7 @@ amount price: 2 1;
         );
 
         // add order
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = dotrain_order
             .dotrain_yaml()
             .get_deployment("polygon")

@@ -1,67 +1,69 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { handleGuiInitialization } from '../lib/services/handleGuiInitialization';
 import { pushGuiStateToUrlHistory } from '../lib/services/handleUpdateGuiState';
-import { DotrainOrderGui, type WasmEncodedResult } from '@rainlanguage/orderbook';
+import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 vi.mock('@rainlanguage/orderbook', () => {
 	const DotrainOrderGui = vi.fn();
-	DotrainOrderGui.prototype.deserializeState = vi.fn();
-	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
+	// @ts-expect-error static method
+	DotrainOrderGui.newFromState = vi.fn();
+	// @ts-expect-error static method
+	DotrainOrderGui.newWithDeployment = vi.fn();
 	return {
 		DotrainOrderGui
 	};
 });
 
 describe('handleGuiInitialization', () => {
-	let guiInstance: DotrainOrderGui;
 	const mockDotrain = 'mockDotrain';
 	const mockDeploymentKey = 'mockDeploymentKey';
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
 	});
 
 	it('should initialize GUI with state from URL when valid', async () => {
-		(DotrainOrderGui.prototype.deserializeState as Mock).mockImplementation(() => ({ value: {} }));
+		(DotrainOrderGui.newFromState as Mock).mockImplementation(() => ({ value: {} }));
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'validStateUrl');
 
-		expect(result).toEqual({ gui: guiInstance, error: null });
-		expect(DotrainOrderGui.prototype.deserializeState).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: {}, error: null });
+		expect(DotrainOrderGui.newFromState).toHaveBeenCalledWith(
 			mockDotrain,
 			'validStateUrl',
 			pushGuiStateToUrlHistory
 		);
-		expect(guiInstance.chooseDeployment).not.toHaveBeenCalled();
+		expect(DotrainOrderGui.newWithDeployment).not.toHaveBeenCalled();
 	});
 
-	it('should fall back to chooseDeployment when deserializeState fails', async () => {
-		(DotrainOrderGui.prototype.deserializeState as Mock).mockReturnValue({
+	it('should fall back to newWithDeployment when newFromState fails', async () => {
+		(DotrainOrderGui.newFromState as Mock).mockReturnValue({
 			error: { msg: 'deserialize failed' }
 		});
-		(DotrainOrderGui.prototype.chooseDeployment as Mock).mockResolvedValue(
-			{} as WasmEncodedResult<void>
-		);
+		(DotrainOrderGui.newWithDeployment as Mock).mockResolvedValue({
+			value: {}
+		});
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'invalidStateUrl');
 
-		expect(result).toEqual({ gui: guiInstance, error: null });
-		expect(DotrainOrderGui.prototype.deserializeState).toHaveBeenCalled();
-		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: {}, error: null });
+		expect(DotrainOrderGui.newFromState).toHaveBeenCalled();
+		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
 		);
 	});
 
-	it('should use chooseDeployment when no state URL is provided', async () => {
-		(guiInstance.chooseDeployment as Mock).mockResolvedValue({} as WasmEncodedResult<void>);
+	it('should use newWithDeployment when no state URL is provided', async () => {
+		(DotrainOrderGui.newWithDeployment as Mock).mockResolvedValue({
+			value: {}
+		});
 
 		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
 
-		expect(result).toEqual({ gui: guiInstance, error: null });
-		expect(DotrainOrderGui.prototype.deserializeState).not.toHaveBeenCalled();
-		expect(guiInstance.chooseDeployment).toHaveBeenCalledWith(
+		expect(result).toEqual({ gui: {}, error: null });
+		expect(DotrainOrderGui.newFromState).not.toHaveBeenCalled();
+		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
@@ -69,7 +71,7 @@ describe('handleGuiInitialization', () => {
 	});
 
 	it('should handle errors and return error message', async () => {
-		(guiInstance.chooseDeployment as Mock).mockReturnValue({
+		(DotrainOrderGui.newWithDeployment as Mock).mockReturnValue({
 			error: { msg: 'deployment failed' }
 		});
 
