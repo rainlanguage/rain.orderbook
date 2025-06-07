@@ -286,11 +286,7 @@
           shellHook = ''
             ${rainix.devShells.${system}.tauri-shell.shellHook}
 
-            export LIBINTL_PATH=${packages.ob-tauri-prelude}/lib/libintl.8.dylib
-            export LIBICONV_PATH=${packages.ob-tauri-prelude}/lib/libiconv.2.dylib
-            export LIBCHARSET_PATH=${packages.ob-tauri-prelude}/lib/libcharset.1.dylib
-            export LIBUSB_PATH=${packages.ob-tauri-prelude}/lib/libusb-1.0.0.dylib
-
+            export OB_TAURI_PRELUDE_PATH=${packages.ob-tauri-prelude}
             TAURI_CONFIG="$(envsubst < tauri-app/src-tauri/tauri.conf.template.json)"
             echo "$TAURI_CONFIG" > tauri-app/src-tauri/tauri.conf.json
           '';
