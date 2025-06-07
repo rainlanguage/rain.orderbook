@@ -70,8 +70,8 @@ impl DotrainOrderGui {
         )?)
     }
 
-    #[wasm_export(js_name = "chooseDeployment", preserve_js_class)]
-    pub async fn choose_deployment(
+    #[wasm_export(js_name = "newWithDeployment", preserve_js_class)]
+    pub async fn new_with_deployment(
         dotrain: String,
         selected_deployment: String,
         state_update_callback: Option<js_sys::Function>,
@@ -628,7 +628,7 @@ _ _: 0 0;
     }
 
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
-        DotrainOrderGui::choose_deployment(
+        DotrainOrderGui::new_with_deployment(
             get_yaml(),
             deployment_name.unwrap_or("some-deployment".to_string()),
             None,
@@ -638,9 +638,13 @@ _ _: 0 0;
     }
 
     pub async fn initialize_gui_with_select_tokens() -> DotrainOrderGui {
-        DotrainOrderGui::choose_deployment(get_yaml(), "select-token-deployment".to_string(), None)
-            .await
-            .unwrap()
+        DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            "select-token-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap()
     }
 
     #[wasm_bindgen_test]
@@ -659,16 +663,19 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_choose_deployment() {
+    async fn test_new_with_deployment() {
         let res =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await;
         assert!(res.is_ok());
 
-        let err =
-            DotrainOrderGui::choose_deployment(get_yaml(), "invalid-deployment".to_string(), None)
-                .await
-                .unwrap_err();
+        let err = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            "invalid-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(
             err.to_string(),
             GuiError::DeploymentNotFound("invalid-deployment".to_string()).to_string()
@@ -679,7 +686,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_gui_config() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -763,7 +770,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_current_deployment() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -840,7 +847,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -879,7 +886,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -1241,7 +1248,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_current_deployment_detail() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -1260,14 +1267,14 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_generate_dotrain_text() {
         let gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
         let original_current_deployment = gui.get_current_deployment_details().unwrap();
 
         let dotrain_text = gui.generate_dotrain_text().unwrap();
         let gui =
-            DotrainOrderGui::choose_deployment(dotrain_text, "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(dotrain_text, "some-deployment".to_string(), None)
                 .await
                 .unwrap();
         let new_current_deployment = gui.get_current_deployment_details().unwrap();
@@ -1278,7 +1285,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     async fn test_get_composed_rainlang() {
         let mut gui =
-            DotrainOrderGui::choose_deployment(get_yaml(), "some-deployment".to_string(), None)
+            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
                 .await
                 .unwrap();
 
@@ -1394,7 +1401,7 @@ networks:
                         then.body(Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap());
                     });
 
-            let gui = DotrainOrderGui::choose_deployment(
+            let gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
                 "some-deployment".to_string(),
                 None,

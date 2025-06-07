@@ -159,8 +159,8 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
-    #[wasm_export(js_name = "deserializeState", preserve_js_class)]
-    pub async fn deserialize_state(
+    #[wasm_export(js_name = "newFromState", preserve_js_class)]
+    pub async fn new_from_state(
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
@@ -313,11 +313,10 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state() {
-        let gui =
-            DotrainOrderGui::deserialize_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
-                .await
-                .unwrap();
+    async fn test_new_from_state() {
+        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+            .await
+            .unwrap();
 
         assert!(gui.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
@@ -343,14 +342,14 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state_invalid_dotrain() {
+    async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
         dotrain:
             name: Test
             description: Test
         "#;
 
-        let err = DotrainOrderGui::deserialize_state(
+        let err = DotrainOrderGui::new_from_state(
             dotrain.to_string(),
             SERIALIZED_STATE.to_string(),
             None,
@@ -384,7 +383,7 @@ mod tests {
             .dyn_into::<js_sys::Function>()
             .expect("testCallback should be a function");
 
-        let mut gui = DotrainOrderGui::choose_deployment(
+        let mut gui = DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),

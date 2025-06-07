@@ -12,7 +12,7 @@ export async function handleGuiInitialization(
 
 		if (stateFromUrl) {
 			try {
-				result = await DotrainOrderGui.deserializeState(
+				result = await DotrainOrderGui.newFromState(
 					dotrain,
 					stateFromUrl,
 					pushGuiStateToUrlHistory
@@ -22,7 +22,7 @@ export async function handleGuiInitialization(
 				}
 				gui = result.value;
 			} catch {
-				result = await DotrainOrderGui.chooseDeployment(
+				result = await DotrainOrderGui.newWithDeployment(
 					dotrain,
 					deploymentKey,
 					pushGuiStateToUrlHistory
@@ -33,7 +33,7 @@ export async function handleGuiInitialization(
 				gui = result.value;
 			}
 		} else {
-			result = await DotrainOrderGui.chooseDeployment(
+			result = await DotrainOrderGui.newWithDeployment(
 				dotrain,
 				deploymentKey,
 				pushGuiStateToUrlHistory

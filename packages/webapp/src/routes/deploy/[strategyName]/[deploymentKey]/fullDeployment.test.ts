@@ -169,7 +169,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.click(deployButton);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.chooseDeployment(fixedLimitStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitStrategy, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.saveSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.saveSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
@@ -309,7 +309,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.click(deployButton);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.chooseDeployment(auctionStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(auctionStrategy, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.saveSelectToken('input', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.saveSelectToken('output', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
@@ -444,7 +444,7 @@ describe('Full Deployment Tests', () => {
 			await userEvent.click(deployButton);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.chooseDeployment(dynamicSpreadStrategy, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadStrategy, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.saveSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.saveSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
