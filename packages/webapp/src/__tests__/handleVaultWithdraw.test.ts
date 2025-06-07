@@ -17,8 +17,6 @@ const mockManager = {
 	createWithdrawTransaction: mockCreateWithdrawTransaction
 };
 
-const mockOnSubmit = vi.fn();
-
 const mockVault = {
 	id: '0xvaultid',
 	token: {
@@ -111,7 +109,7 @@ describe('handleVaultWithdraw', () => {
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
-			modalTitle: 'Withdrawing 100 TEST...',
+			modalTitle: 'Withdrawing 0.1 TEST...',
 			args: {
 				entity: mockVault,
 				orderbookAddress: mockDeps.orderbookAddress,

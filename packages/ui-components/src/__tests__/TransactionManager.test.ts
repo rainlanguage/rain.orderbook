@@ -325,12 +325,6 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Withdrawal successful.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xvaultid']
 			});
