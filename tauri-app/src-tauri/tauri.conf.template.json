@@ -53,10 +53,10 @@
       "macOS": {
         "minimumSystemVersion": "11",
         "frameworks": [
-          "/nix/store/3pna3yyxi8pz0w2yjp72v0w3ga6xmdpa-ob-tauri-prelude/lib/libintl.8.dylib",
-          "/nix/store/3pna3yyxi8pz0w2yjp72v0w3ga6xmdpa-ob-tauri-prelude/lib/libiconv.2.dylib",
-          "/nix/store/3pna3yyxi8pz0w2yjp72v0w3ga6xmdpa-ob-tauri-prelude/lib/libcharset.1.dylib",
-          "/nix/store/3pna3yyxi8pz0w2yjp72v0w3ga6xmdpa-ob-tauri-prelude/lib/libusb-1.0.0.dylib"
+          "$LIBINTL_PATH",
+          "$LIBICONV_PATH",
+          "$LIBCHARSET_PATH",
+          "$LIBUSB_PATH"
         ]
       }
     },
