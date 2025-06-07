@@ -185,12 +185,6 @@ export class TransactionManager {
 		};
 
 		const onSuccess = () => {
-			this.addToast({
-				message: args.successMessage,
-				type: 'success',
-				color: 'green',
-				links: args.toastLinks
-			});
 			this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
 		};
 

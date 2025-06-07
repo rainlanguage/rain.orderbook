@@ -40,7 +40,8 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 		...(await importOriginal()),
 		cachedWritableStore: vi.fn(),
 		WalletProvider: MockComponent,
-		ToastProvider: MockComponent
+		ToastProvider: MockComponent,
+		FixedBottomTransaction: MockComponent
 	};
 });
 

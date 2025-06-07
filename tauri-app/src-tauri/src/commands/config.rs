@@ -39,13 +39,15 @@ mod tests {
         config_source::{ConfigSourceError, NetworkConfigSource, OrderbookConfigSource},
         merge::MergeError,
         orderbook::ParseOrderbookConfigSourceError,
+        spec_version::SpecVersion,
         ParseConfigSourceError,
     };
 
     #[tokio::test]
     async fn test_parse_configstring_and_convert_configstring_to_config() {
-        let yaml = r#"
-raindex-version: &raindex 123
+        let yaml = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -68,7 +70,9 @@ orderbooks: &orderbooks
         network: mainnet
         subgraph: mainnet
         label: Mainnet Orderbook
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let config_src = parse_configstring(yaml.to_string()).await.unwrap();
 
@@ -130,7 +134,7 @@ orderbooks: &orderbooks
         assert_eq!(config_src.deployments, HashMap::new());
         assert_eq!(config_src.metaboards, HashMap::new());
         assert_eq!(config_src.sentry, None);
-        assert_eq!(config_src.raindex_version, Some("123".to_string()));
+        assert_eq!(config_src.version, "1".to_string());
         assert_eq!(config_src.accounts, None);
         assert_eq!(config_src.gui, None);
 
@@ -279,8 +283,8 @@ orderbooks: &orderbooks
         assert_eq!(config.deployments, HashMap::new());
         // Inspect sentry
         assert_eq!(config.sentry, None);
-        // Inspect raindex_version
-        assert_eq!(config.raindex_version, Some("123".to_string()));
+        // Inspect spec_version
+        assert_eq!(config.version, "1".to_string());
         // Inspect accounts
         assert_eq!(config.accounts, None);
         // Inspect gui
@@ -288,8 +292,9 @@ orderbooks: &orderbooks
 
     #[tokio::test]
     async fn test_parse_configstring_err_invalid_config() {
-        let yaml = r#"
-raindex-version: &raindex 123
+        let yaml = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         chain-id: 1
@@ -302,7 +307,9 @@ networks:
         label: Testnet
         network-id: 2
         currency: ETH
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let err = parse_configstring(yaml.to_string()).await.unwrap_err();
         assert!(matches!(
@@ -311,8 +318,9 @@ networks:
             if msg.to_string().contains("missing field `rpc`")
         ));
 
-        let yaml = r#"
-raindex-version: &raindex 123
+        let yaml = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -325,7 +333,9 @@ networks:
         label: Testnet
         network-id: 2
         currency: ETH
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let err = parse_configstring(yaml.to_string()).await.unwrap_err();
         assert!(matches!(
@@ -337,8 +347,9 @@ networks:
 
     #[tokio::test]
     async fn test_merge_configstrings_ok() {
-        let dotrain = r#"
-raindex-version: &raindex 123
+        let dotrain = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -355,9 +366,13 @@ orderbooks:
         subgraph: mainnet
         label: Mainnet Orderbook
 ---
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
-        let config_text = r#"
+        let config_text = format!(
+            r#"
+version: {spec_version}
 networks:
     testnet: &testnet
         rpc: https://testnet.node
@@ -373,7 +388,9 @@ orderbooks:
         network: testnet
         subgraph: testnet
         label: Testnet Orderbook
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let merged_config = merge_configstrings(dotrain.to_string(), config_text.to_string())
             .await
@@ -395,12 +412,14 @@ orderbooks:
         assert!(merged_config.orderbooks.contains_key("testnetOrderbook"));
 
         // Verify raindex version was preserved
-        assert_eq!(merged_config.raindex_version, Some("123".to_string()));
+        assert_eq!(merged_config.version, "1".to_string());
     }
 
     #[tokio::test]
     async fn test_merge_configstrings_collision() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -411,9 +430,13 @@ networks:
 subgraphs:
     mainnet: https://mainnet.subgraph
 ---
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
-        let config_text = r#"
+        let config_text = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -423,7 +446,9 @@ networks:
         currency: ETH
 subgraphs:
     mainnet: https://mainnet.subgraph
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let err = merge_configstrings(dotrain.to_string(), config_text.to_string())
             .await
@@ -438,7 +463,9 @@ subgraphs:
 
     #[tokio::test]
     async fn test_merge_configstrings_invalid_config() {
-        let dotrain = r#"
+        let dotrain = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpc: https://mainnet.node
@@ -447,16 +474,22 @@ networks:
         network-id: 1
         currency: ETH
 ---
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
-        let config_text = r#"
+        let config_text = format!(
+            r#"
+version: {spec_version}
 networks:
     testnet: &testnet
         chain-id: 2
         label: Testnet
         network-id: 2
         currency: ETH
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let err = merge_configstrings(dotrain.to_string(), config_text.to_string())
             .await

@@ -1,19 +1,9 @@
 <script lang="ts">
 	import type { TransactionStoreState } from '$lib/models/Transaction';
-	import { TransactionStatusMessage } from '$lib/types/transaction';
 	import { type Readable } from 'svelte/store';
-	import { match } from 'ts-pattern';
+	import { getStatusEmoji } from './getStatusEmoji';
 
 	export let state: Readable<TransactionStoreState>;
-
-	function getStatusEmoji(status: TransactionStatusMessage): string {
-		return match(status)
-			.with(TransactionStatusMessage.PENDING_RECEIPT, () => '🔄')
-			.with(TransactionStatusMessage.PENDING_SUBGRAPH, () => '📊')
-			.with(TransactionStatusMessage.SUCCESS, () => '✅')
-			.with(TransactionStatusMessage.ERROR, () => '❌')
-			.otherwise(() => '❓');
-	}
 </script>
 
 <div class="flex w-full flex-col gap-1 rounded-md bg-gray-300 p-2 dark:bg-gray-700">
