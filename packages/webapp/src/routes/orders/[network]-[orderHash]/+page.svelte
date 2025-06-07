@@ -7,7 +7,6 @@
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
-	import { useQueryClient } from '@tanstack/svelte-query';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
@@ -19,7 +18,6 @@
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
 	const { manager } = useTransactions();
-	const queryClient = useQueryClient();
 	const { errToast } = useToasts();
 
 	async function onRemove(order: SgOrder) {

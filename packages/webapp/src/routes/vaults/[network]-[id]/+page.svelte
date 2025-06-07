@@ -8,14 +8,12 @@
 	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
 	import { type SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { lightweightChartsTheme } from '$lib/darkMode';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const queryClient = useQueryClient();
 	const { settings, activeOrderbookRef, activeNetworkRef } = $page.data.stores;
 	const network = $page.params.network;
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
