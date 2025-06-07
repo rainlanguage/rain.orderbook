@@ -59,7 +59,7 @@ vi.mock('@rainlanguage/orderbook', () => {
 	DotrainOrderGui.getStrategyDetails = vi.fn();
 	// @ts-expect-error - static method
 	DotrainOrderGui.getDeploymentDetails = vi.fn();
-	DotrainOrderGui.prototype.chooseDeployment = vi.fn();
+	DotrainOrderGui.prototype.newWithDeployment = vi.fn();
 	DotrainOrderGui.prototype.getStrategyDetails = vi.fn();
 	DotrainOrderGui.prototype.setVaultId = vi.fn();
 	DotrainOrderGui.prototype.getTokenInfo = vi.fn();

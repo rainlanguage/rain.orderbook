@@ -13,6 +13,10 @@ import { mockConfigSource } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
 import type { Account } from '$lib/types/account';
 
+vi.mock('@rainlanguage/orderbook', () => ({
+	DotrainOrderGui: vi.fn()
+}));
+
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 vi.mock('$lib/hooks/useGui', () => ({
@@ -97,22 +101,29 @@ describe('DeploymentSteps', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
 
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({ value: [] });
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'flare' });
-		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue(mockDeployment);
-		(DotrainOrderGui.prototype.getAllFieldDefinitions as Mock).mockReturnValue({ value: [] });
-		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue(false);
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({ value: [] });
-		(DotrainOrderGui.prototype.getCurrentDeploymentDetails as Mock).mockReturnValue({
-			value: {
-				name: 'Test Deployment',
-				description: 'This is a test deployment description'
-			}
-		});
+		// Create a mock instance with all the methods
+		guiInstance = {
+			areAllTokensSelected: vi.fn().mockReturnValue({ value: false }),
+			getSelectTokens: vi.fn().mockReturnValue({ value: [] }),
+			getNetworkKey: vi.fn().mockReturnValue({ value: 'flare' }),
+			getCurrentDeployment: vi.fn().mockReturnValue(mockDeployment),
+			getAllFieldDefinitions: vi.fn().mockReturnValue({ value: [] }),
+			hasAnyDeposit: vi.fn().mockReturnValue({ value: false }),
+			hasAnyVaultId: vi.fn().mockReturnValue(false),
+			getAllTokenInfos: vi.fn().mockResolvedValue({ value: [] }),
+			getCurrentDeploymentDetails: vi.fn().mockReturnValue({
+				value: {
+					name: 'Test Deployment',
+					description: 'This is a test deployment description'
+				}
+			}),
+			getTokenInfo: vi.fn(),
+			isSelectTokenSet: vi.fn().mockReturnValue({ value: false }),
+			saveSelectToken: vi.fn(),
+			getDeploymentTransactionArgs: vi.fn()
+		} as unknown as DotrainOrderGui;
+
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
 	});
@@ -126,10 +137,10 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('correctly derives subgraphUrl from settings and networkKey', async () => {
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.hasAnyDeposit as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.hasAnyVaultId as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.getDeploymentTransactionArgs as Mock).mockReturnValue({
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.hasAnyDeposit as Mock).mockReturnValue({ value: false });
+		(mockGui.hasAnyVaultId as Mock).mockReturnValue({ value: false });
+		(mockGui.getDeploymentTransactionArgs as Mock).mockReturnValue({
 			value: {
 				approvals: [],
 				deploymentCalldata: '0x1',
@@ -137,7 +148,7 @@ describe('DeploymentSteps', () => {
 				chainId: 1
 			}
 		});
-		(DotrainOrderGui.prototype.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
+		(mockGui.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
 
 		mockConnectedStore.mockSetSubscribeValue(true);
 
@@ -162,7 +173,7 @@ describe('DeploymentSteps', () => {
 	});
 
 	it('shows select tokens section when tokens need to be selected', async () => {
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
 			value: ['token1', 'token2']
 		});
 
@@ -185,14 +196,14 @@ describe('DeploymentSteps', () => {
 		];
 
 		// Set up specific mocks for this test
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
 			value: mockSelectTokens
 		});
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
+		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
+		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {
 					order: {
@@ -204,7 +215,7 @@ describe('DeploymentSteps', () => {
 			}
 		});
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+		(mockGui.getAllTokenInfos as Mock).mockResolvedValue({
 			value: [
 				{
 					address: '0x1',
@@ -235,14 +246,14 @@ describe('DeploymentSteps', () => {
 		];
 
 		// Set up specific mocks for this test
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
 			value: mockSelectTokens
 		});
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
+		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
+		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {
 					order: {
@@ -254,7 +265,7 @@ describe('DeploymentSteps', () => {
 			}
 		});
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+		(mockGui.getAllTokenInfos as Mock).mockResolvedValue({
 			value: [
 				{
 					address: '0x1',
@@ -284,14 +295,14 @@ describe('DeploymentSteps', () => {
 		];
 
 		// Set up specific mocks for this test
-		(DotrainOrderGui.prototype.getSelectTokens as Mock).mockReturnValue({
+		(mockGui.getSelectTokens as Mock).mockReturnValue({
 			value: mockSelectTokens
 		});
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(DotrainOrderGui.prototype.isSelectTokenSet as Mock).mockReturnValue({ value: false });
-		(DotrainOrderGui.prototype.saveSelectToken as Mock).mockImplementation(() => {});
-		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockReturnValue({
+		(mockGui.getTokenInfo as Mock).mockImplementation(() => {});
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.isSelectTokenSet as Mock).mockReturnValue({ value: false });
+		(mockGui.saveSelectToken as Mock).mockImplementation(() => {});
+		(mockGui.getCurrentDeployment as Mock).mockReturnValue({
 			value: {
 				deployment: {
 					order: {
@@ -303,7 +314,7 @@ describe('DeploymentSteps', () => {
 			}
 		});
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+		(mockGui.getAllTokenInfos as Mock).mockResolvedValue({
 			value: [
 				{
 					address: '0x1',
@@ -335,7 +346,7 @@ describe('DeploymentSteps', () => {
 		});
 
 		let selectTokenInput = screen.getAllByRole('textbox')[0];
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			value: {
 				address: '0x1',
 				decimals: 18,
@@ -346,7 +357,7 @@ describe('DeploymentSteps', () => {
 		await user.type(selectTokenInput, '0x1');
 
 		const selectTokenOutput = screen.getAllByRole('textbox')[1];
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			value: {
 				address: '0x2',
 				decimals: 18,
@@ -361,7 +372,7 @@ describe('DeploymentSteps', () => {
 		});
 
 		selectTokenInput = screen.getAllByRole('textbox')[0];
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue({
+		(mockGui.getTokenInfo as Mock).mockResolvedValue({
 			value: {
 				address: '0x3',
 				decimals: 18,
@@ -371,7 +382,7 @@ describe('DeploymentSteps', () => {
 		});
 		await user.type(selectTokenInput, '0x3');
 
-		(DotrainOrderGui.prototype.getAllTokenInfos as Mock).mockResolvedValue({
+		(mockGui.getAllTokenInfos as Mock).mockResolvedValue({
 			value: [
 				{
 					address: '0x3',
@@ -403,7 +414,7 @@ describe('DeploymentSteps', () => {
 			});
 		});
 
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 		render(DeploymentSteps, { props: defaultProps });
@@ -427,7 +438,7 @@ describe('DeploymentSteps', () => {
 		vi.useRealTimers();
 	});
 	it('passes correct arguments to handleDeployment', async () => {
-		(DotrainOrderGui.prototype.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
 
 		const propsWithMockHandlers = {
 			...defaultProps,

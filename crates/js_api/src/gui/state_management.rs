@@ -159,13 +159,12 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
-    #[wasm_export(js_name = "deserializeState", unchecked_return_type = "void")]
-    pub async fn deserialize_state(
-        &mut self,
+    #[wasm_export(js_name = "newFromState", preserve_js_class)]
+    pub async fn new_from_state(
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<(), GuiError> {
+    ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -240,13 +239,7 @@ impl DotrainOrderGui {
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
-        self.dotrain_order = dotrain_order_gui.dotrain_order;
-        self.field_values = dotrain_order_gui.field_values;
-        self.deposits = dotrain_order_gui.deposits;
-        self.selected_deployment = dotrain_order_gui.selected_deployment;
-        self.state_update_callback = dotrain_order_gui.state_update_callback;
-
-        Ok(())
+        Ok(dotrain_order_gui)
     }
 
     #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
@@ -285,7 +278,7 @@ mod tests {
     use super::*;
     use crate::gui::{
         field_values::FieldValue,
-        tests::{get_yaml, initialize_gui, initialize_gui_with_select_tokens},
+        tests::{get_yaml, initialize_gui_with_select_tokens},
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
@@ -320,9 +313,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state() {
-        let mut gui = initialize_gui(None).await;
-        gui.deserialize_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+    async fn test_new_from_state() {
+        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
             .await
             .unwrap();
 
@@ -350,18 +342,20 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state_invalid_dotrain() {
-        let mut gui = initialize_gui(None).await;
+    async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
         dotrain:
             name: Test
             description: Test
         "#;
 
-        let err = gui
-            .deserialize_state(dotrain.to_string(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::new_from_state(
+            dotrain.to_string(),
+            SERIALIZED_STATE.to_string(),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),
@@ -389,8 +383,7 @@ mod tests {
             .dyn_into::<js_sys::Function>()
             .expect("testCallback should be a function");
 
-        let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(
+        let mut gui = DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),
