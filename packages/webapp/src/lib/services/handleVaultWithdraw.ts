@@ -1,5 +1,5 @@
 import type { SgVault } from '@rainlanguage/orderbook';
-import type { Hex } from 'viem';
+import { formatUnits, type Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 import type {
 	VaultActionModalProps,
@@ -54,7 +54,7 @@ export async function handleVaultWithdraw(deps: VaultWithdrawHandlerDependencies
 				calldata = calldataResult.value;
 				handleTransactionConfirmationModal({
 					open: true,
-					modalTitle: `Withdrawing ${amount} ${vault.token.symbol}...`,
+					modalTitle: `Withdrawing ${formatUnits(amount, Number(vault.token.decimals))} ${vault.token.symbol}...`,
 					args: {
 						entity: vault,
 						orderbookAddress,
