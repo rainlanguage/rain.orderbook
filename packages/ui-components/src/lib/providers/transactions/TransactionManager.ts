@@ -7,6 +7,7 @@ import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import { TransactionName } from '$lib/types/transaction';
 import {
+	getTransaction,
 	getTransactionRemoveOrders,
 	type SgRemoveOrderWithOrder,
 	type SgTransaction
@@ -107,6 +108,60 @@ export class TransactionManager {
 				isSuccess: (data: SgRemoveOrderWithOrder[] | SgTransaction) => {
 					return Array.isArray(data) ? data.length > 0 : false;
 				}
+			}
+		});
+	}
+
+	/**
+	 * Creates and initializes a new transaction for withdrawing funds from a vault
+	 * @param args - Configuration for the withdrawal transaction
+	 * @param args.subgraphUrl - URL of the subgraph to query for transaction status
+	 * @param args.txHash - Hash of the transaction to track
+	 * @param args.orderHash - Identifier related to the transaction (e.g. vault ID or context-specific ID if applicable).
+	 * @param args.chainId - Chain ID where the transaction is being executed
+	 * @param args.queryKey - Identifier for the vault, used for cache invalidation and UI links.
+	 * @param args.networkKey - Network identifier for UI links.
+	 * @returns A new Transaction instance configured for withdrawal
+	 * @throws {Error} If required transaction parameters are missing
+	 * @example
+	 * const tx = await manager.createWithdrawTransaction({
+	 *   subgraphUrl: 'https://api.thegraph.com/subgraphs/name/...',
+	 *   txHash: '0x123...',
+	 *   orderHash: '0x456...',
+	 *   chainId: 1
+	 * });
+	 */
+	public async createWithdrawTransaction(args: InternalTransactionArgs): Promise<Transaction> {
+		const name = TransactionName.WITHDRAWAL;
+		const errorMessage = 'Withdrawal failed.';
+		const successMessage = 'Withdrawal successful.';
+		const queryKey = args.queryKey;
+		const networkKey = args.networkKey;
+
+		const explorerLink = await getExplorerLink(args.txHash, args.chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: `/vaults/${networkKey}-${args.queryKey}`,
+				label: 'View vault'
+			},
+			{
+				link: explorerLink,
+				label: 'View transaction'
+			}
+		];
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks,
+			awaitSubgraphConfig: {
+				subgraphUrl: args.subgraphUrl,
+				txHash: args.txHash,
+				successMessage,
+				fetchEntityFn: getTransaction,
+				isSuccess: (data) => !!data
 			}
 		});
 	}

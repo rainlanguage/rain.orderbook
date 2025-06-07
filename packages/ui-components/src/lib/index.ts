@@ -75,10 +75,11 @@ export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
 	type ExtendedApprovalCalldata,
-	type TransactionArgs
+	type TransactionArgs,
+	type DeploymentArgs,
+	type VaultActionArgs
 } from './types/transaction';
 export type { TransactionErrorMessage } from './stores/transactionStore';
-export type { DeploymentArgs, VaultActionArgs } from './types/transaction';
 export type {
 	VaultActionModalProps,
 	QuoteDebugModalHandler,

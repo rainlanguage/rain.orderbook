@@ -2,15 +2,14 @@
 	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleTransactionConfirmationModal } from '$lib/services/modal';
+	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
-	import { useQueryClient } from '@tanstack/svelte-query';
-	import { handleVaultAction } from '$lib/services/handleVaultAction';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
@@ -35,11 +34,8 @@
 	}
 
 	function onDeposit(vault: SgVault) {
-		handleVaultAction({
+		handleVaultDeposit({
 			vault,
-			action: 'deposit',
-			queryClient,
-			queryKey: $page.params.id,
 			chainId,
 			rpcUrl,
 			subgraphUrl,
@@ -47,16 +43,19 @@
 		});
 	}
 
-	function onWithdraw(vault: SgVault) {
-		handleVaultAction({
+	async function onWithdraw(vault: SgVault) {
+		await handleVaultWithdraw({
 			vault,
-			action: 'withdraw',
-			queryClient,
-			queryKey: $page.params.id,
-			chainId,
-			rpcUrl,
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
 			subgraphUrl,
-			account: $account as Hex
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 </script>

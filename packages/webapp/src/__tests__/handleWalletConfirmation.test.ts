@@ -48,7 +48,7 @@ describe('handleWalletConfirmation', () => {
 		orderbookAddress: '0x789' as `0x${string}`,
 		calldata: mockCalldata,
 		onConfirm: vi.fn(),
-		order: mockOrder
+		entity: mockOrder
 	};
 
 	it('handles successful transaction flow', async () => {
