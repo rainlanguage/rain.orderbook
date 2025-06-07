@@ -109,7 +109,7 @@ describe('handleVaultDeposit', () => {
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 				open: true,
-				modalTitle: 'Depositing TEST',
+				modalTitle: 'Depositing 100 TEST',
 				closeOnConfirm: false,
 				args: expect.objectContaining({ calldata: mockDepositCalldata })
 			});
@@ -179,7 +179,7 @@ describe('handleVaultDeposit', () => {
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {
 					open: true,
-					modalTitle: 'Depositing TEST',
+					modalTitle: 'Depositing 100 TEST',
 					closeOnConfirm: false,
 					args: {
 						entity: mockVault,
