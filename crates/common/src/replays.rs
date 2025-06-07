@@ -53,6 +53,7 @@ mod tests {
         rpc::types::TransactionRequest,
         sol_types::SolCall,
     };
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_test_fixtures::{ContractTxHandler, LocalEvm, Orderbook};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
@@ -84,6 +85,7 @@ mod tests {
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     polygon:
         rpc: {rpc_url}
@@ -139,14 +141,11 @@ amount price: 2 1;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
         // add order
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = dotrain_order
             .dotrain_yaml()
             .get_deployment("polygon")

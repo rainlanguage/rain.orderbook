@@ -46,7 +46,7 @@ pub async fn get_vaults(
 ) -> Result<GetVaultsResult, SubgraphError> {
     let client = MultiOrderbookSubgraphClient::new(subgraphs);
     Ok(GetVaultsResult(
-        client.vaults_list(filter_args, pagination_args).await?,
+        client.vaults_list(filter_args, pagination_args).await,
     ))
 }
 
@@ -140,7 +140,7 @@ pub async fn get_vault_approval_calldata(
     let allowance = deposit_args
         .read_allowance(owner, transaction_args.clone())
         .await?;
-    if allowance > deposit_amount {
+    if allowance >= deposit_amount {
         return Err(SubgraphError::InvalidAmount);
     }
 
@@ -569,6 +569,11 @@ mod tests {
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
 
             let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "90")
+                .await
+                .unwrap_err();
+            assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());
+
+            let err = get_vault_approval_calldata(&rpc_server.url("/rpc"), &get_vault1(), "100")
                 .await
                 .unwrap_err();
             assert_eq!(err.to_string(), SubgraphError::InvalidAmount.to_string());

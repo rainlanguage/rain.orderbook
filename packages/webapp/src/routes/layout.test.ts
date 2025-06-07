@@ -2,9 +2,11 @@ import { render, waitFor, screen } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Layout from './+layout.svelte';
 
-const { mockPageStore, initialPageState } = await vi.hoisted(() => import('$lib/__mocks__/stores'));
-const mockEnv = vi.hoisted(() => ({ browser: true }));
+const { mockPageStore, initialPageState, mockSignerAddressStore } = await vi.hoisted(
+	() => import('$lib/__mocks__/stores')
+);
 
+const mockEnv = vi.hoisted(() => ({ browser: true }));
 const mockInitWallet = vi.hoisted(() => vi.fn());
 
 vi.mock('$lib/services/handleWalletInitialization', () => ({
@@ -20,21 +22,31 @@ vi.mock('$app/stores', async (importOriginal) => {
 
 vi.mock('$app/environment', () => mockEnv);
 
-vi.mock('../lib/components/Sidebar.svelte', async () => {
-	const MockSidebar = (await import('../lib/__mocks__/MockComponent.svelte')).default;
-	return { default: MockSidebar };
+vi.mock('$lib/components/TransactionProviderWrapper.svelte', async () => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		default: MockComponent
+	};
+});
+
+vi.mock('$lib/components/Sidebar.svelte', async () => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockComponent };
 });
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
-	const MockWalletProvider = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...(await importOriginal()),
-		WalletProvider: MockWalletProvider
+		cachedWritableStore: vi.fn(),
+		WalletProvider: MockComponent,
+		ToastProvider: MockComponent,
+		FixedBottomTransaction: MockComponent
 	};
 });
 
 vi.mock('$lib/stores/wagmi', () => ({
-	signerAddress: { subscribe: vi.fn() }
+	signerAddress: mockSignerAddressStore
 }));
 
 vi.mock('$env/static/public', () => ({
@@ -44,9 +56,19 @@ vi.mock('$env/static/public', () => ({
 vi.mock('@wagmi/connectors', async (importOriginal) => {
 	return {
 		...(await importOriginal()),
-
 		injected: vi.fn().mockReturnValue('injected-connector'),
 		walletConnect: vi.fn().mockReturnValue('wallet-connect-connector')
+	};
+});
+
+vi.mock('@tanstack/svelte-query', async (importOriginal) => {
+	const MockComponent = (await import('$lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		...(await importOriginal()),
+		QueryClientProvider: MockComponent,
+		QueryClient: vi.fn().mockImplementation(() => ({
+			name: 'test'
+		}))
 	};
 });
 
@@ -59,12 +81,6 @@ describe('Layout component', () => {
 	});
 
 	it('displays an error message if wallet initialization fails', async () => {
-		const originalNavigator = global.navigator;
-		Object.defineProperty(global, 'navigator', {
-			value: {},
-			writable: true
-		});
-
 		mockInitWallet.mockResolvedValue(
 			'Failed to initialize wallet connection: Test error. Please try again or check console.'
 		);
@@ -76,11 +92,6 @@ describe('Layout component', () => {
 			'Failed to initialize wallet connection: Test error. Please try again or check console.'
 		);
 		expect(errorMessage).toBeInTheDocument();
-
-		Object.defineProperty(global, 'navigator', {
-			value: originalNavigator,
-			writable: true
-		});
 	});
 
 	it('renders Homepage when on root path', async () => {
@@ -91,8 +102,10 @@ describe('Layout component', () => {
 
 		const { container } = render(Layout);
 
-		expect(container.querySelector('main')).not.toBeInTheDocument();
-		expect(screen.getByTestId('homepage')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(container.querySelector('main')).not.toBeInTheDocument();
+			expect(screen.getByTestId('homepage')).toBeInTheDocument();
+		});
 	});
 
 	it('renders main content when not on root path', async () => {
@@ -119,7 +132,7 @@ describe('Layout component', () => {
 		});
 	});
 
-	it('displays an error page if the page.error is set', async () => {
+	it('displays an error page if page.error is set', async () => {
 		mockPageStore.mockSetSubscribeValue({
 			...initialPageState,
 			data: {
@@ -129,7 +142,9 @@ describe('Layout component', () => {
 		});
 		render(Layout);
 
-		expect(screen.getByText('Test error')).toBeInTheDocument();
-		expect(screen.getByTestId('error-page')).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText('Test error')).toBeInTheDocument();
+			expect(screen.getByTestId('error-page')).toBeInTheDocument();
+		});
 	});
 });

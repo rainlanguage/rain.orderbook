@@ -5,7 +5,7 @@
   import { RawRainlangExtension, type Problem } from 'codemirror-rainlang';
   import { problemsCallback } from '$lib/services/langServices';
   import { makeChartData } from '$lib/services/chart';
-  import type { ChartData, DeploymentCfg, ScenarioCfg } from '@rainlanguage/orderbook';
+  import type { ChartData } from '@rainlanguage/orderbook';
   import { settingsText, activeNetworkRef } from '$lib/stores/settings';
   import Charts from '$lib/components/Charts.svelte';
   import { globalDotrainFile } from '$lib/storesGeneric/textFileStore';
@@ -15,12 +15,7 @@
   import { toasts } from '$lib/stores/toasts';
   import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
-  import {
-    orderAdd,
-    orderAddCalldata,
-    orderAddComposeRainlang,
-    validateRaindexVersion,
-  } from '$lib/services/order';
+  import { orderAdd, orderAddCalldata, validateSpecVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
   import { formatEthersTransactionError } from '$lib/utils/transaction';
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
@@ -35,10 +30,13 @@
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
   import { getAuthoringMetaV2ForScenarios } from '$lib/services/authoringMeta';
-  import RaindexVersionValidator from '$lib/components/RaindexVersionValidator.svelte';
+  import SpecVersionValidator from '$lib/components/SpecVersionValidator.svelte';
   import { page } from '$app/stores';
   import { codeMirrorTheme } from '$lib/stores/darkMode';
-  import * as chains from 'viem/chains';
+  import { executeWalletConnectOrder } from '$lib/services/executeWalletConnectOrder';
+  import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
+  import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
+  import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -48,8 +46,6 @@
   let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
-
-  let composedRainlangForScenarios: Map<ScenarioCfg, string> = new Map();
 
   $: deployments = mergedConfig?.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
@@ -81,7 +77,11 @@
     error,
   } = useDebouncedFn(generateRainlangStrings, 500);
 
-  $: debouncedGenerateRainlangStrings($globalDotrainFile.text, mergedConfig?.scenarios);
+  $: debouncedGenerateRainlangStrings(
+    $globalDotrainFile.text,
+    [$settingsText],
+    mergedConfig?.scenarios,
+  );
 
   $: rainlangExtension = new RawRainlangExtension({
     diagnostics: async (text) => {
@@ -145,98 +145,51 @@
     isCharting = false;
   }
 
-  async function executeLedger() {
+  async function handleExecuteLedger() {
     isSubmitting = true;
     try {
       if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      await orderAdd($globalDotrainFile.text, deployment);
-    } catch (e) {
-      reportErrorToSentry(e);
-    }
-    isSubmitting = false;
-  }
-  async function executeWalletconnect() {
-    isSubmitting = true;
-    try {
-      if (!deployment) throw Error('Select a deployment to add order');
-      if (isEmpty(deployment.order?.orderbook) || isEmpty(deployment.order.orderbook?.address))
-        throw Error('No orderbook associated with scenario');
-
-      const calldata = (await orderAddCalldata($globalDotrainFile.text, deployment)) as Uint8Array;
-      const tx = await ethersExecute(calldata, deployment.order.orderbook.address);
-      toasts.success('Transaction sent successfully!');
-      await tx.wait(1);
-    } catch (e) {
-      reportErrorToSentry(e);
-      toasts.error(formatEthersTransactionError(e));
+      await executeLedgerOrder($globalDotrainFile.text, deployment, orderAdd, reportErrorToSentry);
+    } catch (e: unknown) {
+      toasts.error((e as Error).message || 'Ledger execution failed');
     }
     isSubmitting = false;
   }
 
-  async function generateRainlangStrings(
-    dotrainText: string,
-    scenarios?: Record<string, ScenarioCfg>,
-  ): Promise<Map<ScenarioCfg, string> | undefined> {
+  async function handleExecuteWalletConnect() {
+    isSubmitting = true;
     try {
-      if (isEmpty(scenarios)) return;
-      composedRainlangForScenarios = new Map();
-      for (const scenario of Object.values(scenarios)) {
-        try {
-          const composedRainlang = await orderAddComposeRainlang(
-            dotrainText,
-            [$settingsText],
-            scenario,
-          );
-          composedRainlangForScenarios.set(scenario, composedRainlang);
-        } catch (e) {
-          composedRainlangForScenarios.set(
-            scenario,
-            e?.toString() || 'Error composing rainlang for scenario',
-          );
-        }
-      }
-      return composedRainlangForScenarios;
-    } catch (e) {
-      reportErrorToSentry(e);
+      if (!deployment) throw Error('Select a deployment to add order');
+      await executeWalletConnectOrder($globalDotrainFile.text, deployment, {
+        orderAddCalldataFn: async (dotrain, deploy) =>
+          (await orderAddCalldata(dotrain, deploy)) as Uint8Array,
+        ethersExecuteFn: ethersExecute,
+        reportErrorToSentryFn: reportErrorToSentry,
+        formatEthersTransactionErrorFn: formatEthersTransactionError,
+        successToastFn: toasts.success,
+        errorToastFn: toasts.error,
+      });
+    } catch {
+      // error already reported by service or toast shown
     }
+    isSubmitting = false;
   }
 
-  const { debouncedFn: debounceValidateRaindexVersion, error: raindexVersionError } =
-    useDebouncedFn(validateRaindexVersion, 500);
+  const { debouncedFn: debounceValidateSpecVersion, error: specVersionError } = useDebouncedFn(
+    validateSpecVersion,
+    500,
+  );
 
-  $: debounceValidateRaindexVersion($globalDotrainFile.text, [$settingsText]);
+  $: debounceValidateSpecVersion($globalDotrainFile.text, [$settingsText]);
 
   $: deploymentNetworks = getDeploymentsNetworks(deployments);
-
-  // gathers key/value pairs of deployments chain ids
-  // against their network name to be used for debug modal
-  function getDeploymentsNetworks(
-    deployments: Record<string, DeploymentCfg> | undefined,
-  ): Record<number, string> | undefined {
-    if (deployments) {
-      const networks: Record<number, string> = {};
-      for (const key in deployments) {
-        const chainId = deployments[key].scenario.deployer.network.chainId;
-        const networkKey =
-          Object.values(chains).find((v) => v.id === chainId)?.name ??
-          deployments[key].scenario.deployer.network.key;
-        networks[chainId] = networkKey;
-      }
-      if (!Object.keys(networks).length) return undefined;
-      else return networks;
-    }
-    return undefined;
-  }
 </script>
 
 <PageHeader title="Add Order" pathname={$page.url.pathname} />
 
 <FileTextarea textFile={globalDotrainFile}>
   <svelte:fragment slot="alert">
-    <RaindexVersionValidator error={$raindexVersionError} />
+    <SpecVersionValidator error={$specVersionError} />
   </svelte:fragment>
 
   <svelte:fragment slot="textarea">
@@ -272,7 +225,7 @@
         class="min-w-fit"
         color="green"
         loading={isSubmitting}
-        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef) || !!$raindexVersionError}
+        disabled={$globalDotrainFile.isEmpty || isNil(deploymentRef) || !!$specVersionError}
         on:click={() => (openAddOrderModal = true)}>Add Order</ButtonLoading
       >
     </div>
@@ -321,7 +274,7 @@
   overrideNetwork={deployment?.order.network}
   title="Add Order"
   execButtonLabel="Add Order"
-  {executeLedger}
-  {executeWalletconnect}
+  executeWalletconnect={handleExecuteWalletConnect}
+  executeLedger={handleExecuteLedger}
   bind:isSubmitting
 />

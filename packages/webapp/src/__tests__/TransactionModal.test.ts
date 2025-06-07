@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import TransactionModal from '../lib/components/TransactionModal.svelte';
-import { TransactionStatus } from '@rainlanguage/ui-components';
+import { TransactionStatusMessage } from '@rainlanguage/ui-components';
 import { initialState } from '../../../ui-components/dist/stores/transactionStore';
 
 // Add hoisted mock import
@@ -46,7 +46,7 @@ describe('TransactionModal Component', () => {
 
 	it('should display an error when transaction fails', async () => {
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.ERROR,
+			status: TransactionStatusMessage.ERROR,
 			error: mockError,
 			hash: '0xMockTransactionHash'
 		});
@@ -62,7 +62,7 @@ describe('TransactionModal Component', () => {
 	it('should display success message when transaction succeeds', async () => {
 		const successMessage = 'Transaction succeeded';
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: successMessage,
 			hash: '0xMockTransactionHash'
 		});
@@ -79,7 +79,7 @@ describe('TransactionModal Component', () => {
 	it('should display pending state with a spinner for pending transactions', async () => {
 		const pendingMessage = 'Waiting for wallet confirmation...';
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.PENDING_WALLET,
+			status: TransactionStatusMessage.PENDING_WALLET,
 			message: pendingMessage
 		});
 
@@ -95,7 +95,7 @@ describe('TransactionModal Component', () => {
 	it('should handle multiple statuses like CHECKING_ALLOWANCE and PENDING_APPROVAL', async () => {
 		const checkingMessage = 'Checking your allowance...';
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.CHECKING_ALLOWANCE,
+			status: TransactionStatusMessage.CHECKING_ALLOWANCE,
 			message: checkingMessage
 		});
 
@@ -108,7 +108,7 @@ describe('TransactionModal Component', () => {
 
 		const approvalMessage = 'Approving token spend...';
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.PENDING_APPROVAL,
+			status: TransactionStatusMessage.PENDING_APPROVAL,
 			message: approvalMessage
 		});
 
@@ -120,7 +120,7 @@ describe('TransactionModal Component', () => {
 
 	it('should display a blockExplorerLink when it is provided', async () => {
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			explorerLink: 'https://www.google.com'
 		});
 
@@ -135,7 +135,7 @@ describe('TransactionModal Component', () => {
 		const successMessage = 'Transaction succeeded';
 
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			message: successMessage,
 			hash: '0xMockTransactionHash'
 		});
@@ -149,7 +149,7 @@ describe('TransactionModal Component', () => {
 
 	it('should display View Order button when newOrderHash and network are provided', async () => {
 		mockTransactionStore.mockSetSubscribeValue({
-			status: TransactionStatus.SUCCESS,
+			status: TransactionStatusMessage.SUCCESS,
 			newOrderHash: '0xMockOrderHash',
 			network: 'testnet'
 		});

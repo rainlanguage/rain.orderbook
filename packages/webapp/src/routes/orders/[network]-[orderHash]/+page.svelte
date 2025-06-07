@@ -1,70 +1,62 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleDepositOrWithdrawModal, handleOrderRemoveModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
+	import { handleTransactionConfirmationModal, handleWithdrawModal } from '$lib/services/modal';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
+	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
-	const subgraphUrl = $settings.subgraphs[network];
-	const rpcUrl = $settings.networks[network]?.rpc;
-	const chainId = $settings.networks[network]?.['chain-id'];
+	const subgraphUrl = $settings?.subgraphs?.[network] || '';
+	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
+	const { manager } = useTransactions();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleOrderRemoveModal({
-			open: true,
-			args: {
-				order,
-				chainId,
-				orderbookAddress,
-				subgraphUrl,
-				onRemove: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				}
-			}
-		});
-	}
-
-	function handleVaultAction(vault: SgVault, action: 'deposit' | 'withdraw') {
-		const network = $page.params.network;
-		const orderHash = $page.params.orderHash;
-		const subgraphUrl = $settings?.subgraphs?.[network] || '';
-		const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
-
-		handleDepositOrWithdrawModal({
-			open: true,
-			args: {
-				vault,
-				onDepositOrWithdraw: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				},
-				action,
-				chainId,
-				rpcUrl,
-				subgraphUrl,
-				// Casting to Hex since the buttons cannot appear if account is null
-				account: $account as Hex
-			}
+	async function onRemove(order: SgOrder) {
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
 		});
 	}
 
 	function onDeposit(vault: SgVault) {
-		handleVaultAction(vault, 'deposit');
+		handleVaultDeposit({
+			vault,
+			chainId,
+			rpcUrl,
+			subgraphUrl,
+			account: $account as Hex
+		});
 	}
 
-	function onWithdraw(vault: SgVault) {
-		handleVaultAction(vault, 'withdraw');
+	async function onWithdraw(vault: SgVault) {
+		await handleVaultWithdraw({
+			vault,
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress,
+			subgraphUrl,
+			chainId,
+			account: $account as Hex,
+			rpcUrl
+		});
 	}
 </script>
 
