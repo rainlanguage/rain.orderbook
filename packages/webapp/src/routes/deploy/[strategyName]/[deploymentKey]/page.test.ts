@@ -3,6 +3,8 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
 import * as handleGuiInitializationModule from '$lib/services/handleGuiInitialization';
 import { goto } from '$app/navigation';
+import { useAccount, useToasts, useTransactions } from '@rainlanguage/ui-components';
+import { readable, writable } from 'svelte/store';
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
@@ -28,7 +30,10 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const mockDeploymentSteps = (await import('$lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		...((await importOriginal()) as object),
-		DeploymentSteps: mockDeploymentSteps
+		DeploymentSteps: mockDeploymentSteps,
+		useTransactions: vi.fn(),
+		useAccount: vi.fn(),
+		useToasts: vi.fn()
 	};
 });
 
@@ -38,7 +43,8 @@ vi.mock('$lib/stores/wagmi', () => ({
 }));
 
 vi.mock('$lib/services/modal', () => ({
-	handleDisclaimerModal: vi.fn()
+	handleDisclaimerModal: vi.fn(),
+	handleTransactionConfirmationModal: vi.fn()
 }));
 
 vi.mock('$lib/services/handleGuiInitialization', () => ({
@@ -48,11 +54,30 @@ vi.mock('$lib/services/handleGuiInitialization', () => ({
 	})
 }));
 
+vi.mock('$lib/services/handleAddOrder', () => ({
+	handleAddOrder: vi.fn()
+}));
+
 describe('DeployPage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockPageStore.reset();
 
+		vi.mocked(useAccount).mockReturnValue({
+			account: writable('0x123'),
+			matchesAccount: vi.fn()
+		});
+		vi.mocked(useToasts).mockReturnValue({
+			removeToast: vi.fn(),
+			toasts: writable([]),
+			addToast: vi.fn(),
+			errToast: vi.fn()
+		});
+		vi.mocked(useTransactions).mockReturnValue({
+			// @ts-expect-error simple object
+			manager: writable({}),
+			transactions: readable()
+		});
 		vi.mocked(handleGuiInitializationModule.handleGuiInitialization).mockResolvedValue({
 			gui: null,
 			error: null

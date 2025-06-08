@@ -2,10 +2,14 @@ import { vi, describe } from 'vitest';
 import Page from './+page.svelte';
 import { render, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { useAccount, type DeploymentArgs } from '@rainlanguage/ui-components';
-import { readable } from 'svelte/store';
+import {
+	useAccount,
+	useToasts,
+	useTransactions,
+	type DeploymentArgs
+} from '@rainlanguage/ui-components';
+import { readable, writable } from 'svelte/store';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
-import { handleDeploy } from '$lib/services/handleDeploy';
 import { REGISTRY_URL } from '$lib/constants';
 
 const { mockPageStore, mockSettingsStore } = await vi.hoisted(
@@ -19,7 +23,9 @@ const { mockConnectedStore, mockAppKitModalStore, mockWagmiConfigStore } = await
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	return {
 		...((await importOriginal()) as object),
-		useAccount: vi.fn()
+		useTransactions: vi.fn(),
+		useAccount: vi.fn(),
+		useToasts: vi.fn()
 	};
 });
 
@@ -34,10 +40,6 @@ vi.mock('$lib/stores/wagmi', () => ({
 	connected: mockConnectedStore,
 	appKitModal: mockAppKitModalStore,
 	wagmiConfig: mockWagmiConfigStore
-}));
-
-vi.mock('$lib/services/handleDeploy', () => ({
-	handleDeploy: vi.fn()
 }));
 
 describe('Full Deployment Tests', () => {
@@ -95,6 +97,17 @@ describe('Full Deployment Tests', () => {
 		vi.mocked(useAccount).mockReturnValue({
 			account: readable('0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'),
 			matchesAccount: vi.fn()
+		});
+		vi.mocked(useToasts).mockReturnValue({
+			removeToast: vi.fn(),
+			toasts: writable([]),
+			addToast: vi.fn(),
+			errToast: vi.fn()
+		});
+		vi.mocked(useTransactions).mockReturnValue({
+			// @ts-expect-error simple object
+			manager: writable({}),
+			transactions: readable()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
 	});

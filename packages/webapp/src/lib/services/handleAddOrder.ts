@@ -60,7 +60,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 				}
 			}
 		};
-		await deps.handleTransactionConfirmationModal(confirmationArgs);
+		deps.handleTransactionConfirmationModal(confirmationArgs);
 	}
 
 	const addOrderArgs: TransactionConfirmationProps = {
@@ -81,5 +81,5 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 			}
 		}
 	};
-	await deps.handleTransactionConfirmationModal(addOrderArgs);
+	deps.handleTransactionConfirmationModal(addOrderArgs);
 };

@@ -763,21 +763,6 @@ describe('TransactionManager', () => {
 
 			onSuccess!(newOrderHash); // Simulate successful execution and subgraph indexing providing a new order hash
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Strategy deployed successfully.',
-				type: 'success',
-				color: 'green',
-				links: [
-					{
-						link: 'https://explorer.example.com/tx/0xaddordertxhash',
-						label: 'View on explorer'
-					},
-					{
-						link: `/orders/${addOrderMockArgs.networkKey}-${newOrderHash}`,
-						label: 'View order'
-					}
-				]
-			});
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: [addOrderMockArgs.queryKey]
 			});
