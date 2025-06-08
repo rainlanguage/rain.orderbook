@@ -6,11 +6,12 @@ import {
 	useAccount,
 	useToasts,
 	useTransactions,
-	type DeploymentArgs
+	type TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
 import { readable, writable } from 'svelte/store';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { REGISTRY_URL } from '$lib/constants';
+import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
 const { mockPageStore, mockSettingsStore } = await vi.hoisted(
 	() => import('@rainlanguage/ui-components')
@@ -28,6 +29,17 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 		useToasts: vi.fn()
 	};
 });
+
+vi.mock('$lib/services/modal', async () => ({
+	handleDisclaimerModal: vi.fn(async (props) => {
+		const { DisclaimerModal } = await import('@rainlanguage/ui-components');
+		new DisclaimerModal({
+			target: document.body,
+			props: { ...props, open: true }
+		});
+	}),
+	handleTransactionConfirmationModal: vi.fn()
+}));
 
 vi.mock('$app/stores', async (importOriginal) => {
 	return {
@@ -180,6 +192,11 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
+			await waitFor(async () => {
+				const disclaimerButton = screen.getByText('Deploy');
+				await userEvent.click(disclaimerButton);
+			});
+
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitStrategy, 'flare'))
 					.value as DotrainOrderGui;
@@ -201,29 +218,27 @@ describe('Full Deployment Tests', () => {
 			});
 
 			// @ts-expect-error mock is not typed
-			const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
+			const callArgs = handleTransactionConfirmationModal.mock
+				.calls[0][0] as TransactionConfirmationProps;
 
 			const { prefixEnd, suffixEnd } = findLockRegion(
-				callArgs.deploymentCalldata,
+				callArgs.args.calldata,
 				args?.deploymentCalldata || ''
 			);
 
-			expect(callArgs.approvals).toEqual(args?.approvals);
-			expect(callArgs.deploymentCalldata.length).toEqual(args?.deploymentCalldata.length);
-			expect(callArgs.deploymentCalldata.slice(0, prefixEnd)).toEqual(
+			expect(callArgs.args.calldata.length).toEqual(args?.deploymentCalldata.length);
+			expect(callArgs.args.calldata.slice(0, prefixEnd)).toEqual(
 				args?.deploymentCalldata.slice(0, prefixEnd)
 			);
 			// The middle section of the calldata is different because of secret and nonce
-			expect(callArgs.deploymentCalldata.slice(prefixEnd, suffixEnd)).not.toEqual(
+			expect(callArgs.args.calldata.slice(prefixEnd, suffixEnd)).not.toEqual(
 				args?.deploymentCalldata.slice(prefixEnd, suffixEnd)
 			);
-			expect(callArgs.deploymentCalldata.slice(suffixEnd)).toEqual(
+			expect(callArgs.args.calldata.slice(suffixEnd)).toEqual(
 				args?.deploymentCalldata.slice(suffixEnd)
 			);
-			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
-			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
-			expect(callArgs.network).toEqual('flare');
+			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
+			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
 		{ timeout: 30000 }
 	);
@@ -320,6 +335,11 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
+			await waitFor(async () => {
+				const disclaimerButton = screen.getByText('Deploy');
+				await userEvent.click(disclaimerButton);
+			});
+
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(auctionStrategy, 'flare'))
 					.value as DotrainOrderGui;
@@ -346,29 +366,27 @@ describe('Full Deployment Tests', () => {
 			});
 
 			// @ts-expect-error mock is not typed
-			const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
+			const callArgs = handleTransactionConfirmationModal.mock
+				.calls[0][0] as TransactionConfirmationProps;
 
 			const { prefixEnd, suffixEnd } = findLockRegion(
-				callArgs.deploymentCalldata,
+				callArgs.args.calldata,
 				args?.deploymentCalldata || ''
 			);
 
-			expect(callArgs.approvals).toEqual(args?.approvals);
-			expect(callArgs.deploymentCalldata.length).toEqual(args?.deploymentCalldata.length);
-			expect(callArgs.deploymentCalldata.slice(0, prefixEnd)).toEqual(
+			expect(callArgs.args.calldata.length).toEqual(args?.deploymentCalldata.length);
+			expect(callArgs.args.calldata.slice(0, prefixEnd)).toEqual(
 				args?.deploymentCalldata.slice(0, prefixEnd)
 			);
 			// The middle section of the calldata is different because of secret and nonce
-			expect(callArgs.deploymentCalldata.slice(prefixEnd, suffixEnd)).not.toEqual(
+			expect(callArgs.args.calldata.slice(prefixEnd, suffixEnd)).not.toEqual(
 				args?.deploymentCalldata.slice(prefixEnd, suffixEnd)
 			);
-			expect(callArgs.deploymentCalldata.slice(suffixEnd)).toEqual(
+			expect(callArgs.args.calldata.slice(suffixEnd)).toEqual(
 				args?.deploymentCalldata.slice(suffixEnd)
 			);
-			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
-			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
-			expect(callArgs.network).toEqual('flare');
+			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
+			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
 		{ timeout: 30000 }
 	);
@@ -455,6 +473,11 @@ describe('Full Deployment Tests', () => {
 			const deployButton = screen.getByText('Deploy Strategy');
 			await userEvent.click(deployButton);
 
+			await waitFor(async () => {
+				const disclaimerButton = screen.getByText('Deploy');
+				await userEvent.click(disclaimerButton);
+			});
+
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadStrategy, 'flare'))
 					.value as DotrainOrderGui;
@@ -480,29 +503,27 @@ describe('Full Deployment Tests', () => {
 			});
 
 			// @ts-expect-error mock is not typed
-			const callArgs = handleDeploy.mock.calls[0][0] as DeploymentArgs;
+			const callArgs = handleTransactionConfirmationModal.mock
+				.calls[0][0] as TransactionConfirmationProps;
 
 			const { prefixEnd, suffixEnd } = findLockRegion(
-				callArgs.deploymentCalldata,
+				callArgs.args.calldata,
 				args?.deploymentCalldata || ''
 			);
 
-			expect(callArgs.approvals).toEqual(args?.approvals);
-			expect(callArgs.deploymentCalldata.length).toEqual(args?.deploymentCalldata.length);
-			expect(callArgs.deploymentCalldata.slice(0, prefixEnd)).toEqual(
+			expect(callArgs.args.calldata.length).toEqual(args?.deploymentCalldata.length);
+			expect(callArgs.args.calldata.slice(0, prefixEnd)).toEqual(
 				args?.deploymentCalldata.slice(0, prefixEnd)
 			);
 			// The middle section of the calldata is different because of secret and nonce
-			expect(callArgs.deploymentCalldata.slice(prefixEnd, suffixEnd)).not.toEqual(
+			expect(callArgs.args.calldata.slice(prefixEnd, suffixEnd)).not.toEqual(
 				args?.deploymentCalldata.slice(prefixEnd, suffixEnd)
 			);
-			expect(callArgs.deploymentCalldata.slice(suffixEnd)).toEqual(
+			expect(callArgs.args.calldata.slice(suffixEnd)).toEqual(
 				args?.deploymentCalldata.slice(suffixEnd)
 			);
-			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
-			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
-			expect(callArgs.network).toEqual('flare');
+			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
+			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
 		{ timeout: 30000 }
 	);
