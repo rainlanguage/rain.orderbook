@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
 import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/types/transaction';
-import type { TransactionArgs, TransactionName } from '$lib/types/transaction';
+import type { TransactionArgs } from '$lib/types/transaction';
 import {
 	awaitSubgraphIndexing,
 	type AwaitSubgraphConfig

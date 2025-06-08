@@ -11,7 +11,6 @@ import type { TransactionManager } from '@rainlanguage/ui-components';
 const mockHandleTransactionConfirmationModal = vi.fn();
 const mockErrToast = vi.fn();
 const mockCreateRemoveOrderTransaction = vi.fn();
-``;
 
 const mockManager = {
 	createRemoveOrderTransaction: mockCreateRemoveOrderTransaction

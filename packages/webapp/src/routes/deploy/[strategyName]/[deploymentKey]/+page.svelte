@@ -65,16 +65,19 @@
 {#if !dotrain || !deployment}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
-	<GuiProvider {gui}>
-		<DeploymentSteps
-			{strategyDetail}
-			{deployment}
-			wagmiConnected={connected}
-			{appKitModal}
-			{onDeploy}
-			{settings}
-		/>
-	</GuiProvider>
+	<div data-testid="gui-provider">
+		<GuiProvider {gui}>
+			<DeploymentSteps
+				{strategyDetail}
+				{deployment}
+				wagmiConnected={connected}
+				{appKitModal}
+				{onDeploy}
+				{settings}
+				{account}
+			/>
+		</GuiProvider>
+	</div>
 {:else if getGuiError}
 	<div>
 		{getGuiError}

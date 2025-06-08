@@ -160,6 +160,7 @@ mod tests {
         sol_types::{SolCall, SolValue},
     };
     use alloy_ethers_typecast::transaction::ReadableClientError;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use rain_orderbook_subgraph_client::types::{
         common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
@@ -211,6 +212,7 @@ mod tests {
     fn create_dotrain_config(setup: &TestSetup) -> String {
         format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -270,15 +272,12 @@ amount price: context<3 0>() context<4 0>();
             deployer = setup.local_evm.deployer.address(),
             token1 = setup.token1.address.0,
             token2 = setup.token2.address.0,
+            spec_version = SpecVersion::current(),
         )
     }
 
     async fn create_order(setup: &TestSetup, dotrain: String) -> String {
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = dotrain_order
             .dotrain_yaml()
             .get_deployment("some-key")

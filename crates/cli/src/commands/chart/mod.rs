@@ -31,6 +31,7 @@ impl Execute for Chart {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -72,6 +73,7 @@ deployments:
     fn get_settings(rpc: &str, orderbook: &str, deployer: &str) -> String {
         format!(
             r#"
+version: {spec_version}
 networks:
   flare:
     rpc: {rpc}
@@ -90,7 +92,8 @@ deployers:
   flare:
     address: {deployer}
     network: "flare"
-"#
+"#,
+            spec_version = SpecVersion::current()
         )
     }
 

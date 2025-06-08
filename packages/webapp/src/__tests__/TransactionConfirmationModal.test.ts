@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
 import type { TransactionConfirmationProps } from '@rainlanguage/ui-components';
@@ -34,7 +34,7 @@ describe('TransactionConfirmationModal', () => {
 		modalTitle: testModalTitle,
 		args: {
 			chainId: 1,
-			toAddress: '0x789',
+			toAddress: '0x5',
 			calldata: mockCalldata,
 			onConfirm: vi.fn(),
 			entity: mockOrder
@@ -44,10 +44,15 @@ describe('TransactionConfirmationModal', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetAllMocks();
+		vi.useFakeTimers();
 		vi.mocked(handleWalletConfirmation).mockResolvedValue({
 			state: { status: 'confirmed' },
 			hash: mockTxHash
 		});
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	it('shows awaiting confirmation state initially and correct title', () => {
@@ -126,5 +131,41 @@ describe('TransactionConfirmationModal', () => {
 			expect(screen.getByText('Dismiss')).toBeInTheDocument();
 			expect(screen.getByText('❌')).toBeInTheDocument();
 		});
+	});
+
+	it('auto-closes modal after 2 seconds when transaction is confirmed', async () => {
+		const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+		render(TransactionConfirmationModal, defaultProps);
+
+		// Wait for the transaction to be confirmed
+		await waitFor(() => {
+			expect(screen.getByText('Transaction submitted')).toBeInTheDocument();
+		});
+
+		// Verify that setTimeout was called with 2000ms delay
+		expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000);
+
+		setTimeoutSpy.mockRestore();
+	});
+
+	it('clears timeout when modal is manually dismissed', async () => {
+		const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+		render(TransactionConfirmationModal, defaultProps);
+
+		// Wait for the transaction to be confirmed
+		await waitFor(() => {
+			expect(screen.getByText('Transaction submitted')).toBeInTheDocument();
+		});
+
+		// Click dismiss button
+		const dismissButton = screen.getByText('Dismiss');
+		dismissButton.click();
+
+		// Verify that clearTimeout was called
+		expect(clearTimeoutSpy).toHaveBeenCalled();
+
+		clearTimeoutSpy.mockRestore();
 	});
 });

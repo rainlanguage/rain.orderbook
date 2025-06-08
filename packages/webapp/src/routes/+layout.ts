@@ -19,7 +19,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 
 	try {
 		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
+			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e741a1b02365da4d92d082a44206d30dded621e9/settings.json'
 		);
 		if (!response.ok) {
 			throw new Error('Error status: ' + response.status.toString());
@@ -152,7 +152,7 @@ if (import.meta.vitest) {
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/refs/heads/main/settings.json'
+				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e741a1b02365da4d92d082a44206d30dded621e9/settings.json'
 			);
 
 			expect(result).toHaveProperty('stores');

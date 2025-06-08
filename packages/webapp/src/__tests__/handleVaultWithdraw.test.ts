@@ -109,7 +109,7 @@ describe('handleVaultWithdraw', () => {
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 			open: true,
-			modalTitle: 'Withdrawing 100 TEST...',
+			modalTitle: 'Withdrawing 0.1 TEST...',
 			args: {
 				entity: mockVault,
 				toAddress: mockDeps.toAddress,

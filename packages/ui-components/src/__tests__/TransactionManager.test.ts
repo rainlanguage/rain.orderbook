@@ -328,12 +328,6 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Withdrawal successful.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xvaultid']
 			});
@@ -378,12 +372,7 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Order removed successfully.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
+			expect(mockAddToast).not.toHaveBeenCalled();
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xsuccesskey']
 			});
@@ -632,12 +621,6 @@ describe('TransactionManager', () => {
 
 			onSuccess!();
 
-			expect(mockAddToast).toHaveBeenCalledWith({
-				message: 'Deposit successful.',
-				type: 'success',
-				color: 'green',
-				links: expect.any(Array)
-			});
 			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: ['0xvaultid']
 			});
@@ -760,7 +743,7 @@ describe('TransactionManager', () => {
 			await manager.createAddOrderTransaction(addOrderMockArgs);
 
 			const transactions = manager.getTransactions();
-			let storeValue: any[] = [];
+			let storeValue: unknown[] = [];
 			transactions.subscribe((value) => {
 				storeValue = value;
 			});

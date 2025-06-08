@@ -110,6 +110,7 @@ describe('handleVaultDeposit', () => {
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
 				open: true,
 				modalTitle: 'Depositing 100 TEST',
+				closeOnConfirm: false,
 				args: expect.objectContaining({ calldata: mockDepositCalldata })
 			});
 		});
@@ -150,6 +151,7 @@ describe('handleVaultDeposit', () => {
 			expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(1, {
 				open: true,
 				modalTitle: 'Approving TEST spend',
+				closeOnConfirm: true,
 				args: {
 					entity: mockVault,
 					toAddress: mockVault.token.address as Hex,
@@ -178,6 +180,7 @@ describe('handleVaultDeposit', () => {
 				expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(2, {
 					open: true,
 					modalTitle: 'Depositing 100 TEST',
+					closeOnConfirm: false,
 					args: {
 						entity: mockVault,
 						toAddress: mockDeps.orderbookAddress,

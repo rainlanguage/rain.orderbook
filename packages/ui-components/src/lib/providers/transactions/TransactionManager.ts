@@ -195,8 +195,8 @@ export class TransactionManager {
 		args: InternalTransactionArgs & { entity?: SgVault }
 	): Promise<Transaction> {
 		const { entity, queryKey, networkKey } = args;
-		const tokenSymbol = entity?.token.symbol || '';
-		const name = `Approving ${tokenSymbol || 'token'} spend`;
+		const tokenSymbol = entity?.token.symbol || 'token';
+		const name = `Approving ${tokenSymbol} spend`;
 		const errorMessage = 'Approval failed.';
 		const successMessage = 'Approval successful.';
 
@@ -374,12 +374,6 @@ export class TransactionManager {
 					}
 				];
 			}
-			this.addToast({
-				message: args.successMessage,
-				type: 'success',
-				color: 'green',
-				links: toastLinks
-			});
 			if (args.queryKey) {
 				this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
 			}

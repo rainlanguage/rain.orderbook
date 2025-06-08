@@ -1,5 +1,5 @@
 import type { SgVault } from '@rainlanguage/orderbook';
-import type { Hex } from 'viem';
+import { formatUnits, type Hex } from 'viem';
 import type {
 	TransactionManager,
 	VaultActionModalProps,
@@ -36,12 +36,18 @@ async function executeDeposit(args: DepositArgs) {
 		chainId
 	} = args;
 	const calldataResult = await getVaultDepositCalldata(vault, amount.toString());
+	const displayAmount = vault.token.decimals
+		? formatUnits(amount, Number(vault.token.decimals))
+		: amount.toString();
 	if (calldataResult.error) {
 		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {
 		handleTransactionConfirmationModal({
 			open: true,
-			modalTitle: `Depositing ${amount} ${vault.token.symbol}`,
+			modalTitle: displayAmount
+				? `Depositing ${displayAmount} ${vault.token.symbol}`
+				: `Depositing ${vault.token.symbol}`,
+			closeOnConfirm: false,
 			args: {
 				entity: vault,
 				toAddress: orderbookAddress,
@@ -95,6 +101,7 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 				handleTransactionConfirmationModal({
 					open: true,
 					modalTitle: `Approving ${vault.token.symbol || 'token'} spend`,
+					closeOnConfirm: true,
 					args: {
 						entity: vault,
 						toAddress: vault.token.address as Hex,

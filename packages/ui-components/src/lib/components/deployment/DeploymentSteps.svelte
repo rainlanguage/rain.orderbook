@@ -23,10 +23,10 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
+	import type { Account } from '$lib/types/account';
 
 	interface Deployment {
 		key: string;
@@ -43,6 +43,7 @@
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let settings: Writable<ConfigSource>;
+	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -55,7 +56,6 @@
 	let checkingDeployment: boolean = false;
 	let subgraphUrl: string | undefined = undefined;
 
-	const { account } = useAccount();
 	const gui = useGui();
 	const registry = useRegistry();
 
@@ -218,7 +218,7 @@
 			}
 			DeploymentStepsError.clear();
 
-			return await onDeploy(gui, subgraphUrl);
+			return onDeploy(gui, subgraphUrl);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

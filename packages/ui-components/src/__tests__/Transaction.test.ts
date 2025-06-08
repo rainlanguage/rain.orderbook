@@ -14,7 +14,6 @@ import {
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
-import { mockOrder } from '../lib/__fixtures__/orderDetail';
 import type { SgVault } from '@rainlanguage/orderbook';
 
 vi.mock('@wagmi/core', () => ({
