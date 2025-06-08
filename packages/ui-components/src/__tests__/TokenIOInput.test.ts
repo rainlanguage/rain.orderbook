@@ -5,6 +5,10 @@ import type { ComponentProps } from 'svelte';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 
+vi.mock('@rainlanguage/orderbook', () => ({
+	DotrainOrderGui: vi.fn()
+}));
+
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
@@ -33,27 +37,29 @@ describe('TokenInput', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		guiInstance = new DotrainOrderGui();
+
+		// Create a mock instance with all the methods
+		guiInstance = {
+			getTokenInfo: vi.fn().mockResolvedValue(mockTokenInfo),
+			setVaultId: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			}),
+			getCurrentDeployment: vi.fn().mockResolvedValue({
+				deployment: {
+					order: {
+						inputs: [mockInput]
+					}
+				}
+			}),
+			getVaultIds: vi.fn().mockReturnValue({
+				value: new Map([
+					['input', ['vault1']],
+					['output', ['vault2']]
+				])
+			})
+		} as unknown as DotrainOrderGui;
 
 		mockStateUpdateCallback = vi.fn();
-
-		(DotrainOrderGui.prototype.getTokenInfo as Mock).mockResolvedValue(mockTokenInfo);
-		(DotrainOrderGui.prototype.setVaultId as Mock).mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
-		(DotrainOrderGui.prototype.getCurrentDeployment as Mock).mockResolvedValue({
-			deployment: {
-				order: {
-					inputs: [mockInput]
-				}
-			}
-		});
-		(DotrainOrderGui.prototype.getVaultIds as Mock).mockReturnValue({
-			value: new Map([
-				['input', ['vault1']],
-				['output', ['vault2']]
-			])
-		});
 
 		(useGui as Mock).mockReturnValue(guiInstance);
 

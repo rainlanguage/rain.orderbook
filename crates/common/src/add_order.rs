@@ -350,6 +350,7 @@ mod tests {
         network::NetworkCfg,
         order::{OrderCfg, OrderIOCfg},
         scenario::ScenarioCfg,
+        spec_version::SpecVersion,
         token::TokenCfg,
         yaml::default_document,
     };
@@ -505,8 +506,8 @@ price: 2e18;
         };
 
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -514,8 +515,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
@@ -615,8 +616,8 @@ _ _: 0 0;
         };
 
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -624,9 +625,10 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
+
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -761,8 +763,8 @@ _ _: 0 0;
         };
 
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -770,8 +772,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment.clone())
             .await
@@ -801,15 +803,18 @@ _ _: 0 0;
         let local_evm = LocalEvm::new().await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let result = AddOrderArgs::new_from_deployment(
-            r#"
-raindex-version: 1234
+            format!(
+                "
+version: {spec_version}
 ---
 #key1 !Test binding
 #calculate-io
 _ _: 0 0;
 #handle-add-order
 _ _: 0 key1;
-"#
+",
+                spec_version = SpecVersion::current()
+            )
             .to_string(),
             deployment.clone(),
         )
@@ -833,6 +838,7 @@ _ _: 0 key1;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -888,13 +894,10 @@ _ _: 16 52;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = dotrain_order
             .dotrain_yaml()
             .get_deployment("some-key")
@@ -925,6 +928,7 @@ _ _: 16 52;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     some-key:
         rpc: {rpc_url}
@@ -980,13 +984,10 @@ _ _: 16 52;
             deployer = local_evm.deployer.address(),
             token1 = token1.address(),
             token2 = token2.address(),
+            spec_version = SpecVersion::current()
         );
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain.clone(), None)
-            .await
-            .unwrap();
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let deployment = dotrain_order
             .dotrain_yaml()
             .get_deployment("some-key")
@@ -1098,8 +1099,8 @@ _ _: 16 52;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
 
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1107,8 +1108,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
         let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
@@ -1133,8 +1134,9 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_try_parse_rainlang_invalid_url() {
         let deployment = get_deployment("https://testtest.com", Address::random());
-        let dotrain = r#"
-raindex-version: 1234
+        let dotrain = format!(
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1142,7 +1144,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+",
+            spec_version = SpecVersion::current()
+        );
         let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -1157,8 +1161,9 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_try_parse_rainlang_missing_rpc_data() {
         let deployment = get_deployment("https://testtest.com", Address::random());
-        let dotrain = r#"
-raindex-version: 1234
+        let dotrain = format!(
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1166,7 +1171,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+",
+            spec_version = SpecVersion::current()
+        );
         let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -1187,8 +1194,9 @@ _ _: 0 0;
     async fn test_try_parse_rainlang_malformed_rainlang() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
-        let dotrain = r#"
-raindex-version: 1234
+        let dotrain = format!(
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1196,7 +1204,9 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#;
+",
+            spec_version = SpecVersion::current()
+        );
         let add_order_args = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
@@ -1427,8 +1437,8 @@ _ _: 0 0;
         let local_evm = LocalEvm::new().await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1436,8 +1446,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
@@ -1501,8 +1511,8 @@ _ _: 0 0;
         let local_evm = LocalEvm::new().await;
         let deployment = get_deployment(&local_evm.url(), *local_evm.deployer.address());
         let dotrain = format!(
-            r#"
-raindex-version: {raindex_version}
+            "
+version: {spec_version}
 ---
 #calculate-io
 _ _: 0 0;
@@ -1510,8 +1520,8 @@ _ _: 0 0;
 :;
 #handle-add-order
 _ _: 0 0;
-"#,
-            raindex_version = "1234"
+",
+            spec_version = SpecVersion::current()
         );
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await

@@ -7,27 +7,43 @@ export async function handleGuiInitialization(
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
 	try {
-		const gui = new DotrainOrderGui();
-		let result: WasmEncodedResult<void>;
+		let gui: DotrainOrderGui;
+		let result: WasmEncodedResult<DotrainOrderGui>;
 
 		if (stateFromUrl) {
 			try {
-				result = await gui.deserializeState(dotrain, stateFromUrl, pushGuiStateToUrlHistory);
+				result = await DotrainOrderGui.newFromState(
+					dotrain,
+					stateFromUrl,
+					pushGuiStateToUrlHistory
+				);
 				if (result.error) {
 					throw new Error(result.error.msg);
 				}
+				gui = result.value;
 			} catch {
-				result = await gui.chooseDeployment(dotrain, deploymentKey, pushGuiStateToUrlHistory);
+				result = await DotrainOrderGui.newWithDeployment(
+					dotrain,
+					deploymentKey,
+					pushGuiStateToUrlHistory
+				);
 				if (result.error) {
 					throw new Error(result.error.msg);
 				}
+				gui = result.value;
 			}
 		} else {
-			result = await gui.chooseDeployment(dotrain, deploymentKey, pushGuiStateToUrlHistory);
+			result = await DotrainOrderGui.newWithDeployment(
+				dotrain,
+				deploymentKey,
+				pushGuiStateToUrlHistory
+			);
 			if (result.error) {
 				throw new Error(result.error.msg);
 			}
+			gui = result.value;
 		}
+
 		return { gui, error: null };
 	} catch {
 		return { gui: null, error: 'Could not get deployment form.' };
