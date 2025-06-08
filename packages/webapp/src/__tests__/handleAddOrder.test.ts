@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleAddOrder } from '../lib/services/handleAddOrder';
 import type { HandleAddOrderDependencies } from '../lib/services/handleAddOrder';
 import type { DeploymentTransactionArgs, DotrainOrderGui } from '@rainlanguage/orderbook';
-import type { TransactionManager, TransactionConfirmationProps } from '@rainlanguage/ui-components';
+import type { TransactionManager } from '@rainlanguage/ui-components';
 import { QKEY_ORDERS } from '@rainlanguage/ui-components';
 import type { Hex } from 'viem';
 
