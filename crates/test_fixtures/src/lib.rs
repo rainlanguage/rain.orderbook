@@ -18,9 +18,11 @@ use alloy::{
         RpcError, TransportErrorKind,
     },
 };
-pub use rain_interpreter_test_fixtures::{Deployer, Interpreter, Parser, Store, ERC20};
+pub use interpreter_fixtures::{Deployer, Interpreter, Parser, Store, ERC20};
 use serde_json::value::RawValue;
 use std::{marker::PhantomData, str::FromStr};
+
+use rain_interpreter_test_fixtures::LocalEvmProvider;
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
@@ -36,11 +38,6 @@ sol!(
     #![sol(all_derives = true, rpc = true)]
     "../../lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std/src/interfaces//IMulticall3.sol"
 );
-
-// type aliases for LocalEvm provider type
-pub type LocalEvmFillers = JoinFill<RecommendedFiller, WalletFiller<EthereumWallet>>;
-pub type LocalEvmProvider =
-    FillProvider<LocalEvmFillers, RootProvider<Http<Client>>, Http<Client>, Ethereum>;
 
 /// A local evm instance that wraps an Anvil instance and provider with
 /// its signers, and with rain contracts already deployed on it.
@@ -106,7 +103,6 @@ impl LocalEvm {
 
         // Create a provider with the wallet and fillers
         let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(signer_wallets[0].clone())
             .on_http(anvil.endpoint_url());
 
@@ -235,7 +231,6 @@ impl LocalEvm {
                 .provider
                 .call(&contract_call.into_transaction_request())
                 .await?,
-            true,
         ))
     }
 
@@ -353,12 +348,11 @@ impl<'a, T: SolCall> ContractTxHandler<T>
         &self,
         evm: &LocalEvm,
     ) -> Result<Result<T::Return, alloy::sol_types::Error>, RpcError<TransportErrorKind>> {
-        Ok(T::abi_decode_returns(
-            &evm.provider
-                .call(&self.clone().into_transaction_request())
-                .await?,
-            true,
-        ))
+        let returns = evm
+            .provider
+            .call(&self.clone().into_transaction_request())
+            .await?;
+        Ok(T::abi_decode_returns(&returns))
     }
 
     async fn do_send(
@@ -370,5 +364,6 @@ impl<'a, T: SolCall> ContractTxHandler<T>
             .await?
             .get_receipt()
             .await
+            .map(|r| r.inner)
     }
 }

@@ -102,7 +102,8 @@ pub async fn get_order_quotes(
         }
 
         let req_block_number = block_number.unwrap_or(
-            ReadableClient::new_from_url(rpc_url.clone())?
+            ReadableClient::new_from_url(rpc_url.clone())
+                .await?
                 .get_block_number()
                 .await?,
         );

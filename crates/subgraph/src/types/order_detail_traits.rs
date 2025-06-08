@@ -47,8 +47,7 @@ impl TryInto<OrderV3> for SgOrder {
 
     fn try_into(self) -> Result<OrderV3, Self::Error> {
         let order = rain_orderbook_bindings::IOrderBookV4::OrderV3::abi_decode(
-            &decode(self.order_bytes.0)?,
-            true,
+            &decode(self.order_bytes.0)?
         )?;
         Ok(order)
     }
