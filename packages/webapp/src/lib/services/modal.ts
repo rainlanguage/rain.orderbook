@@ -50,7 +50,7 @@ export const handleTransactionConfirmationModal = (
 				}
 				clearInterval(checkDismissal);
 			}
-		}, 100);
+		}, 500);
 
 		// Clean up after 30 seconds maximum
 		setTimeout(() => {
