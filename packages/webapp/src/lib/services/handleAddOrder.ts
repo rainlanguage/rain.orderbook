@@ -1,10 +1,10 @@
-import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { DotrainOrderGui, SgErc20, SgVault } from '@rainlanguage/orderbook';
 import type {
 	TransactionManager,
 	HandleTransactionConfirmationModal
 } from '@rainlanguage/ui-components';
 import { QKEY_ORDERS } from '@rainlanguage/ui-components';
-import type { Hex } from 'viem';
+import { type Hex } from 'viem';
 
 export enum AddOrderErrors {
 	ADD_ORDER_FAILED = 'Failed to add order',
@@ -49,7 +49,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 		try {
 			const approvalResult = await deps.handleTransactionConfirmationModal({
 				open: true,
-				modalTitle: 'Approving token spend',
+				modalTitle: `Approving ${approval.symbol} spend`,
 				closeOnConfirm: true,
 				args: {
 					toAddress: approval.token as Hex,
@@ -60,7 +60,10 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 							chainId,
 							txHash: hash,
 							queryKey: QKEY_ORDERS,
-							networkKey: network
+							networkKey: network,
+							entity: {
+								token: { symbol: approval.symbol } as unknown as SgErc20
+							} as unknown as SgVault
 						});
 					}
 				}

@@ -133,7 +133,7 @@ describe('handleAddOrder', () => {
 			1,
 			expect.objectContaining({
 				open: true,
-				modalTitle: 'Approving token spend',
+				modalTitle: 'Approving TKN1 spend',
 				closeOnConfirm: true,
 				args: expect.objectContaining({
 					toAddress: approval1.token,
@@ -224,7 +224,7 @@ describe('handleAddOrder', () => {
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			1,
 			expect.objectContaining({
-				modalTitle: 'Approving token spend',
+				modalTitle: 'Approving TKN1 spend',
 				args: expect.objectContaining({ toAddress: approval1.token })
 			})
 		);
@@ -233,7 +233,7 @@ describe('handleAddOrder', () => {
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			2,
 			expect.objectContaining({
-				modalTitle: 'Approving token spend',
+				modalTitle: 'Approving TKN2 spend',
 				args: expect.objectContaining({ toAddress: approval2.token })
 			})
 		);
