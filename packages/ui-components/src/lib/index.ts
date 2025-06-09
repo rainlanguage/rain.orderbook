@@ -83,7 +83,8 @@ export type {
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
 	DisclaimerModalProps,
-	TransactionConfirmationProps
+	TransactionConfirmationProps,
+	HandleTransactionConfirmationModal
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';

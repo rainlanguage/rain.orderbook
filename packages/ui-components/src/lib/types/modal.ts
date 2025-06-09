@@ -44,3 +44,8 @@ export type QuoteDebugModalHandler = (
 ) => void;
 
 export type DebugTradeModalHandler = (hash: string, rpcUrl: string) => void;
+
+export type HandleTransactionConfirmationModal = (
+	props: TransactionConfirmationProps,
+	options?: { timeout?: number }
+) => Promise<{ success: boolean; hash?: string }>;

@@ -362,18 +362,7 @@ export class TransactionManager {
 			config: this.wagmiConfig
 		};
 
-		let toastLinks = args.toastLinks;
-
-		const onSuccess = (newOrderHash?: string) => {
-			if (newOrderHash) {
-				toastLinks = [
-					...toastLinks,
-					{
-						link: `/orders/${args.networkKey}-${newOrderHash}`,
-						label: 'View order'
-					}
-				];
-			}
+		const onSuccess = () => {
 			if (args.queryKey) {
 				this.queryClient.invalidateQueries({ queryKey: [args.queryKey] });
 			}
@@ -384,7 +373,7 @@ export class TransactionManager {
 				message: args.errorMessage,
 				type: 'error',
 				color: 'red',
-				links: toastLinks
+				links: args.toastLinks
 			});
 		};
 

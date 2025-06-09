@@ -7,7 +7,7 @@ import { QKEY_ORDERS } from '@rainlanguage/ui-components';
 import type { Hex } from 'viem';
 
 // Mocks
-const mockHandleTransactionConfirmationModal = vi.fn();
+const mockHandleTransactionConfirmationModal = vi.fn().mockResolvedValue({ success: true });
 const mockErrToast = vi.fn();
 const mockCreateApprovalTransaction = vi.fn();
 const mockCreateAddOrderTransaction = vi.fn();
@@ -50,6 +50,8 @@ describe('handleAddOrder', () => {
 		vi.clearAllMocks();
 		// Reset to a simple mock, specific onConfirm logic will be handled in tests
 		mockHandleTransactionConfirmationModal.mockReset();
+		// Default to success for sequential calls
+		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: true });
 		mockGetNetworkKey.mockReturnValue({ value: MOCKED_NETWORK_KEY, error: null });
 		// mockGetDeploymentTransactionArgs will be reset/set in each test
 	});
@@ -73,7 +75,7 @@ describe('handleAddOrder', () => {
 			1,
 			expect.objectContaining({
 				open: true,
-				modalTitle: 'Deploying your strategy',
+				modalTitle: 'Deploying your order',
 				args: expect.objectContaining({
 					toAddress: currentTestSpecificArgs.orderbookAddress,
 					chainId: currentTestSpecificArgs.chainId,
@@ -116,15 +118,23 @@ describe('handleAddOrder', () => {
 			error: null
 		});
 
+		// Mock sequential calls - approval first, then deployment
+		mockHandleTransactionConfirmationModal
+			.mockResolvedValueOnce({ success: true, hash: '0xapprovalHash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xdeploymentHash' });
+
 		await handleAddOrder(mockDeps);
 
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2); // Initially called for approval
+		// Should be called twice: once for approval, once for deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
 
+		// First call should be for approval
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			1,
 			expect.objectContaining({
 				open: true,
 				modalTitle: 'Approving token spend',
+				closeOnConfirm: true,
 				args: expect.objectContaining({
 					toAddress: approval1.token,
 					chainId: currentTestSpecificArgs.chainId,
@@ -134,29 +144,12 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Manually call the onConfirm for approval
-		const approvalOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
-		const mockApprovalTxHash = '0xapprovalHashFromTest' as Hex;
-		await approvalOnConfirm(mockApprovalTxHash);
-
-		expect(mockCreateApprovalTransaction).toHaveBeenCalledTimes(1);
-		expect(mockCreateApprovalTransaction).toHaveBeenCalledWith(
-			expect.objectContaining({
-				chainId: currentTestSpecificArgs.chainId,
-				txHash: mockApprovalTxHash, // Check for the specific hash
-				queryKey: QKEY_ORDERS,
-				networkKey: MOCKED_NETWORK_KEY
-			})
-		);
-
-		// Expect modal to be called again for the add order transaction
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
+		// Second call should be for deployment
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			2,
 			expect.objectContaining({
 				open: true,
-				modalTitle: 'Deploying your strategy',
+				modalTitle: 'Deploying your order',
 				args: expect.objectContaining({
 					toAddress: currentTestSpecificArgs.orderbookAddress,
 					chainId: currentTestSpecificArgs.chainId,
@@ -166,17 +159,29 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Manually call the onConfirm for add order
-		const addOrderOnConfirm =
+		// Verify onConfirm functions would call the right transaction managers
+		const approvalOnConfirm =
+			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		const deploymentOnConfirm =
 			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
-		const mockAddOrderTxHash = '0xaddOrderHashFromTest2' as Hex;
-		await addOrderOnConfirm(mockAddOrderTxHash);
 
-		expect(mockCreateAddOrderTransaction).toHaveBeenCalledTimes(1);
+		// Simulate calling onConfirm for approval
+		await approvalOnConfirm('0xapprovalTxHash' as Hex);
+		expect(mockCreateApprovalTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				chainId: currentTestSpecificArgs.chainId,
+				txHash: '0xapprovalTxHash',
+				queryKey: QKEY_ORDERS,
+				networkKey: MOCKED_NETWORK_KEY
+			})
+		);
+
+		// Simulate calling onConfirm for deployment
+		await deploymentOnConfirm('0xdeploymentTxHash' as Hex);
 		expect(mockCreateAddOrderTransaction).toHaveBeenCalledWith(
 			expect.objectContaining({
 				chainId: currentTestSpecificArgs.chainId,
-				txHash: mockAddOrderTxHash, // Check for the specific hash
+				txHash: '0xdeploymentTxHash',
 				queryKey: QKEY_ORDERS,
 				networkKey: MOCKED_NETWORK_KEY,
 				subgraphUrl: mockDeps.subgraphUrl
@@ -204,59 +209,71 @@ describe('handleAddOrder', () => {
 			error: null
 		});
 
+		// Mock sequential calls - 2 approvals + deployment
+		mockHandleTransactionConfirmationModal
+			.mockResolvedValueOnce({ success: true, hash: '0xapproval1Hash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xapproval2Hash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xdeploymentHash' });
+
 		await handleAddOrder(mockDeps);
 
-		// First Approval
+		// Should be called 3 times: 2 approvals + 1 deployment
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(3);
+
+		// First approval
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			1,
-			expect.objectContaining({ args: expect.objectContaining({ toAddress: approval1.token }) })
-		);
-		const approval1OnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
-		const mockApproval1TxHash = '0xapproval1Hash' as Hex;
-		await approval1OnConfirm(mockApproval1TxHash);
-
-		expect(mockCreateApprovalTransaction).toHaveBeenCalledTimes(1);
-		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
-			1,
-			expect.objectContaining({ txHash: mockApproval1TxHash, networkKey: MOCKED_NETWORK_KEY })
+			expect.objectContaining({
+				modalTitle: 'Approving token spend',
+				args: expect.objectContaining({ toAddress: approval1.token })
+			})
 		);
 
-		// Second Approval
-
+		// Second approval
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			2,
-			expect.objectContaining({ args: expect.objectContaining({ toAddress: approval2.token }) })
-		);
-		const approval2OnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
-		const mockApproval2TxHash = '0xapproval2Hash' as Hex;
-		await approval2OnConfirm(mockApproval2TxHash);
-
-		expect(mockCreateApprovalTransaction).toHaveBeenCalledTimes(2);
-		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
-			2,
-			expect.objectContaining({ txHash: mockApproval2TxHash, networkKey: MOCKED_NETWORK_KEY })
+			expect.objectContaining({
+				modalTitle: 'Approving token spend',
+				args: expect.objectContaining({ toAddress: approval2.token })
+			})
 		);
 
-		// Add Order
-
+		// Deployment
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			3,
 			expect.objectContaining({
+				modalTitle: 'Deploying your order',
 				args: expect.objectContaining({ toAddress: currentTestSpecificArgs.orderbookAddress })
 			})
 		);
-		const addOrderOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
-		const mockAddOrderTxHash = '0xaddOrderFinalHash' as Hex;
-		await addOrderOnConfirm(mockAddOrderTxHash);
 
-		expect(mockCreateAddOrderTransaction).toHaveBeenCalledTimes(1);
+		// Verify onConfirm functions would call the right transaction managers
+		const approval1OnConfirm =
+			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		const approval2OnConfirm =
+			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+		const deploymentOnConfirm =
+			mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
+
+		// Simulate calling onConfirm for first approval
+		await approval1OnConfirm('0xapproval1TxHash' as Hex);
+		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({ txHash: '0xapproval1TxHash', networkKey: MOCKED_NETWORK_KEY })
+		);
+
+		// Simulate calling onConfirm for second approval
+		await approval2OnConfirm('0xapproval2TxHash' as Hex);
+		expect(mockCreateApprovalTransaction).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({ txHash: '0xapproval2TxHash', networkKey: MOCKED_NETWORK_KEY })
+		);
+
+		// Simulate calling onConfirm for deployment
+		await deploymentOnConfirm('0xdeploymentTxHash' as Hex);
 		expect(mockCreateAddOrderTransaction).toHaveBeenCalledWith(
 			expect.objectContaining({
-				txHash: mockAddOrderTxHash,
+				txHash: '0xdeploymentTxHash',
 				networkKey: MOCKED_NETWORK_KEY,
 				subgraphUrl: mockDeps.subgraphUrl
 			})
@@ -278,13 +295,23 @@ describe('handleAddOrder', () => {
 			error: null
 		});
 
-		// No mockImplementationOnce here, we'll control the hash via onConfirm calls
+		// Mock sequential calls with specific hashes
+		mockHandleTransactionConfirmationModal
+			.mockResolvedValueOnce({ success: true, hash: '0xspecificApprovalHash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xspecificAddOrderHash' });
+
 		await handleAddOrder(mockDeps);
 
-		// Approval Confirmation
+		// Should be called twice: approval + deployment
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
+
+		// Verify onConfirm functions would call the right transaction managers with specific hashes
 		const approvalOnConfirm =
 			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		const addOrderOnConfirm =
+			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+
+		// Simulate calling onConfirm for approval with specific hash
 		const specificApprovalHash = '0xspecificApprovalHash' as Hex;
 		await approvalOnConfirm(specificApprovalHash);
 
@@ -297,10 +324,7 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Add Order Confirmation
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
-		const addOrderOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+		// Simulate calling onConfirm for deployment with specific hash
 		const specificAddOrderHash = '0xspecificAddOrderHash' as Hex;
 		await addOrderOnConfirm(specificAddOrderHash);
 
@@ -355,6 +379,33 @@ describe('handleAddOrder', () => {
 		expect(mockErrToast).toHaveBeenCalledWith(`Could not deploy: ${customErrorMsg}`);
 		expect(mockGetNetworkKey).toHaveBeenCalled();
 		expect(mockHandleTransactionConfirmationModal).not.toHaveBeenCalled();
+		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
+		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
+	});
+
+	it('should call errToast and stop if approval fails', async () => {
+		const approval1 = {
+			token: '0xtoken1' as Hex,
+			calldata: '0xapprovalcalldata1' as Hex,
+			symbol: 'TKN1'
+		};
+		const currentTestSpecificArgs: DeploymentTransactionArgs = {
+			...mockDeploymentArgs,
+			approvals: [approval1]
+		};
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: currentTestSpecificArgs,
+			error: null
+		});
+
+		// Mock approval failure - first call fails, second should not happen
+		mockHandleTransactionConfirmationModal.mockResolvedValueOnce({ success: false }); // Approval fails
+
+		await handleAddOrder(mockDeps);
+
+		// Should only be called once for the failed approval
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockErrToast).toHaveBeenCalledWith('Approval was cancelled or failed');
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
 		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
 	});

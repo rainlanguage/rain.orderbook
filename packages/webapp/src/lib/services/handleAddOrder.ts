@@ -1,5 +1,8 @@
 import type { DotrainOrderGui } from '@rainlanguage/orderbook';
-import type { TransactionConfirmationProps, TransactionManager } from '@rainlanguage/ui-components';
+import type {
+	TransactionManager,
+	HandleTransactionConfirmationModal
+} from '@rainlanguage/ui-components';
 import { QKEY_ORDERS } from '@rainlanguage/ui-components';
 import type { Hex } from 'viem';
 
@@ -13,7 +16,7 @@ export enum AddOrderErrors {
 }
 
 export type HandleAddOrderDependencies = {
-	handleTransactionConfirmationModal: (props: TransactionConfirmationProps) => void;
+	handleTransactionConfirmationModal: HandleTransactionConfirmationModal;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
 	gui: DotrainOrderGui;
@@ -43,43 +46,58 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
 
 	for (const approval of approvals) {
-		const confirmationArgs: TransactionConfirmationProps = {
+		try {
+			const approvalResult = await deps.handleTransactionConfirmationModal({
+				open: true,
+				modalTitle: 'Approving token spend',
+				closeOnConfirm: true,
+				args: {
+					toAddress: approval.token as Hex,
+					chainId,
+					calldata: approval.calldata as `0x${string}`,
+					onConfirm: (hash: Hex) => {
+						deps.manager.createApprovalTransaction({
+							chainId,
+							txHash: hash,
+							queryKey: QKEY_ORDERS,
+							networkKey: network
+						});
+					}
+				}
+			});
+
+			if (!approvalResult.success) {
+				return errToast('Approval was cancelled or failed');
+			}
+		} catch (error) {
+			return errToast('Approval failed: ' + (error as Error).message);
+		}
+	}
+
+	try {
+		const deploymentResult = await deps.handleTransactionConfirmationModal({
 			open: true,
-			modalTitle: 'Approving token spend',
+			modalTitle: 'Deploying your order',
 			args: {
-				toAddress: approval.token as Hex,
+				toAddress: orderbookAddress as Hex,
 				chainId,
-				calldata: approval.calldata as `0x${string}`,
+				calldata: deploymentCalldata as `0x${string}`,
 				onConfirm: (hash: Hex) => {
-					deps.manager.createApprovalTransaction({
+					deps.manager.createAddOrderTransaction({
 						chainId,
 						txHash: hash,
 						queryKey: QKEY_ORDERS,
-						networkKey: network
+						networkKey: network,
+						subgraphUrl: deps.subgraphUrl || ''
 					});
 				}
 			}
-		};
-		deps.handleTransactionConfirmationModal(confirmationArgs);
-	}
+		});
 
-	const addOrderArgs: TransactionConfirmationProps = {
-		open: true,
-		modalTitle: 'Deploying your order',
-		args: {
-			toAddress: orderbookAddress as Hex,
-			chainId,
-			calldata: deploymentCalldata as `0x${string}`,
-			onConfirm: (hash: Hex) => {
-				deps.manager.createAddOrderTransaction({
-					chainId,
-					txHash: hash,
-					queryKey: QKEY_ORDERS,
-					networkKey: network,
-					subgraphUrl: deps.subgraphUrl || ''
-				});
-			}
+		if (!deploymentResult.success) {
+			return errToast('Deployment was cancelled or failed');
 		}
-	};
-	deps.handleTransactionConfirmationModal(addOrderArgs);
+	} catch (error) {
+		return errToast('Deployment failed: ' + (error as Error).message);
+	}
 };

@@ -686,9 +686,9 @@ describe('TransactionManager', () => {
 			expect(TransactionStore).toHaveBeenCalledWith(
 				{
 					...fullMockArgsForExpectation,
-					name: 'Deploying strategy',
+					name: 'Deploying order',
 					errorMessage: 'Deployment failed.',
-					successMessage: 'Strategy deployed successfully.',
+					successMessage: 'Order deployed successfully.',
 					queryKey: addOrderMockArgs.queryKey,
 					toastLinks: [
 						{
@@ -700,7 +700,7 @@ describe('TransactionManager', () => {
 					awaitSubgraphConfig: {
 						subgraphUrl: addOrderMockArgs.subgraphUrl,
 						txHash: addOrderMockArgs.txHash,
-						successMessage: 'Strategy deployed successfully.',
+						successMessage: 'Order deployed successfully.',
 						fetchEntityFn: getTransactionAddOrders,
 						isSuccess: expect.any(Function)
 					}

@@ -47,11 +47,12 @@ export class TransactionStore implements Transaction {
 	private name: string;
 	private config: Config;
 	private txHash: Hex;
+	private networkKey: string;
 	private links: {
 		link: string;
 		label: string;
 	}[];
-	private onSuccess: (newOrderHash?: string) => void;
+	private onSuccess: () => void;
 	private onError: () => void;
 	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
 	private awaitSubgraphConfig?: AwaitSubgraphConfig;
@@ -71,6 +72,7 @@ export class TransactionStore implements Transaction {
 		this.config = args.config;
 		this.txHash = args.txHash;
 		this.name = args.name;
+		this.networkKey = args.networkKey;
 		this.links = args.toastLinks;
 		this.state = writable<TransactionStoreState>({
 			name: this.name,
@@ -158,7 +160,19 @@ export class TransactionStore implements Transaction {
 				status: TransactionStatusMessage.SUCCESS
 			});
 			const newOrderHash = result.value.orderHash;
-			return this.onSuccess(newOrderHash);
+
+			// If we have a new order hash, add the "View order" link
+			if (newOrderHash) {
+				const newLink = {
+					link: `/orders/${this.networkKey}-${newOrderHash}`,
+					label: 'View order'
+				};
+				this.updateState({
+					links: [newLink, ...this.links]
+				});
+			}
+
+			return this.onSuccess();
 		}
 
 		this.updateState({
