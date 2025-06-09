@@ -15,12 +15,12 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_obje
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct NewConfig {
+pub struct Config {
     dotrain_order: DotrainOrderConfig,
     orderbook: OrderbookConfig,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(NewConfig);
+impl_wasm_traits!(Config);
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -157,6 +157,86 @@ pub enum ParseConfigError {
     SerdeWasmBindgenError(#[from] wasm_bindgen_utils::prelude::serde_wasm_bindgen::Error),
 }
 
+impl ParseConfigError {
+    pub fn to_readable_msg(&self) -> String {
+        match self {
+            ParseConfigError::ParseNetworkCfgError(e) => {
+                format!("Failed to parse network configuration: {}", e)
+            }
+            ParseConfigError::ParseOrderbookCfgError(e) => {
+                format!("Failed to parse orderbook configuration: {}", e)
+            }
+            ParseConfigError::ParseTokenCfgError(e) => {
+                format!("Failed to parse token configuration: {}", e)
+            }
+            ParseConfigError::ParseOrderCfgError(e) => {
+                format!("Failed to parse order configuration: {}", e)
+            }
+            ParseConfigError::ParseDeployerCfgError(e) => {
+                format!("Failed to parse deployer configuration: {}", e)
+            }
+            ParseConfigError::ParseScenarioCfgError(e) => {
+                format!("Failed to parse scenario configuration: {}", e)
+            }
+            ParseConfigError::ParseDeploymentCfgError(e) => {
+                format!("Failed to parse deployment configuration: {}", e)
+            }
+            ParseConfigError::ParseGuiCfgError(e) => {
+                format!("Failed to parse GUI configuration: {}", e)
+            }
+            ParseConfigError::YamlError(e) => e.to_readable_msg(),
+            ParseConfigError::NetworkNotFound(name) => format!(
+                "The network '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::SubgraphNotFound(name) => format!(
+                "The subgraph '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::MetaboardNotFound(name) => format!(
+                "The metaboard '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::OrderbookNotFound(name) => format!(
+                "The orderbook '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::OrderNotFound(name) => format!(
+                "The order '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::TokenNotFound(name) => format!(
+                "The token '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::DeployerNotFound(name) => format!(
+                "The deployer '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::ScenarioNotFound(name) => format!(
+                "The scenario '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::ChartNotFound(name) => format!(
+                "The chart '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::DeploymentNotFound(name) => format!(
+                "The deployment '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            ParseConfigError::AccountNotFound(name) => format!(
+                "The account '{}' could not be found. Please check your YAML configuration.",
+                name
+            ),
+            #[cfg(target_family = "wasm")]
+            ParseConfigError::SerdeWasmBindgenError(e) => {
+                format!("Data serialization error: {}", e)
+            }
+        }
+    }
+}
+
 #[cfg(target_family = "wasm")]
 impl From<ParseConfigError> for JsValue {
     fn from(value: ParseConfigError) -> Self {
@@ -164,7 +244,16 @@ impl From<ParseConfigError> for JsValue {
     }
 }
 
-impl NewConfig {
+impl From<ParseConfigError> for WasmEncodedError {
+    fn from(value: ParseConfigError) -> Self {
+        WasmEncodedError {
+            msg: value.to_string(),
+            readable_msg: value.to_readable_msg(),
+        }
+    }
+}
+
+impl Config {
     pub fn try_from_yaml(yaml: Vec<String>, validate: bool) -> Result<Self, ParseConfigError> {
         let dotrain_yaml = DotrainYaml::new(yaml.clone(), validate)?;
         let orderbook_yaml = OrderbookYaml::new(yaml, validate)?;
@@ -258,7 +347,7 @@ impl NewConfig {
             charts,
         };
 
-        let config = NewConfig {
+        let config = Config {
             dotrain_order: dotrain_order_config,
             orderbook: orderbook_config,
         };
@@ -398,7 +487,7 @@ impl NewConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::NewConfig;
+    use super::Config;
     use crate::{
         spec_version::SpecVersion,
         test::{MOCK_DOTRAIN_YAML, MOCK_ORDERBOOK_YAML},
@@ -409,8 +498,8 @@ mod tests {
     use std::str::FromStr;
     use url::Url;
 
-    fn setup_config() -> NewConfig {
-        NewConfig::try_from_yaml(
+    fn setup_config() -> Config {
+        Config::try_from_yaml(
             vec![
                 MOCK_ORDERBOOK_YAML.to_string(),
                 MOCK_DOTRAIN_YAML.to_string(),
