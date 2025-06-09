@@ -313,9 +313,9 @@ export class TransactionManager {
 		args: InternalTransactionArgs & { subgraphUrl: string }
 	): Promise<Transaction> {
 		const { queryKey, txHash, chainId, subgraphUrl } = args;
-		const name = 'Deploying strategy';
+		const name = 'Deploying order';
 		const errorMessage = 'Deployment failed.';
-		const successMessage = 'Strategy deployed successfully.';
+		const successMessage = 'Order deployed successfully.';
 
 		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
 		const toastLinks: ToastLink[] = [

@@ -65,7 +65,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 
 	const addOrderArgs: TransactionConfirmationProps = {
 		open: true,
-		modalTitle: 'Deploying your strategy',
+		modalTitle: 'Deploying your order',
 		args: {
 			toAddress: orderbookAddress as Hex,
 			chainId,
