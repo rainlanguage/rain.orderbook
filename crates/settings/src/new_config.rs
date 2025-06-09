@@ -15,12 +15,12 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_obje
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct Config {
+pub struct NewConfig {
     dotrain_order: DotrainOrderConfig,
     orderbook: OrderbookConfig,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(Config);
+impl_wasm_traits!(NewConfig);
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -253,7 +253,7 @@ impl From<ParseConfigError> for WasmEncodedError {
     }
 }
 
-impl Config {
+impl NewConfig {
     pub fn try_from_yaml(yaml: Vec<String>, validate: bool) -> Result<Self, ParseConfigError> {
         let dotrain_yaml = DotrainYaml::new(yaml.clone(), validate)?;
         let orderbook_yaml = OrderbookYaml::new(yaml, validate)?;
@@ -347,7 +347,7 @@ impl Config {
             charts,
         };
 
-        let config = Config {
+        let config = NewConfig {
             dotrain_order: dotrain_order_config,
             orderbook: orderbook_config,
         };
@@ -487,7 +487,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use super::Config;
+    use super::NewConfig;
     use crate::{
         spec_version::SpecVersion,
         test::{MOCK_DOTRAIN_YAML, MOCK_ORDERBOOK_YAML},
@@ -498,8 +498,8 @@ mod tests {
     use std::str::FromStr;
     use url::Url;
 
-    fn setup_config() -> Config {
-        Config::try_from_yaml(
+    fn setup_config() -> NewConfig {
+        NewConfig::try_from_yaml(
             vec![
                 MOCK_ORDERBOOK_YAML.to_string(),
                 MOCK_DOTRAIN_YAML.to_string(),
