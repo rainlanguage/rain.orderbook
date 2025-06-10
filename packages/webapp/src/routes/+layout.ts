@@ -20,7 +20,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 
 	try {
 		const response = await fetch(
-			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/037747012240788495b8341ee40dfd407d1fedd3/settings.yaml'
+			'https://raw.githubusercontent.com/rainlanguage/rain.strategies/c300d06cc8b460b06104849679284a2b0600240d/settings.yaml'
 		);
 		if (!response.ok) {
 			throw new Error('Error status: ' + response.status.toString());
@@ -245,7 +245,7 @@ subgraphs:
 			const result = await load({ fetch: mockFetch } as any);
 
 			expect(mockFetch).toHaveBeenCalledWith(
-				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/037747012240788495b8341ee40dfd407d1fedd3/settings.yaml'
+				'https://raw.githubusercontent.com/rainlanguage/rain.strategies/c300d06cc8b460b06104849679284a2b0600240d/settings.yaml'
 			);
 
 			expect(result).toHaveProperty('stores');
