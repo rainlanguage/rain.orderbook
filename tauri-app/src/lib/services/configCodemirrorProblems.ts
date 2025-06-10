@@ -2,7 +2,7 @@ import { ErrorCode, type Problem } from 'codemirror-rainlang';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 import { mergeDotrainConfigWithSettings, parseConfig } from './config';
 
-export async function parseConfigSourceProblems(text: string) {
+export async function parseConfigProblems(text: string) {
   const problems: Problem[] = [];
 
   try {

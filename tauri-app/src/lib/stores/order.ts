@@ -7,7 +7,11 @@ import { listStore } from '$lib/storesGeneric/listStore';
 export const orderDetail = detailStore<OrderDetailExtended>(
   'orders.orderDetail',
   async (id: string) => {
-    const url = await subgraph.load();
+    const value = await subgraph.load();
+    if (!value) {
+      throw new Error('Subgraph not found');
+    }
+    const url = value.url;
     return invoke('order_detail', { id, subgraphArgs: { url } });
   },
 );
@@ -16,7 +20,11 @@ export const useOrderTradesList = (orderId: string) =>
   listStore<SgTrade>(
     `orderTakesList-${orderId}`,
     async (page) => {
-      const url = await subgraph.load();
+      const value = await subgraph.load();
+      if (!value) {
+        throw new Error('Subgraph not found');
+      }
+      const url = value.url;
       return invoke('order_trades_list', {
         subgraphArgs: { url },
         orderId,
@@ -24,7 +32,11 @@ export const useOrderTradesList = (orderId: string) =>
       });
     },
     async (path) => {
-      const url = await subgraph.load();
+      const value = await subgraph.load();
+      if (!value) {
+        throw new Error('Subgraph not found');
+      }
+      const url = value.url;
       return invoke('order_trades_list_write_csv', { path, subgraphArgs: { url }, orderId });
     },
   );
