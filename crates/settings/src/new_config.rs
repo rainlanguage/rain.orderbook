@@ -64,7 +64,6 @@ pub struct OrderbookConfig {
     deployers: HashMap<String, Arc<DeployerCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     sentry: Option<bool>,
-    #[cfg_attr(target_family = "wasm", tsify(optional))]
     version: String,
     #[cfg_attr(
         target_family = "wasm",
@@ -244,6 +243,7 @@ impl From<ParseConfigError> for JsValue {
     }
 }
 
+#[cfg(target_family = "wasm")]
 impl From<ParseConfigError> for WasmEncodedError {
     fn from(value: ParseConfigError) -> Self {
         WasmEncodedError {

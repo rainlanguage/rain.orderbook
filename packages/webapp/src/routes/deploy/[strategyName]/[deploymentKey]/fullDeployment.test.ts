@@ -2,7 +2,7 @@ import { vi, describe } from 'vitest';
 import Page from './+page.svelte';
 import { render, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { useAccount, type DeploymentArgs } from '@rainlanguage/ui-components';
+import { mockConfig, useAccount, type DeploymentArgs } from '@rainlanguage/ui-components';
 import { readable } from 'svelte/store';
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 import { handleDeploy } from '$lib/services/handleDeploy';
@@ -210,7 +210,7 @@ describe('Full Deployment Tests', () => {
 			);
 			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
+			expect(callArgs.subgraphUrl).toEqual(mockConfig.orderbook.subgraphs.flare.url);
 			expect(callArgs.network).toEqual('flare');
 		},
 		{ timeout: 30000 }
@@ -355,7 +355,7 @@ describe('Full Deployment Tests', () => {
 			);
 			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
+			expect(callArgs.subgraphUrl).toEqual(mockConfig.orderbook.subgraphs.flare.url);
 			expect(callArgs.network).toEqual('flare');
 		},
 		{ timeout: 30000 }
@@ -489,7 +489,7 @@ describe('Full Deployment Tests', () => {
 			);
 			expect(callArgs.orderbookAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.chainId).toEqual(args?.chainId);
-			expect(callArgs.subgraphUrl).toEqual(undefined);
+			expect(callArgs.subgraphUrl).toEqual(mockConfig.orderbook.subgraphs.flare.url);
 			expect(callArgs.network).toEqual('flare');
 		},
 		{ timeout: 30000 }

@@ -71,10 +71,10 @@ export async function walletconnectConnect(priorityChainIds: number[]) {
 
     const $settings = get(settings);
 
-    if ($settings?.networks) {
-      for (const network of Object.values($settings.networks)) {
-        rpcMap[network['chain-id']] = network.rpc;
-        chains.push(network['chain-id']);
+    if ($settings?.orderbook.networks) {
+      for (const network of Object.values($settings.orderbook.networks)) {
+        rpcMap[network.key] = network.rpc;
+        chains.push(network.chainId);
       }
       try {
         await walletconnectProvider?.connect({

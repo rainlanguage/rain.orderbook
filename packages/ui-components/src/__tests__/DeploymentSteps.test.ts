@@ -9,7 +9,7 @@ import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import { handleDeployment } from '../lib/components/deployment/handleDeployment';
-import { mockConfigSource } from '../lib/__mocks__/settings';
+import { mockConfig } from '../lib/__mocks__/settings';
 import type { DeploymentArgs } from '$lib/types/transaction';
 import type { Account } from '$lib/types/account';
 
@@ -90,7 +90,7 @@ const defaultProps: DeploymentStepsProps = {
 	wagmiConnected: mockConnectedStore,
 	appKitModal: writable({} as AppKit),
 	onDeploy: mockOnDeploy,
-	settings: writable(mockConfigSource),
+	settings: writable(mockConfig),
 	registryUrl: 'https://registry.reown.xyz',
 	account: readable('0x123')
 } as DeploymentStepsProps;
@@ -167,7 +167,7 @@ describe('DeploymentSteps', () => {
 			expect(handleDeployment).toHaveBeenCalledWith(
 				mockGui,
 				'0x123',
-				mockConfigSource.subgraphs?.mainnet
+				mockConfig.orderbook.subgraphs.mainnet.url
 			);
 		});
 	});
@@ -458,7 +458,7 @@ describe('DeploymentSteps', () => {
 
 			expect(guiArg).toBe(mockGui);
 			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
+			expect(subgraphUrlArg).toBe(mockConfig.orderbook.subgraphs.flare.url);
 		});
 	});
 });

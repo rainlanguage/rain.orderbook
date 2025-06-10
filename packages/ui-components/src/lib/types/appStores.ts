@@ -4,7 +4,7 @@ import type { AccountCfg, NewConfig, OrderbookCfg, SubgraphCfg } from '@rainlang
 export interface AppStoresInterface {
 	settings: Writable<NewConfig>;
 	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
-	accounts: Readable<Record<string, AccountCfg>> | undefined;
+	accounts: Readable<Record<string, AccountCfg>>;
 	activeAccountsItems: Writable<Record<string, string>> | undefined;
 	showInactiveOrders: Writable<boolean>;
 	orderHash: Writable<string>;

@@ -24,16 +24,16 @@
   let rpcUrl: string | undefined;
 
   if ($settings) {
-    if ($settings.orderbooks?.[network]) {
-      orderbookAddress = $settings.orderbooks[network].address as Hex;
+    if ($settings.orderbook.orderbooks[network]) {
+      orderbookAddress = $settings.orderbook.orderbooks[network].address as Hex;
     }
 
-    if ($settings.subgraphs) {
-      subgraphUrl = $settings.subgraphs[network];
+    if ($settings.orderbook.subgraphs[network]) {
+      subgraphUrl = $settings.orderbook.subgraphs[network].url;
     }
 
-    if ($settings.networks?.[network]) {
-      rpcUrl = $settings.networks[network].rpc;
+    if ($settings.orderbook.networks[network]) {
+      rpcUrl = $settings.orderbook.networks[network].rpc;
     }
   }
 

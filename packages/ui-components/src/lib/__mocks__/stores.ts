@@ -1,4 +1,4 @@
-import type { ConfigSource } from '@rainlanguage/orderbook';
+import type { AccountCfg, NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
@@ -23,9 +23,9 @@ const initialPageState = {
 };
 
 const mockPageWritable = writable<typeof initialPageState>(initialPageState);
-const mockSettingsWritable = writable<ConfigSource | undefined>(settingsFixture);
-const mockActiveSubgraphsWritable = writable<Record<string, string>>({});
-const mockAccountsWritable = writable<Record<string, string>>({});
+const mockSettingsWritable = writable<NewConfig>(settingsFixture as unknown as NewConfig);
+const mockActiveSubgraphsWritable = writable<Record<string, SubgraphCfg>>({});
+const mockAccountsWritable = writable<Record<string, AccountCfg>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
 const mockShowInactiveOrdersWritable = writable<boolean>(true);
 const mockOrderHashWritable = writable<string>('');
@@ -42,13 +42,13 @@ const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
 	set: mockSettingsWritable.set,
-	mockSetSubscribeValue: (value: ConfigSource | undefined): void => mockSettingsWritable.set(value)
+	mockSetSubscribeValue: (value: NewConfig): void => mockSettingsWritable.set(value)
 };
 
 export const mockActiveSubgraphsStore = {
 	subscribe: mockActiveSubgraphsWritable.subscribe,
 	set: mockActiveSubgraphsWritable.set,
-	mockSetSubscribeValue: (value: Record<string, string>): void =>
+	mockSetSubscribeValue: (value: Record<string, SubgraphCfg>): void =>
 		mockActiveSubgraphsWritable.set(value)
 };
 

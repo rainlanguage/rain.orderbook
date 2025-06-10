@@ -3,13 +3,13 @@
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
-		type ConfigSource,
 		type GuiSelectTokensCfg,
 		type TokenInfo,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type OrderIOCfg
+		type OrderIOCfg,
+		type NewConfig
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -43,7 +43,7 @@
 	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<ConfigSource>;
+	export let settings: Writable<NewConfig>;
 	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
@@ -72,7 +72,7 @@
 		if (error) {
 			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_NETWORK_KEY);
 		} else if (value) {
-			subgraphUrl = $settings?.subgraphs?.[value];
+			subgraphUrl = $settings.orderbook.subgraphs[value].url;
 		}
 		await areAllTokensSelected();
 	});
