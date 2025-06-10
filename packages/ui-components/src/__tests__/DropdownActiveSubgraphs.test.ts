@@ -3,7 +3,7 @@ import { get, writable, type Writable } from 'svelte/store';
 import { beforeEach, expect, test, describe } from 'vitest';
 import DropdownActiveSubgraphs from '../lib/components/dropdown/DropdownActiveSubgraphs.svelte';
 import { mockConfig } from '../lib/__mocks__/settings';
-import type { NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
+import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
 
 describe('DropdownActiveSubgraphs', () => {
 	const mockSettings = {
@@ -25,7 +25,7 @@ describe('DropdownActiveSubgraphs', () => {
 				}
 			}
 		}
-	} as unknown as NewConfig;
+	} as unknown as Config;
 	let activeSubgraphsStore: Writable<Record<string, SubgraphCfg>>;
 
 	beforeEach(() => {

@@ -1,4 +1,4 @@
-import type { AccountCfg, NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
+import type { AccountCfg, Config, SubgraphCfg } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
@@ -23,7 +23,7 @@ const initialPageState = {
 };
 
 const mockPageWritable = writable<typeof initialPageState>(initialPageState);
-const mockSettingsWritable = writable<NewConfig>(settingsFixture as unknown as NewConfig);
+const mockSettingsWritable = writable<Config>(settingsFixture as unknown as Config);
 const mockActiveSubgraphsWritable = writable<Record<string, SubgraphCfg>>({});
 const mockAccountsWritable = writable<Record<string, AccountCfg>>({});
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
@@ -42,7 +42,7 @@ const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 export const mockSettingsStore = {
 	subscribe: mockSettingsWritable.subscribe,
 	set: mockSettingsWritable.set,
-	mockSetSubscribeValue: (value: NewConfig): void => mockSettingsWritable.set(value)
+	mockSetSubscribeValue: (value: Config): void => mockSettingsWritable.set(value)
 };
 
 export const mockActiveSubgraphsStore = {

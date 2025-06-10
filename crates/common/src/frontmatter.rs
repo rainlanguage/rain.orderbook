@@ -1,13 +1,10 @@
 use dotrain::RainDocument;
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::{config::ParseConfigSourceError, config_source::ConfigSource};
+use rain_orderbook_app_settings::{config::Config, ParseConfigError};
 
-/// Parse dotrain frontmatter and merges it with top Config if given
-pub async fn parse_frontmatter(dotrain: String) -> Result<ConfigSource, ParseConfigSourceError> {
+pub async fn parse_frontmatter(dotrain: String) -> Result<Config, ParseConfigError> {
     let frontmatter = RainDocument::get_front_matter(dotrain.as_str()).unwrap_or("");
-    Ok(ConfigSource::try_from_string(frontmatter.to_string(), None)
-        .await?
-        .0)
+    Config::try_from_yaml(vec![frontmatter.to_string()], false)
 }
 
 #[cfg(test)]
@@ -29,8 +26,9 @@ mod tests {
     async fn test_parse_networks() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.networks.len(), 2);
-        let mainnet_network = config.networks.get("mainnet").unwrap();
+        assert_eq!(config.get_networks().len(), 2);
+        let networks = config.get_networks();
+        let mainnet_network = networks.get("mainnet").unwrap();
         assert_eq!(
             mainnet_network.rpc,
             Url::parse("https://mainnet.infura.io").unwrap()
@@ -39,7 +37,7 @@ mod tests {
         assert!(mainnet_network.label.is_none());
         assert!(mainnet_network.network_id.is_none());
         assert!(mainnet_network.currency.is_none());
-        let testnet_network = config.networks.get("testnet").unwrap();
+        let testnet_network = networks.get("testnet").unwrap();
         assert_eq!(
             testnet_network.rpc,
             Url::parse("https://testnet.infura.io").unwrap()
@@ -54,16 +52,17 @@ mod tests {
     async fn test_parse_subgraphs() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.subgraphs.len(), 2);
-        let mainnet_subgraph = config.subgraphs.get("mainnet").unwrap();
+        assert_eq!(config.get_subgraphs().len(), 2);
+        let subgraphs = config.get_subgraphs();
+        let mainnet_subgraph = subgraphs.get("mainnet").unwrap();
         assert_eq!(
-            mainnet_subgraph,
-            &Url::parse("https://mainnet-subgraph.com").unwrap()
+            mainnet_subgraph.url,
+            Url::parse("https://mainnet-subgraph.com").unwrap()
         );
-        let testnet_subgraph = config.subgraphs.get("testnet").unwrap();
+        let testnet_subgraph = subgraphs.get("testnet").unwrap();
         assert_eq!(
-            testnet_subgraph,
-            &Url::parse("https://testnet-subgraph.com").unwrap()
+            testnet_subgraph.url,
+            Url::parse("https://testnet-subgraph.com").unwrap()
         );
     }
 
@@ -71,15 +70,16 @@ mod tests {
     async fn test_parse_metaboards() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.metaboards.len(), 2);
-        let mainnet_metaboard = config.metaboards.get("mainnet").unwrap();
+        assert_eq!(config.get_metaboards().len(), 2);
+        let metaboards = config.get_metaboards();
+        let mainnet_metaboard = metaboards.get("mainnet").unwrap();
         assert_eq!(
-            mainnet_metaboard,
+            mainnet_metaboard.as_ref(),
             &Url::parse("https://mainnet-metaboard.com").unwrap()
         );
-        let testnet_metaboard = config.metaboards.get("testnet").unwrap();
+        let testnet_metaboard = metaboards.get("testnet").unwrap();
         assert_eq!(
-            testnet_metaboard,
+            testnet_metaboard.as_ref(),
             &Url::parse("https://testnet-metaboard.com").unwrap()
         );
     }
@@ -88,13 +88,14 @@ mod tests {
     async fn test_parse_orderbooks() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.orderbooks.len(), 2);
-        let mainnet_orderbook = config.orderbooks.get("mainnet").unwrap();
+        assert_eq!(config.get_orderbooks().len(), 2);
+        let orderbooks = config.get_orderbooks();
+        let mainnet_orderbook = orderbooks.get("mainnet").unwrap();
         assert_eq!(
             mainnet_orderbook.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
         );
-        let testnet_orderbook = config.orderbooks.get("testnet").unwrap();
+        let testnet_orderbook = orderbooks.get("testnet").unwrap();
         assert_eq!(
             testnet_orderbook.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -105,8 +106,9 @@ mod tests {
     async fn test_parse_tokens() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.tokens.len(), 2);
-        let token1 = config.tokens.get("token1").unwrap();
+        assert_eq!(config.get_tokens().len(), 2);
+        let tokens = config.get_tokens();
+        let token1 = tokens.get("token1").unwrap();
         assert_eq!(
             token1.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -114,7 +116,7 @@ mod tests {
         assert_eq!(token1.decimals, Some(18));
         assert_eq!(token1.label, Some("Wrapped Ether".to_string()));
         assert_eq!(token1.symbol, Some("WETH".to_string()));
-        let token2 = config.tokens.get("token2").unwrap();
+        let token2 = tokens.get("token2").unwrap();
         assert_eq!(
             token2.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -128,13 +130,14 @@ mod tests {
     async fn test_parse_deployers() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.deployers.len(), 2);
-        let deployer_scenario1 = config.deployers.get("scenario1").unwrap();
+        assert_eq!(config.get_deployers().len(), 2);
+        let deployers = config.get_deployers();
+        let deployer_scenario1 = deployers.get("scenario1").unwrap();
         assert_eq!(
             deployer_scenario1.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
         );
-        let deployer2 = config.deployers.get("deployer2").unwrap();
+        let deployer2 = deployers.get("deployer2").unwrap();
         assert_eq!(
             deployer2.address,
             Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
@@ -145,15 +148,16 @@ mod tests {
     async fn test_parse_orders() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.orders.len(), 1);
-        let order1 = config.orders.get("order1").unwrap();
+        assert_eq!(config.get_orders().len(), 1);
+        let orders = config.get_orders();
+        let order1 = orders.get("order1").unwrap();
         assert_eq!(order1.inputs.len(), 1);
         let order1_input = &order1.inputs[0];
-        assert_eq!(order1_input.token, "token1");
+        assert_eq!(order1_input.token.as_ref().unwrap().key, "token1");
         assert_eq!(order1_input.vault_id, Some(U256::from(1)));
         assert_eq!(order1.outputs.len(), 1);
         let order1_output = &order1.outputs[0];
-        assert_eq!(order1_output.token, "token2");
+        assert_eq!(order1_output.token.as_ref().unwrap().key, "token2");
         assert_eq!(order1_output.vault_id, Some(U256::from(2)));
     }
 
@@ -161,44 +165,46 @@ mod tests {
     async fn test_parse_scenarios() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.scenarios.len(), 1);
-        let scenario1 = config.scenarios.get("scenario1").unwrap();
+        assert_eq!(config.get_scenarios().len(), 2);
+        let scenarios = config.get_scenarios();
+        let scenario1 = scenarios.get("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "10");
         assert!(scenario1.runs.is_none());
         assert!(scenario1.blocks.is_none());
-        let scenario1_scenarios = scenario1.scenarios.as_ref().unwrap();
-        let scenario1_scenario2 = scenario1_scenarios.get("scenario2").unwrap();
-        assert_eq!(scenario1_scenario2.bindings.len(), 1);
-        assert_eq!(scenario1_scenario2.bindings.get("key2").unwrap(), "20");
-        assert_eq!(scenario1_scenario2.runs.unwrap(), 10);
-        assert!(scenario1_scenario2.blocks.is_none());
+        let scenario2 = scenarios.get("scenario1.scenario2").unwrap();
+        assert_eq!(scenario2.bindings.len(), 2);
+        assert_eq!(scenario2.bindings.get("key2").unwrap(), "20");
+        assert_eq!(scenario2.runs.unwrap(), 10);
+        assert!(scenario2.blocks.is_none());
     }
 
     #[tokio::test]
     async fn test_parse_deployments() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.deployments.len(), 2);
-        let deployment1 = config.deployments.get("deployment1").unwrap();
-        assert_eq!(deployment1.order, "order1");
-        assert_eq!(deployment1.scenario, "scenario1.scenario2");
-        let deployment2 = config.deployments.get("deployment2").unwrap();
-        assert_eq!(deployment2.order, "order1");
-        assert_eq!(deployment2.scenario, "scenario1");
+        assert_eq!(config.get_deployments().len(), 2);
+        let deployments = config.get_deployments();
+        let deployment1 = deployments.get("deployment1").unwrap();
+        assert_eq!(deployment1.order.key, "order1");
+        assert_eq!(deployment1.scenario.key, "scenario1.scenario2");
+        let deployment2 = deployments.get("deployment2").unwrap();
+        assert_eq!(deployment2.order.key, "order1");
+        assert_eq!(deployment2.scenario.key, "scenario1");
     }
 
     #[tokio::test]
     async fn test_parse_charts() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert_eq!(config.charts.len(), 1);
-        let chart1 = config.charts.get("chart1").unwrap();
+        assert_eq!(config.get_charts().len(), 1);
+        let charts = config.get_charts();
+        let chart1 = charts.get("chart1").unwrap();
         assert!(chart1.plots.is_some());
         assert!(chart1.metrics.is_none());
         let plots = chart1.plots.as_ref().unwrap();
         assert_eq!(plots.len(), 1);
-        let plot1 = plots.get("plot1").unwrap();
+        let plot1 = plots[0].clone();
         assert_eq!(plot1.title, Some("Test title".to_string()));
         assert_eq!(plot1.subtitle, Some("Test subtitle".to_string()));
         assert_eq!(plot1.marks.len(), 3);
@@ -295,8 +301,8 @@ mod tests {
     async fn test_parse_gui() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert!(config.gui.is_some());
-        let gui = config.gui.as_ref().unwrap();
+        assert!(config.get_gui().is_some());
+        let gui = config.get_gui().as_ref().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -305,7 +311,7 @@ mod tests {
         assert_eq!(gui_deployment1.description, "Test description");
         assert_eq!(gui_deployment1.deposits.len(), 1);
         let deposit1 = &gui_deployment1.deposits[0];
-        assert_eq!(deposit1.token, "token1");
+        assert_eq!(deposit1.token.as_ref().unwrap().key, "token1");
         assert_eq!(
             deposit1.presets,
             Some(vec!["100".to_string(), "2000".to_string()])
@@ -337,49 +343,29 @@ mod tests {
     #[tokio::test]
     async fn test_parse_sentry() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
-
-        assert_eq!(config.sentry, Some(true));
-        let sentry = config.sentry.unwrap();
-        assert!(sentry);
+        assert_eq!(config.get_sentry(), &Some(true));
     }
 
     #[tokio::test]
     async fn test_parse_spec_version() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
-        assert_eq!(config.version, SpecVersion::current().to_string());
+        assert_eq!(config.get_version(), &SpecVersion::current().to_string());
     }
 
     #[tokio::test]
     async fn test_parse_accounts() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert!(config.accounts.is_some());
-        let accounts = config.accounts.as_ref().unwrap();
+        let accounts = config.get_accounts();
         let account1 = accounts.get("account1").unwrap();
-        assert_eq!(account1, "0x0000000000000000000000000000000000000001");
+        assert_eq!(
+            account1.address,
+            Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+        );
         let account2 = accounts.get("account2").unwrap();
-        assert_eq!(account2, "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
-    }
-
-    #[tokio::test]
-    async fn test_parse_overall_counts() {
-        // This test checks the top-level counts that were previously checked
-        // at the beginning of the original test.
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
-
-        assert_eq!(config.version, SpecVersion::current().to_string());
-        assert_eq!(config.networks.len(), 2);
-        assert_eq!(config.subgraphs.len(), 2);
-        assert_eq!(config.metaboards.len(), 2);
-        assert_eq!(config.orderbooks.len(), 2);
-        assert_eq!(config.tokens.len(), 2);
-        assert_eq!(config.deployers.len(), 2);
-        assert_eq!(config.sentry, Some(true));
-        assert!(config.accounts.is_some());
-        assert_eq!(config.orders.len(), 1);
-        assert_eq!(config.scenarios.len(), 1);
-        assert_eq!(config.deployments.len(), 2);
-        assert_eq!(config.charts.len(), 1);
-        assert!(config.gui.is_some());
+        assert_eq!(
+            account2.address,
+            Address::from_str("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").unwrap()
+        );
     }
 }

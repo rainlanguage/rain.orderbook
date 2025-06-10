@@ -1,7 +1,7 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import { type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
+import { type Config, type SubgraphCfg } from '@rainlanguage/orderbook';
 
-export const EMPTY_CONFIG: NewConfig = {
+export const EMPTY_CONFIG: Config = {
 	orderbook: {
 		version: '1',
 		subgraphs: {},
@@ -27,13 +27,13 @@ export const EMPTY_CONFIG: NewConfig = {
  * @default {} - No configuration is set by default
  * @returns A writable store containing the application configuration
  */
-export const settings = cachedWritableStore<NewConfig>(
+export const settings = cachedWritableStore<Config>(
 	'settings',
 	EMPTY_CONFIG,
 	(value) => JSON.stringify(value),
 	(str) => {
 		try {
-			return JSON.parse(str) as NewConfig;
+			return JSON.parse(str) as Config;
 		} catch {
 			return EMPTY_CONFIG;
 		}

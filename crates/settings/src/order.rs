@@ -50,8 +50,8 @@ pub struct OrderCfg {
 impl_wasm_traits!(OrderCfg);
 
 impl OrderCfg {
-    pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
-        U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+    pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigError> {
+        U256::from_str(value).map_err(ParseOrderConfigError::VaultParseError)
     }
 
     pub fn update_vault_id(
@@ -295,8 +295,8 @@ impl OrderCfg {
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
-                                return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                return Err(YamlError::ParseOrderConfigError(
+                                    ParseOrderConfigError::DeployerNetworkDoesNotMatch {
                                         expected: existing_key.clone(),
                                         found: key.clone(),
                                     },
@@ -313,8 +313,8 @@ impl OrderCfg {
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
-                                return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                return Err(YamlError::ParseOrderConfigError(
+                                    ParseOrderConfigError::OrderbookNetworkDoesNotMatch {
                                         expected: existing_key.clone(),
                                         found: key.clone(),
                                     },
@@ -337,8 +337,8 @@ impl OrderCfg {
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch {
+                                    return Err(YamlError::ParseOrderConfigError(
+                                        ParseOrderConfigError::InputTokenNetworkDoesNotMatch {
                                             key: token_key,
                                             expected: existing_key.clone(),
                                             found: key.clone(),
@@ -364,8 +364,8 @@ impl OrderCfg {
                         if let Ok(key) = res {
                             if let Some(ref existing_key) = network_key {
                                 if *existing_key != key {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch {
+                                    return Err(YamlError::ParseOrderConfigError(
+                                        ParseOrderConfigError::OutputTokenNetworkDoesNotMatch {
                                             key: token_key,
                                             expected: existing_key.clone(),
                                             found: key.clone(),
@@ -387,11 +387,7 @@ impl OrderCfg {
             }
         }
 
-        Ok(
-            network_key.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
-                String::new(),
-            ))?,
-        )
+        Ok(network_key.ok_or(ParseOrderConfigError::NetworkNotFoundError(String::new()))?)
     }
 
     pub fn parse_vault_ids(
@@ -525,8 +521,8 @@ impl YamlParsableHash for OrderCfg {
                             );
                             if let Some(n) = &network {
                                 if deployer.network != *n {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                    return Err(YamlError::ParseOrderConfigError(
+                                        ParseOrderConfigError::DeployerNetworkDoesNotMatch {
                                             expected: n.key.clone(),
                                             found: deployer.network.key.clone(),
                                         },
@@ -559,8 +555,8 @@ impl YamlParsableHash for OrderCfg {
                             );
                             if let Some(n) = &network {
                                 if orderbook.network != *n {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                    return Err(YamlError::ParseOrderConfigError(
+                                        ParseOrderConfigError::OrderbookNetworkDoesNotMatch {
                                             expected: n.key.clone(),
                                             found: orderbook.network.key.clone(),
                                         },
@@ -574,43 +570,49 @@ impl YamlParsableHash for OrderCfg {
                         None => None,
                     };
 
-                    let inputs = require_vec(
-                        order_yaml,
-                        "inputs",
-                        Some(location.clone()),
-                    )?
-                    .iter()
-                    .enumerate()
-                    .map(|(i, input)| {
-                        let location = format!("input index '{i}' in order '{order_key}'");
+                    let inputs = require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        .iter()
+                        .enumerate()
+                        .map(|(i, input)| {
+                            let location = format!("input index '{i}' in order '{order_key}'");
 
-                        let token_name = require_string(
-                            input,
-                            Some("token"),
-                            Some(location.clone()),
-                        )?;
+                            let token_name =
+                                require_string(input, Some("token"), Some(location.clone()))?;
 
-                        let mut order_token = None;
+                            let mut order_token = None;
 
-                        if let Ok(tokens) = &tokens {
-                            let token = tokens.get(&token_name);
+                            if let Ok(tokens) = &tokens {
+                                let token = tokens.get(&token_name);
 
-                            if let Some(token) = token {
-                                if let Some(n) = &network {
-                                    if token.network != *n {
-                                        return Err(YamlError::ParseOrderConfigSourceError(
-                                            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch {
+                                if let Some(token) = token {
+                                    if let Some(n) = &network {
+                                        if token.network != *n {
+                                            return Err(YamlError::ParseOrderConfigError(
+                                            ParseOrderConfigError::InputTokenNetworkDoesNotMatch {
                                                 key: token_name,
                                                 expected: n.key.clone(),
                                                 found: token.network.key.clone(),
                                             },
                                         ));
+                                        }
+                                    } else {
+                                        network = Some(token.network.clone());
                                     }
-                                } else {
-                                    network = Some(token.network.clone());
-                                }
 
-                                order_token = Some(token.clone());
+                                    order_token = Some(token.clone());
+                                } else if let Some(context) = context {
+                                    if !context.is_select_token(&token_name) {
+                                        return Err(YamlError::Field {
+                                            kind: FieldErrorKind::InvalidValue {
+                                                field: "token".to_string(),
+                                                reason: format!(
+                                                    "missing yaml data for token '{token_name}'"
+                                                ),
+                                            },
+                                            location: location.clone(),
+                                        });
+                                    }
+                                }
                             } else if let Some(context) = context {
                                 if !context.is_select_token(&token_name) {
                                     return Err(YamlError::Field {
@@ -624,77 +626,72 @@ impl YamlParsableHash for OrderCfg {
                                     });
                                 }
                             }
-                        } else if let Some(context) = context {
-                            if !context.is_select_token(&token_name) {
-                                return Err(YamlError::Field {
-                                    kind: FieldErrorKind::InvalidValue {
-                                        field: "token".to_string(),
-                                        reason: format!(
-                                            "missing yaml data for token '{token_name}'"
-                                        ),
-                                    },
-                                    location: location.clone(),
-                                });
-                            }
-                        }
 
-                        let vault_id = match optional_string(input, "vault-id") {
-                            Some(id) => Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
-                                YamlError::Field {
-                                    kind: FieldErrorKind::InvalidValue {
-                                        field: "vault-id".to_string(),
-                                        reason: e.to_string(),
-                                    },
-                                    location: location.clone(),
+                            let vault_id = match optional_string(input, "vault-id") {
+                                Some(id) => {
+                                    Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
+                                        YamlError::Field {
+                                            kind: FieldErrorKind::InvalidValue {
+                                                field: "vault-id".to_string(),
+                                                reason: e.to_string(),
+                                            },
+                                            location: location.clone(),
+                                        }
+                                    })?)
                                 }
-                            })?),
-                            None => None,
-                        };
+                                None => None,
+                            };
 
-                        Ok(OrderIOCfg {
-                            token: order_token.map(Arc::new),
-                            vault_id,
+                            Ok(OrderIOCfg {
+                                token: order_token.map(Arc::new),
+                                vault_id,
+                            })
                         })
-                    })
-                    .collect::<Result<Vec<_>, YamlError>>()?;
+                        .collect::<Result<Vec<_>, YamlError>>()?;
 
-                    let outputs = require_vec(
-                        order_yaml,
-                        "outputs",
-                        Some(location.clone()),
-                    )?
-                    .iter()
-                    .enumerate()
-                    .map(|(i, output)| {
-                        let location = format!("output index '{i}' in order '{order_key}'");
+                    let outputs = require_vec(order_yaml, "outputs", Some(location.clone()))?
+                        .iter()
+                        .enumerate()
+                        .map(|(i, output)| {
+                            let location = format!("output index '{i}' in order '{order_key}'");
 
-                        let token_name = require_string(
-                            output,
-                            Some("token"),
-                            Some(location.clone()),
-                        )?;
+                            let token_name =
+                                require_string(output, Some("token"), Some(location.clone()))?;
 
-                        let mut order_token = None;
+                            let mut order_token = None;
 
-                        if let Ok(tokens) = &tokens {
-                            let token = tokens.get(&token_name);
+                            if let Ok(tokens) = &tokens {
+                                let token = tokens.get(&token_name);
 
-                            if let Some(token) = token {
-                                if let Some(n) = &network {
-                                    if token.network != *n {
-                                        return Err(YamlError::ParseOrderConfigSourceError(
-                                            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch {
+                                if let Some(token) = token {
+                                    if let Some(n) = &network {
+                                        if token.network != *n {
+                                            return Err(YamlError::ParseOrderConfigError(
+                                            ParseOrderConfigError::OutputTokenNetworkDoesNotMatch {
                                                 key: token_name,
                                                 expected: n.key.clone(),
                                                 found: token.network.key.clone(),
                                             },
                                         ));
+                                        }
+                                    } else {
+                                        network = Some(token.network.clone());
                                     }
-                                } else {
-                                    network = Some(token.network.clone());
-                                }
 
-                                order_token = Some(token.clone());
+                                    order_token = Some(token.clone());
+                                } else if let Some(context) = context {
+                                    if !context.is_select_token(&token_name) {
+                                        return Err(YamlError::Field {
+                                            kind: FieldErrorKind::InvalidValue {
+                                                field: "token".to_string(),
+                                                reason: format!(
+                                                    "missing yaml data for token '{token_name}'"
+                                                ),
+                                            },
+                                            location: location.clone(),
+                                        });
+                                    }
+                                }
                             } else if let Some(context) = context {
                                 if !context.is_select_token(&token_name) {
                                     return Err(YamlError::Field {
@@ -708,48 +705,36 @@ impl YamlParsableHash for OrderCfg {
                                     });
                                 }
                             }
-                        } else if let Some(context) = context {
-                            if !context.is_select_token(&token_name) {
-                                return Err(YamlError::Field {
-                                    kind: FieldErrorKind::InvalidValue {
-                                        field: "token".to_string(),
-                                        reason: format!(
-                                            "missing yaml data for token '{token_name}'"
-                                        ),
-                                    },
-                                    location: location.clone(),
-                                });
-                            }
-                        }
 
-                        let vault_id = match optional_string(output, "vault-id") {
-                            Some(id) => Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
-                                YamlError::Field {
-                                    kind: FieldErrorKind::InvalidValue {
-                                        field: "vault-id".to_string(),
-                                        reason: e.to_string(),
-                                    },
-                                    location: location.clone(),
+                            let vault_id = match optional_string(output, "vault-id") {
+                                Some(id) => {
+                                    Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
+                                        YamlError::Field {
+                                            kind: FieldErrorKind::InvalidValue {
+                                                field: "vault-id".to_string(),
+                                                reason: e.to_string(),
+                                            },
+                                            location: location.clone(),
+                                        }
+                                    })?)
                                 }
-                            })?),
-                            None => None,
-                        };
+                                None => None,
+                            };
 
-                        Ok(OrderIOCfg {
-                            token: order_token.map(Arc::new),
-                            vault_id,
+                            Ok(OrderIOCfg {
+                                token: order_token.map(Arc::new),
+                                vault_id,
+                            })
                         })
-                    })
-                    .collect::<Result<Vec<_>, YamlError>>()?;
+                        .collect::<Result<Vec<_>, YamlError>>()?;
 
                     let order = OrderCfg {
                         document: document.clone(),
                         key: order_key.clone(),
                         inputs,
                         outputs,
-                        network: network.ok_or(
-                            ParseOrderConfigSourceError::NetworkNotFoundError(String::new()),
-                        )?,
+                        network: network
+                            .ok_or(ParseOrderConfigError::NetworkNotFoundError(String::new()))?,
                         deployer,
                         orderbook,
                     };
@@ -799,13 +784,13 @@ impl PartialEq for OrderCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseOrderConfigSourceError {
+pub enum ParseOrderConfigError {
     #[error("Failed to parse deployer")]
-    DeployerParseError(ParseDeployerConfigSourceError),
+    DeployerParseError(ParseDeployerConfigError),
     #[error("Failed to parse orderbook")]
-    OrderbookParseError(ParseOrderbookConfigSourceError),
+    OrderbookParseError(ParseOrderbookConfigError),
     #[error("Failed to parse token")]
-    TokenParseError(ParseTokenConfigSourceError),
+    TokenParseError(ParseTokenConfigError),
     #[error("Network not found for Order: {0}")]
     NetworkNotFoundError(String),
     #[error("Network does not match")]
@@ -834,305 +819,37 @@ pub enum ParseOrderConfigSourceError {
     VaultParseError(#[from] alloy::primitives::ruint::ParseError),
 }
 
-impl ParseOrderConfigSourceError {
+impl ParseOrderConfigError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseOrderConfigSourceError::DeployerParseError(err) =>
+            ParseOrderConfigError::DeployerParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::OrderbookParseError(err) =>
+            ParseOrderConfigError::OrderbookParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::TokenParseError(err) =>
+            ParseOrderConfigError::TokenParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::NetworkNotFoundError(_) =>
+            ParseOrderConfigError::NetworkNotFoundError(_) =>
                 "No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks.".to_string(),
-            ParseOrderConfigSourceError::NetworkNotMatch =>
+            ParseOrderConfigError::NetworkNotMatch =>
                 "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
-            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } =>
+            ParseOrderConfigError::DeployerNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The deployer is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
-            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } =>
+            ParseOrderConfigError::OrderbookNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
-            ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
+            ParseOrderConfigError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
-            ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } =>
+            ParseOrderConfigError::OutputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The output token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
-            ParseOrderConfigSourceError::VaultParseError(err) =>
+            ParseOrderConfigError::VaultParseError(err) =>
                 format!("The vault ID in your YAML configuration is invalid. Please provide a valid number: {}", err),
         }
     }
 }
 
-impl OrderConfigSource {
-    pub fn try_into_order(
-        self,
-        deployers: &HashMap<String, Arc<DeployerCfg>>,
-        orderbooks: &HashMap<String, Arc<OrderbookCfg>>,
-        tokens: &HashMap<String, Arc<TokenCfg>>,
-    ) -> Result<OrderCfg, ParseOrderConfigSourceError> {
-        let mut network = None;
-
-        let deployer = self
-            .deployer
-            .map(|deployer_name| {
-                deployers
-                    .get(&deployer_name)
-                    .ok_or(ParseOrderConfigSourceError::DeployerParseError(
-                        ParseDeployerConfigSourceError::NetworkNotFoundError(deployer_name.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(v.clone())
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(v.clone())
-                        }
-                    })?
-            })
-            .transpose()?;
-
-        let orderbook = self
-            .orderbook
-            .map(|orderbook_name| {
-                orderbooks
-                    .get(&orderbook_name)
-                    .ok_or(ParseOrderConfigSourceError::OrderbookParseError(
-                        ParseOrderbookConfigSourceError::NetworkNotFoundError(
-                            orderbook_name.clone(),
-                        ),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(v.clone())
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(v.clone())
-                        }
-                    })?
-            })
-            .transpose()?;
-
-        let inputs = self
-            .inputs
-            .into_iter()
-            .map(|input| {
-                tokens
-                    .get(&input.token)
-                    .ok_or(ParseOrderConfigSourceError::TokenParseError(
-                        ParseTokenConfigSourceError::NetworkNotFoundError(input.token.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(OrderIOCfg {
-                                    token: Some(v.clone()),
-                                    vault_id: input.vault_id,
-                                })
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(OrderIOCfg {
-                                token: Some(v.clone()),
-                                vault_id: input.vault_id,
-                            })
-                        }
-                    })?
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let outputs = self
-            .outputs
-            .into_iter()
-            .map(|output| {
-                tokens
-                    .get(&output.token)
-                    .ok_or(ParseOrderConfigSourceError::TokenParseError(
-                        ParseTokenConfigSourceError::NetworkNotFoundError(output.token.clone()),
-                    ))
-                    .map(|v| {
-                        if let Some(n) = &network {
-                            if v.network == *n {
-                                Ok(OrderIOCfg {
-                                    token: Some(v.clone()),
-                                    vault_id: output.vault_id,
-                                })
-                            } else {
-                                Err(ParseOrderConfigSourceError::NetworkNotMatch)
-                            }
-                        } else {
-                            network = Some(v.network.clone());
-                            Ok(OrderIOCfg {
-                                token: Some(v.clone()),
-                                vault_id: output.vault_id,
-                            })
-                        }
-                    })?
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(OrderCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: String::new(),
-            inputs,
-            outputs,
-            network: network.ok_or(ParseOrderConfigSourceError::NetworkNotFoundError(
-                String::new(),
-            ))?,
-            deployer,
-            orderbook,
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use yaml::tests::get_document;
-
     use super::*;
-    use crate::test::*;
-
-    #[test]
-    fn test_try_into_order_success() {
-        let mut networks = HashMap::new();
-        let network = mock_network();
-        networks.insert("Local Testnet".to_string(), network);
-
-        let mut deployers = HashMap::new();
-        let deployer = mock_deployer();
-        deployers.insert("Deployer1".to_string(), deployer);
-
-        let mut orderbooks = HashMap::new();
-        let orderbook = mock_orderbook();
-        orderbooks.insert("Orderbook1".to_string(), orderbook);
-
-        let mut tokens = HashMap::new();
-        let token_input = mock_token("Token1");
-        let token_output = mock_token("Token2");
-        tokens.insert("Token1".to_string(), token_input.clone());
-        tokens.insert("Token2".to_string(), token_output.clone());
-
-        let order_string = OrderConfigSource {
-            deployer: Some("Deployer1".to_string()),
-            orderbook: Some("Orderbook1".to_string()),
-            inputs: vec![IOStringConfigSource {
-                token: "Token1".to_string(),
-                vault_id: Some(U256::from(1)),
-            }],
-            outputs: vec![IOStringConfigSource {
-                token: "Token2".to_string(),
-                vault_id: Some(U256::from(2)),
-            }],
-        };
-
-        let result = order_string.try_into_order(&deployers, &orderbooks, &tokens);
-        assert!(result.is_ok());
-        let order = result.unwrap();
-
-        assert_eq!(order.network, networks["Local Testnet"]);
-        assert_eq!(order.deployer, Some(deployers["Deployer1"].clone()));
-        assert_eq!(order.orderbook, Some(orderbooks["Orderbook1"].clone()));
-        assert_eq!(
-            order
-                .inputs
-                .iter()
-                .map(|v| v.token.clone().unwrap())
-                .collect::<Vec<_>>(),
-            vec![token_input]
-        );
-        assert_eq!(
-            order
-                .outputs
-                .iter()
-                .map(|v| v.token.clone().unwrap())
-                .collect::<Vec<_>>(),
-            vec![token_output]
-        );
-    }
-
-    #[test]
-    fn test_try_into_order_network_not_found_error() {
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: None,
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::NetworkNotFoundError(_))
-        ));
-        let error = result.unwrap_err();
-        assert!(error
-            .to_readable_msg()
-            .contains("No network could be determined for this order"));
-    }
-
-    #[test]
-    fn test_try_into_order_deployer_not_found_error() {
-        let deployers = HashMap::new(); // Empty deployer map
-
-        let order_string = OrderConfigSource {
-            deployer: Some("Nonexistent Deployer".to_string()),
-            orderbook: None,
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&deployers, &HashMap::new(), &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::DeployerParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_into_order_orderbook_not_found_error() {
-        let orderbooks = HashMap::new(); // Empty orderbook map
-
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: Some("Nonexistent Orderbook".to_string()),
-            inputs: vec![],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &orderbooks, &HashMap::new());
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::OrderbookParseError(_))
-        ));
-    }
-
-    #[test]
-    fn test_try_into_order_token_not_found_error() {
-        let tokens = HashMap::new(); // Empty token map
-
-        let order_string = OrderConfigSource {
-            deployer: None,
-            orderbook: None,
-            inputs: vec![IOStringConfigSource {
-                token: "Nonexistent Token".to_string(),
-                vault_id: Some(U256::from(1)),
-            }],
-            outputs: vec![],
-        };
-
-        let result = order_string.try_into_order(&HashMap::new(), &HashMap::new(), &tokens);
-        assert!(matches!(
-            result,
-            Err(ParseOrderConfigSourceError::TokenParseError(_))
-        ));
-    }
+    use yaml::tests::get_document;
 
     #[test]
     fn test_parse_orders_from_yaml() {

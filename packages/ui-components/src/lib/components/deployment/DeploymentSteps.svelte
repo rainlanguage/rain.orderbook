@@ -9,7 +9,7 @@
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
-		type NewConfig
+		type Config
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -43,7 +43,7 @@
 	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
-	export let settings: Writable<NewConfig>;
+	export let settings: Writable<Config>;
 	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];

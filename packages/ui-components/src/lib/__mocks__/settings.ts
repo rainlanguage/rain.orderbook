@@ -1,7 +1,7 @@
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 
-export const mockConfig: NewConfig = {
+export const mockConfig: Config = {
 	orderbook: {
 		networks: {
 			mainnet: {
@@ -65,12 +65,12 @@ export const mockConfig: NewConfig = {
 			name_two: 'address_two'
 		}
 	}
-} as unknown as NewConfig;
+} as unknown as Config;
 
-const mockSettingsStoreWritable = writable<NewConfig>(mockConfig);
+const mockSettingsStoreWritable = writable<Config>(mockConfig);
 
 export const mockSettingsStore = {
 	subscribe: mockSettingsStoreWritable.subscribe,
 	set: mockSettingsStoreWritable.set,
-	mockSetSubscribeValue: (value: NewConfig) => mockSettingsStoreWritable.set(value)
+	mockSetSubscribeValue: (value: Config) => mockSettingsStoreWritable.set(value)
 };

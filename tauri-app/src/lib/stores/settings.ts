@@ -5,14 +5,14 @@ import * as chains from 'viem/chains';
 import { textFileStore } from '$lib/storesGeneric/textFileStore';
 import {
   parseYaml,
-  type NewConfig,
+  type Config,
   type OrderbookCfg,
   type SubgraphCfg,
 } from '@rainlanguage/orderbook';
 import { getBlockNumberFromRpc } from '$lib/services/chain';
 import { pickBy } from 'lodash';
 
-export const EMPTY_SETTINGS: NewConfig = {
+export const EMPTY_SETTINGS: Config = {
   orderbook: {
     version: '1',
     networks: {},
@@ -43,7 +43,7 @@ export const settingsFile = textFileStore(
   ['yml', 'yaml'],
   get(settingsText),
 );
-export const settings = cachedWritableStore<NewConfig>(
+export const settings = cachedWritableStore<Config>(
   'settings',
   EMPTY_SETTINGS,
   (value) => JSON.stringify(value),

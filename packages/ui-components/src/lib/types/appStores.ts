@@ -1,8 +1,8 @@
 import type { Readable, Writable } from 'svelte/store';
-import type { AccountCfg, NewConfig, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
+import type { AccountCfg, Config, OrderbookCfg, SubgraphCfg } from '@rainlanguage/orderbook';
 
 export interface AppStoresInterface {
-	settings: Writable<NewConfig>;
+	settings: Writable<Config>;
 	activeSubgraphs: Writable<Record<string, SubgraphCfg>>;
 	accounts: Readable<Record<string, AccountCfg>>;
 	activeAccountsItems: Writable<Record<string, string>> | undefined;

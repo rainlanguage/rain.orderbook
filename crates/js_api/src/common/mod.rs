@@ -1,5 +1,7 @@
+use std::ops::Deref;
+
 use alloy::primitives::Bytes;
-use rain_orderbook_app_settings::{Config, ParseConfigSourceError};
+use rain_orderbook_app_settings::ParseConfigError;
 use rain_orderbook_common::{
     add_order::{AddOrderArgs, AddOrderArgsError},
     frontmatter::parse_frontmatter,
@@ -8,7 +10,6 @@ use rain_orderbook_common::{
 };
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
 use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
@@ -26,7 +27,7 @@ pub enum Error {
     #[error("Undefined deployment")]
     UndefinedDeployment,
     #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
+    ParseConfigError(#[from] ParseConfigError),
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
@@ -39,7 +40,7 @@ impl Error {
             Self::UndefinedDeployment => {
                 "The specified deployment was not found in the .rain file.".to_string()
             }
-            Self::ParseConfigSourceError(e) => {
+            Self::ParseConfigError(e) => {
                 format!("Failed to parse yaml configuration: {}", e)
             }
             Self::AddOrderArgsError(e) => {
@@ -76,9 +77,9 @@ pub async fn get_add_order_calldata(
     dotrain: &str,
     deployment: &str,
 ) -> Result<AddOrderCalldata, Error> {
-    let config: Config = parse_frontmatter(dotrain.to_string()).await?.try_into()?;
+    let config = parse_frontmatter(dotrain.to_string()).await?;
     let deployment_ref = config
-        .deployments
+        .get_deployments()
         .get(deployment)
         .ok_or(Error::UndefinedDeployment)?;
     let add_order_args =
@@ -402,7 +403,7 @@ deployments:
             .await
             .unwrap_err();
             println!("{:?}", err);
-            assert!(matches!(err, Error::ParseConfigSourceError(_)));
+            assert!(matches!(err, Error::ParseConfigError(_)));
         }
 
         #[tokio::test]

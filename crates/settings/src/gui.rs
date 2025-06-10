@@ -5,7 +5,7 @@ use crate::{
         optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
         YamlParseableValue,
     },
-    DeploymentCfg, TokenCfg, TokenCfgRef,
+    DeploymentCfg, TokenCfg,
 };
 use alloy::primitives::{ruint::ParseError, utils::UnitsError};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ impl_wasm_traits!(GuiPresetSourceCfg);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct GuiDepositSourceCfg {
-    pub token: TokenCfgRef,
+    pub token: String,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
 }
@@ -208,7 +208,7 @@ impl_wasm_traits!(GuiDepositCfg);
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiSelectTokensCfg {
-    pub key: TokenCfgRef,
+    pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub name: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { writable } from 'svelte/store';
 import { beforeEach, expect, test, describe, vi } from 'vitest';
 import ListViewOrderbookFilters from '../lib/components/ListViewOrderbookFilters.svelte';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 
 const { mockPageStore } = await vi.hoisted(() => import('$lib/__mocks__/stores.ts'));
@@ -26,7 +26,7 @@ vi.mock('@tanstack/svelte-query', () => ({
 type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any>>;
 
 describe('ListViewOrderbookFilters', () => {
-	const mockSettings = writable<NewConfig>({
+	const mockSettings = writable<Config>({
 		orderbook: {
 			version: '1',
 			networks: {
@@ -45,7 +45,7 @@ describe('ListViewOrderbookFilters', () => {
 				}
 			}
 		}
-	} as unknown as NewConfig);
+	} as unknown as Config);
 
 	const defaultProps: ListViewOrderbookFiltersProps = {
 		settings: mockSettings,
@@ -77,7 +77,7 @@ describe('ListViewOrderbookFilters', () => {
 					}
 				}
 			}
-		} as unknown as NewConfig);
+		} as unknown as Config);
 	});
 
 	test('shows no networks alert when networks are empty', () => {
@@ -86,7 +86,7 @@ describe('ListViewOrderbookFilters', () => {
 				networks: {},
 				subgraphs: {}
 			}
-		} as unknown as NewConfig);
+		} as unknown as Config);
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();

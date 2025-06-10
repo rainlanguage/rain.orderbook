@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
+	import type { Config, SubgraphCfg } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 
-	export let settings: NewConfig;
+	export let settings: Config;
 	export let activeSubgraphs: AppStoresInterface['activeSubgraphs'];
 
 	$: dropdownOptions = Object.keys(settings.orderbook.subgraphs ?? {}).reduce(

@@ -1,10 +1,13 @@
+use crate::blocks::BlocksCfg;
 use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 #[cfg(target_family = "wasm")]
-use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+use wasm_bindgen_utils::{
+    impl_wasm_traits, prelude::*, serialize_hashmap_as_object, serialize_opt_hashmap_as_object,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -18,13 +21,41 @@ impl_wasm_traits!(UnitTestConfigSource);
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct ScenarioTestSource {
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_hashmap_as_object"),
+        tsify(optional, type = "Record<string, string>")
+    )]
+    pub bindings: HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runs: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<BlocksCfg>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deployer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        target_family = "wasm",
+        serde(serialize_with = "serialize_opt_hashmap_as_object"),
+        tsify(optional, type = "Record<string, ScenarioTestSource>")
+    )]
+    pub scenarios: Option<HashMap<String, ScenarioTestSource>>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ScenarioTestSource);
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct TestConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub calculate_entrypoint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle_entrypoint: Option<String>,
     pub scenario_name: String,
-    pub scenario: ScenarioConfigSource,
+    pub scenario: ScenarioTestSource,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TestConfigSource);
@@ -44,7 +75,7 @@ pub struct TestConfig {
 impl_wasm_traits!(TestConfig);
 
 impl TestConfigSource {
-    pub fn try_into_test_config(self) -> Result<TestConfig, ParseConfigSourceError> {
+    pub fn try_into_test_config(self) -> Result<TestConfig, ParseConfigError> {
         let mut bindings = HashMap::new();
         for (k, v) in &self.scenario.bindings {
             bindings.insert(k.to_string(), v.to_string());

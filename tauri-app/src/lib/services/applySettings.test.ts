@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { writable, type Writable } from 'svelte/store';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import { applySettings, type ParseConfigSourceFn } from './applySettings';
 import { SentrySeverityLevel, reportErrorToSentry } from './sentry';
 
@@ -10,13 +10,13 @@ vi.mock('$lib/services/sentry', () => ({
 }));
 
 describe('applySettings service', () => {
-  let mockSettingsStore: Writable<NewConfig>;
+  let mockSettingsStore: Writable<Config>;
   let mockSettingsTextStore: Writable<string>;
   let mockParseConfigSourceFn: ParseConfigSourceFn;
 
   beforeEach(() => {
     vi.resetAllMocks();
-    mockSettingsStore = writable<NewConfig>({} as NewConfig);
+    mockSettingsStore = writable<Config>({} as Config);
     mockSettingsTextStore = writable<string>('');
     vi.spyOn(mockSettingsStore, 'set');
     vi.spyOn(mockSettingsTextStore, 'set');
@@ -24,12 +24,12 @@ describe('applySettings service', () => {
 
   it('should successfully apply settings and update stores', async () => {
     const settingsContent = '{ "networks": {} }';
-    const parsedConfig: NewConfig = {
+    const parsedConfig: Config = {
       orderbook: {
         version: '1',
         networks: { mainnet: { key: 'mainnet', chainId: 1, rpc: 'rpc' } },
       },
-    } as unknown as NewConfig;
+    } as unknown as Config;
     mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);
 
     const result = await applySettings(

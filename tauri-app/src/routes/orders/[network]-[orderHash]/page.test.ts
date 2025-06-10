@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Page from './+page.svelte';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 import { EMPTY_SETTINGS } from '$lib/stores/settings';
 
 const { mockPageStore, mockSettingsStore, MockComponent } = await vi.hoisted(
@@ -89,7 +89,7 @@ describe('Order Page', () => {
           },
         },
       },
-    } as unknown as NewConfig);
+    } as unknown as Config);
     render(Page);
 
     expect(screen.getByTestId('page-header')).toBeTruthy();
@@ -131,7 +131,7 @@ describe('Order Page', () => {
             },
           },
         },
-      } as unknown as NewConfig);
+      } as unknown as Config);
 
       render(Page);
 

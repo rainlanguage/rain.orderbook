@@ -100,8 +100,8 @@ impl YamlParsableHash for DeploymentCfg {
 
                     if let Some(deployer) = &order.deployer {
                         if deployer != &scenario.deployer {
-                            return Err(YamlError::ParseDeploymentConfigSourceError(
-                                ParseDeploymentConfigSourceError::NoMatch,
+                            return Err(YamlError::ParseDeploymentConfigError(
+                                ParseDeploymentConfigError::NoMatch,
                             ));
                         }
                     }
@@ -163,7 +163,7 @@ impl PartialEq for DeploymentCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseDeploymentConfigSourceError {
+pub enum ParseDeploymentConfigError {
     #[error("Scenario not found: {0}")]
     ScenarioNotFoundError(String),
     #[error("Order not found: {0}")]
@@ -172,128 +172,23 @@ pub enum ParseDeploymentConfigSourceError {
     NoMatch,
 }
 
-impl ParseDeploymentConfigSourceError {
+impl ParseDeploymentConfigError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseDeploymentConfigSourceError::ScenarioNotFoundError(scenario) =>
+            ParseDeploymentConfigError::ScenarioNotFoundError(scenario) =>
                 format!("The scenario '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this scenario is defined correctly.", scenario),
-            ParseDeploymentConfigSourceError::OrderNotFoundError(order) =>
+            ParseDeploymentConfigError::OrderNotFoundError(order) =>
                 format!("The order '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this order is defined correctly.", order),
-            ParseDeploymentConfigSourceError::NoMatch =>
+            ParseDeploymentConfigError::NoMatch =>
                 "The scenario and order in your deployment configuration do not match. The deployer specified in the order must match the deployer specified in the scenario.".to_string(),
         }
-    }
-}
-
-impl DeploymentConfigSource {
-    pub fn try_into_deployment(
-        self,
-        scenarios: &HashMap<String, Arc<ScenarioCfg>>,
-        orders: &HashMap<String, Arc<OrderCfg>>,
-    ) -> Result<DeploymentCfg, ParseDeploymentConfigSourceError> {
-        let scenario = scenarios
-            .get(&self.scenario)
-            .ok_or(ParseDeploymentConfigSourceError::ScenarioNotFoundError(
-                self.scenario.clone(),
-            ))
-            .map(Arc::clone)?;
-
-        let order = orders
-            .get(&self.order)
-            .ok_or(ParseDeploymentConfigSourceError::OrderNotFoundError(
-                self.order.clone(),
-            ))
-            .map(Arc::clone)?;
-
-        // check validity
-        if let Some(deployer) = &order.deployer {
-            if deployer != &scenario.deployer {
-                return Err(ParseDeploymentConfigSourceError::NoMatch);
-            }
-        };
-
-        Ok(DeploymentCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: scenario.key.clone(),
-            scenario,
-            order,
-        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::*;
-    use std::sync::RwLock;
-    use strict_yaml_rust::StrictYaml;
     use yaml::tests::get_document;
-
-    #[test]
-    fn test_try_into_deployment_success() {
-        let order_name = "order1";
-        let scenario_name = "scenario1";
-        let scenario = ScenarioCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: "scenario1".into(),
-            bindings: HashMap::new(),
-            deployer: mock_deployer(),
-            runs: None,
-            blocks: None,
-        };
-        let order = OrderCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: String::new(),
-            inputs: vec![],
-            outputs: vec![],
-            network: mock_network(),
-            deployer: None,
-            orderbook: None,
-        };
-        let orders = HashMap::from([(order_name.to_string(), Arc::new(order))]);
-        let scenarios = HashMap::from([(scenario_name.to_string(), Arc::new(scenario))]);
-        let deploment_string = DeploymentConfigSource {
-            scenario: scenario_name.to_string(),
-            order: order_name.to_string(),
-        };
-        let result = deploment_string.try_into_deployment(&scenarios, &orders);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_try_into_deployment_error() {
-        let order_name = "order1";
-        let scenario_name = "scenario1";
-        let other_scenario_name = "scenario2";
-        let scenario = ScenarioCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: "scenario1".into(),
-            bindings: HashMap::new(),
-            deployer: mock_deployer(),
-            runs: None,
-            blocks: None,
-        };
-        let order = OrderCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-            key: String::new(),
-            inputs: vec![],
-            outputs: vec![],
-            network: mock_network(),
-            deployer: None,
-            orderbook: None,
-        };
-        let orders = HashMap::from([(order_name.to_string(), Arc::new(order))]);
-        let scenarios = HashMap::from([(scenario_name.to_string(), Arc::new(scenario))]);
-        let deploment_string = DeploymentConfigSource {
-            scenario: other_scenario_name.to_string(),
-            order: order_name.to_string(),
-        };
-        let result = deploment_string.try_into_deployment(&scenarios, &orders);
-        assert!(matches!(
-            result,
-            Err(ParseDeploymentConfigSourceError::ScenarioNotFoundError(_))
-        ));
-    }
 
     #[test]
     fn test_parse_deployments_from_yaml() {
@@ -446,8 +341,7 @@ deployments:
         let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error.to_string(),
-            YamlError::ParseDeploymentConfigSourceError(ParseDeploymentConfigSourceError::NoMatch)
-                .to_string()
+            YamlError::ParseDeploymentConfigError(ParseDeploymentConfigError::NoMatch).to_string()
         );
         assert_eq!(
             error.to_readable_msg(),

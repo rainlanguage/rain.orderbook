@@ -4,7 +4,7 @@ import pickBy from 'lodash/pickBy';
 import type { LayoutLoad } from './$types';
 import {
 	parseYaml,
-	type NewConfig,
+	type Config,
 	type OrderbookCfg,
 	type SubgraphCfg
 } from '@rainlanguage/orderbook';
@@ -15,7 +15,7 @@ export interface LayoutData {
 }
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
-	let config: NewConfig;
+	let config: Config;
 	let errorMessage: string | undefined;
 
 	try {
@@ -43,7 +43,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	const settings: AppStoresInterface['settings'] = writable<NewConfig>(config);
+	const settings: AppStoresInterface['settings'] = writable<Config>(config);
 	const activeNetworkRef: AppStoresInterface['activeNetworkRef'] = writable<string>('');
 	const activeOrderbookRef: AppStoresInterface['activeOrderbookRef'] = writable<string>('');
 	const activeOrderbook = derived(
@@ -233,7 +233,7 @@ subgraphs:
 
 		it('should load settings and initialize stores correctly', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -279,7 +279,7 @@ subgraphs:
 
 		it('should handle derived store: activeOrderbook', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -301,7 +301,7 @@ subgraphs:
 
 		it('should handle derived store: activeNetworkOrderbooks', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -327,7 +327,7 @@ subgraphs:
 
 		it('should handle derived store: subgraph', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -349,7 +349,7 @@ subgraphs:
 
 		it('should handle derived store: activeAccounts with empty activeAccountsItems', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -368,7 +368,7 @@ subgraphs:
 
 		it('should handle derived store: activeAccounts with filled activeAccountsItems', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -456,7 +456,7 @@ subgraphs:
 
 		it('should handle chain reaction of store updates when changing network and orderbook', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({
@@ -501,7 +501,7 @@ subgraphs:
 
 		it('should handle multiple interrelated store updates correctly', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
-				value: mockConfig as unknown as NewConfig,
+				value: mockConfig as unknown as Config,
 				error: undefined
 			});
 			mockFetch.mockResolvedValueOnce({

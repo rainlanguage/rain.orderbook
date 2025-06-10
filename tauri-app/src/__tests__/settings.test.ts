@@ -17,7 +17,7 @@ import { mockConfig } from '$lib/mocks/mockConfig';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { get } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import type { ConfigSource, NewConfig } from '@rainlanguage/orderbook';
+import type { ConfigSource, Config } from '@rainlanguage/orderbook';
 
 describe('Settings active accounts items', () => {
   // Reset store values before each test to prevent state leakage
@@ -70,7 +70,7 @@ describe('Settings active accounts items', () => {
     };
 
     // Update settings - this should trigger the subscription
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     // Check the expected result
     expect(get(activeAccountsItems)).toEqual({
@@ -96,7 +96,7 @@ describe('Settings active accounts items', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeAccountsItems)).toEqual({
       name_one: 'address_one',
@@ -112,7 +112,7 @@ describe('Settings active accounts items', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeAccountsItems)).toEqual({});
   });
@@ -131,7 +131,7 @@ describe('Settings active accounts items', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });
@@ -150,7 +150,7 @@ describe('Settings active accounts items', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });
@@ -164,7 +164,7 @@ describe('Settings active accounts items', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeSubgraphs)).toEqual({});
   });
@@ -194,7 +194,7 @@ describe('Network and Orderbook Management', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeNetworkRef)).toBeUndefined();
   });
@@ -225,7 +225,7 @@ describe('Network and Orderbook Management', () => {
         networks: {},
       },
     };
-    settings.set(emptySettings as unknown as NewConfig);
+    settings.set(emptySettings as unknown as Config);
 
     resetActiveNetworkRef();
 
@@ -244,7 +244,7 @@ describe('Network and Orderbook Management', () => {
       },
     };
 
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     expect(get(activeOrderbookRef)).toBeUndefined();
   });
@@ -285,7 +285,7 @@ describe('Network and Orderbook Management', () => {
       },
     };
 
-    settings.set(multiNetworkConfig as unknown as NewConfig);
+    settings.set(multiNetworkConfig as unknown as Config);
     activeNetworkRef.set('mainnet');
 
     const filteredOrderbooks = get(activeNetworkOrderbooks);
@@ -321,7 +321,7 @@ describe('Network and Orderbook Management', () => {
       },
     };
 
-    settings.set(multiNetworkConfig as unknown as NewConfig);
+    settings.set(multiNetworkConfig as unknown as Config);
     activeNetworkRef.set('mainnet');
     activeOrderbookRef.set('orderbook1');
 
@@ -350,7 +350,7 @@ describe('Network and Orderbook Management', () => {
         orderbooks: {},
       },
     };
-    settings.set(newSettings as unknown as NewConfig);
+    settings.set(newSettings as unknown as Config);
 
     resetActiveOrderbookRef();
 
@@ -409,7 +409,7 @@ describe('Derived Store Behaviors', () => {
           },
         },
       },
-    } as unknown as NewConfig);
+    } as unknown as Config);
     activeOrderbookRef.set('orderbook1');
 
     expect(get(subgraph)).toStrictEqual({

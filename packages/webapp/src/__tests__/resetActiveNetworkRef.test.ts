@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resetActiveNetworkRef } from '../lib/services/resetActiveNetworkRef';
 import { writable } from 'svelte/store';
-import type { NetworkCfg, NewConfig } from '@rainlanguage/orderbook';
+import type { NetworkCfg, Config } from '@rainlanguage/orderbook';
 import { type AppStoresInterface } from '@rainlanguage/ui-components';
 describe('resetActiveNetworkRef', () => {
 	let mockActiveNetworkRef: AppStoresInterface['activeNetworkRef'];
@@ -26,7 +26,7 @@ describe('resetActiveNetworkRef', () => {
 			network1: createMockNetworkConfigSource('Network One'),
 			network2: createMockNetworkConfigSource('Network Two')
 		};
-		mockSettingsStore = writable<NewConfig>({ orderbook: { networks } } as unknown as NewConfig);
+		mockSettingsStore = writable<Config>({ orderbook: { networks } } as unknown as Config);
 		resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const calledValue = (mockActiveNetworkRef.set as any).mock.calls[0][0];
@@ -34,24 +34,24 @@ describe('resetActiveNetworkRef', () => {
 	});
 
 	it('should set activeNetworkRef to undefined if networks object is empty', () => {
-		mockSettingsStore = writable<NewConfig>({
+		mockSettingsStore = writable<Config>({
 			orderbook: { networks: {} }
-		} as unknown as NewConfig);
+		} as unknown as Config);
 		resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);
 		expect(mockActiveNetworkRef.set).toHaveBeenCalledWith(undefined);
 	});
 
 	it('should set activeNetworkRef to undefined if networks is empty in settings', () => {
-		mockSettingsStore = writable<NewConfig>({
+		mockSettingsStore = writable<Config>({
 			orderbook: { networks: {} }
-		} as unknown as NewConfig);
+		} as unknown as Config);
 		resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);
 		expect(mockActiveNetworkRef.set).toHaveBeenCalledWith(undefined);
 	});
 
 	it('should throw error if networks is null in settings', () => {
-		const settingsWithNullNetworks = { orderbook: { networks: null } } as unknown as NewConfig;
-		mockSettingsStore = writable<NewConfig>(settingsWithNullNetworks);
+		const settingsWithNullNetworks = { orderbook: { networks: null } } as unknown as Config;
+		mockSettingsStore = writable<Config>(settingsWithNullNetworks);
 		expect(() => resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore)).toThrow(
 			'Error resetting active network'
 		);

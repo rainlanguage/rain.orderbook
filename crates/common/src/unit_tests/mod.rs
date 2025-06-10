@@ -322,7 +322,7 @@ impl TestRunner {
         self.test_setup.deployer = self
             .settings
             .main_config
-            .deployers
+            .get_deployers()
             .get(&self.settings.test_config.scenario_name)
             .ok_or(TestRunnerError::ScenarioNotFound(
                 self.settings.test_config.scenario_name.clone(),
@@ -368,19 +368,14 @@ impl TestRunner {
 
 #[cfg(test)]
 mod tests {
+    use crate::frontmatter::parse_frontmatter;
+
     use super::*;
-    use rain_orderbook_app_settings::{
-        config_source::ConfigSource, spec_version::SpecVersion, unit_test::UnitTestConfigSource,
-    };
+    use rain_orderbook_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfigSource};
     use rain_orderbook_test_fixtures::LocalEvm;
 
-    fn get_main_config(dotrain: &str) -> Config {
-        let frontmatter = RainDocument::get_front_matter(dotrain).unwrap();
-        let settings = serde_yaml::from_str::<ConfigSource>(frontmatter).unwrap();
-        settings
-            .try_into()
-            .map_err(|e| println!("{:?}", e))
-            .unwrap()
+    async fn get_main_config(dotrain: &str) -> Config {
+        parse_frontmatter(dotrain.to_string()).await.unwrap()
     }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
@@ -466,7 +461,7 @@ _: output-vault-decrease();
             spec_version = SpecVersion::current()
         );
 
-        let main_config = get_main_config(&dotrain);
+        let main_config = get_main_config(&dotrain).await;
         let test_config = get_test_config(&test_dotrain);
 
         let mut runner =

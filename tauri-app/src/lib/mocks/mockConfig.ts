@@ -1,6 +1,6 @@
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 
-export const mockConfig: NewConfig = {
+export const mockConfig: Config = {
   orderbook: {
     version: '1',
     networks: {
@@ -61,4 +61,4 @@ export const mockConfig: NewConfig = {
       },
     },
   },
-} as unknown as NewConfig;
+} as unknown as Config;

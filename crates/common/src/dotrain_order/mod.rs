@@ -8,13 +8,15 @@ use dotrain::{error::ComposeError, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg};
 use rain_orderbook_app_settings::remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg};
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
     dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
 };
-use rain_orderbook_app_settings::ParseConfigSourceError;
+use rain_orderbook_app_settings::{
+    remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
+    ParseConfigError,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -38,7 +40,7 @@ pub enum DotrainOrderError {
     DotrainOrderNotInitialized,
 
     #[error(transparent)]
-    ParseConfigSourceError(#[from] ParseConfigSourceError),
+    ParseConfigError(#[from] ParseConfigError),
 
     #[error("Scenario {0} not found")]
     ScenarioNotFound(String),
@@ -97,8 +99,8 @@ impl DotrainOrderError {
             DotrainOrderError::DotrainOrderNotInitialized => {
                 "DotrainOrder is not initialized. Please call initialize() first.".to_string()
             }
-            DotrainOrderError::ParseConfigSourceError(e) => {
-                format!("Error parsing the configuration source: {}", e)
+            DotrainOrderError::ParseConfigError(e) => {
+                format!("Error parsing the configuration: {}", e)
             }
             DotrainOrderError::ScenarioNotFound(name) => {
                 format!("Scenario '{}' is not defined in the configuration.", name)

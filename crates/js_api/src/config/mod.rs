@@ -1,15 +1,12 @@
-use rain_orderbook_app_settings::new_config::{NewConfig, ParseConfigError};
+use rain_orderbook_app_settings::config::{Config, ParseConfigError};
 use wasm_bindgen_utils::prelude::*;
 
-#[wasm_export(js_name = "parseYaml", unchecked_return_type = "NewConfig")]
+#[wasm_export(js_name = "parseYaml", unchecked_return_type = "Config")]
 pub fn parse_yaml(
     yaml_list: Vec<String>,
     validate: Option<bool>,
-) -> Result<NewConfig, ParseConfigError> {
-    Ok(NewConfig::try_from_yaml(
-        yaml_list,
-        validate.unwrap_or(false),
-    )?)
+) -> Result<Config, ParseConfigError> {
+    Ok(Config::try_from_yaml(yaml_list, validate.unwrap_or(false))?)
 }
 
 #[cfg(test)]
@@ -176,7 +173,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_parse_yaml() {
-        let config = NewConfig::try_from_yaml(
+        let config = Config::try_from_yaml(
             vec![ORDERBOOK_YAML.to_string(), DOTRAIN_YAML.to_string()],
             false,
         )

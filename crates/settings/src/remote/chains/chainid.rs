@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use crate::{config_source::*, NetworkCfg};
+use crate::NetworkCfg;
 use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 use strict_yaml_rust::StrictYaml;
@@ -65,27 +65,6 @@ pub enum ChainIdError {
     NoRpc,
 }
 
-impl TryFrom<ChainId> for NetworkConfigSource {
-    type Error = ChainIdError;
-    fn try_from(value: ChainId) -> Result<NetworkConfigSource, Self::Error> {
-        if value.rpc.is_empty() {
-            return Err(ChainIdError::NoRpc);
-        }
-        for rpc in &value.rpc {
-            if !rpc.path().contains("API_KEY") && !rpc.scheme().starts_with("ws") {
-                return Ok(NetworkConfigSource {
-                    chain_id: value.chain_id,
-                    rpc: rpc.clone(),
-                    network_id: Some(value.network_id),
-                    currency: Some(value.native_currency.symbol),
-                    label: Some(value.name),
-                });
-            }
-        }
-        Err(ChainIdError::UnsupportedRpcUrls)
-    }
-}
-
 impl ChainId {
     pub fn try_into_network_cfg(
         self,
@@ -119,9 +98,6 @@ mod tests {
     fn test_try_from_err_no_rpc() {
         let chain_id = mk_chain_id_with_rpc(vec![]);
 
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(network_cfg_source, Err(ChainIdError::NoRpc));
-
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
 
@@ -139,9 +115,6 @@ mod tests {
 
         let chain_id = mk_chain_id_with_rpc(rpc);
 
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(network_cfg_source, Err(ChainIdError::UnsupportedRpcUrls));
-
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));
 
@@ -158,18 +131,6 @@ mod tests {
         ];
 
         let chain_id = mk_chain_id_with_rpc(rpc);
-
-        let network_cfg_source = NetworkConfigSource::try_from(chain_id.clone());
-        assert_eq!(
-            network_cfg_source,
-            Ok(NetworkConfigSource {
-                chain_id: 1,
-                rpc: Url::parse("https://cloudflare-eth.com").unwrap(),
-                network_id: Some(1),
-                currency: Some("ETH".to_string()),
-                label: Some("Ethereum Mainnet".to_string()),
-            })
-        );
 
         let strict_yaml = StrictYaml::String("".to_string());
         let strict_yaml_arc = Arc::new(RwLock::new(strict_yaml));

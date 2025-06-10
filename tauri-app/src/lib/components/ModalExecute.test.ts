@@ -25,7 +25,7 @@ vi.mock('$lib/stores/settings', async (importOriginal) => ({
 // Import components and stores after mocks
 import ModalExecute from './ModalExecute.svelte';
 import { EMPTY_SETTINGS, settings } from '$lib/stores/settings';
-import type { NewConfig } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 
 describe('ModalExecute', () => {
   beforeEach(() => {
@@ -71,7 +71,7 @@ describe('ModalExecute', () => {
             },
           },
         },
-      } as unknown as NewConfig);
+      } as unknown as Config);
 
       render(ModalExecute, {
         props: {
