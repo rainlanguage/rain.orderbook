@@ -1,6 +1,24 @@
 import { cachedWritableStore } from '@rainlanguage/ui-components';
 import { type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
 
+export const EMPTY_CONFIG: NewConfig = {
+	orderbook: {
+		version: '1',
+		subgraphs: {},
+		networks: {},
+		metaboards: {},
+		orderbooks: {},
+		tokens: {},
+		deployers: {}
+	},
+	dotrainOrder: {
+		deployments: {},
+		orders: {},
+		scenarios: {},
+		charts: {}
+	}
+};
+
 /**
  * A persistent store that holds the application configuration settings.
  *
@@ -11,13 +29,13 @@ import { type NewConfig, type SubgraphCfg } from '@rainlanguage/orderbook';
  */
 export const settings = cachedWritableStore<NewConfig>(
 	'settings',
-	{} as NewConfig,
+	EMPTY_CONFIG,
 	(value) => JSON.stringify(value),
 	(str) => {
 		try {
 			return JSON.parse(str) as NewConfig;
 		} catch {
-			return {} as NewConfig;
+			return EMPTY_CONFIG;
 		}
 	}
 );

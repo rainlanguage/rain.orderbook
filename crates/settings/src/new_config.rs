@@ -860,7 +860,7 @@ mod tests {
     fn test_sentry_and_version() {
         let config = setup_config();
         assert!(config.get_sentry().unwrap());
-        assert_eq!(config.get_version(), "0.1.0");
+        assert_eq!(config.get_version(), &SpecVersion::current());
     }
 
     #[test]

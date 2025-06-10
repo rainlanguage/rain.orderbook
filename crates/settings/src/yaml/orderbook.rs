@@ -295,6 +295,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
+    version: 1
     networks:
         mainnet:
             rpc: https://mainnet.infura.io
@@ -448,7 +449,7 @@ mod tests {
 
         assert_eq!(ob_yaml.get_sentry().unwrap(), Some(true));
 
-        assert_eq!(ob_yaml.get_spec_version().unwrap(), "1".to_string());
+        assert_eq!(ob_yaml.get_spec_version().unwrap(), SpecVersion::current());
 
         assert_eq!(ob_yaml.get_account_keys().unwrap().len(), 2);
         assert_eq!(
