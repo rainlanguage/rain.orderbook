@@ -1,24 +1,14 @@
 import type { Hex } from 'viem';
 import type {
 	SgVault,
-	ApprovalCalldata,
 	VaultCalldataResult,
-	DepositAndAddOrderCalldataResult
+	DeploymentTransactionArgs
 } from '@rainlanguage/orderbook';
 import type { Config } from '@wagmi/core';
 import type { ToastLink } from './toast';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
-export type ExtendedApprovalCalldata = ApprovalCalldata & { symbol?: string };
-
-export type DeploymentArgs = {
-	approvals: ExtendedApprovalCalldata[];
-	deploymentCalldata: DepositAndAddOrderCalldataResult;
-	orderbookAddress: Hex;
-	chainId: number;
-	subgraphUrl?: string;
-	network: string;
-};
+export type DeploymentArgs = DeploymentTransactionArgs & { subgraphUrl: string; network: string };
 
 export type VaultActionArgs = {
 	vault: SgVault;
@@ -85,8 +75,4 @@ export type TransactionArgs = InternalTransactionArgs & {
 	toastLinks: ToastLink[];
 	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
 	awaitSubgraphConfig?: AwaitSubgraphConfig;
-};
-
-export type DeploymentTransactionArgs = Omit<DeploymentArgs, 'account'> & {
-	config: Config;
 };

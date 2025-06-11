@@ -8,9 +8,8 @@ import type { AppKit } from '@reown/appkit';
 import type { GuiDeploymentCfg } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
-import { handleDeployment } from '../lib/components/deployment/handleDeployment';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 import { mockConfigSource } from '../lib/__mocks__/settings';
-import type { DeploymentArgs } from '$lib/types/transaction';
 import type { Account } from '$lib/types/account';
 
 vi.mock('@rainlanguage/orderbook', () => ({
@@ -23,8 +22,8 @@ vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
 
-vi.mock('../lib/components/deployment/handleDeployment', () => ({
-	handleDeployment: vi.fn()
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
 }));
 
 type DeploymentStepsProps = ComponentProps<DeploymentSteps>;
@@ -126,6 +125,12 @@ describe('DeploymentSteps', () => {
 
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);
+
+		// Set default mock return value for useAccount
+		vi.mocked(useAccount).mockReturnValue({
+			account: writable(null),
+			matchesAccount: vi.fn()
+		});
 	});
 
 	it('shows deployment details when provided', async () => {
@@ -133,42 +138,6 @@ describe('DeploymentSteps', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('SFLR<>WFLR on Flare')).toBeInTheDocument();
-		});
-	});
-
-	it('correctly derives subgraphUrl from settings and networkKey', async () => {
-		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-		(mockGui.hasAnyDeposit as Mock).mockReturnValue({ value: false });
-		(mockGui.hasAnyVaultId as Mock).mockReturnValue({ value: false });
-		(mockGui.getDeploymentTransactionArgs as Mock).mockReturnValue({
-			value: {
-				approvals: [],
-				deploymentCalldata: '0x1',
-				orderbookAddress: '0x1',
-				chainId: 1
-			}
-		});
-		(mockGui.getNetworkKey as Mock).mockReturnValue({ value: 'mainnet' });
-
-		mockConnectedStore.mockSetSubscribeValue(true);
-
-		const user = userEvent.setup();
-
-		render(DeploymentSteps, defaultProps);
-
-		await waitFor(() => {
-			expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		});
-
-		const deployButton = screen.getByText('Deploy Strategy');
-		await user.click(deployButton);
-
-		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalledWith(
-				mockGui,
-				'0x123',
-				mockConfigSource.subgraphs?.mainnet
-			);
 		});
 	});
 
@@ -403,42 +372,11 @@ describe('DeploymentSteps', () => {
 			expect(mockGui.getAllTokenInfos).toHaveBeenCalled();
 		});
 	});
-	it('shows loading state when checking deployment', async () => {
-		// Setup fake timers
-		vi.useFakeTimers();
 
-		// Mock with a delayed response (using setTimeout)
-		vi.mocked(handleDeployment).mockImplementation(() => {
-			return new Promise<DeploymentArgs>((resolve) => {
-				setTimeout(() => resolve({} as DeploymentArgs), 1000);
-			});
-		});
-
-		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
-
-		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-		render(DeploymentSteps, { props: defaultProps });
-
-		const deployButton = screen.getByText('Deploy Strategy');
-		await user.click(deployButton);
-
-		// Check loading state
-		expect(screen.getByText('Checking deployment...')).toBeInTheDocument();
-		expect(screen.getByTestId('deploy-button')).toBeDisabled();
-
-		// Fast-forward time to resolve the promise
-		await vi.runAllTimersAsync();
-
-		// Check final state
-		expect(screen.queryByText('Checking deployment...')).not.toBeInTheDocument();
-		expect(screen.getByText('Deploy Strategy')).toBeInTheDocument();
-		expect(screen.getByTestId('deploy-button')).not.toBeDisabled();
-
-		// Restore real timers
-		vi.useRealTimers();
-	});
-	it('passes correct arguments to handleDeployment', async () => {
-		(mockGui.areAllTokensSelected as Mock).mockReturnValue({ value: true });
+	it('passes correct arguments to onDeploy prop', async () => {
+		// Override the mock for this test
+		guiInstance.areAllTokensSelected = vi.fn().mockReturnValue({ value: true });
+		vi.mocked(useGui).mockReturnValue(guiInstance);
 
 		const propsWithMockHandlers = {
 			...defaultProps,
@@ -452,13 +390,13 @@ describe('DeploymentSteps', () => {
 		await user.click(deployButton);
 
 		await waitFor(() => {
-			expect(handleDeployment).toHaveBeenCalledTimes(1);
+			expect(mockOnDeploy).toHaveBeenCalledTimes(1);
 
-			const [guiArg, accountArg, subgraphUrlArg] = vi.mocked(handleDeployment).mock.calls[0];
+			const [guiArg, subgraphUrlArg] = mockOnDeploy.mock.calls[0];
 
 			expect(guiArg).toBe(mockGui);
-			expect(accountArg).toBe('0xTestAccount');
-			expect(subgraphUrlArg).toBe(mockConfigSource.subgraphs?.testnet);
+			const expectedSubgraphUrl = mockConfigSource.subgraphs?.flare;
+			expect(subgraphUrlArg).toBe(expectedSubgraphUrl);
 		});
 	});
 });

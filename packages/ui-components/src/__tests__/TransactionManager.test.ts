@@ -12,7 +12,9 @@ import {
 	type SgRemoveOrderWithOrder,
 	type SgTransaction,
 	type SgVault,
-	type SgOrder
+	type SgOrder,
+	getTransactionAddOrders,
+	type SgAddOrderWithOrder
 } from '@rainlanguage/orderbook';
 import { formatUnits } from 'viem';
 import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
@@ -27,7 +29,8 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	getTransactionRemoveOrders: vi.fn(),
-	getTransaction: vi.fn()
+	getTransaction: vi.fn(),
+	getTransactionAddOrders: vi.fn()
 }));
 
 describe('TransactionManager', () => {
@@ -640,6 +643,153 @@ describe('TransactionManager', () => {
 				type: 'error',
 				color: 'red',
 				links: expect.any(Array)
+			});
+		});
+	});
+
+	describe('createAddOrderTransaction', () => {
+		const addOrderMockArgs: InternalTransactionArgs & { subgraphUrl: string } = {
+			subgraphUrl: 'https://api.example.com/orderbook',
+			txHash: '0xaddordertxhash' as `0x${string}`,
+			chainId: 1,
+			networkKey: 'ethereum',
+			queryKey: 'myNewStrategyDeployment'
+		};
+
+		const fullMockArgsForExpectation: InternalTransactionArgs & {
+			awaitSubgraphConfig: AwaitSubgraphConfig;
+		} = {
+			...addOrderMockArgs,
+			awaitSubgraphConfig: {
+				subgraphUrl: addOrderMockArgs.subgraphUrl,
+				txHash: addOrderMockArgs.txHash,
+				successMessage: 'Strategy deployed successfully.',
+				fetchEntityFn: getTransactionAddOrders as typeof getTransactionAddOrders,
+				isSuccess: expect.any(Function)
+			}
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue(
+				'https://explorer.example.com/tx/0xaddordertxhash'
+			);
+		});
+
+		it('should create a transaction with correct parameters', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createAddOrderTransaction(addOrderMockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...fullMockArgsForExpectation,
+					name: 'Deploying order',
+					errorMessage: 'Deployment failed.',
+					successMessage: 'Order deployed successfully.',
+					queryKey: addOrderMockArgs.queryKey,
+					toastLinks: [
+						{
+							link: 'https://explorer.example.com/tx/0xaddordertxhash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig,
+					awaitSubgraphConfig: {
+						subgraphUrl: addOrderMockArgs.subgraphUrl,
+						txHash: addOrderMockArgs.txHash,
+						successMessage: 'Order deployed successfully.',
+						fetchEntityFn: getTransactionAddOrders,
+						isSuccess: expect.any(Function)
+					}
+				},
+				expect.any(Function), // onSuccess
+				expect.any(Function) // onError
+			);
+
+			const addOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			const addOrderIsSuccessFn = addOrderCallArgs.awaitSubgraphConfig!.isSuccess;
+			expect(
+				addOrderIsSuccessFn([
+					{
+						transaction: { id: 'tx1' },
+						order: { id: 'order1', orderHash: '0xneworderhash' }
+					}
+				] as SgAddOrderWithOrder[])
+			).toBe(true);
+			expect(addOrderIsSuccessFn([] as SgAddOrderWithOrder[])).toBe(false);
+		});
+
+		it('should execute the transaction after creation', async () => {
+			const mockExecute = vi.fn();
+			const mockTransaction = { execute: mockExecute };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createAddOrderTransaction(addOrderMockArgs);
+
+			expect(mockExecute).toHaveBeenCalled();
+		});
+
+		it('should add transaction to store', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createAddOrderTransaction(addOrderMockArgs);
+
+			const transactions = manager.getTransactions();
+			let storeValue: unknown[] = [];
+			transactions.subscribe((value) => {
+				storeValue = value;
+			});
+			expect(storeValue).toContain(mockTransaction);
+		});
+
+		it('should handle successful transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: (newOrderHash?: string) => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+			const newOrderHash = '0xneworderhashfromcallback';
+
+			await manager.createAddOrderTransaction(addOrderMockArgs);
+
+			onSuccess!(newOrderHash); // Simulate successful execution and subgraph indexing providing a new order hash
+
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: [addOrderMockArgs.queryKey]
+			});
+		});
+
+		it('should handle failed transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createAddOrderTransaction(addOrderMockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Deployment failed.',
+				type: 'error',
+				color: 'red',
+				links: [
+					{
+						link: 'https://explorer.example.com/tx/0xaddordertxhash',
+						label: 'View on explorer'
+					}
+				]
 			});
 		});
 	});

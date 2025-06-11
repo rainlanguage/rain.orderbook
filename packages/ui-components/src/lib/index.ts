@@ -74,19 +74,17 @@ export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/order
 export {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
-	type ExtendedApprovalCalldata,
 	type TransactionArgs,
 	type DeploymentArgs,
 	type VaultActionArgs
 } from './types/transaction';
-export type { TransactionErrorMessage } from './stores/transactionStore';
 export type {
 	VaultActionModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
-	DeployModalProps,
 	DisclaimerModalProps,
-	TransactionConfirmationProps
+	TransactionConfirmationProps,
+	HandleTransactionConfirmationModal
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';
@@ -122,7 +120,6 @@ export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
-export { default as transactionStore } from './stores/transactionStore';
 export {
 	cachedWritableStore,
 	cachedWritableIntOptional,
@@ -157,4 +154,3 @@ export { TransactionManager } from './providers/transactions/TransactionManager'
 export { mockPageStore } from './__mocks__/stores';
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
-export { mockTransactionStore } from './__mocks__/mockTransactionStore';
