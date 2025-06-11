@@ -118,11 +118,13 @@ _ _: 0 0;
 		);
 	});
 
-	it('should throw frontmatter missing field error', async () => {
+	it('should throw frontmatter missing deployment error', async () => {
 		const dotrain = `
+version: 1
 deployers:
   some-deployer:
-  ---
+    test: test
+---
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -132,13 +134,10 @@ _ _: 0 0;
 `;
 		const res = await getAddOrderCalldata(dotrain, 'some-deployment');
 		if (!res.error) assert.fail('expected error');
-		assert.equal(
-			res.error.msg,
-			'deployers.some-deployer: missing field `address` at line 3 column 17'
-		);
+		assert.equal(res.error.msg, 'Undefined deployment');
 		assert.equal(
 			res.error.readableMsg,
-			'Failed to parse yaml configuration: deployers.some-deployer: missing field `address` at line 3 column 17'
+			'The specified deployment was not found in the .rain file.'
 		);
 	});
 

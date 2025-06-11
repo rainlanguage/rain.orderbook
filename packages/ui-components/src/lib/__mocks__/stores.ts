@@ -2,7 +2,7 @@ import type { AccountCfg, Config, SubgraphCfg } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
 import settingsFixture from '../__fixtures__/settings-12-11-24.json';
 
-import { type Config } from '@wagmi/core';
+import { type Config as WagmiConfig } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
 const initialPageState = {
@@ -36,7 +36,7 @@ const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
 const mockConnectedWritable = writable<boolean>(true);
-const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
+const mockWagmiConfigWritable = writable<WagmiConfig>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 
 export const mockSettingsStore = {
@@ -123,7 +123,7 @@ export const mockWagmiConfigStore = {
 	subscribe: mockWagmiConfigWritable.subscribe,
 	set: mockWagmiConfigWritable.set,
 	update: mockWagmiConfigWritable.update,
-	mockSetSubscribeValue: (value: Config): void => mockWagmiConfigWritable.set(value)
+	mockSetSubscribeValue: (value: WagmiConfig): void => mockWagmiConfigWritable.set(value)
 };
 
 export const mockShowMyItemsOnlyStore = {

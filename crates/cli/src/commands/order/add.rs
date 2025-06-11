@@ -34,7 +34,7 @@ pub struct CliOrderAddArgs {
 impl CliOrderAddArgs {
     async fn to_add_order_args(&self) -> Result<AddOrderArgs> {
         let text = read_to_string(&self.dotrain_file).map_err(|e| anyhow!(e))?;
-        let config = parse_frontmatter(text.clone()).await?;
+        let config = parse_frontmatter(text.clone(), None).await?;
 
         let config_deployment = config
             .get_deployments()

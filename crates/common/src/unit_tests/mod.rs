@@ -375,7 +375,7 @@ mod tests {
     use rain_orderbook_test_fixtures::LocalEvm;
 
     async fn get_main_config(dotrain: &str) -> Config {
-        parse_frontmatter(dotrain.to_string()).await.unwrap()
+        parse_frontmatter(dotrain.to_string(), None).await.unwrap()
     }
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {

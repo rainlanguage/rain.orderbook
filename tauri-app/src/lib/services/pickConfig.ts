@@ -1,17 +1,16 @@
 import { pickBy, isNil } from 'lodash';
-import type { Config, ConfigSource } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 
 export function pickDeployments(
-  mergedConfigSource: ConfigSource | undefined,
   mergedConfig: Config | undefined,
   activeNetworkRef: string | undefined,
 ) {
-  return !isNil(mergedConfigSource) &&
-    !isNil(mergedConfigSource?.deployments) &&
-    !isNil(mergedConfigSource?.orders)
+  return !isNil(mergedConfig)
     ? pickBy(
-        mergedConfigSource.deployments,
-        (d) => mergedConfig?.scenarios?.[d.scenario]?.deployer?.network?.key === activeNetworkRef,
+        mergedConfig.dotrainOrder.deployments,
+        (d) =>
+          mergedConfig.dotrainOrder.scenarios[d.scenario.key]?.deployer?.network?.key ===
+          activeNetworkRef,
       )
     : {};
 }
@@ -21,6 +20,9 @@ export function pickScenarios(
   activeNetworkRef: string | undefined,
 ) {
   return !isNil(mergedConfig)
-    ? pickBy(mergedConfig.scenarios, (d) => d?.deployer?.network?.key === activeNetworkRef)
+    ? pickBy(
+        mergedConfig.dotrainOrder.scenarios,
+        (d) => d?.deployer?.network?.key === activeNetworkRef,
+      )
     : {};
 }

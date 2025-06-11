@@ -5,7 +5,7 @@
   import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
-  import { parseConfig } from '$lib/services/config';
+  import { parseYaml } from '$lib/services/config';
   import { onMount } from 'svelte';
   import { CheckOutline, CloseOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
@@ -36,7 +36,7 @@
     settingsStatus = 'checking';
     errorMessage = undefined;
 
-    const result = await applySettings(settingsContent, settings, settingsText, parseConfig);
+    const result = await applySettings(settingsContent, settings, settingsText, parseYaml);
 
     settingsStatus = result.settingsStatus;
     if (result.errorMessage) {

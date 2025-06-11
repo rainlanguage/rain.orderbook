@@ -2,9 +2,12 @@ use dotrain::RainDocument;
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::{config::Config, ParseConfigError};
 
-pub async fn parse_frontmatter(dotrain: String) -> Result<Config, ParseConfigError> {
+pub async fn parse_frontmatter(
+    dotrain: String,
+    validate: Option<bool>,
+) -> Result<Config, ParseConfigError> {
     let frontmatter = RainDocument::get_front_matter(dotrain.as_str()).unwrap_or("");
-    Config::try_from_yaml(vec![frontmatter.to_string()], false)
+    Config::try_from_yaml(vec![frontmatter.to_string()], validate.unwrap_or(false))
 }
 
 #[cfg(test)]
@@ -24,7 +27,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_networks() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_networks().len(), 2);
         let networks = config.get_networks();
@@ -50,7 +55,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_subgraphs() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_subgraphs().len(), 2);
         let subgraphs = config.get_subgraphs();
@@ -68,7 +75,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_metaboards() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_metaboards().len(), 2);
         let metaboards = config.get_metaboards();
@@ -86,7 +95,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_orderbooks() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_orderbooks().len(), 2);
         let orderbooks = config.get_orderbooks();
@@ -104,7 +115,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_tokens() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_tokens().len(), 2);
         let tokens = config.get_tokens();
@@ -128,7 +141,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_deployers() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_deployers().len(), 2);
         let deployers = config.get_deployers();
@@ -146,7 +161,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_orders() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_orders().len(), 1);
         let orders = config.get_orders();
@@ -163,7 +180,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_scenarios() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_scenarios().len(), 2);
         let scenarios = config.get_scenarios();
@@ -181,7 +200,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_deployments() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_deployments().len(), 2);
         let deployments = config.get_deployments();
@@ -195,7 +216,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_charts() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert_eq!(config.get_charts().len(), 1);
         let charts = config.get_charts();
@@ -299,7 +322,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_gui() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         assert!(config.get_gui().is_some());
         let gui = config.get_gui().as_ref().unwrap();
@@ -342,19 +367,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_sentry() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
         assert_eq!(config.get_sentry(), &Some(true));
     }
 
     #[tokio::test]
     async fn test_parse_spec_version() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
         assert_eq!(config.get_version(), &SpecVersion::current().to_string());
     }
 
     #[tokio::test]
     async fn test_parse_accounts() {
-        let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
+        let config = parse_frontmatter(TEST_DOTRAIN.to_string(), None)
+            .await
+            .unwrap();
 
         let accounts = config.get_accounts();
         let account1 = accounts.get("account1").unwrap();

@@ -13,7 +13,6 @@
   import type { Config } from '@rainlanguage/orderbook';
   import { DropdownRadio } from '@rainlanguage/ui-components';
   import { toasts } from '$lib/stores/toasts';
-  import type { ConfigSource } from '@rainlanguage/orderbook';
   import ModalExecute from '$lib/components/ModalExecute.svelte';
   import { orderAdd, orderAddCalldata, validateSpecVersion } from '$lib/services/order';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -21,11 +20,7 @@
   import { promiseTimeout, CodeMirrorRainlang } from '@rainlanguage/ui-components';
   import { SentrySeverityLevel, reportErrorToSentry } from '$lib/services/sentry';
   import { pickScenarios } from '$lib/services/pickConfig';
-  import {
-    convertConfigstringToConfig,
-    mergeDotrainConfigWithSettings,
-  } from '$lib/services/config';
-  import { mergeDotrainConfigWithSettingsProblems } from '$lib/services/configCodemirrorProblems';
+  import { parseDotrainAndSettingsProblems } from '$lib/services/configCodemirrorProblems';
   import ScenarioDebugTable from '$lib/components/ScenarioDebugTable.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import Words from '$lib/components/Words.svelte';
@@ -37,17 +32,17 @@
   import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
+  import { parseYaml } from '$lib/services/config';
 
   let isSubmitting = false;
   let isCharting = false;
   let chartData: ChartData;
   let deploymentRef: string | undefined = undefined;
   let scenarioRef: string | undefined = undefined;
-  let mergedConfigSource: ConfigSource | undefined = undefined;
   let mergedConfig: Config | undefined = undefined;
   let openAddOrderModal = false;
 
-  $: deployments = mergedConfig?.deployments;
+  $: deployments = mergedConfig?.dotrainOrder.deployments;
   $: deployment = deploymentRef ? deployments?.[deploymentRef] : undefined;
 
   // Resetting the selected deployment to undefined if it is not in the current
@@ -80,7 +75,7 @@
   $: debouncedGenerateRainlangStrings(
     $globalDotrainFile.text,
     [$settingsText],
-    mergedConfig?.scenarios,
+    mergedConfig?.dotrainOrder.scenarios,
   );
 
   $: rainlangExtension = new RawRainlangExtension({
@@ -89,7 +84,7 @@
       let problems = [];
       try {
         // get problems with merging settings config with frontmatter
-        configProblems = await mergeDotrainConfigWithSettingsProblems(text.text);
+        configProblems = await parseDotrainAndSettingsProblems(text.text, $settingsText);
       } catch (e) {
         configProblems = [
           {
@@ -127,8 +122,7 @@
 
   async function updateMergedConfig() {
     try {
-      mergedConfigSource = await mergeDotrainConfigWithSettings($globalDotrainFile.text);
-      mergedConfig = await convertConfigstringToConfig(mergedConfigSource);
+      mergedConfig = await parseYaml([$globalDotrainFile.text]);
     } catch (e) {
       reportErrorToSentry(e, SentrySeverityLevel.Info);
     }

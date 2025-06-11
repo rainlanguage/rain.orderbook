@@ -77,7 +77,7 @@ pub async fn get_add_order_calldata(
     dotrain: &str,
     deployment: &str,
 ) -> Result<AddOrderCalldata, Error> {
-    let config = parse_frontmatter(dotrain.to_string()).await?;
+    let config = parse_frontmatter(dotrain.to_string(), None).await?;
     let deployment_ref = config
         .get_deployments()
         .get(deployment)

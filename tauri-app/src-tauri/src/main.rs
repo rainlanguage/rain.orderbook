@@ -12,6 +12,7 @@ use commands::app::get_app_commit_sha;
 use commands::authoring_meta::get_authoring_meta_v2_for_scenarios;
 use commands::chain::{get_block_number, get_chainid};
 use commands::charts::{make_charts, make_deployment_debug};
+use commands::config::{parse_dotrain_and_yaml, parse_yaml};
 use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
@@ -56,6 +57,8 @@ fn run_tauri_app() {
             get_chainid,
             get_block_number,
             parse_dotrain,
+            parse_yaml,
+            parse_dotrain_and_yaml,
             call_lsp_completion,
             call_lsp_hover,
             call_lsp_problems,

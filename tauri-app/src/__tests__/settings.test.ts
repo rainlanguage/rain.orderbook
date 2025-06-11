@@ -17,7 +17,7 @@ import { mockConfig } from '$lib/mocks/mockConfig';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { get } from '@square/svelte-store';
 import { cachedWritableStore } from '@rainlanguage/ui-components';
-import type { ConfigSource, Config } from '@rainlanguage/orderbook';
+import type { Config } from '@rainlanguage/orderbook';
 
 describe('Settings active accounts items', () => {
   // Reset store values before each test to prevent state leakage
@@ -448,13 +448,13 @@ describe('Settings Subscription Edge Cases', () => {
   test('should handle invalid JSON in settings', () => {
     // This test uses a local store to avoid interfering with the global 'settings' store
     // and to directly test the JSON parsing logic of cachedWritableStore.
-    const settingsWithBreak = cachedWritableStore<ConfigSource | undefined>(
+    const settingsWithBreak = cachedWritableStore<Config | undefined>(
       'settings-test-invalid-json', // Unique key
-      undefined,
+      EMPTY_SETTINGS,
       (value) => (value ? JSON.stringify(value) : 'invalid-json'), // Force invalid JSON string for undefined
       (str) => {
         try {
-          return JSON.parse(str) as ConfigSource;
+          return JSON.parse(str);
         } catch {
           return undefined;
         }
@@ -466,7 +466,7 @@ describe('Settings Subscription Edge Cases', () => {
     expect(get(settingsWithBreak)).toBeUndefined();
 
     // Test with valid data
-    settingsWithBreak.set(mockConfig as unknown as ConfigSource);
+    settingsWithBreak.set(mockConfig);
     expect(get(settingsWithBreak)).toEqual(mockConfig);
   });
 

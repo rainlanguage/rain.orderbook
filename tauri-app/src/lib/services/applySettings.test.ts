@@ -23,7 +23,14 @@ describe('applySettings service', () => {
   });
 
   it('should successfully apply settings and update stores', async () => {
-    const settingsContent = '{ "networks": {} }';
+    const settingsContent = `
+version: 1
+networks:
+  mainnet:
+    key: mainnet
+    chainId: 1
+    rpc: rpc
+`;
     const parsedConfig: Config = {
       orderbook: {
         version: '1',
@@ -43,7 +50,7 @@ describe('applySettings service', () => {
     expect(result.errorMessage).toBeUndefined();
     expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).toHaveBeenCalledWith(parsedConfig);
-    expect(mockParseConfigSourceFn).toHaveBeenCalledWith(settingsContent);
+    expect(mockParseConfigSourceFn).toHaveBeenCalledWith([settingsContent]);
     expect(vi.mocked(reportErrorToSentry)).not.toHaveBeenCalled();
   });
 
@@ -63,7 +70,7 @@ describe('applySettings service', () => {
     expect(result.errorMessage).toBe('Failed to parse');
     expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).not.toHaveBeenCalled();
-    expect(mockParseConfigSourceFn).toHaveBeenCalledWith(settingsContent);
+    expect(mockParseConfigSourceFn).toHaveBeenCalledWith([settingsContent]);
     expect(vi.mocked(reportErrorToSentry)).toHaveBeenCalledWith(
       parseError,
       SentrySeverityLevel.Info,
