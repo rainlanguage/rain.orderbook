@@ -85,13 +85,15 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
-		const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+		const orderbookYamlResult = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
+		const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(orderbookYamlResult);
 		assert.ok(orderbookYaml);
 	});
 
 	describe('orderbook tests', async function () {
 		it('should get the orderbook', async function () {
-			const orderbookYaml = new OrderbookYaml([YAML_WITHOUT_ORDERBOOK]);
+			const orderbookYamlResult = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
+			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(orderbookYamlResult);
 
 			const orderbook = extractWasmEncodedData<OrderbookCfg>(
 				orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
@@ -115,6 +117,63 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 			expect(result.error.readableMsg).toBe(
 				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "Key \'0x0000000000000000000000000000000000000000\' not found"'
 			);
+		});
+	});
+
+	describe('validation tests', async function () {
+		const INVALID_YAML = `
+networks:
+    some-network:
+        rpc: http://localhost:8085/rpc-url
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: nonexistent-network
+        subgraph: nonexistent-subgraph
+`;
+
+		it('should succeed with valid YAML and validation enabled', async function () {
+			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK], true);
+			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			assert.ok(orderbookYaml);
+		});
+
+		it('should succeed with valid YAML and validation disabled', async function () {
+			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK], false);
+			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			assert.ok(orderbookYaml);
+		});
+
+		it('should succeed with valid YAML and default validation', async function () {
+			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
+			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			assert.ok(orderbookYaml);
+		});
+
+		it('should fail with invalid YAML and validation enabled', async function () {
+			const result = OrderbookYaml.new([INVALID_YAML], true);
+			if (!result.error) expect.fail('Expected validation error with invalid YAML');
+			expect(result.error.msg).toContain('Orderbook yaml error');
+			expect(result.error.readableMsg).toContain(
+				'There was an error processing the YAML configuration'
+			);
+		});
+
+		it('should test behavior with invalid YAML and validation disabled', async function () {
+			const result = OrderbookYaml.new([INVALID_YAML], false);
+			if (result.error) {
+				expect(result.error.msg).toContain('Orderbook yaml error');
+				expect(result.error.readableMsg).toContain(
+					'There was an error processing the YAML configuration'
+				);
+			} else {
+				const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+				assert.ok(orderbookYaml);
+			}
 		});
 	});
 });
