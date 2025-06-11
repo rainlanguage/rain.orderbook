@@ -32,7 +32,7 @@
   import { executeLedgerOrder } from '$lib/services/executeLedgerOrder';
   import { generateRainlangStrings } from '$lib/services/generateRainlangStrings';
   import { getDeploymentsNetworks } from '$lib/utils/getDeploymentNetworks';
-  import { parseYaml } from '$lib/services/config';
+  import { parseDotrainAndYaml } from '$lib/services/config';
 
   let isSubmitting = false;
   let isCharting = false;
@@ -122,7 +122,7 @@
 
   async function updateMergedConfig() {
     try {
-      mergedConfig = await parseYaml([$globalDotrainFile.text]);
+      mergedConfig = await parseDotrainAndYaml($globalDotrainFile.text, $settingsText, true);
     } catch (e) {
       reportErrorToSentry(e, SentrySeverityLevel.Info);
     }

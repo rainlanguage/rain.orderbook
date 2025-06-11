@@ -19,7 +19,7 @@ export async function parseDotrainAndSettingsProblems(dotrain: string, settings:
   const problems: Problem[] = [];
 
   try {
-    await parseDotrainAndYaml(dotrain, settings);
+    await parseDotrainAndYaml(dotrain, settings, true);
   } catch (e) {
     reportErrorToSentry(e, SentrySeverityLevel.Info);
     problems.push(convertErrorToProblem(e));
