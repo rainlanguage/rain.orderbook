@@ -30,7 +30,7 @@ use rain_orderbook_bindings::{
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
@@ -100,12 +100,16 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = rpc_clients
-                    .entry(input_token.network.rpc.to_string())
-                    .or_insert_with(|| {
-                        ReadableClientHttp::new_from_urls(vec![input_token.network.rpc.to_string()])
-                            .expect("Failed to create RPC client")
-                    });
+                let client = match rpc_clients.entry(input_token.network.rpc.to_string()) {
+                    Entry::Occupied(entry) => entry.into_mut(),
+                    Entry::Vacant(entry) => {
+                        let client = ReadableClientHttp::new_from_urls(vec![input_token
+                            .network
+                            .rpc
+                            .to_string()])?;
+                        entry.insert(client)
+                    }
+                };
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -135,15 +139,16 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = rpc_clients
-                    .entry(output_token.network.rpc.to_string())
-                    .or_insert_with(|| {
-                        ReadableClientHttp::new_from_urls(vec![output_token
+                let client = match rpc_clients.entry(output_token.network.rpc.to_string()) {
+                    Entry::Occupied(entry) => entry.into_mut(),
+                    Entry::Vacant(entry) => {
+                        let client = ReadableClientHttp::new_from_urls(vec![output_token
                             .network
                             .rpc
-                            .to_string()])
-                        .expect("Failed to create RPC client")
-                    });
+                            .to_string()])?;
+                        entry.insert(client)
+                    }
+                };
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
