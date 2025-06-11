@@ -164,12 +164,10 @@ orderbooks:
 		});
 
 		it('should succeed construction but fail usage with invalid YAML when validation is disabled', async function () {
-			const result = OrderbookYaml.new([INVALID_YAML], false);
-			if (result.error) expect.fail(`Construction should succeed when validation is disabled, actual error: ${result.error.msg}`);
-			
-			// However, using the OrderbookYaml should still fail due to missing references
-			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
-			const orderbookResult = orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6');
+			const orderbookYaml = buildYaml(INVALID_YAML, false);
+			const orderbookResult = orderbookYaml.getOrderbookByAddress(
+				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
+			);
 			if (!orderbookResult.error) expect.fail('Expected error when using invalid YAML');
 			expect(orderbookResult.error.msg).toContain('Orderbook yaml error');
 		});
