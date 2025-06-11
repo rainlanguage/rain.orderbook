@@ -90,7 +90,10 @@
 					<span>Checking...</span>
 				</div>
 			{:else if tokenInfo}
-				<div class="flex h-5 flex-row items-center gap-2">
+				<div
+					class="flex h-5 flex-row items-center gap-2"
+					data-testid={`select-token-success-${token.key}`}
+				>
 					<CheckCircleSolid class="h-5 w-5" color="green" />
 					<span>{tokenInfo.name}</span>
 				</div>

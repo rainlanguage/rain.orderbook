@@ -65,24 +65,26 @@ export { default as DisclaimerModal } from './components/deployment/DisclaimerMo
 export { default as InvalidStrategiesSection } from './components/deployment/InvalidStrategiesSection.svelte';
 export { default as ValidStrategiesSection } from './components/deployment/ValidStrategiesSection.svelte';
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
+export { default as TransactionList } from './components/transactions/TransactionList.svelte';
+export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';
-export type { ConfigSource, OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
+export type { OrderbookConfigSource, OrderbookCfgRef } from '@rainlanguage/orderbook';
 export {
-	TransactionStatus,
-	TransactionErrorMessage,
-	type TransactionState,
-	type ExtendedApprovalCalldata
-} from './stores/transactionStore';
-export type { DeploymentArgs, VaultActionArgs, OrderRemoveArgs } from './types/transaction';
+	TransactionStatusMessage,
+	TransactionStoreErrorMessage,
+	type TransactionArgs,
+	type DeploymentArgs,
+	type VaultActionArgs
+} from './types/transaction';
 export type {
 	VaultActionModalProps,
-	OrderRemoveModalProps,
 	QuoteDebugModalHandler,
 	DebugTradeModalHandler,
-	DeployModalProps,
-	DisclaimerModalProps
+	DisclaimerModalProps,
+	TransactionConfirmationProps,
+	HandleTransactionConfirmationModal
 } from './types/modal';
 export type { ValidStrategyDetail, InvalidStrategyDetail } from './types/strategy';
 export type { ToastProps } from './types/toast';
@@ -99,6 +101,7 @@ export { vaultBalanceDisplay } from './utils/vault';
 export { bigintToFloat } from './utils/number';
 export { getExplorerLink } from './services/getExplorerLink';
 export { invalidateTanstackQueries } from './queries/queryClient';
+export { getToastsContext } from './providers/toasts/context';
 
 // Constants
 export { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from './queries/constants';
@@ -117,7 +120,6 @@ export { darkChartTheme, lightChartTheme } from './utils/lightweightChartsThemes
 export { lightCodeMirrorTheme, darkCodeMirrorTheme } from './utils/codeMirrorThemes';
 
 // Stores
-export { default as transactionStore } from './stores/transactionStore';
 export {
 	cachedWritableStore,
 	cachedWritableIntOptional,
@@ -134,18 +136,21 @@ export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
+export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
+export { useTransactions } from './providers/transactions/useTransactions';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';
+export { TransactionStore } from './models/Transaction';
+export { TransactionManager } from './providers/transactions/TransactionManager';
 
 // Mocks
 export { mockPageStore } from './__mocks__/stores';
 export { mockConfigSource } from './__mocks__/settings';
 export { mockSettingsStore } from './__mocks__/settings';
-export { mockTransactionStore } from './__mocks__/mockTransactionStore';

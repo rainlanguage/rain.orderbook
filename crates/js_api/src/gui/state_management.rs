@@ -159,13 +159,12 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
-    #[wasm_export(js_name = "deserializeState", unchecked_return_type = "void")]
-    pub async fn deserialize_state(
-        &mut self,
+    #[wasm_export(js_name = "newFromState", preserve_js_class)]
+    pub async fn new_from_state(
         dotrain: String,
         serialized: String,
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<(), GuiError> {
+    ) -> Result<DotrainOrderGui, GuiError> {
         let compressed = URL_SAFE.decode(serialized)?;
 
         let mut decoder = GzDecoder::new(&compressed[..]);
@@ -178,8 +177,7 @@ impl DotrainOrderGui {
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order.initialize(dotrain.clone(), None).await?;
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
 
         let field_values = state
             .field_values
@@ -241,13 +239,7 @@ impl DotrainOrderGui {
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
-        self.dotrain_order = dotrain_order_gui.dotrain_order;
-        self.field_values = dotrain_order_gui.field_values;
-        self.deposits = dotrain_order_gui.deposits;
-        self.selected_deployment = dotrain_order_gui.selected_deployment;
-        self.state_update_callback = dotrain_order_gui.state_update_callback;
-
-        Ok(())
+        Ok(dotrain_order_gui)
     }
 
     #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
@@ -286,13 +278,13 @@ mod tests {
     use super::*;
     use crate::gui::{
         field_values::FieldValue,
-        tests::{initialize_gui, initialize_gui_with_select_tokens, YAML},
+        tests::{get_yaml, initialize_gui_with_select_tokens},
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PwWrCQBDN2tJS6EkKPRX6AV2yMQ0YocdgwVpQoqI3jYvGrLNxXaPGn_CTRZ2NKM5h3nszw8y8knWOF8RRDOMYJtSxTDwgOozdDlUIFphVMEOeELVMOLj3tt2fvFavqJZyzilwvZYq-cDaVOu0ZttCRkMxlUtdq7KqZ6s0oislduYgMYyY00H4-4a0_N3d7G8SKZNnbIfHHz5d8mh0498tFVaKhRXfJxfl-P4X0laH11XeCBZ_wlkP8qydySbMVOw1Z1DveOEWIGdJFkS9_s-7ccoFjzQ92adjngq5nXPQB95yLdOoAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21PyYrCQBBNO8MMA3OSgTkNzAfYpGNU0oIHwZWAGy5njY1GewlJu-FP-MmiVkcU61Dvvaqiql7GusUX4CyU81AusGOZeAN0CHkeyiMoECtlhnwAarVm0n217fXko_oGlSjBsGR6p-L1H9SWWkdl2-YqmPKlSnTZI17RjqMAb2J-NAeRYcicrg9bP0CzhfH-9JRQFn1Ce3j54d9F70b7HTeTWkkX5ilFd-VQmgPq9YUYrZK-6DabPqttB2F1SoU_jnCLTrq9dsGrDooHXFo0SOXXOGWcBRpf7eM5i7g6CCb1GedGmr-oAQAA";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -321,9 +313,8 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state() {
-        let mut gui = initialize_gui(None).await;
-        gui.deserialize_state(YAML.to_string(), SERIALIZED_STATE.to_string(), None)
+    async fn test_new_from_state() {
+        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
             .await
             .unwrap();
 
@@ -351,18 +342,20 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_deserialize_state_invalid_dotrain() {
-        let mut gui = initialize_gui(None).await;
+    async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
         dotrain:
             name: Test
             description: Test
         "#;
 
-        let err = gui
-            .deserialize_state(dotrain.to_string(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::new_from_state(
+            dotrain.to_string(),
+            SERIALIZED_STATE.to_string(),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),
@@ -390,9 +383,8 @@ mod tests {
             .dyn_into::<js_sys::Function>()
             .expect("testCallback should be a function");
 
-        let mut gui = DotrainOrderGui::new();
-        gui.choose_deployment(
-            YAML.to_string(),
+        let mut gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
             "some-deployment".to_string(),
             Some(callback_js.clone()),
         )

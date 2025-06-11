@@ -374,7 +374,7 @@ impl TestRunner {
 mod tests {
     use super::*;
     use rain_orderbook_app_settings::{
-        config_source::ConfigSource, unit_test::UnitTestConfigSource,
+        config_source::ConfigSource, spec_version::SpecVersion, unit_test::UnitTestConfigSource,
     };
     use rain_orderbook_test_fixtures::LocalEvm;
 
@@ -435,6 +435,7 @@ using-words-from orderbook-subparser
         );
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -465,7 +466,8 @@ _: output-vault-decrease();
     "#,
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
-            orderbook_subparser = local_evm.orderbook_subparser.address()
+            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            spec_version = SpecVersion::current()
         );
 
         let main_config = get_main_config(&dotrain);

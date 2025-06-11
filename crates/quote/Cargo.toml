@@ -43,3 +43,4 @@ httpmock = "0.7.0"
 rain_orderbook_test_fixtures = { workspace = true }
 rain_orderbook_common = { workspace = true }
 wasm-bindgen-test = "0.3"
+rain_orderbook_app_settings = { workspace = true }

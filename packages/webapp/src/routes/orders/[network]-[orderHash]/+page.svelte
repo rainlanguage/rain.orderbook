@@ -1,19 +1,19 @@
 <script lang="ts">
-	import {
-		invalidateTanstackQueries,
-		OrderDetail,
-		PageHeader,
-		useAccount
-	} from '@rainlanguage/ui-components';
+	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
-	import { handleOrderRemoveModal } from '$lib/services/modal';
-	import { useQueryClient } from '@tanstack/svelte-query';
+	import {
+		handleDepositModal,
+		handleTransactionConfirmationModal,
+		handleWithdrawModal
+	} from '$lib/services/modal';
 	import type { SgOrder, SgVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
-	import { handleVaultAction } from '$lib/services/handleVaultAction';
+	import { useTransactions } from '@rainlanguage/ui-components';
+	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
+	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
+	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const queryClient = useQueryClient();
 	const { orderHash, network } = $page.params;
 	const { settings } = $page.data.stores;
 	const orderbookAddress = $settings?.orderbooks[network]?.address;
@@ -21,45 +21,51 @@
 	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const { account } = useAccount();
+	const { manager } = useTransactions();
+	const { errToast } = useToasts();
 
-	function onRemove(order: SgOrder) {
-		handleOrderRemoveModal({
-			open: true,
-			args: {
-				order,
-				chainId,
-				orderbookAddress,
-				subgraphUrl,
-				onRemove: () => {
-					invalidateTanstackQueries(queryClient, [orderHash]);
-				}
-			}
+	async function onRemove(order: SgOrder) {
+		await handleRemoveOrder(order, {
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
+			subgraphUrl,
+			chainId,
+			orderHash
 		});
 	}
 
-	function onDeposit(vault: SgVault) {
-		handleVaultAction({
+	async function onDeposit(vault: SgVault) {
+		await handleVaultDeposit({
 			vault,
-			action: 'deposit',
-			queryClient,
-			queryKey: $page.params.id,
-			chainId,
-			rpcUrl,
+			handleDepositModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			orderbookAddress: orderbookAddress as Hex,
 			subgraphUrl,
-			account: $account as Hex
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 
-	function onWithdraw(vault: SgVault) {
-		handleVaultAction({
+	async function onWithdraw(vault: SgVault) {
+		await handleVaultWithdraw({
 			vault,
-			action: 'withdraw',
-			queryClient,
-			queryKey: $page.params.id,
-			chainId,
-			rpcUrl,
+			handleWithdrawModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			network,
+			toAddress: orderbookAddress as Hex,
 			subgraphUrl,
-			account: $account as Hex
+			chainId,
+			account: $account as Hex,
+			rpcUrl
 		});
 	}
 </script>

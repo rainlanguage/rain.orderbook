@@ -21,6 +21,8 @@ pub use rain_interpreter_eval::trace::{RainEvalResultError, RainEvalResults, Tra
 use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs, trace::RainEvalResult};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
+use rain_orderbook_app_settings::spec_version::SpecVersion;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -91,6 +93,8 @@ pub enum FuzzRunnerError {
     AbiDecodeFailedErrors(#[from] AbiDecodeFailedErrors),
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error("Spec version mismatch: expected {0} but got {1}")]
+    SpecVersionMismatch(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +120,15 @@ impl FuzzRunnerContext {
         } else {
             vec![frontmatter.to_string()]
         };
+
+        let orderbook_yaml = OrderbookYaml::new(source.clone(), false)?;
+        let spec_version = orderbook_yaml.get_spec_version()?;
+        if !SpecVersion::is_current(&spec_version) {
+            return Err(FuzzRunnerError::SpecVersionMismatch(
+                SpecVersion::current().to_string(),
+                spec_version.to_string(),
+            ));
+        }
 
         let dotrain_yaml = DotrainYaml::new(source, false)?;
 
@@ -675,10 +688,11 @@ mod tests {
         primitives::utils::parse_ether,
         providers::{ext::AnvilApi, Provider},
     };
+    use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use rain_orderbook_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
-    async fn test_fuzz_runner_context_new_happy() {
+    async fn test_fuzz_runner_missing_spec_version() {
         let dotrain = r#"
 deployers:
     some-key:
@@ -702,7 +716,80 @@ b: fuzzed;
 :;
 #handle-add-order
 :;"#;
-        let context = FuzzRunnerContext::new(dotrain, None, None).unwrap();
+        let err = FuzzRunnerContext::new(dotrain, None, None).unwrap_err();
+        assert!(matches!(
+            err,
+            FuzzRunnerError::YamlError(YamlError::Field {
+                kind: FieldErrorKind::Missing(ref key),
+                location,
+            }) if key == "version" && location == "root"
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_fuzz_runner_invalid_spec_version() {
+        let dotrain = r#"
+version: 2
+deployers:
+    some-key:
+        address: 0x1111111111111111111111111111111111111111
+networks:
+    some-key:
+        rpc: https://example.com
+        chain-id: 123
+scenarios:
+    some-key:
+        runs: 50
+        bindings:
+            bound: 3
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: bound,
+b: fuzzed;
+#handle-io
+:;
+#handle-add-order
+:;"#;
+        let err = FuzzRunnerContext::new(dotrain, None, None).unwrap_err();
+        assert!(matches!(
+            err,
+            FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
+                if expected == "1" && actual == "2"
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
+    async fn test_fuzz_runner_context_new_happy() {
+        let dotrain = format!(
+            r#"
+version: {spec_version}
+deployers:
+    some-key:
+        address: 0x1111111111111111111111111111111111111111
+networks:
+    some-key:
+        rpc: https://example.com
+        chain-id: 123
+scenarios:
+    some-key:
+        runs: 50
+        bindings:
+            bound: 3
+---
+#bound !bind it
+#fuzzed !fuzz it
+#calculate-io
+a: bound,
+b: fuzzed;
+#handle-io
+:;
+#handle-add-order
+:;"#,
+            spec_version = SpecVersion::current()
+        );
+        let context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
 
         assert_eq!(context.dotrain, dotrain);
         assert_eq!(
@@ -724,11 +811,15 @@ b: fuzzed;
 :;
 #handle-add-order
 :;"#;
-        let bad_settings = r#"
+        let bad_settings = format!(
+            r#"
+version: {spec_version}
 bad-networks-key:
     some-key:
         rpc: https://example.com
-        chain-id: 123"#;
+        chain-id: 123"#,
+            spec_version = SpecVersion::current()
+        );
 
         let error = FuzzRunnerContext::new(dotrain, Some(bad_settings.to_string()), None)
             .expect_err("expected to fail, but resolved");
@@ -741,6 +832,7 @@ bad-networks-key:
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -764,7 +856,8 @@ b: fuzzed;
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -792,6 +885,7 @@ b: fuzzed;
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -811,6 +905,7 @@ _: block-number();
 :;
 #handle-add-order
 :;"#,
+            spec_version = SpecVersion::current(),
             rpc_url = local_evm.url(),
             deployer = local_evm.deployer.address(),
             start_block = start_block_number,
@@ -840,6 +935,7 @@ _: block-number();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -872,7 +968,8 @@ d: 4;
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -907,6 +1004,7 @@ d: 4;
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -926,7 +1024,8 @@ _: context<4 4>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -952,6 +1051,7 @@ _: context<4 4>();
         let local_evm = LocalEvm::new().await;
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -970,7 +1070,8 @@ _: context<50 50>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -987,6 +1088,7 @@ _: context<50 50>();
         // random order hash is at <1 0> context cell, ie column1 row0
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     some-key:
         address: {deployer}
@@ -1005,7 +1107,8 @@ _: context<1 0>();
 #handle-add-order
 :;"#,
             rpc_url = local_evm.url(),
-            deployer = local_evm.deployer.address()
+            deployer = local_evm.deployer.address(),
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();
@@ -1063,6 +1166,7 @@ _: context<1 0>();
 
         let dotrain = format!(
             r#"
+version: {spec_version}
 deployers:
     flare:
         address: {deployer}
@@ -1125,6 +1229,7 @@ _: add(something 30);
             orderbook_subparser = local_evm.orderbook_subparser.address(),
             wflr_address = wflr_address,
             usdce_address = usdce_address,
+            spec_version = SpecVersion::current()
         );
         let mut runner = FuzzRunner::new(None);
         let mut context = FuzzRunnerContext::new(&dotrain, None, None).unwrap();

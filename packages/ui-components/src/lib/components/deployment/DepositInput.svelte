@@ -99,6 +99,7 @@
 			<div class="flex w-full flex-wrap gap-4">
 				{#each deposit.presets as preset}
 					<ButtonSelectOption
+						dataTestId={`deposit-preset-${preset}`}
 						active={currentDeposit?.amount === preset}
 						buttonText={preset}
 						clickHandler={() => handlePresetClick(preset)}
