@@ -17,7 +17,7 @@
 	function handleStatusChange(event: CustomEvent<Record<string, string>>) {
 		let items = Object.keys(event.detail);
 		activeSubgraphs.set(
-			Object.values(items).reduce(
+			items.reduce(
 				(acc, key) => ({ ...acc, [key]: (settings.orderbook.subgraphs ?? {})[key] }),
 				{} as Record<string, SubgraphCfg>
 			)

@@ -24,7 +24,7 @@ export const EMPTY_CONFIG: Config = {
  *
  * This store is saved to local storage and persists between sessions.
  *
- * @default {} - No configuration is set by default
+ * @default EMPTY_CONFIG - No configuration is set by default
  * @returns A writable store containing the application configuration
  */
 export const settings = cachedWritableStore<Config>(

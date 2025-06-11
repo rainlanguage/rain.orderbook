@@ -77,7 +77,7 @@
 			return lastPage.length === DEFAULT_PAGE_SIZE ? lastPageParam + 1 : undefined;
 		},
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
-		enabled: true
+		enabled: multiSubgraphArgs.length > 0
 	});
 
 	const AppTable = TanstackAppTable<SgOrderWithSubgraphName>;

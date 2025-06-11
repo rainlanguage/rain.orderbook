@@ -46,8 +46,8 @@ describe('resetActiveOrderbookRef', () => {
 		expect(mockActiveOrderbookRef.set).toHaveBeenCalledWith(undefined);
 	});
 
-	it('should set activeOrderbookRef to undefined if activeNetworkOrderbooksStore is undefined', () => {
-		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookCfg>>(undefined);
+	it('should set activeOrderbookRef to undefined if activeNetworkOrderbooksStore is empty', () => {
+		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookCfg>>({});
 		resetActiveOrderbookRef(mockActiveOrderbookRef, mockActiveNetworkOrderbooksStore);
 		expect(mockActiveOrderbookRef.set).toHaveBeenCalledWith(undefined);
 	});

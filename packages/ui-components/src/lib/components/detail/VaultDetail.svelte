@@ -41,7 +41,7 @@
 	 */
 	export let onWithdraw: (vault: SgVault) => void;
 
-	const subgraphUrl = $settings.orderbook.subgraphs[network].url || '';
+	const subgraphUrl = $settings.orderbook.subgraphs[network]?.url ?? '';
 	const queryClient = useQueryClient();
 	const { matchesAccount } = useAccount();
 	const { errToast } = useToasts();

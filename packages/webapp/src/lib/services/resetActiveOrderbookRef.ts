@@ -16,10 +16,7 @@ export function resetActiveOrderbookRef(
 	try {
 		const $activeNetworkOrderbooks = get(activeNetworkOrderbooksStore);
 
-		if (
-			$activeNetworkOrderbooks !== undefined &&
-			Object.keys($activeNetworkOrderbooks).length > 0
-		) {
+		if (Object.keys($activeNetworkOrderbooks).length > 0) {
 			activeOrderbookRef.set(Object.keys($activeNetworkOrderbooks)[0]);
 		} else {
 			activeOrderbookRef.set(undefined);

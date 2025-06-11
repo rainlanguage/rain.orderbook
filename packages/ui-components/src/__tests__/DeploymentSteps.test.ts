@@ -46,8 +46,8 @@ const mockDeployment = {
 			key: 'flare-sflr-wflr',
 			network: {
 				key: 'flare',
-				'chain-id': 14,
-				'network-id': 14,
+				chainId: 14,
+				networkId: 14,
 				rpc: 'https://rpc.ankr.com/flare',
 				label: 'Flare',
 				currency: 'FLR'
@@ -60,8 +60,8 @@ const mockDeployment = {
 				key: 'flare-sflr-wflr',
 				network: {
 					key: 'flare',
-					'chain-id': 14,
-					'network-id': 14,
+					chainId: 14,
+					networkId: 14,
 					rpc: 'https://rpc.ankr.com/flare',
 					label: 'Flare',
 					currency: 'FLR'

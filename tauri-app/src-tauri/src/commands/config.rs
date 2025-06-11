@@ -3,12 +3,12 @@ use dotrain::RainDocument;
 use rain_orderbook_app_settings::config::Config;
 
 #[tauri::command]
-pub async fn parse_yaml(text: Vec<String>, validate: bool) -> CommandResult<Config> {
+pub fn parse_yaml(text: Vec<String>, validate: bool) -> CommandResult<Config> {
     Ok(Config::try_from_yaml(text, validate)?)
 }
 
 #[tauri::command]
-pub async fn parse_dotrain_and_yaml(
+pub fn parse_dotrain_and_yaml(
     dotrain: String,
     settings: String,
     validate: bool,
