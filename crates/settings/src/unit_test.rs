@@ -39,7 +39,7 @@ pub struct ScenarioTest {
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_opt_hashmap_as_object"),
-        tsify(optional, type = "Record<string, ScenarioTestSource>")
+        tsify(optional, type = "Record<string, ScenarioTest>")
     )]
     pub scenarios: Option<HashMap<String, ScenarioTest>>,
 }
