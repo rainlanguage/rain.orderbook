@@ -20,6 +20,7 @@ impl PartialEq for OrderbookYaml {
     }
 }
 
+// handles all orderbook functionalities
 impl OrderbookYaml {
     fn get_orderbook_yaml_cfg(&self) -> Result<OrderbookYamlCfg, OrderbookYamlError> {
         Ok(OrderbookYamlCfg::new(self.yaml.clone(), false)?)
