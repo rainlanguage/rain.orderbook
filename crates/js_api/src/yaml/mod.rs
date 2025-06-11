@@ -12,30 +12,25 @@ use wasm_bindgen_utils::prelude::*;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[wasm_bindgen]
 pub struct OrderbookYaml {
-    yaml: Vec<String>,
+    yaml: OrderbookYamlCfg,
 }
 impl PartialEq for OrderbookYaml {
     fn eq(&self, other: &Self) -> bool {
-        self.yaml == other.yaml
-    }
-}
-
-impl OrderbookYaml {
-    fn get_orderbook_yaml_cfg(&self) -> Result<OrderbookYamlCfg, OrderbookYamlError> {
-        Ok(OrderbookYamlCfg::new(self.yaml.clone(), false)?)
-    }
-}
-
-#[wasm_bindgen]
-impl OrderbookYaml {
-    #[wasm_bindgen(constructor)]
-    pub fn new(yaml: Vec<String>) -> Result<Self, OrderbookYamlError> {
-        Ok(Self { yaml })
+        std::ptr::eq(&self.yaml, &other.yaml)
     }
 }
 
 #[wasm_export]
 impl OrderbookYaml {
+    #[wasm_export(js_name = "new", preserve_js_class)]
+    pub fn new(
+        sources: Vec<String>,
+        validate: Option<bool>,
+    ) -> Result<OrderbookYaml, OrderbookYamlError> {
+        let yaml = OrderbookYamlCfg::new(sources, validate.unwrap_or(false))?;
+        Ok(Self { yaml })
+    }
+
     #[wasm_export(
         js_name = "getOrderbookByAddress",
         unchecked_return_type = "OrderbookCfg"
@@ -46,8 +41,7 @@ impl OrderbookYaml {
     ) -> Result<OrderbookCfg, OrderbookYamlError> {
         let address =
             Address::from_str(orderbook_address).map_err(OrderbookYamlError::FromHexError)?;
-        let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
-        Ok(orderbook_yaml.get_orderbook_by_address(address)?)
+        Ok(self.yaml.get_orderbook_by_address(address)?)
     }
 }
 
@@ -135,7 +129,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml() {
-        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()], None).unwrap();
         let orderbook = orderbook_yaml
             .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
             .unwrap();
@@ -152,7 +146,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml_error() {
-        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()], None).unwrap();
         let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
 
         assert_eq!(orderbook.is_err(), true);
@@ -176,5 +170,52 @@ mod tests {
             orderbook.as_ref().err().unwrap().to_readable_msg(),
             "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key '0x0000000000000000000000000000000000000000' not found\""
         );
+    }
+
+    pub fn get_invalid_yaml() -> String {
+        format!(
+            r#"
+    version: {spec_version}
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+            label: Ethereum Mainnet
+            network-id: 1
+            currency: ETH
+    orderbooks:
+        orderbook1:
+            address: 0x0000000000000000000000000000000000000002
+            network: nonexistent-network
+            subgraph: nonexistent-subgraph
+            label: Primary Orderbook
+    "#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[wasm_bindgen_test]
+    fn test_orderbook_yaml_invalid_with_validation_enabled() {
+        let result = OrderbookYaml::new(vec![get_invalid_yaml()], Some(true));
+        match result {
+            Ok(_) => panic!("Expected validation error with invalid YAML"),
+            Err(err) => {
+                assert!(err.to_string().contains("Orderbook yaml error"));
+                assert!(err
+                    .to_readable_msg()
+                    .contains("There was an error processing the YAML configuration"));
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    fn test_orderbook_yaml_invalid_with_validation_disabled() {
+        let result = OrderbookYaml::new(vec![get_invalid_yaml()], Some(false));
+        if let Err(err) = result {
+            assert!(err.to_string().contains("Orderbook yaml error"));
+            assert!(err
+                .to_readable_msg()
+                .contains("There was an error processing the YAML configuration"));
+        }
     }
 }
