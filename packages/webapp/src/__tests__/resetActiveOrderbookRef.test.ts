@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 import type { OrderbookCfg } from '@rainlanguage/orderbook';
 import { type AppStoresInterface } from '@rainlanguage/ui-components';
 
-const createMockOrderbookConfigSource = (address: string, label?: string): OrderbookCfg => ({
+const createMockOrderbookConfig = (address: string, label?: string): OrderbookCfg => ({
 	address,
 	label,
 	key: address,
@@ -30,8 +30,8 @@ describe('resetActiveOrderbookRef', () => {
 
 	it('should set activeOrderbookRef to the first orderbook key if orderbooks exist', () => {
 		const orderbooks: Record<string, OrderbookCfg> = {
-			orderbook1: createMockOrderbookConfigSource('0x123', 'Orderbook One'),
-			orderbook2: createMockOrderbookConfigSource('0x456', 'Orderbook Two')
+			orderbook1: createMockOrderbookConfig('0x123', 'Orderbook One'),
+			orderbook2: createMockOrderbookConfig('0x456', 'Orderbook Two')
 		};
 		mockActiveNetworkOrderbooksStore = writable<Record<string, OrderbookCfg>>(orderbooks);
 		resetActiveOrderbookRef(mockActiveOrderbookRef, mockActiveNetworkOrderbooksStore);

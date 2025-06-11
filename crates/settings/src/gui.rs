@@ -70,7 +70,7 @@ pub struct GuiDeploymentSourceCfg {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
-pub struct GuiConfigSourceCfg {
+pub struct GuiSourceCfg {
     pub name: String,
     pub description: String,
     #[cfg_attr(
@@ -80,19 +80,19 @@ pub struct GuiConfigSourceCfg {
     )]
     pub deployments: HashMap<String, GuiDeploymentSourceCfg>,
 }
-impl GuiConfigSourceCfg {
+impl GuiSourceCfg {
     pub fn try_into_gui(
         self,
         deployments: &HashMap<String, Arc<DeploymentCfg>>,
         tokens: &HashMap<String, Arc<TokenCfg>>,
-    ) -> Result<GuiCfg, ParseGuiConfigSourceError> {
+    ) -> Result<GuiCfg, ParseGuiConfigError> {
         let gui_deployments = self
             .deployments
             .iter()
             .map(|(deployment_name, deployment_source)| {
                 let deployment = deployments
                     .get(deployment_name)
-                    .ok_or(ParseGuiConfigSourceError::DeploymentNotFoundError(
+                    .ok_or(ParseGuiConfigError::DeploymentNotFoundError(
                         deployment_name.clone(),
                     ))
                     .map(Arc::clone)?;
@@ -103,7 +103,7 @@ impl GuiConfigSourceCfg {
                     .map(|deposit_source| {
                         let token = tokens
                             .get(&deposit_source.token)
-                            .ok_or(ParseGuiConfigSourceError::TokenNotFoundError(
+                            .ok_or(ParseGuiConfigError::TokenNotFoundError(
                                 deposit_source.token.clone(),
                             ))
                             .map(Arc::clone)?;
@@ -113,7 +113,7 @@ impl GuiConfigSourceCfg {
                             presets: deposit_source.presets.clone(),
                         })
                     })
-                    .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
+                    .collect::<Result<Vec<_>, ParseGuiConfigError>>()?;
 
                 let fields = deployment_source
                     .fields
@@ -137,14 +137,14 @@ impl GuiConfigSourceCfg {
                                                 value: preset.value.clone(),
                                             })
                                         })
-                                        .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()
+                                        .collect::<Result<Vec<_>, ParseGuiConfigError>>()
                                 })
                                 .transpose()?,
                             default: field_source.default.clone(),
                             show_custom_field: field_source.show_custom_field,
                         })
                     })
-                    .collect::<Result<Vec<_>, ParseGuiConfigSourceError>>()?;
+                    .collect::<Result<Vec<_>, ParseGuiConfigError>>()?;
 
                 Ok((
                     deployment_name.clone(),
@@ -160,7 +160,7 @@ impl GuiConfigSourceCfg {
                     },
                 ))
             })
-            .collect::<Result<HashMap<_, _>, ParseGuiConfigSourceError>>()?;
+            .collect::<Result<HashMap<_, _>, ParseGuiConfigError>>()?;
 
         Ok(GuiCfg {
             name: self.name,
@@ -171,7 +171,7 @@ impl GuiConfigSourceCfg {
 }
 
 #[derive(Error, Debug)]
-pub enum ParseGuiConfigSourceError {
+pub enum ParseGuiConfigError {
     #[error("Deployment not found: {0}")]
     DeploymentNotFoundError(String),
     #[error("Token not found: {0}")]
@@ -840,7 +840,7 @@ mod tests {
 
     #[test]
     fn test_gui_creation_success() {
-        let gui_config_source = GuiConfigSourceCfg {
+        let gui_source = GuiSourceCfg {
             name: "test-gui".to_string(),
             description: "test-gui-description".to_string(),
             deployments: HashMap::from([(
@@ -943,9 +943,7 @@ mod tests {
         let deployments = HashMap::from([("test-deployment".to_string(), Arc::new(deployment))]);
         let tokens = HashMap::from([("test-token".to_string(), mock_token("test-token"))]);
 
-        let gui = gui_config_source
-            .try_into_gui(&deployments, &tokens)
-            .unwrap();
+        let gui = gui_source.try_into_gui(&deployments, &tokens).unwrap();
 
         assert_eq!(gui.name, "test-gui");
         assert_eq!(gui.description, "test-gui-description");

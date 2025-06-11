@@ -6,7 +6,7 @@ use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
         GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
-        ParseGuiConfigSourceError,
+        ParseGuiConfigError,
     },
     network::NetworkCfg,
     order::OrderCfg,
@@ -315,7 +315,7 @@ pub enum GuiError {
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
-    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
+    ParseGuiConfigError(#[from] ParseGuiConfigError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -397,7 +397,7 @@ impl GuiError {
                 format!("A JavaScript error occurred: {}", msg),
             GuiError::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
-            GuiError::ParseGuiConfigSourceError(err) =>
+            GuiError::ParseGuiConfigError(err) =>
                 format!("Failed to parse YAML GUI configuration: {}", err),
             GuiError::IoError(err) =>
                 format!("I/O error: {}", err),

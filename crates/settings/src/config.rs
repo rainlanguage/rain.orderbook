@@ -126,7 +126,7 @@ pub enum ParseConfigError {
     #[error(transparent)]
     ParseDeploymentCfgError(#[from] ParseDeploymentConfigError),
     #[error(transparent)]
-    ParseGuiCfgError(#[from] ParseGuiConfigSourceError),
+    ParseGuiCfgError(#[from] ParseGuiConfigError),
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error("Network not found: {0}")]

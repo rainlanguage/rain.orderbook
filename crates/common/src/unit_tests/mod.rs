@@ -371,7 +371,7 @@ mod tests {
     use crate::frontmatter::parse_frontmatter;
 
     use super::*;
-    use rain_orderbook_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfigSource};
+    use rain_orderbook_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfig};
     use rain_orderbook_test_fixtures::LocalEvm;
 
     async fn get_main_config(dotrain: &str) -> Config {
@@ -380,7 +380,7 @@ mod tests {
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
         let frontmatter = RainDocument::get_front_matter(test_dotrain).unwrap();
-        let source = serde_yaml::from_str::<UnitTestConfigSource>(frontmatter).unwrap();
+        let source = serde_yaml::from_str::<UnitTestConfig>(frontmatter).unwrap();
         source
             .test
             .try_into_test_config()

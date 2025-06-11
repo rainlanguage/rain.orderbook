@@ -2,7 +2,7 @@
   import { Alert, Spinner } from 'flowbite-svelte';
   import { settingsText, settings, settingsFile, hasRequiredSettings } from '$lib/stores/settings';
   import { PageHeader } from '@rainlanguage/ui-components';
-  import CodeMirrorConfigSource from '$lib/components/CodeMirrorConfigSource.svelte';
+  import CodeMirrorConfig from '$lib/components/CodeMirrorConfig.svelte';
   import FileTextarea from '$lib/components/FileTextarea.svelte';
   import { useDebouncedFn } from '$lib/utils/asyncDebounce';
   import { parseYaml } from '$lib/services/config';
@@ -97,7 +97,7 @@
   </svelte:fragment>
 
   <svelte:fragment slot="textarea">
-    <CodeMirrorConfigSource
+    <CodeMirrorConfig
       bind:value={$settingsFile.text}
       styles={{ '&': { maxHeight: `${height - (errorMessage ? 35 : 0)}px`, height: '100%' } }}
     />

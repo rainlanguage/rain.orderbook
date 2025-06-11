@@ -12,16 +12,16 @@ use wasm_bindgen_utils::{
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct UnitTestConfigSource {
-    pub test: TestConfigSource,
+pub struct UnitTestConfig {
+    pub test: TestConfig,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(UnitTestConfigSource);
+impl_wasm_traits!(UnitTestConfig);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct ScenarioTestSource {
+pub struct ScenarioTest {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     #[cfg_attr(
         target_family = "wasm",
@@ -41,10 +41,10 @@ pub struct ScenarioTestSource {
         serde(serialize_with = "serialize_opt_hashmap_as_object"),
         tsify(optional, type = "Record<string, ScenarioTestSource>")
     )]
-    pub scenarios: Option<HashMap<String, ScenarioTestSource>>,
+    pub scenarios: Option<HashMap<String, ScenarioTest>>,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(ScenarioTestSource);
+impl_wasm_traits!(ScenarioTest);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -55,7 +55,7 @@ pub struct TestConfigSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handle_entrypoint: Option<String>,
     pub scenario_name: String,
-    pub scenario: ScenarioTestSource,
+    pub scenario: ScenarioTest,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TestConfigSource);
@@ -74,7 +74,7 @@ pub struct TestConfig {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TestConfig);
 
-impl TestConfigSource {
+impl TestConfig {
     pub fn try_into_test_config(self) -> Result<TestConfig, ParseConfigError> {
         let mut bindings = HashMap::new();
         for (k, v) in &self.scenario.bindings {

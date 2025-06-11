@@ -649,7 +649,7 @@ impl PartialEq for ChartCfg {
 }
 
 #[derive(Error, Debug, PartialEq)]
-pub enum ParseChartConfigSourceError {
+pub enum ParseChartConfigError {
     #[error("Scenario not found: {0}")]
     ScenarioNotFoundError(String),
 }

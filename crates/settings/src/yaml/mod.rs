@@ -174,7 +174,7 @@ pub enum YamlError {
     InvalidTraitFunction,
 
     #[error(transparent)]
-    ParseNetworkConfigSourceError(#[from] ParseNetworkConfigError),
+    ParseNetworkConfigError(#[from] ParseNetworkConfigError),
     #[error(transparent)]
     ParseTokenConfigError(#[from] ParseTokenConfigError),
     #[error(transparent)]
@@ -219,9 +219,7 @@ impl PartialEq for YamlError {
             (Self::RuintParseError(e1), Self::RuintParseError(e2)) => {
                 e1.to_string() == e2.to_string()
             }
-            (Self::ParseNetworkConfigSourceError(e1), Self::ParseNetworkConfigSourceError(e2)) => {
-                e1 == e2
-            }
+            (Self::ParseNetworkConfigError(e1), Self::ParseNetworkConfigError(e2)) => e1 == e2,
             (Self::ParseTokenConfigError(e1), Self::ParseTokenConfigError(e2)) => e1 == e2,
             (Self::ParseOrderbookConfigError(e1), Self::ParseOrderbookConfigError(e2)) => e1 == e2,
             (Self::ParseDeployerConfigError(e1), Self::ParseDeployerConfigError(e2)) => e1 == e2,
@@ -285,7 +283,7 @@ impl YamlError {
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
-            YamlError::ParseNetworkConfigSourceError(err) => {
+            YamlError::ParseNetworkConfigError(err) => {
                 format!("Network configuration error in your YAML: {}", err)
             }
             YamlError::ParseTokenConfigError(err) => format!(

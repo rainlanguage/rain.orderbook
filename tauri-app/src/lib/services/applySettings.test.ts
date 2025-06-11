@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { writable, type Writable } from 'svelte/store';
 import type { Config } from '@rainlanguage/orderbook';
-import { applySettings, type ParseConfigSourceFn } from './applySettings';
+import { applySettings, type ParseConfigFn } from './applySettings';
 import { SentrySeverityLevel, reportErrorToSentry } from './sentry';
 
 vi.mock('$lib/services/sentry', () => ({
@@ -12,7 +12,7 @@ vi.mock('$lib/services/sentry', () => ({
 describe('applySettings service', () => {
   let mockSettingsStore: Writable<Config>;
   let mockSettingsTextStore: Writable<string>;
-  let mockParseConfigSourceFn: ParseConfigSourceFn;
+  let mockParseConfigFn: ParseConfigFn;
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -37,56 +37,56 @@ networks:
         networks: { mainnet: { key: 'mainnet', chainId: 1, rpc: 'rpc' } },
       },
     } as unknown as Config;
-    mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);
+    mockParseConfigFn = vi.fn().mockResolvedValue(parsedConfig);
 
     const result = await applySettings(
       settingsContent,
       mockSettingsStore,
       mockSettingsTextStore,
-      mockParseConfigSourceFn,
+      mockParseConfigFn,
     );
 
     expect(result.settingsStatus).toBe('success');
     expect(result.errorMessage).toBeUndefined();
     expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).toHaveBeenCalledWith(parsedConfig);
-    expect(mockParseConfigSourceFn).toHaveBeenCalledWith([settingsContent]);
+    expect(mockParseConfigFn).toHaveBeenCalledWith([settingsContent]);
     expect(vi.mocked(reportErrorToSentry)).not.toHaveBeenCalled();
   });
 
-  it('should return error status if parseConfigSourceFn throws an error', async () => {
+  it('should return error status if ParseConfigFn throws an error', async () => {
     const settingsContent = 'invalid json';
     const parseError = new Error('Failed to parse');
-    mockParseConfigSourceFn = vi.fn().mockRejectedValue(parseError);
+    mockParseConfigFn = vi.fn().mockRejectedValue(parseError);
 
     const result = await applySettings(
       settingsContent,
       mockSettingsStore,
       mockSettingsTextStore,
-      mockParseConfigSourceFn,
+      mockParseConfigFn,
     );
 
     expect(result.settingsStatus).toBe('error');
     expect(result.errorMessage).toBe('Failed to parse');
     expect(mockSettingsTextStore.set).toHaveBeenCalledWith(settingsContent);
     expect(mockSettingsStore.set).not.toHaveBeenCalled();
-    expect(mockParseConfigSourceFn).toHaveBeenCalledWith([settingsContent]);
+    expect(mockParseConfigFn).toHaveBeenCalledWith([settingsContent]);
     expect(vi.mocked(reportErrorToSentry)).toHaveBeenCalledWith(
       parseError,
       SentrySeverityLevel.Info,
     );
   });
 
-  it('should handle non-Error objects thrown by parseConfigSourceFn', async () => {
+  it('should handle non-Error objects thrown by ParseConfigFn', async () => {
     const settingsContent = 'another invalid input';
     const parseErrorString = 'Custom error string';
-    mockParseConfigSourceFn = vi.fn().mockRejectedValue(parseErrorString);
+    mockParseConfigFn = vi.fn().mockRejectedValue(parseErrorString);
 
     const result = await applySettings(
       settingsContent,
       mockSettingsStore,
       mockSettingsTextStore,
-      mockParseConfigSourceFn,
+      mockParseConfigFn,
     );
 
     expect(result.settingsStatus).toBe('error');

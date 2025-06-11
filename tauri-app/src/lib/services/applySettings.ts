@@ -2,7 +2,7 @@ import type { Writable } from 'svelte/store';
 import type { Config } from '@rainlanguage/orderbook';
 import { reportErrorToSentry, SentrySeverityLevel } from '$lib/services/sentry';
 
-export type ParseConfigSourceFn = (text: string[]) => Promise<Config>;
+export type ParseConfigFn = (text: string[]) => Promise<Config>;
 
 export interface ApplySettingsResult {
   settingsStatus: 'checking' | 'success' | 'error';
@@ -13,11 +13,11 @@ export async function applySettings(
   settingsContent: string,
   settingsStore: Writable<Config>,
   settingsTextStore: Writable<string>,
-  parseConfigSourceFn: ParseConfigSourceFn,
+  ParseConfigFn: ParseConfigFn,
 ): Promise<ApplySettingsResult> {
   try {
     settingsTextStore.set(settingsContent);
-    const parsedConfig = await parseConfigSourceFn([settingsContent]);
+    const parsedConfig = await ParseConfigFn([settingsContent]);
     settingsStore.set(parsedConfig);
     return { settingsStatus: 'success' };
   } catch (error) {

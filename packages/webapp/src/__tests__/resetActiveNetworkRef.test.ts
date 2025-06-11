@@ -7,7 +7,7 @@ describe('resetActiveNetworkRef', () => {
 	let mockActiveNetworkRef: AppStoresInterface['activeNetworkRef'];
 	let mockSettingsStore: AppStoresInterface['settings'];
 
-	const createMockNetworkConfigSource = (label?: string): NetworkCfg => ({
+	const createMockNetworkConfig = (label?: string): NetworkCfg => ({
 		key: 'network1',
 		rpc: 'http://localhost:8545',
 		chainId: 1337,
@@ -23,8 +23,8 @@ describe('resetActiveNetworkRef', () => {
 
 	it('should set activeNetworkRef to the first network key if networks exist', () => {
 		const networks: Record<string, NetworkCfg> = {
-			network1: createMockNetworkConfigSource('Network One'),
-			network2: createMockNetworkConfigSource('Network Two')
+			network1: createMockNetworkConfig('Network One'),
+			network2: createMockNetworkConfig('Network Two')
 		};
 		mockSettingsStore = writable<Config>({ orderbook: { networks } } as unknown as Config);
 		resetActiveNetworkRef(mockActiveNetworkRef, mockSettingsStore);

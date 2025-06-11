@@ -214,7 +214,7 @@ impl YamlParsableHash for NetworkCfg {
             if let Some(yaml_cache) = &context.yaml_cache {
                 for (key, network) in &yaml_cache.remote_networks {
                     if networks.contains_key(key) {
-                        return Err(YamlError::ParseNetworkConfigSourceError(
+                        return Err(YamlError::ParseNetworkConfigError(
                             ParseNetworkConfigError::RemoteNetworkKeyShadowing(key.clone()),
                         ));
                     }
