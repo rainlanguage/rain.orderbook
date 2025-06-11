@@ -30,7 +30,7 @@ use rain_orderbook_bindings::{
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 use thiserror::Error;
 
 pub static ORDERBOOK_ORDER_ENTRYPOINTS: [&str; 2] = ["calculate-io", "handle-io"];
@@ -84,6 +84,8 @@ impl AddOrderArgs {
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id: U256 = rand::random();
+        let mut rpc_clients: HashMap<String, ReadableClientHttp> = HashMap::new();
+
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
             let input_token = input
@@ -98,7 +100,16 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client = ReadableClientHttp::new_from_url(input_token.network.rpc.to_string())?;
+                let client = match rpc_clients.entry(input_token.network.rpc.to_string()) {
+                    Entry::Occupied(entry) => entry.into_mut(),
+                    Entry::Vacant(entry) => {
+                        let client = ReadableClientHttp::new_from_urls(vec![input_token
+                            .network
+                            .rpc
+                            .to_string()])?;
+                        entry.insert(client)
+                    }
+                };
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -128,8 +139,16 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_url(output_token.network.rpc.to_string())?;
+                let client = match rpc_clients.entry(output_token.network.rpc.to_string()) {
+                    Entry::Occupied(entry) => entry.into_mut(),
+                    Entry::Vacant(entry) => {
+                        let client = ReadableClientHttp::new_from_urls(vec![output_token
+                            .network
+                            .rpc
+                            .to_string()])?;
+                        entry.insert(client)
+                    }
+                };
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},
@@ -160,8 +179,7 @@ impl AddOrderArgs {
         rpc_url: String,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_url(rpc_url)
-            .map_err(AddOrderArgsError::ReadableClientError)?;
+        let client = ReadableClientHttp::new_from_urls(vec![rpc_url])?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
@@ -223,14 +241,16 @@ impl AddOrderArgs {
         let meta = self.try_generate_meta(rainlang)?;
 
         let deployer = self.deployer;
-        let dispair =
-            DISPair::from_deployer(deployer, ReadableClientHttp::new_from_url(rpc_url.clone())?)
-                .await?;
+        let dispair = DISPair::from_deployer(
+            deployer,
+            ReadableClientHttp::new_from_urls(vec![rpc_url.clone()])?,
+        )
+        .await?;
 
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;
         let post_bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
+            .try_parse_rainlang(rpc_url, post_rainlang.clone())
             .await?;
 
         let post_evaluable = EvaluableV3 {
@@ -1160,7 +1180,8 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_try_parse_rainlang_missing_rpc_data() {
-        let deployment = get_deployment("https://testtest.com", Address::random());
+        let rpc_url = "https://testtest.com/".to_string();
+        let deployment = get_deployment(&rpc_url, Address::random());
         let dotrain = format!(
             "
 version: {spec_version}
@@ -1179,15 +1200,23 @@ _ _: 0 0;
             .unwrap();
         let rainlang = add_order_args.compose_to_rainlang().unwrap();
         let err = add_order_args
-            .try_parse_rainlang("https://testtest.com".to_string(), rainlang)
+            .try_parse_rainlang(rpc_url.clone(), rainlang)
             .await
             .unwrap_err();
-        assert!(matches!(
-            err,
-            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
-                ReadableClientError::AbiDecodedErrorType(_)
-            ))
-        ));
+        assert!(
+            matches!(
+                &err,
+                AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                    ReadableClientError::AllProvidersFailed(ref msg)
+                ))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadCallError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 
     #[tokio::test]
@@ -1526,18 +1555,27 @@ _ _: 0 0;
         let result = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
             .await
             .unwrap();
+        let rpc_url = "https://testtest.com/".to_string();
         let err = result
             .get_add_order_calldata(TransactionArgs {
-                rpc_url: "https://testtest.com".to_string(),
+                rpc_url: rpc_url.clone(),
                 ..Default::default()
             })
             .await
             .unwrap_err();
-        assert!(matches!(
-            err,
-            AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
-                ReadableClientError::AbiDecodedErrorType(_)
-            ))
-        ));
+        assert!(
+            matches!(
+                &err,
+                AddOrderArgsError::DISPairError(DISPairError::ReadableClientError(
+                    ReadableClientError::AllProvidersFailed(msg)
+                ))
+                if msg.get(&rpc_url).is_some()
+                    && matches!(
+                        msg.get(&rpc_url).unwrap(),
+                        ReadableClientError::ReadCallError(_)
+                    )
+            ),
+            "unexpected error variant: {err:?}"
+        );
     }
 }
