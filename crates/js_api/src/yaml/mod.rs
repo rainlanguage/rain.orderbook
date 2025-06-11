@@ -14,11 +14,6 @@ use wasm_bindgen_utils::prelude::*;
 pub struct OrderbookYaml {
     yaml: OrderbookYamlCfg,
 }
-impl PartialEq for OrderbookYaml {
-    fn eq(&self, other: &Self) -> bool {
-        std::ptr::eq(&self.yaml, &other.yaml)
-    }
-}
 
 #[wasm_export]
 impl OrderbookYaml {
@@ -205,17 +200,6 @@ mod tests {
                     .to_readable_msg()
                     .contains("There was an error processing the YAML configuration"));
             }
-        }
-    }
-
-    #[wasm_bindgen_test]
-    fn test_orderbook_yaml_invalid_with_validation_disabled() {
-        let result = OrderbookYaml::new(vec![get_invalid_yaml()], Some(false));
-        if let Err(err) = result {
-            assert!(err.to_string().contains("Orderbook yaml error"));
-            assert!(err
-                .to_readable_msg()
-                .contains("There was an error processing the YAML configuration"));
         }
     }
 }

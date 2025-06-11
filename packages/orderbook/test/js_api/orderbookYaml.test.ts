@@ -83,17 +83,20 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 	return result.value;
 };
 
+const buildYaml = (source: string, validate?: boolean): OrderbookYaml => {
+	const result = OrderbookYaml.new([source], validate);
+	return extractWasmEncodedData<OrderbookYaml>(result);
+};
+
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
 	it('should create a new settings object', async function () {
-		const orderbookYamlResult = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
-		const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(orderbookYamlResult);
+		const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 		assert.ok(orderbookYaml);
 	});
 
 	describe('orderbook tests', async function () {
 		it('should get the orderbook', async function () {
-			const orderbookYamlResult = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
-			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(orderbookYamlResult);
+			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 
 			const orderbook = extractWasmEncodedData<OrderbookCfg>(
 				orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
@@ -137,20 +140,17 @@ orderbooks:
 `;
 
 		it('should succeed with valid YAML and validation enabled', async function () {
-			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK], true);
-			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK, true);
 			assert.ok(orderbookYaml);
 		});
 
 		it('should succeed with valid YAML and validation disabled', async function () {
-			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK], false);
-			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK, false);
 			assert.ok(orderbookYaml);
 		});
 
 		it('should succeed with valid YAML and default validation', async function () {
-			const result = OrderbookYaml.new([YAML_WITHOUT_ORDERBOOK]);
-			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 			assert.ok(orderbookYaml);
 		});
 
@@ -163,17 +163,15 @@ orderbooks:
 			);
 		});
 
-		it('should test behavior with invalid YAML and validation disabled', async function () {
+		it('should succeed construction but fail usage with invalid YAML when validation is disabled', async function () {
 			const result = OrderbookYaml.new([INVALID_YAML], false);
-			if (result.error) {
-				expect(result.error.msg).toContain('Orderbook yaml error');
-				expect(result.error.readableMsg).toContain(
-					'There was an error processing the YAML configuration'
-				);
-			} else {
-				const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
-				assert.ok(orderbookYaml);
-			}
+			if (result.error) expect.fail(`Construction should succeed when validation is disabled, actual error: ${result.error.msg}`);
+			
+			// However, using the OrderbookYaml should still fail due to missing references
+			const orderbookYaml = extractWasmEncodedData<OrderbookYaml>(result);
+			const orderbookResult = orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6');
+			if (!orderbookResult.error) expect.fail('Expected error when using invalid YAML');
+			expect(orderbookResult.error.msg).toContain('Orderbook yaml error');
 		});
 	});
 });
