@@ -84,6 +84,8 @@ impl AddOrderArgs {
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
         let random_vault_id: U256 = rand::random();
+        let mut rpc_clients: HashMap<String, ReadableClientHttp> = HashMap::new();
+        
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
             let input_token = input
@@ -98,8 +100,12 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_urls(vec![input_token.network.rpc.to_string()])?;
+                let client = rpc_clients
+                    .entry(input_token.network.rpc.to_string())
+                    .or_insert_with(|| {
+                        ReadableClientHttp::new_from_urls(vec![input_token.network.rpc.to_string()])
+                            .expect("Failed to create RPC client")
+                    });
                 let parameters = ReadContractParameters {
                     address: input_token.address,
                     call: decimalsCall {},
@@ -129,8 +135,12 @@ impl AddOrderArgs {
                     decimals,
                 });
             } else {
-                let client =
-                    ReadableClientHttp::new_from_urls(vec![output_token.network.rpc.to_string()])?;
+                let client = rpc_clients
+                    .entry(output_token.network.rpc.to_string())
+                    .or_insert_with(|| {
+                        ReadableClientHttp::new_from_urls(vec![output_token.network.rpc.to_string()])
+                            .expect("Failed to create RPC client")
+                    });
                 let parameters = ReadContractParameters {
                     address: output_token.address,
                     call: decimalsCall {},

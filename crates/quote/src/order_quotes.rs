@@ -46,11 +46,12 @@ pub async fn get_order_quotes(
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
-    let req_block_number = block_number.unwrap_or(
-        ReadableClient::new_from_urls(vec![rpc_url.clone()])?
+    let req_block_number = match block_number {
+        Some(block) => block,
+        None => ReadableClient::new_from_urls(vec![rpc_url.clone()])?
             .get_block_number()
             .await?,
-    );
+    };
 
     for order in &orders {
         let mut pairs: Vec<Pair> = Vec::new();
