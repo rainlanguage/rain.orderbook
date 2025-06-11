@@ -13,7 +13,7 @@ use wasm_bindgen_utils::{
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct UnitTestConfig {
-    pub test: TestConfig,
+    pub test: TestConfigSource,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(UnitTestConfig);
@@ -74,7 +74,7 @@ pub struct TestConfig {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TestConfig);
 
-impl TestConfig {
+impl TestConfigSource {
     pub fn try_into_test_config(self) -> Result<TestConfig, ParseConfigError> {
         let mut bindings = HashMap::new();
         for (k, v) in &self.scenario.bindings {
