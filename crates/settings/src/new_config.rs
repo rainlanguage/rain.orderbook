@@ -255,6 +255,10 @@ impl From<ParseConfigError> for WasmEncodedError {
 
 impl NewConfig {
     pub fn try_from_yaml(yaml: Vec<String>, validate: bool) -> Result<Self, ParseConfigError> {
+        if yaml.is_empty() {
+            return Err(ParseConfigError::YamlError(YamlError::EmptyFile));
+        }
+
         let dotrain_yaml = DotrainYaml::new(yaml.clone(), validate)?;
         let orderbook_yaml = OrderbookYaml::new(yaml, validate)?;
 
@@ -489,8 +493,10 @@ impl NewConfig {
 mod tests {
     use super::NewConfig;
     use crate::{
+        new_config::ParseConfigError,
         spec_version::SpecVersion,
         test::{MOCK_DOTRAIN_YAML, MOCK_ORDERBOOK_YAML},
+        yaml::YamlError,
         BinXTransformCfg, DotOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
         RectYOptionsCfg, TransformCfg,
     };
@@ -558,6 +564,13 @@ mod tests {
         assert!(testnet_network.label.is_none());
         assert!(testnet_network.network_id.is_none());
         assert!(testnet_network.currency.is_none());
+
+        // Test missing network reference
+        let err = config.get_network("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::NetworkNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -575,6 +588,12 @@ mod tests {
             testnet_subgraph.url,
             Url::parse("https://testnet-subgraph.com").unwrap()
         );
+
+        let err = config.get_subgraph("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::SubgraphNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -590,6 +609,12 @@ mod tests {
             **testnet_metaboard,
             Url::parse("https://testnet-metaboard.com").unwrap()
         );
+
+        let err = config.get_metaboard("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::MetaboardNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -613,6 +638,12 @@ mod tests {
         assert_eq!(testnet_orderbook.network.key, "testnet");
         assert_eq!(testnet_orderbook.subgraph.key, "testnet");
         assert!(testnet_orderbook.label.is_none());
+
+        let err = config.get_orderbook("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::OrderbookNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -638,6 +669,12 @@ mod tests {
         assert_eq!(token2.decimals, Some(6));
         assert_eq!(token2.label, Some("USD Coin".to_string()));
         assert_eq!(token2.symbol, Some("USDC".to_string()));
+
+        let err = config.get_token("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::TokenNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -657,6 +694,12 @@ mod tests {
             Address::from_str("0x0000000000000000000000000000000000000003").unwrap()
         );
         assert_eq!(deployer2.network.key, "testnet");
+
+        let err = config.get_deployer("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::DeployerNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -675,6 +718,12 @@ mod tests {
         let order1_output = &order1.outputs[0];
         assert_eq!(order1_output.token.as_ref().unwrap().key, "token2");
         assert_eq!(order1_output.vault_id, Some(U256::from(2)));
+
+        let err = config.get_order("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::OrderNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -695,6 +744,12 @@ mod tests {
         assert_eq!(scenario1_scenario2.runs.unwrap(), 10);
         assert!(scenario1_scenario2.blocks.is_none());
         assert_eq!(scenario1_scenario2.deployer.key, "scenario1");
+
+        let err = config.get_scenario("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::ScenarioNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -708,6 +763,12 @@ mod tests {
         assert_eq!(deployment2.key, "deployment2");
         assert_eq!(deployment2.order.key, "order1");
         assert_eq!(deployment2.scenario.key, "scenario1");
+
+        let err = config.get_deployment("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::DeploymentNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -811,6 +872,12 @@ mod tests {
         assert_eq!(plot1.margin_top, Some(40));
         assert_eq!(plot1.margin_bottom, Some(50));
         assert_eq!(plot1.inset, Some(60));
+
+        let err = config.get_chart("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::ChartNotFound(ref s) if s == "nonexistent"
+        ));
     }
 
     #[test]
@@ -878,5 +945,49 @@ mod tests {
             account2.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
+
+        let err = config.get_account("nonexistent").unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::AccountNotFound(ref s) if s == "nonexistent"
+        ));
+    }
+
+    #[test]
+    fn test_yaml_parsing_errors() {
+        let invalid_yaml_syntax = vec!["invalid: yaml: [unclosed".to_string()];
+        let result = NewConfig::try_from_yaml(invalid_yaml_syntax, false);
+        assert!(matches!(result, Err(ParseConfigError::YamlError(_))));
+
+        let malformed_yaml_structure = vec!["key: value: invalid".to_string()];
+        let result = NewConfig::try_from_yaml(malformed_yaml_structure, false);
+        assert!(matches!(result, Err(ParseConfigError::YamlError(_))));
+
+        let unclosed_brackets = vec!["items: [item1, item2".to_string()];
+        let result = NewConfig::try_from_yaml(unclosed_brackets, false);
+        assert!(matches!(result, Err(ParseConfigError::YamlError(_))));
+
+        let invalid_indentation = vec![r#"
+key1: value1
+  key2: value2
+ key3: value3
+"#
+        .to_string()];
+        let result = NewConfig::try_from_yaml(invalid_indentation, false);
+        assert!(matches!(result, Err(ParseConfigError::YamlError(_))));
+
+        let empty_string = vec!["".to_string()];
+        let err = NewConfig::try_from_yaml(empty_string, false).unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::YamlError(YamlError::EmptyFile)
+        ));
+
+        let empty_yaml = vec![];
+        let err = NewConfig::try_from_yaml(empty_yaml, false).unwrap_err();
+        assert!(matches!(
+            err,
+            ParseConfigError::YamlError(YamlError::EmptyFile)
+        ));
     }
 }
