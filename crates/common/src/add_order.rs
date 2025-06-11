@@ -161,8 +161,7 @@ impl AddOrderArgs {
         rpc_url: String,
         rainlang: String,
     ) -> Result<Vec<u8>, AddOrderArgsError> {
-        let client = ReadableClientHttp::new_from_urls(vec![rpc_url])
-            .map_err(AddOrderArgsError::ReadableClientError)?;
+        let client = ReadableClientHttp::new_from_urls(vec![rpc_url])?;
         let dispair = DISPair::from_deployer(self.deployer, client.clone())
             .await
             .map_err(AddOrderArgsError::DISPairError)?;
@@ -233,7 +232,7 @@ impl AddOrderArgs {
         // get the evaluable for the post action
         let post_rainlang = self.compose_addorder_post_task()?;
         let post_bytecode = self
-            .try_parse_rainlang(rpc_url.clone(), post_rainlang.clone())
+            .try_parse_rainlang(rpc_url, post_rainlang.clone())
             .await?;
 
         let post_evaluable = EvaluableV3 {

@@ -46,6 +46,12 @@ pub async fn get_order_quotes(
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
+    let req_block_number = block_number.unwrap_or(
+        ReadableClient::new_from_urls(vec![rpc_url.clone()])?
+            .get_block_number()
+            .await?,
+    );
+
     for order in &orders {
         let mut pairs: Vec<Pair> = Vec::new();
         let mut quote_targets: Vec<QuoteTarget> = Vec::new();
@@ -100,12 +106,6 @@ pub async fn get_order_quotes(
                 }
             }
         }
-
-        let req_block_number = block_number.unwrap_or(
-            ReadableClient::new_from_urls(vec![rpc_url.clone()])?
-                .get_block_number()
-                .await?,
-        );
 
         let quote_values = BatchQuoteTarget(quote_targets)
             .do_quote(&rpc_url, Some(req_block_number), gas, None)
