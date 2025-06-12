@@ -87,7 +87,7 @@ impl OrderbookYaml {
     ///
     /// ```javascript
     /// // Basic usage
-    /// const result = await orderbookYaml.getOrderbookByAddress("0x1234567890abcdef1234567890abcdef12345678");
+    /// const result = orderbookYaml.getOrderbookByAddress("0x1234567890abcdef1234567890abcdef12345678");
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;

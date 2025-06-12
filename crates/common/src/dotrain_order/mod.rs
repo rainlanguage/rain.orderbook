@@ -352,7 +352,7 @@ impl DotrainOrder {
     /// # Examples
     ///
     /// ```javascript
-    /// const result = await dotrainOrder.dotrain();
+    /// const result = dotrainOrder.dotrain();
     /// if (result.error) {
     ///   console.error('Failed:', result.error.readableMsg);
     /// } else {

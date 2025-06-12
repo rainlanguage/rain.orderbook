@@ -212,8 +212,7 @@ impl DotrainOrderGui {
     /// # Returns
     ///
     /// - `Ok(AllowancesResult)` - Current allowances for all deposit tokens
-    /// - `Err(SelectTokensNotSet)` - If required tokens haven't been selected
-    /// - `Err(ReadableClientError)` - If blockchain queries fail
+    /// - `Err(GuiError)` - If allowance check fails
     ///
     /// # Examples
     ///
