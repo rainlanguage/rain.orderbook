@@ -100,6 +100,7 @@
 	function updateFields() {
 		try {
 			DeploymentStepsError.clear();
+			getAllGuiConfig();
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.NO_GUI);
 		}
