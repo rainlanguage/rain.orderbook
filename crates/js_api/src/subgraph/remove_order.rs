@@ -13,8 +13,34 @@ pub struct GetTransactionRemoveOrdersResult(
 );
 impl_wasm_traits!(GetTransactionRemoveOrdersResult);
 
-/// Internal function to fetch Remove Orders for a given transaction
-/// Returns an array of RemoveOrder structs
+/// Fetches orders that were removed in a specific transaction.
+///
+/// Retrieves all orders cancelled or removed within a single blockchain transaction.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `tx_hash` - Transaction hash
+///
+/// # Returns
+///
+/// * `Ok(GetTransactionRemoveOrdersResult)` - Array of orders removed in the transaction
+/// * `Err(SubgraphError)` - Transaction not found or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getTransactionRemoveOrders(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0x1234567890abcdef1234567890abcdef12345678"
+/// );
+/// if (result.error) {
+///   console.error("Cannot fetch removed orders:", result.error.readableMsg);
+///   return;
+/// }
+/// const removedOrders = result.value;
+/// // Do something with the removedOrders
+/// ```
 #[wasm_export(
     js_name = "getTransactionRemoveOrders",
     unchecked_return_type = "GetTransactionRemoveOrdersResult"

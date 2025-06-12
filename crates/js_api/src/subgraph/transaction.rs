@@ -4,8 +4,35 @@ use rain_orderbook_subgraph_client::{types::common::SgTransaction, OrderbookSubg
 use reqwest::Url;
 use wasm_bindgen_utils::prelude::*;
 
-/// Internal function to fetch a single transaction
-/// Returns the Transaction struct
+/// Fetches transaction details from the subgraph.
+///
+/// Retrieves basic transaction information including sender, block number,
+/// and timestamp.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `tx_hash` - Transaction hash
+///
+/// # Returns
+///
+/// * `Ok(SgTransaction)` - Transaction details
+/// * `Err(SubgraphError)` - Transaction not found or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getTransaction(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+/// );
+/// if (result.error) {
+///   console.error("Transaction not found:", result.error.readableMsg);
+///   return;
+/// }
+/// const transaction = result.value;
+/// // Do something with the transaction
+/// ```
 #[wasm_export(js_name = "getTransaction", unchecked_return_type = "SgTransaction")]
 pub async fn get_transaction(url: &str, tx_hash: &str) -> Result<SgTransaction, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);

@@ -36,6 +36,33 @@ impl OrderbookYaml {
 
 #[wasm_export]
 impl OrderbookYaml {
+    /// Retrieves orderbook configuration by its contract address from a parsed YAML configuration.
+    ///
+    /// This function looks up a specific orderbook configuration within a YAML configuration file
+    /// using the orderbook's blockchain address. It's essential for accessing orderbook metadata
+    /// including network configuration, subgraph endpoints, and other deployment details.
+    ///
+    /// # Parameters
+    ///
+    /// * `orderbook_address` - The hexadecimal address of the orderbook contract
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderbookCfg)` - Complete orderbook configuration
+    /// * `Err(OrderbookYamlError)` - Error parsing the YAML configuration
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic usage
+    /// const result = await orderbookYaml.getOrderbookByAddress("0x1234567890abcdef1234567890abcdef12345678");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbook = result.value;
+    /// // Do something with the orderbook
+    /// ```
     #[wasm_export(
         js_name = "getOrderbookByAddress",
         unchecked_return_type = "OrderbookCfg"
