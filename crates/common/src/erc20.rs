@@ -40,7 +40,7 @@ impl ERC20 {
     }
 
     async fn get_client(&self) -> Result<ReadableClientHttp, Error> {
-        ReadableClientHttp::new_from_url(self.rpc_url.to_string()).map_err(|err| {
+        ReadableClientHttp::new_from_urls(vec![self.rpc_url.to_string()]).map_err(|err| {
             Error::ReadableClientError {
                 msg: format!("rpc url: {}", self.rpc_url),
                 source: err,

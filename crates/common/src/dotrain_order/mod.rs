@@ -512,7 +512,7 @@ impl DotrainOrder {
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let client = ReadableClient::new_from_url(deployer.network.rpc.clone().to_string())?;
+        let client = ReadableClient::new_from_urls(vec![deployer.network.rpc.to_string()])?;
         let pragmas = parser.parse_pragma_text(&rainlang, client).await?;
         Ok(pragmas)
     }

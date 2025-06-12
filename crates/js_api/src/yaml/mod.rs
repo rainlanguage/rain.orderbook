@@ -12,30 +12,62 @@ use wasm_bindgen_utils::prelude::*;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[wasm_bindgen]
 pub struct OrderbookYaml {
-    yaml: Vec<String>,
-}
-impl PartialEq for OrderbookYaml {
-    fn eq(&self, other: &Self) -> bool {
-        self.yaml == other.yaml
-    }
-}
-
-impl OrderbookYaml {
-    fn get_orderbook_yaml_cfg(&self) -> Result<OrderbookYamlCfg, OrderbookYamlError> {
-        Ok(OrderbookYamlCfg::new(self.yaml.clone(), false)?)
-    }
-}
-
-#[wasm_bindgen]
-impl OrderbookYaml {
-    #[wasm_bindgen(constructor)]
-    pub fn new(yaml: Vec<String>) -> Result<Self, OrderbookYamlError> {
-        Ok(Self { yaml })
-    }
+    yaml: OrderbookYamlCfg,
 }
 
 #[wasm_export]
 impl OrderbookYaml {
+    /// Creates a new OrderbookYaml instance from YAML configuration sources.
+    ///
+    /// This constructor parses one or more YAML configuration strings to create an OrderbookYaml
+    /// instance that provides access to orderbook configurations, network settings, tokens, and
+    /// other deployment metadata. The YAML sources are merged and validated according to the
+    /// orderbook specification.
+    ///
+    /// # Parameters
+    ///
+    /// * `sources` - Vector of YAML configuration strings to parse and merge
+    /// * `validate` - Optional boolean to enable strict validation (defaults to false)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderbookYaml)` - Successfully parsed and configured instance
+    /// * `Err(OrderbookYamlError)` - Error parsing or validating the YAML configuration
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic usage with single YAML source
+    /// const yamlConfig = `
+    /// version: "4"
+    /// networks:
+    ///   mainnet:
+    ///     rpc: https://mainnet.infura.io
+    ///     chain-id: 1
+    /// orderbooks:
+    ///   my-orderbook:
+    ///     address: 0x1234567890abcdef1234567890abcdef12345678
+    ///     network: mainnet
+    /// ...
+    /// `;
+    ///
+    /// const result = OrderbookYaml.new([yamlConfig], false);
+    /// if (result.error) {
+    ///   console.error("Configuration error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbookYaml = result.value;
+    /// // Do something with the orderbookYaml
+    /// ```
+    #[wasm_export(js_name = "new", preserve_js_class)]
+    pub fn new(
+        sources: Vec<String>,
+        validate: Option<bool>,
+    ) -> Result<OrderbookYaml, OrderbookYamlError> {
+        let yaml = OrderbookYamlCfg::new(sources, validate.unwrap_or(false))?;
+        Ok(Self { yaml })
+    }
+
     /// Retrieves orderbook configuration by its contract address from a parsed YAML configuration.
     ///
     /// This function looks up a specific orderbook configuration within a YAML configuration file
@@ -73,8 +105,7 @@ impl OrderbookYaml {
     ) -> Result<OrderbookCfg, OrderbookYamlError> {
         let address =
             Address::from_str(orderbook_address).map_err(OrderbookYamlError::FromHexError)?;
-        let orderbook_yaml = self.get_orderbook_yaml_cfg()?;
-        Ok(orderbook_yaml.get_orderbook_by_address(address)?)
+        Ok(self.yaml.get_orderbook_by_address(address)?)
     }
 }
 
@@ -162,7 +193,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml() {
-        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()], None).unwrap();
         let orderbook = orderbook_yaml
             .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
             .unwrap();
@@ -179,7 +210,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_orderbook_yaml_error() {
-        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()]).unwrap();
+        let orderbook_yaml = OrderbookYaml::new(vec![get_yaml()], None).unwrap();
         let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
 
         assert_eq!(orderbook.is_err(), true);
@@ -203,5 +234,41 @@ mod tests {
             orderbook.as_ref().err().unwrap().to_readable_msg(),
             "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"Key '0x0000000000000000000000000000000000000000' not found\""
         );
+    }
+
+    pub fn get_invalid_yaml() -> String {
+        format!(
+            r#"
+    version: {spec_version}
+    networks:
+        mainnet:
+            rpc: https://mainnet.infura.io
+            chain-id: 1
+            label: Ethereum Mainnet
+            network-id: 1
+            currency: ETH
+    orderbooks:
+        orderbook1:
+            address: 0x0000000000000000000000000000000000000002
+            network: nonexistent-network
+            subgraph: nonexistent-subgraph
+            label: Primary Orderbook
+    "#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[wasm_bindgen_test]
+    fn test_orderbook_yaml_invalid_with_validation_enabled() {
+        let result = OrderbookYaml::new(vec![get_invalid_yaml()], Some(true));
+        match result {
+            Ok(_) => panic!("Expected validation error with invalid YAML"),
+            Err(err) => {
+                assert!(err.to_string().contains("Orderbook yaml error"));
+                assert!(err
+                    .to_readable_msg()
+                    .contains("There was an error processing the YAML configuration"));
+            }
+        }
     }
 }
