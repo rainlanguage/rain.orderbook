@@ -9,7 +9,8 @@
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
-		type OrderIOCfg
+		type OrderIOCfg,
+		DotrainOrderGui
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
 	import { type Writable } from 'svelte/store';
@@ -22,12 +23,10 @@
 	import SelectToken from './SelectToken.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { useGui } from '$lib/hooks/useGui';
-	import { useAccount } from '$lib/providers/wallet/useAccount';
-	import { handleDeployment } from './handleDeployment';
-	import { type DeploymentArgs } from '$lib/types/transaction';
 	import { fade } from 'svelte/transition';
 	import ShareChoicesButton from './ShareChoicesButton.svelte';
 	import { useRegistry } from '$lib/providers/registry/useRegistry';
+	import type { Account } from '$lib/types/account';
 
 	interface Deployment {
 		key: string;
@@ -40,10 +39,11 @@
 	/** Strategy details containing name and description configuration */
 	export let strategyDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let onDeploy: (deploymentArgs: DeploymentArgs) => void;
+	export let onDeploy: (gui: DotrainOrderGui, subgraphUrl?: string) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let settings: Writable<ConfigSource>;
+	export let account: Account;
 
 	let allDepositFields: GuiDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
@@ -56,7 +56,6 @@
 	let checkingDeployment: boolean = false;
 	let subgraphUrl: string | undefined = undefined;
 
-	const { account } = useAccount();
 	const gui = useGui();
 	const registry = useRegistry();
 
@@ -218,8 +217,8 @@
 				return;
 			}
 			DeploymentStepsError.clear();
-			const deploymentArgs: DeploymentArgs = await handleDeployment(gui, $account, subgraphUrl);
-			return await onDeploy(deploymentArgs);
+
+			return onDeploy(gui, subgraphUrl);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {

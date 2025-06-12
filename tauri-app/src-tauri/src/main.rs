@@ -17,7 +17,7 @@ use commands::dotrain::parse_dotrain;
 use commands::dotrain_add_order_lsp::{call_lsp_completion, call_lsp_hover, call_lsp_problems};
 use commands::order::{
     compose_from_scenario, order_add, order_add_calldata, order_remove, order_remove_calldata,
-    orders_list_write_csv, validate_raindex_version,
+    orders_list_write_csv, validate_spec_version,
 };
 use commands::order_quote::debug_order_quote;
 use commands::order_take::order_trades_list_write_csv;
@@ -75,7 +75,7 @@ fn run_tauri_app() {
             debug_order_quote,
             debug_trade,
             get_app_commit_sha,
-            validate_raindex_version
+            validate_spec_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

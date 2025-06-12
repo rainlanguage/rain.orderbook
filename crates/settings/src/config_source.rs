@@ -94,8 +94,7 @@ pub struct ConfigSource {
     pub metaboards: HashMap<String, Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sentry: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub raindex_version: Option<String>,
+    pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(
         target_family = "wasm",
@@ -449,6 +448,8 @@ main:
 
 #[cfg(test)]
 mod tests {
+    use crate::spec_version::SpecVersion;
+
     use super::*;
     use httpmock::{Method::GET, MockServer};
     use serde_json::json;
@@ -458,7 +459,7 @@ mod tests {
         let mocked_chain_id_server = MockServer::start_async().await;
         let yaml_data = format!(
             r#"
-raindex-version: 123
+version: {spec_version}
 
 using-networks-from:
     chainid:
@@ -636,7 +637,8 @@ gui:
             - value: "582.1"
             - value: "648.239"
 "#,
-            mocked_chain_id_server.url("/json")
+            mocked_chain_id_server.url("/json"),
+            spec_version = SpecVersion::current()
         );
 
         let mocked_chain_id_response = json!([
@@ -742,7 +744,7 @@ gui:
         assert_eq!(order.deployer, expected_order.deployer);
         assert_eq!(order.orderbook, expected_order.orderbook);
 
-        assert_eq!(config.raindex_version, Some("123".to_string()));
+        assert_eq!(config.version, "1".to_string());
 
         let accounts = config.accounts.unwrap();
         assert_eq!(accounts.get("name-one").unwrap(), "address-one");
@@ -832,8 +834,9 @@ using-networks-from:
 
     #[tokio::test]
     async fn parse_yaml_into_configstrings_with_anchors() {
-        let top_yml_data = r#"
-raindex-version: &raindex 123
+        let top_yml_data = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: &mainnet
         rpcs:
@@ -858,16 +861,21 @@ orderbooks: &orderbooks
         network: mainnet
         subgraph: mainnet
         label: Mainnet Orderbook
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
-        let yaml_data = r#"
-raindex-version: *raindex
+        let yaml_data = format!(
+            r#"
+version: {spec_version}
 networks:
     mainnet: *mainnet
     testnet: *testnet
 subgraphs: *subgraphs
 orderbooks: *orderbooks
-"#;
+"#,
+            spec_version = SpecVersion::current()
+        );
 
         let (config, top_config) =
             ConfigSource::try_from_string(yaml_data.to_string(), Some(top_yml_data.to_string()))
@@ -875,7 +883,7 @@ orderbooks: *orderbooks
                 .unwrap();
 
         // Asserting a few values to verify successful parsing for config
-        assert_eq!(config.clone().raindex_version.unwrap(), "123".to_string());
+        assert_eq!(config.clone().version, "1".to_string());
         assert_eq!(
             config.clone().networks.get("mainnet").unwrap().rpcs,
             vec![Url::parse("https://mainnet.node").unwrap()]
@@ -896,10 +904,7 @@ orderbooks: *orderbooks
         );
 
         // Asserting a few values to verify successful parsing for other config
-        assert_eq!(
-            top_config.clone().raindex_version.unwrap(),
-            "123".to_string()
-        );
+        assert_eq!(top_config.clone().version, "1".to_string());
         assert_eq!(
             top_config.clone().networks.get("mainnet").unwrap().rpcs,
             vec![Url::parse("https://mainnet.node").unwrap()]

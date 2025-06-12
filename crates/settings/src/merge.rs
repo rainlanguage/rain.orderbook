@@ -294,12 +294,14 @@ impl Config {
 mod tests {
     use url::Url;
 
+    use crate::spec_version::SpecVersion;
+
     use super::*;
     use std::collections::HashMap;
     #[test]
     fn test_successful_merge() {
         let mut config = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -317,7 +319,7 @@ mod tests {
         };
 
         let other = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -340,7 +342,7 @@ mod tests {
     #[test]
     fn test_unsuccessful_merge() {
         let mut config = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -358,7 +360,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -395,7 +397,7 @@ mod tests {
     #[test]
     fn test_successful_merge_metaboard() {
         let mut config = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),
@@ -413,7 +415,7 @@ mod tests {
         };
 
         let mut other = ConfigSource {
-            raindex_version: None,
+            version: SpecVersion::current().to_string(),
             using_networks_from: HashMap::new(),
             subgraphs: HashMap::new(),
             metaboards: HashMap::new(),

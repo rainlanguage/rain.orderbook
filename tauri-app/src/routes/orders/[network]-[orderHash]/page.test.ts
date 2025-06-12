@@ -56,6 +56,7 @@ describe('Order Page', () => {
 
   it('renders OrderDetail when all settings are available', () => {
     mockSettingsStore.mockSetSubscribeValue({
+      version: '1',
       orderbooks: {
         ethereum: {
           address: '0xabc',

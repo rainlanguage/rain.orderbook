@@ -1,4 +1,5 @@
 {
+	"version": "1",
 	"accounts": {
 		"wallet1": "0xf08bCbce72f62c95Dcb7c07dCb5Ed26ACfCfBc11",
 		"wallet2": "0x6bc14a99ccf7f9037c98d75eec6c6d807f9d953f"

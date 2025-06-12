@@ -7,6 +7,11 @@ import { useGui } from '$lib/hooks/useGui';
 import type { ComponentProps } from 'svelte';
 
 type FieldDefinitionInputProps = ComponentProps<FieldDefinitionInput>;
+
+vi.mock('@rainlanguage/orderbook', () => ({
+	DotrainOrderGui: vi.fn()
+}));
+
 vi.mock('$lib/hooks/useGui', () => ({
 	useGui: vi.fn()
 }));
@@ -27,12 +32,14 @@ describe('FieldDefinitionInput', () => {
 
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
-		guiInstance = new DotrainOrderGui();
 
-		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({});
-		(DotrainOrderGui.prototype.saveFieldValue as Mock).mockImplementation(() => {
-			mockStateUpdateCallback();
-		});
+		guiInstance = {
+			getFieldValue: vi.fn().mockReturnValue({}),
+			saveFieldValue: vi.fn().mockImplementation(() => {
+				mockStateUpdateCallback();
+			})
+		} as unknown as DotrainOrderGui;
+
 		(useGui as Mock).mockReturnValue(guiInstance);
 	});
 
@@ -119,7 +126,7 @@ describe('FieldDefinitionInput', () => {
 		expect(guiInstance.saveFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
-		(DotrainOrderGui.prototype.getFieldValue as Mock).mockReturnValue({
+		(guiInstance.getFieldValue as Mock).mockReturnValue({
 			value: {
 				binding: 'test-binding',
 				value: 'preset1',

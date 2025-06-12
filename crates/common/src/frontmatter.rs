@@ -15,9 +15,12 @@ mod tests {
     use super::*;
     use crate::test_helpers::TEST_DOTRAIN;
     use alloy::primitives::{Address, U256};
-    use rain_orderbook_app_settings::plot_source::{
-        BinXTransformCfg, DotOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
-        RectYOptionsCfg, TransformCfg,
+    use rain_orderbook_app_settings::{
+        plot_source::{
+            BinXTransformCfg, DotOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
+            RectYOptionsCfg, TransformCfg,
+        },
+        spec_version::SpecVersion,
     };
     use std::str::FromStr;
     use url::Url;
@@ -341,12 +344,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_parse_raindex_version() {
+    async fn test_parse_spec_version() {
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
-
-        assert!(config.raindex_version.is_some());
-        let raindex_version = config.raindex_version.as_ref().unwrap();
-        assert_eq!(raindex_version, "123");
+        assert_eq!(config.version, SpecVersion::current().to_string());
     }
 
     #[tokio::test]
@@ -367,7 +367,7 @@ mod tests {
         // at the beginning of the original test.
         let config = parse_frontmatter(TEST_DOTRAIN.to_string()).await.unwrap();
 
-        assert!(config.raindex_version.is_some());
+        assert_eq!(config.version, SpecVersion::current().to_string());
         assert_eq!(config.networks.len(), 2);
         assert_eq!(config.subgraphs.len(), 2);
         assert_eq!(config.metaboards.len(), 2);

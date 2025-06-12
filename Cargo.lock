@@ -6124,7 +6124,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -6170,7 +6170,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "validator",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.8",
 ]
 
 [[package]]
@@ -6274,7 +6274,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6284,7 +6284,7 @@ dependencies = [
  "alloy",
  "serde",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6353,7 +6353,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6361,6 +6361,7 @@ name = "rain_orderbook_integration_tests"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "rain_orderbook_app_settings",
  "rain_orderbook_common",
  "rain_orderbook_test_fixtures",
  "serde_json",
@@ -6392,7 +6393,7 @@ dependencies = [
  "tokio",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6416,6 +6417,7 @@ dependencies = [
  "once_cell",
  "rain-error-decoding",
  "rain-interpreter-eval",
+ "rain_orderbook_app_settings",
  "rain_orderbook_bindings",
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
@@ -6429,7 +6431,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wasm-bindgen-test",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -6453,7 +6455,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wasm-bindgen-utils",
+ "wasm-bindgen-utils 0.0.10",
 ]
 
 [[package]]
@@ -8837,7 +8839,23 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-bindgen-utils-macros",
+ "wasm-bindgen-utils-macros 0.0.3",
+]
+
+[[package]]
+name = "wasm-bindgen-utils"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed82a9f56693dd939d2f37431e0dd5401e6447694f9930353fd5c3fb3d9d152e"
+dependencies = [
+ "js-sys",
+ "paste",
+ "serde",
+ "serde-wasm-bindgen 0.6.5",
+ "tsify",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-utils-macros 0.0.5",
 ]
 
 [[package]]
@@ -8845,6 +8863,17 @@ name = "wasm-bindgen-utils-macros"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c58b27b0253678a6638beae169cb00dba24d96c5c45ae4bd03c2ba4ee94a5cc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
+]
+
+[[package]]
+name = "wasm-bindgen-utils-macros"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cc4956f28c8dba2ad5b3afb5ed7d584f7e9e7194e516eae0577d79d594de6e6"
 dependencies = [
  "proc-macro2",
  "quote",

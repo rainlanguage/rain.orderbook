@@ -42,10 +42,7 @@ impl Execute for Compose {
             None => None,
         };
 
-        let mut dotrain_order = DotrainOrder::new();
-        dotrain_order
-            .initialize(dotrain, settings.map(|v| vec![v]))
-            .await?;
+        let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
 
         let rainlang = if self.post {
             dotrain_order
@@ -65,6 +62,8 @@ impl Execute for Compose {
 
 #[cfg(test)]
 mod tests {
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+
     use super::*;
 
     #[tokio::test]
@@ -110,7 +109,9 @@ mod tests {
     }
 
     fn get_dotrain() -> String {
-        "
+        format!(
+            r#"
+version: {spec_version}
 networks:
     some-network:
         rpcs:
@@ -158,7 +159,8 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;"
-        .to_string()
+:;"#,
+            spec_version = SpecVersion::current()
+        )
     }
 }

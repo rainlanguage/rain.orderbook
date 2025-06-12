@@ -309,4 +309,36 @@ describe('Rain Orderbook JS API Package Bindgen Vault Tests', async function () 
 		assert.ok(res.value.startsWith('0x'));
 		assert.equal(res.value.length, 138);
 	});
+
+	it('should handle approval amount equal to allowance', async () => {
+		// Allowance is 100, and user tries to approve 100, so there should be no approval calldata
+		await mockServer.forPost('/rpc').thenReply(
+			200,
+			JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+			})
+		);
+
+		const res = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '100');
+		if (!res.error) assert.fail('expected to reject, but resolved');
+		assert.equal(res.error.msg, 'Invalid amount');
+	});
+
+	it('should handle approval amount less than allowance', async () => {
+		// Allowance is 100, and user tries to approve 90, so there should be approval calldata
+		await mockServer.forPost('/rpc').thenReply(
+			200,
+			JSON.stringify({
+				jsonrpc: '2.0',
+				id: 1,
+				result: '0x0000000000000000000000000000000000000000000000000000000000000064'
+			})
+		);
+
+		const res = await getVaultApprovalCalldata(mockServer.url + '/rpc', vault1, '90');
+		if (!res.error) assert.fail('expected to reject, but resolved');
+		assert.equal(res.error.msg, 'Invalid amount');
+	});
 });

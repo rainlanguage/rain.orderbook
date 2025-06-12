@@ -1,4 +1,5 @@
-import { cachedWritableStore, type ConfigSource } from '@rainlanguage/ui-components';
+import { cachedWritableStore } from '@rainlanguage/ui-components';
+import { type ConfigSource } from '@rainlanguage/orderbook';
 
 /**
  * A persistent store that holds the application configuration settings.

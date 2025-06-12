@@ -1,6 +1,7 @@
 import type { ConfigSource } from '@rainlanguage/orderbook';
 
 export const mockConfigSource: ConfigSource = {
+  version: '1',
   networks: {
     mainnet: {
       rpcs: ['https://mainnet.infura.io/v3/YOUR-PROJECT-ID'],

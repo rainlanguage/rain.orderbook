@@ -66,11 +66,8 @@ export async function orderAddComposeRainlang(
   });
 }
 
-export async function validateRaindexVersion(
-  dotrain: string,
-  settings: string[],
-): Promise<undefined> {
-  return await invoke('validate_raindex_version', {
+export async function validateSpecVersion(dotrain: string, settings: string[]): Promise<undefined> {
+  return await invoke('validate_spec_version', {
     dotrain,
     settings,
   });

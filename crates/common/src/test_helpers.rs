@@ -1,5 +1,5 @@
 pub const TEST_DOTRAIN: &str = r#"
-raindex-version: 123
+version: 1
 networks:
     mainnet:
         rpcs:

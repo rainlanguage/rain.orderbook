@@ -6,8 +6,7 @@ pub async fn get_authoring_meta_v2_for_scenarios(
     dotrain: String,
     settings: Option<Vec<String>>,
 ) -> CommandResult<Vec<ScenarioWords>> {
-    let mut dotrain_order = DotrainOrder::new();
-    dotrain_order.initialize(dotrain, settings).await?;
+    let dotrain_order = DotrainOrder::create(dotrain, settings).await?;
     Ok(dotrain_order.get_all_scenarios_all_words().await?)
 }
 
@@ -23,6 +22,7 @@ mod tests {
     use alloy_ethers_typecast::rpc::Response;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::dotrain_order::WordsResult;
     use serde_bytes::ByteBuf;
 
@@ -43,6 +43,7 @@ mod tests {
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
             r#"
+version: {spec_version}
 networks:
     sepolia:
         rpcs:
@@ -69,7 +70,8 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
             pragma = encode_prefixed(pragma_addresses[0]),
-            deployer = encode_prefixed(deployer_address)
+            deployer = encode_prefixed(deployer_address),
+            spec_version = SpecVersion::current()
         );
 
         let results = get_authoring_meta_v2_for_scenarios(dotrain, None)
@@ -116,6 +118,7 @@ _ _: 0 0;
         let server = mock_server(vec![]);
         let dotrain = format!(
             r#"
+    version: {spec_version}
     networks:
         sepolia:
             rpcs:
@@ -142,7 +145,8 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/bad-sg"),
             pragma = encode_prefixed(pragma_addresses[0]),
-            deployer = encode_prefixed(deployer_address)
+            deployer = encode_prefixed(deployer_address),
+            spec_version = SpecVersion::current()
         );
 
         let results = get_authoring_meta_v2_for_scenarios(dotrain, None)
@@ -238,6 +242,7 @@ _ _: 0 0;
 
         let dotrain = format!(
             r#"
+    version: {spec_version}
     networks:
         sepolia:
             rpcs:
@@ -264,7 +269,8 @@ _ _: 0 0;
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
             pragma = encode_prefixed(pragma_addresses[0]),
-            deployer = encode_prefixed(deployer_address)
+            deployer = encode_prefixed(deployer_address),
+            spec_version = SpecVersion::current()
         );
 
         let results = get_authoring_meta_v2_for_scenarios(dotrain, None)

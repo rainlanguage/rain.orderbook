@@ -136,6 +136,7 @@ gui:
 `;
 
 const dotrain = `
+version: 1
 networks:
     some-network:
         rpcs:
@@ -213,6 +214,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
+version: 1
 networks:
     some-network:
         rpcs:
@@ -283,6 +285,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
+version: 1
 networks:
     some-network:
         rpcs:
@@ -338,6 +341,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
+version: 1
 gui:
   name: Test
   description: Fixed limit order strategy
@@ -491,9 +495,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 			);
 
-		const gui = new DotrainOrderGui();
-		let result = await gui.chooseDeployment(dotrainWithGui, 'some-deployment');
-		extractWasmEncodedData(result);
+		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+		const gui = extractWasmEncodedData(result);
 
 		const guiConfig = extractWasmEncodedData<GuiCfg>(gui.getGuiConfig());
 		assert.equal(guiConfig.name, 'Fixed limit');
@@ -503,13 +506,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	it('should initialize gui object with state update callback', async () => {
 		const stateUpdateCallback = vi.fn();
 
-		const gui = new DotrainOrderGui();
-		const result = await gui.chooseDeployment(
+		const result = await DotrainOrderGui.newWithDeployment(
 			dotrainWithGui,
 			'some-deployment',
 			stateUpdateCallback
 		);
-		extractWasmEncodedData(result);
+		const gui = extractWasmEncodedData(result);
 
 		gui.executeStateUpdateCallback();
 		assert.equal(stateUpdateCallback.mock.calls.length, 1);
@@ -543,16 +545,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get current deployment details', async () => {
-		const gui = new DotrainOrderGui();
+		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+		const gui = extractWasmEncodedData(result);
+
 		mockServer
 			.forPost('/rpc-url')
 			.withBodyIncluding('0x82ad56cb')
 			.thenSendJsonRpcResult(
 				'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 			);
-		await gui.chooseDeployment(dotrainWithGui, 'some-deployment');
 
-		let deploymentDetail = extractWasmEncodedData<NameAndDescriptionCfg>(
+		const deploymentDetail = extractWasmEncodedData<NameAndDescriptionCfg>(
 			gui.getCurrentDeploymentDetails()
 		);
 
@@ -584,9 +587,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const gui = new DotrainOrderGui();
-		let result = await gui.chooseDeployment(dotrainWithGui, 'other-deployment');
-		extractWasmEncodedData(result);
+		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'other-deployment');
+		const gui = extractWasmEncodedData(result);
 
 		const token1TokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token1'));
 		const token2TokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token2'));
@@ -621,9 +623,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const gui = new DotrainOrderGui();
-		let result = await gui.chooseDeployment(dotrainWithGui, 'other-deployment');
-		extractWasmEncodedData(result);
+		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'other-deployment');
+		const gui = extractWasmEncodedData(result);
 
 		const allTokenInfos = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokenInfos());
 
@@ -639,7 +640,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('deposit tests', async () => {
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 		let stateUpdateCallback: Mock;
 		beforeEach(async () => {
 			stateUpdateCallback = vi.fn();
@@ -649,12 +650,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await gui.chooseDeployment(
+			const result = await DotrainOrderGui.newWithDeployment(
 				dotrainWithGui,
 				'some-deployment',
 				stateUpdateCallback
 			);
-			extractWasmEncodedData(result);
+			gui = extractWasmEncodedData(result);
 		});
 
 		it('should add deposit', async () => {
@@ -735,7 +736,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('field value tests', async () => {
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 		let stateUpdateCallback: Mock;
 		beforeEach(async () => {
 			stateUpdateCallback = vi.fn();
@@ -745,12 +746,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await gui.chooseDeployment(
+			const result = await DotrainOrderGui.newWithDeployment(
 				dotrainWithGui,
 				'some-deployment',
 				stateUpdateCallback
 			);
-			extractWasmEncodedData(result);
+			gui = extractWasmEncodedData(result);
 		});
 
 		it('should save the field value as presets', async () => {
@@ -895,7 +896,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('field definition tests', async () => {
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
 				.forPost('/rpc-url')
@@ -903,8 +904,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await gui.chooseDeployment(dotrainWithGui, 'some-deployment');
-			extractWasmEncodedData(result);
+			const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+			gui = extractWasmEncodedData(result);
 		});
 
 		it('should get field definition', async () => {
@@ -955,7 +956,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		let serializedState =
 			'H4sIAAAAAAAA_72Ov07DMBDG44KKhBgQYkVCYiXEcUhIqzIwIKryr0CqslUhMUmpa0eOS0E8BCMrL1DxBKxsPA9iQwgfbarOveX77r7z-YeMv1rRqmiuzJsuj7s8QXqGjeXJ9D5kA1rSkzIkoke5bUAtanXxjldYIf8rC1ptjGcfK3YAmIs-NTlVQyF7ALihNVUqq1oWE1HIUpGrqo9915JZZA4ke4KPETgECIdBfV3b2xmFymhJx8Evy6aNgDgoUpJiNyfm59rXaOuzNnp_cd--r0uk8vEaobUpZjJmJuAmzjmOg8ad53nbYO9OKYvDvcpu8tA87gxbSSO_8Dv0vHF0dXImfd5stS95vW3zg_1V_UaolEozphkTj33K1Q9x6jJIZQIAAA==';
 		let dotrain3: string;
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 		beforeAll(async () => {
 			mockServer
 				.forPost('/rpc-url')
@@ -981,8 +982,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			dotrain3 = `${guiConfig3}
 
 ${dotrain}`;
-			const result = await gui.chooseDeployment(dotrain3, 'other-deployment');
-			extractWasmEncodedData(result);
+			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'other-deployment');
+			gui = extractWasmEncodedData(result);
 
 			gui.saveFieldValue(
 				'test-binding',
@@ -1003,8 +1004,8 @@ ${dotrain}`;
 		});
 
 		it('should deserialize gui state', async () => {
-			const gui = new DotrainOrderGui();
-			await gui.deserializeState(dotrain3, serializedState);
+			const guiResult = await DotrainOrderGui.newFromState(dotrain3, serializedState);
+			const gui = extractWasmEncodedData(guiResult);
 
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
 			assert.equal(fieldValues.length, 1);
@@ -1025,18 +1026,17 @@ ${dotrain}`;
 			assert.equal(deposits[1].amount, '100');
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
 
-			let result = gui.getCurrentDeployment();
+			const result = gui.getCurrentDeployment();
 			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
 			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
 
 		it('should throw error if given dotrain is different', async () => {
-			const gui = new DotrainOrderGui();
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutTokens}`;
-			const result = await gui.deserializeState(testDotrain, serializedState);
+			const result = await DotrainOrderGui.newFromState(testDotrain, serializedState);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 			expect(result.error.readableMsg).toBe(
@@ -1057,16 +1057,16 @@ ${guiConfig2}
 
 ${dotrainWithoutVaultIds}
 	  `;
-			let result = await gui.chooseDeployment(testDotrain, 'other-deployment');
-			extractWasmEncodedData(result);
+			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			gui = extractWasmEncodedData(result);
 
 			let deployment1 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
 			assert.equal(deployment1.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
 			let serializedState = extractWasmEncodedData<string>(gui.serializeState());
-			gui = new DotrainOrderGui();
-			await gui.deserializeState(testDotrain, serializedState);
+			const guiResult = await DotrainOrderGui.newFromState(testDotrain, serializedState);
+			gui = extractWasmEncodedData(guiResult);
 
 			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
 			assert.equal(deployment2.deployment.order.inputs[0].vaultId, undefined);
@@ -1074,7 +1074,6 @@ ${dotrainWithoutVaultIds}
 		});
 
 		it('should get all the yaml fields', async () => {
-			const gui = new DotrainOrderGui();
 			mockServer
 				.forPost('/rpc-url')
 				.once()
@@ -1099,7 +1098,8 @@ ${dotrainWithoutVaultIds}
 			dotrain3 = `${guiConfig}
 
 ${dotrain}`;
-			await gui.chooseDeployment(dotrain3, 'some-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'some-deployment');
+			const gui = extractWasmEncodedData(result);
 
 			const {
 				fieldDefinitionsWithoutDefaults,
@@ -1127,7 +1127,7 @@ ${dotrain}`;
 	});
 
 	describe('order operations tests', async () => {
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 
 		beforeEach(async () => {
 			// token1 info
@@ -1152,8 +1152,8 @@ ${dotrain}`;
       
       ${dotrain}
       `;
-			const result = await gui.chooseDeployment(dotrain2, 'other-deployment');
-			extractWasmEncodedData(result);
+			const result = await DotrainOrderGui.newWithDeployment(dotrain2, 'other-deployment');
+			gui = extractWasmEncodedData(result);
 		});
 
 		it('checks input and output allowances', async () => {
@@ -1433,9 +1433,8 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig2}
 
 ${dotrainWithoutVaultIds}`;
-			const gui = new DotrainOrderGui();
-			let result = await gui.chooseDeployment(testDotrain, 'other-deployment');
-			extractWasmEncodedData(result);
+			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			const gui = extractWasmEncodedData(result);
 
 			await mockServer
 				.forPost('/rpc-url')
@@ -1482,9 +1481,8 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			const testGui = new DotrainOrderGui();
-			let result = await testGui.chooseDeployment(testDotrain, 'other-deployment');
-			extractWasmEncodedData(result);
+			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			const testGui = extractWasmEncodedData(result);
 
 			let result1 = await testGui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678');
 			if (result1.error) {
@@ -1554,9 +1552,8 @@ gui:
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutVaultIds}`;
-			const gui = new DotrainOrderGui();
-			let result = await gui.chooseDeployment(testDotrain, 'other-deployment');
-			extractWasmEncodedData(result);
+			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			const gui = extractWasmEncodedData(result);
 
 			gui.saveDeposit('token1', '1000');
 			gui.saveDeposit('token2', '5000');
@@ -1596,8 +1593,12 @@ ${dotrainWithoutVaultIds}`;
           
           ${dotrainWithoutVaultIds}
           `;
-			let result = await gui.chooseDeployment(testDotrain, 'other-deployment', stateUpdateCallback);
-			extractWasmEncodedData(result);
+			let guiResult = await DotrainOrderGui.newWithDeployment(
+				testDotrain,
+				'other-deployment',
+				stateUpdateCallback
+			);
+			const gui = extractWasmEncodedData(guiResult);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1656,7 +1657,7 @@ ${dotrainWithoutVaultIds}`;
 				undefined
 			);
 
-			result = gui.setVaultId(true, 0, 'test');
+			const result = gui.setVaultId(true, 0, 'test');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Invalid value for field 'vault-id': Failed to parse vault id in index '0' of inputs in order 'some-order'"
@@ -1753,7 +1754,7 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('select tokens tests', async () => {
-		let gui = new DotrainOrderGui();
+		let gui: DotrainOrderGui;
 		let stateUpdateCallback: Mock;
 		beforeEach(async () => {
 			stateUpdateCallback = vi.fn();
@@ -1762,8 +1763,12 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			const result = await gui.chooseDeployment(dotrain3, 'other-deployment', stateUpdateCallback);
-			extractWasmEncodedData(result);
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrain3,
+				'other-deployment',
+				stateUpdateCallback
+			);
+			gui = extractWasmEncodedData(result);
 		});
 
 		it('should get select tokens', async () => {
@@ -1781,16 +1786,15 @@ ${dotrainWithoutVaultIds}`;
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const testGui = new DotrainOrderGui();
-			let result = await testGui.chooseDeployment(dotrainWithGui, 'some-deployment');
-			extractWasmEncodedData(result);
+			let guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+			const testGui = extractWasmEncodedData(guiResult);
 
 			assert.equal(
 				extractWasmEncodedData<GuiSelectTokensCfg[]>(testGui.getSelectTokens()).length,
 				0
 			);
 
-			result = await testGui.saveSelectToken('token1', '0x1');
+			const result = await testGui.saveSelectToken('token1', '0x1');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Select tokens not set');
 			expect(result.error.readableMsg).toBe(
@@ -1914,8 +1918,12 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			let result = await gui.chooseDeployment(dotrain3, 'other-deployment', stateUpdateCallback);
-			extractWasmEncodedData(result);
+			let result = await DotrainOrderGui.newWithDeployment(
+				dotrain3,
+				'other-deployment',
+				stateUpdateCallback
+			);
+			const gui = extractWasmEncodedData(result);
 
 			mockServer
 				.forPost('/rpc-url')
@@ -1963,12 +1971,6 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('remote network tests', () => {
-		let gui: DotrainOrderGui;
-
-		beforeEach(() => {
-			gui = new DotrainOrderGui();
-		});
-
 		it('should fetch remote networks', async () => {
 			mockServer
 				.forGet('/remote-networks')
@@ -2005,7 +2007,8 @@ ${dotrainWithoutVaultIds}`;
 					logoUri: 'http://localhost.com'
 				});
 
-			await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
+			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
 		});
 
@@ -2044,7 +2047,7 @@ ${dotrainWithoutVaultIds}`;
 					}
 				]);
 
-			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Conflicting remote network in response, a network with key 'remote-network' already exists"
@@ -2104,7 +2107,7 @@ ${dotrainWithoutVaultIds}`;
 					logoUri: 'http://localhost.com'
 				});
 
-			const result = await gui.chooseDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Remote network key shadowing: some-network');
 			expect(result.error.readableMsg).toBe(
@@ -2115,10 +2118,6 @@ ${dotrainWithoutVaultIds}`;
 
 	describe('remote tokens tests', () => {
 		let gui: DotrainOrderGui;
-
-		beforeEach(() => {
-			gui = new DotrainOrderGui();
-		});
 
 		it('should fetch remote tokens', async () => {
 			mockServer
@@ -2164,7 +2163,8 @@ ${dotrainWithoutVaultIds}`;
 					logoUri: 'http://localhost.com'
 				});
 
-			await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
+			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
 		});
 
@@ -2219,7 +2219,7 @@ ${dotrainWithoutVaultIds}`;
 					logoUri: 'http://localhost.com'
 				});
 
-			const result = await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Conflicting remote token in response, a token with key 'remote' already exists"
@@ -2273,9 +2273,13 @@ ${dotrainWithoutVaultIds}`;
 					logoUri: 'http://localhost.com'
 				});
 
-			await gui.chooseDeployment(dotrainForRemotes, 'other-deployment');
+			const guiResult = await DotrainOrderGui.newWithDeployment(
+				dotrainForRemotes,
+				'other-deployment'
+			);
+			const gui = extractWasmEncodedData(guiResult);
 
-			const result = await gui.getCurrentDeployment();
+			const result = gui.getCurrentDeployment();
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Remote token key shadowing: token1');
 			expect(result.error.readableMsg).toBe(

@@ -27,6 +27,7 @@ type ListViewOrderbookFiltersProps = ComponentProps<ListViewOrderbookFilters<any
 
 describe('ListViewOrderbookFilters', () => {
 	const mockSettings = writable<ConfigSource>({
+		version: '1',
 		networks: {
 			ethereum: {
 				rpcs: ['https://rpc.ankr.com/eth'],
@@ -53,6 +54,7 @@ describe('ListViewOrderbookFilters', () => {
 
 	beforeEach(() => {
 		mockSettings.set({
+			version: '1',
 			networks: {
 				ethereum: {
 					rpcs: ['https://rpc.ankr.com/eth'],
@@ -68,7 +70,7 @@ describe('ListViewOrderbookFilters', () => {
 	});
 
 	test('shows no networks alert when networks are empty', () => {
-		mockSettings.set({ networks: {}, subgraphs: {} });
+		mockSettings.set({ version: '1', networks: {}, subgraphs: {} });
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('no-networks-alert')).toBeInTheDocument();
