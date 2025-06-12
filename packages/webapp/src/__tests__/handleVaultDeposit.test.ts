@@ -35,7 +35,7 @@ const mockDeps: VaultDepositHandlerDependencies = {
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	account: '0xaccount' as Hex,
-	rpcUrl: 'https://rpc.example.com',
+	rpcUrls: ['https://rpc.example.com'],
 	handleDepositModal: mockHandleDepositModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
@@ -67,7 +67,7 @@ describe('handleVaultDeposit', () => {
 			args: {
 				vault: mockVault,
 				chainId: mockDeps.chainId,
-				rpcUrl: mockDeps.rpcUrl,
+				rpcUrls: mockDeps.rpcUrls,
 				subgraphUrl: mockDeps.subgraphUrl,
 				account: mockDeps.account
 			},
@@ -100,7 +100,7 @@ describe('handleVaultDeposit', () => {
 			await onSubmitCall(mockAmount);
 
 			expect(getVaultApprovalCalldata).toHaveBeenCalledWith(
-				mockDeps.rpcUrl,
+				mockDeps.rpcUrls,
 				mockVault,
 				mockAmount.toString()
 			);

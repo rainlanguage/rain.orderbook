@@ -31,7 +31,7 @@ const mockDeps: VaultWithdrawHandlerDependencies = {
 	subgraphUrl: 'https://subgraph.example.com',
 	chainId: 1,
 	account: '0xaccount' as Hex,
-	rpcUrl: 'https://rpc.example.com',
+	rpcUrls: ['https://rpc.example.com'],
 	handleWithdrawModal: mockHandleWithdrawModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
@@ -60,7 +60,7 @@ describe('handleVaultWithdraw', () => {
 			args: {
 				vault: mockVault,
 				chainId: mockDeps.chainId,
-				rpcUrl: mockDeps.rpcUrl,
+				rpcUrls: mockDeps.rpcUrls,
 				subgraphUrl: mockDeps.subgraphUrl,
 				account: mockDeps.account
 			},
