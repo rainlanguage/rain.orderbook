@@ -334,7 +334,6 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    raindex-version: 1.0.0
     "#;
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
