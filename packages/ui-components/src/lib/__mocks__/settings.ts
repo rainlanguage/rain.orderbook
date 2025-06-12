@@ -5,7 +5,7 @@ export const mockConfigSource: ConfigSource = {
 	version: '1',
 	networks: {
 		mainnet: {
-			rpc: 'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+			rpcs: ['https://mainnet.infura.io/v3/YOUR-PROJECT-ID'],
 			'chain-id': 1,
 			label: 'Ethereum Mainnet',
 			currency: 'ETH'

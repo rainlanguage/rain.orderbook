@@ -118,7 +118,8 @@ version: {spec_version}
 
 networks:
     some-network:
-        rpc: https://some-url.com
+        rpcs:
+            - https://some-url.com
         chain-id: 123
         network-id: 123
         currency: ETH

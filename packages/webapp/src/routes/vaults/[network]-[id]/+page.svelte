@@ -18,7 +18,7 @@
 	const subgraphUrl = $settings?.subgraphs?.[network] || '';
 	const chainId = $settings?.networks?.[network]?.['chain-id'] || 0;
 	const orderbookAddress = $settings?.orderbooks?.[network]?.address as Hex;
-	const rpcUrl = $settings?.networks?.[network]?.['rpc'] || '';
+	const rpcUrls = $settings?.networks?.[network]?.['rpcs'] || '';
 	const { account } = useAccount();
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
@@ -35,7 +35,7 @@
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,
-			rpcUrl
+			rpcUrls
 		});
 	}
 
@@ -51,7 +51,7 @@
 			subgraphUrl,
 			chainId,
 			account: $account as Hex,
-			rpcUrl
+			rpcUrls
 		});
 	}
 </script>

@@ -30,7 +30,7 @@ describe('ListViewOrderbookFilters', () => {
 		version: '1',
 		networks: {
 			ethereum: {
-				rpc: 'https://rpc.ankr.com/eth',
+				rpcs: ['https://rpc.ankr.com/eth'],
 				'chain-id': 1,
 				'network-id': 1,
 				currency: 'ETH'
@@ -57,7 +57,7 @@ describe('ListViewOrderbookFilters', () => {
 			version: '1',
 			networks: {
 				ethereum: {
-					rpc: 'https://rpc.ankr.com/eth',
+					rpcs: ['https://rpc.ankr.com/eth'],
 					'chain-id': 1,
 					'network-id': 1,
 					currency: 'ETH'

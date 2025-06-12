@@ -26,7 +26,7 @@ describe('applySettings service', () => {
     const settingsContent = '{ "networks": {} }';
     const parsedConfig: ConfigSource = {
       version: '1',
-      networks: { mainnet: { 'chain-id': 1, rpc: 'rpc' } },
+      networks: { mainnet: { 'chain-id': 1, rpcs: ['rpc'] } },
     };
     mockParseConfigSourceFn = vi.fn().mockResolvedValue(parsedConfig);
 

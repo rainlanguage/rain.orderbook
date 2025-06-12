@@ -1013,7 +1013,8 @@ mod tests {
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1036,7 +1037,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1063,7 +1065,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1091,7 +1094,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1114,7 +1118,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1142,7 +1147,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1171,7 +1177,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1195,7 +1202,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1223,7 +1231,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1253,7 +1262,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -1297,7 +1307,8 @@ gui:
         let yaml_prefix = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -1640,7 +1651,8 @@ gui:
         let yaml_one = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -1732,7 +1744,8 @@ gui:
         let yaml_one = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 deployers:
     deployer1:
@@ -1816,7 +1829,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1842,7 +1856,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1872,7 +1887,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1903,7 +1919,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
@@ -1934,7 +1951,8 @@ gui:
         let yaml = r#"
 networks:
     network1:
-        rpc: https://eth.llamarpc.com
+        rpcs:
+            - https://eth.llamarpc.com
         chain-id: 1
 tokens:
     token1:
