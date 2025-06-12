@@ -62,6 +62,40 @@ impl Default for DotrainOrderGui {
 
 #[wasm_export]
 impl DotrainOrderGui {
+    /// Lists all available deployment configurations from a dotrain YAML file.
+    ///
+    /// This function parses the YAML frontmatter to extract deployment keys that can be used
+    /// to initialize a GUI instance. Use this to build deployment selectors in your UI.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Complete dotrain YAML content including the `gui.deployments` section
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<String>)` - Array of deployment identifiers (keys from the deployments map)
+    /// - `Err(GuiError)` - If YAML parsing fails or deployments section is missing
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const dotrain = `
+    /// gui:
+    ///   deployments:
+    ///     mainnet-strategy:
+    ///       name: "Mainnet Trading"
+    ///     testnet-strategy:
+    ///       name: "Test Strategy"
+    /// `;
+    ///
+    /// const result = await DotrainOrderGui.getDeploymentKeys(dotrain);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const deploymentKeys = result.value;
+    /// // Do something with the deploymentKeys
+    /// ```
     #[wasm_export(js_name = "getDeploymentKeys", unchecked_return_type = "string[]")]
     pub async fn get_deployment_keys(dotrain: String) -> Result<Vec<String>, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
@@ -70,6 +104,53 @@ impl DotrainOrderGui {
         )?)
     }
 
+    /// Creates a new GUI instance for managing a specific deployment configuration.
+    ///
+    /// This is the primary initialization function that sets up the GUI context for a chosen
+    /// deployment. The instance tracks field values, deposits, token selections, and provides
+    /// methods for generating order transactions.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Complete dotrain YAML content with all configurations
+    /// - `selected_deployment` - Key of the deployment to activate (must exist in YAML)
+    /// - `state_update_callback` - Optional JavaScript function called on state changes
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(DotrainOrderGui)` - Initialized GUI instance for further operations
+    /// - `Err(DeploymentNotFound)` - If the selected deployment doesn't exist
+    /// - `Err(GuiError)` - For YAML parsing or other initialization errors
+    ///
+    /// # State Management
+    ///
+    /// The callback function receives a serialized state string on every change, enabling
+    /// auto-save functionality or state synchronization across components.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic initialization
+    /// const result = await DotrainOrderGui.newWithDeployment(dotrainYaml, "mainnet-strategy");
+    /// if (result.error) {
+    ///   console.error("Init failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const gui = result.value;
+    ///
+    /// // With state persistence
+    /// const result = await DotrainOrderGui.newWithDeployment(
+    ///   dotrainYaml,
+    ///   "mainnet-strategy",
+    ///   (serializedState) => {
+    ///     localStorage.setItem('orderState', serializedState);
+    ///   }
+    /// );
+    /// if (!result.error) {
+    ///   const gui = result.value;
+    ///   // Use gui instance...
+    /// }
+    /// ```
     #[wasm_export(js_name = "newWithDeployment", preserve_js_class)]
     pub async fn new_with_deployment(
         dotrain: String,
@@ -92,6 +173,27 @@ impl DotrainOrderGui {
         })
     }
 
+    /// Retrieves the complete GUI configuration including all deployments.
+    ///
+    /// This returns the parsed GUI section from the YAML, filtered to include only
+    /// the current deployment. Use this to access strategy-level metadata.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(GuiCfg)` - Complete GUI configuration with name, description, and deployments
+    /// - `Err(GuiConfigNotFound)` - If the YAML lacks a gui section
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getGuiConfig();
+    /// if (result.error) {
+    ///   console.error("Config error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const config = result.value;
+    /// // Do something with the config
+    /// ```
     #[wasm_export(js_name = "getGuiConfig", unchecked_return_type = "GuiCfg")]
     pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
         if !GuiCfg::check_gui_key_exists(self.dotrain_order.dotrain_yaml().documents.clone())? {
@@ -105,6 +207,34 @@ impl DotrainOrderGui {
         Ok(gui)
     }
 
+    /// Gets the active deployment's configuration including fields, deposits, and tokens.
+    ///
+    /// This is the primary method for accessing deployment-specific settings that define
+    /// what inputs are needed from the user. The configuration drives UI generation.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(GuiDeploymentCfg)` - Active deployment with all configuration details
+    /// - `Err(DeploymentNotFound)` - If the deployment was removed from YAML
+    ///
+    /// # Configuration Structure
+    ///
+    /// - `fields` - Input fields requiring user configuration
+    /// - `deposits` - Token deposits with amounts and presets
+    /// - `selectTokens` - Tokens that users must choose addresses for
+    /// - `deployment` - Underlying order and scenario configuration
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getCurrentDeployment();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const deployment = result.value;
+    /// // Do something with the deployment
+    /// ```
     #[wasm_export(
         js_name = "getCurrentDeployment",
         unchecked_return_type = "GuiDeploymentCfg"
@@ -121,9 +251,38 @@ impl DotrainOrderGui {
         Ok(gui_deployment.clone())
     }
 
-    /// Get token info for a given key
+    /// Retrieves detailed token information from YAML configuration or blockchain.
     ///
-    /// Returns a [`TokenInfo`]
+    /// This function first checks the YAML for cached token data (decimals, name, symbol).
+    /// If any information is missing, it queries the blockchain to fetch the complete details.
+    /// This hybrid approach minimizes RPC calls while ensuring accurate data.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token identifier from the YAML tokens section
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(TokenInfo)` - Complete token details including address, decimals, name, and symbol
+    /// - `Err(KeyNotFound)` - If the token key doesn't exist in YAML
+    /// - `Err(ReadableClientError)` - If blockchain query fails
+    ///
+    /// # Network Selection
+    ///
+    /// The RPC endpoint is determined by the deployment's order network configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Get token info (may query blockchain)
+    /// const result = await gui.getTokenInfo("weth");
+    /// if (result.error) {
+    ///   console.error("Token error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const tokenInfo = result.value;
+    /// // Do something with the tokenInfo
+    /// ```
     #[wasm_export(js_name = "getTokenInfo", unchecked_return_type = "TokenInfo")]
     pub async fn get_token_info(&self, key: String) -> Result<TokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
@@ -164,6 +323,33 @@ impl DotrainOrderGui {
         Ok(token_info)
     }
 
+    /// Gets information for all tokens used in the current deployment's order.
+    ///
+    /// This function automatically determines which tokens to fetch based on the deployment:
+    /// - If `select-tokens` is defined, returns info for those tokens
+    /// - Otherwise, returns info for all input/output tokens in the order
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<TokenInfo>)` - Array of complete token information
+    /// - `Err(GuiError)` - If any token lookup fails
+    ///
+    /// # Performance Note
+    ///
+    /// This may trigger multiple blockchain queries if token data isn't cached in YAML.
+    /// Consider caching the results in your application.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getAllTokenInfos();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const tokens = result.value;
+    /// // Do something with the tokens
+    /// ```
     #[wasm_export(js_name = "getAllTokenInfos", unchecked_return_type = "TokenInfo[]")]
     pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
@@ -192,6 +378,38 @@ impl DotrainOrderGui {
         Ok(result)
     }
 
+    /// Extracts strategy-level metadata from a dotrain configuration.
+    ///
+    /// This static method allows checking strategy details without creating a GUI instance,
+    /// useful for displaying strategy information before deployment selection.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Complete dotrain YAML content
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(NameAndDescriptionCfg)` - Strategy name, description, and optional short description
+    /// - `Err(GuiError)` - If required fields are missing from the gui section
+    ///
+    /// # Required Fields
+    ///
+    /// The YAML must contain:
+    /// - `gui.name` - Strategy display name
+    /// - `gui.description` - Full strategy description  
+    /// - `gui.short-description` - Brief summary (optional but recommended)
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await getStrategyDetails(dotrainYaml);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const details = result.value;
+    /// // Do something with the details
+    /// ```
     #[wasm_export(
         js_name = "getStrategyDetails",
         unchecked_return_type = "NameAndDescriptionCfg"
@@ -203,6 +421,31 @@ impl DotrainOrderGui {
         Ok(details)
     }
 
+    /// Gets metadata for all deployments defined in the configuration.
+    ///
+    /// This static method extracts name and description for each deployment, useful for
+    /// building deployment selection interfaces with rich descriptions.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Complete dotrain YAML content
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(HashMap<String, NameAndDescriptionCfg>)` - Map of deployment key to metadata
+    /// - `Err(GuiError)` - If YAML structure is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await getDeploymentDetails(dotrainYaml);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const deployments = result.value;
+    /// // Do something with the deployments
+    /// ```
     #[wasm_export(
         js_name = "getDeploymentDetails",
         unchecked_return_type = "Map<string, NameAndDescriptionCfg>"
@@ -216,6 +459,32 @@ impl DotrainOrderGui {
         )?)
     }
 
+    /// Gets metadata for a specific deployment by key.
+    ///
+    /// Convenience method that extracts details for a single deployment without
+    /// parsing all deployments.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Complete dotrain YAML content
+    /// - `key` - Deployment identifier to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(NameAndDescriptionCfg)` - Deployment name and description
+    /// - `Err(DeploymentNotFound)` - If the key doesn't exist
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await getDeploymentDetail(dotrainYaml, "mainnet-strategy");
+    /// if (result.error) {
+    ///   console.error("Not found:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const detail = result.value;
+    /// // Do something with the detail
+    /// ```
     #[wasm_export(
         js_name = "getDeploymentDetail",
         unchecked_return_type = "NameAndDescriptionCfg"
@@ -231,6 +500,27 @@ impl DotrainOrderGui {
         Ok(deployment_detail.clone())
     }
 
+    /// Gets metadata for the currently active deployment.
+    ///
+    /// Instance method that returns name and description for the deployment
+    /// selected during initialization.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(NameAndDescriptionCfg)` - Current deployment's metadata
+    /// - `Err(DeploymentNotFound)` - If deployment was removed from YAML
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getCurrentDeploymentDetails();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const details = result.value;
+    /// // Do something with the details
+    /// ```
     #[wasm_export(
         js_name = "getCurrentDeploymentDetails",
         unchecked_return_type = "NameAndDescriptionCfg"
@@ -246,6 +536,39 @@ impl DotrainOrderGui {
             .clone())
     }
 
+    /// Exports the current configuration as a complete dotrain text file.
+    ///
+    /// This generates a valid dotrain file with YAML frontmatter and Rainlang code,
+    /// preserving all configurations and bindings. Useful for saving or sharing strategies.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(String)` - Complete dotrain content with YAML frontmatter separator
+    /// - `Err(GuiError)` - If configuration is invalid
+    ///
+    /// # Format
+    ///
+    /// The output follows the standard dotrain format:
+    /// ```
+    /// gui:
+    ///   ...
+    /// ---
+    /// #binding1 !The binding value
+    /// #calculate-io
+    /// ...
+    /// ```
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.generateDotrainText();
+    /// if (result.error) {
+    ///   console.error("Export failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const dotrain = result.value;
+    /// // Do something with the dotrain
+    /// ```
     #[wasm_export(js_name = "generateDotrainText", unchecked_return_type = "string")]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
@@ -258,6 +581,41 @@ impl DotrainOrderGui {
         Ok(dotrain)
     }
 
+    /// Generates the final Rainlang code with all bindings and scenarios applied.
+    ///
+    /// This method updates scenario bindings from current field values and produces
+    /// the composed Rainlang ready for deployment.
+    ///
+    /// # Side Effects
+    ///
+    /// Updates the internal scenario bindings before composition.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(String)` - Composed Rainlang code with comments for each entrypoint
+    /// - `Err(GuiError)` - If composition fails
+    ///
+    /// # Output Format
+    ///
+    /// ```
+    /// /* 0. calculate-io */
+    /// _ _: 0 0;
+    ///
+    /// /* 1. handle-io */
+    /// :;
+    /// ```
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await gui.getComposedRainlang();
+    /// if (result.error) {
+    ///   console.error("Composition error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const rainlang = result.value;
+    /// // Do something with the rainlang
+    /// ```
     #[wasm_export(js_name = "getComposedRainlang", unchecked_return_type = "string")]
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;

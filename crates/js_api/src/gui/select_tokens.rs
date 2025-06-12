@@ -7,6 +7,29 @@ use std::str::FromStr;
 
 #[wasm_export]
 impl DotrainOrderGui {
+    /// Gets tokens that need user selection for the current deployment.
+    ///
+    /// Returns tokens defined in the select-tokens section that require user input
+    /// to specify contract addresses. This enables generic strategies that work
+    /// with user-chosen tokens.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<GuiSelectTokensCfg>)` - Array of selectable token configurations
+    /// - `Err(GuiError)` - If deployment configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getSelectTokens();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const selectableTokens = result.value;
+    /// // Do something with the selectable tokens
+    /// ```
     #[wasm_export(
         js_name = "getSelectTokens",
         unchecked_return_type = "GuiSelectTokensCfg[]"
@@ -19,11 +42,55 @@ impl DotrainOrderGui {
         Ok(select_tokens.unwrap_or(vec![]))
     }
 
+    /// Checks if a selectable token has been configured with an address.
+    ///
+    /// Use this to determine if a user has provided an address for a select-token,
+    /// enabling progressive UI updates and validation.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key from select-tokens configuration
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if token address has been set
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.isSelectTokenSet("stable-token");
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const isSelectTokenSet = result.value;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "isSelectTokenSet", unchecked_return_type = "boolean")]
     pub fn is_select_token_set(&self, key: String) -> Result<bool, GuiError> {
         Ok(self.dotrain_order.orderbook_yaml().get_token(&key).is_ok())
     }
 
+    /// Validates that all required tokens have been selected.
+    ///
+    /// Checks if all tokens in the select-tokens configuration have been given
+    /// addresses. Use this before generating transactions to ensure completeness.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - All required tokens are configured
+    /// - `Err(TokenMustBeSelected)` - A specific token still needs selection
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.checkSelectTokens();
+    /// if (result.error) {
+    ///   console.error("Selection incomplete:", result.error.readableMsg);
+    ///   return;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "checkSelectTokens", unchecked_return_type = "void")]
     pub fn check_select_tokens(&self) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -47,6 +114,28 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Gets the network identifier for the current deployment.
+    ///
+    /// Returns the network key used by the deployment's order configuration.
+    /// This determines which blockchain network to query for token information.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(String)` - Network key from the configuration
+    /// - `Err(GuiError)` - If order or network configuration is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getNetworkKey();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const networkKey = result.value;
+    /// // Do something with the network key
+    /// ```
     #[wasm_export(js_name = "getNetworkKey", unchecked_return_type = "string")]
     pub fn get_network_key(&self) -> Result<String, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
@@ -58,6 +147,44 @@ impl DotrainOrderGui {
         Ok(network_key)
     }
 
+    /// Configures a user-selected token by fetching its details from the blockchain.
+    ///
+    /// Takes a token address provided by the user and queries the blockchain to get
+    /// the token's name, symbol, and decimals. This information is then cached in
+    /// the configuration for efficient access.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key from select-tokens configuration
+    /// - `address` - Token contract address provided by user
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Token configured successfully
+    /// - `Err(TokenNotFound)` - Key not in select-tokens list
+    /// - `Err(ReadableClientError)` - Blockchain query failed
+    /// - `Err(FromHexError)` - Invalid address format
+    ///
+    /// # Network Usage
+    ///
+    /// The function uses the deployment's network configuration to determine the
+    /// RPC endpoint for querying token information.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // User selects token
+    /// const result = await gui.saveSelectToken(
+    ///   "stable-token",
+    ///   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    /// );
+    ///
+    /// if (result.error) {
+    ///   console.error("Selection failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// // Do something with the token
+    /// ```
     #[wasm_export(js_name = "saveSelectToken", unchecked_return_type = "void")]
     pub async fn save_select_token(
         &mut self,
@@ -107,6 +234,31 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Removes a previously selected token configuration.
+    ///
+    /// Clears the address and cached information for a select-token, returning it
+    /// to an unselected state. Use this when users want to choose a different token.
+    ///
+    /// # Parameters
+    ///
+    /// - `key` - Token key to clear
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Token configuration removed
+    /// - `Err(TokenNotFound)` - Key not in select-tokens list
+    /// - `Err(SelectTokensNotSet)` - No select-tokens configured for deployment
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Remove token selection
+    /// const result = gui.removeSelectToken("stable-token");
+    /// if (result.error) {
+    ///   console.error("Remove failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// ```
     #[wasm_export(js_name = "removeSelectToken", unchecked_return_type = "void")]
     pub fn remove_select_token(&mut self, key: String) -> Result<(), GuiError> {
         let select_tokens = GuiCfg::parse_select_tokens(
@@ -124,6 +276,27 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Checks if all required tokens have been selected and configured.
+    ///
+    /// Validates that every token in the select-tokens configuration has been
+    /// given an address. Use this for overall validation and progress tracking.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(bool)` - True if all tokens are configured
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.areAllTokensSelected();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// const allSelected = result.value;
+    /// // Do something
+    /// ```
     #[wasm_export(js_name = "areAllTokensSelected", unchecked_return_type = "boolean")]
     pub fn are_all_tokens_selected(&self) -> Result<bool, GuiError> {
         let select_tokens = self.get_select_tokens()?;
