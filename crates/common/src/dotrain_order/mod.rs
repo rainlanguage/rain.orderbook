@@ -19,6 +19,37 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
 
+/// DotrainOrder represents a parsed and validated dotrain configuration that combines
+/// YAML frontmatter with Rainlang code for orderbook operations.
+///
+/// A dotrain file contains:
+/// - YAML frontmatter defining networks, tokens, orders, scenarios, and deployments
+/// - Rainlang code sections for order evaluation logic
+///
+/// This struct provides methods to compile scenarios and deployments into executable
+/// Rainlang code with scenario-specific bindings applied.
+///
+/// # Examples
+///
+/// ```javascript
+/// // Create from dotrain text
+/// const result = await DotrainOrder.create(dotrainText);
+/// if (result.error) {
+///   console.error('Failed:', result.error.readableMsg);
+/// } else {
+///   const dotrainOrder = result.value;
+///   // Do something with the dotrainOrder
+/// }
+///
+/// // Compile scenario to Rainlang
+/// const result = await dotrainOrder.composeScenarioToRainlang("my-scenario");
+/// if (result.error) {
+///   console.error('Failed:', result.error.readableMsg);
+/// } else {
+///   const rainlang = result.value;
+///   // Do something with the rainlang
+/// }
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[wasm_bindgen]
 pub struct DotrainOrder {
@@ -225,6 +256,44 @@ impl DotrainOrder {
 
 #[wasm_export]
 impl DotrainOrder {
+    /// Creates a new DotrainOrder instance by parsing dotrain configuration text along with additional configuration.
+    ///
+    /// Parses the YAML frontmatter and validates the configuration including:
+    /// - Spec version compatibility
+    /// - Remote network configurations
+    /// - Remote token definitions
+    ///
+    /// # Parameters
+    ///
+    /// * `dotrain` - Complete dotrain text containing YAML frontmatter and Rainlang code
+    /// * `settings` - Optional additional YAML configuration strings to merge with the frontmatter
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(DotrainOrder)` - Successfully parsed and validated DotrainOrder instance
+    /// * `Err(DotrainOrderError)` - Configuration parsing failed, version mismatch, or network errors
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Basic usage
+    /// const result = await DotrainOrder.create(dotrainText);
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const dotrainOrder = result.value;
+    ///   // Do something with the dotrainOrder
+    /// }
+    ///
+    /// // With additional settings
+    /// const result = await DotrainOrder.create(dotrainText, [additionalConfig]);
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const dotrainOrder = result.value;
+    ///   // Do something with the dotrainOrder
+    /// }
+    /// ```
     #[wasm_export(js_name = "create", preserve_js_class)]
     pub async fn create(
         dotrain: String,
@@ -273,12 +342,53 @@ impl DotrainOrder {
         })
     }
 
-    // get this instance's dotrain string
+    /// Returns the original dotrain text used to create this DotrainOrder instance.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The complete dotrain text including YAML frontmatter and Rainlang code
+    /// * `Err(DotrainOrderError)` - Instance not properly initialized (should not occur in normal usage)
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await dotrainOrder.dotrain();
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const dotrain = result.value;
+    ///   // Do something with the dotrain
+    /// }
+    /// ```
     #[wasm_export(js_name = "dotrain", unchecked_return_type = "string")]
     pub fn dotrain(&self) -> Result<String, DotrainOrderError> {
         Ok(self.dotrain.clone())
     }
 
+    /// Compiles a specific scenario into executable Rainlang code for order evaluation.
+    ///
+    /// Takes a scenario name from the dotrain configuration and compiles the Rainlang
+    /// code with that scenario's bindings applied.
+    ///
+    /// # Parameters
+    /// * `scenario` - Name of the scenario defined in the dotrain YAML frontmatter
+    ///
+    /// # Returns
+    /// * `Ok(String)` - Compiled Rainlang code with scenario bindings applied
+    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang compilation failed
+    ///
+    /// # Examples
+
+    /// ```javascript
+    /// // Compile a trading scenario
+    /// const result = await dotrainOrder.composeScenarioToRainlang("market-making");
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const rainlang = result.value;
+    ///   // Do something with the rainlang
+    /// }
+    /// ```
     #[wasm_export(
         js_name = "composeScenarioToRainlang",
         unchecked_return_type = "string"
@@ -296,6 +406,31 @@ impl DotrainOrder {
         )?)
     }
 
+    /// Compiles a specific scenario into Rainlang code for post-task execution.
+    ///
+    /// Post-task Rainlang code runs after an order is successfully added to the orderbook.
+    ///
+    /// # Parameters
+    ///
+    /// * `scenario` - Name of the scenario defined in the dotrain YAML frontmatter
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - Compiled post-task Rainlang code with scenario bindings applied
+    /// * `Err(DotrainOrderError)` - Scenario not found or Rainlang compilation failed
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Compile post-task logic for notifications
+    /// const result = await dotrainOrder.composeScenarioToPostTaskRainlang("notification-scenario");
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const postTaskCode = result.value;
+    ///   // Do something with the postTaskCode
+    /// }
+    /// ```
     #[wasm_export(
         js_name = "composeScenarioToPostTaskRainlang",
         unchecked_return_type = "string"
@@ -313,6 +448,33 @@ impl DotrainOrder {
         )?)
     }
 
+    /// Compiles a specific deployment configuration into executable Rainlang code.
+    ///
+    /// A deployment combines an order definition with a scenario to create a complete
+    /// configuration ready for execution. This method resolves the deployment's scenario
+    /// and compiles the Rainlang code with the appropriate bindings.
+    ///
+    /// # Parameters
+    ///
+    /// * `deployment` - Name of the deployment defined in the dotrain YAML frontmatter
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - Compiled Rainlang code for the deployment's scenario
+    /// * `Err(DotrainOrderError)` - Deployment not found or Rainlang compilation failed
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Compile a production deployment
+    /// const result = await dotrainOrder.composeDeploymentToRainlang("production");
+    /// if (result.error) {
+    ///   console.error('Failed:', result.error.readableMsg);
+    /// } else {
+    ///   const rainlang = result.value;
+    ///   // Do something with the rainlang
+    /// }
+    /// ```
     #[wasm_export(
         js_name = "composeDeploymentToRainlang",
         unchecked_return_type = "string"

@@ -67,7 +67,34 @@ impl From<Error> for WasmEncodedError {
     }
 }
 
-/// Get addOrder() calldata from a given dotrain text and deployment key from its frontmatter
+/// Generates ABI-encoded calldata for the `addOrder2()` function on the orderbook contract.
+///
+/// Parses the dotrain configuration, extracts the specified deployment, and creates the
+/// transaction calldata needed to add an order to the orderbook. The calldata includes
+/// the order structure, evaluable bytecode, and all necessary parameters.
+///
+/// # Parameters
+///
+/// * `dotrain` - Complete dotrain text containing YAML frontmatter and Rainlang code
+/// * `deployment` - Name of the deployment defined in the dotrain frontmatter
+///
+/// # Returns
+///
+/// * `Ok(AddOrderCalldata)` - ABI-encoded calldata ready for blockchain submission
+/// * `Err(Error)` - Invalid dotrain format, missing deployment, or compilation failure
+///
+/// # Examples
+///
+/// ```javascript
+/// // Generate calldata for adding an order
+/// const result = await getAddOrderCalldata(dotrainText, "flare");
+/// if (result.error) {
+///   console.error('Failed:', result.error.readableMsg);
+/// } else {
+///   const calldata = result.value;
+///   // Do something with the calldata
+/// }
+/// ```
 #[wasm_export(
     js_name = "getAddOrderCalldata",
     unchecked_return_type = "AddOrderCalldata"
@@ -93,7 +120,32 @@ pub async fn get_add_order_calldata(
     Ok(AddOrderCalldata(Bytes::copy_from_slice(&calldata)))
 }
 
-/// Get removeOrder() calldata for a given order
+/// Generates ABI-encoded calldata for the `removeOrder2()` function on the orderbook contract.
+///
+/// Takes an existing order from the subgraph and creates the transaction calldata needed
+/// to remove it from the orderbook. The order must be active and owned by the caller.
+///
+/// # Parameters
+///
+/// * `order` - Order object from subgraph containing order details and encoded order data
+///
+/// # Returns
+///
+/// * `Ok(RemoveOrderCalldata)` - ABI-encoded calldata ready for blockchain submission
+/// * `Err(Error)` - Invalid order format or calldata encoding failure
+///
+/// # Examples
+///
+/// ```javascript
+/// // Generate calldata for removing an order
+/// const result = await getRemoveOrderCalldata(orderFromSubgraph);
+/// if (result.error) {
+///   console.error('Failed:', result.error.readableMsg);
+/// } else {
+///   const calldata = result.value;
+///   // Do something with the calldata
+/// }
+/// ```
 #[wasm_export(
     js_name = "getRemoveOrderCalldata",
     unchecked_return_type = "RemoveOrderCalldata"
