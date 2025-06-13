@@ -24,13 +24,17 @@
 	const gui = useGui();
 
 	onMount(async () => {
-		let result = await gui.getTokenInfo(token.key);
-		if (result.error) {
-			throw new Error(result.error.msg);
-		}
-		tokenInfo = result.value;
-		if (result.value.address) {
-			inputValue = result.value.address;
+		try {
+			let result = await gui.getTokenInfo(token.key);
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			tokenInfo = result.value;
+			if (result.value.address) {
+				inputValue = result.value.address;
+			}
+		} catch {
+			// do nothing
 		}
 	});
 
