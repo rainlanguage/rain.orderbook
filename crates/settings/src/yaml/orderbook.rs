@@ -122,6 +122,10 @@ impl OrderbookYaml {
         let context = self.initialize_context_and_expand_remote_data()?;
         TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
+    pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+    }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
@@ -383,6 +387,7 @@ mod tests {
             Url::parse("https://chainid.network/v2/chains.json").unwrap()
         );
 
+        assert_eq!(ob_yaml.get_tokens().unwrap().len(), 1);
         assert_eq!(ob_yaml.get_token_keys().unwrap().len(), 1);
         let token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
