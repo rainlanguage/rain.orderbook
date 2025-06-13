@@ -30,7 +30,7 @@
 				throw new Error(result.error.msg);
 			}
 			tokenInfo = result.value;
-			if (result.value.address) {
+			if (result.value?.address) {
 				inputValue = result.value.address;
 			}
 		} catch {
