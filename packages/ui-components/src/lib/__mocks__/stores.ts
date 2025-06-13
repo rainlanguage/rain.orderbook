@@ -1,9 +1,24 @@
 import type { AccountCfg, NewConfig, SubgraphCfg } from '@rainlanguage/orderbook';
+import { parseYaml } from '@rainlanguage/orderbook';
 import { writable } from 'svelte/store';
-import settingsFixture from '../__fixtures__/settings-12-11-24.json';
+import settingsYamlContent from '../__fixtures__/settings.yaml?raw';
 
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
+
+vi.mock(import('@rainlanguage/orderbook'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual
+	};
+});
+
+// Parse the YAML settings
+const parseResult = parseYaml([settingsYamlContent]);
+if (parseResult.error) {
+	throw new Error(`Failed to parse settings YAML: ${parseResult.error.readableMsg}`);
+}
+const settingsFixture = parseResult.value;
 
 const initialPageState = {
 	data: {
