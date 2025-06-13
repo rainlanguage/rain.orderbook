@@ -174,7 +174,7 @@ impl DotrainOrderGui {
         }
 
         let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
-            .buffered(5)
+            .buffer_unordered(5)
             .try_collect()
             .await?;
         results.extend(fetched_results);
