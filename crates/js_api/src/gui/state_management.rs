@@ -82,6 +82,36 @@ impl DotrainOrderGui {
         Ok(vault_ids)
     }
 
+    /// Exports the complete GUI state as a compressed, encoded string.
+    ///
+    /// Serializes all current configuration including field values, deposits,
+    /// selected tokens, and vault IDs into a compact format for persistence
+    /// or sharing. The output is gzipped and base64-encoded.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(String)` - Compressed, base64-encoded state data
+    /// - `Err(GuiError)` - If serialization fails
+    ///
+    /// # State Contents
+    ///
+    /// - Field values with preset information
+    /// - Deposit amounts with preset references
+    /// - Selected token configurations
+    /// - Vault ID assignments
+    /// - Configuration hash for validation
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.serializeState();
+    /// if (result.error) {
+    ///   console.error("Serialization error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const state = result.value;
+    /// // Do something with the state
+    /// ```
     #[wasm_export(js_name = "serializeState", unchecked_return_type = "string")]
     pub fn serialize_state(&self) -> Result<String, GuiError> {
         let mut field_values = BTreeMap::new();
@@ -159,6 +189,39 @@ impl DotrainOrderGui {
         Ok(URL_SAFE.encode(compressed))
     }
 
+    /// Restores a GUI instance from previously serialized state.
+    ///
+    /// Creates a new GUI instance with all configuration restored from a saved state.
+    /// The dotrain content must match the original for security validation.
+    ///
+    /// # Parameters
+    ///
+    /// - `dotrain` - Must match the original dotrain content exactly
+    /// - `serialized` - Previously serialized state string
+    /// - `state_update_callback` - Optional callback for future state changes
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(DotrainOrderGui)` - Fully restored GUI instance
+    /// - `Err(DotrainMismatch)` - Dotrain content has changed since serialization
+    /// - `Err(GuiError)` - Deserialization or validation error
+    ///
+    /// # Security
+    ///
+    /// The function validates that the dotrain content hasn't changed by comparing
+    /// hashes. This prevents state injection attacks and ensures consistency.
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = await DotrainOrderGui.newFromState(dotrainYaml, savedState);
+    /// if (result.error) {
+    ///   console.error("Restore failed:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const gui = result.value;
+    /// // Do something with the gui
+    /// ```
     #[wasm_export(js_name = "newFromState", preserve_js_class)]
     pub async fn new_from_state(
         dotrain: String,
@@ -242,6 +305,26 @@ impl DotrainOrderGui {
         Ok(dotrain_order_gui)
     }
 
+    /// Manually triggers the state update callback.
+    ///
+    /// Calls the registered state update callback with the current serialized state.
+    /// This is typically called automatically after state-changing operations,
+    /// but can be triggered manually if needed.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Callback executed successfully or no callback registered
+    /// - `Err(JsError)` - JavaScript callback threw an error
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// // Manual state update trigger
+    /// const result = gui.executeStateUpdateCallback();
+    /// if (result.error) {
+    ///   console.error("Callback error:", result.error.readableMsg);
+    /// }
+    /// ```
     #[wasm_export(js_name = "executeStateUpdateCallback", unchecked_return_type = "void")]
     pub fn execute_state_update_callback(&self) -> Result<(), GuiError> {
         if let Some(callback) = &self.state_update_callback {
@@ -253,6 +336,57 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    /// Gets comprehensive configuration for complete UI initialization.
+    ///
+    /// Provides all configuration data needed to build a complete order interface,
+    /// organized by requirement type for progressive UI construction.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(AllGuiConfig)` - Complete configuration package
+    /// - `Err(GuiError)` - If deployment configuration is invalid
+    ///
+    /// # Configuration Structure
+    ///
+    /// - `fieldDefinitionsWithoutDefaults` - Required fields needing user input
+    /// - `fieldDefinitionsWithDefaults` - Optional fields with fallback values
+    /// - `deposits` - Deposit configurations with tokens and presets
+    /// - `orderInputs` - Input token configurations
+    /// - `orderOutputs` - Output token configurations
+    ///
+    /// # Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getAllGuiConfig();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const config = result.value;
+    ///
+    /// // Build required fields section
+    /// config.fieldDefinitionsWithoutDefaults.forEach(field => {
+    ///   // Do something with the fields
+    /// });
+    ///
+    /// // Build optional fields section
+    /// if (config.fieldDefinitionsWithDefaults.length > 0) {
+    ///   // Do something with the fields
+    /// }
+    ///
+    /// // Build deposits section
+    /// config.deposits.forEach(deposit => {
+    ///   // Do something with the deposits
+    /// });
+    ///
+    /// // Show order preview
+    /// config.orderInputs.forEach(input => {
+    ///   // Do something with the order inputs
+    /// });
+    /// config.orderOutputs.forEach(output => {
+    ///   // Do something with the order outputs
+    /// });
+    /// ```
     #[wasm_export(js_name = "getAllGuiConfig", unchecked_return_type = "AllGuiConfig")]
     pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, GuiError> {
         let deployment = self.get_current_deployment()?;

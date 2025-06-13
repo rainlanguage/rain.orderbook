@@ -11,8 +11,35 @@ pub struct GetTransactionAddOrdersResult(
 );
 impl_wasm_traits!(GetTransactionAddOrdersResult);
 
-/// Internal function to fetch Add Orders for a given transaction
-/// Returns an array of AddOrder structs
+/// Fetches orders that were added in a specific transaction.
+///
+/// Retrieves all orders created within a single blockchain transaction, useful
+/// for tracking order deployment.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `tx_hash` - Transaction hash
+///
+/// # Returns
+///
+/// * `Ok(GetTransactionAddOrdersResult)` - Array of orders added in the transaction
+/// * `Err(SubgraphError)` - Transaction not found or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getTransactionAddOrders(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0x1234567890abcdef1234567890abcdef12345678"
+/// );
+/// if (result.error) {
+///   console.error("Cannot fetch added orders:", result.error.readableMsg);
+///   return;
+/// }
+/// const addedOrders = result.value;
+/// // Do something with the addedOrders
+/// ```
 #[wasm_export(
     js_name = "getTransactionAddOrders",
     unchecked_return_type = "GetTransactionAddOrdersResult"

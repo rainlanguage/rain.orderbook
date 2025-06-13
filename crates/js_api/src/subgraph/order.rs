@@ -29,8 +29,51 @@ impl_wasm_traits!(GetOrdersResult);
 pub struct GetOrderVaultsVolumeResult(#[tsify(type = "VaultVolume[]")] Vec<VaultVolume>);
 impl_wasm_traits!(GetOrderVaultsVolumeResult);
 
-/// Fetch all orders from multiple subgraphs
-/// Returns a list of OrderWithSubgraphName structs
+/// Fetches orders from multiple subgraphs with filtering and pagination.
+///
+/// Retrieves orders across multiple networks for comprehensive order discovery
+/// and management across different blockchain networks.
+///
+/// # Parameters
+///
+/// * `subgraphs` - Array of subgraph configurations, each containing:
+///   - `url`: Subgraph endpoint URL for the specific network
+///   - `name`: Human-readable network identifier
+/// * `filter_args` - Filtering criteria including:
+///   - `active`: Filter by order status (true for active orders only)
+///   - `owners`: Array of owner addresses to filter by (empty for all owners)
+///   - `orderbooks`: Array of orderbook addresses to filter by (empty for all)
+/// * `pagination_args` - Pagination settings:
+///   - `page`: Page number (1-based indexing)
+///   - `page_size`: Number of orders per page
+///
+/// # Returns
+///
+/// * `Ok(GetOrdersResult)` - Array of orders with their associated network information
+/// * `Err(SubgraphError)` - Network connectivity issues, invalid parameters, or query failures
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getOrders(
+///   [
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon", name: "polygon" },
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-flare", name: "flare" }
+///   ],
+///   {
+///     active: true,
+///     owners: ["0x1234567890abcdef1234567890abcdef12345678"],
+///     orderbooks: []
+///   },
+///   { page: 1, page_size: 25 }
+/// );
+/// if (result.error) {
+///   console.error("Error fetching orders:", result.error.readableMsg);
+///   return;
+/// }
+/// const orders = result.value;
+/// // Do something with the orders
+/// ```
 #[wasm_export(js_name = "getOrders", unchecked_return_type = "GetOrdersResult")]
 pub async fn get_orders(
     subgraphs: Vec<MultiSubgraphArgs>,
@@ -86,8 +129,36 @@ pub async fn get_sg_order_by_hash(url: &str, hash: &str) -> Result<SgOrder, Subg
     Ok(order)
 }
 
-/// Fetch a single order
-/// Returns the Order struct with sorted vaults
+/// Fetches a specific order by its hash with organized vault information.
+///
+/// Retrieves complete order details and organizes its vaults into logical categories
+/// (inputs, outputs, inputs_outputs) for easier consumption.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `hash` - Order hash identifier
+///
+/// # Returns
+///
+/// * `Ok(OrderWithSortedVaults)` - Order with categorized vaults
+/// * `Err(SubgraphError)` - Order not found or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// // Fetch order with organized vault information
+/// const result = await getOrderByHash(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+/// );
+/// if (result.error) {
+///   console.error("Order not found:", result.error.readableMsg);
+///   return;
+/// }
+/// const { order, vaults } = result.value;
+/// // Do something with the order and vaults
+/// ```
 #[wasm_export(
     js_name = "getOrderByHash",
     unchecked_return_type = "OrderWithSortedVaults"
@@ -103,8 +174,32 @@ pub async fn get_order_by_hash(
     })
 }
 
-/// Extend an order to include Rainlang string
-/// Returns an OrderDetailExtended struct
+/// Extends order data with additional computed information.
+///
+/// Processes an order object to add calculated fields and structured information
+/// for easier consumption, including Rainlang string representation.
+///
+/// # Parameters
+///
+/// * `order` - Base order object from subgraph
+///
+/// # Returns
+///
+/// * `Ok(OrderDetailExtended)` - Enhanced order with computed fields
+/// * `Err(SubgraphError)` - Processing or validation errors
+///
+/// # Examples
+///
+/// ```javascript
+/// // Extend order with computed information
+/// const result = extendOrder(rawOrder);
+/// if (result.error) {
+///   console.error("Cannot extend order:", result.error.readableMsg);
+///   return;
+/// }
+/// const order = result.value;
+/// // Do something with the order
+/// ```
 #[wasm_export(js_name = "extendOrder", unchecked_return_type = "OrderDetailExtended")]
 pub fn order_detail_extended(order: SgOrder) -> Result<OrderDetailExtended, SubgraphError> {
     let order_extended: OrderDetailExtended = order
@@ -113,7 +208,39 @@ pub fn order_detail_extended(order: SgOrder) -> Result<OrderDetailExtended, Subg
     Ok(order_extended)
 }
 
-/// Fetch volume information for vaults associated with an order
+/// Calculates trading volume for an order's vaults.
+///
+/// Computes volume statistics for all vaults associated with an order within
+/// a specified time range.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `order_id` - Order hash identifier
+/// * `start_timestamp` - Optional start time for volume calculation (Unix timestamp in seconds)
+/// * `end_timestamp` - Optional end time for volume calculation (Unix timestamp in seconds)
+///
+/// # Returns
+///
+/// * `Ok(GetOrderVaultsVolumeResult)` - Array of vault volume statistics
+/// * `Err(SubgraphError)` - Calculation or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const thirtyDaysAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
+/// const result = await getOrderVaultsVolume(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+///   thirtyDaysAgo
+/// );
+/// if (result.error) {
+///   console.error("Cannot calculate volumes:", result.error.readableMsg);
+///   return;
+/// }
+/// const volumes = result.value;
+/// // Do something with the volumes
+/// ```
 #[wasm_export(
     js_name = "getOrderVaultsVolume",
     unchecked_return_type = "GetOrderVaultsVolumeResult"
@@ -131,7 +258,39 @@ pub async fn order_vaults_volume(
     Ok(GetOrderVaultsVolumeResult(volumes))
 }
 
-/// Measures an order's performance (including vaults apy and vol and total apy and vol)
+/// Calculates comprehensive performance metrics for an order.
+///
+/// Computes detailed performance statistics including profit/loss, volume,
+/// APY, and efficiency metrics for all vaults associated with an order.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `order_id` - Order hash identifier
+/// * `start_timestamp` - Optional start time for analysis (Unix timestamp in seconds)
+/// * `end_timestamp` - Optional end time for analysis (Unix timestamp in seconds)
+///
+/// # Returns
+///
+/// * `Ok(OrderPerformance)` - Comprehensive performance metrics including vaults APY, volume, and total metrics
+/// * `Err(SubgraphError)` - Calculation or network errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const weekAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+/// const result = await getOrderPerformance(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+///   weekAgo
+/// );
+/// if (result.error) {
+///   console.error("Cannot analyze performance:", result.error.readableMsg);
+///   return;
+/// }
+/// const metrics = result.value;
+/// // Do something with the metrics
+/// ```
 #[wasm_export(
     js_name = "getOrderPerformance",
     unchecked_return_type = "OrderPerformance"

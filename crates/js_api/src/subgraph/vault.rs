@@ -36,8 +36,49 @@ impl_wasm_traits!(GetVaultBalanceChangesResult);
 pub struct VaultAllowanceResult(#[tsify(type = "string")] U256);
 impl_wasm_traits!(VaultAllowanceResult);
 
-/// Fetch all vaults from multiple subgraphs
-/// Returns a list of VaultWithSubgraphName structs
+/// Fetches vault data from multiple subgraphs across different networks.
+///
+/// Queries multiple subgraphs simultaneously to retrieve vault information
+/// across different blockchain networks.
+///
+/// # Parameters
+///
+/// * `subgraphs` - Array of subgraph configurations, each containing:
+///   - `url`: Subgraph endpoint URL
+///   - `name`: Human-readable network name for identification
+/// * `filter_args` - Filtering options including:
+///   - `owners`: Array of owner addresses to filter by (empty for all)
+///   - `hide_zero_balance`: Whether to exclude vaults with zero balance
+/// * `pagination_args` - Pagination configuration:
+///   - `page`: Page number (1-based)
+///   - `page_size`: Number of vaults per page
+///
+/// # Returns
+///
+/// * `Ok(GetVaultsResult)` - Array of vaults with their associated subgraph network names
+/// * `Err(SubgraphError)` - Network errors, invalid parameters, or query failures
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVaults(
+///   [
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon", name: "polygon" },
+///     { url: "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-flare", name: "flare" }
+///   ],
+///   {
+///     owners: ["0x1234567890abcdef1234567890abcdef12345678"],
+///     hide_zero_balance: true
+///   },
+///   { page: 1, page_size: 25 }
+/// );
+/// if (result.error) {
+///   console.error("Error fetching vaults:", result.error.readableMsg);
+///   return;
+/// }
+/// const vaults = result.value;
+/// // Do something with the vaults
+/// ```
 #[wasm_export(js_name = "getVaults", unchecked_return_type = "GetVaultsResult")]
 pub async fn get_vaults(
     subgraphs: Vec<MultiSubgraphArgs>,
@@ -50,16 +91,74 @@ pub async fn get_vaults(
     ))
 }
 
-/// Fetch a single vault
-/// Returns the SgVault struct
+/// Fetches detailed information for a specific vault.
+///
+/// Retrieves complete vault information including token details, balance,
+/// and associated orders.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `id` - Unique vault identifier
+///
+/// # Returns
+///
+/// * `Ok(SgVault)` - Complete vault information
+/// * `Err(SubgraphError)` - Network or query errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVault(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "0x1234567890abcdef1234567890abcdef12345678"
+/// );
+/// if (result.error) {
+///   console.error("Vault not found:", result.error.readableMsg);
+///   return;
+/// }
+/// const vault = result.value;
+/// // Do something with the vault
+/// ```
 #[wasm_export(js_name = "getVault", unchecked_return_type = "SgVault")]
 pub async fn get_vault(url: &str, id: &str) -> Result<SgVault, SubgraphError> {
     let client = OrderbookSubgraphClient::new(Url::parse(url)?);
     Ok(client.vault_detail(Id::new(id)).await?)
 }
 
-/// Fetch balance changes for a vault
-/// Returns a list of VaultBalanceChangeUnwrapped structs
+/// Fetches balance change history for a vault.
+///
+/// Retrieves chronological list of deposits, withdrawals, and trades affecting
+/// a vault's balance.
+///
+/// # Parameters
+///
+/// * `url` - Subgraph endpoint URL
+/// * `id` - Vault identifier
+/// * `pagination_args` - Pagination configuration:
+///   - `page`: Page number (1-based)
+///   - `page_size`: Number of balance changes per page
+///
+/// # Returns
+///
+/// * `Ok(GetVaultBalanceChangesResult)` - Array of balance change events
+/// * `Err(SubgraphError)` - Network or query errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVaultBalanceChanges(
+///   "https://api.thegraph.com/subgraphs/name/rain-protocol/orderbook-polygon",
+///   "vault_id_123",
+///   { page: 1, page_size: 20 }
+/// );
+/// if (result.error) {
+///   console.error("Error fetching history:", result.error.readableMsg);
+///   return;
+/// }
+/// const changes = result.value;
+/// // Do something with the changes
+/// ```
 #[wasm_export(
     js_name = "getVaultBalanceChanges",
     unchecked_return_type = "GetVaultBalanceChangesResult"
@@ -77,8 +176,38 @@ pub async fn get_vault_balance_changes(
     ))
 }
 
-/// Get deposit calldata for a vault
-/// Returns a string of the calldata
+/// Generates transaction calldata for depositing tokens into a vault.
+///
+/// Creates the contract calldata needed to deposit a specified amount of tokens
+/// into a vault.
+///
+/// # Parameters
+///
+/// * `vault` - Target vault object containing:
+///   - `token.address`: ERC20 token contract address
+///   - `vault_id`: Unique vault identifier
+///   - `orderbook.id`: Orderbook contract address for transaction target
+/// * `deposit_amount` - Amount to deposit in token's smallest unit (e.g., "1000000000000000000" for 1 token with 18 decimals)
+///
+/// # Returns
+///
+/// * `Ok(VaultCalldataResult)` - Encoded transaction calldata as hex string
+/// * `Err(SubgraphError)` - When deposit amount is zero/invalid or vault configuration is malformed
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVaultDepositCalldata(
+///   vault,
+///   "1000000000000000000"
+/// );
+/// if (result.error) {
+///   console.error("Cannot generate deposit:", result.error.readableMsg);
+///   return;
+/// }
+/// const calldata = result.value;
+/// // Do something with the calldata
+/// ```
 #[wasm_export(
     js_name = "getVaultDepositCalldata",
     unchecked_return_type = "VaultCalldataResult"
@@ -100,7 +229,35 @@ pub async fn get_vault_deposit_calldata(
     )))
 }
 
-/// Get withdraw calldata for a vault
+/// Generates transaction calldata for withdrawing tokens from a vault.
+///
+/// Creates the contract calldata needed to withdraw a specified amount of tokens
+/// from a vault.
+///
+/// # Parameters
+///
+/// * `vault` - Source vault object
+/// * `withdraw_amount` - Amount to withdraw in token's smallest unit
+///
+/// # Returns
+///
+/// * `Ok(VaultCalldataResult)` - Encoded transaction calldata as hex string
+/// * `Err(SubgraphError)` - Invalid amount or encoding errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVaultWithdrawCalldata(
+///   vault,
+///   "500000000000000000"
+/// );
+/// if (result.error) {
+///   console.error("Cannot generate withdrawal:", result.error.readableMsg);
+///   return;
+/// }
+/// const calldata = result.value;
+/// // Do something with the calldata
+/// ```
 #[wasm_export(
     js_name = "getVaultWithdrawCalldata",
     unchecked_return_type = "VaultCalldataResult"
@@ -122,6 +279,37 @@ pub async fn get_vault_withdraw_calldata(
     )))
 }
 
+/// Generates ERC20 approval calldata for vault deposits.
+///
+/// Creates the contract calldata needed to approve the orderbook contract to spend
+/// tokens for a vault deposit, but only if additional approval is needed.
+///
+/// # Parameters
+///
+/// * `rpc_url` - Blockchain RPC endpoint for checking current allowance
+/// * `vault` - Target vault object
+/// * `deposit_amount` - Amount requiring approval
+///
+/// # Returns
+///
+/// * `Ok(VaultCalldataResult)` - Encoded approval calldata
+/// * `Err(SubgraphError)` - Sufficient allowance exists or other errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await getVaultApprovalCalldata(
+///   "https://polygon-rpc.com",
+///   vault,
+///   "2000000000000000000"
+/// );
+/// if (result.error) {
+///   console.error("Approval error:", result.error.readableMsg);
+///   return;
+/// }
+/// const calldata = result.value;
+/// // Do something with the calldata
+/// ```
 #[wasm_export(
     js_name = "getVaultApprovalCalldata",
     unchecked_return_type = "VaultCalldataResult"
@@ -149,6 +337,35 @@ pub async fn get_vault_approval_calldata(
     )))
 }
 
+/// Checks current ERC20 allowance for a vault.
+///
+/// Determines how much the orderbook contract is currently approved to spend
+/// on behalf of the vault owner.
+///
+/// # Parameters
+///
+/// * `rpc_url` - Blockchain RPC endpoint
+/// * `vault` - Vault to check allowance for
+///
+/// # Returns
+///
+/// * `Ok(VaultAllowanceResult)` - Current allowance amount as string
+/// * `Err(SubgraphError)` - Network or contract errors
+///
+/// # Examples
+///
+/// ```javascript
+/// const result = await checkVaultAllowance(
+///   "https://polygon-rpc.com",
+///   vault
+/// );
+/// if (result.error) {
+///   console.error("Cannot check allowance:", result.error.readableMsg);
+///   return;
+/// }
+/// const allowance = result.value;
+/// // Do something with the allowance
+/// ```
 #[wasm_export(
     js_name = "checkVaultAllowance",
     unchecked_return_type = "VaultAllowanceResult"
