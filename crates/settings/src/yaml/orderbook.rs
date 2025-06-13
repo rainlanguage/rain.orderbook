@@ -122,6 +122,10 @@ impl OrderbookYaml {
         let tokens = TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(tokens.keys().cloned().collect())
     }
+    pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
+        let context = self.initialize_context_and_expand_remote_data()?;
+        TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+    }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
         let context = self.initialize_context_and_expand_remote_data()?;
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))

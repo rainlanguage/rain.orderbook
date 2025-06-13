@@ -134,6 +134,23 @@ impl DotrainOrderGui {
         }
         Ok(true)
     }
+
+    #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
+    pub fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
+        let network_key = self.get_network_key()?;
+        let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
+        let filtered_tokens = tokens
+            .into_iter()
+            .filter(|(_, token)| token.network.key == network_key)
+            .map(|(_, token)| TokenInfo {
+                address: token.address,
+                decimals: token.decimals.unwrap_or(18),
+                name: token.label.unwrap_or_else(|| token.key.clone()),
+                symbol: token.symbol.unwrap_or_else(|| token.key.clone()),
+            })
+            .collect();
+        Ok(filtered_tokens)
+    }
 }
 
 #[cfg(test)]
@@ -343,6 +360,61 @@ mod tests {
 
             let are_all_tokens_selected = gui.are_all_tokens_selected().unwrap();
             assert!(are_all_tokens_selected);
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_tokens() {
+            let gui = initialize_gui_with_select_tokens().await;
+
+            gui.add_record_to_yaml(
+                "token3".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000001".to_string(),
+                "18".to_string(),
+                "Token 3".to_string(),
+                "T3".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token4".to_string(),
+                "some-network".to_string(),
+                "0x0000000000000000000000000000000000000002".to_string(),
+                "6".to_string(),
+                "Token 4".to_string(),
+                "T4".to_string(),
+            );
+            gui.add_record_to_yaml(
+                "token-other".to_string(),
+                "other-network".to_string(),
+                "0x0000000000000000000000000000000000000003".to_string(),
+                "8".to_string(),
+                "Token Other".to_string(),
+                "TO".to_string(),
+            );
+
+            let tokens = gui.get_all_tokens().unwrap();
+            assert_eq!(tokens.len(), 4);
+            assert_eq!(
+                tokens[0].address.to_string(),
+                "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+            );
+            assert_eq!(
+                tokens[1].address.to_string(),
+                "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+            );
+            assert_eq!(
+                tokens[2].address.to_string(),
+                "0x0000000000000000000000000000000000000001"
+            );
+            assert_eq!(tokens[2].decimals, 18);
+            assert_eq!(tokens[2].name, "Token 3");
+            assert_eq!(tokens[2].symbol, "T3");
+            assert_eq!(
+                tokens[3].address.to_string(),
+                "0x0000000000000000000000000000000000000002"
+            );
+            assert_eq!(tokens[3].decimals, 6);
+            assert_eq!(tokens[3].name, "Token 4");
+            assert_eq!(tokens[3].symbol, "T4");
         }
     }
 

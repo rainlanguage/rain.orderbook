@@ -551,6 +551,11 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
+    other-network:
+        rpc: http://localhost:8086/rpc-url
+        chain-id: 124
+        network-id: 124
+        currency: ETH2
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
