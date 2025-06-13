@@ -201,7 +201,7 @@ impl OrderbookYaml {
             .map(|v| v.to_ascii_lowercase())
             .map(|v| match v.as_str() {
                 "true" | "1" => Ok(true),
-                "false" => Ok(false),
+                "false" | "0" => Ok(false),
                 _ => Err(YamlError::Field {
                     kind: FieldErrorKind::InvalidType {
                         field: "sentry".to_string(),

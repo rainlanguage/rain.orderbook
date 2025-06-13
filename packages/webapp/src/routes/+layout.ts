@@ -405,10 +405,10 @@ subgraphs:
 			expect(result.errorMessage).toContain('Error status: 404');
 		});
 
-		it('should return errorMessage if response.json() fails', async () => {
+		it('should return errorMessage if response.text() fails', async () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
-				text: () => Promise.reject(new Error('Invalid JSON'))
+				text: () => Promise.reject(new Error('Invalid YAML'))
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -417,7 +417,7 @@ subgraphs:
 			expect(result).toHaveProperty('stores', null);
 			expect(result).toHaveProperty('errorMessage');
 			expect(result.errorMessage).toContain('Failed to get site config settings.');
-			expect(result.errorMessage).toContain('Invalid JSON');
+			expect(result.errorMessage).toContain('Invalid YAML');
 		});
 
 		it('should handle fetch failure', async () => {
@@ -432,7 +432,7 @@ subgraphs:
 			expect(result.errorMessage).toContain('Network error');
 		});
 
-		it('should handle empty or malformed settings JSON', async () => {
+		it('should handle empty or malformed settings YAML', async () => {
 			vi.mocked(parseYaml).mockReturnValue({
 				value: undefined,
 				error: {
