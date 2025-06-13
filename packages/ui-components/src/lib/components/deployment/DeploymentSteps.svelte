@@ -55,6 +55,8 @@
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
 	let subgraphUrl: string | undefined = undefined;
+	let availableTokens: TokenInfo[] = [];
+	let loadingTokens: boolean = false;
 
 	const gui = useGui();
 	const registry = useRegistry();
@@ -73,8 +75,27 @@
 		} else if (value) {
 			subgraphUrl = $settings?.subgraphs?.[value];
 		}
+		await loadAvailableTokens();
 		await areAllTokensSelected();
 	});
+
+	async function loadAvailableTokens() {
+		if (loadingTokens) return;
+
+		loadingTokens = true;
+		try {
+			const result = await gui.getAllTokens();
+			if (result.error) {
+				throw new Error(result.error.msg);
+			}
+			availableTokens = result.value;
+		} catch (error) {
+			DeploymentStepsError.catch(error, DeploymentStepsErrorCode.NO_AVAILABLE_TOKENS);
+			availableTokens = [];
+		} finally {
+			loadingTokens = false;
+		}
+	}
 
 	function getAllFieldDefinitions() {
 		try {
@@ -248,7 +269,7 @@
 						description="Select the tokens that you want to use in your order."
 					/>
 					{#each selectTokens as token}
-						<SelectToken {token} {onSelectTokenSelect} />
+						<SelectToken {token} {onSelectTokenSelect} {availableTokens} loading={loadingTokens} />
 					{/each}
 				</div>
 			{/if}

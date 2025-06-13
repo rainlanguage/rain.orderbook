@@ -13,6 +13,7 @@ export enum DeploymentStepsErrorCode {
 	NO_GUI_DETAILS = 'Error getting GUI details',
 	NO_CHAIN = 'Unsupported chain ID',
 	NO_NETWORK_KEY = 'No network key found',
+	NO_AVAILABLE_TOKENS = 'Error loading available tokens',
 	SERIALIZE_ERROR = 'Error serializing state',
 	ADD_ORDER_FAILED = 'Failed to add order',
 	NO_WALLET = 'No account address found'
