@@ -1,4 +1,5 @@
 use super::*;
+use futures::{StreamExt, TryStreamExt};
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
@@ -144,15 +145,13 @@ impl DotrainOrderGui {
             .orderbook_yaml()
             .get_network(&network_key)?;
 
-        let filtered_tokens: Vec<_> = tokens
-            .into_iter()
-            .filter(|(_, token)| token.network.key == network_key)
-            .collect();
-
         let mut fetch_futures = Vec::new();
         let mut results = Vec::new();
 
-        for (_, token) in filtered_tokens {
+        for (_, token) in tokens
+            .into_iter()
+            .filter(|(_, token)| token.network.key == network_key)
+        {
             if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
                 let erc20 = ERC20::new(network.rpc.clone(), token.address);
                 fetch_futures.push(async move {
@@ -174,10 +173,18 @@ impl DotrainOrderGui {
             }
         }
 
-        let fetched_results = futures::future::try_join_all(fetch_futures).await?;
+        let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
+            .map(|fut| fut)
+            .buffered(5)
+            .try_collect()
+            .await?;
         results.extend(fetched_results);
+        results.sort_by(|a, b| {
+            let na = a.name.to_lowercase();
+            let nb = b.name.to_lowercase();
+            na.cmp(&nb).then_with(|| a.address.cmp(&b.address))
+        });
 
-        results.sort_by_key(|t| t.name.to_lowercase());
         Ok(results)
     }
 }
