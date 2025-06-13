@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use alloy_ethers_typecast::transaction::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use futures;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{

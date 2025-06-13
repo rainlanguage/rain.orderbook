@@ -136,20 +136,49 @@ impl DotrainOrderGui {
     }
 
     #[wasm_export(js_name = "getAllTokens", unchecked_return_type = "TokenInfo[]")]
-    pub fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
+    pub async fn get_all_tokens(&self) -> Result<Vec<TokenInfo>, GuiError> {
         let network_key = self.get_network_key()?;
         let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
-        let filtered_tokens = tokens
+        let network = self
+            .dotrain_order
+            .orderbook_yaml()
+            .get_network(&network_key)?;
+
+        let filtered_tokens: Vec<_> = tokens
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
-            .map(|(_, token)| TokenInfo {
-                address: token.address,
-                decimals: token.decimals.unwrap_or(18),
-                name: token.label.unwrap_or_else(|| token.key.clone()),
-                symbol: token.symbol.unwrap_or_else(|| token.key.clone()),
-            })
             .collect();
-        Ok(filtered_tokens)
+
+        let mut fetch_futures = Vec::new();
+        let mut results = Vec::new();
+
+        for (_, token) in filtered_tokens {
+            if token.decimals.is_none() || token.label.is_none() || token.symbol.is_none() {
+                let erc20 = ERC20::new(network.rpc.clone(), token.address);
+                fetch_futures.push(async move {
+                    let token_info = erc20.token_info(None).await?;
+                    Ok::<TokenInfo, GuiError>(TokenInfo {
+                        address: token.address,
+                        decimals: token_info.decimals,
+                        name: token_info.name,
+                        symbol: token_info.symbol,
+                    })
+                });
+            } else {
+                results.push(TokenInfo {
+                    address: token.address,
+                    decimals: token.decimals.unwrap(),
+                    name: token.label.unwrap(),
+                    symbol: token.symbol.unwrap(),
+                });
+            }
+        }
+
+        let fetched_results = futures::future::try_join_all(fetch_futures).await?;
+        results.extend(fetched_results);
+
+        results.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(results)
     }
 }
 
@@ -391,7 +420,7 @@ mod tests {
                 "TO".to_string(),
             );
 
-            let tokens = gui.get_all_tokens().unwrap();
+            let tokens = gui.get_all_tokens().await.unwrap();
             assert_eq!(tokens.len(), 4);
             assert_eq!(
                 tokens[0].address.to_string(),
