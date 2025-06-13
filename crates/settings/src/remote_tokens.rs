@@ -220,7 +220,7 @@ using-tokens-from: {}
             "decimals": 18
         }
     ],
-    "logoUri": "http://localhost.com"
+    "logoURI": "http://localhost.com"
 }
         "#;
         server
